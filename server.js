@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { createServer } = require("http");
@@ -3023,7 +3024,7 @@ function describeAssetBuffer(buffer) {
   };
 }
 
-app.get("/", async (_req, res) => {
+app.get("/api", async (_req, res) => {
   const counts = await getUsageCounts();
 
   res.json({
