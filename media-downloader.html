@@ -120,6 +120,547 @@
   </style>
   <link rel="stylesheet" href="./global-shell.css" />
   <link rel="stylesheet" href="./template-tool-layout.css" />
+<style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+    }
+
+    #rblx-media-stack,
+    #rblx-media-stack * {
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #rblx-media-stack {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 0;
+      background: transparent;
+      perspective: 1200px;
+    }
+
+    #rblx-media-shell {
+      width: 100%;
+      max-width: 430px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .rblx-media-card {
+      width: 100%;
+      background:
+        radial-gradient(circle at top, rgba(255, 72, 72, 0.10), transparent 36%),
+        linear-gradient(180deg, #2c2a2a 0%, #222222 100%);
+      border-radius: 18px;
+      padding: 24px 20px 20px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+      transform-style: preserve-3d;
+      transition: transform 0.16s ease, filter 0.16s ease, border-color 0.16s ease;
+      will-change: transform;
+    }
+
+    .rblx-badge {
+      display: none !important;
+    }
+
+    .rblx-title {
+      margin: 0;
+      color: #ffffff;
+      font-size: 28px;
+      line-height: 0.97;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .rblx-title span {
+      display: block;
+    }
+
+    .rblx-title span:first-child {
+      color: #ffd0d0;
+    }
+
+    .rblx-title span:last-child {
+      color: #ff2b2b;
+      text-shadow: 0 8px 22px rgba(255, 34, 34, 0.18);
+    }
+
+    .rblx-subtitle {
+      margin: 12px 0 12px;
+      color: #a8adb4;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.55;
+    }
+
+    .rblx-notice {
+      margin: 0 0 16px;
+      padding: 12px 13px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #d4d8de;
+      font-size: 11px;
+      line-height: 1.55;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .rblx-notice strong {
+      color: #ffffff;
+    }
+
+    .rblx-warning-pill {
+      display: none;
+      margin: 12px 0 0;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255, 210, 74, 0.12);
+      border: 1px solid rgba(255, 210, 74, 0.24);
+      color: #ffd977;
+      font-size: 11px;
+      line-height: 1.4;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .rblx-warning-pill.visible {
+      display: block;
+    }
+
+    .rblx-field,
+    .rblx-select {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 96, 96, 0.28);
+      background: #2f2f2f;
+      color: #ffffff;
+      padding: 0 14px;
+      outline: none;
+      font-size: 13px;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    .rblx-field {
+      margin-bottom: 12px;
+    }
+
+    .rblx-select {
+      margin-bottom: 14px;
+      appearance: none;
+    }
+
+    .rblx-field::placeholder {
+      color: #8f8f8f;
+    }
+
+    .rblx-field:focus,
+    .rblx-select:focus {
+      border-color: #ff8b8b;
+      box-shadow: 0 0 0 3px rgba(255, 102, 102, 0.12);
+      background: #343434;
+    }
+
+    .rblx-label {
+      margin: 0 0 8px;
+      color: #f5f5f5;
+      font-size: 11px;
+      text-align: left;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+    }
+
+    .rblx-button,
+    .rblx-soft-button,
+    .rblx-icon-button {
+      border: none;
+      color: #ffffff;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .rblx-button {
+      width: 100%;
+      min-height: 42px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ff3333 0%, #ff1111 100%);
+      box-shadow: 0 12px 24px rgba(255, 20, 20, 0.18);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .rblx-soft-button {
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #3a3a3a 0%, #2d2d2d 100%);
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .rblx-icon-button {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.58);
+      border: 1px solid rgba(255,255,255,0.10);
+      font-size: 18px;
+      font-weight: 900;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+    }
+
+    .rblx-icon-button.left {
+      left: 8px;
+    }
+
+    .rblx-icon-button.right {
+      right: 8px;
+    }
+
+    .rblx-button:hover,
+    .rblx-soft-button:hover,
+    .rblx-icon-button:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    .rblx-icon-button:hover {
+      transform: translateY(-50%);
+    }
+
+    .rblx-button:disabled {
+      cursor: wait;
+      opacity: 0.86;
+    }
+
+    .rblx-status {
+      min-height: 22px;
+      margin-top: 12px;
+      color: #f0f0f0;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .rblx-status.success {
+      color: #4cff88;
+      font-weight: 800;
+    }
+
+    .rblx-status.error {
+      color: #ff6a6a;
+      font-weight: 800;
+    }
+
+    .rblx-result {
+      margin-top: 14px;
+      text-align: left;
+    }
+
+    .rblx-preview-shell {
+      background: #1d1d1d;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .rblx-placeholder {
+      width: 100%;
+      min-height: 340px;
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at top, rgba(255, 70, 70, 0.09), transparent 34%),
+        linear-gradient(180deg, #262626 0%, #1b1b1b 100%);
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #9ca3ad;
+      font-weight: 800;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .rblx-placeholder-screen {
+      width: 100%;
+      max-width: 300px;
+      min-height: 156px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f3f4f7 0%, #e2e6ec 100%);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      margin-bottom: 16px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    .rblx-placeholder-topbar {
+      display: grid;
+      grid-template-columns: 62px 1fr 44px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .rblx-placeholder-chip {
+      min-height: 24px;
+      border-radius: 999px;
+      background: rgba(255, 55, 55, 0.14);
+      color: #d84d4d;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .rblx-placeholder-line {
+      height: 10px;
+      border-radius: 999px;
+      background: #c5ccd7;
+    }
+
+    .rblx-placeholder-dot {
+      width: 28px;
+      height: 28px;
+      margin-left: auto;
+      border-radius: 999px;
+      background: #ff3d3d;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .rblx-placeholder-main {
+      display: grid;
+      grid-template-columns: 1.4fr 0.8fr;
+      gap: 10px;
+    }
+
+    .rblx-placeholder-thumb {
+      min-height: 96px;
+      border-radius: 12px;
+      background:
+        linear-gradient(135deg, rgba(255, 84, 84, 0.22), rgba(255, 184, 79, 0.20)),
+        #cfd6df;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rblx-placeholder-thumb::before {
+      content: "";
+      position: absolute;
+      inset: 16px auto auto 16px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.82);
+      box-shadow: 46px 0 0 rgba(255,255,255,0.68), 92px 0 0 rgba(255,255,255,0.54);
+    }
+
+    .rblx-placeholder-thumb::after {
+      content: "";
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 14px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.34));
+    }
+
+    .rblx-placeholder-side {
+      min-height: 96px;
+      border-radius: 12px;
+      background: #d9dee5;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rblx-placeholder-side::before,
+    .rblx-placeholder-side::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(120, 130, 145, 0.34);
+    }
+
+    .rblx-placeholder-side::before {
+      top: 18px;
+      box-shadow: 0 24px 0 rgba(120, 130, 145, 0.24), 0 48px 0 rgba(120, 130, 145, 0.18);
+    }
+
+    .rblx-placeholder-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .rblx-placeholder-tile {
+      min-height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #1b8fe0 0%, #0d6fbc 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rblx-placeholder-tile:nth-child(2) {
+      background: linear-gradient(180deg, #ff4040 0%, #e91f1f 100%);
+    }
+
+    .rblx-placeholder-tile:nth-child(3) {
+      background: linear-gradient(180deg, #ffca2b 0%, #efb21a 100%);
+    }
+
+    .rblx-placeholder-tile:nth-child(4) {
+      background: linear-gradient(180deg, #0fc971 0%, #0aa65d 100%);
+    }
+
+    .rblx-placeholder-tile::after {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.22);
+    }
+
+    .rblx-preview-carousel {
+      position: relative;
+    }
+
+    .rblx-preview-stage {
+      min-height: 340px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #151515;
+    }
+
+    .rblx-preview-stage img {
+      width: 100%;
+      max-width: 500px;
+      max-height: 340px;
+      object-fit: contain;
+      border-radius: 8px;
+      display: block;
+      margin: 0 auto;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+      image-rendering: auto;
+    }
+
+    .rblx-meta-row {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .rblx-meta-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #303030;
+      color: #d3d3d3;
+      font-size: 10px;
+      font-weight: 800;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .rblx-meta-pill.highlight {
+      background: linear-gradient(180deg, rgba(255, 62, 62, 0.24), rgba(255, 140, 60, 0.20));
+      color: #ffe0b0;
+      border-color: rgba(255, 124, 84, 0.28);
+      box-shadow: 0 8px 20px rgba(255, 90, 40, 0.12);
+    }
+
+    .rblx-action-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .rblx-result-card {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .rblx-result-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .rblx-result-title {
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 900;
+      margin: 0;
+    }
+
+    .rblx-result-copy {
+      color: #a8adb4;
+      font-size: 11px;
+      font-weight: 700;
+      margin: 2px 0 0;
+    }
+
+    .hidden {
+      display: none;
+    }
+      #rblx-media-stack {
+      height: 100%;
+      align-items: stretch !important;
+    }
+
+    #rblx-media-shell {
+      height: 100%;
+      grid-template-rows: 1fr;
+      align-content: stretch;
+    }
+
+    .rblx-media-card {
+      min-height: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
 </head>
 <body>
   <div class="bg-wrap">
@@ -136,7 +677,76 @@
     </section>
 
     <section class="top-grid">
-      <div id="toolMount" data-src="./tool-embeds/media-downloader-tool.html"></div>
+      <div id="toolMount">
+<div id="rblx-media-stack">
+  
+
+  <div id="rblx-media-shell">
+    <div class="rblx-media-card" id="rblxMediaCard">
+      <div class="rblx-badge">Roblox Media</div>
+
+      <h2 class="rblx-title">
+        <span>Media</span>
+        <span>Downloader</span>
+      </h2>
+
+      <p class="rblx-subtitle">Download Roblox game thumbnails, logos, group icons, badge icons, game pass icons, and more.</p>
+
+      <div class="rblx-notice">
+        <strong>Choose the exact Roblox media type first.</strong> Games with multiple thumbnails will show in a slideshow, and you can download the current file or all files.
+      </div>
+
+      <div class="rblx-label">Roblox Asset ID</div>
+      <input id="mediaInput" class="rblx-field" type="text" placeholder="Ex: 92416421522960" />
+
+      <div class="rblx-label">Media Type</div>
+      <select id="mediaKind" class="rblx-select">
+        <option value="">Choose Media Type</option>
+        <option value="game">Game Logo / Thumbnails</option>
+        <option value="badge">Badge</option>
+        <option value="developerproduct">Developer Product</option>
+        <option value="gamepass">Game Pass</option>
+        <option value="group">Group</option>
+        <option value="asset">Asset</option>
+        <option value="bundle">Bundle</option>
+        <option value="outfit">Outfit</option>
+        <option value="user">User Headshot</option>
+      </select>
+
+      <button id="fetchButton" class="rblx-button" type="button">Fetch Media</button>
+
+      <div id="status" class="rblx-status"></div>
+
+      <div id="result" class="rblx-result">
+        <div class="rblx-preview-shell">
+          <div class="rblx-placeholder">
+            <div class="rblx-placeholder-screen">
+              <div class="rblx-placeholder-topbar">
+                <div class="rblx-placeholder-chip">Media</div>
+                <div class="rblx-placeholder-line"></div>
+                <div class="rblx-placeholder-dot">&#128247;</div>
+              </div>
+              <div class="rblx-placeholder-main">
+                <div class="rblx-placeholder-thumb"></div>
+                <div class="rblx-placeholder-side"></div>
+              </div>
+              <div class="rblx-placeholder-row">
+                <div class="rblx-placeholder-tile"></div>
+                <div class="rblx-placeholder-tile"></div>
+                <div class="rblx-placeholder-tile"></div>
+                <div class="rblx-placeholder-tile"></div>
+              </div>
+            </div>
+            <p>Your Roblox media preview will pop up here.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+</div>
+      </div>
 
       <div class="side-stack">
         <article class="card promo-card">
@@ -243,9 +853,450 @@
       </div>
     </div>
   </div>
+  <script>
+    const API_BASE = window.location.origin;
+    const mediaInput = document.getElementById("mediaInput");
+    const mediaKind = document.getElementById("mediaKind");
+    const fetchButton = document.getElementById("fetchButton");
+    const statusBox = document.getElementById("status");
+    const resultBox = document.getElementById("result");
+    const root = document.getElementById("rblx-media-stack");
+    const mediaCard = document.getElementById("rblxMediaCard");
 
-  <script src="./tool-page-shell.js"></script>
-      <script>
+    let currentItems = [];
+    let currentIndex = 0;
+
+        function getActivityNameFromCache() {
+      function readNameFrom(value) {
+        const source = value && typeof value === "object" ? value : {};
+        const displayName = String(
+          source.displayName ||
+          source.profileDisplayName ||
+          source.publicDisplayName ||
+          source.username ||
+          source.name ||
+          ""
+        ).trim();
+        if (displayName) return displayName;
+        const email = String(source.email || source.userEmail || source.accountEmail || "").trim();
+        return email ? email.split("@")[0].trim() : "";
+      }
+
+      try {
+        const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+        const cachedUserId = String(cachedUser && cachedUser.id || "").trim();
+        const keys = [
+          cachedUserId ? "rblxtools_profile_overview:" + cachedUserId : "",
+          "rblxtools_profile_overview",
+          "rblxtools_account_profile",
+          cachedUserId ? "rblxtools_account_profile:" + cachedUserId : "",
+          "rblxtools_profile",
+          cachedUserId ? "rblxtools_profile:" + cachedUserId : ""
+        ].filter(Boolean);
+
+        for (const key of keys) {
+          const raw = localStorage.getItem(key) || "";
+          if (!raw) continue;
+          const parsed = JSON.parse(raw);
+          const nextName = readNameFrom(parsed);
+          if (nextName) return nextName;
+        }
+
+        const cachedName = readNameFrom(cachedUser);
+        if (cachedName) return cachedName;
+        return "";
+      } catch (_error) {
+        return "";
+      }
+    }
+
+
+    function rememberToolActivity(toolName) {
+      try {
+        var actorName = String(getActivityNameFromCache() || "Guest").trim() || "Guest";
+        var cacheKey = "rblxtools_tool_activity_cache";
+        var entries = [];
+        try {
+          entries = JSON.parse(localStorage.getItem(cacheKey) || "[]");
+          if (!Array.isArray(entries)) entries = [];
+        } catch (_error) {
+          entries = [];
+        }
+        entries = entries.filter(function (entry) {
+          return entry && typeof entry === "object";
+        }).slice(-79);
+        entries.push({
+          messageId: "",
+          toolName: String(toolName || "").trim(),
+          actorName: actorName,
+          createdAt: new Date().toISOString()
+        });
+        localStorage.setItem(cacheKey, JSON.stringify(entries.slice(-80)));
+      } catch (_error) {
+      }
+    }
+    async function postToolActivity(toolKey) {
+      try {
+        const token = localStorage.getItem("rblxtools_auth_token") || "";
+        let cachedUser = null;
+        try {
+          cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+        } catch (_error) {
+          cachedUser = null;
+        }
+        const headers = {
+          "Content-Type": "application/json"
+        };
+        if (token) {
+          headers.Authorization = "Bearer " + token;
+        }
+        await fetch(API_BASE + "/tool-activity", {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({
+            tool: toolKey,
+            displayName: getActivityNameFromCache(),
+            username: String(cachedUser && cachedUser.username || "").trim()
+          })
+        });
+      } catch (_error) {
+      }
+    }
+
+    function reportEmbedHeight() {
+      if (!root || !window.parent) return;
+
+      const height = Math.ceil(root.scrollHeight || root.getBoundingClientRect().height);
+      window.parent.postMessage(
+        {
+          type: "rblx-media-stack-resize",
+          height: height
+        },
+        "*"
+      );
+    }
+
+    function scheduleEmbedHeightReport() {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(reportEmbedHeight);
+      });
+    }
+
+    function setStatus(message, mode) {
+      statusBox.className = "rblx-status" + (mode ? " " + mode : "");
+      statusBox.textContent = message || "";
+      scheduleEmbedHeightReport();
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function normalizeUrl(value) {
+      const text = String(value || "").trim();
+      if (!text) return "";
+      if (/^https?:\/\//i.test(text)) return text;
+      if (text.startsWith("/")) return API_BASE + text;
+      return API_BASE + "/" + text.replace(/^\/+/, "");
+    }
+
+    function buildDefaultPreview() {
+      return `
+        <div class="rblx-preview-shell">
+          <div class="rblx-placeholder">
+            <div class="rblx-placeholder-screen">
+              <div class="rblx-placeholder-topbar">
+                <div class="rblx-placeholder-chip">Media</div>
+                <div class="rblx-placeholder-line"></div>
+                <div class="rblx-placeholder-dot">&#128247;</div>
+              </div>
+              <div class="rblx-placeholder-main">
+                <div class="rblx-placeholder-thumb"></div>
+                <div class="rblx-placeholder-side"></div>
+              </div>
+              <div class="rblx-placeholder-row">
+                <div class="rblx-placeholder-tile"></div>
+                <div class="rblx-placeholder-tile"></div>
+                <div class="rblx-placeholder-tile"></div>
+                <div class="rblx-placeholder-tile"></div>
+              </div>
+            </div>
+            <p>Your Roblox media preview will pop up here.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function getSafeFileName(item, fallback) {
+      const raw = String(item && item.fileName ? item.fileName : fallback || "roblox-media.png")
+        .replace(/[\\/:*?"<>|]+/g, "-")
+        .replace(/\s+/g, " ")
+        .trim();
+      return raw || "roblox-media.png";
+    }
+
+    async function downloadMediaItem(item) {
+      const downloadUrl = normalizeUrl(item.downloadUrl);
+      if (!downloadUrl) {
+        throw new Error("No download URL was found for this file.");
+      }
+
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        let message = "Could not download this file.";
+        try {
+          const payload = await response.json();
+          if (payload && payload.error) message = payload.error;
+        } catch (_error) {
+        }
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = getSafeFileName(item, "roblox-media.png");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(function () {
+        URL.revokeObjectURL(objectUrl);
+      }, 1500);
+    }
+
+    async function handleDownloadCurrent() {
+      if (!currentItems.length) return;
+
+      setStatus("Preparing download...");
+
+      try {
+        await downloadMediaItem(currentItems[currentIndex]);
+        setStatus("Download started.", "success");
+      } catch (error) {
+        setStatus(error.message || "Could not download this file.", "error");
+      }
+    }
+
+    async function handleDownloadAll() {
+      if (!currentItems.length) return;
+
+      setStatus("Preparing downloads...");
+
+      try {
+        for (let index = 0; index < currentItems.length; index += 1) {
+          await downloadMediaItem(currentItems[index]);
+        }
+        setStatus("All downloads started.", "success");
+      } catch (error) {
+        setStatus(error.message || "Could not download all files.", "error");
+      }
+    }
+
+    function updatePreview() {
+      if (!currentItems.length) return;
+
+      const activeItem = currentItems[currentIndex];
+      const image = document.getElementById("activePreviewImage");
+      const itemTitle = document.getElementById("activeItemTitle");
+      const counter = document.getElementById("previewCounter");
+      const warning = document.getElementById("previewWarning");
+      const modePill = document.getElementById("previewModePill");
+      const openButton = document.getElementById("openImageBtn");
+      const arrows = document.querySelectorAll(".rblx-icon-button");
+      const hasGameMix = currentItems.some(function (item) {
+        return item.kind === "game-icon";
+      }) && currentItems.some(function (item) {
+        return item.kind === "game-thumbnail";
+      });
+
+      image.src = activeItem.imageUrl;
+      image.alt = activeItem.label || "Roblox media preview";
+      itemTitle.textContent = activeItem.label || "Media";
+      counter.textContent = currentItems.length > 1
+        ? (currentIndex + 1) + " of " + currentItems.length
+        : "Single File";
+      if (modePill) {
+        modePill.textContent = hasGameMix ? "Game Logo + Thumbnails" : "Preview Ready";
+        modePill.classList.toggle("highlight", hasGameMix);
+      }
+      warning.classList.toggle("visible", currentItems.some(function (item) {
+        return /150\/150|420\/420/i.test(String(item.imageUrl || ""));
+      }));
+      openButton.onclick = function () {
+        window.open(activeItem.imageUrl, "_blank", "noopener,noreferrer");
+      };
+      arrows.forEach(function (button) {
+        button.classList.toggle("hidden", currentItems.length < 2);
+      });
+
+      scheduleEmbedHeightReport();
+    }
+
+    function showSlide(direction) {
+      if (currentItems.length < 2) return;
+      currentIndex = (currentIndex + direction + currentItems.length) % currentItems.length;
+      updatePreview();
+    }
+
+    function renderPreview(group) {
+      const normalizedItems = (group.items || []).map(function (item) {
+        return {
+          ...item,
+          imageUrl: normalizeUrl(item.imageUrl),
+          downloadUrl: normalizeUrl(item.downloadUrl),
+        };
+      });
+
+      currentItems = normalizedItems;
+      currentIndex = 0;
+
+      resultBox.innerHTML = `
+        <div class="rblx-result-card">
+          <div class="rblx-result-head">
+            <div>
+              <h3 class="rblx-result-title">${escapeHtml(group.title || "Media")}</h3>
+              <p class="rblx-result-copy">${escapeHtml(group.kind || "media")} &#8226; ID ${escapeHtml(group.id || "")}</p>
+            </div>
+            <div class="rblx-meta-pill">${normalizedItems.length} file${normalizedItems.length === 1 ? "" : "s"}</div>
+          </div>
+
+          <div class="rblx-preview-shell">
+            <div class="rblx-preview-carousel">
+              <button class="rblx-icon-button left hidden" type="button" id="prevSlideBtn">&lsaquo;</button>
+              <div class="rblx-preview-stage">
+                <img id="activePreviewImage" src="" alt="Roblox media preview" />
+              </div>
+              <button class="rblx-icon-button right hidden" type="button" id="nextSlideBtn">&rsaquo;</button>
+            </div>
+
+            <div class="rblx-meta-row">
+              <div class="rblx-meta-pill" id="previewModePill">Preview Ready</div>
+              <div class="rblx-meta-pill" id="activeItemTitle">Media</div>
+              <div class="rblx-meta-pill" id="previewCounter">Single File</div>
+            </div>
+
+            <div id="previewWarning" class="rblx-warning-pill">
+              &#9888;&#65039; Preview quality may look lower here. Actual download quality is better. &#9888;&#65039;
+            </div>
+
+            <div class="rblx-action-row">
+              <button id="downloadCurrentBtn" class="rblx-button" type="button" style="width:auto; min-width:152px;">Download File</button>
+              <button id="openImageBtn" class="rblx-soft-button" type="button">Open Image</button>
+              ${normalizedItems.length > 1 ? '<button id="downloadAllBtn" class="rblx-soft-button" type="button">Download All</button>' : ""}
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("prevSlideBtn").onclick = function () {
+        showSlide(-1);
+      };
+      document.getElementById("nextSlideBtn").onclick = function () {
+        showSlide(1);
+      };
+      document.getElementById("downloadCurrentBtn").onclick = handleDownloadCurrent;
+
+      const downloadAllBtn = document.getElementById("downloadAllBtn");
+      if (downloadAllBtn) {
+        downloadAllBtn.onclick = handleDownloadAll;
+      }
+
+      const image = document.getElementById("activePreviewImage");
+      image.onload = function () {
+        scheduleEmbedHeightReport();
+        setTimeout(scheduleEmbedHeightReport, 100);
+      };
+
+      updatePreview();
+    }
+
+    async function fetchMedia() {
+      const input = mediaInput.value.trim();
+      const kind = mediaKind.value.trim();
+
+      if (!input) {
+        setStatus("Enter a Roblox asset ID first.", "error");
+        mediaInput.focus();
+        return;
+      }
+
+      if (!kind) {
+        setStatus("Choose the media type first.", "error");
+        mediaKind.focus();
+        return;
+      }
+
+      fetchButton.disabled = true;
+      fetchButton.textContent = "Loading...";
+      setStatus("Fetching media...");
+      resultBox.innerHTML = buildDefaultPreview();
+      scheduleEmbedHeightReport();
+
+      try {
+        const params = new URLSearchParams({
+          input: input,
+          kind: kind,
+          displayName: getActivityNameFromCache()
+        });
+
+        const response = await fetch(API_BASE + "/media?" + params.toString());
+        const payload = await response.json().catch(function () {
+          return null;
+        });
+
+        if (!response.ok) {
+          throw new Error((payload && payload.error) || "Could not fetch media.");
+        }
+
+        const firstGroup = payload && Array.isArray(payload.results) ? payload.results[0] : null;
+        if (!firstGroup || !Array.isArray(firstGroup.items) || !firstGroup.items.length) {
+          throw new Error("No Roblox media was found for that ID.");
+        }
+
+        renderPreview(firstGroup);
+        rememberToolActivity("Media Downloader");
+        setStatus("Media loaded. Download is ready.", "success");
+      } catch (error) {
+        resultBox.innerHTML = buildDefaultPreview();
+        setStatus(error.message || "Could not fetch media.", "error");
+      } finally {
+        fetchButton.disabled = false;
+        fetchButton.textContent = "Fetch Media";
+        scheduleEmbedHeightReport();
+      }
+    }
+
+    fetchButton.addEventListener("click", fetchMedia);
+
+    mediaInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        fetchMedia();
+      }
+    });
+
+    if ("ResizeObserver" in window) {
+      const observer = new ResizeObserver(function () {
+        scheduleEmbedHeightReport();
+      });
+      observer.observe(root);
+    }
+
+    window.addEventListener("load", function () {
+      scheduleEmbedHeightReport();
+      setTimeout(scheduleEmbedHeightReport, 150);
+      setTimeout(scheduleEmbedHeightReport, 500);
+    });
+
+    window.addEventListener("resize", scheduleEmbedHeightReport);
+  </script>
+<script>
     (function () {
       function syncMediaToolHeight() {
         const sideStack = document.querySelector(".side-stack");

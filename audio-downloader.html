@@ -101,6 +101,465 @@
   </style>
   <link rel="stylesheet" href="./global-shell.css" />
   <link rel="stylesheet" href="./template-tool-layout.css" />
+<style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+    }
+
+    #rblx-audio-stack,
+    #rblx-audio-stack * {
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #rblx-audio-stack {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 16px 10px;
+      background: transparent;
+      perspective: 1200px;
+    }
+
+    #rblx-audio-shell {
+      width: 100%;
+      max-width: 430px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .rblx-audio-card {
+      width: 100%;
+      background:
+        radial-gradient(circle at top, rgba(255, 72, 72, 0.10), transparent 36%),
+        linear-gradient(180deg, #2c2a2a 0%, #222222 100%);
+      border-radius: 18px;
+      padding: 24px 20px 20px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+      transform-style: preserve-3d;
+      transition: transform 0.16s ease, filter 0.16s ease, border-color 0.16s ease;
+      will-change: transform;
+    }
+
+    .rblx-badge {
+      display: none !important;
+    }
+
+    .rblx-title {
+      margin: 0;
+      color: #ffffff;
+      font-size: 28px;
+      line-height: 0.97;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .rblx-title span {
+      display: block;
+    }
+
+    .rblx-title span:first-child {
+      color: #ffd0d0;
+    }
+
+    .rblx-title span:last-child {
+      color: #ff2b2b;
+      text-shadow: 0 8px 22px rgba(255, 34, 34, 0.18);
+    }
+
+    .rblx-subtitle {
+      margin: 12px 0 12px;
+      color: #a8adb4;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.55;
+    }
+
+    .rblx-notice {
+      margin: 0 0 16px;
+      padding: 12px 13px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #d4d8de;
+      font-size: 11px;
+      line-height: 1.55;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .rblx-notice strong {
+      color: #ffffff;
+    }
+
+    .rblx-field {
+      width: 100%;
+      min-height: 74px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 96, 96, 0.70);
+      background: #2f2f2f;
+      color: #ffffff;
+      padding: 12px 14px;
+      outline: none;
+      font-size: 13px;
+      line-height: 1.45;
+      resize: vertical;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    .rblx-field::placeholder {
+      color: #8f8f8f;
+    }
+
+    .rblx-field:focus {
+      border-color: #ff8b8b;
+      box-shadow: 0 0 0 3px rgba(255, 102, 102, 0.12);
+      background: #343434;
+    }
+
+    #plusNotice {
+      margin: 0 0 16px;
+      padding: 12px 13px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #d4d8de;
+      font-size: 11px;
+      line-height: 1.55;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    #plusNotice strong {
+      color: #ffffff;
+    }
+
+    #plusNotice .plusWord,
+    #audioStatus .plusWord {
+      display: inline-block;
+      background: linear-gradient(180deg, #ffffff 0%, #eef1f5 26%, #cfd5dc 58%, #aeb7c1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+      font-weight: 900;
+      background-size: 100% 220%;
+      animation: rblxPlusShimmer 2.8s ease-in-out infinite;
+      text-shadow: 0 0 10px rgba(214, 224, 235, 0.10);
+    }
+
+    #plusNotice code {
+      margin-top: 7px;
+      color: #ffb5b5;
+      font-size: 10px;
+      line-height: 1.5;
+      white-space: nowrap;
+      word-break: break-word;
+      overflow-x: auto;
+    }
+
+    .rblx-label {
+      margin: 0 0 8px;
+      color: #f5f5f5;
+      font-size: 11px;
+      text-align: left;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+    }
+
+    .rblx-button,
+    .rblx-soft-button {
+      border: none;
+      color: #ffffff;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .rblx-button {
+      width: 100%;
+      min-height: 42px;
+      margin-top: 14px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ff3333 0%, #ff1111 100%);
+      box-shadow: 0 12px 24px rgba(255, 20, 20, 0.18);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .rblx-soft-button {
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #3a3a3a 0%, #2d2d2d 100%);
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .rblx-button:hover,
+    .rblx-soft-button:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    .rblx-button:disabled {
+      cursor: wait;
+      opacity: 0.86;
+    }
+
+    .rblx-status {
+      min-height: 22px;
+      margin-top: 12px;
+      color: #f0f0f0;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .rblx-status.success {
+      color: #4cff88;
+      font-weight: 800;
+    }
+
+    .rblx-status.error {
+      color: #ff6a6a;
+      font-weight: 800;
+    }
+
+    .rblx-status a {
+      text-decoration: none;
+      font-weight: 900;
+    }
+
+    .rblx-result {
+      margin-top: 14px;
+      text-align: left;
+    }
+
+    .rblx-preview-shell {
+      background: #1d1d1d;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .rblx-placeholder {
+      width: 100%;
+      min-height: 250px;
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at top, rgba(255, 70, 70, 0.09), transparent 34%),
+        linear-gradient(180deg, #262626 0%, #1b1b1b 100%);
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #9ca3ad;
+      font-weight: 800;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .rblx-placeholder-player {
+      width: 100%;
+      max-width: 300px;
+      min-height: 156px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f3f4f7 0%, #e2e6ec 100%);
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    .rblx-audio-bar {
+      height: 12px;
+      border-radius: 999px;
+      background: #c6ccd6;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rblx-audio-bar::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 46%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ff4040, #ff8f2a);
+    }
+
+    .rblx-audio-wave {
+      display: grid;
+      grid-template-columns: repeat(16, 1fr);
+      gap: 6px;
+      align-items: end;
+      min-height: 78px;
+    }
+
+    .rblx-audio-wave span {
+      display: block;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ff4b4b 0%, #1b8fe0 100%);
+      opacity: 0.92;
+    }
+
+    .rblx-audio-wave span:nth-child(1) { height: 22px; }
+    .rblx-audio-wave span:nth-child(2) { height: 48px; }
+    .rblx-audio-wave span:nth-child(3) { height: 30px; }
+    .rblx-audio-wave span:nth-child(4) { height: 60px; }
+    .rblx-audio-wave span:nth-child(5) { height: 26px; }
+    .rblx-audio-wave span:nth-child(6) { height: 70px; }
+    .rblx-audio-wave span:nth-child(7) { height: 38px; }
+    .rblx-audio-wave span:nth-child(8) { height: 56px; }
+    .rblx-audio-wave span:nth-child(9) { height: 24px; }
+    .rblx-audio-wave span:nth-child(10) { height: 64px; }
+    .rblx-audio-wave span:nth-child(11) { height: 34px; }
+    .rblx-audio-wave span:nth-child(12) { height: 58px; }
+    .rblx-audio-wave span:nth-child(13) { height: 28px; }
+    .rblx-audio-wave span:nth-child(14) { height: 52px; }
+    .rblx-audio-wave span:nth-child(15) { height: 20px; }
+    .rblx-audio-wave span:nth-child(16) { height: 44px; }
+
+    .rblx-player-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .rblx-player-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ff3b3b, #f01414);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: 0 8px 20px rgba(255, 20, 20, 0.2);
+    }
+
+    .rblx-result-card {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .rblx-result-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .rblx-result-title {
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 900;
+      margin: 0;
+    }
+
+    .rblx-result-copy {
+      color: #a8adb4;
+      font-size: 11px;
+      font-weight: 700;
+      margin: 2px 0 0;
+    }
+
+    .rblx-meta-row {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .rblx-meta-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #303030;
+      color: #d3d3d3;
+      font-size: 10px;
+      font-weight: 800;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .rblx-audio-preview {
+      border-radius: 10px;
+      background: #151515;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .rblx-audio-preview audio {
+      width: 100%;
+      display: block;
+      margin-top: 10px;
+    }
+
+    .rblx-action-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .previewArrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.58);
+      border: 1px solid rgba(255,255,255,0.10);
+      font-size: 18px;
+      font-weight: 900;
+      z-index: 3;
+      border: none;
+      color: #ffffff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.14s ease, filter 0.14s ease;
+    }
+
+    .previewArrow.left {
+      left: 8px;
+    }
+
+    .previewArrow.right {
+      right: 8px;
+    }
+
+    .previewArrow.hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
   <div class="bg-wrap">
@@ -117,7 +576,60 @@
     </section>
 
     <section class="top-grid">
-      <div id="toolMount" data-src="./tool-embeds/audio-downloader-tool.html"></div>
+      <div id="toolMount">
+<div id="rblx-audio-stack">
+  
+
+  <div id="rblx-audio-shell">
+    <div class="rblx-audio-card" id="rblxAudioCard">
+      <div class="rblx-badge">Roblox Audio</div>
+
+      <h2 class="rblx-title">
+        <span>Audio</span>
+        <span>Downloader</span>
+      </h2>
+
+      <p class="rblx-subtitle">Download Roblox audio assets using the raw Roblox audio asset ID.</p>
+
+      <div id="plusNotice">
+        Users on the free plan can download unlimited audios 1 by 1. <span class="plusWord">Plus</span> users can download 2-5 at a time with comma-separated audio asset IDs.
+        <code>Ex: 1843529606, 142376088, 9048375034</code>
+      </div>
+
+      <div class="rblx-label">Roblox Audio Asset ID</div>
+      <textarea id="audioInput" class="rblx-field" placeholder="Enter one Roblox audio asset ID, or comma-separated IDs for Plus"></textarea>
+
+      <button id="audioButton" class="rblx-button" type="button">Fetch Audio</button>
+
+      <div id="audioStatus" class="rblx-status"></div>
+
+      <div id="audioResult" class="rblx-result">
+        <div class="rblx-preview-shell">
+          <div class="rblx-placeholder">
+            <div class="rblx-placeholder-player">
+              <div class="rblx-audio-bar"></div>
+              <div class="rblx-audio-wave">
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+              </div>
+              <div class="rblx-player-buttons">
+                <div class="rblx-player-dot">&#9835;</div>
+                <div class="rblx-player-dot">&#9654;</div>
+                <div class="rblx-player-dot">&#9834;</div>
+              </div>
+            </div>
+            <p>Your Roblox audio preview will pop up here.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+</div>
+      </div>
 
       <div class="side-stack">
         <article class="card promo-card">
@@ -224,9 +736,484 @@
       </div>
     </div>
   </div>
-
-  <script src="./tool-page-shell.js"></script>
   <script>
+    const API_BASE = window.location.origin;
+    const TOKEN_KEY = "rblxtools_auth_token";
+    const audioInput = document.getElementById("audioInput");
+    const audioButton = document.getElementById("audioButton");
+    const audioStatus = document.getElementById("audioStatus");
+    const audioResult = document.getElementById("audioResult");
+    const audioRoot = document.getElementById("rblx-audio-stack");
+    const audioCard = document.getElementById("rblxAudioCard");
+
+    function reportEmbedHeight() {
+      if (!audioRoot || !window.parent) return;
+
+      const height = Math.ceil(audioRoot.scrollHeight || audioRoot.getBoundingClientRect().height);
+      window.parent.postMessage(
+        {
+          type: "rblx-audio-stack-resize",
+          height: height
+        },
+        "*"
+      );
+    }
+
+    function scheduleEmbedHeightReport() {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(reportEmbedHeight);
+      });
+    }
+
+    function setStatus(message, mode) {
+      audioStatus.className = "rblx-status" + (mode ? " " + mode : "");
+      audioStatus.textContent = message || "";
+      scheduleEmbedHeightReport();
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function normalizeUrl(value) {
+      const text = String(value || "").trim();
+      if (!text) return "";
+      if (/^https?:\/\//i.test(text)) return text;
+      if (text.startsWith("/")) return API_BASE + text;
+      return API_BASE + "/" + text.replace(/^\/+/, "");
+    }
+
+    let currentAudios = [];
+    let currentAudioIndex = 0;
+
+        function getActivityNameFromCache() {
+      function readNameFrom(value) {
+        const source = value && typeof value === "object" ? value : {};
+        const displayName = String(
+          source.displayName ||
+          source.profileDisplayName ||
+          source.publicDisplayName ||
+          source.username ||
+          source.name ||
+          ""
+        ).trim();
+        if (displayName) return displayName;
+        const email = String(source.email || source.userEmail || source.accountEmail || "").trim();
+        return email ? email.split("@")[0].trim() : "";
+      }
+
+      try {
+        const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+        const cachedUserId = String(cachedUser && cachedUser.id || "").trim();
+        const keys = [
+          cachedUserId ? "rblxtools_profile_overview:" + cachedUserId : "",
+          "rblxtools_profile_overview",
+          "rblxtools_account_profile",
+          cachedUserId ? "rblxtools_account_profile:" + cachedUserId : "",
+          "rblxtools_profile",
+          cachedUserId ? "rblxtools_profile:" + cachedUserId : ""
+        ].filter(Boolean);
+
+        for (const key of keys) {
+          const raw = localStorage.getItem(key) || "";
+          if (!raw) continue;
+          const parsed = JSON.parse(raw);
+          const nextName = readNameFrom(parsed);
+          if (nextName) return nextName;
+        }
+
+        const cachedName = readNameFrom(cachedUser);
+        if (cachedName) return cachedName;
+        return "";
+      } catch (_error) {
+        return "";
+      }
+    }
+
+
+    function rememberToolActivity(toolName) {
+      try {
+        var actorName = String(getActivityNameFromCache() || "Guest").trim() || "Guest";
+        var cacheKey = "rblxtools_tool_activity_cache";
+        var entries = [];
+        try {
+          entries = JSON.parse(localStorage.getItem(cacheKey) || "[]");
+          if (!Array.isArray(entries)) entries = [];
+        } catch (_error) {
+          entries = [];
+        }
+        entries = entries.filter(function (entry) {
+          return entry && typeof entry === "object";
+        }).slice(-79);
+        entries.push({
+          messageId: "",
+          toolName: String(toolName || "").trim(),
+          actorName: actorName,
+          createdAt: new Date().toISOString()
+        });
+        localStorage.setItem(cacheKey, JSON.stringify(entries.slice(-80)));
+      } catch (_error) {
+      }
+    }
+    async function postToolActivity(toolKey) {
+      try {
+        const token = getStoredToken();
+        let cachedUser = null;
+        try {
+          cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+        } catch (_error) {
+          cachedUser = null;
+        }
+        const headers = {
+          "Content-Type": "application/json"
+        };
+        if (token) {
+          headers.Authorization = "Bearer " + token;
+        }
+        await fetch(API_BASE + "/tool-activity", {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({
+            tool: toolKey,
+            displayName: getActivityNameFromCache(),
+            username: String(cachedUser && cachedUser.username || "").trim()
+          })
+        });
+      } catch (_error) {
+      }
+    }
+
+    function normalizeIds(rawValue) {
+      return String(rawValue || "")
+        .split(",")
+        .map(function (value) { return value.trim(); })
+        .filter(Boolean);
+    }
+
+    function getStoredToken() {
+      try {
+        return localStorage.getItem(TOKEN_KEY) || "";
+      } catch (e) {
+        return "";
+      }
+    }
+
+    function hasPlusFromPayload(payload) {
+      if (!payload || typeof payload !== "object") return false;
+      return Boolean(
+        payload.plus === true ||
+        payload.isPlus === true ||
+        payload.hasPlus === true ||
+        payload.plusActive === true ||
+        payload.subscription === "plus" ||
+        payload.plan === "plus" ||
+        payload.tier === "plus"
+      );
+    }
+
+    async function fetchPlusStatus() {
+      const token = getStoredToken();
+      if (!token) return false;
+
+      try {
+        const premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
+          method: "GET",
+          headers: {
+            Authorization: "Bearer " + token
+          }
+        });
+
+        if (premiumResponse.ok) {
+          const premiumPayload = await premiumResponse.json().catch(function () { return null; });
+          return hasPlusFromPayload(premiumPayload);
+        }
+
+        if (premiumResponse.status === 401 || premiumResponse.status === 403) {
+          return false;
+        }
+
+        const response = await fetch(API_BASE + "/auth/me", {
+          method: "GET",
+          headers: {
+            Authorization: "Bearer " + token
+          }
+        });
+
+        if (!response.ok) return false;
+        const payload = await response.json().catch(function () { return null; });
+        return hasPlusFromPayload(payload);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function buildDefaultPreview() {
+      return `
+        <div class="rblx-preview-shell">
+          <div class="rblx-placeholder">
+            <div class="rblx-placeholder-player">
+              <div class="rblx-audio-bar"></div>
+              <div class="rblx-audio-wave">
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+              </div>
+              <div class="rblx-player-buttons">
+                <div class="rblx-player-dot">&#9835;</div>
+                <div class="rblx-player-dot">&#9654;</div>
+                <div class="rblx-player-dot">&#9834;</div>
+              </div>
+            </div>
+            <p>Your Roblox audio preview will pop up here.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    async function downloadAudioFile(url, fileName) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        let message = "Could not download this audio file.";
+        try {
+          const payload = await response.json();
+          if (payload && payload.error) message = payload.error;
+        } catch (_error) {
+        }
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName || "roblox-audio";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(function () {
+        URL.revokeObjectURL(objectUrl);
+      }, 1500);
+    }
+
+    function updateAudioCarousel() {
+      if (!currentAudios.length) return;
+
+      const activeAudio = currentAudios[currentAudioIndex];
+      const player = document.getElementById("audioPreviewPlayer");
+      const title = document.getElementById("audioPreviewTitle");
+      const counter = document.getElementById("audioPreviewCounter");
+      const file = document.getElementById("audioPreviewFile");
+      const arrows = document.querySelectorAll(".previewArrow");
+
+      player.src = activeAudio.streamUrl;
+      player.load();
+      title.textContent = activeAudio.title || "Audio Ready";
+      file.textContent = activeAudio.fileName || "";
+      counter.textContent = currentAudios.length > 1
+        ? (currentAudioIndex + 1) + " of " + currentAudios.length
+        : "Single Audio";
+
+      arrows.forEach(function (button) {
+        button.classList.toggle("hidden", currentAudios.length < 2);
+      });
+
+      scheduleEmbedHeightReport();
+    }
+
+    function showAudio(direction) {
+      if (currentAudios.length < 2) return;
+      currentAudioIndex = (currentAudioIndex + direction + currentAudios.length) % currentAudios.length;
+      updateAudioCarousel();
+    }
+
+    async function downloadAllAudios() {
+      if (!currentAudios.length) return;
+
+      setStatus("Preparing audio downloads...");
+
+      try {
+        for (let index = 0; index < currentAudios.length; index += 1) {
+          await downloadAudioFile(currentAudios[index].downloadUrl, currentAudios[index].fileName);
+        }
+        setStatus("All audio downloads started.", "success");
+      } catch (error) {
+        setStatus(error.message || "Could not download all audio files.", "error");
+      }
+    }
+
+    function renderAudios(payloads) {
+      currentAudios = payloads.map(function (payload) {
+        return {
+          title: payload.title || "Audio Ready",
+          assetId: payload.assetId,
+          fileName: payload.fileName || ("roblox-audio-" + payload.assetId),
+          mime: payload.mime || "audio",
+          streamUrl: normalizeUrl(payload.streamUrl),
+          downloadUrl: normalizeUrl(payload.downloadUrl),
+          catalogUrl: payload.catalogUrl || ("https://www.roblox.com/library/" + payload.assetId)
+        };
+      });
+      currentAudioIndex = 0;
+      const isMulti = currentAudios.length > 1;
+
+      audioResult.innerHTML = `
+        <div class="rblx-result-card">
+          <div class="rblx-result-head">
+            <div>
+              <h3 class="rblx-result-title">Audio Ready</h3>
+              <p class="rblx-result-copy">audio &#8226; multi-download enabled</p>
+            </div>
+            <div class="rblx-meta-pill">${currentAudios.length} file${currentAudios.length === 1 ? "" : "s"}</div>
+          </div>
+
+          <div class="rblx-audio-preview">
+            <div class="previewCarousel">
+              <button class="previewArrow left ${isMulti ? "" : "hidden"}" type="button" id="prevAudioBtn">&lsaquo;</button>
+              <button class="previewArrow right ${isMulti ? "" : "hidden"}" type="button" id="nextAudioBtn">&rsaquo;</button>
+              <audio id="audioPreviewPlayer" controls preload="none"></audio>
+            </div>
+            <div class="rblx-meta-row">
+              <div class="rblx-meta-pill" id="audioPreviewTitle">Audio Preview</div>
+              <div class="rblx-meta-pill" id="audioPreviewFile"></div>
+              <div class="rblx-meta-pill" id="audioPreviewCounter">Single Audio</div>
+            </div>
+          </div>
+
+          <div class="rblx-action-row">
+            <button id="downloadAudioBtn" class="rblx-button" type="button" style="width:auto; min-width:152px;">Download Audio</button>
+            ${isMulti ? '<button id="downloadAllAudioBtn" class="rblx-soft-button" type="button">Download All</button>' : ""}
+            <button id="openCatalogBtn" class="rblx-soft-button" type="button">Open Roblox Page</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("prevAudioBtn").onclick = function () {
+        showAudio(-1);
+      };
+      document.getElementById("nextAudioBtn").onclick = function () {
+        showAudio(1);
+      };
+      document.getElementById("downloadAudioBtn").onclick = async function () {
+        setStatus("Preparing audio download...");
+        try {
+          const activeAudio = currentAudios[currentAudioIndex];
+          await downloadAudioFile(activeAudio.downloadUrl, activeAudio.fileName);
+          setStatus("Audio download started.", "success");
+        } catch (error) {
+          setStatus(error.message || "Could not download this audio file.", "error");
+        }
+      };
+
+      const downloadAllAudioBtn = document.getElementById("downloadAllAudioBtn");
+      if (downloadAllAudioBtn) {
+        downloadAllAudioBtn.onclick = downloadAllAudios;
+      }
+
+      document.getElementById("openCatalogBtn").onclick = function () {
+        const activeAudio = currentAudios[currentAudioIndex];
+        window.open(activeAudio.catalogUrl, "_blank", "noopener,noreferrer");
+      };
+
+      updateAudioCarousel();
+      scheduleEmbedHeightReport();
+      setTimeout(scheduleEmbedHeightReport, 120);
+    }
+
+    async function fetchAudio() {
+      const rawValue = audioInput.value.trim();
+      const ids = normalizeIds(rawValue);
+
+      if (!ids.length) {
+        setStatus("Enter at least one Roblox audio asset ID.", "error");
+        audioInput.focus();
+        return;
+      }
+
+      if (ids.length > 5) {
+        setStatus("Plus users can download up to 5 audios at a time.", "error");
+        return;
+      }
+
+      if (ids.length > 1) {
+        const hasPlus = await fetchPlusStatus();
+        if (!hasPlus) {
+          setStatus('');
+          audioStatus.className = "rblx-status error";
+          audioStatus.innerHTML = 'Must be a <span class="plusWord">Plus</span> subscriber to download multiple audios at the same time. <a href="https://www.rblxtools.net/subscriptions" target="_top"><span class="plusWord">Upgrade to Plus</span></a>';
+          scheduleEmbedHeightReport();
+          return;
+        }
+      }
+
+      audioButton.disabled = true;
+      audioButton.textContent = ids.length > 1 ? "Loading Audios..." : "Loading...";
+      setStatus(ids.length > 1 ? "Fetching audios..." : "Fetching audio...");
+      audioResult.innerHTML = buildDefaultPreview();
+      scheduleEmbedHeightReport();
+
+      try {
+        const payloads = await Promise.all(ids.map(async function (input) {
+          const params = new URLSearchParams({
+            input: input,
+            displayName: getActivityNameFromCache()
+          });
+
+          const response = await fetch(API_BASE + "/audio?" + params.toString());
+          const payload = await response.json().catch(function () {
+            return null;
+          });
+
+          if (!response.ok) {
+            throw new Error((payload && payload.error) || "Could not fetch audio.");
+          }
+
+          return payload;
+        }));
+
+        renderAudios(payloads);
+        rememberToolActivity("Audio Downloader");
+        setStatus(ids.length > 1 ? "Audios loaded. Downloads are ready." : "Audio loaded. Download is ready.", "success");
+      } catch (error) {
+        audioResult.innerHTML = buildDefaultPreview();
+        setStatus(error.message || "Could not fetch audio.", "error");
+      } finally {
+        audioButton.disabled = false;
+        audioButton.textContent = "Fetch Audio";
+        scheduleEmbedHeightReport();
+      }
+    }
+
+    audioButton.addEventListener("click", fetchAudio);
+
+    audioInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        fetchAudio();
+      }
+    });
+
+    if ("ResizeObserver" in window) {
+      const observer = new ResizeObserver(function () {
+        scheduleEmbedHeightReport();
+      });
+      observer.observe(audioRoot);
+    }
+
+    window.addEventListener("load", function () {
+      scheduleEmbedHeightReport();
+      setTimeout(scheduleEmbedHeightReport, 150);
+      setTimeout(scheduleEmbedHeightReport, 500);
+    });
+
+    window.addEventListener("resize", scheduleEmbedHeightReport);
+  </script>
+<script>
     (function () {
       function syncAudioToolHeight() {
         const sideStack = document.querySelector(".side-stack");
