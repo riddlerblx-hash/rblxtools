@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RBLX Tools - Template Background Changer</title>
+  <style>
+    html, body { margin: 0; min-height: 100%; color: #ffffff; }
+    body {
+      overflow-x: hidden;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.26), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(255, 0, 0, 0.12), transparent 24%),
+        radial-gradient(circle at 82% 74%, rgba(255, 74, 74, 0.12), transparent 30%),
+        radial-gradient(circle at 22% 86%, rgba(255, 124, 124, 0.1), transparent 26%),
+        linear-gradient(180deg, #151c28 0%, #0c1119 38%, #080b11 100%);
+      position: relative;
+      isolation: isolate;
+    }
+      .tutorial-video-box {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tutorial-video {
+      display: block;
+      width: 100%;
+      min-height: 220px;
+      border-radius: 14px;
+      background: #0f131b;
+    }
+
+    .tutorial-video-cover {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 0;
+      border-radius: 14px;
+      background: rgba(8, 12, 18, 0.46);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      cursor: pointer;
+      transition: opacity 0.18s ease;
+    }
+
+    .tutorial-video-cover.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .tutorial-video-cover__icon {
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ff4343 0%, #ff1111 100%);
+      box-shadow: 0 14px 30px rgba(255, 34, 34, 0.24);
+      font-size: 22px;
+    }
+
+    .tutorial-video-cover__text {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+  #toolMount {
+  display: flex;
+  align-items: stretch;
+  min-height: 100%;
+}
+#toolMount > * {
+  width: 100%;
+}
+</style>
+  <link rel="stylesheet" href="./global-shell.css" />
+  <link rel="stylesheet" href="./template-tool-layout.css" />
+</head>
+<body>
+  <div class="bg-wrap">
+    <div class="orb orb-one"></div>
+    <div class="orb orb-two"></div>
+    <div class="orb orb-three"></div>
+    <div class="orb orb-four"></div>
+  </div>
+
+  <main>
+    <section class="hero">
+      <h1><span>Template Background</span><span>Changer</span></h1>
+      <p>Restore the official Roblox shirt or pants template background while keeping the uploaded clothing artwork in place.</p>
+    </section>
+
+    <section class="top-grid">
+      <div id="toolMount" data-src="./tool-embeds/template-background-changer-tool.html?v=2" data-remove-selectors=".rblx-cleaner-promo-card"></div>
+
+      <div class="side-stack">
+        <article class="card promo-card">
+          <div class="badge">How To Use</div>
+          <h2><span>Video</span><span>Tutorial</span></h2>
+          <div class="video-box tutorial-video-box">
+            <video id="backgroundChangerTutorialVideo" class="tutorial-video" preload="metadata" playsinline controls>
+              <source src="./assets/tutorial-videos/Background%20Changer%20How%20To.mp4" type="video/mp4" />
+            </video>
+            <button id="backgroundChangerTutorialCover" class="tutorial-video-cover" type="button" aria-label="Play background changer tutorial video">
+              <span class="tutorial-video-cover__icon">&#9654;</span>
+              <span class="tutorial-video-cover__text">Click to watch tutorial</span>
+            </button>
+          </div>
+        </article>
+
+        <section class="card plus-card">
+          <div class="plus-promo">
+            <div class="plus-floaters">
+              <span class="plus-floater plus-word one">+</span>
+              <span class="plus-floater plus-word two">+</span>
+              <span class="plus-floater plus-word three">+</span>
+              <span class="plus-floater plus-word four">+</span>
+              <span class="plus-floater plus-word five">+</span>
+              <span class="plus-floater plus-word six">+</span>
+              <span class="plus-floater plus-word seven">+</span>
+            </div>
+            <div class="plus-topline">
+              <span class="plus-kicker">RBLXTools Sponsor</span>
+              <span class="plus-price">More power. Less waiting.</span>
+            </div>
+            <h3><span>RBLXTools</span><span><span class="plus-word">Plus</span> Plan</span></h3>
+            <p>RBTools <span class="plus-word">Plus</span> unlocks the premium side of the website with bulk usage upgrades, premium creator tools, cleaner visuals, and extra account cosmetics built for heavy Roblox workflows.</p>
+            <div class="perk-list">
+              <div class="perk"><strong>Animation Downloader</strong><span>Open Animation Downloader access as part of your premium tool set.</span></div>
+              <div class="perk"><strong>UGC Texture Baking</strong><span>Unlock texture baking tools for cleaner UGC creator workflows.</span></div>
+              <div class="perk"><strong>Bulk downloads and bulk tool usage</strong><span>Use supported tools faster with 2-5 at a time workflows where available.</span></div>
+              <div class="perk"><strong>Cool chat tag cosmetic</strong><span>Show off a premium member cosmetic inside the live site chat experience.</span></div>
+              <div class="perk"><strong>More premium website feel</strong><span>Get a more polished account-side experience across premium parts of the site.</span></div>
+              <div class="perk"><strong>No site advertisements</strong><span>Use the website with a cleaner premium experience and no site ads.</span></div>
+            </div>
+            <div class="plus-actions">
+              <p><span class="price-green">$1.00</span> a month for premium tools, creator perks, no site advertisements, and a more premium RBLX Tools experience.</p>
+              <a class="plus-link" href="./subscriptions.html">View Plans</a>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </section>
+
+    <section class="showcase-card">
+      <div class="showcase-header">
+        <h3 class="showcase-title">Other Tools</h3>
+      </div>
+      <div class="slide-viewport" id="showcaseViewport">
+        <div class="showcase-layout slide-panel" id="showcasePanel">
+          <div class="logo-preview" id="slideLogoPreview">
+            <div class="logo-glyph" id="slideGlyph">T</div>
+            <div class="logo-tag" id="slideTag">TOOL PREVIEW</div>
+          </div>
+          <div>
+            <div id="slidePills"></div>
+            <h3 class="tool-name" id="slideName"></h3>
+            <p class="tool-desc" id="slideDesc"></p>
+            <div class="tool-actions">
+              <button class="mini-btn" type="button" id="prevTool">Previous</button>
+              <button class="mini-btn primary" type="button" id="openTool">Open Tool</button>
+              <button class="mini-btn" type="button" id="nextTool">Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="showcase-progress"><span id="showcaseProgress"></span></div>
+    </section>
+
+    <section class="faq-wrap">
+      <div class="faq-item open">
+        <button class="faq-q" type="button">What does this tool do?</button>
+        <div class="faq-a">It restores the official Roblox shirt or pants template background while keeping your uploaded clothing artwork in place.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button">Can I upload more than one template?</button>
+        <div class="faq-a">Yes, but only for <span class="plus-word">Plus</span> accounts, up to 5 uploads at once.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button">Why is the clean template option locked?</button>
+        <div class="faq-a">The unwatermarked template background is part of the <span class="plus-word">Plus</span> plan.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button">What file types work here?</button>
+        <div class="faq-a">PNG, JPG, and WEBP uploads are supported for this template background changer.</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="gate-overlay" id="plusGate">
+    <div class="gate-modal">
+      <h3><span><span class="plus-word">Plus</span> Required</span><span>You Don't Own <span class="plus-word">Plus</span></span></h3>
+      <p>This tool is locked to <span class="plus-word">Plus</span>. Upgrade your plan to unlock it, then come right back.</p>
+      <div class="gate-actions">
+        <a class="plans-btn" href="./subscriptions.html">View Plans</a>
+        <button class="close-btn" type="button" id="closeGate">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./tool-page-shell.js"></script>
+  <script src="./global-shell.js"></script>
+  <script>
+    (function () {
+      var video = document.getElementById("backgroundChangerTutorialVideo");
+      var cover = document.getElementById("backgroundChangerTutorialCover");
+      if (!video || !cover) return;
+
+      function hideCover() { cover.classList.add("hidden"); }
+      function showCover() { cover.classList.remove("hidden"); }
+
+      cover.addEventListener("click", function () {
+        hideCover();
+        var playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(function () { showCover(); });
+        }
+      });
+
+      video.addEventListener("play", hideCover);
+      video.addEventListener("ended", showCover);
+    })();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+

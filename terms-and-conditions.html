@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms and Conditions | RBLX Tools Website Use, Accounts, Plus Billing & Tool Rules</title>
+  <meta name="description" content="Read the RBLX Tools Terms and Conditions covering website use, accounts, RBTools Plus subscriptions, Stripe billing, acceptable tool usage, security, and liability limits.">
+  <link rel="stylesheet" href="./global-shell.css">
+  <style>
+    :root {
+      --panel: rgba(18, 24, 34, 0.96);
+      --panel-2: rgba(12, 17, 25, 0.98);
+      --line: rgba(255,255,255,0.08);
+      --line-soft: rgba(255,255,255,0.05);
+      --text: #ffffff;
+      --muted: #bcc6d3;
+      --good: #66f1a3;
+      --shadow: 0 28px 58px rgba(0,0,0,0.34);
+      --max: 1180px;
+    }
+    * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.26), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(255, 0, 0, 0.12), transparent 24%),
+        radial-gradient(circle at 82% 74%, rgba(255, 74, 74, 0.12), transparent 30%),
+        radial-gradient(circle at 22% 86%, rgba(255, 124, 124, 0.10), transparent 26%),
+        linear-gradient(180deg, #151c28 0%, #0c1119 38%, #080b11 100%);
+      overflow-x: hidden;
+      isolation: isolate;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      background:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at center, black 54%, transparent 100%);
+      pointer-events: none;
+      opacity: 0.82;
+      z-index: 0;
+    }
+    .bg-wrap { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+    .orb { position: absolute; border-radius: 999px; filter: blur(7px); opacity: 0.92; mix-blend-mode: screen; }
+    .orb-one { top: -180px; left: -180px; width: 620px; height: 620px; background: radial-gradient(circle at 35% 35%, rgba(255, 120, 120, 0.3), rgba(255, 0, 0, 0.18), transparent 68%); }
+    .orb-two { top: 10%; right: -210px; width: 560px; height: 560px; background: radial-gradient(circle at 50% 50%, rgba(255, 80, 80, 0.18), rgba(190, 0, 0, 0.16), transparent 70%); }
+    .orb-three { bottom: -250px; left: 10%; width: 760px; height: 760px; background: radial-gradient(circle at 50% 50%, rgba(255, 40, 40, 0.16), rgba(110, 0, 0, 0.12), transparent 72%); }
+    .orb-four { bottom: -160px; right: 2%; width: 460px; height: 460px; background: radial-gradient(circle at 50% 50%, rgba(255, 100, 100, 0.12), rgba(255, 0, 0, 0.10), transparent 74%); }
+    a { color: #ffb4b4; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    .page-root { position: relative; z-index: 2; width: 100%; }
+    .page-shell { width: min(calc(100% - 24px), var(--max)); margin: 0 auto; padding: 18px 0 34px; }
+    .hero, .nav-card, .content-card, .summary-card, .notice-card {
+      border: 1px solid var(--line);
+      background: radial-gradient(circle at top right, rgba(255, 60, 60, 0.12), transparent 28%), linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+      box-shadow: var(--shadow);
+    }
+    .hero { display: grid; grid-template-columns: minmax(0,1.08fr) minmax(320px,0.92fr); gap: 14px; border-radius: 32px; padding: 24px; margin-bottom: 16px; }
+    .eyebrow { width: fit-content; min-height: 28px; padding: 0 12px; border-radius: 999px; display: inline-flex; align-items: center; border: 1px solid rgba(255, 90, 90, 0.24); background: rgba(255, 52, 52, 0.1); color: #ffafaf; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+    h1, h2, h3 { margin: 0; font-weight: 900; letter-spacing: -1px; }
+    h1 { margin-top: 16px; font-size: clamp(36px, 5vw, 64px); line-height: 0.92; max-width: 10ch; }
+    .accent { display: block; margin-top: 8px; background: linear-gradient(180deg, #ffc3c3 0%, #ff1919 84%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-copy, .summary-text, .nav-card p, .intro p, .terms-section p, .terms-section li, .notice-card p { color: #bcc6d3; font-size: 13px; line-height: 1.7; font-weight: 700; }
+    .hero-copy { max-width: 660px; margin: 14px 0 0; }
+    .hero-bottom { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; margin-top: 18px; }
+    .hero-note, .notice-card { padding: 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); }
+    .hero-note strong { color: #fff; }
+    .meta-stack { display: grid; gap: 8px; }
+    .meta-pill { min-height: 34px; padding: 0 12px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: #efefef; font-size: 10px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; white-space: nowrap; }
+    .meta-pill.good { border-color: rgba(84, 229, 135, 0.2); background: rgba(84, 229, 135, 0.12); color: #edfff3; }
+    .summary-card { border-radius: 30px; padding: 18px; display: grid; gap: 12px; align-content: start; }
+    .summary-grid { display: grid; gap: 10px; }
+    .summary-item { padding: 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.035); }
+    .summary-label { color: #ffabab; font-size: 10px; font-weight: 900; letter-spacing: 0.9px; text-transform: uppercase; margin-bottom: 6px; }
+    .layout { display: grid; grid-template-columns: 260px minmax(0,1fr); gap: 16px; align-items: start; }
+    .nav-card { position: sticky; top: 96px; border-radius: 24px; padding: 16px; }
+    .nav-card h2 { font-size: 21px; line-height: 1; margin: 12px 0 10px; }
+    .nav-list { display: grid; gap: 8px; }
+    .nav-link { width: 100%; min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.035); color: #f2f2f2; display: inline-flex; align-items: center; justify-content: flex-start; text-align: left; font-size: 11px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; transition: transform 0.16s ease, filter 0.16s ease; }
+    .nav-link:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    .content-card { border-radius: 30px; padding: 24px; }
+    .intro { padding-bottom: 16px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+    .intro h2 { margin-top: 14px; font-size: clamp(27px, 3vw, 42px); line-height: 0.98; max-width: 14ch; }
+    .terms-section { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; padding: 20px 0; border-bottom: 1px solid var(--line-soft); scroll-margin-top: 100px; }
+    .terms-section:last-child { border-bottom: 0; padding-bottom: 4px; }
+    .section-number { width: 40px; height: 40px; border-radius: 14px; background: linear-gradient(180deg, #ff4545, #ff1111); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; box-shadow: 0 12px 24px rgba(255, 20, 20, 0.18); margin-top: 3px; }
+    .terms-section h3 { font-size: clamp(20px, 2.1vw, 27px); line-height: 1.08; margin-bottom: 10px; }
+    .terms-section strong, .intro strong { color: #fff; }
+    .terms-section ul { margin: 10px 0 0; padding-left: 20px; }
+    .subhead { margin: 18px 0 6px; color: #ffd1d1; font-weight: 900; }
+    .footer-note { margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.08); color: #ffd6d6; font-weight: 800; line-height: 1.6; }
+    @media (max-width: 980px) { .hero, .layout { grid-template-columns: 1fr; } .nav-card { position: static; } }
+    @media (max-width: 700px) { .page-shell { width: min(calc(100% - 16px), var(--max)); padding-top: 12px; } .hero, .summary-card, .nav-card, .content-card { border-radius: 22px; } .hero, .content-card { padding: 20px; } .hero-bottom { grid-template-columns: 1fr; } .terms-section { grid-template-columns: 1fr; gap: 12px; } }
+  </style>
+</head>
+<body>
+  <div class="bg-wrap" aria-hidden="true">
+    <div class="orb orb-one"></div>
+    <div class="orb orb-two"></div>
+    <div class="orb orb-three"></div>
+    <div class="orb orb-four"></div>
+  </div>
+  <div class="page-root">
+    <div class="page-shell">
+      <header class="hero">
+        <section>
+          <span class="eyebrow">Terms And Conditions</span>
+          <h1>Rules for using <span class="accent">RBLX Tools.</span></h1>
+          <p class="hero-copy">These Terms and Conditions explain the rules for using the RBLX Tools website, accounts, subscriptions, tool pages, premium features, community-facing systems, and related services.</p>
+          <div class="hero-bottom">
+            <div class="hero-note"><strong>Quick read:</strong> use the site responsibly, do not abuse the tools or APIs, understand that RBLX Tools is independent from Roblox, and know that account or premium access may be limited if the site is misused.</div>
+            <div class="meta-stack">
+              <div class="meta-pill">Last updated: May 29, 2026</div>
+              <div class="meta-pill good">Active Terms</div>
+            </div>
+          </div>
+        </section>
+        <aside class="summary-card">
+          <span class="eyebrow">Quick Summary</span>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <div class="summary-label">Use Responsibly</div>
+              <div class="summary-text">Do not scrape, attack, overload, abuse, or misuse the website, tools, or account systems.</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Independent Platform</div>
+              <div class="summary-text">RBLX Tools is not affiliated with Roblox Corporation and should not be presented as an official Roblox service.</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Accounts And Plus</div>
+              <div class="summary-text">These terms apply to free tools, premium tools, accounts, billing-connected features, and subscription access.</div>
+            </div>
+          </div>
+        </aside>
+      </header>
+
+      <main class="layout">
+        <aside class="nav-card">
+          <span class="eyebrow">Sections</span>
+          <h2>On This Page</h2>
+          <p>Jump to the major terms covering acceptable use, tools, accounts, billing, security, and legal limits.</p>
+          <div class="nav-list">
+            <button class="nav-link" type="button" data-scroll-target="section-1">Acceptance Of Terms</button>
+            <button class="nav-link" type="button" data-scroll-target="section-2">Use Of The Website</button>
+            <button class="nav-link" type="button" data-scroll-target="section-3">Tool Usage And Availability</button>
+            <button class="nav-link" type="button" data-scroll-target="section-4">Accounts And Access</button>
+            <button class="nav-link" type="button" data-scroll-target="section-5">Subscriptions And Billing</button>
+            <button class="nav-link" type="button" data-scroll-target="section-6">Acceptable Use And Security</button>
+            <button class="nav-link" type="button" data-scroll-target="section-7">Intellectual Property</button>
+            <button class="nav-link" type="button" data-scroll-target="section-8">Roblox Disclaimer</button>
+            <button class="nav-link" type="button" data-scroll-target="section-9">Third Parties</button>
+            <button class="nav-link" type="button" data-scroll-target="section-10">Limitation Of Liability</button>
+            <button class="nav-link" type="button" data-scroll-target="section-11">Suspension Or Termination</button>
+            <button class="nav-link" type="button" data-scroll-target="section-12">Changes And Contact</button>
+          </div>
+        </aside>
+
+        <section class="content-card">
+          <div class="intro">
+            <span class="eyebrow">RBLX Tools</span>
+            <h2>Rules for site, tools, accounts, and membership</h2>
+            <p><strong>Terms and Conditions for RBLX Tools.</strong> By accessing or using RBLX Tools, you agree to these Terms and Conditions. If you do not agree, do not use the website, accounts, subscriptions, or tools.</p>
+            <div class="notice-card">
+              <p>These terms are provided for website transparency and practical site operation. They are not legal advice. If you need terms customized to your exact jurisdiction or business setup, consult a qualified professional.</p>
+            </div>
+          </div>
+
+          <article class="terms-section" id="section-1">
+            <div class="section-number">1</div>
+            <div>
+              <h3>Acceptance Of Terms</h3>
+              <p>By visiting RBLX Tools, using any page, creating an account, purchasing a subscription, using a utility tool, or interacting with the platform, you agree to follow these Terms and Conditions and any applicable law.</p>
+              <p>If you use the site on behalf of another person or organization, you are responsible for making sure you have permission to do so.</p>
+            </div>
+          </article>
+
+          <article class="terms-section" id="section-2">
+            <div class="section-number">2</div>
+            <div>
+              <h3>Use Of The Website</h3>
+              <p>RBLX Tools provides Roblox-related utilities, public site pages, account features, subscription pages, and download helpers. This includes tools and pages such as the home page, login, account overview, subscriptions page, template downloader, template background changer, UGC downloader, media downloader, audio downloader, robux calculator, texture baker, animation spoofer, privacy policy, about us, and terms pages.</p>
+              <p>You agree to use the website only for lawful, respectful, and non-abusive purposes.</p>
+            </div>
+          </article>
+
+          <article class="terms-section" id="section-3">
+            <div class="section-number">3</div>
+            <div>
+              <h3>Tool Usage And Availability</h3>
+              <p>The tools are provided for convenience and may include downloaders, creator helpers, calculators, media-related pages, account utilities, and subscriber-only features. Some are free, while some may be limited to RBTools Plus members.</p>
+              <p>Tools are provided <strong>as-is</strong> and <strong>as available</strong>. We do not guarantee that every result will be accurate, complete, uninterrupted, permanently available, or suitable for every use case.</p>
+              <p>You are responsible for how you use any file, ID, output, download, image, asset reference, OBJ-related result, or workflow produced through the site.</p>
+            </div>
+          </article>
+
+          <article class="terms-section" id="section-4">
+            <div class="section-number">4</div>
+            <div>
+              <h3>Accounts And Access</h3>
+              <p>Some parts of RBLX Tools require a site account. By creating an account or signing in with Google, you agree to provide accurate information and to keep your access credentials secure.</p>
+              <p>You are responsible for activity that happens under your account. We may restrict or remove access if we believe an account is being abused, used for fraud, shared in an abusive way, or used in a manner that harms the platform or other users.</p>
+              <p>Account access to free or paid features may depend on the plan, subscription state, or site-connected access level tied to that account.</p>
+            </div>
+          </article>
+
+          <article class="terms-section" id="section-5">
+            <div class="section-number">5</div>
+            <div>
+              <h3>Subscriptions And Billing</h3>
+              <p>RBLX Tools may offer paid plans, including RBTools Plus. Paid subscriptions may unlock premium tools, account perks, and subscriber-only utilities.</p>
+              <p>Payments, renewals, cancellations, invoices, payment methods, and related billing are handled through <strong>Stripe</strong>. Purchasing through the site does not mean we directly receive your full private payment details such as your raw card number.</p>
+              <p>If a subscription expires, is canceled, fails payment, or is no longer active, access to premium features may be limited or removed.</p>
+            </div>
+          </article>
+
+          <article class="terms-section" id="section-6">
+            <div class="section-number">6</div>
+            <div>
+              <h3>Acceptable Use And Security</h3>
+              <p>You may not:</p>
+              <ul>
+                <li>Attack, overload, scrape, spam, or disrupt the website, APIs, tool endpoints, or account systems</li>
+                <li>Attempt to bypass access controls, restrictions, rate limits, premium gates, or security mechanisms</li>
+                <li>Use the tools in a way that violates applicable law, third-party rights, or platform rules</li>
+                <li>Upload or submit malicious content or attempt harmful automated behavior</li>
+                <li>Misrepresent RBLX Tools as an official Roblox product</li>
+              </ul>
+              <p>We are actively trying to build a safer and more trustworthy platform than scammy or deceptive tool pages. Behavior that threatens that goal may lead to account restriction or removal.</p>
+            </div>
+          </article>
+
+          <article class="terms-section" id="section-7">
+            <div class="section-number">7</div>
+            <div>
+              <h3>Intellectual Property</h3>
+              <p>The RBLX Tools website design, original site copy, custom code, branding, layout, and original platform features belong to RBLX Tools or its owner unless otherwise stated.</p>
+              <p>You may not copy, mirror, resell, repackage, or redistribute the website or its custom systems without permission.</p>
+              <p>RBLX Tools does not claim ownership over Roblox assets, Roblox trademarks, UGC items, or other third-party materials that belong to their respective owners.</p>
+            </div>
+          </article>
+
+          <article class="terms-section" id="section-8">
+            <div class="section-number">8</div>
+            <div>
+              <h3>Roblox Disclaimer</h3>
+              <p>RBLX Tools is an independent website and is <strong>not affiliated with, endorsed by, sponsored by, or officially connected to Roblox Corporation</strong>.</p>
+              <p>Roblox-related names, assets, avatar items, UGC references, and similar materials belong to their respective owners. Users should still follow Roblox's own rules and policies where applicable.</p>
+            </div>
+          </article>
+
+          <article class="terms-section" id="section-9">
+            <div class="section-number">9</div>
+            <div>
+              <h3>Third-Party Services, Links, And Dependencies</h3>
+              <p>RBLX Tools may use or link to third-party services including hosting providers, databases, external APIs, Google services, Stripe, analytics tools, community-related services, and advertising providers.</p>
+              <p>We are not responsible for the content, policies, availability, or behavior of third-party sites or services. When you interact with them, their own terms and privacy policies may apply.</p>
+            </div>
+          </article>
+
+          <article class="terms-section" id="section-10">
+            <div class="section-number">10</div>
+            <div>
+              <h3>Limitation Of Liability</h3>
+              <p>To the fullest extent permitted by law, RBLX Tools and its owner are not liable for damages or losses related to your use of the site or tools, including but not limited to:</p>
+              <ul>
+                <li>Tool errors, bad outputs, or missing files</li>
+                <li>Downtime, bugs, interruptions, or temporary feature removal</li>
+                <li>Third-party service failures or API changes</li>
+                <li>Misuse of downloads, outputs, IDs, or creator-related materials</li>
+                <li>Lost profits, account access issues, or missed opportunities</li>
+              </ul>
+              <p>Use RBLX Tools at your own discretion and risk.</p>
+            </div>
+          </article>
+
+          <article class="terms-section" id="section-11">
+            <div class="section-number">11</div>
+            <div>
+              <h3>Suspension Or Termination</h3>
+              <p>We may restrict, block, rate-limit, suspend, or terminate access to RBLX Tools at any time if we believe a user is violating these terms, abusing the site, creating security risks, causing harm, or undermining the trust and safety direction of the platform.</p>
+            </div>
+          </article>
+
+          <article class="terms-section" id="section-12">
+            <div class="section-number">12</div>
+            <div>
+              <h3>Changes To These Terms And Contact</h3>
+              <p>We may update these Terms and Conditions at any time. Updates will be posted on this page with a revised last-updated date. Continued use of the site after changes means you accept the updated terms.</p>
+              <p class="subhead">Contact</p>
+              <div class="notice-card">
+                <p><strong>Email:</strong> <a href="mailto:itzreesebusiness@gmail.com">itzreesebusiness@gmail.com</a></p>
+              </div>
+            </div>
+          </article>
+
+          <p class="footer-note">By using RBLX Tools, you agree to these Terms and Conditions.</p>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script>
+    document.querySelectorAll("[data-scroll-target]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var target = document.getElementById(button.getAttribute("data-scroll-target"));
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
+  </script>
+  <script src="./global-shell.js"></script>
+</body>
+</html>

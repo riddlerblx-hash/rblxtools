@@ -1,0 +1,1401 @@
+<div id="rblx-template-cleaner">
+  <style>
+    #rblx-template-cleaner,
+    #rblx-template-cleaner * {
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #rblx-template-cleaner {
+      width: 100%;
+      min-height: 100%;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 0;
+      background: transparent;
+    }
+
+    .rblx-cleaner-stack {
+      width: 100%;
+      max-width: 470px;
+      display: grid;
+      gap: 14px;
+    }
+    .rblx-cleaner-card {
+      width: 100%;
+      min-height: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 20px 20px;
+      border-radius: 18px;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+      background:
+        radial-gradient(circle at top, rgba(255, 62, 62, 0.12), transparent 34%),
+        linear-gradient(180deg, #252525 0%, #1b1b1b 100%);
+    }
+.rblx-cleaner-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .rblx-cleaner-kicker,
+    .rblx-cleaner-promo-badge,
+    .rblx-cleaner-promo-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .rblx-cleaner-kicker {
+  display: none !important;
+}
+
+    .rblx-cleaner-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 0.97;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .rblx-cleaner-title span {
+      display: block;
+    }
+
+    .rblx-cleaner-title span:first-child {
+      color: #ffd0d0;
+    }
+
+    .rblx-cleaner-title span:last-child {
+      color: #ff2b2b;
+      text-shadow: 0 8px 22px rgba(255, 34, 34, 0.18);
+    }
+
+    .rblx-cleaner-subtitle {
+      color: #a8adb4;
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 600;
+    }
+
+    .rblx-cleaner-subtitle {
+      margin: 12px 0 12px;
+    }
+
+    .rblx-plus-word {
+      display: inline-block;
+      background: linear-gradient(180deg, #ffffff 0%, #eef1f5 26%, #cfd5dc 58%, #aeb7c1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+      font-weight: 900;
+      background-size: 100% 220%;
+      animation: rblxPlusShimmer 2.8s ease-in-out infinite;
+      text-shadow: 0 0 10px rgba(214, 224, 235, 0.10);
+    }
+
+    @keyframes rblxPlusShimmer {
+      0%,
+      100% {
+        background-position: 50% 0%;
+        filter: drop-shadow(0 0 0 rgba(214, 224, 235, 0));
+      }
+
+      50% {
+        background-position: 50% 100%;
+        filter: drop-shadow(0 0 8px rgba(214, 224, 235, 0.18));
+      }
+    }
+
+    .rblx-cleaner-plus-note {
+      margin: 0 0 16px;
+      padding: 12px 13px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #d4d8de;
+      font-size: 11px;
+      line-height: 1.55;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .rblx-cleaner-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .rblx-cleaner-field {
+      text-align: left;
+    }
+
+    .rblx-cleaner-label {
+      display: block;
+      margin-bottom: 7px;
+      color: #e8e8e8;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .rblx-cleaner-select,
+    .rblx-cleaner-file {
+      width: 100%;
+      min-height: 44px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 96, 96, 0.70);
+      background: #2f2f2f;
+      color: #ffffff;
+      padding: 0 14px;
+      outline: none;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .rblx-cleaner-select:focus,
+    .rblx-cleaner-file:focus {
+      border-color: #ff8b8b;
+      box-shadow: 0 0 0 3px rgba(255, 102, 102, 0.12);
+      background: #353535;
+    }
+
+    .rblx-cleaner-file {
+      padding: 8px 10px;
+    }
+
+    .rblx-cleaner-file::file-selector-button {
+      border: none;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-right: 10px;
+      background: linear-gradient(180deg, #ff2a2a 0%, #ff0000 100%);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .rblx-cleaner-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .rblx-cleaner-btn,
+    .rblx-cleaner-promo-button,
+    .rblx-cleaner-arrow {
+      border: none;
+      color: #ffffff;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.14s ease, filter 0.14s ease, opacity 0.14s ease;
+    }
+
+    .rblx-cleaner-btn {
+      width: 100%;
+      min-height: 40px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ff3333 0%, #ff1111 100%);
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: none;
+    }
+
+    .rblx-cleaner-btn:hover:not(:disabled),
+    .rblx-cleaner-promo-button:hover,
+    .rblx-cleaner-arrow:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    .rblx-cleaner-btn.secondary {
+      background: #303030;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #dddddd;
+    }
+
+    .rblx-cleaner-btn:disabled {
+      opacity: 0.62;
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+    }
+
+    .rblx-cleaner-status {
+      min-height: 22px;
+      margin-top: 12px;
+      color: #f0f0f0;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .rblx-cleaner-status.success {
+      color: #4cff88;
+      font-weight: 800;
+    }
+
+    .rblx-cleaner-status.error {
+      color: #ff6b6b;
+      font-weight: 800;
+    }
+
+    .rblx-cleaner-status a {
+      text-decoration: none;
+      font-weight: 900;
+    }
+
+    .rblx-cleaner-preview-shell,
+    .rblx-cleaner-promo-preview-shell {
+      margin-top: 14px;
+      padding: 10px;
+      border-radius: 12px;
+      background: #1d1d1d;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .rblx-cleaner-carousel {
+      position: relative;
+    }
+
+    .rblx-cleaner-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.58);
+      border: 1px solid rgba(255,255,255,0.10);
+      font-size: 18px;
+      font-weight: 900;
+      z-index: 3;
+    }
+
+    .rblx-cleaner-arrow.left {
+      left: 8px;
+    }
+
+    .rblx-cleaner-arrow.right {
+      right: 8px;
+    }
+
+    .rblx-cleaner-arrow.hidden {
+      display: none;
+    }
+
+    .rblx-cleaner-preview-wrap {
+      position: relative;
+      width: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      background:
+        linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255,255,255,0.04) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.04) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.04) 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+
+    #rblx-cleaner-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: transparent;
+    }
+
+    .rblx-cleaner-empty-preview {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      pointer-events: none;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .rblx-cleaner-empty-preview.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .rblx-cleaner-empty-card {
+      width: min(100%, 340px);
+      padding: 20px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(17, 22, 28, 0.88), rgba(20, 24, 31, 0.78));
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
+    }
+
+    .rblx-cleaner-empty-grid {
+      width: fit-content;
+      margin: 0 auto 16px;
+      display: grid;
+      grid-template-columns: repeat(2, 50px);
+      gap: 7px;
+    }
+
+    .rblx-cleaner-empty-grid div {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 11px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+    }
+
+    .rblx-cleaner-empty-grid .blue { background: #2f93ff; }
+    .rblx-cleaner-empty-grid .red { background: #ff3434; }
+    .rblx-cleaner-empty-grid .green { background: #16c86d; }
+    .rblx-cleaner-empty-grid .yellow { background: #f3b71b; }
+
+    .rblx-cleaner-empty-title {
+      color: #ffffff;
+      font-size: 22px;
+      line-height: 1.05;
+      font-weight: 900;
+      margin-bottom: 9px;
+    }
+
+    .rblx-cleaner-empty-copy {
+      color: #c2cad6;
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .rblx-cleaner-empty-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 0 13px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.06);
+      color: #eef2f7;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .rblx-cleaner-meta {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .rblx-cleaner-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #303030;
+      color: #d3d3d3;
+      font-size: 10px;
+      font-weight: 800;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .rblx-cleaner-note {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #2a2a2a;
+      border: 1px solid rgba(255,255,255,0.07);
+      color: #cfcfcf;
+      font-size: 12px;
+      line-height: 1.55;
+      text-align: center;
+    }
+
+    .rblx-cleaner-promo-topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .rblx-cleaner-promo-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .rblx-cleaner-promo-badge {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+    }
+
+    .rblx-cleaner-promo-pill {
+      color: #d8ebff;
+      background: rgba(76, 174, 255, 0.12);
+      border: 1px solid rgba(76, 174, 255, 0.20);
+    }
+
+    .rblx-cleaner-promo-title {
+      font-size: 26px;
+    }
+
+    .rblx-cleaner-promo-title span:first-child {
+      color: #ffffff;
+    }
+
+    .rblx-cleaner-promo-title span:last-child {
+      color: #68a7ff;
+    }
+
+    .rblx-cleaner-promo-info-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .rblx-cleaner-promo-info-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255,255,255,0.11);
+      color: #eef5ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: help;
+      user-select: none;
+    }
+
+    .rblx-cleaner-promo-info-label {
+      position: absolute;
+      top: 36px;
+      right: 0;
+      width: 220px;
+      padding: 10px 11px;
+      border-radius: 12px;
+      background: #2c323c;
+      border: 1px solid rgba(140, 175, 255, 0.14);
+      color: #d7dde8;
+      font-size: 11px;
+      line-height: 1.45;
+      font-weight: 700;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-4px);
+      transition: opacity 0.16s ease, transform 0.16s ease;
+      z-index: 20;
+    }
+
+    .rblx-cleaner-promo-info-wrap:hover .rblx-cleaner-promo-info-label {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .rblx-cleaner-promo-subtitle {
+      margin: 12px 0 0;
+      color: #cdd6e0;
+    }
+
+    .rblx-cleaner-promo-copy {
+      margin: 10px 0 0;
+      color: #afbac7;
+      font-size: 12px;
+      line-height: 1.6;
+      font-weight: 600;
+      text-align: left;
+    }
+
+    .rblx-cleaner-promo-preview-shell {
+      text-align: left;
+      padding: 12px;
+      background: rgba(17, 20, 26, 0.48);
+      border: 1px solid rgba(130, 160, 220, 0.08);
+    }
+
+    .rblx-cleaner-promo-mock {
+      border-radius: 10px;
+      background: linear-gradient(180deg, #252b35 0%, #1c212b 100%);
+      border: 1px solid rgba(255,255,255,0.05);
+      padding: 12px;
+    }
+
+    .rblx-cleaner-promo-mock-card {
+      border-radius: 10px;
+      padding: 14px;
+      background:
+        radial-gradient(circle at top right, rgba(78, 149, 255, 0.10), transparent 34%),
+        linear-gradient(180deg, #f5f7fa 0%, #e3e8ef 100%);
+      min-height: 162px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .rblx-cleaner-promo-mock-head {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rblx-cleaner-promo-before,
+    .rblx-cleaner-promo-after {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .rblx-cleaner-promo-before {
+      color: #cf4040;
+      background: rgba(255, 255, 255, 0.90);
+      border: 2px solid rgba(226, 94, 94, 0.24);
+      transform: rotate(-7deg);
+    }
+
+    .rblx-cleaner-promo-arrow {
+      color: #6a86ad;
+      font-size: 18px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .rblx-cleaner-promo-after {
+      color: #1f7fe9;
+      background: rgba(255, 255, 255, 0.92);
+      border: 2px solid rgba(74, 151, 255, 0.22);
+    }
+
+    .rblx-cleaner-promo-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .rblx-cleaner-promo-panel {
+      min-height: 56px;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.55);
+    }
+
+    .rblx-cleaner-promo-panel.frame {
+      background: linear-gradient(180deg, #ffbaba 0%, #ff8d8d 100%);
+    }
+
+    .rblx-cleaner-promo-panel.frame::after {
+      content: "Asset";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(160, 39, 39, 0.92);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .rblx-cleaner-promo-panel.timeline {
+      background: linear-gradient(180deg, #dcdfe6 0%, #bcc6d5 100%);
+    }
+
+    .rblx-cleaner-promo-panel.timeline::after {
+      content: "Download";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(78, 90, 111, 0.92);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .rblx-cleaner-promo-panel.spoofed {
+      background: linear-gradient(180deg, #bfe0ff 0%, #86bcff 100%);
+    }
+
+    .rblx-cleaner-promo-panel.spoofed::after {
+      content: "Animation";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(24, 92, 185, 0.92);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .rblx-cleaner-promo-note {
+      color: #536171;
+      font-size: 11px;
+      line-height: 1.4;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .rblx-cleaner-promo-button {
+      width: 100%;
+      margin-top: 14px;
+      min-height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #47a3ff 0%, #2978e3 100%);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+      box-shadow: none;
+    }
+
+    .rblx-cleaner-promo-subnote {
+      margin-top: 10px;
+      color: #99a7b7;
+      font-size: 10px;
+      line-height: 1.55;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    @media (min-width: 640px) {
+      .rblx-cleaner-grid,
+      .rblx-cleaner-actions {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      #rblx-template-cleaner {
+      width: 100%;
+      min-height: 100%;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 0;
+      background: transparent;
+    }
+
+      .rblx-cleaner-card,
+      .rblx-cleaner-promo-card {
+        padding: 22px 16px 18px;
+        border-radius: 16px;
+      }
+
+      .rblx-cleaner-title,
+      .rblx-cleaner-promo-title {
+        font-size: 25px;
+      }
+    }
+  </style>
+
+  <div class="rblx-cleaner-stack">
+    <div class="rblx-cleaner-card">
+      <div class="rblx-cleaner-inner">
+        <div class="rblx-cleaner-kicker">Classic Clothing</div>
+
+        <h2 class="rblx-cleaner-title">
+          <span>Template Background</span>
+          <span>Changer</span>
+        </h2>
+
+        <p class="rblx-cleaner-subtitle">
+          Restore the official Roblox shirt or pants template background while keeping the uploaded clothing artwork in place.
+        </p>
+
+        <div class="rblx-cleaner-plus-note">
+          Free users can restore unlimited templates 1 by 1. <span class="rblx-plus-word">Plus</span> users can restore 2-5 templates at a time.
+        </div>
+
+        <div class="rblx-cleaner-grid">
+          <div class="rblx-cleaner-field">
+            <label class="rblx-cleaner-label" for="rblx-cleaner-type">Template Type</label>
+            <select class="rblx-cleaner-select" id="rblx-cleaner-type">
+              <option value="shirt">Shirt Template</option>
+              <option value="pants">Pants Template</option>
+            </select>
+          </div>
+
+          <div class="rblx-cleaner-field">
+            <label class="rblx-cleaner-label" for="rblx-cleaner-upload">Upload Template</label>
+            <input class="rblx-cleaner-file" id="rblx-cleaner-upload" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+          </div>
+        </div>
+
+        <div class="rblx-cleaner-actions">
+          <button class="rblx-cleaner-btn" id="rblx-cleaner-process" type="button" disabled>
+            Restore Background
+          </button>
+
+          <button class="rblx-cleaner-btn secondary" id="rblx-cleaner-download" type="button" disabled>
+            Download PNG
+          </button>
+        </div>
+
+        <div class="rblx-cleaner-status" id="rblx-cleaner-status">
+          Upload a template to begin.
+        </div>
+
+        <div class="rblx-cleaner-preview-shell">
+          <div class="rblx-cleaner-carousel">
+            <button class="rblx-cleaner-arrow left hidden" id="rblx-cleaner-prev" type="button">&lsaquo;</button>
+            <div class="rblx-cleaner-preview-wrap">
+              <canvas id="rblx-cleaner-canvas" width="585" height="559"></canvas>
+              <div class="rblx-cleaner-empty-preview" id="rblx-cleaner-empty-preview">
+                <div class="rblx-cleaner-empty-card">
+                  <div class="rblx-cleaner-empty-grid">
+                    <div class="blue">TP</div>
+                    <div class="red">BG</div>
+                    <div class="green">PNG</div>
+                    <div class="yellow">OK</div>
+                  </div>
+                  <div class="rblx-cleaner-empty-title">Your template will appear here.</div>
+                </div>
+              </div>
+            </div>
+            <button class="rblx-cleaner-arrow right hidden" id="rblx-cleaner-next" type="button">&rsaquo;</button>
+          </div>
+
+          <div class="rblx-cleaner-meta">
+            <div class="rblx-cleaner-pill" id="rblx-cleaner-pill-type">Shirt Template</div>
+            <div class="rblx-cleaner-pill">585 x 559 PNG</div>
+            <div class="rblx-cleaner-pill" id="rblx-cleaner-pill-count">No Upload</div>
+          </div>
+        </div>
+
+        <div class="rblx-cleaner-note">
+          The tool replaces only the surrounding template background. Your clothing design in the actual template zones stays intact.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    (function () {
+      var TEMPLATE_WIDTH = 585;
+      var TEMPLATE_HEIGHT = 559;
+      var CLOTHING_ALPHA_THRESHOLD = 10;
+      var API_BASE = window.location.origin;
+      var TOKEN_KEY = "rblxtools_auth_token";
+
+      var TEMPLATE_OVERLAYS = {
+        free: {
+          shirt: "./assets/template-backgrounds/shirt.png",
+          pants: "./assets/template-backgrounds/Plus%20Pants.png"
+        },
+        plus: {
+          shirt: "./assets/template-backgrounds/shirt.png",
+          pants: "./assets/template-backgrounds/Plus%20Pants.png"
+        }
+      };
+
+      var uploadInput = document.getElementById("rblx-cleaner-upload");
+      var typeSelect = document.getElementById("rblx-cleaner-type");
+      var typePill = document.getElementById("rblx-cleaner-pill-type");
+      var countPill = document.getElementById("rblx-cleaner-pill-count");
+      var processBtn = document.getElementById("rblx-cleaner-process");
+      var downloadBtn = document.getElementById("rblx-cleaner-download");
+      var statusEl = document.getElementById("rblx-cleaner-status");
+      var prevBtn = document.getElementById("rblx-cleaner-prev");
+      var nextBtn = document.getElementById("rblx-cleaner-next");
+      var emptyPreview = document.getElementById("rblx-cleaner-empty-preview");
+      var canvas = document.getElementById("rblx-cleaner-canvas");
+      var ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+      var uploadedEntries = [];
+      var restoredEntries = [];
+      var currentPreviewIndex = 0;
+      var templateCache = {};
+      var accountHasPlus = false;
+      var plusStatusPromise = null;
+      var hasInteracted = false;
+
+      function setStatus(message, type) {
+        statusEl.innerHTML = message;
+        statusEl.className = "rblx-cleaner-status" + (type ? " " + type : "");
+      }
+
+      function scheduleHeightReport() {
+        if (!window.parent) return;
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            var root = document.getElementById("rblx-template-cleaner");
+            var height = Math.ceil(root.scrollHeight || root.getBoundingClientRect().height);
+            window.parent.postMessage({ type: "rblx-template-cleaner-resize", height: height }, "*");
+          });
+        });
+      }
+
+      function getStoredToken() {
+        try {
+          return localStorage.getItem(TOKEN_KEY) || "";
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function hasPlusFromPayload(payload) {
+        if (!payload || typeof payload !== "object") return false;
+        return Boolean(
+          payload.plus === true ||
+          payload.isPlus === true ||
+          payload.hasPlus === true ||
+          payload.plusActive === true ||
+          payload.subscription === "plus" ||
+          payload.plan === "plus" ||
+          payload.tier === "plus"
+        );
+      }
+
+      async function fetchPlusStatus() {
+        var token = getStoredToken();
+        if (!token) return false;
+
+        try {
+          var premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
+            method: "GET",
+            headers: {
+              Authorization: "Bearer " + token
+            }
+          });
+
+          if (premiumResponse.ok) {
+            var premiumPayload = await premiumResponse.json().catch(function () { return null; });
+            return hasPlusFromPayload(premiumPayload);
+          }
+
+          if (premiumResponse.status === 401 || premiumResponse.status === 403) {
+            return false;
+          }
+
+          var response = await fetch(API_BASE + "/auth/me", {
+            method: "GET",
+            headers: {
+              Authorization: "Bearer " + token
+            }
+          });
+
+          if (!response.ok) return false;
+          var payload = await response.json().catch(function () { return null; });
+          return hasPlusFromPayload(payload);
+        } catch (e) {
+          return false;
+        }
+      }
+
+      async function ensurePlusStatus() {
+        if (plusStatusPromise) return plusStatusPromise;
+        plusStatusPromise = fetchPlusStatus().then(function (hasPlus) {
+          accountHasPlus = Boolean(hasPlus);
+          return accountHasPlus;
+        }).catch(function () {
+          accountHasPlus = false;
+          return false;
+        });
+        return plusStatusPromise;
+      }
+
+
+
+      function getActivityNameFromCache() {
+        function readNameFrom(value) {
+          var source = value && typeof value === "object" ? value : {};
+          var displayName = String(source.displayName || source.username || source.name || "").trim();
+          if (displayName) return displayName;
+          var email = String(source.email || "").trim();
+          return email ? email.split("@")[0].trim() : "";
+        }
+
+        try {
+          var cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+          var cachedUserId = String(cachedUser && cachedUser.id || "").trim();
+          var keys = [
+            cachedUserId ? "rblxtools_profile_overview:" + cachedUserId : "",
+            "rblxtools_profile_overview",
+            "rblxtools_account_profile",
+            cachedUserId ? "rblxtools_account_profile:" + cachedUserId : "",
+            "rblxtools_profile",
+            cachedUserId ? "rblxtools_profile:" + cachedUserId : ""
+          ].filter(Boolean);
+
+          for (var index = 0; index < keys.length; index += 1) {
+            var raw = localStorage.getItem(keys[index]) || "";
+            if (!raw) continue;
+            var parsed = JSON.parse(raw);
+            var nextName = readNameFrom(parsed);
+            if (nextName) return nextName;
+          }
+
+          var cachedName = readNameFrom(cachedUser);
+          if (cachedName) return cachedName;
+        } catch (_error) {
+        }
+
+        return "";
+      }
+
+
+        function rememberToolActivity(toolName) {
+        try {
+          var actorName = String(getActivityNameFromCache() || "Guest").trim() || "Guest";
+          var cacheKey = "rblxtools_tool_activity_cache";
+          var entries = [];
+          try {
+            entries = JSON.parse(localStorage.getItem(cacheKey) || "[]");
+            if (!Array.isArray(entries)) entries = [];
+          } catch (_error) {
+            entries = [];
+          }
+          entries = entries.filter(function (entry) {
+            return entry && typeof entry === "object";
+          }).slice(-79);
+          entries.push({
+            messageId: "",
+            toolName: String(toolName || "").trim(),
+            actorName: actorName,
+            createdAt: new Date().toISOString()
+          });
+          localStorage.setItem(cacheKey, JSON.stringify(entries.slice(-80)));
+        } catch (_error) {
+        }
+      }
+
+      async function postToolActivity(toolKey) {
+        try {
+          var token = getStoredToken();
+          var cachedUser = null;
+          try {
+            cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+          } catch (_error) {
+            cachedUser = null;
+          }
+          var headers = {
+            "Content-Type": "application/json"
+          };
+          if (token) {
+            headers.Authorization = "Bearer " + token;
+          }
+          await fetch(API_BASE + "/tool-activity", {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify({
+              tool: toolKey,
+              displayName: getActivityNameFromCache(),
+              username: String(cachedUser && cachedUser.username || "").trim()
+            })
+          });
+        } catch (_error) {
+        }
+      }
+
+      function getTemplateOverlayPath(type) {
+        return accountHasPlus ? TEMPLATE_OVERLAYS.plus[type] : TEMPLATE_OVERLAYS.free[type];
+      }
+
+      function getTemplateDisplayName() {
+        return "Default Roblox Template";
+      }
+
+      function updateTypePill() {
+        typePill.textContent = typeSelect.value === "shirt" ? "Shirt Template" : "Pants Template";
+      }
+
+      function updateCountPill() {
+        if (!uploadedEntries.length) {
+          countPill.textContent = "No Upload";
+          return;
+        }
+
+        if (uploadedEntries.length === 1) {
+          countPill.textContent = restoredEntries.length ? "Single Ready" : "Single Upload";
+          return;
+        }
+
+        countPill.textContent = (currentPreviewIndex + 1) + " of " + uploadedEntries.length;
+      }
+
+      function updateArrowState() {
+        var showArrows = uploadedEntries.length > 1;
+        prevBtn.classList.toggle("hidden", !showArrows);
+        nextBtn.classList.toggle("hidden", !showArrows);
+      }
+
+      function updateEmptyPreviewState() {
+        if (!emptyPreview) return;
+        emptyPreview.classList.toggle("hidden", hasInteracted);
+      }
+
+      function loadImage(src) {
+        return new Promise(function (resolve, reject) {
+          var image = new Image();
+          image.crossOrigin = "anonymous";
+          image.onload = function () {
+            resolve(image);
+          };
+          image.onerror = function () {
+            reject(new Error("Image could not be loaded."));
+          };
+          image.src = src;
+        });
+      }
+
+      function readUploadedFile(file) {
+        return new Promise(function (resolve, reject) {
+          var reader = new FileReader();
+
+          reader.onload = function () {
+            loadImage(reader.result).then(function (image) {
+              resolve({
+                file: file,
+                image: image,
+                dataUrl: reader.result
+              });
+            }).catch(reject);
+          };
+
+          reader.onerror = function () {
+            reject(new Error("Upload could not be read."));
+          };
+
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function drawResized(image, targetCtx) {
+        targetCtx.clearRect(0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+        targetCtx.drawImage(image, 0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+      }
+
+      function roundRect(targetCtx, x, y, width, height, radius, fill, stroke) {
+        var safeRadius = Math.min(radius, width / 2, height / 2);
+        targetCtx.beginPath();
+        targetCtx.moveTo(x + safeRadius, y);
+        targetCtx.arcTo(x + width, y, x + width, y + height, safeRadius);
+        targetCtx.arcTo(x + width, y + height, x, y + height, safeRadius);
+        targetCtx.arcTo(x, y + height, x, y, safeRadius);
+        targetCtx.arcTo(x, y, x + width, y, safeRadius);
+        targetCtx.closePath();
+        if (fill) targetCtx.fill();
+        if (stroke) targetCtx.stroke();
+      }
+
+      async function getTemplateData(type) {
+        var cacheKey = (accountHasPlus ? "plus:" : "free:") + type;
+        if (templateCache[cacheKey]) return templateCache[cacheKey];
+
+        var image = await loadImage(getTemplateOverlayPath(type));
+        var offscreen = document.createElement("canvas");
+        offscreen.width = TEMPLATE_WIDTH;
+        offscreen.height = TEMPLATE_HEIGHT;
+
+        var offscreenCtx = offscreen.getContext("2d", { willReadFrequently: true });
+        drawResized(image, offscreenCtx);
+
+        templateCache[cacheKey] = {
+          image: offscreen,
+          data: offscreenCtx.getImageData(0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT)
+        };
+
+        return templateCache[cacheKey];
+      }
+
+      async function drawTemplatePreview() {
+        ctx.clearRect(0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+        scheduleHeightReport();
+      }
+
+      function renderEntryPreview() {
+        var entry = restoredEntries[currentPreviewIndex] || uploadedEntries[currentPreviewIndex];
+
+        if (!entry) {
+          updateEmptyPreviewState();
+          drawTemplatePreview().catch(function () {
+            ctx.clearRect(0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+          });
+          updateCountPill();
+          updateArrowState();
+          scheduleHeightReport();
+          return;
+        }
+
+        updateEmptyPreviewState();
+        ctx.clearRect(0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+
+        if (entry.outputDataUrl) {
+          loadImage(entry.outputDataUrl).then(function (image) {
+            ctx.drawImage(image, 0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+            scheduleHeightReport();
+          }).catch(function () {
+            if (entry.image) ctx.drawImage(entry.image, 0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+            scheduleHeightReport();
+          });
+        } else if (entry.image) {
+          ctx.drawImage(entry.image, 0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+          scheduleHeightReport();
+        }
+
+        updateCountPill();
+        updateArrowState();
+      }
+
+      async function processSingleEntry(entry) {
+        var template = await getTemplateData(typeSelect.value);
+        var uploadCanvas = document.createElement("canvas");
+        uploadCanvas.width = TEMPLATE_WIDTH;
+        uploadCanvas.height = TEMPLATE_HEIGHT;
+
+        var uploadCtx = uploadCanvas.getContext("2d", { willReadFrequently: true });
+        drawResized(entry.image, uploadCtx);
+
+        var uploadData = uploadCtx.getImageData(0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+        var outputData = new ImageData(
+          new Uint8ClampedArray(template.data.data),
+          TEMPLATE_WIDTH,
+          TEMPLATE_HEIGHT
+        );
+
+        for (var i = 0; i < uploadData.data.length; i += 4) {
+          var templateAlpha = template.data.data[i + 3];
+
+          if (templateAlpha <= CLOTHING_ALPHA_THRESHOLD) {
+            outputData.data[i] = uploadData.data[i];
+            outputData.data[i + 1] = uploadData.data[i + 1];
+            outputData.data[i + 2] = uploadData.data[i + 2];
+            outputData.data[i + 3] = uploadData.data[i + 3];
+          }
+        }
+
+        var outputCanvas = document.createElement("canvas");
+        outputCanvas.width = TEMPLATE_WIDTH;
+        outputCanvas.height = TEMPLATE_HEIGHT;
+        outputCanvas.getContext("2d").putImageData(outputData, 0, 0);
+
+        return {
+          file: entry.file,
+          image: entry.image,
+          outputDataUrl: outputCanvas.toDataURL("image/png")
+        };
+      }
+
+      async function handleUploadChange() {
+        var files = Array.prototype.slice.call(uploadInput.files || []);
+
+        uploadedEntries = [];
+        restoredEntries = [];
+        currentPreviewIndex = 0;
+        downloadBtn.disabled = true;
+        processBtn.disabled = true;
+
+        if (!files.length) {
+          setStatus("Upload a template to begin.");
+          renderEntryPreview();
+          return;
+        }
+
+        hasInteracted = true;
+        updateEmptyPreviewState();
+
+        if (files.length > 5) {
+          setStatus("<span class=\"rblx-plus-word\">Plus</span> users can restore up to 5 templates at a time.", "error");
+          renderEntryPreview();
+          return;
+        }
+
+        if (files.length > 1) {
+          var hasPlus = await fetchPlusStatus();
+          if (!hasPlus) {
+            setStatus("Must be a <span class=\"rblx-plus-word\">Plus</span> subscriber to restore multiple templates at the same time. <a href=\"https://www.rblxtools.net/subscriptions\" target=\"_top\"><span class=\"rblx-plus-word\">Upgrade to Plus</span></a>", "error");
+            renderEntryPreview();
+            return;
+          }
+        }
+
+        setStatus("Loading uploaded template" + (files.length > 1 ? "s..." : "..."));
+
+        try {
+          uploadedEntries = await Promise.all(files.map(readUploadedFile));
+          processBtn.disabled = false;
+          updateEmptyPreviewState();
+          renderEntryPreview();
+          setStatus(
+            files.length > 1
+              ? "Templates loaded. Click Restore Background to process all of them."
+              : "Template loaded. Click Restore Background to apply the " + getTemplateDisplayName() + ".",
+            "success"
+          );
+        } catch (error) {
+          uploadedEntries = [];
+          updateEmptyPreviewState();
+          renderEntryPreview();
+          setStatus("That image could not be loaded. Try PNG, JPG, or WEBP files.", "error");
+        }
+      }
+
+      async function processTemplates() {
+        if (!uploadedEntries.length) {
+          setStatus("Upload a template first.", "error");
+          return;
+        }
+
+        processBtn.disabled = true;
+        downloadBtn.disabled = true;
+        restoredEntries = [];
+        updateEmptyPreviewState();
+        setStatus("Restoring template background" + (uploadedEntries.length > 1 ? "s..." : "..."));
+
+        try {
+          restoredEntries = await Promise.all(uploadedEntries.map(processSingleEntry));
+          currentPreviewIndex = 0;
+          updateEmptyPreviewState();
+          renderEntryPreview();
+          downloadBtn.disabled = false;
+          downloadBtn.textContent = restoredEntries.length > 1 ? "Download All" : "Download PNG";
+          rememberToolActivity("Background Changer");
+          await postToolActivity("background-changer");
+          setStatus(
+            restoredEntries.length > 1
+              ? "Done. All template backgrounds were restored using the " + getTemplateDisplayName() + "."
+              : "Done. The clothing artwork stayed in place and the " + getTemplateDisplayName() + " was applied.",
+            "success"
+          );
+        } catch (error) {
+          restoredEntries = [];
+          updateEmptyPreviewState();
+          downloadBtn.disabled = true;
+          downloadBtn.textContent = "Download PNG";
+          setStatus("The selected template background image could not be loaded. Check the local template files and paths.", "error");
+        }
+
+        processBtn.disabled = false;
+      }
+
+      function downloadCurrentOrAll() {
+        if (!restoredEntries.length) return;
+
+        if (restoredEntries.length === 1) {
+          var singleLink = document.createElement("a");
+          singleLink.download = "rblx-template-restored.png";
+          singleLink.href = restoredEntries[0].outputDataUrl;
+          singleLink.click();
+          return;
+        }
+
+        restoredEntries.forEach(function (entry, index) {
+          setTimeout(function () {
+            var link = document.createElement("a");
+            var baseName = entry.file && entry.file.name ? entry.file.name.replace(/\.[^.]+$/, "") : "template-" + (index + 1);
+            link.download = baseName + "-restored.png";
+            link.href = entry.outputDataUrl;
+            link.click();
+          }, index * 140);
+        });
+      }
+
+      prevBtn.addEventListener("click", function () {
+        if (uploadedEntries.length < 2) return;
+        currentPreviewIndex = (currentPreviewIndex - 1 + uploadedEntries.length) % uploadedEntries.length;
+        renderEntryPreview();
+      });
+
+      nextBtn.addEventListener("click", function () {
+        if (uploadedEntries.length < 2) return;
+        currentPreviewIndex = (currentPreviewIndex + 1) % uploadedEntries.length;
+        renderEntryPreview();
+      });
+
+      uploadInput.addEventListener("change", function () {
+        handleUploadChange();
+      });
+
+      typeSelect.addEventListener("change", function () {
+        hasInteracted = true;
+        updateTypePill();
+        restoredEntries = [];
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = "Download PNG";
+
+        if (uploadedEntries.length) {
+          setStatus("Template type changed. Click Restore Background again.");
+          updateEmptyPreviewState();
+          renderEntryPreview();
+        } else {
+          updateEmptyPreviewState();
+          setStatus("Upload a template to begin.");
+          drawTemplatePreview().catch(function () {
+            ctx.clearRect(0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+          });
+        }
+      });
+
+      processBtn.addEventListener("click", processTemplates);
+      downloadBtn.addEventListener("click", downloadCurrentOrAll);
+
+      if ("ResizeObserver" in window) {
+        new ResizeObserver(scheduleHeightReport).observe(document.getElementById("rblx-template-cleaner"));
+      }
+
+      window.addEventListener("load", function () {
+        updateTypePill();
+        updateEmptyPreviewState();
+        drawTemplatePreview().catch(function () {
+          setStatus("Upload a template to begin.");
+        });
+        ensurePlusStatus().then(function (hasPlus) {
+          return drawTemplatePreview();
+        }).catch(function () {
+          return drawTemplatePreview();
+        });
+        scheduleHeightReport();
+        setTimeout(scheduleHeightReport, 150);
+        setTimeout(scheduleHeightReport, 500);
+      });
+
+      window.addEventListener("resize", scheduleHeightReport);
+    })();
+  </script>
+</div>
+
+
+
+
+
+
+

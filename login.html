@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RBLX Tools | Login</title>
+  <link rel="stylesheet" href="./global-shell.css">
+  <style>
+    :root {
+      --bg: #07080a;
+      --bg-2: #0f1116;
+      --panel: rgba(15, 18, 24, 0.86);
+      --panel-2: rgba(20, 24, 31, 0.95);
+      --panel-3: rgba(255, 255, 255, 0.04);
+      --text: #ffffff;
+      --muted: #aeb6c4;
+      --muted-2: #7e8797;
+      --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 78, 78, 0.34);
+      --accent: #ff3b3b;
+      --accent-2: #ff6565;
+      --accent-soft: rgba(255, 59, 59, 0.16);
+      --success: #61f2a1;
+      --danger: #ff9a9a;
+      --shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --radius-pill: 999px;
+      --font: Inter, Arial, Helvetica, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: var(--font);
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--text);
+    }
+
+    body {
+      overflow-x: hidden;
+      overflow-y: auto;
+      position: relative;
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.26), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(255, 0, 0, 0.12), transparent 24%),
+        radial-gradient(circle at 82% 74%, rgba(255, 74, 74, 0.12), transparent 30%),
+        radial-gradient(circle at 22% 86%, rgba(255, 124, 124, 0.10), transparent 26%),
+        linear-gradient(180deg, #151c28 0%, #0c1119 38%, #080b11 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      background:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at center, black 54%, transparent 100%);
+      pointer-events: none;
+      opacity: 0.82;
+      z-index: 0;
+    }
+
+    .bg-wrap {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(7px);
+      opacity: 0.92;
+      mix-blend-mode: screen;
+    }
+
+    .orb-one { top: -180px; left: -180px; width: 620px; height: 620px; background: radial-gradient(circle at 35% 35%, rgba(255, 120, 120, 0.3), rgba(255, 0, 0, 0.18), transparent 68%); }
+    .orb-two { top: 10%; right: -210px; width: 560px; height: 560px; background: radial-gradient(circle at 50% 50%, rgba(255, 80, 80, 0.18), rgba(190, 0, 0, 0.16), transparent 70%); }
+    .orb-three { bottom: -250px; left: 10%; width: 760px; height: 760px; background: radial-gradient(circle at 50% 50%, rgba(255, 40, 40, 0.16), rgba(110, 0, 0, 0.12), transparent 72%); }
+    .orb-four { bottom: -160px; right: 2%; width: 460px; height: 460px; background: radial-gradient(circle at 50% 50%, rgba(255, 100, 100, 0.12), rgba(255, 0, 0, 0.10), transparent 74%); }
+
+    .page-root {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      padding: 12px 0;
+    }
+
+    .page-shell {
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .page-card {
+      --tilt-x: 0deg;
+      --tilt-y: 0deg;
+      --glow-x: 84%;
+      --glow-y: 14%;
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at var(--glow-x) var(--glow-y), rgba(255, 68, 68, 0.22), transparent 24%),
+        radial-gradient(circle at 12% 100%, rgba(255, 60, 60, 0.15), transparent 26%),
+        linear-gradient(180deg, rgba(18, 21, 28, 0.98), rgba(11, 13, 18, 0.98));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), var(--shadow);
+      transform: rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+      transform-style: preserve-3d;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .page-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 22%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 13px);
+      pointer-events: none;
+    }
+
+    .page-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -10% -35% auto;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(255, 64, 64, 0.25), transparent 66%);
+      filter: blur(22px);
+      pointer-events: none;
+    }
+
+    .page-inner {
+      position: relative;
+      z-index: 1;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 2px 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      color: #fff;
+      background: linear-gradient(180deg, #ff5656 0%, #d81818 100%);
+      box-shadow: 0 14px 28px rgba(255, 42, 42, 0.28);
+    }
+
+    .brand-copy strong,
+    .brand-copy span {
+      display: block;
+    }
+
+    .brand-copy strong {
+      font-size: 15px;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-copy span {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .topbar-pill,
+    .eyebrow,
+    .mini-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: #f8d7d7;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.75px;
+      text-transform: uppercase;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .hero-panel,
+    .auth-panel,
+    .bottom-panel {
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+      min-width: 0;
+    }
+
+    .hero-panel {
+      padding: 26px;
+    }
+
+    .auth-panel {
+      padding: 20px;
+      background:
+        radial-gradient(circle at top right, rgba(255, 69, 69, 0.12), transparent 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02));
+    }
+
+    .hero-title,
+    .auth-title {
+      margin: 14px 0 0;
+      font-weight: 900;
+      letter-spacing: -1.6px;
+      line-height: 0.95;
+    }
+
+    .hero-title {
+      max-width: 620px;
+      font-size: clamp(46px, 6vw, 72px);
+    }
+
+    .hero-title span,
+    .auth-title span {
+      display: block;
+    }
+
+    .hero-title span:last-child,
+    .auth-title span:last-child {
+      color: var(--accent);
+      text-shadow: 0 14px 34px rgba(255, 59, 59, 0.2);
+    }
+
+    .hero-copy,
+    .auth-copy,
+    .bottom-copy {
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+      font-weight: 700;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .action-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #6af5aa 0%, #33c871 100%);
+      box-shadow: 0 0 0 6px rgba(91, 242, 158, 0.12);
+      flex-shrink: 0;
+    }
+
+    .signal-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .signal-card,
+    .feature-card,
+    .trust-card {
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background:
+        radial-gradient(circle at top right, rgba(255, 65, 65, 0.11), transparent 40%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+      padding: 15px;
+    }
+
+    .signal-value {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.8px;
+      color: #fff;
+    }
+
+    .signal-label,
+    .feature-label,
+    .trust-label,
+    .field-label {
+      margin-top: 6px;
+      color: #f1b5b5;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+    }
+
+    .signal-copy,
+    .feature-copy,
+    .trust-copy,
+    .form-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .feature-title,
+    .trust-title {
+      margin-top: 8px;
+      color: #fff;
+      font-size: 17px;
+      line-height: 1.15;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+
+    .auth-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .auth-title {
+      margin-top: 10px;
+      font-size: 36px;
+    }
+
+    .tab-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 18px;
+      padding: 6px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .tab {
+      min-height: 44px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: #d6dbe4;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.35px;
+      cursor: pointer;
+      transition: transform 0.14s ease, background 0.14s ease, color 0.14s ease;
+    }
+
+    .tab:hover {
+      transform: translateY(-1px);
+    }
+
+    .tab.is-active {
+      color: #fff;
+      background: linear-gradient(180deg, rgba(255, 81, 81, 0.24), rgba(124, 24, 24, 0.16));
+      box-shadow: inset 0 0 0 1px rgba(255, 102, 102, 0.18), 0 12px 22px rgba(255, 43, 43, 0.1);
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .field-wrap {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field-label {
+      margin-top: 0;
+      color: #f0ecec;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input {
+      width: 100%;
+      min-height: 50px;
+      padding: 0 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line-strong);
+      background: #262a31;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    .input::placeholder {
+      color: var(--muted-2);
+    }
+
+    .input:focus {
+      border-color: rgba(255, 118, 118, 0.9);
+      box-shadow: 0 0 0 4px rgba(255, 59, 59, 0.12);
+      background: #2b3038;
+    }
+
+    .input.password-input {
+      padding-right: 110px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      top: 50%;
+      right: 8px;
+      transform: translateY(-50%);
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .form-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: -2px;
+    }
+
+    .button {
+      min-height: 50px;
+      border: 0;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.25px;
+      cursor: pointer;
+      transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
+    }
+
+    .button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .button:disabled {
+      opacity: 0.68;
+      cursor: wait;
+      box-shadow: none;
+    }
+
+    .button.primary {
+      background: linear-gradient(180deg, #ff4e4e 0%, #de1818 100%);
+      box-shadow: 0 18px 30px rgba(255, 34, 34, 0.24);
+    }
+
+    .support-link {
+      color: #ffd1d1;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .support-link:hover {
+      text-decoration: underline;
+    }
+
+    .status {
+      min-height: 20px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .status.success {
+      color: var(--success);
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .oauth-divider {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted-2);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      margin: 4px 0 2px;
+    }
+
+    .oauth-divider::before,
+    .oauth-divider::after {
+      content: "";
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .google-auth {
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+    }
+
+    .google-auth.hidden {
+      display: none;
+    }
+
+    .google-button-wrap {
+      min-height: 44px;
+      width: 100%;
+      max-width: 340px;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto;
+    }
+
+    .google-note {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+      font-weight: 700;
+      text-align: center;
+      max-width: 340px;
+    }
+
+    .trust-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .trust-row {
+      display: grid;
+      grid-template-columns: 18px 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .trust-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      margin-top: 2px;
+      background: linear-gradient(180deg, rgba(255, 73, 73, 0.95), rgba(194, 25, 25, 0.95));
+      box-shadow: 0 0 0 6px rgba(255, 65, 65, 0.1);
+    }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .bottom-panel {
+      padding: 18px;
+    }
+
+    .bottom-title {
+      margin: 8px 0 0;
+      font-size: 22px;
+      line-height: 1.08;
+      letter-spacing: -0.7px;
+      font-weight: 900;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .mini-pill {
+      min-height: 24px;
+      padding: 0 10px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .bottom-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .signal-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-inner,
+      .hero-panel,
+      .auth-panel,
+      .bottom-panel {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .hero-title {
+        font-size: 42px;
+      }
+
+      .auth-title {
+        font-size: 30px;
+      }
+
+      .feature-grid,
+      .signal-grid,
+      .mini-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-meta {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-wrap" aria-hidden="true">
+    <div class="orb orb-one"></div>
+    <div class="orb orb-two"></div>
+    <div class="orb orb-three"></div>
+    <div class="orb orb-four"></div>
+  </div>
+
+  <div class="page-root">
+    <div class="page-shell">
+      <div id="pageCard" class="page-card">
+        <div class="page-inner">
+        <div class="topbar">
+          <div class="brand">
+            <div class="brand-mark">RBT</div>
+            <div class="brand-copy">
+              <strong>RBLX Tools</strong>
+              <span>Member account access</span>
+            </div>
+          </div>
+          <div class="topbar-pill">Secure member login</div>
+        </div>
+
+        <div class="hero-grid">
+          <section class="hero-panel">
+            <div class="eyebrow">RBLX Tools Plus</div>
+            <h1 class="hero-title">
+              <span>Your RBLX Tools</span>
+              <span>account starts here.</span>
+            </h1>
+            <p class="hero-copy">
+              Create your account or sign back in to keep your tools, account access, and Plus membership connected in one place.
+            </p>
+
+            <div class="hero-actions">
+              <div class="action-chip"><span class="dot"></span> Session saved on this browser</div>
+            </div>
+
+            <div class="signal-grid">
+              <div class="signal-card">
+                <div class="signal-value">One Account</div>
+                <div class="signal-label">Best Practice</div>
+                <div class="signal-copy">Keep everything under one email so your login, account access, and membership stay easy to manage.</div>
+              </div>
+              <div class="signal-card">
+                <div class="signal-value">Saved Access</div>
+                <div class="signal-label">Convenience</div>
+                <div class="signal-copy">Stay signed in on your browser so returning to your account feels quick and simple.</div>
+              </div>
+              <div class="signal-card">
+                <div class="signal-value">Account Control</div>
+                <div class="signal-label">Member Access</div>
+                <div class="signal-copy">Your account gives you one place to access your member pages and keep your plan tied to the right profile.</div>
+              </div>
+            </div>
+
+            <div class="feature-grid">
+              <div class="feature-card">
+                <div class="feature-label">Your Account</div>
+                <div class="feature-title">Giveaways and rewards go to your account</div>
+                <div class="feature-copy">Logging in lets site rewards, free subscription wins, and live chat giveaway prizes be attached to the right account instead of getting lost.</div>
+              </div>
+              <div class="feature-card">
+                <div class="feature-label">Membership</div>
+                <div class="feature-title">Make your account gift-ready</div>
+                <div class="feature-copy">A real account makes it easier for subscriptions, gifted access, and future account perks to be sent to you the right way.</div>
+              </div>
+              <div class="feature-card">
+                <div class="feature-label">Ownership</div>
+                <div class="feature-title">Build your own member profile</div>
+                <div class="feature-copy">Signing up gives you a proper account for your access instead of jumping between random links or pages.</div>
+              </div>
+              <div class="feature-card">
+                <div class="feature-label">Returning Users</div>
+                <div class="feature-title">Come back without the hassle</div>
+                <div class="feature-copy">Once you have an account, logging back in is the easiest way to pick up where you left off.</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="auth-panel">
+            <div class="auth-header">
+              <div>
+                <div class="eyebrow">Member Entry</div>
+                <h2 class="auth-title">
+                  <span>Sign In</span>
+                  <span>Or Create</span>
+                </h2>
+              </div>
+              <div class="mini-pill">Live auth</div>
+            </div>
+
+            <p class="auth-copy">
+              Log in to your existing account or create one now to unlock a cleaner member experience and keep your access in one place.
+            </p>
+
+            <div class="tab-row">
+              <button id="loginTab" class="tab is-active" type="button">Log In</button>
+              <button id="signupTab" class="tab" type="button">Sign Up</button>
+            </div>
+
+            <form id="authForm" class="form-grid">
+              <div class="field-wrap">
+                <label class="field-label" for="emailInput">Email Address</label>
+                <div class="input-wrap">
+                  <input id="emailInput" class="input" type="email" placeholder="you@example.com" autocomplete="email" required>
+                </div>
+              </div>
+
+              <div class="field-wrap">
+                <label class="field-label" for="passwordInput">Password</label>
+                <div class="input-wrap">
+                  <input id="passwordInput" class="input password-input" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+                  <button id="togglePasswordButton" class="toggle-password" type="button" aria-label="Show password">Show</button>
+                </div>
+              </div>
+
+              <div class="form-meta">
+                <div id="formSubcopy" class="form-note">Log in with the same account you plan to use for your Plus tools.</div>
+              </div>
+
+              <button id="submitButton" class="button primary" type="submit">Log In</button>
+              <div id="formStatus" class="status"></div>
+
+              <div id="oauthDivider" class="oauth-divider hidden">Or</div>
+
+              <div id="googleAuthSection" class="google-auth hidden">
+                <div id="googleButtonWrap" class="google-button-wrap"></div>
+                <div id="googleAuthNote" class="google-note">Use the same Google email as your existing RBLX Tools account to keep access connected.</div>
+              </div>
+            </form>
+
+            <div class="trust-list">
+              <div class="trust-row">
+                <div class="trust-icon"></div>
+                <div>
+                  <div class="trust-title">Stay signed in on your device</div>
+                  <div class="trust-copy">Your browser can remember your session so you can come back to your account without repeating the whole process every time.</div>
+                </div>
+              </div>
+              <div class="trust-row">
+                <div class="trust-icon"></div>
+                <div>
+                  <div class="trust-title">Use one email for everything</div>
+                  <div class="trust-copy">Using the same email for your account and membership keeps your profile cleaner and avoids access mixups later.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+          <div class="bottom-grid">
+            <section class="bottom-panel">
+              <div class="eyebrow">Why Make An Account</div>
+              <div class="bottom-title">One login gives your RBLX Tools access a real home.</div>
+              <p class="bottom-copy">
+                Creating an account makes it easier to keep your member access organized, return to your pages faster, and manage everything from one profile instead of scattered pages.
+              </p>
+            </section>
+
+            <section class="bottom-panel">
+              <div class="eyebrow">Why It Helps</div>
+              <div class="mini-grid">
+                <div class="trust-card">
+                  <div class="trust-label">Benefit 1</div>
+                  <div class="trust-title">Easier access later</div>
+                  <div class="trust-copy">Returning members can log back in quickly instead of trying to remember where everything is.</div>
+                </div>
+                <div class="trust-card">
+                  <div class="trust-label">Benefit 2</div>
+                  <div class="trust-title">Cleaner account setup</div>
+                  <div class="trust-copy">Your tools, member pages, and Plus status all work better when they stay tied to one proper account.</div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var API_BASE = window.location.origin;
+      var TOKEN_KEY = "rblxtools_auth_token";
+      var USER_KEY = "rblxtools_auth_user";
+      var MODE_KEY = "rblxtools_auth_mode";
+      var POST_LOGIN_REDIRECT_URL = "./account-overview.html";
+      var GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
+
+      var state = {
+        mode: localStorage.getItem(MODE_KEY) === "signup" ? "signup" : "login",
+        token: localStorage.getItem(TOKEN_KEY) || "",
+        user: null,
+        googleClientId: "",
+        googleReady: false
+      };
+
+      var els = {
+        pageCard: document.getElementById("pageCard"),
+        loginTab: document.getElementById("loginTab"),
+        signupTab: document.getElementById("signupTab"),
+        authForm: document.getElementById("authForm"),
+        emailInput: document.getElementById("emailInput"),
+        passwordInput: document.getElementById("passwordInput"),
+        togglePasswordButton: document.getElementById("togglePasswordButton"),
+        submitButton: document.getElementById("submitButton"),
+        formSubcopy: document.getElementById("formSubcopy"),
+        formStatus: document.getElementById("formStatus"),
+        oauthDivider: document.getElementById("oauthDivider"),
+        googleAuthSection: document.getElementById("googleAuthSection"),
+        googleButtonWrap: document.getElementById("googleButtonWrap"),
+        googleAuthNote: document.getElementById("googleAuthNote")
+      };
+
+      function setStatus(element, message, tone) {
+        element.textContent = message || "";
+        element.className = "status" + (tone ? " " + tone : "");
+      }
+
+      function setMode(mode) {
+        state.mode = mode === "signup" ? "signup" : "login";
+        localStorage.setItem(MODE_KEY, state.mode);
+        els.loginTab.classList.toggle("is-active", state.mode === "login");
+        els.signupTab.classList.toggle("is-active", state.mode === "signup");
+        els.submitButton.textContent = state.mode === "signup" ? "Create Account" : "Log In";
+        els.passwordInput.autocomplete = state.mode === "signup" ? "new-password" : "current-password";
+        els.formSubcopy.textContent = state.mode === "signup"
+          ? "Create your account with the email you want connected to your member access."
+          : "Log in with the account you use for your member access and Plus tools.";
+        if (els.googleAuthNote) {
+          els.googleAuthNote.textContent = state.mode === "signup"
+            ? "Sign up with Google using the email you want tied to your RBLX Tools account."
+            : "Use the same Google email as your existing RBLX Tools account to keep access connected.";
+        }
+        renderGoogleButton();
+        setStatus(els.formStatus, "", "");
+      }
+
+      async function apiRequest(path, options) {
+        var response = await fetch(API_BASE + path, options || {});
+        var contentType = response.headers.get("content-type") || "";
+        var payload = null;
+
+        if (contentType.indexOf("application/json") !== -1) {
+          payload = await response.json().catch(function () { return null; });
+        } else {
+          var text = await response.text().catch(function () { return ""; });
+          payload = text ? { error: text } : null;
+        }
+
+        if (!response.ok) {
+          var error = new Error((payload && payload.error) || ("Request failed with status " + response.status));
+          error.status = response.status;
+          throw error;
+        }
+
+        return payload;
+      }
+
+      function saveToken(token) {
+        state.token = token || "";
+        if (state.token) {
+          localStorage.setItem(TOKEN_KEY, state.token);
+        } else {
+          localStorage.removeItem(TOKEN_KEY);
+        }
+      }
+
+      function saveUser(user) {
+        state.user = user || null;
+        try {
+          if (state.user) {
+            localStorage.setItem(USER_KEY, JSON.stringify(state.user));
+          } else {
+            localStorage.removeItem(USER_KEY);
+          }
+        } catch (_error) {
+        }
+      }
+
+      function saveSession(token, user) {
+        saveToken(token);
+        saveUser(user);
+      }
+
+      function goToOverview() {
+        if (window.top && window.top !== window) {
+          window.top.location.href = POST_LOGIN_REDIRECT_URL;
+          return;
+        }
+
+        window.location.href = POST_LOGIN_REDIRECT_URL;
+      }
+
+      async function loadCurrentUser() {
+        if (!state.token) {
+          return;
+        }
+
+        try {
+          var payload = await apiRequest("/auth/me", {
+            method: "GET",
+            headers: {
+              Authorization: "Bearer " + state.token
+            }
+          });
+          saveUser(payload && payload.user ? payload.user : payload);
+          goToOverview();
+        } catch (error) {
+          saveSession("", null);
+        }
+      }
+
+      async function handleSubmit(event) {
+        event.preventDefault();
+
+        var email = els.emailInput.value.trim();
+        var password = els.passwordInput.value;
+
+        if (!email || !password) {
+          setStatus(els.formStatus, "Enter your email and password first.", "error");
+          return;
+        }
+
+        els.submitButton.disabled = true;
+        setStatus(
+          els.formStatus,
+          state.mode === "signup" ? "Creating your account..." : "Logging you in...",
+          ""
+        );
+
+        try {
+          var result = await apiRequest(state.mode === "signup" ? "/auth/signup" : "/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              email: email,
+              password: password
+            })
+          });
+
+          saveSession(result.token || "", result.user || null);
+          setStatus(
+            els.formStatus,
+            state.mode === "signup" ? "Account created. Redirecting..." : "Login successful. Redirecting...",
+            "success"
+          );
+          els.passwordInput.value = "";
+          setTimeout(goToOverview, 350);
+        } catch (error) {
+          setStatus(els.formStatus, error.message || "Request failed.", "error");
+        } finally {
+          els.submitButton.disabled = false;
+        }
+      }
+
+      function loadGoogleScript() {
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+          return Promise.resolve();
+        }
+
+        if (window.__rblxGoogleScriptPromise) {
+          return window.__rblxGoogleScriptPromise;
+        }
+
+        window.__rblxGoogleScriptPromise = new Promise(function (resolve, reject) {
+          var existing = document.querySelector('script[src="' + GOOGLE_SCRIPT_SRC + '"]');
+          if (existing) {
+            existing.addEventListener("load", function () { resolve(); }, { once: true });
+            existing.addEventListener("error", function () { reject(new Error("Could not load Google Sign-In.")); }, { once: true });
+            return;
+          }
+
+          var script = document.createElement("script");
+          script.src = GOOGLE_SCRIPT_SRC;
+          script.async = true;
+          script.defer = true;
+          script.onload = function () { resolve(); };
+          script.onerror = function () { reject(new Error("Could not load Google Sign-In.")); };
+          document.head.appendChild(script);
+        });
+
+        return window.__rblxGoogleScriptPromise;
+      }
+
+      function renderGoogleButton() {
+        if (!state.googleClientId || !window.google || !window.google.accounts || !window.google.accounts.id || !els.googleButtonWrap) {
+          return;
+        }
+
+        els.googleButtonWrap.innerHTML = "";
+        window.google.accounts.id.initialize({
+          client_id: state.googleClientId,
+          callback: handleGoogleCredential
+        });
+
+        window.google.accounts.id.renderButton(els.googleButtonWrap, {
+          theme: "outline",
+          size: "large",
+          shape: "pill",
+          text: state.mode === "signup" ? "signup_with" : "signin_with",
+          logo_alignment: "left",
+          width: 340
+        });
+      }
+
+      async function handleGoogleCredential(googleResponse) {
+        if (!googleResponse || !googleResponse.credential) {
+          setStatus(els.formStatus, "Google sign-in did not return a credential.", "error");
+          return;
+        }
+
+        els.submitButton.disabled = true;
+        setStatus(els.formStatus, "Signing you in with Google...", "");
+
+        try {
+          var result = await apiRequest("/auth/google", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              idToken: googleResponse.credential
+            })
+          });
+
+          saveSession(result.token || "", result.user || null);
+          setStatus(els.formStatus, "Google sign-in successful. Redirecting...", "success");
+          els.passwordInput.value = "";
+          setTimeout(goToOverview, 350);
+        } catch (error) {
+          setStatus(els.formStatus, error.message || "Google sign-in failed.", "error");
+        } finally {
+          els.submitButton.disabled = false;
+        }
+      }
+
+      async function loadGoogleAuth() {
+        try {
+          var config = await apiRequest("/auth/google/config", {
+            method: "GET",
+            cache: "no-store"
+          });
+
+          if (!config || !config.enabled || !config.clientId) {
+            return;
+          }
+
+          state.googleClientId = config.clientId;
+          els.oauthDivider.classList.remove("hidden");
+          els.googleAuthSection.classList.remove("hidden");
+          await loadGoogleScript();
+          state.googleReady = true;
+          renderGoogleButton();
+        } catch (_error) {
+          state.googleReady = false;
+        }
+      }
+
+      function togglePasswordVisibility() {
+        var isHidden = els.passwordInput.type === "password";
+        els.passwordInput.type = isHidden ? "text" : "password";
+        els.togglePasswordButton.textContent = isHidden ? "Hide" : "Show";
+        els.togglePasswordButton.setAttribute("aria-label", isHidden ? "Hide password" : "Show password");
+      }
+
+      function setupTilt() {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          return;
+        }
+
+        var card = els.pageCard;
+        card.addEventListener("mousemove", function (event) {
+          var rect = card.getBoundingClientRect();
+          var x = (event.clientX - rect.left) / rect.width;
+          var y = (event.clientY - rect.top) / rect.height;
+          var tiltX = (0.5 - y) * 2.8;
+          var tiltY = (x - 0.5) * 3.4;
+          card.style.setProperty("--tilt-x", tiltX.toFixed(2) + "deg");
+          card.style.setProperty("--tilt-y", tiltY.toFixed(2) + "deg");
+          card.style.setProperty("--glow-x", (x * 100).toFixed(0) + "%");
+          card.style.setProperty("--glow-y", (y * 100).toFixed(0) + "%");
+        });
+
+        card.addEventListener("mouseleave", function () {
+          card.style.setProperty("--tilt-x", "0deg");
+          card.style.setProperty("--tilt-y", "0deg");
+          card.style.setProperty("--glow-x", "84%");
+          card.style.setProperty("--glow-y", "14%");
+        });
+      }
+
+      els.loginTab.addEventListener("click", function () { setMode("login"); });
+      els.signupTab.addEventListener("click", function () { setMode("signup"); });
+      els.togglePasswordButton.addEventListener("click", togglePasswordVisibility);
+      els.authForm.addEventListener("submit", handleSubmit);
+
+      setMode(state.mode);
+      setupTilt();
+      loadGoogleAuth();
+      loadCurrentUser();
+    }());
+  </script>
+  <script src="./global-shell.js"></script>
+</body>
+</html>

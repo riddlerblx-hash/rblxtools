@@ -1,0 +1,2450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robux Calculator | RBLX Tools</title>
+  <meta name="description" content="Use the RBLX Tools Robux Calculator to estimate Roblox marketplace tax, DevEx payouts, package value, split payouts, savings goals, commissions, and reseller profits.">
+  <link rel="stylesheet" href="./global-shell.css">
+  <style>
+    :root {
+      --bg-0: #07090d;
+      --bg-1: #0b1118;
+      --panel: rgba(15, 18, 24, 0.86);
+      --panel-2: rgba(19, 24, 33, 0.94);
+      --panel-3: rgba(255, 255, 255, 0.04);
+      --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 97, 97, 0.28);
+      --text: #ffffff;
+      --muted: #bbc5d3;
+      --soft: #8f9aac;
+      --accent: #ff3b3b;
+      --accent-2: #ff7070;
+      --good: #52ef8b;
+      --good-2: #1bc55f;
+      --warn: #ffcc71;
+      --shadow: 0 28px 58px rgba(0, 0, 0, 0.34);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --max: 1360px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(255, 61, 61, 0.20), transparent 22%),
+        radial-gradient(circle at 82% 16%, rgba(255, 50, 50, 0.12), transparent 18%),
+        linear-gradient(180deg, rgba(130, 22, 22, 0.10), transparent 30%),
+        linear-gradient(180deg, #091019 0%, #06090d 100%);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      background:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 64px 64px;
+      inset: -18%;
+      mask-image: radial-gradient(circle at center, black 54%, transparent 100%);
+      opacity: 0.82;
+    }
+
+    body::after {
+      background:
+        radial-gradient(circle at 18% 18%, rgba(255, 70, 70, 0.18), transparent 14%),
+        radial-gradient(circle at 84% 76%, rgba(255, 90, 90, 0.10), transparent 18%);
+      filter: blur(14px);
+      opacity: 0.9;
+    }
+
+    .calc-page {
+      position: relative;
+      z-index: 1;
+      width: min(calc(100% - 26px), var(--max));
+      margin: 0 auto;
+      padding: 22px 0 42px;
+    }
+
+    .calc-stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .calc-hero,
+    .calc-shell,
+    .calc-side-card,
+    .calc-footer-card {
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at top right, rgba(255, 58, 58, 0.10), transparent 28%),
+        linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .calc-hero {
+      border-radius: 34px;
+      padding: 26px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .eyebrow,
+    .mini-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.95px;
+      text-transform: uppercase;
+      border: 1px solid rgba(255, 97, 97, 0.24);
+      background: rgba(255, 62, 62, 0.10);
+      color: #ffb5b5;
+      width: fit-content;
+    }
+
+    .mini-eyebrow {
+      min-height: 26px;
+      font-size: 9px;
+      padding: 0 10px;
+    }
+
+    .hero-title {
+      margin: 16px 0 0;
+      font-size: clamp(36px, 5vw, 66px);
+      line-height: 0.92;
+      letter-spacing: -1.8px;
+      font-weight: 900;
+      max-width: 11ch;
+    }
+
+    .hero-title .accent {
+      display: block;
+      margin-top: 8px;
+      background: linear-gradient(180deg, #ffd1d1 0%, #ff2f2f 84%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-copy {
+      max-width: 720px;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.68;
+      font-weight: 700;
+    }
+
+    .hero-points {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .hero-point {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.035);
+    }
+
+    .hero-point strong {
+      display: block;
+      color: #fff;
+      font-size: 15px;
+      line-height: 1.1;
+      font-weight: 900;
+      margin-bottom: 7px;
+    }
+
+    .hero-point span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .hero-info-card {
+      border-radius: 28px;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
+        rgba(14, 17, 22, 0.78);
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .hero-info-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .hero-info-item {
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .hero-info-label {
+      color: #ff9f9f;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+
+    .hero-info-value {
+      color: #fff;
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 800;
+    }
+
+    .hero-note {
+      padding: 14px 15px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      color: #d1d7e0;
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .hero-note strong {
+      color: #fff;
+    }
+
+    .calc-shell {
+      border-radius: 32px;
+      padding: 18px;
+    }
+
+    .tool-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding: 14px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.03);
+      margin-bottom: 16px;
+    }
+
+    .tool-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .tool-brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #ff4d4d 0%, #ff1515 100%);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+      box-shadow: 0 14px 28px rgba(255, 31, 31, 0.20);
+    }
+
+    .tool-brand-kicker {
+      color: #ffacac;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .tool-brand-title {
+      color: #fff;
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .tool-brand-copy {
+      margin-top: 6px;
+      color: var(--soft);
+      font-size: 12px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .tool-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .tool-pill {
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.035);
+      color: #eef1f5;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+    }
+
+    .tool-pill.good {
+      border-color: rgba(82, 239, 139, 0.20);
+      background: rgba(82, 239, 139, 0.12);
+      color: #eefff5;
+    }
+
+    .calculator-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.78fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .main-card,
+    .calc-side-card,
+    .calc-footer-card {
+      border-radius: 26px;
+      padding: 18px;
+    }
+
+    .main-card {
+      border: 1px solid rgba(255,255,255,0.07);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+    }
+
+    .tab-row {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn,
+    .calc-btn,
+    .choice-btn,
+    .preset-btn,
+    .share-btn {
+      font: inherit;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: #eff3f7;
+      transition: transform 0.16s ease, filter 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+
+    .tab-btn,
+    .choice-btn,
+    .preset-btn,
+    .calc-btn {
+      min-height: 44px;
+      border-radius: 14px;
+      padding: 0 14px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .tab-btn:hover,
+    .choice-btn:hover,
+    .preset-btn:hover,
+    .calc-btn:hover,
+    .share-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .tab-btn.active,
+    .choice-btn.active,
+    .calc-btn.primary {
+      background: linear-gradient(180deg, #ff4747 0%, #ff1717 100%);
+      border-color: rgba(255, 115, 115, 0.44);
+      box-shadow: 0 14px 28px rgba(255, 34, 34, 0.18);
+      color: #fff;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .section-head {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      color: #fff;
+      font-size: clamp(26px, 3vw, 34px);
+      line-height: 1.02;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .section-head p {
+      max-width: 760px;
+      margin: 12px auto 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.62;
+      font-weight: 700;
+    }
+
+    .subsection-title {
+      margin: 18px 0 12px;
+      text-align: center;
+      color: #ff8f8f;
+      font-size: 13px;
+      line-height: 1.3;
+      font-weight: 900;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+    }
+
+    .choice-grid,
+    .preset-grid,
+    .field-grid,
+    .stats-grid,
+    .copy-grid {
+      width: min(100%, 820px);
+      margin: 0 auto 14px;
+    }
+
+    .choice-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .choice-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .choice-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .choice-grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .preset-grid {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .preset-btn.active {
+      border-color: rgba(255, 115, 115, 0.28);
+      background: rgba(255, 74, 74, 0.12);
+      color: #fff;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .field-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .field-grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .field {
+      min-width: 0;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      color: #d7dde7;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(8, 11, 16, 0.92);
+      color: #fff;
+      padding: 0 16px;
+      outline: none;
+      font-size: 16px;
+      font-weight: 800;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    .field textarea {
+      min-height: 100px;
+      padding-top: 14px;
+      padding-bottom: 14px;
+      resize: vertical;
+    }
+
+    .field input::placeholder,
+    .field textarea::placeholder {
+      color: #7e8898;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: rgba(255, 108, 108, 0.46);
+      box-shadow: 0 0 0 3px rgba(255, 78, 78, 0.10);
+      background: rgba(12, 16, 22, 0.98);
+    }
+
+    .result-box {
+      width: min(100%, 820px);
+      min-height: 130px;
+      margin: 0 auto 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at top right, rgba(255, 65, 65, 0.12), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .result-empty {
+      color: #95a0b1;
+      font-size: clamp(19px, 3vw, 28px);
+      line-height: 1.2;
+      font-weight: 900;
+    }
+
+    .result-big {
+      color: #fff;
+      font-size: clamp(32px, 6vw, 50px);
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .result-label {
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 800;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stats-grid.four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .stat-card {
+      min-height: 88px;
+      padding: 13px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.035);
+      text-align: center;
+    }
+
+    .stat-card strong {
+      display: block;
+      color: #fff;
+      font-size: 18px;
+      line-height: 1.15;
+      font-weight: 900;
+      word-break: break-word;
+    }
+
+    .stat-card span {
+      display: block;
+      color: var(--soft);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    .list-grid {
+      width: min(100%, 820px);
+      margin: 12px auto 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      min-height: 56px;
+      padding: 11px 13px;
+      border-radius: 15px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .list-item strong {
+      color: #fff;
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .list-item span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.4;
+      text-align: right;
+    }
+
+    .copy-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .separator {
+      width: min(100%, 820px);
+      height: 1px;
+      margin: 20px auto;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .calc-side {
+      display: grid;
+      gap: 16px;
+    }
+
+    .calc-side-card h3,
+    .calc-footer-card h3 {
+      margin: 0 0 12px;
+      color: #fff;
+      font-size: 22px;
+      line-height: 1.02;
+      font-weight: 900;
+      letter-spacing: -0.8px;
+    }
+
+    .side-copy {
+      margin: -2px 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .chart-wrap {
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.03);
+      padding: 12px;
+    }
+
+    .chart-canvas {
+      width: 100%;
+      height: 260px;
+      display: block;
+    }
+
+    .faq-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .faq-item {
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .faq-item:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .faq-item strong {
+      display: block;
+      color: #fff;
+      font-size: 14px;
+      line-height: 1.4;
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+
+    .faq-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .share-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .share-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .share-fb { background: #35599d; color: #fff; }
+    .share-x { background: #0d0d0d; color: #fff; }
+    .share-in { background: #2a74ae; color: #fff; }
+    .share-wa { background: #25d366; color: #fff; }
+    .share-tg { background: #2ca5e0; color: #fff; }
+    .share-mail { background: #666d79; color: #fff; }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .footer-mini {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .footer-mini strong {
+      display: block;
+      color: #fff;
+      font-size: 15px;
+      line-height: 1.2;
+      font-weight: 900;
+      margin-bottom: 7px;
+    }
+
+    .footer-mini span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .tiny-note {
+      width: min(100%, 820px);
+      margin: 12px auto 0;
+      color: #8f99a8;
+      font-size: 11px;
+      line-height: 1.48;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1180px) {
+      .hero-grid,
+      .calculator-grid,
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .tab-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .hero-points {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .calc-page {
+        width: min(calc(100% - 16px), var(--max));
+        padding-top: 14px;
+      }
+
+      .calc-hero,
+      .calc-shell,
+      .main-card,
+      .calc-side-card,
+      .calc-footer-card {
+        border-radius: 22px;
+      }
+
+      .calc-hero,
+      .calc-shell,
+      .main-card,
+      .calc-side-card,
+      .calc-footer-card {
+        padding: 16px;
+      }
+
+      .tab-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .choice-grid.two,
+      .choice-grid.three,
+      .choice-grid.four,
+      .field-grid.two,
+      .field-grid.three,
+      .field-grid.four,
+      .stats-grid,
+      .stats-grid.four,
+      .copy-grid,
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .list-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .list-item span {
+        text-align: left;
+      }
+
+      .chart-canvas {
+        height: 230px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="calc-page">
+    <div class="calc-stack">
+      <section class="calc-hero">
+        <div class="hero-grid">
+          <div>
+            <span class="eyebrow">Robux Calculator</span>
+            <h1 class="hero-title">
+              Plan Robux
+              <span class="accent">Cleaner</span>
+            </h1>
+            <p class="hero-copy">
+              This upgraded RBLX Tools calculator brings Roblox marketplace fee planning, DevEx estimates, price breakdowns, split tools, goal tracking, commission pricing, and reseller math into one cleaner creator page. It is built for players, group owners, artists, developers, sellers, and anyone trying to make smarter Robux decisions without bouncing between random scammy calculators.
+            </p>
+
+            <div class="hero-points">
+              <div class="hero-point">
+                <strong>Creator ready</strong>
+                <span>Use after-tax pricing, commission rates, group splits, and payout planning without guessing.</span>
+              </div>
+              <div class="hero-point">
+                <strong>Safer utility hub</strong>
+                <span>Built to keep Roblox-related tools in one cleaner place instead of sending users to sketchy pages.</span>
+              </div>
+              <div class="hero-point">
+                <strong>Faster decisions</strong>
+                <span>Jump between tax, DevEx, package value, goals, and resale math with the same workflow and style.</span>
+              </div>
+            </div>
+          </div>
+
+          <aside class="hero-info-card">
+            <span class="mini-eyebrow">What This Covers</span>
+            <div class="hero-info-grid">
+              <div class="hero-info-item">
+                <div class="hero-info-label">Marketplace Math</div>
+                <div class="hero-info-value">Tax estimates, exact before-tax pricing, and profit checks for shirts, passes, commissions, and sales.</div>
+              </div>
+              <div class="hero-info-item">
+                <div class="hero-info-label">Creator Payout Planning</div>
+                <div class="hero-info-value">DevEx conversions, threshold tracking, payout comparisons, and savings goals for larger creator plans.</div>
+              </div>
+              <div class="hero-info-item">
+                <div class="hero-info-label">Trading And Utility Tools</div>
+                <div class="hero-info-value">Reseller break-even math, ROI, group splits, premium package value, and cleaner sharing for your results.</div>
+              </div>
+            </div>
+            <div class="hero-note">
+              <strong>Good to know:</strong> this page is meant for planning and estimate work. Roblox can still change fees, package values, Premium bonuses, or DevEx requirements later, so always treat results like a polished helper instead of an official Roblox statement.
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="calc-shell">
+        <div class="tool-topbar">
+          <div class="tool-brand">
+            <div class="tool-brand-mark">R$</div>
+            <div>
+              <div class="tool-brand-kicker">Creator Toolkit</div>
+              <div class="tool-brand-title">RBLX Tools Robux Calculator</div>
+              <div class="tool-brand-copy">One page for Roblox tax tools, DevEx planning, split math, price checks, and reseller estimates.</div>
+            </div>
+          </div>
+
+          <div class="tool-pills">
+            <div class="tool-pill">6 Core Tools</div>
+            <div class="tool-pill">Fast Switching</div>
+            <div class="tool-pill good">Creator Focused</div>
+          </div>
+        </div>
+
+        <div class="calculator-grid">
+          <section class="main-card">
+            <div class="tab-row">
+              <button class="tab-btn active" type="button" data-tab="tax">Tax</button>
+              <button class="tab-btn" type="button" data-tab="devex">DevEx</button>
+              <button class="tab-btn" type="button" data-tab="price">Prices</button>
+              <button class="tab-btn" type="button" data-tab="split">Splits</button>
+              <button class="tab-btn" type="button" data-tab="goals">Goals</button>
+              <button class="tab-btn" type="button" data-tab="trade">Trade</button>
+            </div>
+
+            <div class="section-head">
+              <h2 id="rblx-hub-title">Robux Tax Tools</h2>
+              <p id="rblx-hub-subtitle">A full creator toolkit for pricing, taxes, DevEx planning, sales goals, splits, and limited flips.</p>
+            </div>
+
+            <div class="tab-panel active" data-panel="tax">
+              <div class="section-head">
+                <h2>Marketplace Fee Calculator</h2>
+                <p>Use the normal Roblox fee, a no-fee setup, or a custom fee to estimate listed prices, take-home Robux, exact pass pricing, and real profit margin.</p>
+              </div>
+
+              <div class="choice-grid three">
+                <button class="choice-btn active" type="button" data-fee="30">30% Fee</button>
+                <button class="choice-btn" type="button" data-fee="0">No Fee</button>
+                <button class="choice-btn" type="button" data-fee="custom">Custom</button>
+              </div>
+
+              <div class="field-grid two">
+                <div class="field">
+                  <label for="rblx-tax-input">Listed Price</label>
+                  <input id="rblx-tax-input" type="number" min="0" step="1" placeholder="Enter Robux amount">
+                </div>
+                <div class="field">
+                  <label for="rblx-custom-fee">Fee Percent</label>
+                  <input id="rblx-custom-fee" type="number" min="0" max="100" step="0.1" value="30">
+                </div>
+              </div>
+
+              <div class="preset-grid" data-presets="tax">
+                <button class="preset-btn" type="button" data-value="100">100</button>
+                <button class="preset-btn" type="button" data-value="500">500</button>
+                <button class="preset-btn" type="button" data-value="1000">1K</button>
+                <button class="preset-btn" type="button" data-value="5000">5K</button>
+                <button class="preset-btn" type="button" data-value="10000">10K</button>
+                <button class="preset-btn" type="button" data-value="100000">100K</button>
+              </div>
+
+              <div class="result-box" id="rblx-tax-result"><div class="result-empty">Result will appear here...</div></div>
+              <div class="stats-grid" id="rblx-tax-stats"></div>
+
+              <div class="copy-grid">
+                <button class="calc-btn primary" type="button" data-copy="tax">Copy Result</button>
+                <button class="calc-btn" type="button" id="rblx-tax-swap">Find Before-Tax Price</button>
+              </div>
+
+              <div class="subsection-title">Gamepass / Shirt Price Finder</div>
+              <div class="field-grid two">
+                <div class="field">
+                  <label for="rblx-pass-after">Wanted After-Tax Robux</label>
+                  <input id="rblx-pass-after" type="number" min="0" step="1" placeholder="How much you want to keep">
+                </div>
+                <div class="field">
+                  <label for="rblx-pass-type">Asset Type</label>
+                  <select id="rblx-pass-type">
+                    <option value="Gamepass">Gamepass</option>
+                    <option value="Shirt">Shirt</option>
+                    <option value="T-Shirt">T-Shirt</option>
+                    <option value="Pants">Pants</option>
+                  </select>
+                </div>
+              </div>
+              <div class="list-grid" id="rblx-pass-result"></div>
+
+              <div class="subsection-title">Profit Margin Calculator</div>
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="rblx-profit-cost">Production Cost</label>
+                  <input id="rblx-profit-cost" type="number" min="0" step="1" placeholder="What it costs you">
+                </div>
+                <div class="field">
+                  <label for="rblx-profit-price">Selling Price</label>
+                  <input id="rblx-profit-price" type="number" min="0" step="1" placeholder="List price">
+                </div>
+                <div class="field">
+                  <label for="rblx-profit-fee">Fee Percent</label>
+                  <input id="rblx-profit-fee" type="number" min="0" max="100" step="0.1" value="30">
+                </div>
+              </div>
+              <div class="stats-grid" id="rblx-profit-stats"></div>
+            </div>
+
+            <div class="tab-panel" data-panel="devex">
+              <div class="section-head">
+                <h2>DevEx Calculator</h2>
+                <p>Estimate creator payouts, compare common DevEx rates, convert to different currencies, and quickly check whether a balance clears your planning threshold.</p>
+              </div>
+
+              <div class="preset-grid" data-presets="devex">
+                <button class="preset-btn" type="button" data-value="30000">30K</button>
+                <button class="preset-btn" type="button" data-value="50000">50K</button>
+                <button class="preset-btn" type="button" data-value="100000">100K</button>
+                <button class="preset-btn" type="button" data-value="250000">250K</button>
+                <button class="preset-btn" type="button" data-value="500000">500K</button>
+                <button class="preset-btn" type="button" data-value="1000000">1M</button>
+              </div>
+
+              <div class="field-grid two">
+                <div class="field">
+                  <label for="rblx-devex-input">Earned Robux</label>
+                  <input id="rblx-devex-input" type="number" min="0" step="1" placeholder="Enter earned Robux">
+                </div>
+                <div class="field">
+                  <label for="rblx-devex-currency">Currency</label>
+                  <select id="rblx-devex-currency">
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="BRL">BRL - Brazilian Real</option>
+                    <option value="GBP">GBP - British Pound</option>
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="CAD">CAD - Canadian Dollar</option>
+                    <option value="MXN">MXN - Mexican Peso</option>
+                    <option value="PHP">PHP - Philippine Peso</option>
+                    <option value="KRW">KRW - South Korean Won</option>
+                    <option value="AUD">AUD - Australian Dollar</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="choice-grid two">
+                <button class="choice-btn active" type="button" data-devex-rate="0.0038">New Rate</button>
+                <button class="choice-btn" type="button" data-devex-rate="0.0035">Old Rate</button>
+              </div>
+
+              <div class="result-box" id="rblx-devex-result"><div class="result-empty">Result will appear here...</div></div>
+              <div class="stats-grid" id="rblx-devex-stats"></div>
+
+              <div class="copy-grid">
+                <button class="calc-btn primary" type="button" data-copy="devex">Copy Result</button>
+                <button class="calc-btn" type="button" id="rblx-devex-goal-jump">Calculate Goal</button>
+              </div>
+
+              <div class="subsection-title">Currency Sync Panel</div>
+              <div class="list-grid" id="rblx-devex-sync"></div>
+
+              <div class="subsection-title">DevEx Eligibility Checker</div>
+              <div class="field-grid two">
+                <div class="field">
+                  <label for="rblx-devex-earned-check">Earned Robux Balance</label>
+                  <input id="rblx-devex-earned-check" type="number" min="0" step="1" placeholder="Used for eligibility estimate">
+                </div>
+                <div class="field">
+                  <label for="rblx-devex-threshold">Minimum Threshold</label>
+                  <input id="rblx-devex-threshold" type="number" min="0" step="1" value="30000">
+                </div>
+              </div>
+              <div class="stats-grid" id="rblx-devex-eligibility"></div>
+              <div class="tiny-note">Eligibility here is only a planning helper. Roblox still decides earned balance status, standing, and final payout approval.</div>
+            </div>
+
+            <div class="tab-panel" data-panel="price">
+              <div class="section-head">
+                <h2>Robux Price Calculator</h2>
+                <p>Estimate package buying power, reverse-calculate money needed, compare standard and Premium value, and see whether web or mobile changes the deal.</p>
+              </div>
+
+              <div class="choice-grid four">
+                <button class="choice-btn active" type="button" data-price-currency="USD">USD</button>
+                <button class="choice-btn" type="button" data-price-currency="GBP">GBP</button>
+                <button class="choice-btn" type="button" data-price-currency="EUR">EUR</button>
+                <button class="choice-btn" type="button" data-price-currency="PHP">PHP</button>
+              </div>
+
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="rblx-price-money">Money Amount</label>
+                  <input id="rblx-price-money" type="number" min="0" step="0.01" placeholder="Enter money">
+                </div>
+                <div class="field">
+                  <label for="rblx-price-want">Wanted Robux</label>
+                  <input id="rblx-price-want" type="number" min="0" step="1" placeholder="Reverse estimate">
+                </div>
+                <div class="field">
+                  <label for="rblx-price-mode">Mode</label>
+                  <select id="rblx-price-mode">
+                    <option value="money">Money to Robux</option>
+                    <option value="robux">Robux to Money</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="choice-grid two">
+                <button class="choice-btn active" type="button" data-platform="web">Web/PC</button>
+                <button class="choice-btn" type="button" data-platform="mobile">Mobile</button>
+              </div>
+
+              <div class="choice-grid two">
+                <button class="choice-btn active" type="button" data-premium="standard">Standard</button>
+                <button class="choice-btn" type="button" data-premium="premium">Premium</button>
+              </div>
+
+              <div class="preset-grid" data-presets="price">
+                <button class="preset-btn" type="button" data-value="5">5</button>
+                <button class="preset-btn" type="button" data-value="10">10</button>
+                <button class="preset-btn" type="button" data-value="20">20</button>
+                <button class="preset-btn" type="button" data-value="50">50</button>
+                <button class="preset-btn" type="button" data-value="100">100</button>
+                <button class="preset-btn" type="button" data-value="200">200</button>
+              </div>
+
+              <div class="result-box" id="rblx-price-result"><div class="result-empty">Result will appear here...</div></div>
+              <div class="stats-grid" id="rblx-price-stats"></div>
+
+              <div class="copy-grid">
+                <button class="calc-btn primary" type="button" data-copy="price">Copy Result</button>
+                <button class="calc-btn" type="button" id="rblx-best-package">Find Best Package</button>
+              </div>
+
+              <div class="list-grid" id="rblx-price-packages"></div>
+
+              <div class="subsection-title">Premium Bonus Comparison</div>
+              <div class="stats-grid" id="rblx-premium-compare"></div>
+
+              <div class="subsection-title">Tax Comparison Presets</div>
+              <div class="field-grid two">
+                <div class="field">
+                  <label for="rblx-tax-compare-input">Listed Price To Compare</label>
+                  <input id="rblx-tax-compare-input" type="number" min="0" step="1" placeholder="Compare creator take-home">
+                </div>
+                <div class="field">
+                  <label for="rblx-tax-compare-custom">Custom Fee Percent</label>
+                  <input id="rblx-tax-compare-custom" type="number" min="0" max="100" step="0.1" value="15">
+                </div>
+              </div>
+              <div class="list-grid" id="rblx-tax-compare-list"></div>
+            </div>
+
+            <div class="tab-panel" data-panel="split">
+              <div class="section-head">
+                <h2>Splitters &amp; Commission Tools</h2>
+                <p>Split sales evenly, calculate custom payout percentages, estimate group funds, and build cleaner commission price tiers that already account for marketplace fees.</p>
+              </div>
+
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="rblx-split-total">Total Robux</label>
+                  <input id="rblx-split-total" type="number" min="0" step="1" placeholder="Total Robux">
+                </div>
+                <div class="field">
+                  <label for="rblx-split-people">People</label>
+                  <input id="rblx-split-people" type="number" min="1" max="10" step="1" value="2">
+                </div>
+                <div class="field">
+                  <label for="rblx-split-fee">Fee Percent</label>
+                  <input id="rblx-split-fee" type="number" min="0" max="100" step="0.1" value="30">
+                </div>
+              </div>
+
+              <div class="field-grid two">
+                <div class="field">
+                  <label for="rblx-commission-want">Commission Artist Wants</label>
+                  <input id="rblx-commission-want" type="number" min="0" step="1" placeholder="Desired after-tax Robux">
+                </div>
+                <div class="field">
+                  <label for="rblx-commission-fee">Commission Fee Percent</label>
+                  <input id="rblx-commission-fee" type="number" min="0" max="100" step="0.1" value="30">
+                </div>
+              </div>
+
+              <div class="result-box" id="rblx-split-result"><div class="result-empty">Result will appear here...</div></div>
+              <div class="stats-grid" id="rblx-split-stats"></div>
+              <div class="list-grid" id="rblx-split-list"></div>
+
+              <div class="copy-grid">
+                <button class="calc-btn primary" type="button" data-copy="split">Copy Split</button>
+                <button class="calc-btn" type="button" data-copy="commission">Copy Commission Price</button>
+              </div>
+
+              <div class="subsection-title">Percentage Split Tool</div>
+              <div class="field-grid two">
+                <div class="field">
+                  <label for="rblx-percent-total">Total Robux</label>
+                  <input id="rblx-percent-total" type="number" min="0" step="1" placeholder="Total to split">
+                </div>
+                <div class="field">
+                  <label for="rblx-percent-values">Percentages</label>
+                  <input id="rblx-percent-values" type="text" placeholder="Example: 50,30,20">
+                </div>
+              </div>
+              <div class="list-grid" id="rblx-percent-list"></div>
+
+              <div class="subsection-title">Group Payout Estimator</div>
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="rblx-group-total">Group Funds</label>
+                  <input id="rblx-group-total" type="number" min="0" step="1" placeholder="Available funds">
+                </div>
+                <div class="field">
+                  <label for="rblx-group-members">Members</label>
+                  <input id="rblx-group-members" type="number" min="1" max="20" step="1" value="3">
+                </div>
+                <div class="field">
+                  <label for="rblx-group-bonus">Reserve Buffer</label>
+                  <input id="rblx-group-bonus" type="number" min="0" step="1" value="0">
+                </div>
+              </div>
+              <div class="stats-grid" id="rblx-group-stats"></div>
+
+              <div class="subsection-title">Commission Tier Builder</div>
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="rblx-tier-base">Base Sketch Take-Home</label>
+                  <input id="rblx-tier-base" type="number" min="0" step="1" placeholder="Starter tier">
+                </div>
+                <div class="field">
+                  <label for="rblx-tier-fee">Fee Percent</label>
+                  <input id="rblx-tier-fee" type="number" min="0" max="100" step="0.1" value="30">
+                </div>
+                <div class="field">
+                  <label for="rblx-tier-style">Preset</label>
+                  <select id="rblx-tier-style">
+                    <option value="art">Art Set</option>
+                    <option value="dev">Dev Service</option>
+                    <option value="gfx">GFX Set</option>
+                  </select>
+                </div>
+              </div>
+              <div class="list-grid" id="rblx-tier-list"></div>
+            </div>
+
+            <div class="tab-panel" data-panel="goals">
+              <div class="section-head">
+                <h2>Goal Calculators</h2>
+                <p>Work backward from after-tax goals, DevEx cash targets, current balance, and sales pace so you can see how much Robux is still missing and what it takes to get there.</p>
+              </div>
+
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="rblx-goal-after">Wanted After-Tax Robux</label>
+                  <input id="rblx-goal-after" type="number" min="0" step="1" placeholder="Example: 10000">
+                </div>
+                <div class="field">
+                  <label for="rblx-goal-cash">Wanted DevEx USD</label>
+                  <input id="rblx-goal-cash" type="number" min="0" step="0.01" placeholder="Example: 500">
+                </div>
+                <div class="field">
+                  <label for="rblx-goal-current">Current Robux</label>
+                  <input id="rblx-goal-current" type="number" min="0" step="1" placeholder="Optional">
+                </div>
+              </div>
+
+              <div class="result-box" id="rblx-goal-result"><div class="result-empty">Result will appear here...</div></div>
+              <div class="stats-grid" id="rblx-goal-stats"></div>
+              <div class="list-grid" id="rblx-goal-list"></div>
+
+              <div class="copy-grid">
+                <button class="calc-btn primary" type="button" data-copy="goals">Copy Goals</button>
+                <button class="calc-btn" type="button" id="rblx-fill-goal-example">Fill Example</button>
+              </div>
+
+              <div class="subsection-title">Savings Tracker</div>
+              <div class="field-grid four">
+                <div class="field">
+                  <label for="rblx-save-target">Target Robux</label>
+                  <input id="rblx-save-target" type="number" min="0" step="1" placeholder="Goal">
+                </div>
+                <div class="field">
+                  <label for="rblx-save-current">Current Robux</label>
+                  <input id="rblx-save-current" type="number" min="0" step="1" placeholder="Current">
+                </div>
+                <div class="field">
+                  <label for="rblx-save-rate">Robux Per Day</label>
+                  <input id="rblx-save-rate" type="number" min="0" step="1" placeholder="Daily gain">
+                </div>
+                <div class="field">
+                  <label for="rblx-save-bonus">Weekly Bonus</label>
+                  <input id="rblx-save-bonus" type="number" min="0" step="1" placeholder="Optional">
+                </div>
+              </div>
+              <div class="stats-grid four" id="rblx-save-stats"></div>
+
+              <div class="subsection-title">Pass Sales Goal Tool</div>
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="rblx-sales-target">Target Take-Home Robux</label>
+                  <input id="rblx-sales-target" type="number" min="0" step="1" placeholder="How much you want to earn">
+                </div>
+                <div class="field">
+                  <label for="rblx-sales-price">Sale Price Per Pass</label>
+                  <input id="rblx-sales-price" type="number" min="0" step="1" placeholder="Pass price">
+                </div>
+                <div class="field">
+                  <label for="rblx-sales-fee">Fee Percent</label>
+                  <input id="rblx-sales-fee" type="number" min="0" max="100" step="0.1" value="30">
+                </div>
+              </div>
+              <div class="list-grid" id="rblx-sales-list"></div>
+            </div>
+
+            <div class="tab-panel" data-panel="trade">
+              <div class="section-head">
+                <h2>Trading &amp; Reseller Tools</h2>
+                <p>Use limited-style reseller math to estimate break-even price, after-fee profit, marketplace drag, and whether a flip idea is actually worth listing.</p>
+              </div>
+
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="rblx-trade-buy">Buy Price</label>
+                  <input id="rblx-trade-buy" type="number" min="0" step="1" placeholder="What you paid">
+                </div>
+                <div class="field">
+                  <label for="rblx-trade-sell">Expected Sell Price</label>
+                  <input id="rblx-trade-sell" type="number" min="0" step="1" placeholder="Planned list price">
+                </div>
+                <div class="field">
+                  <label for="rblx-trade-fee">Fee Percent</label>
+                  <input id="rblx-trade-fee" type="number" min="0" max="100" step="0.1" value="30">
+                </div>
+              </div>
+
+              <div class="result-box" id="rblx-trade-result"><div class="result-empty">Result will appear here...</div></div>
+              <div class="stats-grid" id="rblx-trade-stats"></div>
+              <div class="list-grid" id="rblx-trade-list"></div>
+
+              <div class="copy-grid">
+                <button class="calc-btn primary" type="button" data-copy="trade">Copy Trade Plan</button>
+                <button class="calc-btn" type="button" id="rblx-trade-fill-example">Fill Example</button>
+              </div>
+            </div>
+
+            <div class="separator"></div>
+
+            <div class="calc-footer-card">
+              <h3>Share or save your results</h3>
+              <p class="side-copy">Copy your current calculator output, send the page to a friend, or keep a quick link for later pricing and planning checks.</p>
+              <div class="share-row">
+                <button class="share-btn share-fb" type="button" data-share="facebook">f</button>
+                <button class="share-btn share-x" type="button" data-share="x">X</button>
+                <button class="share-btn share-in" type="button" data-share="linkedin">in</button>
+                <button class="share-btn share-wa" type="button" data-share="whatsapp">wa</button>
+                <button class="share-btn share-tg" type="button" data-share="telegram">tg</button>
+                <button class="share-btn share-mail" type="button" data-share="email">@</button>
+              </div>
+              <button class="calc-btn" type="button" id="rblx-copy-page-link">Copy Page Link</button>
+            </div>
+          </section>
+
+          <aside class="calc-side">
+            <section class="calc-side-card">
+              <h3 id="rblx-hub-chart-title">Tax Breakdown</h3>
+              <p class="side-copy" id="rblx-hub-chart-note">Quick visual for the active tool.</p>
+              <div class="chart-wrap">
+                <canvas class="chart-canvas" id="rblx-hub-chart" width="520" height="300"></canvas>
+              </div>
+            </section>
+
+            <section class="calc-side-card">
+              <h3>Calculator FAQs</h3>
+              <p class="side-copy">Short answers for the active tab so users can understand what each result is actually showing.</p>
+              <div class="faq-grid" id="rblx-hub-faq"></div>
+            </section>
+
+            <section class="calc-side-card">
+              <h3>Why this page matters</h3>
+              <div class="footer-grid">
+                <div class="footer-mini">
+                  <strong>Less guessing</strong>
+                  <span>Get faster answers for tax, pricing, DevEx, and flip math without using random Roblox calculators.</span>
+                </div>
+                <div class="footer-mini">
+                  <strong>Better planning</strong>
+                  <span>Check goals, creator take-home, package value, and split numbers before you publish or buy.</span>
+                </div>
+                <div class="footer-mini">
+                  <strong>Safer utility hub</strong>
+                  <span>RBLX Tools is being built as a cleaner place for Roblox-related workflows, accounts, and subscriber tools.</span>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var activeTab = "tax";
+      var feePercent = 30;
+      var devexRate = 0.0038;
+      var priceCurrency = "USD";
+      var pricePlatform = "web";
+      var pricePremium = "standard";
+      var lastCopy = "";
+      var DEFAULT_MARKETPLACE_RATE = 0.7;
+      var PREMIUM_BONUS_END_ISO = "2026-05-30T00:00:00-05:00";
+
+      var currencyData = {
+        USD: { symbol: "$", rate: 1, decimals: 2 },
+        BRL: { symbol: "R$", rate: 5.15, decimals: 2 },
+        GBP: { symbol: "GBP ", rate: 0.79, decimals: 2 },
+        EUR: { symbol: "EUR ", rate: 0.92, decimals: 2 },
+        CAD: { symbol: "C$", rate: 1.37, decimals: 2 },
+        MXN: { symbol: "MX$", rate: 17.1, decimals: 2 },
+        PHP: { symbol: "PHP ", rate: 57.2, decimals: 2 },
+        KRW: { symbol: "KRW ", rate: 1370, decimals: 0 },
+        AUD: { symbol: "A$", rate: 1.52, decimals: 2 }
+      };
+
+      var robuxPackages = [
+        { usd: 4.99, web: 400, mobile: 320, premium: 440 },
+        { usd: 9.99, web: 800, mobile: 720, premium: 880 },
+        { usd: 19.99, web: 1700, mobile: 1500, premium: 1870 },
+        { usd: 49.99, web: 4500, mobile: 4000, premium: 4950 },
+        { usd: 99.99, web: 10000, mobile: 9000, premium: 11000 },
+        { usd: 199.99, web: 22500, mobile: 20000, premium: 24750 }
+      ];
+
+      var pageCopy = {
+        tax: ["Robux Tax Tools", "A full creator toolkit for pricing, taxes, DevEx planning, sales goals, splits, and limited flips.", "Tax Breakdown", "See how fee percentage changes the creator's final take-home."],
+        devex: ["Robux DevEx Calculator", "Estimate earned Robux payouts, compare rates, sync currencies, and plan around DevEx thresholds.", "DevEx Value", "Shows payout growth as earned Robux increases."],
+        price: ["Robux Price Calculator", "Estimate buying power, reverse money needed, compare Premium value, and check package efficiency.", "Package Value", "Compares package value between Web, Mobile, and Premium style payouts."],
+        split: ["Robux Splitters & Commission Tools", "Split evenly or by percentages, estimate group payouts, and auto-build commission tier pricing.", "Split Preview", "Visualizes fee drag, person-by-person shares, and tier scaling."],
+        goals: ["Robux Goal Calculator", "Track remaining Robux, estimate pass sales needed, and see how long your savings pace takes to hit a target.", "Goal Progress", "Shows how close current progress is to the biggest goal entered."],
+        trade: ["Catalog Reseller Calculator", "Estimate limited flip profits, break-even prices, and resale ROI after marketplace fees.", "Reseller Margin", "Shows how sale price and tax affect limited flip profit."]
+      };
+
+      var faqs = {
+        tax: [
+          ["What does the fee calculator cover?", "It handles normal after-tax estimates, exact price targeting, profit margins, and pass pricing for creators."],
+          ["Why is the before-tax price rounded up?", "Because you need the next whole Robux price that still reaches the desired take-home amount."],
+          ["Can I use other fee rates?", "Yes. The tax tools support custom fee percentages from 0 to 100."]
+        ],
+        devex: [
+          ["What is the eligibility checker for?", "It helps you see whether a balance clears a chosen threshold, but Roblox still controls real approval."],
+          ["Why show multiple currencies?", "It gives a faster payout comparison if you are planning outside USD."],
+          ["Are these live exchange rates?", "No. This page uses static conversion data for estimate planning."]
+        ],
+        price: [
+          ["What is Premium comparison doing?", "It compares standard and Premium style package value so you can see the bonus impact faster."],
+          ["Does reverse mode guarantee the exact checkout price?", "No. It estimates based on the best package value in the static package table."],
+          ["Why include tax comparison here?", "It helps creators compare how much of a listed price survives under different fee presets."]
+        ],
+        split: [
+          ["What is the difference between equal and percentage splits?", "Equal splits divide the same amount to everyone, while percentage splits follow custom ratios like 50, 30, and 20."],
+          ["What does the group payout estimator assume?", "It assumes a simple available-balance split with an optional reserve buffer left behind."],
+          ["What is the tier builder for?", "It gives creators ready-to-post commission tiers that already account for Roblox fees."]
+        ],
+        goals: [
+          ["What does the savings tracker estimate?", "It estimates how many days and weeks are left if you keep earning at the same pace."],
+          ["What is the pass sales goal tool for?", "It shows how many sales you need at a given price to reach a take-home target."],
+          ["Can I use both cash and Robux goals together?", "Yes. The page uses the biggest active target as the main remaining-goal result."]
+        ],
+        trade: [
+          ["What is break-even price?", "It is the minimum list price needed so the after-tax sale covers what you originally paid."],
+          ["Why show ROI after tax?", "Because listed sale price alone can look profitable when the fee still leaves you underwater."],
+          ["Can this be used for limited flips?", "Yes. This section is built for catalog resale planning and quick margin checks."]
+        ]
+      };
+
+      function qs(id) { return document.getElementById(id); }
+      function qsa(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
+      function val(id) {
+        var node = qs(id);
+        if (!node) return 0;
+        var n = parseFloat(node.value);
+        return isNaN(n) || n < 0 ? 0 : n;
+      }
+      function textVal(id) {
+        var node = qs(id);
+        return node ? node.value.trim() : "";
+      }
+      function clampFee(n) { return Math.max(0, Math.min(100, n)); }
+      function keepRate(fee) { return (100 - clampFee(fee)) / 100; }
+      function safeDivide(a, b) { return b > 0 ? a / b : 0; }
+      function ceilPositive(n) { return n > 0 ? Math.ceil(n) : 0; }
+      function robux(n) { return Math.round(n).toLocaleString() + " Robux"; }
+      function money(n, code) {
+        var info = currencyData[code] || currencyData.USD;
+        return info.symbol + n.toLocaleString(undefined, {
+          minimumFractionDigits: info.decimals,
+          maximumFractionDigits: info.decimals
+        });
+      }
+      function percent(n) { return Number(n || 0).toFixed(1) + "%"; }
+      function setEmpty(id) {
+        var node = qs(id);
+        if (node) node.innerHTML = '<div class="result-empty">Result will appear here...</div>';
+      }
+      function setResult(id, big, label) {
+        var node = qs(id);
+        if (node) node.innerHTML = '<div><div class="result-big">' + big + '</div><div class="result-label">' + label + '</div></div>';
+      }
+      function setStats(id, items, extraClass) {
+        var node = qs(id);
+        if (!node) return;
+        node.className = "stats-grid" + (extraClass ? " " + extraClass : "");
+        node.innerHTML = items.map(function (item) {
+          return '<div class="stat-card"><strong>' + item.value + '</strong><span>' + item.label + '</span></div>';
+        }).join("");
+      }
+      function setList(id, items) {
+        var node = qs(id);
+        if (!node) return;
+        node.innerHTML = items.map(function (item) {
+          return '<div class="list-item"><strong>' + item.title + '</strong><span>' + item.body + '</span></div>';
+        }).join("");
+      }
+      function premiumBonusActive() {
+        return Date.now() < new Date(PREMIUM_BONUS_END_ISO).getTime();
+      }
+      function getPackRobux(pack) {
+        if (pricePremium === "premium" && premiumBonusActive()) return pack.premium;
+        if (pricePlatform === "mobile") return pack.mobile;
+        return pack.web;
+      }
+      function getPackRobuxMode(pack, platform, premiumMode) {
+        if (premiumMode === "premium" && premiumBonusActive()) return pack.premium;
+        if (platform === "mobile") return pack.mobile;
+        return pack.web;
+      }
+      function bestPackageForMode(platform, premiumMode) {
+        return robuxPackages.reduce(function (winner, pack) {
+          var value = getPackRobuxMode(pack, platform, premiumMode) / pack.usd;
+          return value > winner.value ? { pack: pack, value: value } : winner;
+        }, { pack: robuxPackages[0], value: 0 });
+      }
+      function estimateRobuxFromMoney(amount, code) {
+        var usdBudget = amount / currencyData[code].rate;
+        var total = 0;
+        var remaining = usdBudget;
+        robuxPackages.slice().sort(function (a, b) { return b.usd - a.usd; }).forEach(function (pack) {
+          var count = Math.floor(remaining / pack.usd);
+          if (count > 0) {
+            total += count * getPackRobux(pack);
+            remaining -= count * pack.usd;
+          }
+        });
+        return total;
+      }
+      function estimateMoneyForRobux(target, code) {
+        var best = bestPackageForMode(pricePlatform, pricePremium);
+        var usd = safeDivide(target, best.value);
+        return usd * currencyData[code].rate;
+      }
+      function smallestPackagePrice(code) {
+        return robuxPackages[0].usd * (currencyData[code] || currencyData.USD).rate;
+      }
+      function smallestPackageForCurrentMode() {
+        return {
+          price: smallestPackagePrice(priceCurrency),
+          robux: getPackRobux(robuxPackages[0])
+        };
+      }
+      function syncFeeButtons() {
+        var customFee = clampFee(val("rblx-custom-fee"));
+        qsa("[data-fee]").forEach(function (button) {
+          var feeValue = button.getAttribute("data-fee");
+          var isActive = false;
+          if (feeValue === "custom") isActive = customFee !== 0 && customFee !== 30;
+          if (feeValue === "0") isActive = customFee === 0;
+          if (feeValue === "30") isActive = customFee === 30;
+          button.classList.toggle("active", isActive);
+        });
+      }
+      function serializeList(id) {
+        return qsa("#" + id + " .list-item").map(function (item) {
+          var title = item.querySelector("strong");
+          var body = item.querySelector("span");
+          return (title ? title.textContent.trim() : "") + ": " + (body ? body.textContent.trim().replace(/\s+/g, " ") : "");
+        }).join("\n");
+      }
+      function getActiveUrl() {
+        try {
+          return window.top && window.top.location ? window.top.location.href : window.location.href;
+        } catch (_error) {
+          return window.location.href;
+        }
+      }
+      function fallbackCopy(text) {
+        var rootScroller = document.scrollingElement || document.documentElement || document.body;
+        var prevTop = rootScroller ? rootScroller.scrollTop : 0;
+        var prevLeft = rootScroller ? rootScroller.scrollLeft : 0;
+        var area = document.createElement("textarea");
+        area.value = text;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.top = "12px";
+        area.style.left = "12px";
+        area.style.width = "1px";
+        area.style.height = "1px";
+        area.style.opacity = "0";
+        area.style.pointerEvents = "none";
+        document.body.appendChild(area);
+        area.focus();
+        area.select();
+        area.setSelectionRange(0, text.length);
+        var worked = false;
+        try {
+          worked = document.execCommand("copy");
+        } catch (_error) {
+          worked = false;
+        }
+        document.body.removeChild(area);
+        if (window.getSelection) {
+          try {
+            window.getSelection().removeAllRanges();
+          } catch (_error) {}
+        }
+        if (rootScroller) {
+          rootScroller.scrollTop = prevTop;
+          rootScroller.scrollLeft = prevLeft;
+        }
+        return worked;
+      }
+      function updateButtonText(button, text) {
+        var old = button.getAttribute("data-old-text") || button.textContent;
+        if (!button.getAttribute("data-old-text")) button.setAttribute("data-old-text", old);
+        button.textContent = text;
+        clearTimeout(button._restoreTimer);
+        button._restoreTimer = setTimeout(function () {
+          button.textContent = button.getAttribute("data-old-text") || old;
+        }, 1200);
+      }
+      function copyText(text, button) {
+        var finalText = (text || lastCopy || "").trim();
+        if (!finalText || finalText === "Result will appear here...") {
+          updateButtonText(button, "No result");
+          return;
+        }
+        function finish(ok) {
+          updateButtonText(button, ok ? "Copied" : "Copy blocked");
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(finalText).then(function () {
+            finish(true);
+          }).catch(function () {
+            finish(fallbackCopy(finalText));
+          });
+          return;
+        }
+        finish(fallbackCopy(finalText));
+      }
+      function buildCopyText(type) {
+        if (type === "tax") {
+          return [
+            qs("rblx-tax-result").textContent.trim(),
+            serializeList("rblx-pass-result")
+          ].filter(Boolean).join("\n");
+        }
+        if (type === "devex") {
+          return [
+            qs("rblx-devex-result").textContent.trim(),
+            serializeList("rblx-devex-sync")
+          ].filter(Boolean).join("\n");
+        }
+        if (type === "price") {
+          return [
+            qs("rblx-price-result").textContent.trim(),
+            serializeList("rblx-price-packages")
+          ].filter(Boolean).join("\n");
+        }
+        if (type === "split") {
+          return [
+            qs("rblx-split-result").textContent.trim(),
+            serializeList("rblx-split-list"),
+            serializeList("rblx-percent-list")
+          ].filter(Boolean).join("\n");
+        }
+        if (type === "commission") {
+          var commissionWant = val("rblx-commission-want");
+          var commissionFee = clampFee(val("rblx-commission-fee"));
+          var commissionRate = keepRate(commissionFee);
+          var commissionPrice = commissionRate > 0 ? Math.ceil(commissionWant / commissionRate) : 0;
+          if (!commissionWant) return "";
+          return commissionRate > 0
+            ? "Charge " + robux(commissionPrice) + " to keep about " + robux(commissionWant) + " after a " + percent(commissionFee) + " fee."
+            : "A 100% fee leaves no payout.";
+        }
+        if (type === "goals") {
+          return [
+            qs("rblx-goal-result").textContent.trim(),
+            serializeList("rblx-goal-list"),
+            serializeList("rblx-sales-list")
+          ].filter(Boolean).join("\n");
+        }
+        if (type === "trade") {
+          return [
+            qs("rblx-trade-result").textContent.trim(),
+            serializeList("rblx-trade-list")
+          ].filter(Boolean).join("\n");
+        }
+        return lastCopy || "";
+      }
+
+      function updateTax() {
+        feePercent = clampFee(val("rblx-custom-fee"));
+        syncFeeButtons();
+        var gross = val("rblx-tax-input");
+        var rate = keepRate(feePercent);
+
+        if (!gross) {
+          setEmpty("rblx-tax-result");
+          qs("rblx-tax-stats").innerHTML = "";
+        } else {
+          var kept = Math.floor(gross * rate);
+          var fee = gross - kept;
+          var listedNeededToKeepGross = rate > 0 ? Math.ceil(gross / rate) : 0;
+          setResult("rblx-tax-result", robux(kept), "Creator keeps this from a " + robux(gross) + " listed price.");
+          setStats("rblx-tax-stats", [
+            { value: robux(gross), label: "Listed Price" },
+            { value: robux(fee), label: "Fee Taken" },
+            { value: rate > 0 ? robux(listedNeededToKeepGross) : "Not possible", label: "Price To Keep This Much" }
+          ]);
+          lastCopy = "If an item is listed for " + robux(gross) + " with a " + feePercent + "% fee, the creator receives about " + robux(kept) + ".";
+        }
+
+        var wantAfter = val("rblx-pass-after");
+        var passType = textVal("rblx-pass-type") || "Gamepass";
+        if (!wantAfter) {
+          qs("rblx-pass-result").innerHTML = "";
+        } else {
+          var neededPrice = rate > 0 ? Math.ceil(wantAfter / rate) : 0;
+          var feeTaken = Math.max(0, neededPrice - wantAfter);
+          setList("rblx-pass-result", [
+            { title: passType + " Price", body: rate > 0 ? robux(neededPrice) : "A 100% fee leaves no payout." },
+            { title: "Expected Take-Home", body: robux(wantAfter) },
+            { title: "Fee Portion", body: robux(feeTaken) + " at " + percent(feePercent) }
+          ]);
+        }
+
+        var cost = val("rblx-profit-cost");
+        var sell = val("rblx-profit-price");
+        var profitFee = clampFee(val("rblx-profit-fee"));
+        if (!sell && !cost) {
+          qs("rblx-profit-stats").innerHTML = "";
+        } else {
+          var net = Math.floor(sell * keepRate(profitFee));
+          var profit = net - cost;
+          var margin = sell > 0 ? safeDivide(profit, sell) * 100 : 0;
+          setStats("rblx-profit-stats", [
+            { value: robux(net), label: "Net After Fee" },
+            { value: robux(profit), label: "Profit" },
+            { value: percent(margin), label: "Profit Margin" }
+          ]);
+        }
+      }
+
+      function updateDevex() {
+        var amount = val("rblx-devex-input");
+        var code = qs("rblx-devex-currency").value;
+        if (!amount) {
+          setEmpty("rblx-devex-result");
+          qs("rblx-devex-stats").innerHTML = "";
+          qs("rblx-devex-sync").innerHTML = "";
+        } else {
+          var usd = amount * devexRate;
+          var converted = usd * currencyData[code].rate;
+          setResult("rblx-devex-result", money(converted, code), robux(amount) + " at $" + devexRate.toFixed(4) + " per earned Robux.");
+          setStats("rblx-devex-stats", [
+            { value: money(usd, "USD"), label: "USD Estimate" },
+            { value: money(amount * 0.0035, "USD"), label: "Old Rate" },
+            { value: money(amount * 0.0038, "USD"), label: "New Rate" }
+          ]);
+          setList("rblx-devex-sync", ["USD", "EUR", "GBP", "BRL", "PHP"].map(function (curr) {
+            return { title: curr, body: money(usd * currencyData[curr].rate, curr) };
+          }));
+          lastCopy = robux(amount) + " is about " + money(converted, code) + " at the selected DevEx rate.";
+        }
+
+        var earnedCheck = val("rblx-devex-earned-check");
+        var threshold = val("rblx-devex-threshold") || 30000;
+        if (!earnedCheck && !threshold) {
+          qs("rblx-devex-eligibility").innerHTML = "";
+        } else {
+          var missing = Math.max(0, threshold - earnedCheck);
+          var pct = threshold > 0 ? Math.min(100, safeDivide(earnedCheck, threshold) * 100) : 0;
+          setStats("rblx-devex-eligibility", [
+            { value: earnedCheck >= threshold ? "Yes" : "Not Yet", label: "Threshold Met" },
+            { value: robux(missing), label: "Still Needed" },
+            { value: percent(pct), label: "Threshold Progress" }
+          ]);
+        }
+      }
+
+      function updatePrice() {
+        var code = priceCurrency;
+        var mode = qs("rblx-price-mode").value;
+        var moneyAmount = val("rblx-price-money");
+        var wanted = val("rblx-price-want");
+        var resultRobux = estimateRobuxFromMoney(moneyAmount, code);
+        var neededMoney = estimateMoneyForRobux(wanted, code);
+        var minimumPack = smallestPackageForCurrentMode();
+        var belowMinimum = moneyAmount > 0 && moneyAmount < minimumPack.price;
+
+        if (mode === "robux") {
+          if (!wanted) {
+            setEmpty("rblx-price-result");
+            qs("rblx-price-stats").innerHTML = "";
+          } else {
+            var effectiveNeededMoney = Math.max(neededMoney, minimumPack.price);
+            var reverseLabel = "Estimated money needed for " + robux(wanted) + ".";
+            if (effectiveNeededMoney === minimumPack.price && wanted < minimumPack.robux) {
+              reverseLabel = "Small targets still need at least the smallest available package.";
+            }
+            setResult("rblx-price-result", money(effectiveNeededMoney, code), reverseLabel);
+            setStats("rblx-price-stats", [
+              { value: robux(wanted), label: "Target Robux" },
+              { value: pricePlatform === "web" ? "Web/PC" : "Mobile", label: "Platform" },
+              { value: pricePremium === "premium" ? "Premium" : "Standard", label: "Status" }
+            ]);
+            lastCopy = "Estimated spend for " + robux(wanted) + ": " + money(effectiveNeededMoney, code) + ".";
+          }
+        } else {
+          if (!moneyAmount) {
+            setEmpty("rblx-price-result");
+            qs("rblx-price-stats").innerHTML = "";
+          } else if (belowMinimum) {
+            setResult("rblx-price-result", "Not enough", "Smallest available package is about " + money(minimumPack.price, code) + " for " + robux(minimumPack.robux) + ".");
+            setStats("rblx-price-stats", [
+              { value: money(minimumPack.price, code), label: "Minimum Package" },
+              { value: robux(minimumPack.robux), label: "Smallest Bundle" },
+              { value: pricePremium === "premium" ? "Premium" : "Standard", label: "Status" }
+            ]);
+          } else {
+            setResult("rblx-price-result", robux(resultRobux), "Estimated Robux for " + money(moneyAmount, code) + ".");
+            setStats("rblx-price-stats", [
+              { value: safeDivide(resultRobux, moneyAmount).toFixed(1), label: "Robux Per " + code },
+              { value: pricePlatform === "web" ? "Web/PC" : "Mobile", label: "Platform" },
+              { value: pricePremium === "premium" ? "Premium" : "Standard", label: "Status" }
+            ]);
+            lastCopy = money(moneyAmount, code) + " is about " + robux(resultRobux) + " in the selected mode.";
+          }
+        }
+
+        updatePackages();
+
+        var bestStandard = bestPackageForMode(pricePlatform, "standard");
+        var bestPremium = bestPackageForMode(pricePlatform, "premium");
+        var bonus = bestStandard.value > 0 ? ((bestPremium.value / bestStandard.value) - 1) * 100 : 0;
+        setStats("rblx-premium-compare", [
+          { value: bestStandard.value.toFixed(1), label: "Standard R$ / USD" },
+          { value: bestPremium.value.toFixed(1), label: "Premium R$ / USD" },
+          { value: premiumBonusActive() ? percent(bonus) : "Inactive", label: "Premium Bonus" }
+        ]);
+
+        var compareAmount = val("rblx-tax-compare-input");
+        var compareCustom = clampFee(val("rblx-tax-compare-custom"));
+        if (!compareAmount) {
+          qs("rblx-tax-compare-list").innerHTML = "";
+        } else {
+          var compareFees = [0, 30, 40, compareCustom];
+          var used = [];
+          setList("rblx-tax-compare-list", compareFees.filter(function (fee) {
+            if (used.indexOf(fee) !== -1) return false;
+            used.push(fee);
+            return true;
+          }).map(function (fee) {
+            return {
+              title: fee + "% Fee",
+              body: "Creator keeps " + robux(Math.floor(compareAmount * keepRate(fee)))
+            };
+          }));
+        }
+      }
+
+      function updatePackages() {
+        setList("rblx-price-packages", robuxPackages.map(function (pack) {
+          var displayPrice = pack.usd * currencyData[priceCurrency].rate;
+          var amount = getPackRobux(pack);
+          return {
+            title: money(displayPrice, priceCurrency),
+            body: robux(amount) + "<br>" + safeDivide(amount, displayPrice).toFixed(1) + " Robux per " + priceCurrency
+          };
+        }));
+      }
+
+      function updateSplit() {
+        var total = val("rblx-split-total");
+        var people = Math.max(1, Math.min(10, Math.round(val("rblx-split-people") || 1)));
+        var splitFee = clampFee(val("rblx-split-fee"));
+        var commissionWant = val("rblx-commission-want");
+        var commissionFee = clampFee(val("rblx-commission-fee"));
+        var afterTotal = Math.floor(total * keepRate(splitFee));
+        var each = Math.floor(safeDivide(afterTotal, people));
+        var splitLeftover = Math.max(0, afterTotal - (each * people));
+        var commissionRate = keepRate(commissionFee);
+        var commissionPrice = commissionRate > 0 ? Math.ceil(commissionWant / commissionRate) : 0;
+
+        if (!total && !commissionWant) {
+          setEmpty("rblx-split-result");
+          qs("rblx-split-stats").innerHTML = "";
+          qs("rblx-split-list").innerHTML = "";
+        } else {
+          if (total) {
+            setResult("rblx-split-result", robux(each), "Estimated per-person share after fee.");
+            setStats("rblx-split-stats", [
+              { value: robux(afterTotal), label: "After Fee Total" },
+              { value: people.toString(), label: "People" },
+              { value: robux(splitLeftover), label: "Undistributed" }
+            ]);
+            var splitRows = [];
+            for (var i = 1; i <= people; i++) splitRows.push({ title: "Person " + i, body: robux(each) });
+            if (commissionWant) {
+              splitRows.push({
+                title: "Commission Price",
+                body: commissionRate > 0 ? "Charge " + robux(commissionPrice) + " to receive about " + robux(commissionWant) : "A 100% fee leaves no payout."
+              });
+            }
+            setList("rblx-split-list", splitRows);
+            lastCopy = "Split " + robux(total) + " between " + people + " people: about " + robux(each) + " each after fees.";
+          } else {
+            setResult("rblx-split-result", commissionRate > 0 ? robux(commissionPrice) : "Not possible", "Commission price needed before fee.");
+            setStats("rblx-split-stats", [
+              { value: robux(commissionWant), label: "Artist Wants" },
+              { value: commissionRate > 0 ? robux(commissionPrice) : "Not possible", label: "Charge This" },
+              { value: commissionRate > 0 ? robux(commissionPrice - commissionWant) : "Not possible", label: "Fee Amount" }
+            ]);
+            setList("rblx-split-list", [{
+              title: "Commission Price",
+              body: commissionRate > 0 ? "Charge " + robux(commissionPrice) + " to receive about " + robux(commissionWant) : "A 100% fee leaves no payout."
+            }]);
+          }
+        }
+
+        var percentTotal = val("rblx-percent-total");
+        var percentValues = textVal("rblx-percent-values");
+        if (!percentTotal || !percentValues) {
+          qs("rblx-percent-list").innerHTML = "";
+        } else {
+          var parts = percentValues.split(",").map(function (part) { return parseFloat(part.trim()); }).filter(function (part) { return !isNaN(part) && part > 0; });
+          var totalPercent = parts.reduce(function (sum, part) { return sum + part; }, 0);
+          if (!parts.length) {
+            qs("rblx-percent-list").innerHTML = "";
+          } else {
+            var distributed = 0;
+            var items = parts.map(function (part, index) {
+              var share = Math.floor(percentTotal * (part / 100));
+              distributed += share;
+              return {
+                title: "Split " + (index + 1) + " (" + part + "%)",
+                body: robux(share)
+              };
+            });
+            var remainder = percentTotal - distributed;
+            if (remainder > 0) items.push({ title: "Unassigned Remainder", body: robux(remainder) });
+            if (remainder < 0) items.push({ title: "Overallocated", body: robux(Math.abs(remainder)) });
+            items.push({ title: "Total Percent Entered", body: totalPercent.toFixed(1) + "%" });
+            setList("rblx-percent-list", items);
+          }
+        }
+
+        var groupTotal = val("rblx-group-total");
+        var groupMembers = Math.max(1, Math.round(val("rblx-group-members") || 1));
+        var reserve = val("rblx-group-bonus");
+        var payoutPool = Math.max(0, groupTotal - reserve);
+        var perMember = Math.floor(safeDivide(payoutPool, groupMembers));
+        var groupLeftover = Math.max(0, groupTotal - (perMember * groupMembers));
+        if (!groupTotal) {
+          qs("rblx-group-stats").innerHTML = "";
+        } else {
+          setStats("rblx-group-stats", [
+            { value: robux(payoutPool), label: "Payout Pool" },
+            { value: robux(perMember), label: "Per Member" },
+            { value: robux(groupLeftover), label: "Funds Left" }
+          ]);
+        }
+
+        var tierBase = val("rblx-tier-base");
+        var tierFee = clampFee(val("rblx-tier-fee"));
+        var tierStyle = textVal("rblx-tier-style") || "art";
+        if (!tierBase) {
+          qs("rblx-tier-list").innerHTML = "";
+        } else {
+          var sets = {
+            art: [
+              { name: "Sketch", mult: 1 },
+              { name: "Bust", mult: 1.8 },
+              { name: "Half Body", mult: 2.6 },
+              { name: "Full Body", mult: 3.5 }
+            ],
+            dev: [
+              { name: "Bug Fix", mult: 1 },
+              { name: "Small Feature", mult: 2 },
+              { name: "System Build", mult: 3.8 },
+              { name: "Large Commission", mult: 5 }
+            ],
+            gfx: [
+              { name: "Icon", mult: 1 },
+              { name: "Thumbnail", mult: 1.7 },
+              { name: "Banner", mult: 2.4 },
+              { name: "Full Promo Pack", mult: 3.3 }
+            ]
+          };
+          setList("rblx-tier-list", sets[tierStyle].map(function (item) {
+            var want = Math.round(tierBase * item.mult);
+            var charge = keepRate(tierFee) > 0 ? Math.ceil(want / keepRate(tierFee)) : 0;
+            return {
+              title: item.name,
+              body: keepRate(tierFee) > 0 ? "Charge " + robux(charge) + " to keep about " + robux(want) : "No payout possible at 100% fee."
+            };
+          }));
+        }
+      }
+
+      function updateGoals() {
+        var after = val("rblx-goal-after");
+        var cash = val("rblx-goal-cash");
+        var current = val("rblx-goal-current");
+        var beforePrice = ceilPositive(after / DEFAULT_MARKETPLACE_RATE);
+        var robuxForCash = ceilPositive(cash / devexRate);
+        var target = Math.max(after, robuxForCash);
+        var remaining = Math.max(0, target - current);
+
+        if (!after && !cash && !current) {
+          setEmpty("rblx-goal-result");
+          qs("rblx-goal-stats").innerHTML = "";
+          qs("rblx-goal-list").innerHTML = "";
+        } else {
+          setResult("rblx-goal-result", robux(remaining), "Estimated Robux remaining for the biggest entered goal.");
+          setStats("rblx-goal-stats", [
+            { value: after ? robux(beforePrice) : "0", label: "Price For After-Tax Goal" },
+            { value: cash ? robux(robuxForCash) : "0", label: "Robux For DevEx Goal" },
+            { value: target ? percent(Math.min(100, safeDivide(current, target) * 100)) : "0.0%", label: "Progress" }
+          ]);
+          setList("rblx-goal-list", [
+            { title: "After-Tax Goal", body: after ? "Price around " + robux(beforePrice) + " to receive " + robux(after) : "No after-tax goal entered" },
+            { title: "DevEx Goal", body: cash ? "Earn about " + robux(robuxForCash) + " for " + money(cash, "USD") : "No DevEx cash goal entered" },
+            { title: "Current Progress", body: current ? robux(current) + " saved, " + robux(remaining) + " remaining" : "Enter current Robux to track progress" }
+          ]);
+          lastCopy = "Remaining goal estimate: " + robux(remaining) + ".";
+        }
+
+        var saveTarget = val("rblx-save-target");
+        var saveCurrent = val("rblx-save-current");
+        var saveRate = val("rblx-save-rate");
+        var saveBonus = val("rblx-save-bonus");
+        if (!saveTarget && !saveCurrent && !saveRate && !saveBonus) {
+          qs("rblx-save-stats").innerHTML = "";
+        } else {
+          var saveRemaining = Math.max(0, saveTarget - saveCurrent);
+          var weeklyRate = (saveRate * 7) + saveBonus;
+          var dailyRateEffective = saveRate + safeDivide(saveBonus, 7);
+          var days = dailyRateEffective > 0 ? Math.ceil(saveRemaining / dailyRateEffective) : 0;
+          var weeks = weeklyRate > 0 ? Math.ceil(saveRemaining / weeklyRate) : 0;
+          setStats("rblx-save-stats", [
+            { value: robux(saveRemaining), label: "Remaining" },
+            { value: dailyRateEffective > 0 ? days.toString() : "0", label: "Days Left" },
+            { value: weeklyRate > 0 ? weeks.toString() : "0", label: "Weeks Left" },
+            { value: saveTarget > 0 ? percent(Math.min(100, safeDivide(saveCurrent, saveTarget) * 100)) : "0.0%", label: "Saved" }
+          ], "four");
+        }
+
+        var salesTarget = val("rblx-sales-target");
+        var salesPrice = val("rblx-sales-price");
+        var salesFee = clampFee(val("rblx-sales-fee"));
+        if (!salesTarget || !salesPrice) {
+          qs("rblx-sales-list").innerHTML = "";
+        } else {
+          var perSale = Math.floor(salesPrice * keepRate(salesFee));
+          var neededSales = perSale > 0 ? Math.ceil(salesTarget / perSale) : 0;
+          setList("rblx-sales-list", [
+            { title: "Take-Home Per Sale", body: robux(perSale) },
+            { title: "Sales Needed", body: perSale > 0 ? neededSales.toLocaleString() + " sales" : "No sales can pay out at 100% fee." },
+            { title: "Gross Sales Volume", body: perSale > 0 ? robux(neededSales * salesPrice) : "Not possible" }
+          ]);
+        }
+      }
+
+      function updateTrade() {
+        var buy = val("rblx-trade-buy");
+        var sell = val("rblx-trade-sell");
+        var fee = clampFee(val("rblx-trade-fee"));
+        if (!buy && !sell) {
+          setEmpty("rblx-trade-result");
+          qs("rblx-trade-stats").innerHTML = "";
+          qs("rblx-trade-list").innerHTML = "";
+          return;
+        }
+        var rate = keepRate(fee);
+        var net = Math.floor(sell * rate);
+        var profit = net - buy;
+        var breakEven = rate > 0 ? Math.ceil(buy / rate) : 0;
+        var roi = buy > 0 ? safeDivide(profit, buy) * 100 : 0;
+        setResult("rblx-trade-result", robux(profit), "Estimated profit after a " + percent(fee) + " marketplace fee.");
+        setStats("rblx-trade-stats", [
+          { value: robux(net), label: "Net Sale" },
+          { value: robux(breakEven), label: "Break-Even Price" },
+          { value: percent(roi), label: "ROI" }
+        ]);
+        setList("rblx-trade-list", [
+          { title: "Paid", body: robux(buy) },
+          { title: "List Price", body: robux(sell) },
+          { title: "Fee Loss", body: robux(Math.max(0, sell - net)) }
+        ]);
+        lastCopy = "Trade estimate: buy at " + robux(buy) + ", sell at " + robux(sell) + ", profit about " + robux(profit) + ".";
+      }
+
+      function updateAll() {
+        updateTax();
+        updateDevex();
+        updatePrice();
+        updateSplit();
+        updateGoals();
+        updateTrade();
+        drawChart();
+      }
+
+      function switchTab(tab) {
+        activeTab = tab;
+        qsa(".tab-btn").forEach(function (button) {
+          button.classList.toggle("active", button.getAttribute("data-tab") === tab);
+        });
+        qsa(".tab-panel").forEach(function (panel) {
+          panel.classList.toggle("active", panel.getAttribute("data-panel") === tab);
+        });
+        qs("rblx-hub-title").textContent = pageCopy[tab][0];
+        qs("rblx-hub-subtitle").textContent = pageCopy[tab][1];
+        qs("rblx-hub-chart-title").textContent = pageCopy[tab][2];
+        qs("rblx-hub-chart-note").textContent = pageCopy[tab][3];
+        renderFaq();
+        drawChart();
+      }
+
+      function renderFaq() {
+        qs("rblx-hub-faq").innerHTML = faqs[activeTab].map(function (item) {
+          return '<div class="faq-item"><strong>' + item[0] + '</strong><span>' + item[1] + '</span></div>';
+        }).join("");
+      }
+
+      function drawChart() {
+        var canvas = qs("rblx-hub-chart");
+        var ctx = canvas.getContext("2d");
+        var w = canvas.width;
+        var h = canvas.height;
+        var pad = 42;
+        ctx.clearRect(0, 0, w, h);
+
+        var fill = ctx.createLinearGradient(0, 0, 0, h);
+        fill.addColorStop(0, "rgba(255, 72, 72, 0.10)");
+        fill.addColorStop(1, "rgba(255, 255, 255, 0.02)");
+        ctx.fillStyle = fill;
+        ctx.fillRect(0, 0, w, h);
+
+        if (activeTab === "price") {
+          drawBars(ctx, pad, w, h);
+          return;
+        }
+
+        var maxX = activeTab === "devex" ? 100000 : activeTab === "trade" ? 30000 : 10000;
+        var points = [];
+        for (var x = 0; x <= maxX; x += maxX / 10) {
+          var yv = x;
+          if (activeTab === "tax") yv = x * keepRate(feePercent);
+          if (activeTab === "devex") yv = x * devexRate * 1000;
+          if (activeTab === "split") yv = Math.floor((x * keepRate(val("rblx-split-fee"))) / Math.max(1, val("rblx-split-people") || 1));
+          if (activeTab === "goals") yv = Math.ceil(x / DEFAULT_MARKETPLACE_RATE);
+          if (activeTab === "trade") yv = Math.floor(x * keepRate(val("rblx-trade-fee")) - val("rblx-trade-buy"));
+          points.push({ x: x, y: yv });
+        }
+
+        var minY = Math.min.apply(null, points.map(function (point) { return point.y; }).concat([0]));
+        var maxY = Math.max.apply(null, points.map(function (point) { return point.y; }).concat([1]));
+        if (minY === maxY) maxY = minY + 1;
+        var spanY = maxY - minY;
+
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 1;
+        for (var i = 0; i <= 4; i++) {
+          var gridY = pad + ((h - pad * 2) / 4) * i;
+          ctx.beginPath();
+          ctx.moveTo(pad, gridY);
+          ctx.lineTo(w - pad, gridY);
+          ctx.stroke();
+        }
+
+        var zeroY = h - pad - safeDivide(0 - minY, spanY) * (h - pad * 2);
+        ctx.strokeStyle = "rgba(255,255,255,0.20)";
+        ctx.beginPath();
+        ctx.moveTo(pad, zeroY);
+        ctx.lineTo(w - pad, zeroY);
+        ctx.stroke();
+
+        var lineGradient = ctx.createLinearGradient(0, pad, w, h - pad);
+        lineGradient.addColorStop(0, "#ff7a7a");
+        lineGradient.addColorStop(1, "#ff2d2d");
+        ctx.strokeStyle = lineGradient;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        points.forEach(function (point, index) {
+          var px = pad + (point.x / maxX) * (w - pad * 2);
+          var py = h - pad - safeDivide(point.y - minY, spanY) * (h - pad * 2);
+          if (index === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        });
+        ctx.stroke();
+
+        ctx.fillStyle = "#ff8a8a";
+        points.forEach(function (point) {
+          var px = pad + (point.x / maxX) * (w - pad * 2);
+          var py = h - pad - safeDivide(point.y - minY, spanY) * (h - pad * 2);
+          ctx.beginPath();
+          ctx.arc(px, py, 4, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        ctx.fillStyle = "#bbc5d3";
+        ctx.font = "700 12px Arial";
+        ctx.textAlign = "left";
+        ctx.fillText("0", pad, h - 18);
+        ctx.textAlign = "right";
+        ctx.fillText((maxX >= 100000 ? "100K" : maxX.toLocaleString()) + " Robux", w - pad, h - 18);
+      }
+
+      function drawBars(ctx, pad, w, h) {
+        var bestWeb = bestPackageForMode("web", "standard").value;
+        var bestMobile = bestPackageForMode("mobile", "standard").value;
+        var bestPremium = bestPackageForMode("web", "premium").value;
+        var bars = [
+          { name: "Web", value: bestWeb, y: pad + 34 },
+          { name: "Mobile", value: bestMobile, y: pad + 112 },
+          { name: "Premium", value: bestPremium, y: pad + 190 }
+        ];
+        var max = Math.max(bestWeb, bestMobile, bestPremium, 1) * 1.15;
+
+        bars.forEach(function (bar) {
+          var gradient = ctx.createLinearGradient(pad, bar.y, w - pad, bar.y + 38);
+          gradient.addColorStop(0, "#ff6e6e");
+          gradient.addColorStop(1, "#ff2525");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(pad, bar.y, (bar.value / max) * (w - pad * 2), 38);
+        });
+        ctx.fillStyle = "#fff";
+        ctx.font = "900 14px Arial";
+        ctx.textAlign = "left";
+        bars.forEach(function (bar) {
+          ctx.fillText(bar.name, pad, bar.y - 10);
+        });
+        ctx.textAlign = "right";
+        bars.forEach(function (bar) {
+          ctx.fillText(bar.value.toFixed(1) + " R$ / USD", pad + (bar.value / max) * (w - pad * 2) - 10, bar.y + 24);
+        });
+      }
+
+      function shareTo(type) {
+        var shareUrl = encodeURIComponent(getActiveUrl());
+        var shareText = encodeURIComponent("Check out this " + pageCopy[activeTab][0] + " from RBLX Tools");
+        var link = "";
+        if (type === "facebook") link = "https://www.facebook.com/sharer/sharer.php?u=" + shareUrl;
+        if (type === "x") link = "https://twitter.com/intent/tweet?url=" + shareUrl + "&text=" + shareText;
+        if (type === "linkedin") link = "https://www.linkedin.com/sharing/share-offsite/?url=" + shareUrl;
+        if (type === "whatsapp") link = "https://api.whatsapp.com/send?text=" + shareText + "%20" + shareUrl;
+        if (type === "telegram") link = "https://t.me/share/url?url=" + shareUrl + "&text=" + shareText;
+        if (type === "email") link = "mailto:?subject=" + encodeURIComponent(pageCopy[activeTab][0]) + "&body=" + shareText + "%0A%0A" + shareUrl;
+        if (link) window.open(link, "_blank", "noopener,noreferrer");
+      }
+
+      qsa(".tab-btn").forEach(function (button) {
+        button.addEventListener("click", function () {
+          switchTab(button.getAttribute("data-tab"));
+        });
+      });
+
+      qsa("[data-presets]").forEach(function (wrap) {
+        wrap.addEventListener("click", function (event) {
+          var button = event.target.closest("button[data-value]");
+          if (!button) return;
+          var type = wrap.getAttribute("data-presets");
+          var value = button.getAttribute("data-value");
+          qsa('[data-presets="' + type + '"] .preset-btn').forEach(function (pill) {
+            pill.classList.remove("active");
+          });
+          button.classList.add("active");
+          if (type === "tax") qs("rblx-tax-input").value = value;
+          if (type === "devex") qs("rblx-devex-input").value = value;
+          if (type === "price") qs("rblx-price-money").value = value;
+          updateAll();
+        });
+      });
+
+      qsa("[data-fee]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          qsa("[data-fee]").forEach(function (b) { b.classList.remove("active"); });
+          button.classList.add("active");
+          if (button.getAttribute("data-fee") !== "custom") qs("rblx-custom-fee").value = button.getAttribute("data-fee");
+          updateAll();
+        });
+      });
+
+      qsa("[data-devex-rate]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          qsa("[data-devex-rate]").forEach(function (b) { b.classList.remove("active"); });
+          button.classList.add("active");
+          devexRate = parseFloat(button.getAttribute("data-devex-rate"));
+          updateAll();
+        });
+      });
+
+      qsa("[data-price-currency]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          qsa("[data-price-currency]").forEach(function (b) { b.classList.remove("active"); });
+          button.classList.add("active");
+          priceCurrency = button.getAttribute("data-price-currency");
+          updateAll();
+        });
+      });
+
+      qsa("[data-platform]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          qsa("[data-platform]").forEach(function (b) { b.classList.remove("active"); });
+          button.classList.add("active");
+          pricePlatform = button.getAttribute("data-platform");
+          updateAll();
+        });
+      });
+
+      qsa("[data-premium]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          qsa("[data-premium]").forEach(function (b) { b.classList.remove("active"); });
+          button.classList.add("active");
+          pricePremium = button.getAttribute("data-premium");
+          updateAll();
+        });
+      });
+
+      qsa("[data-share]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          shareTo(button.getAttribute("data-share"));
+        });
+      });
+
+      qsa("input, select, textarea").forEach(function (input) {
+        input.addEventListener("input", updateAll);
+        input.addEventListener("change", updateAll);
+      });
+
+      qsa("[data-copy]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          copyText(buildCopyText(button.getAttribute("data-copy")), button);
+        });
+      });
+
+      qs("rblx-copy-page-link").addEventListener("click", function () {
+        copyText(getActiveUrl(), this);
+      });
+
+      qs("rblx-tax-swap").addEventListener("click", function () {
+        var desiredTakeHome = val("rblx-tax-input");
+        var rate = keepRate(feePercent);
+        var needed = rate > 0 ? Math.ceil(desiredTakeHome / rate) : 0;
+        if (!desiredTakeHome) {
+          updateButtonText(this, "Enter amount");
+          return;
+        }
+        qs("rblx-tax-input").value = needed;
+        updateAll();
+        updateButtonText(this, "Converted");
+      });
+
+      qs("rblx-devex-goal-jump").addEventListener("click", function () {
+        switchTab("goals");
+        qs("rblx-goal-cash").focus();
+      });
+
+      qs("rblx-best-package").addEventListener("click", function () {
+        var best = bestPackageForMode(pricePlatform, pricePremium);
+        var packagePrice = best.pack.usd * currencyData[priceCurrency].rate;
+        setResult("rblx-price-result", money(packagePrice, priceCurrency), "Best value package: " + robux(getPackRobux(best.pack)) + " at " + best.value.toFixed(1) + " Robux per USD.");
+        lastCopy = "Best package in this mode: " + money(packagePrice, priceCurrency) + " for " + robux(getPackRobux(best.pack)) + ".";
+      });
+
+      qs("rblx-fill-goal-example").addEventListener("click", function () {
+        qs("rblx-goal-after").value = 10000;
+        qs("rblx-goal-cash").value = 500;
+        qs("rblx-goal-current").value = 25000;
+        qs("rblx-save-target").value = 50000;
+        qs("rblx-save-current").value = 18000;
+        qs("rblx-save-rate").value = 650;
+        qs("rblx-save-bonus").value = 2500;
+        qs("rblx-sales-target").value = 10000;
+        qs("rblx-sales-price").value = 100;
+        updateAll();
+      });
+
+      qs("rblx-trade-fill-example").addEventListener("click", function () {
+        qs("rblx-trade-buy").value = 12000;
+        qs("rblx-trade-sell").value = 19000;
+        qs("rblx-trade-fee").value = 30;
+        updateAll();
+      });
+
+      renderFaq();
+      updateAll();
+    })();
+  </script>
+  <script src="./global-shell.js"></script>
+</body>
+</html>

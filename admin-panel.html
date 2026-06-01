@@ -1,0 +1,1787 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Panel</title>
+  <style>
+    :root {
+      --admin-bg: #0b0d12;
+      --admin-surface: #11151d;
+      --admin-surface-2: #171c26;
+      --admin-surface-3: #1d2430;
+      --admin-line: rgba(255, 255, 255, 0.08);
+      --admin-line-strong: rgba(255, 255, 255, 0.13);
+      --admin-text: #f4f7fb;
+      --admin-muted: #9eacc0;
+      --admin-blue: #6ea9ff;
+      --admin-green: #53df88;
+      --admin-red: #ff6258;
+      --admin-yellow: #ffcc6b;
+      --admin-shadow: 0 24px 56px rgba(0, 0, 0, 0.34);
+      --admin-radius: 20px;
+      --admin-font: Arial, Helvetica, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(110, 169, 255, 0.1), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(83, 223, 136, 0.08), transparent 24%),
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(180deg, #0d1016 0%, #090b10 100%);
+      background-size: auto, auto, 28px 28px, 28px 28px, auto;
+      color: var(--admin-text);
+      font-family: var(--admin-font);
+    }
+
+    body {
+      padding: 16px;
+    }
+
+    .admin-panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .admin-pin-lock {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(5, 7, 10, 0.86);
+      backdrop-filter: blur(10px);
+    }
+
+    .admin-pin-lock[hidden] {
+      display: none !important;
+    }
+
+    .admin-pin-card {
+      width: min(420px, calc(100vw - 32px));
+      padding: 22px;
+      border-radius: 24px;
+      border: 1px solid var(--admin-line);
+      background:
+        radial-gradient(circle at top right, rgba(110, 169, 255, 0.16), transparent 28%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+        rgba(12, 16, 22, 0.98);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
+      text-align: center;
+    }
+
+    .admin-pin-title {
+      margin: 10px 0 0;
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .admin-pin-copy {
+      margin: 10px 0 0;
+      color: var(--admin-muted);
+      font-size: 12px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+
+    .admin-pin-form {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .admin-pin-input {
+      text-align: center;
+      letter-spacing: 0.35em;
+      font-size: 18px;
+      font-weight: 900;
+      padding-left: calc(12px + 0.35em);
+    }
+
+    .admin-topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 16px 18px;
+      border-radius: 24px;
+      border: 1px solid var(--admin-line);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+        rgba(11, 15, 21, 0.94);
+      box-shadow: var(--admin-shadow);
+    }
+
+    .admin-title-wrap {
+      min-width: 0;
+    }
+
+    .admin-kicker {
+      color: #ffb3ad;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .admin-title {
+      margin: 6px 0 0;
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .admin-copy {
+      margin: 8px 0 0;
+      color: var(--admin-muted);
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+      max-width: 70ch;
+    }
+
+    .admin-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .admin-pill {
+      min-height: 28px;
+      padding: 0 11px;
+      border-radius: 999px;
+      border: 1px solid var(--admin-line);
+      background: rgba(255,255,255,0.04);
+      color: #eef4ff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .admin-pill.live {
+      background: linear-gradient(180deg, #70abff 0%, #3a78eb 100%);
+      border-color: rgba(110, 169, 255, 0.22);
+    }
+
+    .admin-overview {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+      gap: 14px;
+    }
+
+    .admin-card {
+      border-radius: var(--admin-radius);
+      border: 1px solid var(--admin-line);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)),
+        var(--admin-surface);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+      overflow: hidden;
+    }
+
+    .admin-card-inner {
+      padding: 15px;
+    }
+
+    .admin-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .admin-card-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.1;
+      font-weight: 900;
+      letter-spacing: -0.6px;
+    }
+
+    .admin-card-copy {
+      margin: 0;
+      color: var(--admin-muted);
+      font-size: 11px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .admin-status-grid,
+    .admin-actions-grid,
+    .admin-compact-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .admin-status-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .admin-status-box {
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid var(--admin-line);
+      background: rgba(255,255,255,0.035);
+      min-width: 0;
+    }
+
+    .admin-status-label,
+    .admin-label {
+      display: block;
+      color: #ffb3ad;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .admin-status-value {
+      color: #fff;
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -0.6px;
+      word-break: break-word;
+    }
+
+    .admin-status-copy {
+      margin-top: 6px;
+      color: var(--admin-muted);
+      font-size: 11px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .admin-actions-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    .admin-compact-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-field {
+      margin-bottom: 10px;
+    }
+
+    .admin-input,
+    .admin-textarea {
+      width: 100%;
+      border-radius: 13px;
+      border: 1px solid var(--admin-line);
+      background: rgba(8, 10, 15, 0.6);
+      color: #fff;
+      font: inherit;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .admin-input {
+      min-height: 42px;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .admin-textarea {
+      min-height: 78px;
+      resize: vertical;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .admin-input:focus,
+    .admin-textarea:focus {
+      border-color: rgba(110, 169, 255, 0.72);
+      box-shadow: 0 0 0 3px rgba(110, 169, 255, 0.12);
+    }
+
+    .admin-split {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(104px, 0.48fr);
+      gap: 10px;
+    }
+
+    .admin-triple {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .admin-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .admin-btn {
+      min-height: 40px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.14s ease, filter 0.14s ease;
+    }
+
+    .admin-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    .admin-btn:disabled {
+      opacity: 0.58;
+      cursor: wait;
+    }
+
+    .admin-btn.blue {
+      background: linear-gradient(180deg, #74acff 0%, #407def 100%);
+      box-shadow: 0 14px 28px rgba(64, 125, 239, 0.22);
+    }
+
+    .admin-btn.green {
+      background: linear-gradient(180deg, #58e18d 0%, #22b962 100%);
+      box-shadow: 0 14px 28px rgba(34, 185, 98, 0.22);
+    }
+
+    .admin-btn.red {
+      background: linear-gradient(180deg, #ff6f66 0%, #df342b 100%);
+      box-shadow: 0 14px 28px rgba(223, 52, 43, 0.22);
+    }
+
+    .admin-btn.ghost {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--admin-line-strong);
+      box-shadow: none;
+    }
+
+    .admin-result {
+      min-height: 18px;
+      margin-top: 10px;
+      color: #d6e0ee;
+      font-size: 11px;
+      line-height: 1.5;
+      font-weight: 800;
+    }
+
+    .admin-result.success {
+      color: #88f2b2;
+    }
+
+    .admin-result.error {
+      color: #ff9a93;
+    }
+
+    .admin-member-card {
+      min-height: 100%;
+      display: grid;
+      align-content: start;
+      gap: 12px;
+    }
+
+    .admin-member-empty {
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px dashed rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.025);
+      color: var(--admin-muted);
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .admin-member-empty strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #fff;
+      font-size: 16px;
+      line-height: 1.1;
+      font-weight: 900;
+    }
+
+    .admin-member-head {
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .admin-avatar {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      border: 1px solid var(--admin-line);
+      background: linear-gradient(180deg, #2c3341, #1d222d);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 900;
+      overflow: hidden;
+    }
+
+    .admin-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .admin-member-name {
+      color: #fff;
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -0.8px;
+      word-break: break-word;
+    }
+
+    .admin-member-sub {
+      margin-top: 6px;
+      color: var(--admin-muted);
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    .admin-member-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .admin-member-box {
+      padding: 11px 12px;
+      border-radius: 15px;
+      border: 1px solid var(--admin-line);
+      background: rgba(255,255,255,0.03);
+      min-width: 0;
+    }
+
+    .admin-member-box.wide {
+      grid-column: 1 / -1;
+    }
+
+    .admin-member-key {
+      color: #ffb3ad;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .admin-member-value {
+      color: #fff;
+      font-size: 12px;
+      line-height: 1.45;
+      font-weight: 800;
+      word-break: break-word;
+    }
+
+    .admin-preview-feed {
+      max-height: 300px;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+      padding-right: 3px;
+    }
+
+    .admin-preview-item,
+    .admin-preview-system,
+    .admin-preview-empty {
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid var(--admin-line);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .admin-preview-empty,
+    .admin-preview-system {
+      text-align: center;
+      color: #c2cedd;
+      font-size: 11px;
+      line-height: 1.5;
+      font-weight: 800;
+    }
+
+    .admin-preview-meta {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 6px;
+      min-width: 0;
+    }
+
+    .admin-preview-rank {
+      min-height: 18px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: #41597c;
+      color: #edf4ff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .admin-preview-rank.plus {
+      background: linear-gradient(180deg, #f9fbff 0%, #bbc4d0 100%);
+      color: #181818;
+    }
+
+    .admin-preview-rank.guest {
+      background: #454a56;
+      color: #f2f5f9;
+    }
+
+    .admin-preview-name {
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .admin-preview-name.plus,
+    .admin-preview-plus {
+      background: linear-gradient(115deg, #ffffff 0%, #d8dde6 18%, #ffffff 36%, #b9c0cb 52%, #f5f7fb 66%, #c1c8d3 82%, #ffffff 100%);
+      background-size: 220% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+      animation: adminSilverFlow 3.2s linear infinite;
+    }
+
+    .admin-preview-time {
+      margin-left: auto;
+      color: #8c9aaf;
+      font-size: 9px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .admin-preview-text {
+      color: #edf2ff;
+      font-size: 11px;
+      line-height: 1.45;
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    @keyframes adminSilverFlow {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 220% 50%; }
+    }
+
+    @media (max-width: 1120px) {
+      .admin-overview,
+      .admin-actions-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 10px;
+      }
+
+      .admin-topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .admin-badges {
+        justify-content: flex-start;
+      }
+
+      .admin-status-grid,
+      .admin-compact-grid,
+      .admin-member-grid,
+      .admin-split,
+      .admin-triple {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-pin-lock" id="adminPinLock">
+    <div class="admin-pin-card">
+      <div class="admin-kicker">Extra Screen Lock</div>
+      <h2 class="admin-pin-title">Enter Admin Pin</h2>
+      <p class="admin-pin-copy">This panel is already backend-restricted, but this extra lock keeps the tools covered until the admin PIN is entered on this screen.</p>
+      <form class="admin-pin-form" id="adminPinForm">
+        <input class="admin-input admin-pin-input" id="adminPinInput" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••" />
+        <button class="admin-btn blue" id="adminPinSubmit" type="submit">Unlock Panel</button>
+        <div class="admin-result" id="adminPinStatus"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="admin-panel">
+    <section class="admin-topbar">
+      <div class="admin-title-wrap">
+        <div class="admin-kicker">Moderation Console</div>
+        <h1 class="admin-title">Admin Panel</h1>
+        <p class="admin-copy">Compact controls for complimentary Plus, website locks, chat punishment tools, and live chat events. Every member action below has its own target field so moderators can work one action at a time.</p>
+      </div>
+      <div class="admin-badges">
+        <span class="admin-pill live">Admin Approved</span>
+        <span class="admin-pill">Backend Controlled</span>
+      </div>
+    </section>
+
+    <section class="admin-card">
+      <div class="admin-card-inner">
+        <div class="admin-card-head">
+          <div>
+            <h2 class="admin-card-title">Session Overview</h2>
+            <p class="admin-card-copy">This panel only unlocks for accounts already approved by your backend admin list.</p>
+          </div>
+        </div>
+        <div class="admin-status-grid">
+          <div class="admin-status-box">
+            <div class="admin-status-label">Current Admin</div>
+            <div class="admin-status-value" id="adminCurrentName">Checking...</div>
+            <div class="admin-status-copy" id="adminCurrentEmail">Loading admin session...</div>
+          </div>
+          <div class="admin-status-box">
+            <div class="admin-status-label">Plan</div>
+            <div class="admin-status-value" id="adminCurrentPlan">-</div>
+            <div class="admin-status-copy" id="adminCurrentRole">Waiting on backend approval.</div>
+          </div>
+          <div class="admin-status-box">
+            <div class="admin-status-label">Status</div>
+            <div class="admin-status-value" id="adminSessionState">Pending</div>
+            <div class="admin-status-copy">The backend decides who can see and use this console.</div>
+          </div>
+        </div>
+        <div class="admin-result" id="adminGlobalStatus"></div>
+      </div>
+    </section>
+
+    <section class="admin-overview">
+      <div class="admin-card">
+        <div class="admin-card-inner">
+          <div class="admin-card-head">
+            <div>
+              <h2 class="admin-card-title">Member Lookup</h2>
+              <p class="admin-card-copy">Optional preview only. Load any member by user ID or email to inspect plan, moderation, and device links before taking action.</p>
+            </div>
+          </div>
+          <div class="admin-split">
+            <div class="admin-field">
+              <label class="admin-label" for="lookupQuery">User ID Or Email</label>
+              <input class="admin-input" id="lookupQuery" type="text" placeholder="ex: user@email.com or user-id" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="lookupButtonSpacer">Load</label>
+              <button class="admin-btn blue" id="lookupMemberButton" type="button">Lookup</button>
+            </div>
+          </div>
+          <div class="admin-result" id="lookupStatus"></div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-inner admin-member-card">
+          <div class="admin-card-head">
+            <div>
+              <h2 class="admin-card-title">Loaded Member</h2>
+              <p class="admin-card-copy">Quick preview from the lookup tool above.</p>
+            </div>
+          </div>
+
+          <div class="admin-member-empty" id="memberEmpty">
+            <strong>No Member Loaded</strong>
+            Use lookup when you want a visual confirmation before taking action.
+          </div>
+
+          <div id="memberView" hidden>
+            <div class="admin-member-head">
+              <div class="admin-avatar" id="memberAvatar">U</div>
+              <div>
+                <div class="admin-member-name" id="memberName">Member</div>
+                <div class="admin-member-sub" id="memberEmail">member@email.com</div>
+              </div>
+            </div>
+            <div class="admin-member-grid">
+              <div class="admin-member-box">
+                <div class="admin-member-key">User ID</div>
+                <div class="admin-member-value" id="memberUserId">-</div>
+              </div>
+              <div class="admin-member-box">
+                <div class="admin-member-key">Plan</div>
+                <div class="admin-member-value" id="memberPlan">-</div>
+              </div>
+              <div class="admin-member-box">
+                <div class="admin-member-key">Stripe</div>
+                <div class="admin-member-value" id="memberStripe">-</div>
+              </div>
+              <div class="admin-member-box">
+                <div class="admin-member-key">Devices</div>
+                <div class="admin-member-value" id="memberDevices">-</div>
+              </div>
+              <div class="admin-member-box wide">
+                <div class="admin-member-key">Complimentary Plus Expires</div>
+                <div class="admin-member-value" id="memberExpiry">-</div>
+              </div>
+              <div class="admin-member-box wide">
+                <div class="admin-member-key">Moderation</div>
+                <div class="admin-member-value" id="memberModeration">No active moderation.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-actions-grid">
+      <div class="admin-card">
+        <div class="admin-card-inner">
+          <div class="admin-card-head">
+            <div>
+              <h2 class="admin-card-title">Complimentary Plus</h2>
+              <p class="admin-card-copy">Grant or remove Plus using this action’s own target field.</p>
+            </div>
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="plusTarget">User ID Or Email</label>
+            <input class="admin-input" id="plusTarget" type="text" placeholder="Target member for Plus changes" />
+          </div>
+          <div class="admin-split">
+            <div class="admin-field">
+              <label class="admin-label" for="plusDays">Days</label>
+              <input class="admin-input" id="plusDays" type="number" min="1" max="3650" value="14" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="plusNote">Note</label>
+              <input class="admin-input" id="plusNote" type="text" placeholder="Optional" />
+            </div>
+          </div>
+          <div class="admin-buttons">
+            <button class="admin-btn green" id="grantPlusButton" type="button">Grant Plus</button>
+            <button class="admin-btn red" id="removePlusButton" type="button">Remove Plus</button>
+          </div>
+          <div class="admin-result" id="plusStatus"></div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-inner">
+          <div class="admin-card-head">
+            <div>
+              <h2 class="admin-card-title">Website Lock</h2>
+              <p class="admin-card-copy">Lock a user’s current browser/device from using the site until cleared.</p>
+            </div>
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="blacklistTarget">User ID Or Email</label>
+            <input class="admin-input" id="blacklistTarget" type="text" placeholder="Target member for device lock" />
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="blacklistReason">Reason</label>
+            <input class="admin-input" id="blacklistReason" type="text" placeholder="Shown on the lock screen" />
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="blacklistNote">Internal Note</label>
+            <input class="admin-input" id="blacklistNote" type="text" placeholder="Private moderator note" />
+          </div>
+          <div class="admin-buttons">
+            <button class="admin-btn red" id="blacklistButton" type="button">Lock Website</button>
+            <button class="admin-btn ghost" id="clearBlacklistButton" type="button">Clear Lock</button>
+          </div>
+          <div class="admin-result" id="blacklistStatus"></div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-inner">
+          <div class="admin-card-head">
+            <div>
+              <h2 class="admin-card-title">Chat Timeout</h2>
+              <p class="admin-card-copy">Temporarily stop a user from sending messages without full banning them from chat.</p>
+            </div>
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="timeoutTarget">User ID Or Email</label>
+            <input class="admin-input" id="timeoutTarget" type="text" placeholder="Target member for timeout" />
+          </div>
+          <div class="admin-triple">
+            <div class="admin-field">
+              <label class="admin-label" for="timeoutDays">Days</label>
+              <input class="admin-input" id="timeoutDays" type="number" min="0" max="365" value="0" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="timeoutHours">Hours</label>
+              <input class="admin-input" id="timeoutHours" type="number" min="0" max="168" value="1" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="timeoutMinutes">Minutes</label>
+              <input class="admin-input" id="timeoutMinutes" type="number" min="0" max="10080" value="0" />
+            </div>
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="timeoutReason">Reason</label>
+            <input class="admin-input" id="timeoutReason" type="text" placeholder="Shown to the user in chat" />
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="timeoutNote">Internal Note</label>
+            <input class="admin-input" id="timeoutNote" type="text" placeholder="Private moderator note" />
+          </div>
+          <div class="admin-buttons">
+            <button class="admin-btn blue" id="timeoutButton" type="button">Apply Timeout</button>
+            <button class="admin-btn ghost" id="clearTimeoutButton" type="button">Clear Timeout</button>
+          </div>
+          <div class="admin-result" id="timeoutStatus"></div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-inner">
+          <div class="admin-card-head">
+            <div>
+              <h2 class="admin-card-title">Chat Ban</h2>
+              <p class="admin-card-copy">Fully block a user from sending messages until a moderator clears the ban.</p>
+            </div>
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="chatBanTarget">User ID Or Email</label>
+            <input class="admin-input" id="chatBanTarget" type="text" placeholder="Target member for chat ban" />
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="chatBanReason">Reason</label>
+            <input class="admin-input" id="chatBanReason" type="text" placeholder="Shown to the user in chat" />
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="chatBanNote">Internal Note</label>
+            <input class="admin-input" id="chatBanNote" type="text" placeholder="Private moderator note" />
+          </div>
+          <div class="admin-buttons">
+            <button class="admin-btn red" id="chatBanButton" type="button">Ban From Chat</button>
+            <button class="admin-btn ghost" id="clearChatBanButton" type="button">Clear Chat Ban</button>
+          </div>
+          <div class="admin-result" id="chatBanStatus"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-actions-grid">
+      <div class="admin-card">
+        <div class="admin-card-inner">
+          <div class="admin-card-head">
+            <div>
+              <h2 class="admin-card-title">Claimable Drop</h2>
+              <p class="admin-card-copy">Global live chat event. No target user field needed.</p>
+            </div>
+          </div>
+          <div class="admin-compact-grid">
+            <div class="admin-field">
+              <label class="admin-label" for="dropTitle">Drop Title</label>
+              <input class="admin-input" id="dropTitle" type="text" value="Claim Free Plus" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="dropDays">Plus Days</label>
+              <input class="admin-input" id="dropDays" type="number" min="1" max="3650" value="14" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="dropClaims">Max Claims</label>
+              <input class="admin-input" id="dropClaims" type="number" min="1" max="500" value="3" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="dropSeconds">Expires In Seconds</label>
+              <input class="admin-input" id="dropSeconds" type="number" min="1" max="86400" value="10" />
+            </div>
+          </div>
+          <div class="admin-buttons">
+            <button class="admin-btn blue" id="createDropButton" type="button">Create Claim Drop</button>
+          </div>
+          <div class="admin-result" id="dropStatus"></div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-inner">
+          <div class="admin-card-head">
+            <div>
+              <h2 class="admin-card-title">Chat Rain</h2>
+              <p class="admin-card-copy">Global live chat event. Pick winners automatically when the timer ends.</p>
+            </div>
+          </div>
+          <div class="admin-compact-grid">
+            <div class="admin-field">
+              <label class="admin-label" for="rainTitle">Rain Title</label>
+              <input class="admin-input" id="rainTitle" type="text" value="Live Chat Rain" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="rainDays">Plus Days</label>
+              <input class="admin-input" id="rainDays" type="number" min="1" max="3650" value="14" />
+            </div>
+          </div>
+          <div class="admin-triple">
+            <div class="admin-field">
+              <label class="admin-label" for="rainWinners">Winner Count</label>
+              <input class="admin-input" id="rainWinners" type="number" min="1" max="100" value="1" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="rainHours">Hours</label>
+              <input class="admin-input" id="rainHours" type="number" min="0" max="168" value="0" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="rainMinutes">Minutes</label>
+              <input class="admin-input" id="rainMinutes" type="number" min="0" max="10080" value="1" />
+            </div>
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="rainSeconds">Seconds</label>
+            <input class="admin-input" id="rainSeconds" type="number" min="0" max="604800" value="0" />
+          </div>
+          <div class="admin-buttons">
+            <button class="admin-btn green" id="startRainButton" type="button">Start Chat Rain</button>
+          </div>
+          <div class="admin-result" id="rainStatus"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-card">
+      <div class="admin-card-inner">
+        <div class="admin-card-head">
+          <div>
+            <h2 class="admin-card-title">Live Chat Preview</h2>
+            <p class="admin-card-copy">Compact live room feed for drops, rain, and moderation follow-up.</p>
+          </div>
+          <span class="admin-pill live">Preview Live</span>
+        </div>
+        <div class="admin-preview-feed" id="previewFeed">
+          <div class="admin-preview-empty" id="previewEmpty">Connecting to live chat preview...</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    (function () {
+      var API_BASE = window.location.origin;
+      var TOKEN_KEY = "rblxtools_auth_token";
+      var ADMIN_PIN = "9252";
+
+      var currentAdminUser = null;
+      var previewSocket = null;
+      var loadedMember = null;
+      var panelUnlocked = false;
+
+      var refs = {
+        pinLock: document.getElementById("adminPinLock"),
+        pinForm: document.getElementById("adminPinForm"),
+        pinInput: document.getElementById("adminPinInput"),
+        pinStatus: document.getElementById("adminPinStatus"),
+        currentName: document.getElementById("adminCurrentName"),
+        currentEmail: document.getElementById("adminCurrentEmail"),
+        currentPlan: document.getElementById("adminCurrentPlan"),
+        currentRole: document.getElementById("adminCurrentRole"),
+        sessionState: document.getElementById("adminSessionState"),
+        globalStatus: document.getElementById("adminGlobalStatus"),
+        lookupQuery: document.getElementById("lookupQuery"),
+        lookupButton: document.getElementById("lookupMemberButton"),
+        lookupStatus: document.getElementById("lookupStatus"),
+        memberEmpty: document.getElementById("memberEmpty"),
+        memberView: document.getElementById("memberView"),
+        memberAvatar: document.getElementById("memberAvatar"),
+        memberName: document.getElementById("memberName"),
+        memberEmail: document.getElementById("memberEmail"),
+        memberUserId: document.getElementById("memberUserId"),
+        memberPlan: document.getElementById("memberPlan"),
+        memberStripe: document.getElementById("memberStripe"),
+        memberDevices: document.getElementById("memberDevices"),
+        memberExpiry: document.getElementById("memberExpiry"),
+        memberModeration: document.getElementById("memberModeration"),
+        previewFeed: document.getElementById("previewFeed"),
+        previewEmpty: document.getElementById("previewEmpty")
+      };
+
+      function getStoredToken() {
+        try {
+          return localStorage.getItem(TOKEN_KEY) || "";
+        } catch (_error) {
+          return "";
+        }
+      }
+
+      function getStoredProfileForAdmin(user) {
+        if (!user) return null;
+
+        var possibleKeys = [
+          "rblxtools_profile_overview",
+          user.id ? "rblxtools_profile_overview:" + user.id : "",
+          "rblxtools_profile",
+          user.id ? "rblxtools_profile:" + user.id : "",
+          "rblxtools_account_profile",
+          user.id ? "rblxtools_account_profile:" + user.id : ""
+        ].filter(Boolean);
+
+        var normalizedUserId = String(user.id || "").trim();
+        var normalizedEmail = String(user.email || "").trim().toLowerCase();
+
+        function matchesUser(parsed) {
+          if (!parsed || typeof parsed !== "object") return false;
+
+          var parsedUserId = String(
+            parsed.userId ||
+            parsed.id ||
+            parsed.accountId ||
+            parsed.profileId ||
+            ""
+          ).trim();
+
+          var parsedEmail = String(
+            parsed.email ||
+            parsed.userEmail ||
+            parsed.accountEmail ||
+            ""
+          ).trim().toLowerCase();
+
+          if (parsedUserId && normalizedUserId && parsedUserId === normalizedUserId) return true;
+          if (parsedEmail && normalizedEmail && parsedEmail === normalizedEmail) return true;
+          return false;
+        }
+
+        for (var index = 0; index < possibleKeys.length; index += 1) {
+          try {
+            var raw = localStorage.getItem(possibleKeys[index]) || "";
+            if (!raw) continue;
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== "object") continue;
+            if (matchesUser(parsed) || possibleKeys[index].indexOf(":") === -1) return parsed;
+          } catch (_error) {
+          }
+        }
+
+        return null;
+      }
+
+      function getAdminChatIdentityMeta() {
+        var stored = getStoredProfileForAdmin(currentAdminUser) || {};
+        var fallbackName = currentAdminUser && currentAdminUser.email
+          ? currentAdminUser.email.split("@")[0]
+          : "Admin";
+
+        var displayName = String(
+          stored.displayName ||
+          stored.profileDisplayName ||
+          stored.publicDisplayName ||
+          stored.name ||
+          stored.username ||
+          fallbackName
+        ).trim() || fallbackName;
+
+        var username = String(
+          stored.username ||
+          stored.displayName ||
+          stored.profileDisplayName ||
+          stored.name ||
+          fallbackName
+        ).trim() || fallbackName;
+
+        return {
+          displayName: displayName,
+          username: username,
+          avatarUrl: String(
+            stored.avatarUrl ||
+            stored.avatar ||
+            stored.profilePicture ||
+            stored.profileImage ||
+            ""
+          ).trim()
+        };
+      }
+
+      function getFieldValue(id) {
+        var input = document.getElementById(id);
+        return input ? String(input.value || "").trim() : "";
+      }
+
+      function getFieldNumber(id, fallback) {
+        var raw = Number.parseInt(getFieldValue(id), 10);
+        return Number.isFinite(raw) ? raw : fallback;
+      }
+
+      function setResult(elementId, message, tone) {
+        var node = document.getElementById(elementId);
+        if (!node) return;
+        node.textContent = message || "";
+        node.className = "admin-result" + (tone ? " " + tone : "");
+      }
+
+      function setGlobalStatus(message, tone) {
+        refs.globalStatus.textContent = message || "";
+        refs.globalStatus.className = "admin-result" + (tone ? " " + tone : "");
+      }
+
+      function setPinStatus(message, tone) {
+        refs.pinStatus.textContent = message || "";
+        refs.pinStatus.className = "admin-result" + (tone ? " " + tone : "");
+      }
+
+      function updatePinLock() {
+        if (!refs.pinLock) return;
+        refs.pinLock.hidden = panelUnlocked;
+      }
+
+      function getInitials(value) {
+        var text = String(value || "U").trim();
+        if (!text) return "U";
+        return text.slice(0, 2).toUpperCase();
+      }
+
+      function getPlanLabel(member) {
+        var normalized = String(
+          member && (member.plan || (member.premiumActive ? "plus" : "free")) || "free"
+        ).trim().toLowerCase();
+
+        if (normalized === "plus" || normalized === "premium") return "Plus Plan";
+        return "Free Plan";
+      }
+
+      function formatModeration(member) {
+        if (!member || !member.moderation) return "No active moderation.";
+        var moderation = member.moderation;
+        var lines = [];
+
+        if (moderation.websiteBlacklisted) {
+          lines.push("Website locked" + (moderation.websiteBlacklistReason ? ": " + moderation.websiteBlacklistReason : ""));
+        }
+        if (moderation.chatBanned) {
+          lines.push("Chat banned" + (moderation.chatBanReason ? ": " + moderation.chatBanReason : ""));
+        }
+        if (moderation.chatTimeoutUntil) {
+          lines.push("Timed out until " + new Date(moderation.chatTimeoutUntil).toLocaleString());
+        }
+
+        return lines.length ? lines.join(" | ") : "No active moderation.";
+      }
+
+      function renderMember(member) {
+        loadedMember = member || null;
+
+        if (!member) {
+          refs.memberEmpty.hidden = false;
+          refs.memberView.hidden = true;
+          return;
+        }
+
+        refs.memberEmpty.hidden = true;
+        refs.memberView.hidden = false;
+        refs.memberAvatar.innerHTML = "";
+        refs.memberAvatar.textContent = getInitials(member.email || member.id || "U");
+        refs.memberName.textContent = member.email ? member.email.split("@")[0] : "Member";
+        refs.memberEmail.textContent = member.email || "No email on file";
+        refs.memberUserId.textContent = member.id || "-";
+        refs.memberPlan.textContent = getPlanLabel(member);
+        refs.memberStripe.textContent = member.stripeSubscriptionStatus || "none";
+        refs.memberDevices.textContent = String(member.deviceCount != null ? member.deviceCount : 0);
+        refs.memberExpiry.textContent = member.complimentaryExpiresAt
+          ? new Date(member.complimentaryExpiresAt).toLocaleString()
+          : "Not set";
+        refs.memberModeration.textContent = formatModeration(member);
+      }
+
+      async function fetchJson(url, options) {
+        var response = await fetch(url, options);
+        var payload = await response.json().catch(function () { return null; });
+
+        if (!response.ok) {
+          throw new Error(payload && payload.error ? payload.error : "Request failed.");
+        }
+
+        return payload || {};
+      }
+
+      async function lookupMember() {
+        var token = getStoredToken();
+        var query = getFieldValue("lookupQuery");
+
+        if (!token) {
+          setResult("lookupStatus", "You need to log into an approved admin account first.", "error");
+          return;
+        }
+
+        if (!query) {
+          setResult("lookupStatus", "Enter a user ID or email first.", "error");
+          return;
+        }
+
+        refs.lookupButton.disabled = true;
+        setResult("lookupStatus", "Loading member...");
+
+        try {
+          var payload = await fetchJson(API_BASE + "/admin/member-lookup?q=" + encodeURIComponent(query), {
+            headers: {
+              Authorization: "Bearer " + token
+            }
+          });
+
+          renderMember(payload.member || null);
+          setResult("lookupStatus", "Member loaded.", "success");
+        } catch (error) {
+          renderMember(null);
+          setResult("lookupStatus", error.message || "Lookup failed.", "error");
+        } finally {
+          refs.lookupButton.disabled = false;
+        }
+      }
+
+      async function resolveTargetMember(targetValue) {
+        var token = getStoredToken();
+        var query = String(targetValue || "").trim();
+
+        if (!query) {
+          throw new Error("Enter a user ID or email first.");
+        }
+
+        var payload = await fetchJson(API_BASE + "/admin/member-lookup?q=" + encodeURIComponent(query), {
+          headers: {
+            Authorization: "Bearer " + token
+          }
+        });
+
+        return payload.member || null;
+      }
+
+      function withBusy(buttonIds, fn) {
+        var nodes = buttonIds.map(function (id) { return document.getElementById(id); }).filter(Boolean);
+        nodes.forEach(function (node) { node.disabled = true; });
+        return Promise.resolve()
+          .then(fn)
+          .finally(function () {
+            nodes.forEach(function (node) { node.disabled = false; });
+          });
+      }
+
+      async function grantPlus() {
+        return withBusy(["grantPlusButton", "removePlusButton"], async function () {
+          var token = getStoredToken();
+          var target = await resolveTargetMember(getFieldValue("plusTarget"));
+          var payload = await fetchJson(API_BASE + "/admin/grant-plus", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              userId: target.id,
+              days: Math.max(1, Math.min(getFieldNumber("plusDays", 14), 3650)),
+              note: getFieldValue("plusNote")
+            })
+          });
+
+          renderMember(payload.member || target);
+          setResult("plusStatus", payload.message || "Complimentary Plus granted.", "success");
+        }).catch(function (error) {
+          setResult("plusStatus", error.message || "Could not grant Plus.", "error");
+        });
+      }
+
+      async function removePlus() {
+        return withBusy(["grantPlusButton", "removePlusButton"], async function () {
+          var token = getStoredToken();
+          var target = await resolveTargetMember(getFieldValue("plusTarget"));
+          var payload = await fetchJson(API_BASE + "/admin/remove-plus", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              userId: target.id,
+              note: getFieldValue("plusNote")
+            })
+          });
+
+          renderMember(payload.member || target);
+          setResult("plusStatus", payload.message || "Plus access removed.", "success");
+        }).catch(function (error) {
+          setResult("plusStatus", error.message || "Could not remove Plus.", "error");
+        });
+      }
+
+      async function applyWebsiteLock() {
+        return withBusy(["blacklistButton", "clearBlacklistButton"], async function () {
+          var token = getStoredToken();
+          var target = await resolveTargetMember(getFieldValue("blacklistTarget"));
+          var payload = await fetchJson(API_BASE + "/admin/site-blacklist", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              userId: target.id,
+              reason: getFieldValue("blacklistReason"),
+              note: getFieldValue("blacklistNote")
+            })
+          });
+
+          renderMember(payload.member || target);
+          setResult("blacklistStatus", payload.message || "Website lock applied.", "success");
+        }).catch(function (error) {
+          setResult("blacklistStatus", error.message || "Could not apply website lock.", "error");
+        });
+      }
+
+      async function clearWebsiteLock() {
+        return withBusy(["blacklistButton", "clearBlacklistButton"], async function () {
+          var token = getStoredToken();
+          var target = await resolveTargetMember(getFieldValue("blacklistTarget"));
+          var payload = await fetchJson(API_BASE + "/admin/clear-site-blacklist", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              userId: target.id,
+              note: getFieldValue("blacklistNote")
+            })
+          });
+
+          renderMember(payload.member || target);
+          setResult("blacklistStatus", payload.message || "Website lock cleared.", "success");
+        }).catch(function (error) {
+          setResult("blacklistStatus", error.message || "Could not clear website lock.", "error");
+        });
+      }
+
+      function getTimeoutDurationSeconds() {
+        var days = Math.max(0, getFieldNumber("timeoutDays", 0));
+        var hours = Math.max(0, getFieldNumber("timeoutHours", 0));
+        var minutes = Math.max(0, getFieldNumber("timeoutMinutes", 0));
+        return (days * 86400) + (hours * 3600) + (minutes * 60);
+      }
+
+      async function applyChatTimeout() {
+        return withBusy(["timeoutButton", "clearTimeoutButton"], async function () {
+          var days = Math.max(0, getFieldNumber("timeoutDays", 0));
+          var hours = Math.max(0, getFieldNumber("timeoutHours", 0));
+          var minutes = Math.max(0, getFieldNumber("timeoutMinutes", 0));
+          var durationSeconds = (days * 86400) + (hours * 3600) + (minutes * 60);
+          if (!durationSeconds) {
+            throw new Error("Set at least one minute, hour, or day for the timeout.");
+          }
+
+          var token = getStoredToken();
+          var target = await resolveTargetMember(getFieldValue("timeoutTarget"));
+          var payload = await fetchJson(API_BASE + "/admin/chat-timeout", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              userId: target.id,
+              days: days,
+              hours: hours,
+              minutes: minutes,
+              reason: getFieldValue("timeoutReason"),
+              note: getFieldValue("timeoutNote")
+            })
+          });
+
+          renderMember(payload.member || target);
+          setResult("timeoutStatus", payload.message || "Chat timeout applied.", "success");
+        }).catch(function (error) {
+          setResult("timeoutStatus", error.message || "Could not apply timeout.", "error");
+        });
+      }
+
+      async function clearChatTimeout() {
+        return withBusy(["timeoutButton", "clearTimeoutButton"], async function () {
+          var token = getStoredToken();
+          var target = await resolveTargetMember(getFieldValue("timeoutTarget"));
+          var payload = await fetchJson(API_BASE + "/admin/clear-chat-timeout", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              userId: target.id,
+              note: getFieldValue("timeoutNote")
+            })
+          });
+
+          renderMember(payload.member || target);
+          setResult("timeoutStatus", payload.message || "Chat timeout cleared.", "success");
+        }).catch(function (error) {
+          setResult("timeoutStatus", error.message || "Could not clear timeout.", "error");
+        });
+      }
+
+      async function applyChatBan() {
+        return withBusy(["chatBanButton", "clearChatBanButton"], async function () {
+          var token = getStoredToken();
+          var target = await resolveTargetMember(getFieldValue("chatBanTarget"));
+          var payload = await fetchJson(API_BASE + "/admin/chat-ban", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              userId: target.id,
+              reason: getFieldValue("chatBanReason"),
+              note: getFieldValue("chatBanNote")
+            })
+          });
+
+          renderMember(payload.member || target);
+          setResult("chatBanStatus", payload.message || "Chat ban applied.", "success");
+        }).catch(function (error) {
+          setResult("chatBanStatus", error.message || "Could not apply chat ban.", "error");
+        });
+      }
+
+      async function clearChatBan() {
+        return withBusy(["chatBanButton", "clearChatBanButton"], async function () {
+          var token = getStoredToken();
+          var target = await resolveTargetMember(getFieldValue("chatBanTarget"));
+          var payload = await fetchJson(API_BASE + "/admin/clear-chat-ban", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              userId: target.id,
+              note: getFieldValue("chatBanNote")
+            })
+          });
+
+          renderMember(payload.member || target);
+          setResult("chatBanStatus", payload.message || "Chat ban cleared.", "success");
+        }).catch(function (error) {
+          setResult("chatBanStatus", error.message || "Could not clear chat ban.", "error");
+        });
+      }
+
+      async function createClaimDrop() {
+        return withBusy(["createDropButton"], async function () {
+          var token = getStoredToken();
+          var adminIdentity = getAdminChatIdentityMeta();
+          var payload = await fetchJson(API_BASE + "/admin/create-claim-drop", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              title: getFieldValue("dropTitle"),
+              days: Math.max(1, Math.min(getFieldNumber("dropDays", 14), 3650)),
+              maxClaims: Math.max(1, Math.min(getFieldNumber("dropClaims", 3), 500)),
+              expiresSeconds: Math.max(1, Math.min(getFieldNumber("dropSeconds", 10), 86400)),
+              displayName: adminIdentity.displayName,
+              username: adminIdentity.username,
+              avatarUrl: adminIdentity.avatarUrl
+            })
+          });
+
+          setResult("dropStatus", payload.message || "Claim drop created.", "success");
+        }).catch(function (error) {
+          setResult("dropStatus", error.message || "Could not create claim drop.", "error");
+        });
+      }
+
+      function getRainDurationSeconds() {
+        var seconds = Math.max(0, getFieldNumber("rainSeconds", 0));
+        var minutes = Math.max(0, getFieldNumber("rainMinutes", 0));
+        var hours = Math.max(0, getFieldNumber("rainHours", 0));
+        return Math.min((hours * 3600) + (minutes * 60) + seconds, 604800);
+      }
+
+      async function startChatRain() {
+        return withBusy(["startRainButton"], async function () {
+          var durationSeconds = getRainDurationSeconds();
+          if (!durationSeconds) {
+            throw new Error("Set at least one second, minute, or hour for chat rain.");
+          }
+
+          var token = getStoredToken();
+          var adminIdentity = getAdminChatIdentityMeta();
+          var payload = await fetchJson(API_BASE + "/admin/start-chat-rain", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              title: getFieldValue("rainTitle"),
+              days: Math.max(1, Math.min(getFieldNumber("rainDays", 14), 3650)),
+              winnersCount: Math.max(1, Math.min(getFieldNumber("rainWinners", 1), 100)),
+              durationSeconds: durationSeconds,
+              displayName: adminIdentity.displayName,
+              username: adminIdentity.username,
+              avatarUrl: adminIdentity.avatarUrl
+            })
+          });
+
+          setResult("rainStatus", payload.message || "Chat rain started.", "success");
+        }).catch(function (error) {
+          setResult("rainStatus", error.message || "Could not start chat rain.", "error");
+        });
+      }
+
+      function formatPreviewTime(value) {
+        var date = value ? new Date(value) : new Date();
+        return date.toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit"
+        });
+      }
+
+      function getPreviewRank(message) {
+        var normalizedPlan = String(message && message.plan || "").trim().toLowerCase();
+        if (message && (message.isPlus || normalizedPlan === "plus" || normalizedPlan === "premium")) return "Plus Plan";
+        if (message && (message.isGuest || normalizedPlan === "guest")) return "Guest";
+        return "Free Plan";
+      }
+
+      function setPreviewRichPlus(container, text) {
+        var parts = String(text || "").split(/\b(plus)\b/gi);
+        container.innerHTML = "";
+
+        parts.forEach(function (part) {
+          if (!part) return;
+          if (/^plus$/i.test(part)) {
+            var span = document.createElement("span");
+            span.className = "admin-preview-plus";
+            span.textContent = part;
+            container.appendChild(span);
+            return;
+          }
+
+          container.appendChild(document.createTextNode(part));
+        });
+      }
+
+      function appendPreviewSystem(text) {
+        if (refs.previewEmpty) refs.previewEmpty.style.display = "none";
+        var item = document.createElement("div");
+        item.className = "admin-preview-system";
+        setPreviewRichPlus(item, text);
+        refs.previewFeed.appendChild(item);
+        refs.previewFeed.scrollTop = refs.previewFeed.scrollHeight;
+      }
+
+      function appendPreviewMessage(message) {
+        if (refs.previewEmpty) refs.previewEmpty.style.display = "none";
+
+        var item = document.createElement("div");
+        item.className = "admin-preview-item";
+
+        var meta = document.createElement("div");
+        meta.className = "admin-preview-meta";
+
+        var rank = document.createElement("span");
+        rank.className = "admin-preview-rank";
+        if (message && (message.isPlus || String(message.plan || "").toLowerCase() === "plus")) {
+          rank.classList.add("plus");
+        } else if (message && (message.isGuest || String(message.plan || "").toLowerCase() === "guest")) {
+          rank.classList.add("guest");
+        }
+        rank.textContent = getPreviewRank(message);
+
+        var name = document.createElement("div");
+        name.className = "admin-preview-name" + ((message && (message.isPlus || String(message.plan || "").toLowerCase() === "plus")) ? " plus" : "");
+        name.textContent = String(message && (message.displayName || message.name || message.username) || "Guest");
+
+        var time = document.createElement("div");
+        time.className = "admin-preview-time";
+        time.textContent = formatPreviewTime(message && message.createdAt);
+
+        var text = document.createElement("div");
+        text.className = "admin-preview-text";
+        setPreviewRichPlus(text, message && message.text || "");
+
+        meta.append(rank, name, time);
+        item.append(meta, text);
+        refs.previewFeed.appendChild(item);
+
+        while (refs.previewFeed.children.length > 16) {
+          var firstNonEmpty = refs.previewFeed.firstElementChild;
+          if (!firstNonEmpty || firstNonEmpty.id === "previewEmpty") break;
+          refs.previewFeed.removeChild(firstNonEmpty);
+        }
+
+        refs.previewFeed.scrollTop = refs.previewFeed.scrollHeight;
+      }
+
+      function connectPreviewSocket() {
+        if (!window.io || previewSocket || !currentAdminUser || !panelUnlocked) return;
+
+        var adminIdentity = getAdminChatIdentityMeta();
+        previewSocket = window.io(API_BASE, {
+          transports: ["websocket", "polling"]
+        });
+
+        previewSocket.on("connect", function () {
+          previewSocket.emit("join-room", {
+            room: "rblxtools-main",
+            userId: currentAdminUser.id || adminIdentity.username,
+            displayName: adminIdentity.displayName,
+            username: adminIdentity.username,
+            avatarUrl: adminIdentity.avatarUrl,
+            isPlus: true,
+            isGuest: false,
+            plan: "plus",
+            favoriteTools: []
+          });
+        });
+
+        previewSocket.on("chat-history", function (history) {
+          refs.previewFeed.innerHTML = "";
+          if (!Array.isArray(history) || !history.length) {
+            refs.previewFeed.innerHTML = '<div class="admin-preview-empty" id="previewEmpty">No messages yet. Start the room.</div>';
+            refs.previewEmpty = document.getElementById("previewEmpty");
+            return;
+          }
+
+          history.slice(-10).forEach(appendPreviewMessage);
+        });
+
+        previewSocket.on("chat-message", appendPreviewMessage);
+        previewSocket.on("system-message", appendPreviewSystem);
+      }
+
+      function renderAdminSession(user) {
+        currentAdminUser = user || null;
+        var adminIdentity = getAdminChatIdentityMeta();
+        refs.currentName.textContent = adminIdentity.displayName || "Admin";
+        refs.currentEmail.textContent = user && user.email ? user.email : "No email";
+        refs.currentPlan.textContent = user && user.plan ? String(user.plan).toUpperCase() : "ADMIN";
+        refs.currentRole.textContent = user && user.isAdmin ? "Backend approved admin access." : "Admin approval missing.";
+        refs.sessionState.textContent = user && user.isAdmin ? "Ready" : "Blocked";
+      }
+
+      async function bootstrap() {
+        var token = getStoredToken();
+        if (!token) {
+          refs.currentName.textContent = "Sign In First";
+          refs.currentEmail.textContent = "No admin session found.";
+          refs.currentPlan.textContent = "-";
+          refs.currentRole.textContent = "Open this panel from an approved account.";
+          refs.sessionState.textContent = "Blocked";
+          setGlobalStatus("Log into an approved admin account first.", "error");
+          return;
+        }
+
+        try {
+          var payload = await fetchJson(API_BASE + "/auth/me", {
+            headers: {
+              Authorization: "Bearer " + token
+            }
+          });
+
+          var user = payload.user || payload;
+          if (!user || !user.isAdmin) {
+            throw new Error("This account is not approved to use the admin panel.");
+          }
+
+          renderAdminSession(user);
+          setGlobalStatus("Admin session verified. All tools are ready.", "success");
+          updatePinLock();
+          if (panelUnlocked) {
+            connectPreviewSocket();
+          }
+        } catch (error) {
+          refs.currentName.textContent = "Access Denied";
+          refs.currentEmail.textContent = "Backend rejected this account.";
+          refs.currentPlan.textContent = "-";
+          refs.currentRole.textContent = "Admin approval missing.";
+          refs.sessionState.textContent = "Blocked";
+          setGlobalStatus(error.message || "Could not verify the current account.", "error");
+        }
+      }
+
+      function handlePinSubmit(event) {
+        event.preventDefault();
+        var entered = String(refs.pinInput.value || "").trim();
+        if (!entered) {
+          setPinStatus("Enter the admin pin first.", "error");
+          return;
+        }
+        if (entered !== ADMIN_PIN) {
+          refs.pinInput.value = "";
+          setPinStatus("That admin pin is not correct.", "error");
+          return;
+        }
+        panelUnlocked = true;
+        refs.pinInput.value = "";
+        setPinStatus("", "");
+        updatePinLock();
+        connectPreviewSocket();
+      }
+
+      refs.lookupButton.addEventListener("click", lookupMember);
+      refs.lookupQuery.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          lookupMember();
+        }
+      });
+
+      document.getElementById("grantPlusButton").addEventListener("click", grantPlus);
+      document.getElementById("removePlusButton").addEventListener("click", removePlus);
+      document.getElementById("blacklistButton").addEventListener("click", applyWebsiteLock);
+      document.getElementById("clearBlacklistButton").addEventListener("click", clearWebsiteLock);
+      document.getElementById("timeoutButton").addEventListener("click", applyChatTimeout);
+      document.getElementById("clearTimeoutButton").addEventListener("click", clearChatTimeout);
+      document.getElementById("chatBanButton").addEventListener("click", applyChatBan);
+      document.getElementById("clearChatBanButton").addEventListener("click", clearChatBan);
+      document.getElementById("createDropButton").addEventListener("click", createClaimDrop);
+      document.getElementById("startRainButton").addEventListener("click", startChatRain);
+      refs.pinForm.addEventListener("submit", handlePinSubmit);
+
+      bootstrap();
+    })();
+  </script>
+</body>
+</html>

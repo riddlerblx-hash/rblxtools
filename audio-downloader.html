@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RBLX Tools - Audio Downloader</title>
+  <style>
+    html, body { margin: 0; min-height: 100%; color: #ffffff; background: transparent !important; }
+    body {
+      overflow-x: hidden;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.26), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(255, 0, 0, 0.12), transparent 24%),
+        radial-gradient(circle at 82% 74%, rgba(255, 74, 74, 0.12), transparent 30%),
+        radial-gradient(circle at 22% 86%, rgba(255, 124, 124, 0.1), transparent 26%),
+        linear-gradient(180deg, #151c28 0%, #0c1119 38%, #080b11 100%) !important;
+      position: relative;
+      isolation: isolate;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at center, black 54%, transparent 100%);
+      pointer-events: none;
+      opacity: 0.82;
+      z-index: 0;
+    }
+
+    #toolMount #rblx-audio-stack {
+      padding: 0 !important;
+      align-items: stretch !important;
+    }
+
+    #toolMount #rblx-audio-shell {
+      gap: 0 !important;
+    }
+
+    #toolMount #rblxAudioCard {
+      margin-bottom: 0 !important;
+      min-height: 0;
+    }
+      .tutorial-video-box {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tutorial-video {
+      display: block;
+      width: 100%;
+      min-height: 220px;
+      border-radius: 14px;
+      background: #0f131b;
+    }
+
+    .tutorial-video-cover {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 0;
+      border-radius: 14px;
+      background: rgba(8, 12, 18, 0.46);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      cursor: pointer;
+      transition: opacity 0.18s ease;
+    }
+
+    .tutorial-video-cover.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .tutorial-video-cover__icon {
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ff4343 0%, #ff1111 100%);
+      box-shadow: 0 14px 30px rgba(255, 34, 34, 0.24);
+      font-size: 22px;
+    }
+
+    .tutorial-video-cover__text {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+  </style>
+  <link rel="stylesheet" href="./global-shell.css" />
+  <link rel="stylesheet" href="./template-tool-layout.css" />
+</head>
+<body>
+  <div class="bg-wrap">
+    <div class="orb orb-one"></div>
+    <div class="orb orb-two"></div>
+    <div class="orb orb-three"></div>
+    <div class="orb orb-four"></div>
+  </div>
+
+  <main>
+    <section class="hero">
+      <h1><span>Roblox Audio</span><span>Downloader</span></h1>
+      <p>Download Roblox audio assets fast using supported Roblox audio asset IDs.</p>
+    </section>
+
+    <section class="top-grid">
+      <div id="toolMount" data-src="./tool-embeds/audio-downloader-tool.html"></div>
+
+      <div class="side-stack">
+        <article class="card promo-card">
+          <div class="badge">How To Use</div>
+          <h2><span>Video</span><span>Tutorial</span></h2>
+          <div class="video-box tutorial-video-box">
+            <video id="audioTutorialVideo" class="tutorial-video" preload="metadata" playsinline controls>
+              <source src="./assets/tutorial-videos/Audio%20Downloader%20How%20To.mp4" type="video/mp4" />
+              Your browser does not support the tutorial video.
+            </video>
+            <button id="audioTutorialCover" class="tutorial-video-cover" type="button" aria-label="Play audio downloader tutorial video">
+              <span class="tutorial-video-cover__icon">&#9654;</span>
+              <span class="tutorial-video-cover__text">Click to watch tutorial</span>
+            </button>
+          </div>
+        </article>
+
+        <section class="card plus-card">
+          <div class="plus-promo">
+            <div class="plus-floaters">
+              <span class="plus-floater plus-word one">+</span>
+              <span class="plus-floater plus-word two">+</span>
+              <span class="plus-floater plus-word three">+</span>
+              <span class="plus-floater plus-word four">+</span>
+              <span class="plus-floater plus-word five">+</span>
+              <span class="plus-floater plus-word six">+</span>
+              <span class="plus-floater plus-word seven">+</span>
+            </div>
+            <div class="plus-topline">
+              <span class="plus-kicker">RBLXTools Sponsor</span>
+              <span class="plus-price">More power. Less waiting.</span>
+            </div>
+            <h3><span>RBLXTools</span><span><span class="plus-word">Plus</span> Plan</span></h3>
+            <p>RBTools <span class="plus-word">Plus</span> unlocks the premium side of the website with bulk usage upgrades, premium creator tools, cleaner visuals, and extra account cosmetics built for heavy Roblox workflows.</p>
+            <div class="perk-list">
+              <div class="perk"><strong>Animation Downloader</strong><span>Open Animation Downloader access as part of your premium tool set.</span></div>
+              <div class="perk"><strong>UGC Texture Baking</strong><span>Unlock texture baking tools for cleaner UGC creator workflows.</span></div>
+              <div class="perk"><strong>Bulk downloads and bulk tool usage</strong><span>Use supported tools faster with 2-5 at a time workflows where available.</span></div>
+              <div class="perk"><strong>Cool chat tag cosmetic</strong><span>Show off a premium member cosmetic inside the live site chat experience.</span></div>
+              <div class="perk"><strong>More premium website feel</strong><span>Get a more polished account-side experience across premium parts of the site.</span></div>
+              <div class="perk"><strong>No site advertisements</strong><span>Use the website with a cleaner premium experience and no site ads.</span></div>
+            </div>
+            <div class="plus-actions">
+              <p><span class="price-green">$1.00</span> a month for premium tools, creator perks, no site advertisements, and a more premium RBLX Tools experience.</p>
+              <a class="plus-link" href="./subscriptions.html">View Plans</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="showcase-card">
+      <div class="showcase-header">
+        <h3 class="showcase-title">Other Tools</h3>
+      </div>
+      <div class="slide-viewport" id="showcaseViewport">
+        <div class="showcase-layout slide-panel" id="showcasePanel">
+          <div class="logo-preview" id="slideLogoPreview">
+            <div class="logo-glyph" id="slideGlyph">T</div>
+            <div class="logo-tag" id="slideTag">TOOL PREVIEW</div>
+          </div>
+          <div>
+            <div id="slidePills"></div>
+            <h3 class="tool-name" id="slideName"></h3>
+            <p class="tool-desc" id="slideDesc"></p>
+            <div class="tool-actions">
+              <button class="mini-btn" type="button" id="prevTool">Previous</button>
+              <button class="mini-btn primary" type="button" id="openTool">Open Tool</button>
+              <button class="mini-btn" type="button" id="nextTool">Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="showcase-progress"><span id="showcaseProgress"></span></div>
+    </section>
+
+    <section class="faq-wrap">
+      <div class="faq-item open">
+        <button class="faq-q" type="button">What does this tool download?</button>
+        <div class="faq-a">It downloads supported Roblox audio files and lets you preview them before starting the save.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button">Do I need the Roblox audio asset ID only?</button>
+        <div class="faq-a">Yes. Use the Roblox audio asset ID only on this page.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button">Why is my audio not loading?</button>
+        <div class="faq-a">Most common reasons are an invalid asset ID, a blocked asset, or a Roblox-side restriction on that audio.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button">Does this support multi-download?</button>
+        <div class="faq-a">Yes, but only for <span class="plus-word">Plus</span> accounts, up to 5 supported entries at once.</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="gate-overlay" id="plusGate">
+    <div class="gate-modal">
+      <h3><span><span class="plus-word">Plus</span> Required</span><span>You Don't Own <span class="plus-word">Plus</span></span></h3>
+      <p>This tool is locked to <span class="plus-word">Plus</span>. Upgrade your plan to unlock it, then come right back.</p>
+      <div class="gate-actions">
+        <a class="plans-btn" href="./subscriptions.html">View Plans</a>
+        <button class="close-btn" type="button" id="closeGate">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./tool-page-shell.js"></script>
+  <script>
+    (function () {
+      function syncAudioToolHeight() {
+        const sideStack = document.querySelector(".side-stack");
+        const audioCard = document.querySelector("#toolMount #rblxAudioCard");
+        if (!sideStack || !audioCard) return;
+
+        audioCard.style.minHeight = "0px";
+        const targetHeight = Math.ceil(sideStack.getBoundingClientRect().height);
+        if (targetHeight > 0) {
+          audioCard.style.minHeight = targetHeight + "px";
+        }
+      }
+
+      const scheduleSync = () => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(syncAudioToolHeight);
+        });
+      };
+
+      window.addEventListener("load", () => {
+        scheduleSync();
+        setTimeout(scheduleSync, 150);
+        setTimeout(scheduleSync, 500);
+      });
+
+      window.addEventListener("resize", scheduleSync);
+
+      const mount = document.getElementById("toolMount");
+      if (mount && "MutationObserver" in window) {
+        const observer = new MutationObserver(scheduleSync);
+        observer.observe(mount, { childList: true, subtree: true });
+      }
+    })();
+  </script>
+  <script src="./global-shell.js"></script>
+  <script>
+    (function () {
+      var video = document.getElementById("audioTutorialVideo");
+      var cover = document.getElementById("audioTutorialCover");
+      if (!video || !cover) return;
+
+      function hideCover() { cover.classList.add("hidden"); }
+      function showCover() { cover.classList.remove("hidden"); }
+
+      cover.addEventListener("click", function () {
+        hideCover();
+        var playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(function () { showCover(); });
+        }
+      });
+
+      video.addEventListener("play", hideCover);
+      video.addEventListener("ended", showCover);
+    })();
+  </script>
+</body>
+</html>
+
+
+
+

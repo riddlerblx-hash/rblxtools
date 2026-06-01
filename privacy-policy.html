@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy | RBLX Tools Accounts, Stripe Billing, Tool Inputs & Site Security</title>
+  <meta name="description" content="Read the RBLX Tools Privacy Policy covering accounts, subscriptions, Stripe billing, Google sign-in, tool inputs, cookies, advertising, third-party services, and site security.">
+  <link rel="stylesheet" href="./global-shell.css">
+  <style>
+    :root {
+      --panel: rgba(18, 24, 34, 0.96);
+      --panel-2: rgba(12, 17, 25, 0.98);
+      --line: rgba(255,255,255,0.08);
+      --line-soft: rgba(255,255,255,0.05);
+      --text: #ffffff;
+      --muted: #bcc6d3;
+      --accent: #ff3b3b;
+      --good: #66f1a3;
+      --shadow: 0 28px 58px rgba(0,0,0,0.34);
+      --max: 1180px;
+    }
+    * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.26), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(255, 0, 0, 0.12), transparent 24%),
+        radial-gradient(circle at 82% 74%, rgba(255, 74, 74, 0.12), transparent 30%),
+        radial-gradient(circle at 22% 86%, rgba(255, 124, 124, 0.10), transparent 26%),
+        linear-gradient(180deg, #151c28 0%, #0c1119 38%, #080b11 100%);
+      overflow-x: hidden;
+      isolation: isolate;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      background:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at center, black 54%, transparent 100%);
+      pointer-events: none;
+      opacity: 0.82;
+      z-index: 0;
+    }
+    .bg-wrap { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+    .orb { position: absolute; border-radius: 999px; filter: blur(7px); opacity: 0.92; mix-blend-mode: screen; }
+    .orb-one { top: -180px; left: -180px; width: 620px; height: 620px; background: radial-gradient(circle at 35% 35%, rgba(255, 120, 120, 0.3), rgba(255, 0, 0, 0.18), transparent 68%); }
+    .orb-two { top: 10%; right: -210px; width: 560px; height: 560px; background: radial-gradient(circle at 50% 50%, rgba(255, 80, 80, 0.18), rgba(190, 0, 0, 0.16), transparent 70%); }
+    .orb-three { bottom: -250px; left: 10%; width: 760px; height: 760px; background: radial-gradient(circle at 50% 50%, rgba(255, 40, 40, 0.16), rgba(110, 0, 0, 0.12), transparent 72%); }
+    .orb-four { bottom: -160px; right: 2%; width: 460px; height: 460px; background: radial-gradient(circle at 50% 50%, rgba(255, 100, 100, 0.12), rgba(255, 0, 0, 0.10), transparent 74%); }
+    a { color: #ffb4b4; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    .page-root { position: relative; z-index: 2; width: 100%; }
+    .page-shell { width: min(calc(100% - 24px), var(--max)); margin: 0 auto; padding: 18px 0 34px; }
+    .hero, .nav-card, .content-card, .summary-card, .notice-card {
+      border: 1px solid var(--line);
+      background: radial-gradient(circle at top right, rgba(255, 60, 60, 0.12), transparent 28%), linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+      box-shadow: var(--shadow);
+    }
+    .hero { display: grid; grid-template-columns: minmax(0,1.08fr) minmax(320px,0.92fr); gap: 14px; border-radius: 32px; padding: 24px; margin-bottom: 16px; }
+    .eyebrow { width: fit-content; min-height: 28px; padding: 0 12px; border-radius: 999px; display: inline-flex; align-items: center; border: 1px solid rgba(255, 90, 90, 0.24); background: rgba(255, 52, 52, 0.1); color: #ffafaf; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+    h1, h2, h3 { margin: 0; font-weight: 900; letter-spacing: -1px; }
+    h1 { margin-top: 16px; font-size: clamp(36px, 5vw, 64px); line-height: 0.92; max-width: 10ch; }
+    .accent { display: block; margin-top: 8px; background: linear-gradient(180deg, #ffc3c3 0%, #ff1919 84%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-copy, .summary-text, .nav-card p, .intro p, .policy-section p, .policy-section li, .notice-card p { color: var(--muted); font-size: 13px; line-height: 1.7; font-weight: 700; }
+    .hero-copy { max-width: 660px; margin: 14px 0 0; }
+    .hero-bottom { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; margin-top: 18px; }
+    .hero-note, .notice-card { padding: 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); }
+    .hero-note strong { color: #fff; }
+    .meta-stack { display: grid; gap: 8px; }
+    .meta-pill { min-height: 34px; padding: 0 12px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: #efefef; font-size: 10px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; white-space: nowrap; }
+    .meta-pill.good { border-color: rgba(84, 229, 135, 0.2); background: rgba(84, 229, 135, 0.12); color: #edfff3; }
+    .summary-card { border-radius: 30px; padding: 18px; display: grid; gap: 12px; align-content: start; }
+    .summary-grid { display: grid; gap: 10px; }
+    .summary-item { padding: 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.035); }
+    .summary-label { color: #ffabab; font-size: 10px; font-weight: 900; letter-spacing: 0.9px; text-transform: uppercase; margin-bottom: 6px; }
+    .layout { display: grid; grid-template-columns: 260px minmax(0,1fr); gap: 16px; align-items: start; }
+    .nav-card { position: sticky; top: 96px; border-radius: 24px; padding: 16px; }
+    .nav-card h2 { font-size: 21px; line-height: 1; margin: 12px 0 10px; }
+    .nav-list { display: grid; gap: 8px; }
+    .nav-link { width: 100%; min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.035); color: #f2f2f2; display: inline-flex; align-items: center; justify-content: flex-start; text-align: left; font-size: 11px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; transition: transform 0.16s ease, filter 0.16s ease; }
+    .nav-link:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    .content-card { border-radius: 30px; padding: 24px; }
+    .intro { padding-bottom: 16px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+    .intro h2 { margin-top: 14px; font-size: clamp(27px, 3vw, 42px); line-height: 0.98; max-width: 14ch; }
+    .policy-section { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; padding: 20px 0; border-bottom: 1px solid var(--line-soft); scroll-margin-top: 100px; }
+    .policy-section:last-child { border-bottom: 0; padding-bottom: 4px; }
+    .section-number { width: 40px; height: 40px; border-radius: 14px; background: linear-gradient(180deg, #ff4545, #ff1111); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; box-shadow: 0 12px 24px rgba(255, 20, 20, 0.18); margin-top: 3px; }
+    .policy-section h3 { font-size: clamp(20px, 2.1vw, 27px); line-height: 1.08; margin-bottom: 10px; }
+    .policy-section strong, .intro strong { color: #fff; }
+    .policy-section ul { margin: 10px 0 0; padding-left: 20px; }
+    .subhead { margin: 18px 0 6px; color: #ffd1d1; font-weight: 900; }
+    .footer-note { margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.08); color: #ffd6d6; font-weight: 800; line-height: 1.6; }
+    @media (max-width: 980px) { .hero, .layout { grid-template-columns: 1fr; } .nav-card { position: static; } }
+    @media (max-width: 700px) { .page-shell { width: min(calc(100% - 16px), var(--max)); padding-top: 12px; } .hero, .summary-card, .nav-card, .content-card { border-radius: 22px; } .hero, .content-card { padding: 20px; } .hero-bottom { grid-template-columns: 1fr; } .policy-section { grid-template-columns: 1fr; gap: 12px; } }
+  </style>
+</head>
+<body>
+  <div class="bg-wrap" aria-hidden="true">
+    <div class="orb orb-one"></div>
+    <div class="orb orb-two"></div>
+    <div class="orb orb-three"></div>
+    <div class="orb orb-four"></div>
+  </div>
+  <div class="page-root">
+    <div class="page-shell">
+      <header class="hero">
+        <section>
+          <span class="eyebrow">Privacy Policy</span>
+          <h1>Privacy and <span class="accent">site trust.</span></h1>
+          <p class="hero-copy">This Privacy Policy explains what RBLX Tools may collect, how accounts and subscriptions work on the site, how tool requests are handled, what third-party services may be involved, and how we try to keep the platform safer and more transparent.</p>
+          <div class="hero-bottom">
+            <div class="hero-note"><strong>Quick read:</strong> we try to limit data collection to what is reasonably needed for tool requests, account access, subscription handling, site protection, analytics, and platform improvement.</div>
+            <div class="meta-stack">
+              <div class="meta-pill">Last updated: May 29, 2026</div>
+              <div class="meta-pill good">Active Policy</div>
+            </div>
+          </div>
+        </section>
+        <aside class="summary-card">
+          <span class="eyebrow">Quick Summary</span>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <div class="summary-label">Minimal Approach</div>
+              <div class="summary-text">We try to collect only what is useful for running the site, protecting users, and supporting account or billing features.</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Accounts And Billing</div>
+              <div class="summary-text">Accounts live on the site, while payments and subscription billing are processed through Stripe.</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Safe Direction</div>
+              <div class="summary-text">A major goal of RBLX Tools is to feel more transparent and less sketchy than common scam-style tool pages.</div>
+            </div>
+          </div>
+        </aside>
+      </header>
+
+      <main class="layout">
+        <aside class="nav-card">
+          <span class="eyebrow">Sections</span>
+          <h2>On This Page</h2>
+          <p>Jump to the major privacy sections for accounts, billing, advertising, third parties, security, and your choices.</p>
+          <div class="nav-list">
+            <button class="nav-link" type="button" data-scroll-target="section-1">Information We Collect</button>
+            <button class="nav-link" type="button" data-scroll-target="section-2">How We Use Information</button>
+            <button class="nav-link" type="button" data-scroll-target="section-3">Accounts And Billing</button>
+            <button class="nav-link" type="button" data-scroll-target="section-4">Cookies And Ads</button>
+            <button class="nav-link" type="button" data-scroll-target="section-5">Third-Party Services</button>
+            <button class="nav-link" type="button" data-scroll-target="section-6">Roblox Disclaimer</button>
+            <button class="nav-link" type="button" data-scroll-target="section-7">Security And Abuse Prevention</button>
+            <button class="nav-link" type="button" data-scroll-target="section-8">Children's Privacy</button>
+            <button class="nav-link" type="button" data-scroll-target="section-9">Your Choices And Rights</button>
+            <button class="nav-link" type="button" data-scroll-target="section-10">Contact</button>
+          </div>
+        </aside>
+
+        <section class="content-card">
+          <div class="intro">
+            <span class="eyebrow">RBLX Tools</span>
+            <h2>How privacy fits into <span class="accent">the platform</span></h2>
+            <p><strong>Privacy Policy for RBLX Tools.</strong> RBLX Tools operates website pages, tool pages, account pages, subscriptions, and supporting content for users who want Roblox-related utility workflows in a cleaner environment. This policy explains how information may be collected, used, shared, protected, and retained when visitors use the site.</p>
+            <div class="notice-card">
+              <p>This policy is written for transparency and website clarity. It is not legal advice. If you need legal compliance guidance tailored to your exact business or location, consult a qualified professional.</p>
+            </div>
+          </div>
+
+          <article class="policy-section" id="section-1">
+            <div class="section-number">1</div>
+            <div>
+              <h3>Information We Collect</h3>
+              <p>We aim to collect only what is reasonably needed to operate, secure, and improve RBLX Tools. Depending on how you use the site, information may include:</p>
+              <p class="subhead">General usage information</p>
+              <ul>
+                <li>Browser type, device type, and general site behavior</li>
+                <li>Pages viewed, navigation patterns, and approximate usage metrics</li>
+                <li>Referring pages, general performance logs, and similar technical request details</li>
+              </ul>
+              <p class="subhead">Account information</p>
+              <p>If you create an account, sign in with email, or sign in with Google, we may store information such as your email address, account ID, plan status, premium status, Google-linked identity fields, and related access records needed to run the account system.</p>
+              <p class="subhead">Subscription and billing-related fields</p>
+              <p>For RBTools Plus and related account perks, we may store membership status, Stripe-linked customer data references, subscription status, and internal account access fields tied to your membership.</p>
+              <p class="subhead">Tool input information</p>
+              <p>Some tools may require Roblox asset IDs, catalog IDs, URLs, uploaded files, image inputs, or other request data to process results across tools such as Template Downloader, Template Background Changer, UGC Downloader, Media Downloader, Audio Downloader, Robux Calculator, Texture Baker, and Animation Spoofer.</p>
+              <p>We do not ask users for Roblox passwords or private Roblox account credentials.</p>
+            </div>
+          </article>
+
+          <article class="policy-section" id="section-2">
+            <div class="section-number">2</div>
+            <div>
+              <h3>How We Use Information</h3>
+              <p>We may use collected information to:</p>
+              <ul>
+                <li>Operate, maintain, and improve the site and its tool pages</li>
+                <li>Process tool requests and return relevant outputs</li>
+                <li>Run login, Google sign-in, account overview, and subscription features</li>
+                <li>Support RBTools Plus access, gifting direction, and future member perks</li>
+                <li>Measure performance and understand how users move through the site</li>
+                <li>Protect the platform from scraping, spam, abuse, fraud, or suspicious behavior</li>
+                <li>Build a more trustworthy site experience than common scam-style Roblox tool pages</li>
+              </ul>
+              <p>We do <strong>not</strong> sell personal information.</p>
+            </div>
+          </article>
+
+          <article class="policy-section" id="section-3">
+            <div class="section-number">3</div>
+            <div>
+              <h3>Accounts, Subscriptions, And Billing</h3>
+              <p>RBLX Tools includes account features and may offer paid plans such as RBTools Plus. To support these features, the site may store account-related fields such as plan type, premium status, subscriber status, customer references, and internal access details.</p>
+              <p>Payments, renewals, cancellations, invoices, payment methods, and related billing are handled through <strong>Stripe</strong>. We do not directly receive your full raw card number merely because you purchase through the site.</p>
+              <p>If you sign in with Google, we may use Google-provided identity details such as your email address and a Google-linked identifier to help connect the sign-in method to your site account.</p>
+              <p>Subscriber-only access may depend on the subscription state connected to your account.</p>
+            </div>
+          </article>
+
+          <article class="policy-section" id="section-4">
+            <div class="section-number">4</div>
+            <div>
+              <h3>Cookies, Advertising, And Sessions</h3>
+              <p>RBLX Tools may use cookies and similar technologies for account sessions, subscriber access, analytics, functionality, abuse protection, and advertising support.</p>
+              <p>If Google AdSense or other Google advertising services are enabled, third-party vendors, including Google, may use cookies to serve ads based on a user's prior visits to this website or other websites. Users may opt out of personalized ads through <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer">Google Ads Settings</a>.</p>
+              <p>We may also store session tokens locally in the browser to keep users signed in to their site account.</p>
+            </div>
+          </article>
+
+          <article class="policy-section" id="section-5">
+            <div class="section-number">5</div>
+            <div>
+              <h3>Third-Party Services</h3>
+              <p>RBLX Tools may use third-party services for hosting, databases, payment processing, advertising, analytics, authentication support, anti-abuse needs, and tool functionality.</p>
+              <ul>
+                <li>Stripe for payment processing and subscription management</li>
+                <li>Google sign-in and Google-related services where enabled</li>
+                <li>Google advertising services where enabled</li>
+                <li>Hosting, database, infrastructure, or authentication providers</li>
+                <li>External APIs and services needed for supported tool results</li>
+              </ul>
+              <p>Those providers may process data according to their own privacy policies.</p>
+            </div>
+          </article>
+
+          <article class="policy-section" id="section-6">
+            <div class="section-number">6</div>
+            <div>
+              <h3>Roblox Disclaimer</h3>
+              <p>RBLX Tools is an independent website and is <strong>not affiliated with, endorsed by, sponsored by, or officially connected to Roblox Corporation</strong>.</p>
+              <p>Roblox-related names, assets, UGC references, avatar items, and similar materials belong to their respective owners. RBLX Tools provides convenience utilities and creator workflows only.</p>
+            </div>
+          </article>
+
+          <article class="policy-section" id="section-7">
+            <div class="section-number">7</div>
+            <div>
+              <h3>Security And Abuse Prevention</h3>
+              <p>We use reasonable technical and organizational steps to help protect the platform, accounts, sessions, and billing-connected workflows. No site can promise absolute security, but we aim to build a cleaner and more trustworthy environment than many low-trust utility pages.</p>
+              <ul>
+                <li>Account sessions are token-based</li>
+                <li>Billing is handled through Stripe rather than unsafe direct payment collection</li>
+                <li>We may monitor abuse patterns, spam, scraping, fraud, or harmful request behavior</li>
+                <li>We may restrict or remove access when activity appears abusive or unsafe</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="policy-section" id="section-8">
+            <div class="section-number">8</div>
+            <div>
+              <h3>Children's Privacy</h3>
+              <p>RBLX Tools is not intended to knowingly collect personal information from children under 13. If you believe a child has submitted personal information to the site, contact us so we can review and address it when appropriate.</p>
+            </div>
+          </article>
+
+          <article class="policy-section" id="section-9">
+            <div class="section-number">9</div>
+            <div>
+              <h3>Your Choices And Rights</h3>
+              <p>Depending on your location, you may have rights to request access to, correction of, or deletion of certain information. You may also be able to object to or restrict some processing.</p>
+              <ul>
+                <li>You can disable cookies in your browser settings</li>
+                <li>You can opt out of personalized Google advertising where applicable</li>
+                <li>You can contact us with privacy questions or deletion-related requests</li>
+                <li>You can stop using the site if you do not agree with the policy</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="policy-section" id="section-10">
+            <div class="section-number">10</div>
+            <div>
+              <h3>Contact And Policy Changes</h3>
+              <p>If you have questions about this Privacy Policy or want to make a privacy request, contact us at:</p>
+              <div class="notice-card">
+                <p><strong>Email:</strong> <a href="mailto:itzreesebusiness@gmail.com">itzreesebusiness@gmail.com</a></p>
+              </div>
+              <p class="subhead">Changes to this policy</p>
+              <p>We may update this Privacy Policy from time to time. Updates will be posted on this page with a revised last-updated date.</p>
+            </div>
+          </article>
+
+          <p class="footer-note">By using RBLX Tools, you acknowledge this Privacy Policy.</p>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script>
+    document.querySelectorAll("[data-scroll-target]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var target = document.getElementById(button.getAttribute("data-scroll-target"));
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
+  </script>
+  <script src="./global-shell.js"></script>
+</body>
+</html>

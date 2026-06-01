@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RBLX Tools - Subscriptions</title>
+  <style>
+    :root {
+      --bg-0: #080b11;
+      --bg-1: #0c1119;
+      --bg-2: #151c28;
+      --line: rgba(255, 255, 255, 0.06);
+      --text: #ffffff;
+      --muted: #b8bec7;
+      --danger: linear-gradient(180deg, #ff4343, #ff1515);
+      --plus-green: linear-gradient(180deg, #63f08f 0%, #2fcf66 100%);
+      --panel: linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
+      --shadow: 0 28px 58px rgba(0, 0, 0, 0.34);
+    }
+
+    * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+    html, body { margin: 0; min-height: 100%; color: var(--text); }
+
+    body {
+      overflow-x: hidden;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.26), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(255, 0, 0, 0.12), transparent 24%),
+        radial-gradient(circle at 82% 74%, rgba(255, 74, 74, 0.12), transparent 30%),
+        radial-gradient(circle at 22% 86%, rgba(255, 124, 124, 0.10), transparent 26%),
+        linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 38%, var(--bg-0) 100%);
+      position: relative;
+      isolation: isolate;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      background:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at center, black 54%, transparent 100%);
+      pointer-events: none;
+      opacity: 0.82;
+      z-index: 0;
+    }
+
+    .bg-wrap {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(7px);
+      opacity: 0.92;
+      mix-blend-mode: screen;
+    }
+
+    .orb-one { top: -180px; left: -180px; width: 620px; height: 620px; background: radial-gradient(circle at 35% 35%, rgba(255, 120, 120, 0.3), rgba(255, 0, 0, 0.18), transparent 68%); }
+    .orb-two { top: 10%; right: -210px; width: 560px; height: 560px; background: radial-gradient(circle at 50% 50%, rgba(255, 80, 80, 0.18), rgba(190, 0, 0, 0.16), transparent 70%); }
+    .orb-three { bottom: -250px; left: 10%; width: 760px; height: 760px; background: radial-gradient(circle at 50% 50%, rgba(255, 40, 40, 0.16), rgba(110, 0, 0, 0.12), transparent 72%); }
+    .orb-four { bottom: -160px; right: 2%; width: 460px; height: 460px; background: radial-gradient(circle at 50% 50%, rgba(255, 100, 100, 0.12), rgba(255, 0, 0, 0.10), transparent 74%); }
+
+    main {
+      position: relative;
+      z-index: 2;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 30px 14px 38px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(36px, 5vw, 60px);
+      line-height: 0.95;
+      letter-spacing: -1.4px;
+      font-weight: 900;
+    }
+
+    .hero h1 span { display: block; }
+
+    .hero h1 span:last-child {
+      margin-top: 4px;
+      background: linear-gradient(180deg, #ffb3b3 0%, #ff2323 88%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      margin: 12px auto 0;
+      max-width: 860px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      font-weight: 600;
+    }
+
+    .plan-banner {
+      max-width: 980px;
+      margin: 0 auto 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at top right, rgba(255, 60, 60, 0.12), transparent 28%),
+        linear-gradient(180deg, rgba(28, 30, 36, 0.96), rgba(18, 20, 26, 0.96));
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .plan-banner strong {
+      color: #ffffff;
+    }
+
+    .plan-banner span {
+      color: #d0d6df;
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .login-lock {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(5, 8, 12, 0.76);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 120;
+    }
+
+    .login-lock.open {
+      display: flex;
+    }
+
+    .login-lock-card {
+      width: min(100%, 460px);
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.09);
+      background:
+        radial-gradient(circle at top right, rgba(255, 72, 72, 0.18), transparent 34%),
+        linear-gradient(180deg, rgba(38, 34, 38, 0.98), rgba(22, 20, 24, 0.98));
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
+      padding: 22px;
+      text-align: center;
+    }
+
+    .login-lock-kicker {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(255, 63, 63, 0.11);
+      border: 1px solid rgba(255, 92, 92, 0.24);
+      color: #ffb0b0;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.85px;
+      text-transform: uppercase;
+    }
+
+    .login-lock-title {
+      margin: 12px 0 0;
+      font-size: 34px;
+      line-height: 0.95;
+      letter-spacing: -1px;
+      font-weight: 900;
+    }
+
+    .login-lock-title span {
+      display: block;
+    }
+
+    .login-lock-title span:last-child {
+      color: #ff3c3c;
+    }
+
+    .login-lock-copy {
+      margin: 12px auto 0;
+      max-width: 360px;
+      color: #ced4dd;
+      font-size: 12px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+
+    .login-lock-countdown {
+      margin-top: 14px;
+      color: #6dff9a;
+      font-size: 14px;
+      line-height: 1.3;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      text-shadow: 0 0 18px rgba(109, 255, 154, 0.18);
+    }
+
+    .login-lock-note {
+      margin-top: 8px;
+      color: #aeb7c2;
+      font-size: 10px;
+      line-height: 1.45;
+      font-weight: 800;
+    }
+
+    .hero-strip {
+      max-width: 1040px;
+      margin: 0 auto 20px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .hero-chip {
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at top right, rgba(255, 68, 68, 0.08), transparent 34%),
+        linear-gradient(180deg, rgba(29, 31, 37, 0.96), rgba(18, 20, 26, 0.96));
+      padding: 12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+      text-align: left;
+    }
+
+    .hero-chip strong {
+      display: block;
+      color: #ffffff;
+      font-size: 14px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -0.2px;
+    }
+
+    .hero-chip span {
+      display: block;
+      margin-top: 6px;
+      color: #c4ccd6;
+      font-size: 10px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .plans-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr) minmax(0, 1fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .plan-col {
+      min-width: 0;
+    }
+
+    .plan-col.plus-focus {
+      transform: translateY(-6px);
+    }
+
+    .plan-col.side-plan {
+      padding-top: 22px;
+      padding-bottom: 22px;
+    }
+
+    .plan-card {
+      --card-glow-x: 78%;
+      --card-glow-y: 18%;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 22px 38px rgba(0, 0, 0, 0.30), 0 0 0 1px rgba(255,255,255,0.03);
+      transform: translateY(0) scale(1);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    .plan-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at var(--card-glow-x) var(--card-glow-y), rgba(255,255,255,0.12), transparent 22%),
+        linear-gradient(180deg, rgba(255,255,255,0.06), transparent 28%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .plan-card::after {
+      content: "";
+      position: absolute;
+      top: -18%;
+      left: -34%;
+      width: 52%;
+      height: 160%;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.11) 48%, transparent 100%);
+      transform: rotate(12deg);
+      animation: cardSweep 6.8s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.72;
+    }
+
+    .plan-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .plan-card:hover {
+      transform: translateY(-5px) scale(1.01);
+      border-color: rgba(255,255,255,0.12);
+      box-shadow: 0 30px 54px rgba(0, 0, 0, 0.36), 0 0 28px rgba(255,255,255,0.04);
+    }
+
+    .free-card {
+      background:
+        radial-gradient(circle at 78% 18%, rgba(93, 129, 255, 0.22), transparent 25%),
+        radial-gradient(circle at 12% 88%, rgba(255, 255, 255, 0.08), transparent 30%),
+        linear-gradient(180deg, #292929 0%, #161616 100%);
+    }
+
+    .plus-card {
+      background:
+        radial-gradient(circle at 82% 18%, rgba(255, 66, 66, 0.30), transparent 25%),
+        radial-gradient(circle at 12% 88%, rgba(255, 39, 39, 0.13), transparent 30%),
+        linear-gradient(180deg, #292929 0%, #161616 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        0 30px 52px rgba(0, 0, 0, 0.34),
+        0 0 0 1px rgba(255, 47, 47, 0.04),
+        0 0 34px rgba(255, 44, 44, 0.08);
+    }
+
+    .plus-card::after {
+      content: "";
+      position: absolute;
+      top: -18%;
+      left: -34%;
+      width: 52%;
+      height: 165%;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 48%, transparent 100%);
+      transform: rotate(12deg);
+      animation: plusSweep 4.9s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .plus-card {
+      animation: plusPulse 2.8s ease-in-out infinite;
+    }
+
+    .plus-floaters {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .plus-floater {
+      position: absolute;
+      color: rgba(255,255,255,0.16);
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 900;
+      text-shadow: 0 0 16px rgba(255, 84, 84, 0.18);
+      animation: plusFloat 6.8s ease-in-out infinite;
+    }
+
+    .plus-floater.one { top: 18px; left: 18px; animation-delay: 0s; }
+    .plus-floater.two { top: 54px; right: 24px; font-size: 22px; animation-delay: 0.9s; }
+    .plus-floater.three { top: 148px; left: 30px; font-size: 13px; animation-delay: 1.7s; }
+    .plus-floater.four { top: 190px; right: 44px; font-size: 16px; animation-delay: 2.6s; }
+    .plus-floater.five { bottom: 152px; left: 46px; font-size: 15px; animation-delay: 1.1s; }
+    .plus-floater.six { bottom: 92px; right: 26px; font-size: 18px; animation-delay: 3.3s; }
+    .plus-floater.seven { bottom: 26px; left: 34%; font-size: 14px; animation-delay: 2.2s; }
+    .plus-floater.eight { top: 104px; left: 54%; font-size: 12px; animation-delay: 4s; }
+
+    .plus-card:hover {
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        0 34px 58px rgba(0, 0, 0, 0.38),
+        0 0 0 1px rgba(255, 47, 47, 0.05),
+        0 0 36px rgba(255, 44, 44, 0.14);
+    }
+
+    .pro-card {
+      background:
+        radial-gradient(circle at 84% 18%, rgba(255, 199, 92, 0.26), transparent 24%),
+        radial-gradient(circle at 16% 86%, rgba(114, 214, 255, 0.14), transparent 28%),
+        linear-gradient(180deg, #272628 0%, #141416 100%);
+    }
+
+    .card-inner {
+      padding: 18px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pill-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 9px;
+      border-radius: 999px;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: 0.75px;
+      text-transform: uppercase;
+    }
+
+    .pill.free {
+      color: #dfe8ff;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .pill.plus {
+      color: #fff;
+      background: linear-gradient(180deg, #ff5050 0%, #ff1212 100%);
+      box-shadow: 0 9px 16px rgba(255, 35, 35, 0.20);
+    }
+
+    .pill.pro {
+      color: #161616;
+      background: linear-gradient(180deg, #ffd77b 0%, #ffb83a 100%);
+      box-shadow: 0 8px 15px rgba(255, 190, 78, 0.20);
+    }
+
+    .pill.soft {
+      color: #fff5f5;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .pill.active {
+      color: #eefcf2;
+      background: rgba(64, 196, 109, 0.12);
+      border: 1px solid rgba(64, 196, 109, 0.24);
+      box-shadow: 0 8px 16px rgba(64, 196, 109, 0.10);
+    }
+
+    .plan-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .plan-title {
+      margin: 0;
+      font-size: 34px;
+      line-height: 0.92;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .plan-title span { display: block; }
+    .plan-title .accent-free {
+      color: #7ea8ff;
+      text-shadow: 0 8px 18px rgba(126, 168, 255, 0.16);
+    }
+    .plan-title .accent-plus {
+      background: linear-gradient(115deg, #ffffff 0%, #d8dde6 18%, #ffffff 36%, #b9c0cb 52%, #f5f7fb 66%, #c1c8d3 82%, #ffffff 100%);
+      background-size: 220% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+    }
+    .plan-title .accent-pro {
+      background: linear-gradient(180deg, #fff0c8 0%, #ffd67a 30%, #ffbf45 65%, #ff9d20 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .plan-subtitle {
+      margin: 10px 0 0;
+      color: #b8bdc6;
+      font-size: 11px;
+      line-height: 1.5;
+      font-weight: 700;
+      max-width: 310px;
+    }
+
+    .price-box {
+      flex-shrink: 0;
+      min-width: 118px;
+      padding: 10px 10px 9px;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at top, rgba(255,255,255,0.10), transparent 42%),
+        linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.10);
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .price-kicker {
+      color: #c5cad2;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .price-value {
+      margin-top: 5px;
+      color: #fff;
+      font-size: 30px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .price-sub {
+      margin-top: 4px;
+      color: #c7ccd4;
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1.35;
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+    }
+
+    .plus-highlight {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at top right, rgba(255, 70, 70, 0.18), transparent 36%),
+        linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .plus-highlight-title {
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+    }
+
+    .plus-highlight-copy {
+      margin-top: 7px;
+      color: #c8cfd8;
+      font-size: 10px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .chat-preview {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at top right, rgba(255,255,255,0.08), transparent 34%),
+        linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .chat-preview-title {
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+    }
+
+    .chat-preview-line {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .chat-preview-mark {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #ffffff 0%, #d5dbe6 55%, #aeb7c3 100%);
+      color: #161616;
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72), 0 8px 15px rgba(255,255,255,0.08);
+    }
+
+    .chat-preview-name {
+      color: #ffffff;
+      font-size: 14px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .chat-preview-note {
+      margin-top: 8px;
+      color: #c8d0da;
+      font-size: 9px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .plan-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .plan-grid.single {
+      grid-template-columns: 1fr;
+    }
+
+    .perk-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.022));
+      border: 1px solid rgba(255,255,255,0.065);
+    }
+
+    .perk-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .perk-icon.free { background: linear-gradient(180deg, #5b86ff 0%, #3660ef 100%); }
+    .perk-icon.plus { background: linear-gradient(180deg, #39d86f 0%, #1faf53 100%); }
+    .perk-icon.pro { background: linear-gradient(180deg, #ffd77b 0%, #ffb83a 100%); color: #161616; }
+    .perk-icon.soon { background: linear-gradient(180deg, #3d3d42 0%, #29292d 100%); color: #ffd56d; border: 1px solid rgba(255,255,255,0.09); }
+
+    .perk-title {
+      margin: 0;
+      color: #fff;
+      font-size: 11px;
+      line-height: 1.12;
+      font-weight: 800;
+    }
+
+    .perk-desc {
+      margin: 4px 0 0;
+      color: #c0c5ce;
+      font-size: 9px;
+      line-height: 1.42;
+      font-weight: 700;
+    }
+
+    .section-kicker {
+      margin-top: 14px;
+      margin-bottom: 8px;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: 0.85px;
+      text-transform: uppercase;
+    }
+
+    .section-kicker.free { color: #a6c2ff; }
+    .section-kicker.plus { color: #ffaaaa; }
+    .section-kicker.pro { color: #ffde9c; }
+
+    .note-box {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.055);
+      color: #b3bac3;
+      font-size: 9px;
+      line-height: 1.45;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .status {
+      min-height: 18px;
+      margin-top: 10px;
+      color: #c6d0dd;
+      font-size: 10px;
+      line-height: 1.4;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .status.success { color: #7ef0a8; }
+    .status.pro { color: #ffdca1; }
+
+    .coupon-box {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 15px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .coupon-title {
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+    }
+
+    .coupon-copy {
+      margin-top: 6px;
+      color: #c8d0da;
+      font-size: 9px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .cta-subcopy {
+      margin-top: 9px;
+      color: #aeb7c2;
+      font-size: 9px;
+      line-height: 1.45;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    @keyframes cardSweep {
+      0% { transform: translateX(-160%) rotate(12deg); }
+      100% { transform: translateX(340%) rotate(12deg); }
+    }
+
+    @keyframes plusPulse {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-3px) scale(1.008); }
+    }
+
+    @keyframes plusSweep {
+      0% { transform: translateX(-165%) rotate(12deg); opacity: 0.18; }
+      45% { opacity: 0.65; }
+      100% { transform: translateX(360%) rotate(12deg); opacity: 0.1; }
+    }
+
+    @keyframes plusFloat {
+      0%, 100% { transform: translateY(0) scale(0.96); opacity: 0.1; }
+      50% { transform: translateY(-10px) scale(1.12); opacity: 0.34; }
+    }
+
+    @keyframes ctaPulse {
+      0%, 100% {
+        box-shadow: 0 14px 24px rgba(31, 185, 85, 0.24), 0 0 0 0 rgba(79, 230, 126, 0.26);
+      }
+      50% {
+        box-shadow: 0 18px 30px rgba(31, 185, 85, 0.34), 0 0 0 12px rgba(79, 230, 126, 0);
+      }
+    }
+
+    .coupon-code {
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 11px;
+      background: rgba(15,15,15,0.7);
+      border: 1px dashed rgba(255, 98, 98, 0.42);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.9px;
+    }
+
+    .cta {
+      width: 100%;
+      min-height: 46px;
+      margin-top: 12px;
+      border-radius: 13px;
+      border: none;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: var(--plus-green);
+      box-shadow: 0 14px 24px rgba(31, 185, 85, 0.24);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.18px;
+      cursor: pointer;
+      transition: transform 0.14s ease, filter 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease;
+      animation: ctaPulse 1.9s ease-in-out infinite;
+    }
+
+    .cta:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .cta:disabled {
+      opacity: 0.7;
+      cursor: wait;
+      transform: none;
+      filter: none;
+    }
+
+    .cta.is-owned {
+      background: linear-gradient(180deg, #3dd06d 0%, #169348 100%);
+      box-shadow: 0 14px 24px rgba(31, 185, 85, 0.18);
+      animation: none;
+    }
+
+    .compare-card,
+    .faq-card {
+      margin-top: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at top right, rgba(255, 60, 60, 0.10), transparent 30%),
+        var(--panel);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .compare-title,
+    .faq-title {
+      margin: 0 0 12px;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: -0.6px;
+      font-weight: 900;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .compare-column {
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .compare-column.plus {
+      background:
+        radial-gradient(circle at top right, rgba(255, 66, 66, 0.10), transparent 34%),
+        rgba(255,255,255,0.045);
+      border-color: rgba(255, 78, 78, 0.16);
+    }
+
+    .compare-column h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: -0.3px;
+    }
+
+    .compare-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .compare-item {
+      color: #cdd4dc;
+      font-size: 11px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .compare-item strong {
+      color: #fff;
+    }
+
+    .faq-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .faq-item {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.035);
+      padding: 12px 13px;
+    }
+
+    .faq-item strong {
+      display: block;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 5px;
+    }
+
+    .faq-item span {
+      color: #c8cfd8;
+      font-size: 11px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1080px) {
+      .hero-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .plans-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .plan-col.plus-focus {
+        transform: none;
+      }
+
+      .plan-col.side-plan {
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+
+      .compare-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      main {
+        padding: 24px 10px 30px;
+      }
+
+      .hero h1 {
+        font-size: 40px;
+      }
+
+      .hero-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .plan-top,
+      .plan-grid {
+        grid-template-columns: 1fr;
+        display: grid;
+      }
+
+      .price-box {
+        min-width: 0;
+      }
+
+      .card-inner,
+      .compare-card,
+      .faq-card {
+        padding: 15px;
+      }
+
+      .plus-card {
+        animation: none;
+      }
+
+      .cta {
+        animation: none;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="./global-shell.css" />
+</head>
+<body>
+  <div class="bg-wrap">
+    <div class="orb orb-one"></div>
+    <div class="orb orb-two"></div>
+    <div class="orb orb-three"></div>
+    <div class="orb orb-four"></div>
+  </div>
+
+  <main>
+    <section class="hero">
+      <h1><span>Choose Your</span><span>Plan</span></h1>
+      <p>Start free, move into Plus when you want faster creator workflows, and keep an eye on Pro as the future tier for heavier Roblox utility use. The goal is simple: make the site feel more powerful, more connected, and way more worth coming back to.</p>
+    </section>
+
+    <section class="plan-banner">
+      <span><strong>Plus does more than unlock tools.</strong> It helps keep the site running, supports the servers behind the downloads and premium utilities, and gives you the faster workflow upgrade at the same time.</span>
+    </section>
+
+    <section class="hero-strip" aria-label="Plan highlights">
+      <div class="hero-chip">
+        <strong>Free To Start</strong>
+        <span>Jump in without paying and test the full vibe of the site before deciding to upgrade.</span>
+      </div>
+      <div class="hero-chip">
+        <strong>Plus Is The Move</strong>
+        <span>Unlock the premium tools and stop wasting time doing everything one tiny step at a time.</span>
+      </div>
+      <div class="hero-chip">
+        <strong>Built For Creators</strong>
+        <span>Designed for repeat users, resellers, designers, and Roblox players who actually use the utilities often.</span>
+      </div>
+      <div class="hero-chip">
+        <strong>Pro Comes Later</strong>
+        <span>The future tier is planned, but Plus is the real upgrade path that matters right now.</span>
+      </div>
+    </section>
+
+    <section class="plans-grid">
+      <div class="plan-col side-plan">
+        <article class="plan-card free-card">
+          <div class="card-inner">
+            <div class="pill-row">
+              <div class="pill active" id="freeOwnedPill" style="display:none;">Current Plan</div>
+              <div class="pill free">Free Access</div>
+            </div>
+
+            <div class="plan-top">
+              <div>
+                <h2 class="plan-title">
+                  <span>RBTools</span>
+                  <span class="accent-free">Free</span>
+                </h2>
+                <p class="plan-subtitle">The free plan keeps the everyday tools open for normal use, with unlimited single-item actions across the site.</p>
+              </div>
+
+              <div class="price-box">
+                <div class="price-kicker">Plan Cost</div>
+                <div class="price-value">$0</div>
+                <div class="price-sub">Always available</div>
+              </div>
+            </div>
+
+            <div class="plan-grid">
+              <div class="perk-card">
+                <div class="perk-icon free">1</div>
+                <div>
+                  <h3 class="perk-title">Unlimited 1 by 1 use</h3>
+                  <p class="perk-desc">Use free tools as much as you want, one download, upload, or action at a time.</p>
+                </div>
+              </div>
+              <div class="perk-card">
+                <div class="perk-icon free">T</div>
+                <div>
+                  <h3 class="perk-title">Core tools included</h3>
+                  <p class="perk-desc">Templates, UGC, audio, media, robux math, and classic cleanup stay accessible here.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-kicker free">Why Users Upgrade</div>
+            <div class="perk-card">
+              <div class="perk-icon soon">+</div>
+              <div>
+                <h3 class="perk-title">Upgrade when you want more speed</h3>
+                <p class="perk-desc">Move up to Plus anytime for multi-item actions, premium-only tools, and stronger creator workflow convenience.</p>
+              </div>
+            </div>
+
+            <div class="note-box">Best for players and creators who want the main tools without paying anything upfront.</div>
+            <div id="freeStatus" class="status"></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="plan-col plus-focus">
+        <article class="plan-card plus-card">
+          <div class="plus-floaters" aria-hidden="true">
+            <div class="plus-floater one">+</div>
+            <div class="plus-floater two">+</div>
+            <div class="plus-floater three">+</div>
+            <div class="plus-floater four">+</div>
+            <div class="plus-floater five">+</div>
+            <div class="plus-floater six">+</div>
+            <div class="plus-floater seven">+</div>
+            <div class="plus-floater eight">+</div>
+          </div>
+          <div class="card-inner">
+            <div class="pill-row">
+              <div class="pill plus">Recommended</div>
+              <div class="pill active" id="plusOwnedPill" style="display:none;">Plan Active</div>
+              <div class="pill soft">Premium Access</div>
+            </div>
+
+            <div class="plan-top">
+              <div>
+                <h2 class="plan-title">
+                  <span>RBTools</span>
+                  <span class="accent-plus">Plus</span>
+                </h2>
+                <p class="plan-subtitle">Plus is the motivating jump for users who actually want the site to feel more powerful, more premium, and more useful every time they open it.</p>
+              </div>
+
+              <div class="price-box">
+                <div class="price-kicker">Current Price</div>
+                <div class="price-value">$1.00</div>
+                <div class="price-sub">Per month</div>
+              </div>
+            </div>
+
+            <div class="chat-preview">
+              <div class="chat-preview-title">Plus chat tag preview</div>
+              <div class="chat-preview-line">
+                <div class="chat-preview-mark">+</div>
+                <div class="chat-preview-name">Reese</div>
+              </div>
+              <div class="chat-preview-note">Subscribers get the cleaner plus-marked cosmetic tag beside their name in live chat.</div>
+            </div>
+
+            <div class="plan-grid">
+              <div class="perk-card">
+                <div class="perk-icon plus">+</div>
+                <div>
+                  <h3 class="perk-title">Cool chat tag cosmetic</h3>
+                  <p class="perk-desc">Stand out in live chat with the cleaner Plus tag and a more premium account presence.</p>
+                </div>
+              </div>
+              <div class="perk-card">
+                <div class="perk-icon plus">A</div>
+                <div>
+                  <h3 class="perk-title">Animation Spoofer</h3>
+                  <p class="perk-desc">Premium-only animation access for users who want utility beyond the normal free stack.</p>
+                </div>
+              </div>
+              <div class="perk-card">
+                <div class="perk-icon plus">T</div>
+                <div>
+                  <h3 class="perk-title">UGC texture baking</h3>
+                  <p class="perk-desc">Unlock the premium UGC texture workflow and the cleaner export pipeline.</p>
+                </div>
+              </div>
+              <div class="perk-card">
+                <div class="perk-icon plus">U</div>
+                <div>
+                  <h3 class="perk-title">Unwatermarked templates</h3>
+                  <p class="perk-desc">Use the cleaner clothing templates inside Background Changer without the watermark layer.</p>
+                </div>
+              </div>
+              <div class="perk-card">
+                <div class="perk-icon plus">5</div>
+                <div>
+                  <h3 class="perk-title">Bulk downloads and tool usage</h3>
+                  <p class="perk-desc">Use supported tools in bigger batches instead of grinding through everything one by one.</p>
+                </div>
+              </div>
+              <div class="perk-card">
+                <div class="perk-icon plus">0</div>
+                <div>
+                  <h3 class="perk-title">Ad-free experience</h3>
+                  <p class="perk-desc">Get the cleaner experience without ads breaking up the flow while you use the site.</p>
+                </div>
+              </div>
+              <div class="perk-card">
+                <div class="perk-icon plus">P</div>
+                <div>
+                  <h3 class="perk-title">More premium website feel</h3>
+                  <p class="perk-desc">Enjoy the subscriber polish, stronger account feel, and the nicer premium touches across the site.</p>
+                </div>
+              </div>
+              <div class="perk-card">
+                <div class="perk-icon soon">+</div>
+                <div>
+                  <h3 class="perk-title">More coming soon</h3>
+                  <p class="perk-desc">Plus is built to keep growing with more subscriber-only perks, tools, and workflow upgrades.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="coupon-box">
+              <div class="coupon-title">Secure checkout</div>
+              <div class="coupon-copy">Your purchase opens a secure Stripe checkout tied to the logged-in account, so your Plus access lands on the right profile automatically without extra setup afterward.</div>
+            </div>
+
+            <button id="plusCheckoutBtn" class="cta" type="button">Start Plus Membership</button>
+            <div class="cta-subcopy">One clean upgrade. Premium tools, faster actions, and a way better overall workflow.</div>
+            <div id="plusStatus" class="status"></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="plan-col side-plan">
+        <article class="plan-card pro-card">
+          <div class="card-inner">
+            <div class="pill-row">
+              <div class="pill pro">Future Plan</div>
+              <div class="pill soft">Next Tier</div>
+              <div class="pill soft">Planned</div>
+            </div>
+
+            <div class="plan-top">
+              <div>
+                <h2 class="plan-title">
+                  <span>RBTools</span>
+                  <span class="accent-pro">Pro</span>
+                </h2>
+                <p class="plan-subtitle">A future creator tier planned for heavier workflows, stronger limits, and a bigger utility layer beyond the normal Plus setup.</p>
+              </div>
+
+              <div class="price-box">
+                <div class="price-kicker">Status</div>
+                <div class="price-value">Soon</div>
+                <div class="price-sub">Not live yet</div>
+              </div>
+            </div>
+
+            <div class="plus-highlight" style="background: radial-gradient(circle at top right, rgba(255, 190, 78, 0.18), transparent 35%), linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));">
+              <div class="plus-highlight-title">Planned direction</div>
+              <div class="plus-highlight-copy">Built for the future power-user crowd that may eventually want heavier limits, stronger creator access, and bigger actions than the normal site flow.</div>
+            </div>
+
+            <div class="plan-grid single">
+              <div class="perk-card">
+                <div class="perk-icon pro">H</div>
+                <div>
+                  <h3 class="perk-title">Higher limits</h3>
+                  <p class="perk-desc">Planned for users who may eventually need more than the current Plus 5-at-a-time workflow ceiling.</p>
+                </div>
+              </div>
+              <div class="perk-card">
+                <div class="perk-icon pro">A</div>
+                <div>
+                  <h3 class="perk-title">Advanced creator access</h3>
+                  <p class="perk-desc">Reserved for stronger exports, heavier creator workflows, and more advanced utility later on.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-kicker pro">Coming Later</div>
+            <div class="perk-card">
+              <div class="perk-icon soon">P</div>
+              <div>
+                <h3 class="perk-title">Pro is planned, not live yet</h3>
+                <p class="perk-desc">This card previews the next tier direction while the current release stays focused on Free and Plus.</p>
+              </div>
+            </div>
+
+            <div class="note-box">Best for future power users, developers, and creators who know they will want more than the normal site limits.</div>
+            <div class="status pro">Pro plan is still being planned.</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="compare-card">
+      <h2 class="compare-title">Which Plan Fits You?</h2>
+      <div class="compare-grid">
+        <div class="compare-column">
+          <h3>Free</h3>
+          <div class="compare-list">
+            <div class="compare-item"><strong>Best for:</strong> casual use, testing the site, and regular one-by-one actions.</div>
+            <div class="compare-item"><strong>Why people stay:</strong> the main tools already cover a lot without costing anything.</div>
+            <div class="compare-item"><strong>Tradeoff:</strong> no premium-only tools and no bigger batch convenience.</div>
+          </div>
+        </div>
+        <div class="compare-column plus">
+          <h3>Plus</h3>
+          <div class="compare-list">
+            <div class="compare-item"><strong>Best for:</strong> creators, resellers, and repeat users who want faster utility flow.</div>
+            <div class="compare-item"><strong>Why people buy:</strong> Texture Baker, Animation Spoofer, 5-at-a-time actions, and a more premium site experience.</div>
+            <div class="compare-item"><strong>Biggest win:</strong> the whole site starts feeling built for real workflows instead of tiny single-use steps.</div>
+          </div>
+        </div>
+        <div class="compare-column">
+          <h3>Pro</h3>
+          <div class="compare-list">
+            <div class="compare-item"><strong>Best for:</strong> future power users who want the next step after Plus.</div>
+            <div class="compare-item"><strong>Why it exists:</strong> to leave room for stronger limits and heavier creator-side features later.</div>
+            <div class="compare-item"><strong>Current reality:</strong> it is not live yet, so Plus is still the main premium upgrade today.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="faq-card">
+      <h2 class="faq-title">Plan FAQ</h2>
+      <div class="faq-list">
+        <div class="faq-item">
+          <strong>Do I need an account before buying Plus?</strong>
+          <span>Yes. The page checks your logged-in account first so billing and premium access connect to the right profile.</span>
+        </div>
+        <div class="faq-item">
+          <strong>What actually changes after I buy Plus?</strong>
+          <span>You unlock the premium-only tools, bigger supported batch actions, unwatermarked template support, and a more premium site experience overall.</span>
+        </div>
+        <div class="faq-item">
+          <strong>Can I stay on Free forever?</strong>
+          <span>Yes. The free plan is still real and useful. Plus is there for users who want the workflow boost and premium tool access.</span>
+        </div>
+        <div class="faq-item">
+          <strong>Is Pro live right now?</strong>
+          <span>No. Pro is only a future direction preview right now. The current live choice is between Free and Plus.</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="loginLock" class="login-lock" aria-hidden="true">
+    <div class="login-lock-card">
+      <div class="login-lock-kicker">Login Required</div>
+      <h2 class="login-lock-title">
+        <span>Uh Oh...</span>
+        <span>No Account Yet</span>
+      </h2>
+      <p class="login-lock-copy">You need to make an account or log in first before starting a Plus membership, so the checkout can connect premium access to the right profile.</p>
+      <div id="loginLockCountdown" class="login-lock-countdown">Redirecting in 5 seconds...</div>
+      <div class="login-lock-note">Sending you to the account page now.</div>
+    </div>
+  </div>
+
+  <script src="./global-shell.js"></script>
+  <script>
+    (function () {
+      var API_BASE = window.location.origin;
+      var TOKEN_KEY = "rblxtools_auth_token";
+      var ACCOUNT_PAGE_URL = "./account-overview.html";
+      var LOGIN_REDIRECT_SECONDS = 5;
+
+      var plusCheckoutBtn = document.getElementById("plusCheckoutBtn");
+      var plusStatusEl = document.getElementById("plusStatus");
+      var plusOwnedPill = document.getElementById("plusOwnedPill");
+      var freeOwnedPill = document.getElementById("freeOwnedPill");
+      var freeStatusEl = document.getElementById("freeStatus");
+      var loginLock = document.getElementById("loginLock");
+      var loginLockCountdown = document.getElementById("loginLockCountdown");
+      var loginRedirectTimer = 0;
+      var loginCountdownTimer = 0;
+      var planCards = Array.prototype.slice.call(document.querySelectorAll(".plan-card"));
+
+      function setStatus(element, message, tone) {
+        if (!element) return;
+        element.textContent = message || "";
+        element.className = "status" + (tone ? " " + tone : "");
+      }
+
+      function getToken() {
+        try {
+          return localStorage.getItem(TOKEN_KEY) || "";
+        } catch (_error) {
+          return "";
+        }
+      }
+
+      function clearLoginRedirectTimers() {
+        if (loginRedirectTimer) {
+          clearTimeout(loginRedirectTimer);
+          loginRedirectTimer = 0;
+        }
+        if (loginCountdownTimer) {
+          clearInterval(loginCountdownTimer);
+          loginCountdownTimer = 0;
+        }
+      }
+
+      function openLoginRedirectPopup() {
+        if (!loginLock || !loginLockCountdown) return;
+
+        clearLoginRedirectTimers();
+        loginLock.classList.add("open");
+        loginLock.setAttribute("aria-hidden", "false");
+
+        var secondsLeft = LOGIN_REDIRECT_SECONDS;
+        loginLockCountdown.textContent = "Redirecting in " + secondsLeft + " seconds...";
+
+        loginCountdownTimer = setInterval(function () {
+          secondsLeft -= 1;
+          if (secondsLeft <= 0) {
+            loginLockCountdown.textContent = "Redirecting now...";
+            clearInterval(loginCountdownTimer);
+            loginCountdownTimer = 0;
+            return;
+          }
+          loginLockCountdown.textContent = "Redirecting in " + secondsLeft + " seconds...";
+        }, 1000);
+
+        loginRedirectTimer = setTimeout(function () {
+          clearLoginRedirectTimers();
+          if (window.top && window.top !== window) {
+            window.top.location.href = ACCOUNT_PAGE_URL;
+            return;
+          }
+          window.location.href = ACCOUNT_PAGE_URL;
+        }, LOGIN_REDIRECT_SECONDS * 1000);
+      }
+
+      function hasPlusFromPayload(payload) {
+        if (!payload || typeof payload !== "object") return false;
+        return Boolean(
+          payload.plus === true ||
+          payload.isPlus === true ||
+          payload.hasPlus === true ||
+          payload.plusActive === true ||
+          payload.subscription === "plus" ||
+          payload.plan === "plus" ||
+          payload.tier === "plus"
+        );
+      }
+
+      async function apiRequest(path, options) {
+        var response = await fetch(API_BASE + path, options || {});
+        var contentType = response.headers.get("content-type") || "";
+        var payload = null;
+
+        if (contentType.indexOf("application/json") !== -1) {
+          payload = await response.json().catch(function () { return null; });
+        } else {
+          var text = await response.text().catch(function () { return ""; });
+          payload = text ? { error: text } : null;
+        }
+
+        if (!response.ok) {
+          throw new Error((payload && payload.error) || ("Request failed with status " + response.status));
+        }
+
+        return payload;
+      }
+
+      function applyPlanState(plan) {
+        var isPlus = plan === "plus";
+        var isFree = plan === "free";
+
+        if (plusOwnedPill) {
+          plusOwnedPill.style.display = isPlus ? "inline-flex" : "none";
+        }
+
+        if (freeOwnedPill) {
+          freeOwnedPill.style.display = isFree ? "inline-flex" : "none";
+        }
+
+        if (plusCheckoutBtn) {
+          if (isPlus) {
+            plusCheckoutBtn.textContent = "Plus Plan Active";
+            plusCheckoutBtn.classList.add("is-owned");
+            plusCheckoutBtn.disabled = false;
+            setStatus(plusStatusEl, "You already own the Plus plan on this account.", "success");
+          } else {
+            plusCheckoutBtn.textContent = "Start Plus Membership";
+            plusCheckoutBtn.classList.remove("is-owned");
+            plusCheckoutBtn.disabled = false;
+            setStatus(plusStatusEl, "", "");
+          }
+        }
+
+        if (isFree) {
+          setStatus(freeStatusEl, "This account is currently using the Free plan.");
+        } else {
+          setStatus(freeStatusEl, "", "");
+        }
+      }
+
+      async function detectPlanState() {
+        var token = getToken();
+        if (!token) {
+          applyPlanState("guest");
+          return;
+        }
+
+        try {
+          var premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
+            method: "GET",
+            headers: {
+              Authorization: "Bearer " + token
+            }
+          });
+
+          if (premiumResponse.ok) {
+            var premiumPayload = await premiumResponse.json().catch(function () { return null; });
+            if (hasPlusFromPayload(premiumPayload)) {
+              applyPlanState("plus");
+              return;
+            }
+          } else if (premiumResponse.status === 401 || premiumResponse.status === 403) {
+            applyPlanState("guest");
+            return;
+          }
+
+          var response = await fetch(API_BASE + "/auth/me", {
+            method: "GET",
+            headers: {
+              Authorization: "Bearer " + token
+            }
+          });
+
+          if (!response.ok) {
+            applyPlanState("guest");
+            return;
+          }
+
+          var payload = await response.json().catch(function () { return null; });
+          applyPlanState(hasPlusFromPayload(payload) ? "plus" : "free");
+        } catch (_error) {
+          applyPlanState("guest");
+        }
+      }
+
+      async function startCheckout() {
+        var token = getToken();
+
+        if (!token) {
+          setStatus(plusStatusEl, "You need an account first so Plus can be attached to the right profile.");
+          openLoginRedirectPopup();
+          return;
+        }
+
+        if (plusCheckoutBtn.classList.contains("is-owned")) {
+          setStatus(plusStatusEl, "This account already has an active Plus plan.", "success");
+          return;
+        }
+
+        plusCheckoutBtn.disabled = true;
+        setStatus(plusStatusEl, "Opening secure Stripe checkout...", "success");
+
+        try {
+          var result = await apiRequest("/auth/create-checkout-session", {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + token
+            }
+          });
+
+          if (!result || !result.url) {
+            throw new Error("Stripe did not return a checkout URL.");
+          }
+
+          if (window.top && window.top !== window) {
+            window.top.location.href = result.url;
+            return;
+          }
+
+          window.location.href = result.url;
+        } catch (error) {
+          setStatus(plusStatusEl, error.message || "Could not open checkout.");
+          plusCheckoutBtn.disabled = false;
+        }
+      }
+
+      if (plusCheckoutBtn) {
+        plusCheckoutBtn.addEventListener("click", startCheckout);
+      }
+
+      planCards.forEach(function (card) {
+        card.addEventListener("mousemove", function (event) {
+          var rect = card.getBoundingClientRect();
+          var x = ((event.clientX - rect.left) / rect.width) * 100;
+          var y = ((event.clientY - rect.top) / rect.height) * 100;
+          card.style.setProperty("--card-glow-x", x.toFixed(1) + "%");
+          card.style.setProperty("--card-glow-y", y.toFixed(1) + "%");
+        });
+
+        card.addEventListener("mouseleave", function () {
+          card.style.setProperty("--card-glow-x", "78%");
+          card.style.setProperty("--card-glow-y", "18%");
+        });
+      });
+
+      planCards.forEach(function (card) {
+        if (card.classList.contains("plus-card")) return;
+        card.style.setProperty("--card-glow-x", "74%");
+        card.style.setProperty("--card-glow-y", "18%");
+      });
+
+      detectPlanState();
+    }());
+  </script>
+</body>
+</html>
