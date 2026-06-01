@@ -5280,6 +5280,25 @@ function getUsers(room) {
 
 const STATIC_ROOT = __dirname;
 
+
+app.use((req, res, next) => {
+  const requestedPath = String(req.path || "");
+  if (
+    req.method === "GET" &&
+    requestedPath.endsWith(".html") &&
+    !requestedPath.startsWith("/tool-embeds/")
+  ) {
+    const cleanPath = requestedPath === "/index.html"
+      ? "/"
+      : requestedPath.replace(/\.html$/i, "");
+    const queryIndex = req.originalUrl.indexOf("?");
+    const querySuffix = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : "";
+    return res.redirect(301, cleanPath + querySuffix);
+  }
+
+  return next();
+});
+
 app.use(express.static(STATIC_ROOT, { extensions: ["html"] }));
 
 app.get("/", (_req, res) => {

@@ -57,31 +57,31 @@
     {
       title: "Tools",
       items: [
-        { href: "./index.html", label: "Home", icon: "home" },
-        { href: "./template-downloader.html", label: "Template Downloader", icon: "shirt" },
-        { href: "./template-background-changer.html", label: "Background Changer", icon: "spark" },
-        { href: "./ugc-downloader.html", label: "UGC Downloader", icon: "hat" },
-        { href: "./media-downloader.html", label: "Media Downloader", icon: "media" },
-        { href: "./audio-downloader.html", label: "Audio Downloader", icon: "audio" },
-        { href: "./robux-calculator.html", label: "Robux Calculator", icon: "calc" },
-        { href: "./texture-baker.html", label: "Texture Baker", icon: "texture" },
-        { href: "./animation-spoofer.html", label: "Animation Spoofer", icon: "rig" }
+        { href: "./", label: "Home", icon: "home" },
+        { href: "./template-downloader", label: "Template Downloader", icon: "shirt" },
+        { href: "./template-background-changer", label: "Background Changer", icon: "spark" },
+        { href: "./ugc-downloader", label: "UGC Downloader", icon: "hat" },
+        { href: "./media-downloader", label: "Media Downloader", icon: "media" },
+        { href: "./audio-downloader", label: "Audio Downloader", icon: "audio" },
+        { href: "./robux-calculator", label: "Robux Calculator", icon: "calc" },
+        { href: "./texture-baker", label: "Texture Baker", icon: "texture" },
+        { href: "./animation-spoofer", label: "Animation Spoofer", icon: "rig" }
       ]
     },
     {
       title: "Account",
       items: [
-        { href: "./subscriptions.html", label: "Subscriptions", icon: "plan" },
-        { href: "./account-overview.html", label: "Account Overview", icon: "account" },
-        { href: "./login.html", label: "Login / Sign Up", icon: "login" }
+        { href: "./subscriptions", label: "Subscriptions", icon: "plan" },
+        { href: "./account-overview", label: "Account Overview", icon: "account" },
+        { href: "./login", label: "Login / Sign Up", icon: "login" }
       ]
     },
     {
       title: "Info",
       items: [
-        { href: "./about-us.html", label: "About Us", icon: "about" },
-        { href: "./privacy-policy.html", label: "Privacy Policy", icon: "privacy" },
-        { href: "./terms-and-conditions.html", label: "Terms & Conditions", icon: "terms" }
+        { href: "./about-us", label: "About Us", icon: "about" },
+        { href: "./privacy-policy", label: "Privacy Policy", icon: "privacy" },
+        { href: "./terms-and-conditions", label: "Terms & Conditions", icon: "terms" }
       ]
     }
   ];
@@ -792,7 +792,7 @@
   function buildAuthMarkup() {
     return (
       '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-        '<a class="rblx-shell-btn is-primary" href="./login.html">Login / Sign Up</a>' +
+        '<a class="rblx-shell-btn is-primary" href="./login">Login / Sign Up</a>' +
       "</div>"
     );
   }
@@ -801,7 +801,7 @@
     return (
       '<div class="rblx-shell" id="rblxShellRoot">' +
         '<header class="rblx-shell-header">' +
-          '<a class="rblx-shell-brand" href="./index.html">' +
+          '<a class="rblx-shell-brand" href="./">' +
             '<span class="rblx-shell-brand-mark">RB</span>' +
             '<span class="rblx-shell-brand-text">' +
               '<span class="rblx-shell-brand-title">RBLXTools</span>' +
@@ -826,7 +826,7 @@
               "</div>" +
               '<div class="rblx-shell-nav-scroll">' + buildNavMarkup() + "</div>" +
               '<div class="rblx-shell-left-foot">' +
-                '<a class="rblx-shell-mini-banner" href="./subscriptions.html"><strong>Plus Plan</strong><span>$1.00 / month</span></a>' +
+                '<a class="rblx-shell-mini-banner" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span></a>' +
                 '<div class="rblx-shell-socials">' +
                   '<a href="https://x.com/Reese28575571" target="_blank" rel="noreferrer" aria-label="X">' + getSocialIcon("x") + '</a>' +
                   '<a href="https://www.youtube.com/@ItzReeseRBLX" target="_blank" rel="noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + '</a>' +
@@ -910,7 +910,7 @@
               '<button type="button" id="rblxShellAdminWindowClose" aria-label="Close admin panel">X</button>' +
             "</div>" +
             '<div class="rblx-shell-admin-window-body">' +
-              '<iframe id="rblxShellAdminWindowFrame" src="./admin-panel.html" title="Admin Panel"></iframe>' +
+              '<iframe id="rblxShellAdminWindowFrame" src="./admin-panel" title="Admin Panel"></iframe>' +
             "</div>" +
             '<span class="rblx-shell-admin-resize handle-se" data-resize="se"></span>' +
             '<span class="rblx-shell-admin-resize handle-e" data-resize="e"></span>' +
@@ -1632,10 +1632,10 @@
 
     if (state.loggedIn) {
       auth.innerHTML = state.plan === "plus"
-        ? '<a class="rblx-shell-btn" href="./account-overview.html">Account</a>' +
+        ? '<a class="rblx-shell-btn" href="./account-overview">Account</a>' +
           '<button class="rblx-shell-btn" type="button" id="rblxShellLogout">Log Out</button>'
-        : '<a class="rblx-shell-btn" href="./account-overview.html">Account</a>' +
-          '<a class="rblx-shell-btn is-primary" href="./subscriptions.html">View Plans</a>' +
+        : '<a class="rblx-shell-btn" href="./account-overview">Account</a>' +
+          '<a class="rblx-shell-btn is-primary" href="./subscriptions">View Plans</a>' +
           '<button class="rblx-shell-btn" type="button" id="rblxShellLogout">Log Out</button>';
 
       var logout = document.getElementById("rblxShellLogout");
@@ -1656,7 +1656,7 @@
     }
 
     auth.innerHTML =
-      '<a class="rblx-shell-btn is-primary" href="./login.html">Login / Sign Up</a>';
+      '<a class="rblx-shell-btn is-primary" href="./login">Login / Sign Up</a>';
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.hidden = true;
       shellState.chatAdminButton.style.display = "none";

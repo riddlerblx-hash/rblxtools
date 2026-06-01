@@ -15,13 +15,13 @@ let showcaseProgressTimer = null;
 let activeToolIndex = 0;
 
 const toolsData = [
-  { name: "Template Background Changer", desc: "Remove marks and restore a clean classic template background.", href: "./template-background-changer.html", plus: false, icon: "spark", tag: "Cleanup Tool", tone: "linear-gradient(180deg,#31506a,#1f2f42)" },
-  { name: "UGC Downloader", desc: "Download supported UGC accessory files for creator workflows.", href: "./ugc-downloader.html", plus: false, icon: "hat", tag: "UGC Tool", tone: "linear-gradient(180deg,#2a4a6c,#1e2f42)" },
-  { name: "Robux Calculator", desc: "Fast conversion math for Robux and pricing plans.", href: "./robux-calculator.html", plus: false, icon: "calc", tag: "Value Tool", tone: "linear-gradient(180deg,#3e5b35,#27391f)" },
-  { name: "Media Downloader", desc: "Pull supported media assets quickly.", href: "./media-downloader.html", plus: false, icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#5a3b61,#32213a)" },
-  { name: "Audio Downloader", desc: "Fetch audio asset files from supported IDs.", href: "./audio-downloader.html", plus: false, icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#6a3e3a,#3f2523)" },
-  { name: "Texture Baker", desc: "Premium texture workflow and cleaner UGC output.", href: "./texture-baker.html", plus: true, icon: "texture", tag: "Plus Tool", tone: "linear-gradient(180deg,#4a406b,#2a2441)" },
-  { name: "Animation Spoofer", desc: "Premium animation utility for advanced workflows.", href: "./animation-spoofer.html", plus: true, icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
+  { name: "Template Background Changer", desc: "Remove marks and restore a clean classic template background.", href: "./template-background-changer", plus: false, icon: "spark", tag: "Cleanup Tool", tone: "linear-gradient(180deg,#31506a,#1f2f42)" },
+  { name: "UGC Downloader", desc: "Download supported UGC accessory files for creator workflows.", href: "./ugc-downloader", plus: false, icon: "hat", tag: "UGC Tool", tone: "linear-gradient(180deg,#2a4a6c,#1e2f42)" },
+  { name: "Robux Calculator", desc: "Fast conversion math for Robux and pricing plans.", href: "./robux-calculator", plus: false, icon: "calc", tag: "Value Tool", tone: "linear-gradient(180deg,#3e5b35,#27391f)" },
+  { name: "Media Downloader", desc: "Pull supported media assets quickly.", href: "./media-downloader", plus: false, icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#5a3b61,#32213a)" },
+  { name: "Audio Downloader", desc: "Fetch audio asset files from supported IDs.", href: "./audio-downloader", plus: false, icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#6a3e3a,#3f2523)" },
+  { name: "Texture Baker", desc: "Premium texture workflow and cleaner UGC output.", href: "./texture-baker", plus: true, icon: "texture", tag: "Plus Tool", tone: "linear-gradient(180deg,#4a406b,#2a2441)" },
+  { name: "Animation Spoofer", desc: "Premium animation utility for advanced workflows.", href: "./animation-spoofer", plus: true, icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
 ];
 
 function getStoredToken() {
