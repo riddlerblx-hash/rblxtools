@@ -1278,6 +1278,10 @@
           throw new Error("Enter a user ID or email first.");
         }
 
+        if (/^guest-/i.test(query) || /^user id\s+guest-/i.test(query)) {
+          throw new Error("Guest chat IDs are not real member account IDs. Use the member's real account email or UUID.");
+        }
+
         var payload = await fetchJson(API_BASE + "/admin/member-lookup?q=" + encodeURIComponent(query), {
           headers: {
             Authorization: "Bearer " + token
@@ -1785,3 +1789,4 @@
   </script>
 </body>
 </html>
+
