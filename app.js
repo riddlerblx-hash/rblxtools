@@ -5285,8 +5285,7 @@ app.use((req, res, next) => {
   const requestedPath = String(req.path || "");
   if (
     req.method === "GET" &&
-    requestedPath.endsWith(".html") &&
-    !requestedPath.startsWith("/tool-embeds/")
+    requestedPath.endsWith(".html")
   ) {
     const cleanPath = requestedPath === "/index.html"
       ? "/"
