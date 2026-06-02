@@ -1800,6 +1800,7 @@
       toolCard: document.getElementById("toolCard"),
       toolContent: document.getElementById("toolContent"),
       accessGate: document.getElementById("accessGate"),
+      plusGate: document.getElementById("plusGate"),
       accessBadge: document.getElementById("accessBadge"),
       accessCopy: document.getElementById("accessCopy"),
       gateCouponCode: document.getElementById("gateCouponCode"),
@@ -1837,6 +1838,11 @@
       modelStatus: document.getElementById("modelStatus"),
       bakeStatus: document.getElementById("bakeStatus")
     };
+
+    function clearPageLockOverlay() {
+      if (!els.plusGate) return;
+      els.plusGate.classList.remove("open", "page-plus-lock");
+    }
 
     function ensureThreeDependencies() {
       if (
@@ -2044,6 +2050,7 @@
     function showAccessGate(reason) {
       if (FORCE_OPEN_EMBED) {
         state.accessState = "ok";
+        clearPageLockOverlay();
         els.accessGate.classList.add("hidden");
         els.toolContent.classList.remove("hidden");
         els.toolCard.classList.remove("is-gated");
@@ -2053,6 +2060,7 @@
       state.accessState = reason === "ok" ? "ok" : reason;
 
       if (reason === "ok") {
+        clearPageLockOverlay();
         els.accessGate.classList.add("hidden");
         els.toolContent.classList.remove("hidden");
         els.toolCard.classList.remove("is-gated");
