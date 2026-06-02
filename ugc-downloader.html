@@ -886,69 +886,9 @@
         </div>
       </div>
     </div>
-
-    <div id="roblox-ugc-coming-card" class="rblx-ugc-stack-card">
-      <div class="ugc-promo-topline">
-        <div>
-          <div class="ugc-promo-badge-row">
-            <div class="ugc-promo-badge">Creator Tool</div>
-            <div class="ugc-promo-pill"><span class="plusWord">Plus</span></div>
-          </div>
-
-          <h2 class="ugc-promo-title">
-            <span>Texture</span>
-            <span>Baker</span>
-          </h2>
-        </div>
-
-        <div class="ugc-promo-info-wrap">
-          <div class="ugc-promo-info-icon">i</div>
-          <div class="ugc-promo-info-label">
-            Pull the matching texture, pair it with the model, and export it in a format that is easier to reuse.
-          </div>
-        </div>
-      </div>
-
-      <p class="ugc-promo-subtitle">
-        Turn a downloaded Roblox model into either a textured OBJ ZIP or a ready-to-use GLB.
-      </p>
-
-      <p class="ugc-promo-copy">
-        OBJ exports include the texture files for manual use in software like Blender, while GLB exports keep the texture built into one file.
-      </p>
-
-      <div class="ugc-promo-preview-shell">
-        <div class="ugc-promo-mock">
-          <div class="ugc-promo-mock-card">
-            <div class="ugc-promo-mock-head">
-              <div class="ugc-promo-raw">Plain OBJ</div>
-              <div class="ugc-promo-arrow">&rarr;</div>
-              <div class="ugc-promo-baked">Textured</div>
-            </div>
-
-            <div class="ugc-promo-model-row">
-              <div class="ugc-promo-model raw"></div>
-              <div class="ugc-promo-model texture"></div>
-              <div class="ugc-promo-model baked"></div>
-            </div>
-
-            <div class="ugc-promo-note">
-              Export a textured OBJ ZIP for manual use or a GLB with the texture already built in.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <a id="textureBakerPromoBtn" class="ugc-promo-button" href="https://www.rblxtools.net/subscriptions" target="_top">
-        <span class="plusWord">Upgrade to Plus</span>
-      </a>
-
-      <div class="ugc-promo-subnote">
-        Built for creators who want OBJ downloads to look closer to the original in Roblox.
-      </div>
     </div>
-  </div>
-</div>
+      </div>
+
       </div>
 
       <div class="side-stack">
@@ -1288,6 +1228,7 @@
   }
 
   function updateTextureBakerPromo(hasPlus) {
+    if (!textureBakerPromoBtn) return;
     if (hasPlus) {
       textureBakerPromoBtn.href = "https://www.rblxtools.net/texture-baker";
       textureBakerPromoBtn.innerHTML = "Open Texture Baker";

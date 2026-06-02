@@ -1787,10 +1787,164 @@
     });
   }
 
+
+  function getSharedToolShowcaseIcon(kind) {
+    var icons = {
+      spark: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l2.9 8.1L35 17l-8.1 2.9L24 28l-2.9-8.1L13 17l8.1-2.9L24 6z"></path><path d="M36 26l1.8 5 5 1.8-5 1.8-1.8 5-1.8-5-5-1.8 5-1.8 1.8-5z"></path><path d="M13 28l1.5 4.1 4.1 1.5-4.1 1.5L13 39l-1.5-4.1-4.1-1.5 4.1-1.5L13 28z"></path></svg>',
+      hat: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 26c1.9-5.8 6.1-9 10-9s8.1 3.2 10 9"></path><path d="M8 28.5c4.9-2.7 10.4-4 16-4s11.1 1.3 16 4"></path><path d="M10 29v3.5c0 2.5 6.3 4.5 14 4.5s14-2 14-4.5V29"></path></svg>',
+      calc: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="13" y="7" width="22" height="34" rx="5"></rect><rect x="17" y="12" width="14" height="6" rx="2"></rect><path d="M18 25h4"></path><path d="M18 31h4"></path><path d="M18 37h4"></path><path d="M26 25h4"></path><path d="M26 31h4"></path><path d="M26 37h4"></path></svg>',
+      media: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="11" width="32" height="26" rx="5"></rect><circle cx="17" cy="19" r="3"></circle><path d="M13 32l7-7 5 5 5-4 5 6"></path></svg>',
+      audio: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 29h5l7 7V12l-7 7h-5z"></path><path d="M32 18c2.8 2 4.5 5.2 4.5 8.5S34.8 33 32 35"></path><path d="M35.5 13.5c4.1 3.1 6.5 7.8 6.5 13s-2.4 9.9-6.5 13"></path></svg>',
+      texture: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="10" y="10" width="28" height="28" rx="5"></rect><path d="M19.5 10v28"></path><path d="M28.5 10v28"></path><path d="M10 19.5h28"></path><path d="M10 28.5h28"></path></svg>',
+      rig: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="11" r="4"></circle><path d="M24 15v10"></path><path d="M24 19l-8 4"></path><path d="M24 19l8 4"></path><path d="M24 25l-6 10"></path><path d="M24 25l6 10"></path><path d="M18 35h12"></path></svg>'
+    };
+    return icons[kind] || icons.spark;
+  }
+
+  function initSharedToolShowcase() {
+    var currentPath = String(window.location.pathname || "/").replace(/\/+$|^\/+|\.html$/g, "");
+    if (currentPath === "" || currentPath === "template-downloader") return;
+
+    var showcasePanel = document.getElementById("showcasePanel");
+    var showcaseViewport = document.getElementById("showcaseViewport");
+    var showcaseProgress = document.getElementById("showcaseProgress");
+    var slidePills = document.getElementById("slidePills");
+    var slideName = document.getElementById("slideName");
+    var slideDesc = document.getElementById("slideDesc");
+    var slideGlyph = document.getElementById("slideGlyph");
+    var slideTag = document.getElementById("slideTag");
+    var slideLogoPreview = document.getElementById("slideLogoPreview");
+    var prevTool = document.getElementById("prevTool");
+    var nextTool = document.getElementById("nextTool");
+    var openTool = document.getElementById("openTool");
+    var plusGate = document.getElementById("plusGate");
+    var closeGate = document.getElementById("closeGate");
+
+    if (!showcasePanel || !showcaseViewport || !showcaseProgress || !slidePills || !slideName || !slideDesc || !slideGlyph || !slideTag || !slideLogoPreview || !prevTool || !nextTool || !openTool) {
+      return;
+    }
+    if (showcaseViewport.dataset.sharedShowcaseBound === "true") return;
+    showcaseViewport.dataset.sharedShowcaseBound = "true";
+
+    var SHOWCASE_INTERVAL_MS = 45000;
+    var showcaseTimer = null;
+    var showcaseProgressTimer = null;
+    var activeToolIndex = 0;
+    var toolsData = [
+      { name: "Template Downloader", desc: "Download supported Roblox clothing templates fast.", href: "./template-downloader", plus: false, icon: "spark", tag: "Template Tool", tone: "linear-gradient(180deg,#50395a,#2d2035)" },
+      { name: "Template Background Changer", desc: "Remove marks and restore a clean classic template background.", href: "./template-background-changer", plus: false, icon: "spark", tag: "Cleanup Tool", tone: "linear-gradient(180deg,#31506a,#1f2f42)" },
+      { name: "UGC Downloader", desc: "Download supported UGC accessory files for creator workflows.", href: "./ugc-downloader", plus: false, icon: "hat", tag: "UGC Tool", tone: "linear-gradient(180deg,#2a4a6c,#1e2f42)" },
+      { name: "Robux Calculator", desc: "Fast conversion math for Robux and pricing plans.", href: "./robux-calculator", plus: false, icon: "calc", tag: "Value Tool", tone: "linear-gradient(180deg,#3e5b35,#27391f)" },
+      { name: "Media Downloader", desc: "Pull supported media assets quickly.", href: "./media-downloader", plus: false, icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#5a3b61,#32213a)" },
+      { name: "Audio Downloader", desc: "Fetch audio asset files from supported IDs.", href: "./audio-downloader", plus: false, icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#6a3e3a,#3f2523)" },
+      { name: "Texture Baker", desc: "Premium texture workflow and cleaner UGC output.", href: "./texture-baker", plus: true, icon: "texture", tag: "Plus Tool", tone: "linear-gradient(180deg,#4a406b,#2a2441)" },
+      { name: "Animation Spoofer", desc: "Premium animation utility for advanced workflows.", href: "./animation-spoofer", plus: true, icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
+    ].filter(function (tool) {
+      return String(tool.href || "").replace(/^\.\//, "").replace(/\.html$/, "") !== currentPath;
+    });
+
+    if (!toolsData.length) return;
+
+    function updateShowcaseProgress() {
+      showcaseProgress.style.width = "0%";
+      var start = Date.now();
+      if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
+      showcaseProgressTimer = setInterval(function () {
+        var elapsed = Date.now() - start;
+        var percent = Math.min(100, (elapsed / SHOWCASE_INTERVAL_MS) * 100);
+        showcaseProgress.style.width = percent + "%";
+        if (percent >= 100) clearInterval(showcaseProgressTimer);
+      }, 200);
+    }
+
+    function renderToolSlide() {
+      var tool = toolsData[activeToolIndex];
+      slidePills.innerHTML = '<span class="tool-pill">Other Tool</span>' + (tool.plus ? '<span class="tool-pill plus"><span class="plus-word">Plus</span> Required</span>' : '<span class="tool-pill">Free Access</span>');
+      slideName.textContent = tool.name;
+      slideDesc.textContent = tool.desc;
+      slideGlyph.innerHTML = getSharedToolShowcaseIcon(tool.icon);
+      slideTag.textContent = tool.tag;
+      slideLogoPreview.style.background = tool.tone;
+    }
+
+    function animateToolSlide(nextIndex) {
+      if (nextIndex === activeToolIndex) return;
+      showcasePanel.classList.add("animating");
+      window.setTimeout(function () {
+        activeToolIndex = nextIndex;
+        renderToolSlide();
+        showcasePanel.classList.remove("animating");
+      }, 220);
+    }
+
+    function restartShowcaseTimer() {
+      if (showcaseTimer) clearInterval(showcaseTimer);
+      updateShowcaseProgress();
+      showcaseTimer = setInterval(function () {
+        animateToolSlide((activeToolIndex + 1) % toolsData.length);
+        updateShowcaseProgress();
+      }, SHOWCASE_INTERVAL_MS);
+    }
+
+    function goToTool(nextIndex) {
+      var normalizedIndex = (nextIndex + toolsData.length) % toolsData.length;
+      animateToolSlide(normalizedIndex);
+      restartShowcaseTimer();
+    }
+
+    function showPlusGate() {
+      if (plusGate) plusGate.classList.add("open");
+      else window.location.href = "./subscriptions";
+    }
+
+    function hidePlusGate() {
+      if (plusGate) plusGate.classList.remove("open");
+    }
+
+    async function openCurrentTool() {
+      var tool = toolsData[activeToolIndex];
+      if (!tool.plus) {
+        window.location.href = tool.href;
+        return;
+      }
+      if (shellState.currentUser && String(shellState.currentUser.plan || "").toLowerCase() === "plus") {
+        window.location.href = tool.href;
+        return;
+      }
+      try {
+        var state = await resolveUserState();
+        if (state && String(state.plan || "").toLowerCase() === "plus") {
+          window.location.href = tool.href;
+          return;
+        }
+      } catch (_error) {}
+      showPlusGate();
+    }
+
+    prevTool.addEventListener("click", function () { goToTool(activeToolIndex - 1); });
+    nextTool.addEventListener("click", function () { goToTool(activeToolIndex + 1); });
+    openTool.addEventListener("click", openCurrentTool);
+    if (closeGate) closeGate.addEventListener("click", hidePlusGate);
+    if (plusGate) {
+      plusGate.addEventListener("click", function (event) {
+        if (event.target && event.target.id === "plusGate") hidePlusGate();
+      });
+    }
+    showcaseViewport.addEventListener("mouseenter", function () {
+      if (showcaseTimer) clearInterval(showcaseTimer);
+      if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
+    });
+    showcaseViewport.addEventListener("mouseleave", restartShowcaseTimer);
+
+    renderToolSlide();
+    restartShowcaseTimer();
+  }
+
   function initShell() {
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
+    initSharedToolShowcase();
     document.body.classList.add("rblx-shell-ready");
     shellState.deviceId = getDeviceId();
     applyCollapsedState(document.body);
