@@ -201,7 +201,6 @@
       padding: 0;
       font-family: var(--font);
       color: var(--text);
-      perspective: 1200px;
     }
 
     main { position: relative; z-index: 2; max-width: 1180px; margin: 0 auto; padding: 24px 14px 34px; }
@@ -226,9 +225,7 @@
       border: 0;
       background: transparent;
       box-shadow: none;
-      transform-style: preserve-3d;
       transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease, border-color 160ms ease;
-      will-change: transform;
     }
 
     .promo-card {
@@ -2800,125 +2797,6 @@
     }).catch(() => {
       showAccessGate("plus");
     });
-  </script>
-<script>
-    (function () {
-      const API_BASE = window.location.origin;
-      const TOKEN_KEY = "rblxtools_auth_token";
-
-      function getStoredToken() {
-        try {
-          return localStorage.getItem(TOKEN_KEY) || "";
-        } catch (_error) {
-          return "";
-        }
-      }
-
-      function hasPlusFromPayload(payload) {
-        if (!payload || typeof payload !== "object") return false;
-        return Boolean(
-          payload.plus === true ||
-          payload.isPlus === true ||
-          payload.hasPlus === true ||
-          payload.plusActive === true ||
-          payload.subscription === "plus" ||
-          payload.plan === "plus" ||
-          payload.tier === "plus"
-        );
-      }
-
-      async function fetchPagePlusStatus() {
-        const token = getStoredToken();
-        if (!token) return false;
-
-        try {
-          const premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
-            method: "GET",
-            headers: {
-              Authorization: "Bearer " + token
-            }
-          });
-
-          if (premiumResponse.ok) {
-            const premiumPayload = await premiumResponse.json().catch(() => null);
-            return hasPlusFromPayload(premiumPayload);
-          }
-
-          if (premiumResponse.status === 401 || premiumResponse.status === 403) {
-            return false;
-          }
-
-          const response = await fetch(API_BASE + "/auth/me", {
-            method: "GET",
-            headers: {
-              Authorization: "Bearer " + token
-            }
-          });
-
-          if (!response.ok) return false;
-          const payload = await response.json().catch(() => null);
-          return hasPlusFromPayload(payload);
-        } catch (_error) {
-          return false;
-        }
-      }
-
-      function lockPlusPage() {
-        const gate = document.getElementById("plusGate");
-        if (!gate) return;
-
-        gate.classList.add("open", "page-plus-lock");
-
-        const heading = gate.querySelector("h3");
-        const copy = gate.querySelector("p");
-        const actions = gate.querySelector(".gate-actions");
-
-        if (heading) {
-          heading.innerHTML = "<span>Uh oh...</span><span>You Need <span class=\"plus-word\">Plus</span></span>";
-        }
-
-        if (copy) {
-          copy.innerHTML = "This page and its full utility are only available to RBLXTools <span class=\"plus-word\">Plus</span> members. Upgrade now to unlock the Texture Baker workflow, premium tools, and the full creator utility set.";
-        }
-
-        if (actions) {
-          actions.innerHTML =
-            '<div class="gate-redirect-countdown" id="pagePlusRedirectCountdown">Redirecting in 5 seconds...</div>' +
-            '<div class="gate-redirect-note">Taking you to the Plus plans page so you can unlock this page and its full utility.</div>';
-        }
-
-        gate.addEventListener("click", function (event) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-        }, true);
-
-        const countdownEl = document.getElementById("pagePlusRedirectCountdown");
-        let secondsLeft = 5;
-        const timer = window.setInterval(function () {
-          secondsLeft -= 1;
-          if (countdownEl && secondsLeft > 0) {
-            countdownEl.textContent = "Redirecting in " + secondsLeft + " seconds...";
-          }
-          if (secondsLeft <= 0) {
-            window.clearInterval(timer);
-            window.location.href = "./subscriptions";
-          }
-        }, 1000);
-      }
-
-      async function verifyPageAccess() {
-        const hasPlus = await fetchPagePlusStatus();
-        if (!hasPlus) {
-          lockPlusPage();
-        }
-      }
-
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", verifyPageAccess, { once: true });
-      } else {
-        verifyPageAccess();
-      }
-    })();
   </script>
   <script src="./global-shell.js"></script>
   <script>
