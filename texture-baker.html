@@ -1842,6 +1842,10 @@
     function clearPageLockOverlay() {
       if (!els.plusGate) return;
       els.plusGate.classList.remove("open", "page-plus-lock");
+      if (els.plusGate.parentNode) {
+        els.plusGate.parentNode.removeChild(els.plusGate);
+      }
+      els.plusGate = null;
     }
 
     function ensureThreeDependencies() {
