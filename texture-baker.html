@@ -167,8 +167,9 @@
       text-transform: uppercase;
     }
     #toolMount {
-      display: flex;
-      align-self: stretch;
+      display: block;
+      min-width: 0;
+      align-self: start;
     }
 
     #toolMount > .tool-stack {
@@ -2792,6 +2793,8 @@
     setInterval(renderCouponStatus, 1000);
     setInterval(pollCouponStatus, 30000);
 
+    showAccessGate("checking");
+
     fetchPlusStatus().then((status) => {
       showAccessGate(status.ok ? "ok" : status.reason);
     }).catch(() => {
@@ -2903,12 +2906,18 @@
         }, 1000);
       }
 
-      window.addEventListener("load", async function () {
+      async function verifyPageAccess() {
         const hasPlus = await fetchPagePlusStatus();
         if (!hasPlus) {
           lockPlusPage();
         }
-      });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", verifyPageAccess, { once: true });
+      } else {
+        verifyPageAccess();
+      }
     })();
   </script>
   <script src="./global-shell.js"></script>

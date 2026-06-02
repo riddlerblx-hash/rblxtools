@@ -170,10 +170,11 @@
       letter-spacing: 0.3px;
       text-transform: uppercase;
     }
-    #toolMount {
-      display: flex;
-      align-self: stretch;
-    }
+      #toolMount {
+        display: block;
+        min-width: 0;
+        align-self: start;
+      }
 
     #toolMount > .tool-stack {
       width: 100%;
@@ -1373,6 +1374,8 @@
               <div id="actionRow">
                 <a id="downloadAnimationBtn" href="#" class="disabled">Save Output</a>
               </div>
+            </div>
+          </div>
           </article>
         </div>
       </div>
@@ -2169,7 +2172,7 @@
         resizeObserver.observe(animationCard);
       }
 
-      window.addEventListener("load", function () {
+      function initializeAnimationPage() {
         showAccessGate("checking");
         renderActionButtons();
         renderCouponStatus();
@@ -2177,11 +2180,13 @@
         scheduleEmbedHeightReport();
         setTimeout(scheduleEmbedHeightReport, 150);
         setTimeout(scheduleEmbedHeightReport, 500);
-      });
+      }
 
       window.addEventListener("resize", scheduleEmbedHeightReport);
       setInterval(renderCouponStatus, 1000);
       setInterval(pollCouponStatus, 30000);
+
+      initializeAnimationPage();
 
       fetchPlusStatus().then(function (status) {
         showAccessGate(status.ok ? "ok" : status.reason);
@@ -2209,11 +2214,11 @@
         });
       };
 
-      window.addEventListener("load", () => {
+      function initializeAnimationLayout() {
         scheduleSync();
         setTimeout(scheduleSync, 150);
         setTimeout(scheduleSync, 500);
-      });
+      }
 
       window.addEventListener("resize", scheduleSync);
 
@@ -2222,6 +2227,8 @@
         const observer = new MutationObserver(scheduleSync);
         observer.observe(mount, { childList: true, subtree: true });
       }
+
+      initializeAnimationLayout();
     })();
   </script>
   <script src="./global-shell.js"></script>
