@@ -1842,10 +1842,47 @@
     function clearPageLockOverlay() {
       if (!els.plusGate) return;
       els.plusGate.classList.remove("open", "page-plus-lock");
-      if (els.plusGate.parentNode) {
-        els.plusGate.parentNode.removeChild(els.plusGate);
+    }
+
+    function lockPlusPage(reason) {
+      if (!els.plusGate || FORCE_OPEN_EMBED) return;
+
+      els.plusGate.classList.add("open", "page-plus-lock");
+
+      const heading = els.plusGate.querySelector("h3");
+      const copy = els.plusGate.querySelector("p");
+      const actions = els.plusGate.querySelector(".gate-actions");
+
+      if (heading) {
+        heading.innerHTML = "<span>Uh oh...</span><span>You Need <span class=\"plus-word\">Plus</span></span>";
       }
-      els.plusGate = null;
+
+      if (copy) {
+        if (reason === "login") {
+          copy.innerHTML = "You need to log in and make sure your RBLXTools <span class=\"plus-word\">Plus</span> plan is active before using Texture Baker.";
+        } else {
+          copy.innerHTML = "This page and its full utility are only available to RBLXTools <span class=\"plus-word\">Plus</span> members. Upgrade now to unlock the Texture Baker workflow, premium tools, and the full creator utility set.";
+        }
+      }
+
+      if (actions) {
+        actions.innerHTML =
+          '<div class="gate-redirect-countdown" id="pagePlusRedirectCountdown">Redirecting in 5 seconds...</div>' +
+          '<div class="gate-redirect-note">Taking you to the Plus plans page so you can unlock this page and its full utility.</div>';
+      }
+
+      const countdownEl = document.getElementById("pagePlusRedirectCountdown");
+      let secondsLeft = 5;
+      const timer = window.setInterval(function () {
+        secondsLeft -= 1;
+        if (countdownEl && secondsLeft > 0) {
+          countdownEl.textContent = "Redirecting in " + secondsLeft + " seconds...";
+        }
+        if (secondsLeft <= 0) {
+          window.clearInterval(timer);
+          window.location.href = "./subscriptions";
+        }
+      }, 1000);
     }
 
     function ensureThreeDependencies() {
@@ -2806,8 +2843,10 @@
 
     fetchPlusStatus().then((status) => {
       showAccessGate(status.ok ? "ok" : status.reason);
+      if (!status.ok) lockPlusPage(status.reason);
     }).catch(() => {
       showAccessGate("plus");
+      lockPlusPage("plus");
     });
   </script>
   <script src="./global-shell.js"></script>
