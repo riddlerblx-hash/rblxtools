@@ -57,7 +57,7 @@
     {
       title: "Tools",
       items: [
-        { href: "./", label: "Home", icon: "home" },
+        { href: "./index", label: "Home", icon: "home" },
         { href: "./template-downloader", label: "Template Downloader", icon: "shirt" },
         { href: "./template-background-changer", label: "Background Changer", icon: "spark" },
         { href: "./ugc-downloader", label: "UGC Downloader", icon: "hat" },
@@ -801,7 +801,7 @@
     return (
       '<div class="rblx-shell" id="rblxShellRoot">' +
         '<header class="rblx-shell-header">' +
-          '<a class="rblx-shell-brand" href="./">' +
+          '<a class="rblx-shell-brand" href="./index">' +
             '<span class="rblx-shell-brand-mark">RB</span>' +
             '<span class="rblx-shell-brand-text">' +
               '<span class="rblx-shell-brand-title">RBLXTools</span>' +
@@ -1998,4 +1998,5 @@
     initShell();
   }
 }());
+
 

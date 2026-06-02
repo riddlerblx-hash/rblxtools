@@ -105,14 +105,14 @@
 
     .gate-redirect-countdown {
       margin-top: 2px;
-      color: #6dff9a;
-      font-size: 14px;
+      color: #7fff9f;
+      font-size: 15px;
       line-height: 1.3;
-      font-weight: 900;
+      font-weight: 1000;
       text-align: center;
       text-transform: uppercase;
-      letter-spacing: 0.35px;
-      text-shadow: 0 0 18px rgba(109, 255, 154, 0.18);
+      letter-spacing: 0.45px;
+      text-shadow: 0 0 18px rgba(109, 255, 154, 0.24);
     }
       .tutorial-video-box {
       position: relative;
@@ -1676,7 +1676,8 @@
     const COUPON_CODE = "RBLXTOOLS";
     const COUPON_DEFAULT_USES = 67;
     const COUPON_EXPIRY_ISO = "2026-05-31T23:59:59-05:00";
-    const FORCE_OPEN_EMBED = !!document.getElementById("toolMount");
+    const FORCE_PAGE_LOCK_FOR_TESTING = false;
+    const FORCE_OPEN_EMBED = window.self !== window.top && !!document.getElementById("toolMount");
 
     const state = {
       assetId: "",
@@ -1848,6 +1849,15 @@
       if (!els.plusGate || FORCE_OPEN_EMBED) return;
 
       els.plusGate.classList.add("open", "page-plus-lock");
+      if (els.plusGate.dataset.lockBound !== "true") {
+        els.plusGate.addEventListener("click", function (event) {
+          if (els.plusGate && els.plusGate.classList.contains("page-plus-lock")) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+        els.plusGate.dataset.lockBound = "true";
+      }
 
       const heading = els.plusGate.querySelector("h3");
       const copy = els.plusGate.querySelector("p");
@@ -2100,6 +2110,14 @@
 
       state.accessState = reason === "ok" ? "ok" : reason;
 
+      if (FORCE_PAGE_LOCK_FOR_TESTING) {
+        els.toolContent.classList.remove("hidden");
+        els.accessGate.classList.add("hidden");
+        els.toolCard.classList.remove("is-gated");
+        lockPlusPage(reason === "login" ? "login" : "plus");
+        return;
+      }
+
       if (reason === "ok") {
         clearPageLockOverlay();
         els.accessGate.classList.add("hidden");
@@ -2108,8 +2126,8 @@
         return;
       }
 
-      els.toolContent.classList.add("hidden");
-      els.accessGate.classList.remove("hidden");
+      els.toolContent.classList.remove("hidden");
+      els.accessGate.classList.add("hidden");
       els.toolCard.classList.remove("is-gated");
 
       if (reason === "login") {
@@ -2122,6 +2140,8 @@
         els.accessBadge.innerHTML = "<span class=\"plus-word\">Plus</span> Required";
         els.accessCopy.innerHTML = "Texture Baker is locked to RBTools <span class=\"plus-word\">Plus</span>. Grab the plan and come right back here once access is active.";
       }
+
+      lockPlusPage(reason === "login" ? "login" : "plus");
     }
 
     function setStatus(element, text, tone) {
@@ -2873,6 +2893,7 @@
   </script>
 </body>
 </html>
+
 
 
 

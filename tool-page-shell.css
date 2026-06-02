@@ -691,3 +691,134 @@ main {
     width: 100%;
   }
 }
+
+/* Codex override: flatter Plus promo cards */
+.plus-card {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden;
+  height: 100%;
+}
+
+.plus-promo {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 120, 120, 0.12);
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.16), transparent 18%),
+    radial-gradient(circle at 100% 0%, rgba(255, 68, 68, 0.22), transparent 30%),
+    radial-gradient(circle at 82% 82%, rgba(255, 86, 86, 0.12), transparent 24%),
+    linear-gradient(145deg, rgba(18, 22, 30, 0.98), rgba(30, 15, 18, 0.98)) !important;
+  padding: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 18px 42px rgba(0, 0, 0, 0.18) !important;
+}
+
+.plus-promo::before {
+  content: "";
+  position: absolute;
+  inset: auto -16% -34% auto;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 60, 60, 0.34), rgba(255, 60, 60, 0.12) 36%, transparent 68%);
+  pointer-events: none;
+  animation: promoPulseWide 8s ease-in-out infinite;
+}
+
+.plus-promo::after {
+  content: "";
+  position: absolute;
+  inset: -24% auto auto -16%;
+  width: 280px;
+  height: 280px;
+  background: linear-gradient(120deg, transparent 18%, rgba(255, 255, 255, 0.16) 48%, transparent 74%);
+  transform: rotate(16deg);
+  opacity: 0.6;
+  pointer-events: none;
+  animation: promoSweepWide 6.8s ease-in-out infinite;
+}
+
+.plus-floaters {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.plus-floaters::before,
+.plus-floaters::after {
+  content: "+ + + + + +";
+  position: absolute;
+  color: rgba(255, 255, 255, 0.11);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.plus-floaters::before {
+  top: 24px;
+  left: 18px;
+  animation: driftPlusWide 11s ease-in-out infinite;
+}
+
+.plus-floaters::after {
+  right: 16px;
+  bottom: 18px;
+  animation: driftPlusWide 13s ease-in-out infinite reverse;
+}
+
+.plus-floater {
+  opacity: 0.3;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.14);
+}
+
+@keyframes promoPulseWide {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.55;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 0.92;
+  }
+}
+
+@keyframes promoSweepWide {
+  0% {
+    transform: translateX(-18%) rotate(16deg);
+    opacity: 0.15;
+  }
+
+  50% {
+    transform: translateX(14%) rotate(16deg);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: translateX(36%) rotate(16deg);
+    opacity: 0.12;
+  }
+}
+
+@keyframes driftPlusWide {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.1;
+  }
+
+  50% {
+    transform: translate3d(8px, -10px, 0);
+    opacity: 0.26;
+  }
+}
