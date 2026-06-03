@@ -767,8 +767,15 @@
 
   function buildNavMarkup() {
     var currentPath = normalizePath(window.location.pathname);
+    var isLoggedIn = Boolean(shellState.currentUser && shellState.currentUser.loggedIn);
     return navGroups.map(function (group) {
-      var links = group.items.map(function (item) {
+      var items = group.items.filter(function (item) {
+        if (item.href === "./account-overview") return isLoggedIn;
+        return true;
+      });
+      if (!items.length) return "";
+
+      var links = items.map(function (item) {
         var normalizedHref = normalizePath(item.href).replace("./", "/");
         var active = currentPath.endsWith(normalizedHref) || currentPath.endsWith(normalizedHref.slice(1));
         return (
@@ -824,7 +831,7 @@
                 '<h2 class="rblx-shell-panel-title">Navigation</h2>' +
                 '<button class="rblx-shell-toggle" type="button" id="rblxShellLeftToggle" aria-label="Toggle navigation">' + getToggleIcon() + '</button>' +
               "</div>" +
-              '<div class="rblx-shell-nav-scroll">' + buildNavMarkup() + "</div>" +
+              '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + "</div>" +
               '<div class="rblx-shell-left-foot">' +
                 '<a class="rblx-shell-mini-banner" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span></a>' +
                 '<div class="rblx-shell-socials">' +
@@ -1608,7 +1615,6 @@
       });
     }
   }
-
   function updateAuthUi(state) {
     var auth = document.getElementById("rblxShellAuth");
     var status = document.getElementById("rblxShellStatus");
@@ -1625,6 +1631,8 @@
       username: state.username || "",
       displayName: state.displayName || ""
     };
+    var navScroll = document.getElementById("rblxShellNavScroll");
+    if (navScroll) navScroll.innerHTML = buildNavMarkup();
     shellState.isAdmin = Boolean(state.isAdmin);
     refreshCurrentProfile();
     syncChatIdentity();
