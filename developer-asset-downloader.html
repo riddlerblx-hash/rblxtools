@@ -12,7 +12,7 @@
       --bg-2: #151c28;
       --red-0: rgba(255, 34, 34, 0.26);
       --red-1: rgba(255, 74, 74, 0.12);
-      --red-2: rgba(255, 124, 124, 0.10);
+      --red-2: rgba(255, 124, 124, 0.1);
       --line: rgba(255, 255, 255, 0.06);
       --text: #ffffff;
       --muted: #b8bec7;
@@ -35,6 +35,11 @@
         linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 38%, var(--bg-0) 100%);
       position: relative;
       isolation: isolate;
+    }
+
+    body.admin-checking main,
+    body.admin-checking .bg-wrap {
+      visibility: hidden;
     }
 
     body.admin-checking main,
@@ -125,10 +130,14 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
     }
 
-    .badge { display: none !important; }
+    .badge {
+  display: none !important;
+}
+
     .card h2 { margin: 0; font-size: 34px; line-height: 0.95; letter-spacing: -1px; font-weight: 900; }
     .card h2 span { display: block; }
     .card h2 span:last-child { margin-top: 3px; color: #ff2a2a; }
+
     .subtitle { margin: 11px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; font-weight: 600; }
 
     .plus-word {
@@ -143,15 +152,15 @@
       animation: silverShift 4.5s linear infinite;
     }
 
-    @keyframes silverShift {
-      0% { background-position: 0% 50%; }
-      100% { background-position: 100% 50%; }
-    }
-
     .price-green {
       color: #6dff9a;
       font-weight: 900;
       text-shadow: 0 0 18px rgba(109, 255, 154, 0.22);
+    }
+
+    @keyframes silverShift {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
     }
 
     .notice {
@@ -214,6 +223,7 @@
     #status { min-height: 22px; margin-top: 10px; color: #f0f0f0; font-size: 12px; }
     #status.success { color: var(--success); font-weight: 800; }
     #status.error { color: #ff7070; font-weight: 800; }
+
     #result { margin-top: 12px; }
 
     #previewShell {
@@ -223,42 +233,175 @@
       padding: 10px;
     }
 
-    #placeholderAsset {
+    #placeholderTemplate {
       width: 100%;
       min-height: 420px;
       border-radius: 8px;
-      background: linear-gradient(180deg, #20242d, #16191f);
+      background: #e7e7e7;
       padding: 18px 14px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      color: #9ea7b4;
+      color: #777;
       font-weight: 800;
       text-align: center;
       overflow: hidden;
     }
 
-    .asset-file-icon {
+    .template-grid { display: grid; grid-template-columns: repeat(4, 62px); grid-template-rows: repeat(3, 62px); gap: 5px; margin-bottom: 22px; }
+    .template-grid div { display: flex; align-items: center; justify-content: center; color: white; font-size: 26px; font-weight: 900; }
+    .red { background: #ef1f1f; } .blue { background: #0b8ed8; } .green { background: #0bbd63; } .yellow { background: #f5ba00; }
+
+    .previewCarousel { position: relative; }
+    .previewStage {
+      min-height: 420px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #151515;
+    }
+
+    .previewStage img {
+      width: 100%;
+      max-width: 500px;
+      border-radius: 8px;
+      display: block;
+      margin: 0 auto;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+    }
+
+    .asset-preview-card {
+      width: min(100%, 500px);
+      min-height: 360px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at top right, rgba(255, 72, 72, 0.18), transparent 28%),
+        linear-gradient(180deg, rgba(34, 39, 48, 0.98), rgba(22, 26, 32, 0.98));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .asset-preview-card .template-grid {
+      margin-bottom: 0;
+    }
+
+    .asset-preview-file {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 110px;
-      min-height: 110px;
-      border-radius: 24px;
-      margin-bottom: 18px;
+      min-width: 132px;
+      min-height: 48px;
+      padding: 0 18px;
+      border-radius: 999px;
       background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
       border: 1px solid rgba(255,255,255,0.12);
       color: #fff;
-      font-size: 24px;
+      font-size: 16px;
       font-weight: 900;
-      letter-spacing: 1.6px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+      letter-spacing: 1px;
     }
 
-    .asset-grid { display: grid; grid-template-columns: repeat(4, 62px); grid-template-rows: repeat(3, 62px); gap: 5px; margin-bottom: 22px; }
-    .asset-grid div { display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 900; border-radius: 14px; }
-    .red { background: #ef1f1f; } .blue { background: #0b8ed8; } .green { background: #0bbd63; } .yellow { background: #f5ba00; }
+    .asset-preview-copy {
+      display: grid;
+      gap: 6px;
+    }
+
+    .asset-preview-copy strong {
+      font-size: 22px;
+      letter-spacing: -0.5px;
+    }
+
+    .asset-preview-copy span {
+      color: #c7ced8;
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .asset-preview-card {
+      width: min(100%, 500px);
+      min-height: 360px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at top right, rgba(255, 72, 72, 0.18), transparent 28%),
+        linear-gradient(180deg, rgba(34, 39, 48, 0.98), rgba(22, 26, 32, 0.98));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .asset-preview-card .template-grid {
+      margin-bottom: 0;
+    }
+
+    .asset-preview-file {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 132px;
+      min-height: 48px;
+      padding: 0 18px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+
+    .asset-preview-copy {
+      display: grid;
+      gap: 6px;
+    }
+
+    .asset-preview-copy strong {
+      font-size: 22px;
+      letter-spacing: -0.5px;
+    }
+
+    .asset-preview-copy span {
+      color: #c7ced8;
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .previewArrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.58);
+      color: #fff;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 900;
+      z-index: 3;
+    }
+
+    .previewArrow.left { left: 8px; }
+    .previewArrow.right { right: 8px; }
+    .previewArrow.hidden { display: none; }
 
     #metaRow { margin-top: 10px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
     .metaPill {
@@ -277,8 +420,7 @@
 
     #actionRow { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
 
-    .download-link,
-    .action-btn {
+    #downloadBtn,#downloadAllBtn {
       border: none;
       color: #fff;
       cursor: pointer;
@@ -295,6 +437,8 @@
       font-weight: 800;
       box-shadow: 0 10px 20px rgba(255, 20, 20, 0.16);
     }
+
+    #downloadAllBtn { background: linear-gradient(180deg, #ff5656 0%, #ff2424 100%); }
 
     .promo-card {
       background:
@@ -316,28 +460,42 @@
       border: 1px solid rgba(130, 160, 220, 0.08);
       background: rgba(17, 20, 26, 0.48);
       padding: 12px;
-      overflow: hidden;
     }
 
-    .guide-placeholder {
+    .video-copy {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .video-copy p {
+      margin: 0;
+      color: #c9d4e5;
+      font-size: 11px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .video-placeholder {
       border-radius: 10px;
       min-height: 220px;
       display: grid;
-      align-content: center;
-      gap: 14px;
+      place-items: center;
       text-align: center;
-      padding: 20px;
+      padding: 16px;
       background: linear-gradient(180deg, #252b35, #1c212b);
       border: 1px dashed rgba(255,255,255,0.2);
       color: #cfd7e3;
       font-weight: 800;
       font-size: 12px;
-      line-height: 1.6;
+      line-height: 1.5;
     }
 
-    .guide-placeholder strong {
-      color: #ffffff;
-      font-size: 14px;
+    .video-box {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
     }
 
     .video-player {
@@ -349,7 +507,47 @@
       box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
     }
 
-    .tutorial-video-cover {
+    .tutorial-placeholder {
+      aspect-ratio: 16 / 9;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 88, 88, 0.16), transparent 22%),
+        radial-gradient(circle at 80% 80%, rgba(92, 128, 255, 0.14), transparent 24%),
+        linear-gradient(180deg, rgba(20, 24, 32, 0.98), rgba(14, 17, 23, 0.98));
+    }
+
+    .tutorial-placeholder::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.08), transparent 42%),
+        radial-gradient(circle at center, rgba(255,255,255,0.06), transparent 44%);
+      pointer-events: none;
+    }
+
+    .tutorial-placeholder {
+      aspect-ratio: 16 / 9;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 88, 88, 0.16), transparent 22%),
+        radial-gradient(circle at 80% 80%, rgba(92, 128, 255, 0.14), transparent 24%),
+        linear-gradient(180deg, rgba(20, 24, 32, 0.98), rgba(14, 17, 23, 0.98));
+    }
+
+    .tutorial-placeholder::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.08), transparent 42%),
+        radial-gradient(circle at center, rgba(255,255,255,0.06), transparent 44%);
+      pointer-events: none;
+    }
+
+        .tutorial-video-cover {
       position: absolute;
       inset: 0;
       display: flex;
@@ -362,8 +560,13 @@
       background: rgba(8, 12, 18, 0.46);
       backdrop-filter: blur(10px);
       color: #fff;
-      cursor: default;
+      cursor: pointer;
       transition: opacity 0.18s ease;
+    }
+
+    .tutorial-video-cover.hidden {
+      opacity: 0;
+      pointer-events: none;
     }
 
     .tutorial-video-cover__icon {
@@ -384,12 +587,16 @@
       text-transform: uppercase;
     }
 
-    .plus-card {
-      padding: 0 !important;
-      border: 0 !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      overflow: hidden;
+    .video-cover span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 16px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
     }
 
     .plus-promo {
@@ -397,41 +604,91 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      min-height: 100%;
-      border-radius: 18px;
-      border: 1px solid rgba(255, 120, 120, 0.12);
+      height: 100%;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       background:
-        radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.16), transparent 18%),
-        radial-gradient(circle at 100% 0%, rgba(255, 68, 68, 0.22), transparent 30%),
-        radial-gradient(circle at 82% 82%, rgba(255, 86, 86, 0.12), transparent 24%),
-        linear-gradient(145deg, rgba(18, 22, 30, 0.98), rgba(30, 15, 18, 0.98)) !important;
+        radial-gradient(circle at 14% 16%, rgba(255, 255, 255, 0.18), transparent 20%),
+        radial-gradient(circle at 100% 0%, rgba(255, 68, 68, 0.2), transparent 30%),
+        linear-gradient(145deg, rgba(18, 22, 30, 0.98), rgba(30, 15, 18, 0.98));
       padding: 16px;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 42px rgba(0, 0, 0, 0.22);
     }
 
     .plus-promo::before {
       content: "";
       position: absolute;
-      inset: auto -16% -34% auto;
-      width: 260px;
-      height: 260px;
+      inset: auto -14% -30% auto;
+      width: 220px;
+      height: 220px;
       border-radius: 999px;
-      background: radial-gradient(circle, rgba(255, 60, 60, 0.34), rgba(255, 60, 60, 0.12) 36%, transparent 68%);
+      background: radial-gradient(circle, rgba(255, 60, 60, 0.34), transparent 66%);
       pointer-events: none;
-      animation: promoPulseWide 8s ease-in-out infinite;
+      animation: promoPulse 7s ease-in-out infinite;
     }
 
     .plus-promo::after {
       content: "";
       position: absolute;
-      inset: -24% auto auto -16%;
-      width: 280px;
-      height: 280px;
-      background: linear-gradient(120deg, transparent 18%, rgba(255, 255, 255, 0.16) 48%, transparent 74%);
+      inset: -20% auto auto -10%;
+      width: 220px;
+      height: 220px;
+      background: linear-gradient(120deg, transparent 20%, rgba(255,255,255,0.14) 48%, transparent 72%);
       transform: rotate(16deg);
       opacity: 0.6;
       pointer-events: none;
-      animation: promoSweepWide 6.8s ease-in-out infinite;
+      animation: promoSweep 6.5s ease-in-out infinite;
+    }
+
+    @keyframes promoPulse {
+      0%, 100% { transform: scale(0.94); opacity: 0.55; }
+      50% { transform: scale(1.08); opacity: 0.92; }
+    }
+
+    @keyframes promoSweep {
+      0% { transform: translateX(-18%) rotate(16deg); opacity: 0.15; }
+      50% { transform: translateX(14%) rotate(16deg); opacity: 0.5; }
+      100% { transform: translateX(36%) rotate(16deg); opacity: 0.12; }
+    }
+
+    .plus-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .plus-kicker {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #ffe0e0;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+    }
+
+    .plus-kicker::before {
+      content: "+";
+      margin-right: 6px;
+      color: #fff;
+      font-size: 11px;
+      animation: plusPop 2.6s ease-in-out infinite;
+    }
+
+    .plus-price {
+      color: #ffd0d0;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.4px;
     }
 
     .plus-floaters {
@@ -441,46 +698,32 @@
       z-index: 0;
     }
 
-    .plus-floaters::before,
-    .plus-floaters::after {
-      content: "+ + + + + +";
-      position: absolute;
-      color: rgba(255, 255, 255, 0.11);
-      font-size: 14px;
-      font-weight: 900;
-      letter-spacing: 14px;
-      white-space: nowrap;
-      pointer-events: none;
-    }
-
-    .plus-floaters::before {
-      top: 24px;
-      left: 18px;
-      animation: driftPlusWide 11s ease-in-out infinite;
-    }
-
-    .plus-floaters::after {
-      right: 16px;
-      bottom: 18px;
-      animation: driftPlusWide 13s ease-in-out infinite reverse;
-    }
-
     .plus-floater {
       position: absolute;
       font-size: 20px;
       font-weight: 900;
       line-height: 1;
-      opacity: 0.3;
-      text-shadow: 0 0 20px rgba(255, 255, 255, 0.14);
+      opacity: 0.2;
+      animation: driftPlus 7s ease-in-out infinite;
     }
 
-    .plus-floater.one { top: 18px; right: 20px; }
-    .plus-floater.two { top: 86px; left: 24px; font-size: 14px; }
-    .plus-floater.three { top: 138px; right: 102px; font-size: 16px; }
-    .plus-floater.four { top: 222px; right: 34px; font-size: 18px; }
-    .plus-floater.five { bottom: 116px; left: 42px; font-size: 16px; }
-    .plus-floater.six { bottom: 70px; right: 124px; font-size: 14px; }
-    .plus-floater.seven { bottom: 26px; left: 162px; font-size: 18px; }
+    .plus-floater.one { top: 18px; right: 22px; animation-delay: 0s; }
+    .plus-floater.two { top: 84px; right: 86px; font-size: 14px; animation-delay: 1.4s; }
+    .plus-floater.three { bottom: 34px; right: 26px; font-size: 18px; animation-delay: 2.8s; }
+    .plus-floater.four { top: 34px; left: 20px; font-size: 15px; animation-delay: 0.8s; }
+    .plus-floater.five { top: 138px; left: 72px; font-size: 22px; animation-delay: 2.1s; }
+    .plus-floater.six { bottom: 24px; left: 28px; font-size: 16px; animation-delay: 3.3s; }
+    .plus-floater.seven { top: 168px; right: 138px; font-size: 13px; animation-delay: 4.1s; }
+
+    @keyframes driftPlus {
+      0%, 100% { transform: translateY(0) scale(0.92); opacity: 0.15; }
+      50% { transform: translateY(-8px) scale(1.08); opacity: 0.34; }
+    }
+
+    @keyframes plusPop {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.18); opacity: 1; }
+    }
 
     .plus-promo h3 {
       margin: 0;
@@ -492,8 +735,14 @@
       z-index: 1;
     }
 
-    .plus-promo h3 span { display: block; }
-    .plus-promo h3 span:last-child { color: #ff4b4b; margin-top: 3px; }
+    .plus-promo h3 span {
+      display: block;
+    }
+
+    .plus-promo h3 span:last-child {
+      color: #ff4b4b;
+      margin-top: 3px;
+    }
 
     .plus-promo p {
       margin: 10px 0 0;
@@ -518,7 +767,7 @@
       min-height: 52px;
       border-radius: 12px;
       border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.04);
+      background: rgba(255,255,255,0.045);
       padding: 10px;
     }
 
@@ -526,191 +775,467 @@
       display: block;
       color: #fff;
       font-size: 11px;
+      line-height: 1.2;
       font-weight: 900;
-      line-height: 1.35;
     }
 
     .perk span {
       display: block;
       margin-top: 4px;
-      color: #d6dce7;
+      color: #cad2dd;
       font-size: 10px;
       line-height: 1.45;
       font-weight: 700;
     }
 
-    @keyframes promoPulseWide {
-      0%, 100% { transform: scale(0.92); opacity: 0.52; }
-      50% { transform: scale(1.06); opacity: 0.82; }
-    }
-
-    @keyframes promoSweepWide {
-      0%, 100% { transform: translateX(0) rotate(16deg); opacity: 0.28; }
-      50% { transform: translateX(24px) rotate(16deg); opacity: 0.62; }
-    }
-
-    @keyframes driftPlusWide {
-      0%, 100% { transform: translateY(0); opacity: 0.14; }
-      50% { transform: translateY(8px); opacity: 0.26; }
-    }
-
-    .plus-topline,
-    .plus-actions,
-    .tool-actions {
+    .plus-actions {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 12px;
-      flex-wrap: wrap;
+      margin-top: 14px;
+      position: relative;
+      z-index: 1;
     }
 
-    .plus-kicker,
-    .tool-pill {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      padding: 0 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.05);
-      color: #ffadad;
+    .plus-actions p {
+      margin: 0;
+      color: #f2c8c8;
       font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 0.9px;
-      text-transform: uppercase;
+      line-height: 1.45;
+      font-weight: 800;
+      max-width: 240px;
     }
 
-    .tool-pill.plus {
-      background: linear-gradient(180deg, rgba(233, 239, 255, 0.22), rgba(151, 164, 199, 0.16));
-      border-color: rgba(220, 227, 255, 0.24);
-      color: #f4f6ff;
-    }
-
-    .plus-link,
-    .mini-btn {
-      border: 0;
-      border-radius: 999px;
+    .plus-link {
+      min-height: 40px;
       padding: 0 16px;
-      min-height: 38px;
-      background: rgba(255,255,255,0.06);
-      color: #fff;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #6cf69c 0%, #37d26f 100%);
+      color: #08130c;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-size: 12px;
-      font-weight: 800;
-      cursor: pointer;
+      font-weight: 900;
+      box-shadow: 0 14px 26px rgba(55, 210, 111, 0.24);
+      white-space: nowrap;
+      animation: pulseGreenCta 1.85s ease-in-out infinite;
     }
 
-    .mini-btn.primary {
-      background: linear-gradient(180deg, #ff3d3d, #ff1212);
-      box-shadow: 0 12px 24px rgba(255, 30, 30, 0.22);
-    }
-
-    .showcase-card,
-    .faq-wrap {
+    .showcase-card {
       margin-top: 14px;
       border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.06);
-      background: radial-gradient(circle at top right, rgba(255, 70, 70, 0.12), transparent 34%), var(--card);
-      padding: 20px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at top right, rgba(79, 128, 255, 0.12), transparent 34%),
+        linear-gradient(180deg, rgba(30,34,44,0.96), rgba(18,20,28,0.96));
+      padding: 16px;
     }
 
-    .showcase-title,
-    .tool-name {
-      margin: 0;
-      font-size: 28px;
-      line-height: 1;
-      letter-spacing: -1px;
-      font-weight: 900;
-    }
+    .showcase-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .showcase-title { font-size: 20px; font-weight: 900; letter-spacing: -0.4px; margin: 0; }
 
-    .slide-viewport { margin-top: 12px; }
     .showcase-layout {
       display: grid;
-      grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
-      gap: 16px;
-      align-items: center;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      position: relative;
     }
 
-    .slide-panel.animating { opacity: 0.65; transform: translateY(3px); transition: opacity 0.18s ease, transform 0.18s ease; }
-
     .logo-preview {
-      min-height: 230px;
-      border-radius: 18px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 12px;
-      padding: 20px;
-      background: linear-gradient(180deg, #50395a, #2d2035);
+      height: 220px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: linear-gradient(180deg,#222733,#181d27);
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo-preview::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.12), transparent 28%);
+    }
+
+    .logo-glyph {
+      position: relative;
+      z-index: 2;
+      width: 104px;
+      height: 104px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      filter: drop-shadow(0 0 22px rgba(255,255,255,0.16));
     }
 
     .logo-glyph svg {
-      width: 84px;
-      height: 84px;
-      stroke: #fff;
+      width: 78px;
+      height: 78px;
+      display: block;
+      stroke: currentColor;
       fill: none;
-      stroke-width: 2.2;
+      stroke-width: 1.9;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
 
     .logo-tag {
-      min-height: 28px;
-      padding: 0 12px;
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #d8e2f4;
+      background: rgba(0,0,0,0.32);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 999px;
+      min-height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+      z-index: 2;
+    }
+
+    .tool-pill {
+      display: inline-flex;
+      min-height: 22px;
+      padding: 0 9px;
+      border-radius: 999px;
+      align-items: center;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-right: 6px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #fff;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .tool-pill.plus {
+      color: #dce7ff;
+      background: rgba(157, 186, 255, 0.16);
+      border-color: rgba(157, 186, 255, 0.28);
+    }
+
+    .tool-name { margin: 2px 0 6px; font-size: 24px; line-height: 1; font-weight: 900; color: #fff; }
+    .tool-desc { margin: 0; color: #ccd5e2; font-size: 12px; line-height: 1.5; min-height: 54px; }
+    .tool-actions { margin-top: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .mini-btn {
+      min-height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      padding: 0 12px;
+    }
+
+    .mini-btn.primary {
+      border: 0;
+      background: linear-gradient(180deg, #ff4343, #ff1515);
+      box-shadow: 0 10px 20px rgba(255, 20, 20, 0.18);
+    }
+
+    .slide-viewport {
+      position: relative;
+      overflow: hidden;
+      min-height: 232px;
+    }
+
+    .slide-panel {
+      transition: opacity 0.42s ease, transform 0.42s ease, filter 0.42s ease;
+      opacity: 1;
+      transform: translateX(0);
+      filter: blur(0);
+    }
+
+    .slide-panel.animating {
+      opacity: 0;
+      transform: translateX(18px);
+      filter: blur(4px);
+    }
+
+    .showcase-progress {
+      margin-top: 14px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+
+    .showcase-progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(255, 104, 104, 0.82), rgba(114, 160, 255, 0.92));
+      transition: width 0.38s ease;
+    }
+
+    .faq-wrap { margin-top: 14px; display: grid; gap: 8px; }
+
+    .faq-item {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)), #1b1b1d;
+      overflow: hidden;
+    }
+
+    .faq-q {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      padding: 13px 14px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .faq-a {
+      display: none;
+      padding: 0 14px 13px;
+      color: #c2c8d0;
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    .faq-item.open .faq-a { display: block; }
+
+    .gate-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.62);
+      backdrop-filter: blur(7px);
+      -webkit-backdrop-filter: blur(7px);
+      padding: 14px;
+    }
+
+    .gate-overlay.open { display: flex; }
+
+    .gate-modal {
+      width: min(100%, 500px);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background:
+        radial-gradient(circle at top right, rgba(255, 60, 60, 0.14), transparent 32%),
+        linear-gradient(180deg, #252528, #171719);
+      padding: 18px;
+    }
+
+    .gate-modal h3 { margin: 0; font-size: 30px; line-height: 0.95; letter-spacing: -1px; font-weight: 900; }
+    .gate-modal h3 span { display: block; }
+    .gate-modal h3 span:last-child { color: #ff2929; margin-top: 4px; }
+    .gate-modal p { margin: 11px 0 0; color: #c7ced8; font-size: 12px; line-height: 1.55; }
+
+    .gate-actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .gate-actions a, .gate-actions button {
+      min-height: 38px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 0 12px;
+      cursor: pointer;
+      text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255,255,255,0.12);
+    }
+
+    .plans-btn {
+      border: 0;
+      color: #08130c;
+      background: linear-gradient(180deg, #6cf69c 0%, #37d26f 100%);
+      box-shadow: 0 14px 26px rgba(55, 210, 111, 0.24);
+      animation: pulseGreenCta 1.85s ease-in-out infinite;
+    }
+
+    @keyframes pulseGreenCta {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 14px 26px rgba(55, 210, 111, 0.24);
+      }
+      50% {
+        transform: scale(1.04);
+        box-shadow: 0 18px 34px rgba(55, 210, 111, 0.34);
+      }
+    }
+
+    .close-btn {
       color: #fff;
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: 1px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
     }
 
-    .tool-desc { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; font-weight: 700; }
-    .showcase-progress { margin-top: 14px; width: 100%; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
-    .showcase-progress span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #ff4c4c, #ff1b1b); }
-
-    .faq-item + .faq-item { margin-top: 10px; }
-    .faq-q {
-      width: 100%;
-      min-height: 44px;
-      padding: 0 14px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.04);
-      color: #fff;
-      text-align: left;
-      font-size: 14px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-    .faq-a {
-      display: none;
-      padding: 12px 14px 0;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.6;
-      font-weight: 700;
-    }
-    .faq-item.open .faq-a { display: block; }
-
-    @media (max-width: 980px) {
-      .top-grid,
+    @media (max-width: 940px) {
+      .top-grid { grid-template-columns: 1fr; }
       .showcase-layout { grid-template-columns: 1fr; }
+      .logo-preview { height: 180px; }
+      .perk-list { grid-template-columns: 1fr 1fr; }
     }
 
     @media (max-width: 620px) {
-      .asset-grid { grid-template-columns: repeat(4, 52px); grid-template-rows: repeat(3, 52px); }
-      .card h2, .tool-name { font-size: 26px; }
-      main { padding-left: 10px; padding-right: 10px; }
+      .video-copy, .plus-actions { align-items: flex-start; flex-direction: column; }
+      .perk-list { grid-template-columns: 1fr; }
+      .tool-actions { width: 100%; }
+      .tool-actions .mini-btn { flex: 1 1 calc(50% - 8px); }
+      .tool-actions .mini-btn.primary { flex-basis: 100%; }
     }
-  </style>
+  
+/* Codex override: flatter Plus promo cards */
+.plus-card {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden;
+  height: 100%;
+}
+
+.plus-promo {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 120, 120, 0.12);
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.16), transparent 18%),
+    radial-gradient(circle at 100% 0%, rgba(255, 68, 68, 0.22), transparent 30%),
+    radial-gradient(circle at 82% 82%, rgba(255, 86, 86, 0.12), transparent 24%),
+    linear-gradient(145deg, rgba(18, 22, 30, 0.98), rgba(30, 15, 18, 0.98)) !important;
+  padding: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 18px 42px rgba(0, 0, 0, 0.18) !important;
+}
+
+.plus-promo::before {
+  content: "";
+  position: absolute;
+  inset: auto -16% -34% auto;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 60, 60, 0.34), rgba(255, 60, 60, 0.12) 36%, transparent 68%);
+  pointer-events: none;
+  animation: promoPulseWide 8s ease-in-out infinite;
+}
+
+.plus-promo::after {
+  content: "";
+  position: absolute;
+  inset: -24% auto auto -16%;
+  width: 280px;
+  height: 280px;
+  background: linear-gradient(120deg, transparent 18%, rgba(255, 255, 255, 0.16) 48%, transparent 74%);
+  transform: rotate(16deg);
+  opacity: 0.6;
+  pointer-events: none;
+  animation: promoSweepWide 6.8s ease-in-out infinite;
+}
+
+.plus-floaters {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.plus-floaters::before,
+.plus-floaters::after {
+  content: "+ + + + + +";
+  position: absolute;
+  color: rgba(255, 255, 255, 0.11);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.plus-floaters::before {
+  top: 24px;
+  left: 18px;
+  animation: driftPlusWide 11s ease-in-out infinite;
+}
+
+.plus-floaters::after {
+  right: 16px;
+  bottom: 18px;
+  animation: driftPlusWide 13s ease-in-out infinite reverse;
+}
+
+.plus-floater {
+  opacity: 0.3;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.14);
+}
+
+@keyframes promoPulseWide {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.55;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 0.92;
+  }
+}
+
+@keyframes promoSweepWide {
+  0% {
+    transform: translateX(-18%) rotate(16deg);
+    opacity: 0.15;
+  }
+
+  50% {
+    transform: translateX(14%) rotate(16deg);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: translateX(36%) rotate(16deg);
+    opacity: 0.12;
+  }
+}
+
+@keyframes driftPlusWide {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.1;
+  }
+
+  50% {
+    transform: translate3d(8px, -10px, 0);
+    opacity: 0.26;
+  }
+}
+</style>
+  <link rel="stylesheet" href="./global-shell.css" />
 </head>
 <body class="admin-checking">
   <div class="bg-wrap">
@@ -723,22 +1248,22 @@
   <main>
     <section class="hero">
       <h1><span>Developer Asset</span><span>Downloader</span></h1>
-      <p>Download supported Roblox creator marketplace model packs and development assets in native Roblox model format.</p>
+      <p>Download supported Roblox creator marketplace model packs fast in native Roblox model format.</p>
     </section>
 
     <section class="top-grid">
       <article class="card">
         <div class="badge">Creator Marketplace</div>
         <h2><span>Developer Asset</span><span>Downloader</span></h2>
-        <p class="subtitle">Same tool-page layout as Template Downloader, but built for Roblox dev marketplace asset packs.</p>
+        <p class="subtitle">Pull supported Roblox model packs and creator assets instantly.</p>
 
         <div class="notice">
-          Paste one or more supported Roblox asset IDs, then save the pack as RBXM or RBXMX.
-          <code>Ex: 118003513749243, 123456789012345</code>
+          Free plan: unlimited downloads 1 by 1. <span class="plus-word">Plus</span>: 2-5 at once with comma-separated IDs.
+          <code>Ex: 118003513749243, 130877426967862, 123456789012345</code>
         </div>
 
-        <textarea id="assetId" placeholder="Enter one Roblox creator marketplace asset ID, or comma-separated IDs"></textarea>
-        <button id="assetButton" class="btn" type="button">Download Asset Pack</button>
+        <textarea id="robloxId" placeholder="Enter one Roblox creator marketplace asset ID, or comma-separated IDs for Plus"></textarea>
+        <button id="templateButton" class="btn" onclick="generate()">Download Asset Pack</button>
         <div id="status"></div>
         <div id="result"></div>
       </article>
@@ -748,11 +1273,8 @@
           <div class="badge">How To Use</div>
           <h2><span>Video</span><span>Tutorial</span></h2>
           <div class="video-box">
-            <div class="guide-placeholder"></div>
-            <button class="tutorial-video-cover" type="button" aria-label="Developer asset downloader tutorial coming soon">
-              <span class="tutorial-video-cover__icon">&#9654;</span>
-              <span class="tutorial-video-cover__text">Click to watch tutorial</span>
-            </button>
+            <div class="video-player tutorial-placeholder" aria-hidden="true"></div>
+            <button id="templateTutorialCover" class="tutorial-video-cover" type="button" aria-label="Developer asset tutorial coming soon"><span class="tutorial-video-cover__icon">&#9654;</span><span class="tutorial-video-cover__text">Tutorial coming soon</span></button>
           </div>
         </article>
 
@@ -791,11 +1313,13 @@
     </section>
 
     <section class="showcase-card">
-      <h3 class="showcase-title">Other Tools</h3>
+      <div class="showcase-header">
+        <h3 class="showcase-title">Other Tools</h3>
+      </div>
       <div class="slide-viewport" id="showcaseViewport">
         <div class="showcase-layout slide-panel" id="showcasePanel">
           <div class="logo-preview" id="slideLogoPreview">
-            <div class="logo-glyph" id="slideGlyph"></div>
+            <div class="logo-glyph" id="slideGlyph">T</div>
             <div class="logo-tag" id="slideTag">TOOL PREVIEW</div>
           </div>
           <div>
@@ -820,11 +1344,11 @@
       </div>
       <div class="faq-item">
         <button class="faq-q" type="button">Do I paste full Roblox URLs?</button>
-        <div class="faq-a">You can paste the numeric item ID. If you paste a Roblox asset URL, the downloader will try to pull the ID from it.</div>
+        <div class="faq-a">You can paste the numeric asset ID directly. If you paste a Roblox asset URL, the downloader will try to pull the ID from it.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q" type="button">Why is my item not loading?</button>
-        <div class="faq-a">Most common reasons are an invalid ID, a non-model asset type, a restricted asset, or Roblox blocking the delivery request.</div>
+        <div class="faq-a">Most common reasons are an invalid ID, a restricted marketplace asset, or Roblox returning a wrapper item that needs another delivery step.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q" type="button">Why RBXM instead of OBJ?</button>
@@ -833,21 +1357,34 @@
     </section>
   </main>
 
+  <div class="gate-overlay" id="plusGate">
+    <div class="gate-modal">
+      <h3><span><span class="plus-word">Plus</span> Required</span><span>You Don't Own <span class="plus-word">Plus</span></span></h3>
+      <p>This tool is locked to <span class="plus-word">Plus</span>. Upgrade your plan to unlock it, then come right back.</p>
+      <div class="gate-actions">
+        <a class="plans-btn" href="./subscriptions">View Plans</a>
+        <button class="close-btn" type="button" id="closeGate">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_BASE = window.location.origin;
     const TOKEN_KEY = "rblxtools_auth_token";
     const USER_KEY = "rblxtools_auth_user";
     const PROFILE_KEY = "rblxtools_profile_overview";
     const SHOWCASE_INTERVAL_MS = 45000;
-    const assetIdInput = document.getElementById("assetId");
+    const robloxIdInput = document.getElementById("robloxId");
     const showcasePanel = document.getElementById("showcasePanel");
     const showcaseViewport = document.getElementById("showcaseViewport");
     const showcaseProgress = document.getElementById("showcaseProgress");
     let currentSlides = [];
     let currentSlideIndex = 0;
+    let cachedActivityIdentity = null;
+    const PLUS_STATUS_KEY = "rblxtools_plus_cache";
+    let knownPlus = null;
     let showcaseTimer = null;
     let showcaseProgressTimer = null;
-    let activeToolIndex = 0;
     let adminVerified = false;
 
     const toolsData = [
@@ -859,22 +1396,137 @@
       { name: "Texture Baker", desc: "Premium texture workflow and cleaner UGC output.", href: "./texture-baker", plus: true, icon: "texture", tag: "Plus Tool", tone: "linear-gradient(180deg,#4a406b,#2a2441)" },
       { name: "Animation Spoofer", desc: "Premium animation utility for advanced workflows.", href: "./animation-spoofer", plus: true, icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
     ];
+    let activeToolIndex = 0;
 
-    function normalizeIds(rawValue) {
-      return String(rawValue || "").split(",").map((value) => value.trim()).filter(Boolean);
+    function normalizeIds(rawValue) { return String(rawValue || "").split(",").map((value) => value.trim()).filter(Boolean); }
+    function getStoredToken() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (_e) { return ""; } }
+
+    function hasPlusFromPayload(payload) {
+      if (!payload || typeof payload !== "object") return false;
+      return Boolean(
+        payload.plus === true || payload.isPlus === true || payload.hasPlus === true ||
+        payload.plusActive === true || payload.subscription === "plus" || payload.plan === "plus" || payload.tier === "plus"
+      );
     }
 
-    function getStoredToken() {
-      try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (_error) { return ""; }
+    function normalizeFavoriteTools(value) {
+      if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 5);
+      if (typeof value === "string" && value.trim()) return value.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 5);
+      return [];
     }
 
-    function saveCachedToolUser(user) {
+    function normalizeEmail(value) { return String(value || "").trim().toLowerCase(); }
+    function readPath(source, path) {
+      if (!source || typeof source !== "object") return undefined;
+      const parts = path.split(".");
+      let value = source;
+      for (let i = 0; i < parts.length; i += 1) {
+        if (!value || typeof value !== "object" || !(parts[i] in value)) return undefined;
+        value = value[parts[i]];
+      }
+      return value;
+    }
+
+    function firstString(source, paths) {
+      for (let i = 0; i < paths.length; i += 1) {
+        const value = readPath(source, paths[i]);
+        if (typeof value === "string" && value.trim()) return value.trim();
+        if (typeof value === "number" && Number.isFinite(value)) return String(value);
+      }
+      return "";
+    }
+
+    function loadStoredProfile(userId, userEmail) {
+      const profile = { displayName: "", avatarUrl: "", favoriteTools: [] };
+      const normalizedUserId = String(userId || "").trim();
+      const normalizedUserEmail = normalizeEmail(userEmail);
+
+      function applyProfile(parsed) {
+        if (!parsed || typeof parsed !== "object") return;
+        if (!profile.displayName && parsed.displayName) profile.displayName = String(parsed.displayName).trim();
+        if (!profile.avatarUrl && parsed.avatarUrl) profile.avatarUrl = String(parsed.avatarUrl).trim();
+        if (!profile.favoriteTools.length && parsed.favoriteTools) profile.favoriteTools = normalizeFavoriteTools(parsed.favoriteTools);
+      }
+
+      function readProfileKey(key) {
+        try {
+          const raw = localStorage.getItem(key) || "";
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          return parsed && typeof parsed === "object" ? parsed : null;
+        } catch (_error) { return null; }
+      }
+
+      if (normalizedUserId) applyProfile(readProfileKey(PROFILE_KEY + ":" + normalizedUserId));
+      const genericProfile = readProfileKey(PROFILE_KEY);
+      if (genericProfile) {
+        const genericUserId = String(genericProfile.userId || genericProfile.id || genericProfile.accountId || genericProfile.profileId || "").trim();
+        const genericEmail = normalizeEmail(genericProfile.email || genericProfile.userEmail || genericProfile.accountEmail);
+        const matchesCurrentUser =
+          (!normalizedUserId && !normalizedUserEmail) ||
+          (normalizedUserId && genericUserId && genericUserId === normalizedUserId) ||
+          (normalizedUserEmail && genericEmail && genericEmail === normalizedUserEmail);
+        if (matchesCurrentUser) applyProfile(genericProfile);
+      }
+      return profile;
+    }
+
+    async function resolveActivityIdentity() {
+      if (cachedActivityIdentity) return cachedActivityIdentity;
+      const token = getStoredToken();
+      if (!token) {
+        cachedActivityIdentity = { userId: "", displayName: "", username: "", avatarUrl: "", plan: "guest", isPlus: false };
+        return cachedActivityIdentity;
+      }
+
+      let isPlus = false;
       try {
-        if (user && typeof user === "object") {
-          localStorage.setItem(USER_KEY, JSON.stringify(user));
-        } else {
-          localStorage.removeItem(USER_KEY);
+        const premiumResponse = await fetch(API_BASE + "/auth/premium-status", { method: "GET", headers: { Authorization: "Bearer " + token } });
+        if (premiumResponse.ok) {
+          const premiumPayload = await premiumResponse.json().catch(() => null);
+          isPlus = hasPlusFromPayload(premiumPayload);
         }
+      } catch (_error) {}
+
+      try {
+        const response = await fetch(API_BASE + "/auth/me", { method: "GET", headers: { Authorization: "Bearer " + token } });
+        if (!response.ok) throw new Error("Could not load account.");
+        const payload = await response.json().catch(() => null);
+        const userId = firstString(payload, ["id","userId","user.id","user.userId","profile.id","account.id"]);
+        const fallbackEmail = firstString(payload, ["email","user.email","account.email"]);
+        const storedProfile = loadStoredProfile(userId, fallbackEmail);
+        const accountPlan = firstString(payload, ["plan","subscription","tier","user.plan","user.subscription","user.tier","account.plan"]).toLowerCase();
+        const fetchedDisplayName = firstString(payload, ["displayName","username","name","user.displayName","user.username","user.name","profile.displayName","profile.username","account.displayName","account.username"]);
+        const displayName = storedProfile.displayName || fetchedDisplayName || (fallbackEmail ? fallbackEmail.split("@")[0] : "");
+        const username = firstString(payload, ["username","user.username","profile.username","account.username"]) || displayName;
+        const avatarUrl = storedProfile.avatarUrl || firstString(payload, ["avatarUrl","avatar","avatarURL","profilePicture","profileImage","profilePhoto","imageUrl","user.avatarUrl","user.avatar","user.profilePicture","user.profileImage","user.imageUrl","profile.avatarUrl","profile.profilePicture","profile.imageUrl","account.avatarUrl","account.profilePicture"]) || "";
+        const plan = isPlus || accountPlan === "plus" || accountPlan === "premium" ? "plus" : (accountPlan || "free");
+        cachedActivityIdentity = { userId: String(userId || ""), displayName: String(displayName || ""), username: String(username || ""), avatarUrl: String(avatarUrl || ""), plan: plan, isPlus: plan === "plus" };
+        return cachedActivityIdentity;
+      } catch (_error) {
+        cachedActivityIdentity = { userId: "", displayName: "", username: "", avatarUrl: "", plan: isPlus ? "plus" : "free", isPlus: isPlus };
+        return cachedActivityIdentity;
+      }
+    }
+
+    async function postTemplateLog(assetId) {
+      try {
+        const identity = await resolveActivityIdentity();
+        await fetch(API_BASE + "/logs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tool: "Developer Asset Downloader",
+            id: String(assetId || "Unknown"),
+            time: Date.now(),
+            userId: identity.userId || "",
+            displayName: identity.displayName || "",
+            username: identity.username || "",
+            avatarUrl: identity.avatarUrl || "",
+            plan: identity.plan || "free",
+            isPlus: identity.isPlus === true
+          })
+        });
       } catch (_error) {}
     }
 
@@ -884,17 +1536,23 @@
         if (!raw) return null;
         const parsed = JSON.parse(raw);
         return parsed && typeof parsed === "object" ? parsed : null;
-      } catch (_error) {
-        return null;
-      }
+      } catch (_error) { return null; }
+    }
+
+    function saveCachedToolUser(user) {
+      try {
+        if (user && typeof user === "object") localStorage.setItem(USER_KEY, JSON.stringify(user));
+        else localStorage.removeItem(USER_KEY);
+      } catch (_error) {}
     }
 
     function getToolUserName(user) {
       const source = user && typeof user === "object" ? user : {};
-      const displayName = String(source.displayName || source.profileDisplayName || source.publicDisplayName || source.username || source.name || "").trim();
+      const displayName = String(source.displayName || source.username || source.name || "").trim();
       if (displayName) return displayName;
       const email = String(source.email || "").trim();
-      return email ? email.split("@")[0].trim() : "";
+      if (email) return email.split("@")[0].trim();
+      return "";
     }
 
     function getStoredProfileName() {
@@ -918,17 +1576,7 @@
           if (name) return name;
         } catch (_error) {}
       }
-
       return "";
-    }
-
-    function getActivityNameFromCache() {
-      return getStoredProfileName() || getToolUserName(getCachedToolUser());
-    }
-
-    function isAdminFromPayload(payload) {
-      if (!payload || typeof payload !== "object") return false;
-      return Boolean(payload.isAdmin === true || payload.admin === true || (payload.user && payload.user.isAdmin === true));
     }
 
     function rememberToolActivity(toolName) {
@@ -942,27 +1590,41 @@
         } catch (_error) {
           entries = [];
         }
-        entries = entries.filter(function (entry) {
-          return entry && typeof entry === "object";
-        }).slice(-79);
-        entries.push({
-          messageId: "",
-          toolName: String(toolName || "").trim(),
-          actorName: actorName,
-          createdAt: new Date().toISOString()
-        });
+        entries = entries.filter(function (entry) { return entry && typeof entry === "object"; }).slice(-79);
+        entries.push({ messageId: "", toolName: String(toolName || "").trim(), actorName: actorName, createdAt: new Date().toISOString() });
         localStorage.setItem(cacheKey, JSON.stringify(entries.slice(-80)));
       } catch (_error) {}
     }
 
-    function releaseAdminGate() {
-      document.body.classList.remove("admin-checking");
+    async function postToolActivity(toolKey) {
+      try {
+        const token = getStoredToken();
+        const cachedUser = getCachedToolUser();
+        const headers = { "Content-Type": "application/json" };
+        if (token) headers.Authorization = "Bearer " + token;
+        await fetch(API_BASE + "/tool-activity", {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({
+            tool: toolKey,
+            displayName: getActivityNameFromCache(),
+            username: cachedUser && cachedUser.username ? String(cachedUser.username) : ""
+          })
+        });
+      } catch (_error) {}
     }
 
-    function redirectUnauthorized() {
-      const token = getStoredToken();
-      window.location.replace(token ? "./index" : "./login");
+    function getActivityNameFromCache() {
+      return getStoredProfileName() || getToolUserName(getCachedToolUser());
     }
+
+    function isAdminFromPayload(payload) {
+      if (!payload || typeof payload !== "object") return false;
+      return Boolean(payload.isAdmin === true || payload.admin === true || (payload.user && (payload.user.isAdmin === true || payload.user.admin === true)));
+    }
+
+    function releaseAdminGate() { document.body.classList.remove("admin-checking"); }
+    function redirectUnauthorized() { window.location.replace(getStoredToken() ? "./index" : "./login"); }
 
     async function ensureAdminAccess() {
       const token = getStoredToken();
@@ -972,28 +1634,19 @@
       }
 
       try {
-        const response = await fetch(API_BASE + "/auth/me", {
-          method: "GET",
-          headers: { Authorization: "Bearer " + token }
-        });
-
+        const response = await fetch(API_BASE + "/auth/me", { method: "GET", headers: { Authorization: "Bearer " + token } });
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            saveCachedToolUser(null);
-          }
+          if (response.status === 401 || response.status === 403) saveCachedToolUser(null);
           redirectUnauthorized();
           return false;
         }
-
         const payload = await response.json().catch(() => null);
         const user = payload && payload.user ? payload.user : payload;
         saveCachedToolUser(user);
-
         if (!isAdminFromPayload(user) && !isAdminFromPayload(payload)) {
           redirectUnauthorized();
           return false;
         }
-
         adminVerified = true;
         releaseAdminGate();
         return true;
@@ -1016,20 +1669,176 @@
       return url.toString();
     }
 
+    function readCachedPlusStatus() {
+      try {
+        const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed.isPlus === "boolean") return parsed.isPlus;
+        }
+      } catch (_error) {}
+      try {
+        const cachedUser = JSON.parse(localStorage.getItem(USER_KEY) || "null");
+        return hasPlusFromPayload(cachedUser) ? true : null;
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function writeCachedPlusStatus(isPlus) {
+      try { localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({ isPlus: Boolean(isPlus), updatedAt: Date.now() })); } catch (_error) {}
+    }
+    function clearCachedPlusStatus() { try { localStorage.removeItem(PLUS_STATUS_KEY); } catch (_error) {} }
+
+    async function fetchPlusStatus(options) {
+      const token = getStoredToken();
+      if (!token) {
+        clearCachedPlusStatus();
+        return false;
+      }
+
+      const settings = options && typeof options === "object" ? options : {};
+      if (!settings.force) {
+        const cachedStatus = readCachedPlusStatus();
+        if (cachedStatus !== null) {
+          window.setTimeout(function () { fetchPlusStatus({ force: true, background: true }); }, 0);
+          return cachedStatus;
+        }
+      }
+
+      try {
+        const premiumResponse = await fetch(API_BASE + "/auth/premium-status", { method: "GET", headers: { Authorization: "Bearer " + token } });
+        if (premiumResponse.ok) {
+          const premiumPayload = await premiumResponse.json().catch(() => null);
+          const hasPlus = hasPlusFromPayload(premiumPayload);
+          writeCachedPlusStatus(hasPlus);
+          return hasPlus;
+        }
+        if (premiumResponse.status === 401 || premiumResponse.status === 403) {
+          clearCachedPlusStatus();
+          return false;
+        }
+        const response = await fetch(API_BASE + "/auth/me", { method: "GET", headers: { Authorization: "Bearer " + token } });
+        if (!response.ok) return readCachedPlusStatus() === true;
+        const payload = await response.json().catch(() => null);
+        const hasPlus = hasPlusFromPayload(payload);
+        writeCachedPlusStatus(hasPlus);
+        return hasPlus;
+      } catch (_e) {
+        return readCachedPlusStatus() === true;
+      }
+    }
+
+    async function bootstrapPlusStatus() {
+      if (knownPlus === true) return true;
+      if (knownPlus === false) return false;
+      knownPlus = await fetchPlusStatus();
+      return knownPlus;
+    }
+
+    knownPlus = readCachedPlusStatus();
+
     function buildDefaultPreview() {
       return `
         <div id="previewShell">
-          <div id="placeholderAsset">
-            <div class="asset-file-icon">RBXM</div>
-            <div class="asset-grid">
-              <div class="blue">PK</div><div class="red">3D</div><div class="yellow">RB</div><div class="blue">XM</div>
-              <div class="green">DEV</div><div class="red">AS</div><div class="yellow">SET</div><div class="blue">PACK</div>
-              <div class="yellow">TO</div><div class="green">OL</div><div class="red">RB</div><div class="blue">X</div>
+          <div id="placeholderTemplate">
+            <div class="template-grid">
+              <div class="blue">RB</div><div class="red">XM</div><div class="yellow">DEV</div><div class="blue">PK</div>
+              <div class="green">RB</div><div class="red">X</div><div class="yellow">AS</div><div class="blue">SET</div>
+              <div class="yellow">ST</div><div class="green">UD</div><div class="red">IO</div><div class="blue">OK</div>
             </div>
             <p>Your Roblox developer asset pack will pop up here.</p>
           </div>
         </div>
       `;
+    }
+
+    function getToolShowcaseIcon(kind) {
+      const icons = {
+        spark: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l2.9 8.1L35 17l-8.1 2.9L24 28l-2.9-8.1L13 17l8.1-2.9L24 6z"></path><path d="M36 26l1.8 5 5 1.8-5 1.8-1.8 5-1.8-5-5-1.8 5-1.8 1.8-5z"></path><path d="M13 28l1.5 4.1 4.1 1.5-4.1 1.5L13 39l-1.5-4.1-4.1-1.5 4.1-1.5L13 28z"></path></svg>',
+        hat: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 26c1.9-5.8 6.1-9 10-9s8.1 3.2 10 9"></path><path d="M8 28.5c4.9-2.7 10.4-4 16-4s11.1 1.3 16 4"></path><path d="M10 29v3.5c0 2.5 6.3 4.5 14 4.5s14-2 14-4.5V29"></path></svg>',
+        calc: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="13" y="7" width="22" height="34" rx="5"></rect><rect x="17" y="12" width="14" height="6" rx="2"></rect><path d="M18 25h4"></path><path d="M18 31h4"></path><path d="M18 37h4"></path><path d="M26 25h4"></path><path d="M26 31h4"></path><path d="M26 37h4"></path></svg>',
+        media: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="11" width="32" height="26" rx="5"></rect><circle cx="17" cy="19" r="3"></circle><path d="M13 32l7-7 5 5 5-4 5 6"></path></svg>',
+        audio: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 29h5l7 7V12l-7 7h-5z"></path><path d="M32 18c2.8 2 4.5 5.2 4.5 8.5S34.8 33 32 35"></path><path d="M35.5 13.5c4.1 3.1 6.5 7.8 6.5 13s-2.4 9.9-6.5 13"></path></svg>',
+        texture: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="10" y="10" width="28" height="28" rx="5"></rect><path d="M19.5 10v28"></path><path d="M28.5 10v28"></path><path d="M10 19.5h28"></path><path d="M10 28.5h28"></path></svg>',
+        rig: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="11" r="4"></circle><path d="M24 15v10"></path><path d="M24 19l-8 4"></path><path d="M24 19l8 4"></path><path d="M24 25l-6 10"></path><path d="M24 25l6 10"></path><path d="M18 35h12"></path></svg>'
+      };
+      return icons[kind] || icons.spark;
+    }
+
+    function updateCarouselView() {
+      if (!currentSlides.length) return;
+      const activeSlide = currentSlides[currentSlideIndex];
+      document.getElementById("activeAssetId").innerText = "ID " + activeSlide.id;
+      document.getElementById("activeAssetType").innerText = activeSlide.extension.toUpperCase();
+      document.getElementById("activeAssetSize").innerText = activeSlide.sizeLabel;
+      document.getElementById("slideCounter").innerText = (currentSlideIndex + 1) + " of " + currentSlides.length;
+      document.getElementById("activePreviewType").innerText = activeSlide.extension.toUpperCase();
+      document.getElementById("activePreviewName").innerText = activeSlide.fileName;
+      document.getElementById("activePreviewCopy").innerText = "Native Roblox model format ready for Studio import.";
+      const downloadBtn = document.getElementById("downloadBtn");
+      downloadBtn.href = activeSlide.url;
+      downloadBtn.download = activeSlide.fileName;
+    }
+
+    function showSlide(direction) {
+      if (currentSlides.length < 2) return;
+      currentSlideIndex = (currentSlideIndex + direction + currentSlides.length) % currentSlides.length;
+      updateCarouselView();
+    }
+
+    function downloadAllSlides() {
+      currentSlides.forEach((slide, index) => {
+        setTimeout(() => {
+          const link = document.createElement("a");
+          link.href = slide.url;
+          link.download = slide.fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }, index * 120);
+      });
+    }
+
+    function renderSlides(slides) {
+      currentSlides = slides.slice();
+      currentSlideIndex = 0;
+      const result = document.getElementById("result");
+      const isMulti = slides.length > 1;
+      result.innerHTML = `
+        <div id="previewShell">
+          <div class="previewCarousel">
+            <button class="previewArrow left ${isMulti ? "" : "hidden"}" type="button" onclick="showSlide(-1)">&lsaquo;</button>
+            <div class="previewStage">
+              <div class="asset-preview-card">
+                <div class="asset-preview-file" id="activePreviewType">RBXM</div>
+                <div class="template-grid">
+                  <div class="blue">RB</div><div class="red">XM</div><div class="yellow">DEV</div><div class="blue">PK</div>
+                  <div class="green">RB</div><div class="red">X</div><div class="yellow">AS</div><div class="blue">SET</div>
+                  <div class="yellow">ST</div><div class="green">UD</div><div class="red">IO</div><div class="blue">OK</div>
+                </div>
+                <div class="asset-preview-copy">
+                  <strong id="activePreviewName">roblox-dev-asset.rbxm</strong>
+                  <span id="activePreviewCopy">Native Roblox model format ready for Studio import.</span>
+                </div>
+              </div>
+            </div>
+            <button class="previewArrow right ${isMulti ? "" : "hidden"}" type="button" onclick="showSlide(1)">&rsaquo;</button>
+          </div>
+        </div>
+        <div id="metaRow">
+          <div class="metaPill">Asset Pack Ready</div>
+          <div class="metaPill" id="activeAssetId"></div>
+          <div class="metaPill" id="activeAssetType"></div>
+          <div class="metaPill" id="activeAssetSize"></div>
+          <div class="metaPill" id="slideCounter">${isMulti ? ("1 of " + slides.length) : "Single Asset"}</div>
+        </div>
+        <div id="actionRow">
+          <a id="downloadBtn" href="#">Save Asset Pack</a>
+          ${isMulti ? '<button id="downloadAllBtn" type="button" onclick="downloadAllSlides()">Download All</button>' : ""}
+        </div>
+      `;
+      updateCarouselView();
     }
 
     function formatFileSize(bytes) {
@@ -1040,147 +1849,63 @@
       return size + " B";
     }
 
-    function getToolShowcaseIcon(kind) {
-      const icons = {
-        spark: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l2.9 8.1L35 17l-8.1 2.9L24 28l-2.9-8.1L13 17l8.1-2.9L24 6z"></path><path d="M36 26l1.8 5 5 1.8-5 1.8-1.8 5-1.8-5-5-1.8 5-1.8 1.8-5z"></path><path d="M13 28l1.5 4.1 4.1 1.5-4.1 1.5L13 39l-1.5-4.1-4.1-1.5 4.1-1.5L13 28z"></path></svg>`,
-        hat: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 26c1.9-5.8 6.1-9 10-9s8.1 3.2 10 9"></path><path d="M8 28.5c4.9-2.7 10.4-4 16-4s11.1 1.3 16 4"></path><path d="M10 29v3.5c0 2.5 6.3 4.5 14 4.5s14-2 14-4.5V29"></path></svg>`,
-        calc: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="13" y="7" width="22" height="34" rx="5"></rect><rect x="17" y="12" width="14" height="6" rx="2"></rect><path d="M18 25h4"></path><path d="M18 31h4"></path><path d="M18 37h4"></path><path d="M26 25h4"></path><path d="M26 31h4"></path><path d="M26 37h4"></path></svg>`,
-        media: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="11" width="32" height="26" rx="5"></rect><circle cx="17" cy="19" r="3"></circle><path d="M13 32l7-7 5 5 5-4 5 6"></path></svg>`,
-        audio: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 29h5l7 7V12l-7 7h-5z"></path><path d="M32 18c2.8 2 4.5 5.2 4.5 8.5S34.8 33 32 35"></path><path d="M35.5 13.5c4.1 3.1 6.5 7.8 6.5 13s-2.4 9.9-6.5 13"></path></svg>`,
-        texture: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="10" y="10" width="28" height="28" rx="5"></rect><path d="M19.5 10v28"></path><path d="M28.5 10v28"></path><path d="M10 19.5h28"></path><path d="M10 28.5h28"></path></svg>`,
-        rig: `<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="11" r="4"></circle><path d="M24 15v10"></path><path d="M24 19l-8 4"></path><path d="M24 19l8 4"></path><path d="M24 25l-6 10"></path><path d="M24 25l6 10"></path><path d="M18 35h12"></path></svg>`
-      };
-      return icons[kind] || icons.spark;
-    }
-
-    function updateResultView() {
-      if (!currentSlides.length) return;
-      const active = currentSlides[currentSlideIndex];
-      document.getElementById("activeAssetId").textContent = "ID " + active.id;
-      document.getElementById("activeAssetType").textContent = active.extension.toUpperCase();
-      document.getElementById("activeAssetSize").textContent = active.sizeLabel;
-      document.getElementById("slideCounter").textContent = currentSlides.length > 1 ? (currentSlideIndex + 1) + " of " + currentSlides.length : "Single Asset";
-      const downloadBtn = document.getElementById("downloadBtn");
-      downloadBtn.href = active.url;
-      downloadBtn.download = active.fileName;
-    }
-
-    function showSlide(direction) {
-      if (currentSlides.length < 2) return;
-      currentSlideIndex = (currentSlideIndex + direction + currentSlides.length) % currentSlides.length;
-      updateResultView();
-    }
-
-    function downloadAllSlides() {
-      currentSlides.forEach((item, index) => {
-        setTimeout(() => {
-          const link = document.createElement("a");
-          link.href = item.url;
-          link.download = item.fileName;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }, index * 140);
-      });
-    }
-
-    function renderSlides(files) {
-      currentSlides = files.slice();
-      currentSlideIndex = 0;
-      const result = document.getElementById("result");
-      const isMulti = files.length > 1;
-
-      result.innerHTML = `
-        <div id="previewShell">
-          <div id="placeholderAsset">
-            <div class="asset-file-icon">RBXM</div>
-            <div class="asset-grid">
-              <div class="blue">PK</div><div class="red">3D</div><div class="yellow">RB</div><div class="blue">XM</div>
-              <div class="green">DEV</div><div class="red">AS</div><div class="yellow">SET</div><div class="blue">PACK</div>
-              <div class="yellow">SAVE</div><div class="green">TO</div><div class="red">ST</div><div class="blue">UDIO</div>
-            </div>
-            <p>Developer marketplace asset ready to save.</p>
-          </div>
-        </div>
-        <div id="metaRow">
-          <div class="metaPill">Asset Pack Ready</div>
-          <div class="metaPill" id="activeAssetId"></div>
-          <div class="metaPill" id="activeAssetType"></div>
-          <div class="metaPill" id="activeAssetSize"></div>
-          <div class="metaPill" id="slideCounter">${isMulti ? "1 of " + files.length : "Single Asset"}</div>
-        </div>
-        <div id="actionRow">
-          ${isMulti ? '<button class="action-btn" type="button" onclick="showSlide(-1)">&lsaquo; Previous</button>' : ""}
-          <a class="download-link" id="downloadBtn" href="#">Save Asset Pack</a>
-          ${isMulti ? '<button class="action-btn" type="button" onclick="showSlide(1)">Next &rsaquo;</button>' : ""}
-          ${isMulti ? '<button class="action-btn" type="button" onclick="downloadAllSlides()">Download All</button>' : ""}
-        </div>
-      `;
-
-      updateResultView();
-    }
-
     async function fetchDeveloperAssetFile(id) {
-      const token = getStoredToken();
-      const headers = token ? { Authorization: "Bearer " + token } : {};
-      const res = await fetch(buildDeveloperAssetFetchUrl(id), { headers });
-
+      const res = await fetch(buildDeveloperAssetFetchUrl(id), { headers: { Authorization: "Bearer " + getStoredToken() } });
       if (!res.ok) {
         let message = "Failed to fetch developer asset";
         try {
           const data = await res.json();
           if (data && data.error) message = data.error;
-        } catch (_error) {}
+        } catch (_err) {}
         throw new Error(message);
       }
-
       const blob = await res.blob();
+      await postTemplateLog(id);
       const extension = String(res.headers.get("X-Roblox-Asset-Extension") || "rbxm").trim().toLowerCase() || "rbxm";
-      return {
-        id: id,
-        url: URL.createObjectURL(blob),
-        fileName: "roblox-dev-asset-" + id + "." + extension,
-        extension: extension,
-        sizeLabel: formatFileSize(blob.size)
-      };
+      return { id: id, url: URL.createObjectURL(blob), fileName: "roblox-dev-asset-" + id + "." + extension, extension: extension, sizeLabel: formatFileSize(blob.size) };
     }
 
-    async function generateDeveloperAsset() {
+    async function generate() {
       if (!adminVerified) return;
-      const ids = normalizeIds(assetIdInput.value.trim());
+      const rawValue = document.getElementById("robloxId").value.trim();
+      const ids = normalizeIds(rawValue);
       const status = document.getElementById("status");
       const result = document.getElementById("result");
-      const button = document.getElementById("assetButton");
-
+      const button = document.getElementById("templateButton");
       if (!ids.length) { status.className = "error"; status.innerText = "Enter at least one Roblox asset ID."; return; }
-      if (ids.length > 10) { status.className = "error"; status.innerText = "Use 10 asset IDs or fewer at a time."; return; }
+      if (ids.length > 5) { status.className = "error"; status.innerHTML = '<span class="plus-word">Plus</span> users can download up to 5 asset packs at a time.'; return; }
       if (ids.some((id) => !/^\d+$/.test(id))) { status.className = "error"; status.innerText = "Use only Roblox asset IDs separated by commas."; return; }
 
+      if (ids.length > 1) {
+        const hasPlus = await bootstrapPlusStatus();
+        if (!hasPlus) {
+          status.className = "error";
+          status.innerHTML = 'Must be a <span class="plus-word">Plus</span> subscriber for multi-download. <a href="./subscriptions"><span class="plus-word">Upgrade to Plus</span></a>';
+          return;
+        }
+      }
+
       status.className = "";
-      status.innerText = ids.length > 1 ? "Fetching developer assets..." : "Fetching developer asset...";
+      status.innerText = ids.length > 1 ? "Fetching asset packs..." : "Fetching asset pack...";
       result.innerHTML = buildDefaultPreview();
       button.disabled = true;
-      button.textContent = ids.length > 1 ? "Loading Asset Packs..." : "Loading...";
+      button.innerText = ids.length > 1 ? "Loading Asset Packs..." : "Loading...";
 
       try {
-        const files = await Promise.all(ids.map((id) => fetchDeveloperAssetFile(id)));
+        const slides = await Promise.all(ids.map((id) => fetchDeveloperAssetFile(id)));
         status.className = "success";
         status.innerText = ids.length > 1 ? "Asset packs found. Ready to download." : "Asset pack found. Ready to download.";
-        renderSlides(files);
+        renderSlides(slides);
         rememberToolActivity("Developer Asset Downloader");
-      } catch (error) {
+      } catch (err) {
         status.className = "error";
-        status.innerText = error.message || "Failed to fetch developer asset";
+        status.innerText = err.message || "Failed to fetch developer asset";
         result.innerHTML = buildDefaultPreview();
       } finally {
         button.disabled = false;
-        button.textContent = "Download Asset Pack";
+        button.innerText = "Download Asset Pack";
       }
     }
-
-    window.generateDeveloperAsset = generateDeveloperAsset;
-    window.showSlide = showSlide;
-    window.downloadAllSlides = downloadAllSlides;
 
     function updateShowcaseProgress() {
       if (!showcaseProgress) return;
@@ -1197,10 +1922,7 @@
 
     function renderToolSlide() {
       const tool = toolsData[activeToolIndex];
-      document.getElementById("slidePills").innerHTML = `
-        <span class="tool-pill">Other Tool</span>
-        ${tool.plus ? '<span class="tool-pill plus"><span class="plus-word">Plus</span> Required</span>' : '<span class="tool-pill">Free Access</span>'}
-      `;
+      document.getElementById("slidePills").innerHTML = '<span class="tool-pill">Other Tool</span>' + (tool.plus ? '<span class="tool-pill plus"><span class="plus-word">Plus</span> Required</span>' : '<span class="tool-pill">Free Access</span>');
       document.getElementById("slideName").textContent = tool.name;
       document.getElementById("slideDesc").textContent = tool.desc;
       document.getElementById("slideGlyph").innerHTML = getToolShowcaseIcon(tool.icon);
@@ -1233,37 +1955,59 @@
       restartShowcaseTimer();
     }
 
-    function openCurrentTool() {
+    function showPlusGate() { document.getElementById("plusGate").classList.add("open"); }
+    function hidePlusGate() { document.getElementById("plusGate").classList.remove("open"); }
+
+    async function openCurrentTool() {
       const tool = toolsData[activeToolIndex];
-      window.location.href = tool.href;
+      if (!tool.plus) { window.location.href = tool.href; return; }
+      if (knownPlus === true) { window.location.href = tool.href; return; }
+      const hasPlus = await bootstrapPlusStatus();
+      if (hasPlus) { window.location.href = tool.href; return; }
+      showPlusGate();
     }
 
-    function initPage() {
-      document.getElementById("assetButton").addEventListener("click", generateDeveloperAsset);
-      document.getElementById("prevTool").addEventListener("click", () => goToTool(activeToolIndex - 1));
-      document.getElementById("nextTool").addEventListener("click", () => goToTool(activeToolIndex + 1));
-      document.getElementById("openTool").addEventListener("click", openCurrentTool);
-      showcaseViewport.addEventListener("mouseenter", () => {
-        if (showcaseTimer) clearInterval(showcaseTimer);
-        if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
-      });
-      showcaseViewport.addEventListener("mouseleave", restartShowcaseTimer);
-      assetIdInput.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" && !event.shiftKey) {
-          event.preventDefault();
-          generateDeveloperAsset();
-        }
-      });
+    document.getElementById("prevTool").addEventListener("click", () => goToTool(activeToolIndex - 1));
+    document.getElementById("nextTool").addEventListener("click", () => goToTool(activeToolIndex + 1));
+    document.getElementById("openTool").addEventListener("click", openCurrentTool);
+    document.getElementById("closeGate").addEventListener("click", hidePlusGate);
+    document.getElementById("plusGate").addEventListener("click", (e) => { if (e.target.id === "plusGate") hidePlusGate(); });
+    showcaseViewport.addEventListener("mouseenter", () => {
+      if (showcaseTimer) clearInterval(showcaseTimer);
+      if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
+    });
+    showcaseViewport.addEventListener("mouseleave", restartShowcaseTimer);
+    document.getElementById("robloxId").addEventListener("keydown", function (event) {
+      if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); generate(); }
+    });
 
+    async function initPage() {
       document.getElementById("result").innerHTML = buildDefaultPreview();
       renderToolSlide();
       restartShowcaseTimer();
+      bootstrapPlusStatus();
+      await ensureAdminAccess();
     }
 
-    ensureAdminAccess().then(function (allowed) {
-      if (allowed) initPage();
-    });
+    initPage();
+  </script>
+  <script>
+    (function () {
+      var cover = document.getElementById("templateTutorialCover");
+      if (!cover) return;
+      cover.addEventListener("click", function () {});
+    })();
   </script>
   <script src="./global-shell.js"></script>
 </body>
-</html>
+
+
+
+
+
+
+
+
+
+
+

@@ -4133,42 +4133,84 @@ app.get("/developer-asset", async (req, res) => {
 
   try {
     await requireAdminUser(req);
-    const candidateUrls = [
-      `https://assetdelivery.roblox.com/v2/assetId/${id}`,
-      `https://assetdelivery.roblox.com/v1/assetId/${id}`,
-      `https://assetdelivery.roblox.com/v1/asset/?id=${id}`
-    ];
     let assetFetch = null;
     let extension = "";
     let lastFailure = "";
+    const pendingIds = [id];
+    const visitedIds = new Set();
+    const directUrlPattern = /https?:\/\/[^\s"'<>]+/i;
 
-    for (const assetUrl of candidateUrls) {
-      const currentFetch = await fetchBuffer(assetUrl);
-      const bodyText = currentFetch.buffer.toString("utf8");
+    while (pendingIds.length > 0 && !assetFetch) {
+      const currentId = String(pendingIds.shift() || "").trim();
+      if (!currentId || visitedIds.has(currentId)) continue;
+      visitedIds.add(currentId);
 
-      if (isAuthRequiredResponse(bodyText)) {
-        return res.status(403).json({
-          error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
-        });
+      const candidateUrls = [
+        `https://assetdelivery.roblox.com/v2/assetId/${currentId}`,
+        `https://assetdelivery.roblox.com/v1/assetId/${currentId}`,
+        `https://assetdelivery.roblox.com/v1/asset/?id=${currentId}`
+      ];
+
+      for (const assetUrl of candidateUrls) {
+        const currentFetch = await fetchBuffer(assetUrl);
+        const bodyText = currentFetch.buffer.toString("utf8");
+
+        if (isAuthRequiredResponse(bodyText)) {
+          return res.status(403).json({
+            error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
+          });
+        }
+
+        if (!currentFetch.response.ok) {
+          lastFailure = `assetdelivery ${currentFetch.response.status}`;
+          continue;
+        }
+
+        const currentExtension = guessRobloxAssetFileExtension(
+          currentFetch.response.headers.get("content-type") || "",
+          currentFetch.buffer
+        );
+
+        if (currentExtension === "rbxm" || currentExtension === "rbxmx") {
+          assetFetch = currentFetch;
+          extension = currentExtension;
+          break;
+        }
+
+        const directUrlMatch = bodyText.match(directUrlPattern);
+        if (directUrlMatch && /^https?:\/\//i.test(directUrlMatch[0])) {
+          const nestedFetch = await fetchBuffer(directUrlMatch[0]);
+          const nestedText = nestedFetch.buffer.toString("utf8");
+
+          if (isAuthRequiredResponse(nestedText)) {
+            return res.status(403).json({
+              error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
+            });
+          }
+
+          if (nestedFetch.response.ok) {
+            const nestedExtension = guessRobloxAssetFileExtension(
+              nestedFetch.response.headers.get("content-type") || "",
+              nestedFetch.buffer
+            );
+
+            if (nestedExtension === "rbxm" || nestedExtension === "rbxmx") {
+              assetFetch = nestedFetch;
+              extension = nestedExtension;
+              break;
+            }
+          }
+        }
+
+        const referencedIds = extractReferencedAssetIds(bodyText);
+        for (const nextId of referencedIds) {
+          if (!visitedIds.has(nextId)) {
+            pendingIds.push(nextId);
+          }
+        }
+
+        lastFailure = `unexpected asset type ${currentExtension || "unknown"}`;
       }
-
-      if (!currentFetch.response.ok) {
-        lastFailure = `assetdelivery ${currentFetch.response.status}`;
-        continue;
-      }
-
-      const currentExtension = guessRobloxAssetFileExtension(
-        currentFetch.response.headers.get("content-type") || "",
-        currentFetch.buffer
-      );
-
-      if (currentExtension === "rbxm" || currentExtension === "rbxmx") {
-        assetFetch = currentFetch;
-        extension = currentExtension;
-        break;
-      }
-
-      lastFailure = `unexpected asset type ${currentExtension || "unknown"}`;
     }
 
     if (!assetFetch || !extension) {
