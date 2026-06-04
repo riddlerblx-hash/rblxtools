@@ -1853,8 +1853,14 @@
       bakeStatus: document.getElementById("bakeStatus")
     };
 
+    let pageLockRedirectTimer = null;
+
     function clearPageLockOverlay() {
       if (!els.plusGate) return;
+      if (pageLockRedirectTimer) {
+        window.clearInterval(pageLockRedirectTimer);
+        pageLockRedirectTimer = null;
+      }
       els.plusGate.classList.remove("open", "page-plus-lock");
     }
 
@@ -1896,13 +1902,14 @@
 
       const countdownEl = document.getElementById("pagePlusRedirectCountdown");
       let secondsLeft = 5;
-      const timer = window.setInterval(function () {
+      pageLockRedirectTimer = window.setInterval(function () {
         secondsLeft -= 1;
         if (countdownEl && secondsLeft > 0) {
           countdownEl.textContent = "Redirecting in " + secondsLeft + " seconds...";
         }
         if (secondsLeft <= 0) {
-          window.clearInterval(timer);
+          window.clearInterval(pageLockRedirectTimer);
+          pageLockRedirectTimer = null;
           window.location.href = "./subscriptions";
         }
       }, 1000);
@@ -1982,10 +1989,17 @@
         payload.plus === true ||
         payload.isPlus === true ||
         payload.hasPlus === true ||
+        payload.premiumActive === true ||
         payload.plusActive === true ||
         payload.subscription === "plus" ||
         payload.plan === "plus" ||
-        payload.tier === "plus"
+        payload.tier === "plus" ||
+        (payload.user && (
+          payload.user.premiumActive === true ||
+          payload.user.plus === true ||
+          payload.user.isPlus === true ||
+          payload.user.plan === "plus"
+        ))
       );
     }
 
@@ -2077,12 +2091,17 @@
         }
 
         const payload = await response.json().catch(() => null);
-        const hasPlus = hasPlusFromPayload(payload);
+        const hasPlus = hasPlusFromPayload(payload) || hasPlusFromPayload(payload && payload.user ? payload.user : null);
         writeCachedPlusStatus(hasPlus);
         return hasPlus ? { ok: true } : { ok: false, reason: "plus" };
       } catch (_error) {
         return readCachedPlusStatus() === true ? { ok: true } : { ok: false, reason: "plus" };
       }
+    }
+
+    function applyLivePlusAccess(hasPlus) {
+      writeCachedPlusStatus(hasPlus);
+      showAccessGate(hasPlus ? "ok" : "plus");
     }
 
     function buildCouponCountdownText() {
@@ -2923,6 +2942,18 @@
     setInterval(pollCouponStatus, 30000);
 
     showAccessGate("checking");
+    window.addEventListener("rblxtools-membership-updated", function (event) {
+      const detail = event && event.detail ? event.detail : {};
+      if (detail && detail.user === null) return;
+      applyLivePlusAccess(Boolean(detail && (detail.premiumActive === true || detail.plan === "plus")));
+    });
+    window.addEventListener("storage", function (event) {
+      if (!event || (event.key !== "rblxtools_plus_cache" && event.key !== "rblxtools_auth_user")) return;
+      const cached = readCachedPlusStatus();
+      if (cached !== null) {
+        applyLivePlusAccess(cached === true);
+      }
+    });
 
     fetchPlusStatus().then((status) => {
       showAccessGate(status.ok ? "ok" : status.reason);

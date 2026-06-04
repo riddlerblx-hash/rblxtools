@@ -3419,6 +3419,7 @@ app.post("/admin/grant-plus", async (req, res) => {
       })
     );
 
+    await refreshMembershipStateForConnectedUser(updatedUser || targetUser);
     emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.days + " days of complimentary Plus.");
     return res.json({
       ok: true,
@@ -3467,6 +3468,7 @@ app.post("/admin/remove-plus", async (req, res) => {
       })
     );
 
+    await refreshMembershipStateForConnectedUser(updatedUser || targetUser);
     emitModerationLog(defaultChatRoom, "Complimentary Plus was removed from " + getActionTargetLabel(targetUser) + ".");
     return res.json({
       ok: true,
@@ -4985,6 +4987,41 @@ function updateConnectedMemberProfile(room, userId, updater) {
   return updated;
 }
 
+async function refreshMembershipStateForConnectedUser(targetUser) {
+  if (!targetUser?.id) {
+    return null;
+  }
+
+  const publicUser = buildPublicUser(targetUser);
+  const isPlus = Boolean(publicUser.premiumActive);
+  const plan = publicUser.plan || "free";
+
+  updateConnectedMemberProfile(defaultChatRoom, targetUser.id, (profile) => ({
+    ...profile,
+    isPlus,
+    plan,
+  }));
+
+  updateRecentMessagesForUser(defaultChatRoom, targetUser.id, (message) => ({
+    ...message,
+    isPlus,
+    plan,
+    badge: isPlus ? "Plus" : "Free Plan",
+  }));
+
+  emitToUserInRoom(defaultChatRoom, targetUser.id, "membership-state", {
+    ok: true,
+    user: publicUser,
+    plan,
+    premiumActive: isPlus,
+    stripeSubscriptionStatus: publicUser.stripeSubscriptionStatus || null,
+    complimentaryExpiresAt: publicUser.complimentaryExpiresAt || null,
+  });
+
+  await refreshModerationStateForConnectedUser(targetUser);
+  return publicUser;
+}
+
 function emitToUserInRoom(room, userId, eventName, payload) {
   const users = rooms.get(room);
   if (!users || !userId) {
@@ -5029,11 +5066,7 @@ async function finalizeChatRain(room, reason = "completed") {
   for (const winner of winners) {
     try {
       const grantResult = await grantComplimentaryPlusToUser(winner.userId, rain.days);
-      updateConnectedMemberProfile(room, winner.userId, (profile) => ({
-        ...profile,
-        isPlus: true,
-        plan: "plus",
-      }));
+      await refreshMembershipStateForConnectedUser(grantResult.user || { ...winner, id: winner.userId });
       emitToUserInRoom(room, winner.userId, "special-action-result", {
         type: "chat-rain",
         ok: true,
@@ -5232,11 +5265,7 @@ io.on("connection", (socket) => {
       const grantResult = await grantComplimentaryPlusToUser(memberProfile.userId, drop.days);
       memberProfile.isPlus = true;
       memberProfile.plan = "plus";
-      updateConnectedMemberProfile(currentRoom, memberProfile.userId, (profile) => ({
-        ...profile,
-        isPlus: true,
-        plan: "plus",
-      }));
+      await refreshMembershipStateForConnectedUser(grantResult.user || { ...memberProfile, id: memberProfile.userId });
       drop.claimedBy.push({
         userId: memberProfile.userId,
         username: memberProfile.username,

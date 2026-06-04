@@ -281,9 +281,31 @@
     try {
       if (user && typeof user === "object") {
         localStorage.setItem(USER_KEY, JSON.stringify(user));
+        localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
+          isPlus: hasPlusFromPayload(user),
+          updatedAt: Date.now()
+        }));
       } else {
         localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(PLUS_STATUS_KEY);
       }
+    } catch (_error) {}
+  }
+
+  function writeCachedPlusStatus(isPlus) {
+    try {
+      localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
+        isPlus: Boolean(isPlus),
+        updatedAt: Date.now()
+      }));
+    } catch (_error) {}
+  }
+
+  function dispatchMembershipUpdate(detail) {
+    try {
+      window.dispatchEvent(new CustomEvent("rblxtools-membership-updated", {
+        detail: detail || {}
+      }));
     } catch (_error) {}
   }
 
@@ -1314,10 +1336,21 @@
         applyModerationState(moderation);
       });
 
+      shellState.socket.on("membership-state", function (payload) {
+        applyMembershipPayload(payload);
+      });
+
       shellState.socket.on("special-action-result", function (result) {
         if (!result) return;
         if (result.ok === true && (result.type === "claim-drop" || result.type === "chat-rain") && result.awarded && shellState.currentUser) {
-          shellState.currentUser.plan = "plus";
+          applyMembershipPayload({
+            user: Object.assign({}, getCachedAuthUser() || {}, {
+              id: shellState.currentUser.userId || "",
+              username: shellState.currentUser.username || "",
+              plan: "plus",
+              premiumActive: true
+            })
+          });
           if (shellState.chatList) {
             renderChatMessages(shellState.chatList, shellState.chatMessages);
           }
@@ -1699,9 +1732,59 @@
     if (!payload || typeof payload !== "object") return false;
     return Boolean(
       payload.plus === true || payload.isPlus === true || payload.hasPlus === true ||
-      payload.plusActive === true || payload.subscription === "plus" || payload.plan === "plus" ||
-      payload.tier === "plus" || (payload.user && payload.user.premiumActive === true)
+      payload.premiumActive === true || payload.plusActive === true ||
+      payload.subscription === "plus" || payload.plan === "plus" ||
+      payload.tier === "plus" ||
+      (payload.user && (
+        payload.user.premiumActive === true ||
+        payload.user.plus === true ||
+        payload.user.isPlus === true ||
+        payload.user.plan === "plus"
+      ))
     );
+  }
+
+  function buildUserStateFromPayload(payload, moderationOverride) {
+    var user = payload && payload.user ? payload.user : payload;
+    if (!user || typeof user !== "object") return null;
+
+    var plus = hasPlusFromPayload(payload) || hasPlusFromPayload(user);
+    var displayName = getPreferredUserName(user, payload);
+    return {
+      loggedIn: true,
+      plan: plus ? "plus" : "free",
+      message: plus
+        ? "You are browsing this website as a Plus subscriber. Thank you for your support" + (displayName ? ", " + displayName : "") + "."
+        : "You are browsing this website as a free plan user" + (displayName ? ", " + displayName : "") + ".",
+      userId: user && user.id ? String(user.id) : "",
+      username: user && user.username ? String(user.username) : "",
+      displayName: displayName,
+      isAdmin: Boolean(user && user.isAdmin),
+      moderation: moderationOverride || (payload && payload.moderation ? payload.moderation : shellState.moderation)
+    };
+  }
+
+  function applyMembershipPayload(payload) {
+    var nextState = buildUserStateFromPayload(payload, null);
+    if (!nextState) return;
+    if (shellState.currentUser && shellState.currentUser.userId && nextState.userId && String(shellState.currentUser.userId) !== String(nextState.userId)) {
+      return;
+    }
+
+    var user = payload && payload.user ? payload.user : payload;
+    var cachedUser = getCachedAuthUser() || {};
+    var mergedUser = Object.assign({}, cachedUser, user || {});
+    saveCachedAuthUser(mergedUser);
+    writeCachedPlusStatus(nextState.plan === "plus");
+    updateAuthUi(nextState);
+    if (shellState.socket && shellState.socketReady) {
+      shellState.socket.emit("join-room", getSocketChatIdentity());
+    }
+    dispatchMembershipUpdate({
+      user: mergedUser,
+      plan: nextState.plan,
+      premiumActive: nextState.plan === "plus"
+    });
   }
 
   function getImmediateUserState() {
@@ -2094,6 +2177,16 @@
         if (shellState.socket && shellState.socketReady) {
           shellState.socket.emit("join-room", getSocketChatIdentity());
         }
+        return;
+      }
+      if (event.key === USER_KEY || event.key === PLUS_STATUS_KEY) {
+        var nextState = getImmediateUserState();
+        updateAuthUi(nextState);
+        dispatchMembershipUpdate({
+          user: getCachedAuthUser(),
+          plan: nextState.plan,
+          premiumActive: nextState.plan === "plus"
+        });
       }
     });
     updateAuthUi(initialState);
