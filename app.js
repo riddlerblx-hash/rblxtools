@@ -1562,6 +1562,60 @@ function extractReferencedAssetIds(text) {
   return Array.from(ids);
 }
 
+function collectCreatorStoreDetailIds(payload) {
+  const ids = new Set();
+  const candidatePaths = [
+    "id",
+    "assetId",
+    "asset.id",
+    "item.id",
+    "item.assetId",
+    "model.id",
+    "model.assetId",
+    "sourceAssetId",
+    "rootAssetId",
+    "asset.rootAssetId",
+    "asset.sourceAssetId",
+    "item.rootAssetId",
+    "item.sourceAssetId",
+    "item.modelId",
+    "asset.modelId",
+    "underlyingAssetId",
+    "asset.underlyingAssetId",
+    "item.underlyingAssetId",
+  ];
+
+  function readPath(source, path) {
+    const parts = path.split(".");
+    let value = source;
+    for (const part of parts) {
+      if (!value || typeof value !== "object" || !(part in value)) {
+        return undefined;
+      }
+      value = value[part];
+    }
+    return value;
+  }
+
+  function maybeAdd(value) {
+    if (typeof value === "string" && /^[0-9]+$/.test(value)) ids.add(value);
+    if (typeof value === "number" && Number.isFinite(value)) ids.add(String(value));
+  }
+
+  for (const path of candidatePaths) {
+    maybeAdd(readPath(payload, path));
+  }
+
+  try {
+    const serialized = JSON.stringify(payload || {});
+    for (const id of extractReferencedAssetIds(serialized)) {
+      ids.add(String(id));
+    }
+  } catch (_error) {}
+
+  return Array.from(ids);
+}
+
 function extractMeshId(text) {
   const contentMeshMatch = text.match(
     /<Content name="MeshId">[\s\S]*?<url>([\s\S]*?)<\/url>[\s\S]*?<\/Content>/i
@@ -4136,7 +4190,11 @@ app.get("/developer-asset", async (req, res) => {
     let assetFetch = null;
     let extension = "";
     let lastFailure = "";
-    const pendingIds = [id];
+    const detailPayload = await fetchJson(`https://apis.roblox.com/toolbox-service/v2/assets/${id}`, {
+      includeCookie: true,
+    });
+    const detailIds = collectCreatorStoreDetailIds(detailPayload);
+    const pendingIds = [id, ...detailIds.filter((candidate) => candidate && candidate !== id)];
     const visitedIds = new Set();
     const directUrlPattern = /https?:\/\/[^\s"'<>]+/i;
 

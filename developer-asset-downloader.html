@@ -1856,7 +1856,18 @@
         try {
           const data = await res.json();
           if (data && data.error) message = data.error;
-        } catch (_err) {}
+        } catch (_err) {
+          try {
+            const text = await res.text();
+            if (text && text.trim()) {
+              message = text.trim().slice(0, 220);
+            } else {
+              message = "Failed to fetch developer asset (" + res.status + ")";
+            }
+          } catch (_textError) {
+            message = "Failed to fetch developer asset (" + res.status + ")";
+          }
+        }
         throw new Error(message);
       }
       const blob = await res.blob();
