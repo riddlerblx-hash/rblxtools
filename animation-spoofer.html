@@ -171,13 +171,15 @@
       text-transform: uppercase;
     }
       #toolMount {
-        display: block;
+        display: flex;
         min-width: 0;
-        align-self: start;
+        min-height: 100%;
+        align-self: stretch;
       }
 
     #toolMount > .tool-stack {
       width: 100%;
+      height: 100%;
     }
 </style>
   <link rel="stylesheet" href="./global-shell.css" />
@@ -193,9 +195,14 @@
         width: 100%;
         display: grid;
         gap: 14px;
+        height: 100%;
       }
 .stack-card {
         width: 100%;
+        min-height: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
         border-radius: 18px;
         padding: 24px 20px 20px;
         border: 1px solid rgba(255, 255, 255, 0.05);

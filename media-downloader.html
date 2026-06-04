@@ -87,6 +87,7 @@
     #toolMount {
       display: flex;
       align-self: stretch;
+      min-height: 100%;
     }
 
     #toolMount > #rblx-media-stack {
@@ -115,7 +116,10 @@
 
     #toolMount #rblxMediaCard {
       margin-bottom: 0 !important;
-      min-height: 0;
+      min-height: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
     }
   </style>
   <link rel="stylesheet" href="./global-shell.css" />
@@ -148,6 +152,7 @@
       max-width: none;
       display: grid;
       gap: 14px;
+      height: 100%;
     }
 
     .rblx-media-card {

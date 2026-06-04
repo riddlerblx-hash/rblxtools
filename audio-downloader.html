@@ -33,18 +33,31 @@
       z-index: 0;
     }
 
+    #toolMount {
+      display: flex;
+      align-self: stretch;
+      min-height: 100%;
+    }
+
     #toolMount #rblx-audio-stack {
+      width: 100%;
+      height: 100%;
       padding: 0 !important;
       align-items: stretch !important;
     }
 
     #toolMount #rblx-audio-shell {
+      width: 100%;
+      height: 100%;
       gap: 0 !important;
     }
 
     #toolMount #rblxAudioCard {
       margin-bottom: 0 !important;
-      min-height: 0;
+      min-height: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
     }
       .tutorial-video-box {
       position: relative;
@@ -129,6 +142,7 @@
       max-width: none;
       display: grid;
       gap: 14px;
+      height: 100%;
     }
 
     .rblx-audio-card {
