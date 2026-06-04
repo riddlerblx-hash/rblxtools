@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RBLX Tools - Developer Asset Downloader</title>
+  <style>
+    :root {
+      --bg-0: #080b11;
+      --bg-1: #0c1119;
+      --bg-2: #151c28;
+      --red-0: rgba(255, 34, 34, 0.26);
+      --red-1: rgba(255, 74, 74, 0.12);
+      --red-2: rgba(255, 124, 124, 0.1);
+      --line: rgba(255, 255, 255, 0.06);
+      --text: #ffffff;
+      --muted: #b8bec7;
+      --card: linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
+      --danger: linear-gradient(180deg, #ff4343, #ff1515);
+      --success: #49ff8a;
+    }
+
+    * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+    html, body { margin: 0; min-height: 100%; color: var(--text); }
+
+    body {
+      overflow-x: hidden;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at 10% 16%, var(--red-0), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(255, 0, 0, 0.12), transparent 24%),
+        radial-gradient(circle at 82% 74%, var(--red-1), transparent 30%),
+        radial-gradient(circle at 22% 86%, var(--red-2), transparent 26%),
+        linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 38%, var(--bg-0) 100%);
+      position: relative;
+      isolation: isolate;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      background:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at center, black 54%, transparent 100%);
+      pointer-events: none;
+      opacity: 0.82;
+      z-index: 0;
+    }
+
+    .bg-wrap {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb { position: absolute; border-radius: 999px; filter: blur(7px); opacity: 0.92; mix-blend-mode: screen; }
+    .orb-one { top: -180px; left: -180px; width: 620px; height: 620px; background: radial-gradient(circle at 35% 35%, rgba(255, 120, 120, 0.3), rgba(255, 0, 0, 0.18), transparent 68%); }
+    .orb-two { top: 10%; right: -210px; width: 560px; height: 560px; background: radial-gradient(circle at 50% 50%, rgba(255, 80, 80, 0.18), rgba(190, 0, 0, 0.16), transparent 70%); }
+    .orb-three { bottom: -250px; left: 10%; width: 760px; height: 760px; background: radial-gradient(circle at 50% 50%, rgba(255, 40, 40, 0.16), rgba(110, 0, 0, 0.12), transparent 72%); }
+    .orb-four { bottom: -160px; right: 2%; width: 460px; height: 460px; background: radial-gradient(circle at 50% 50%, rgba(255, 100, 100, 0.12), rgba(255, 0, 0, 0.10), transparent 74%); }
+
+    main { position: relative; z-index: 2; max-width: 1180px; margin: 0 auto; padding: 24px 14px 34px; }
+    .hero { text-align: center; margin-bottom: 14px; }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 0.95;
+      letter-spacing: -1.5px;
+      font-weight: 900;
+    }
+
+    .hero h1 span { display: block; }
+    .hero h1 span:last-child {
+      margin-top: 4px;
+      background: linear-gradient(180deg, #ffb3b3 0%, #ff2323 88%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      margin: 12px auto 0;
+      max-width: 780px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      font-weight: 600;
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+      align-items: stretch;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      grid-template-rows: auto 1fr;
+      height: 100%;
+    }
+
+    .card {
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background:
+        radial-gradient(circle at top right, rgba(255, 70, 70, 0.12), transparent 34%),
+        var(--card);
+      padding: 20px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+    }
+
+    .badge { display: none !important; }
+    .card h2 { margin: 0; font-size: 34px; line-height: 0.95; letter-spacing: -1px; font-weight: 900; }
+    .card h2 span { display: block; }
+    .card h2 span:last-child { margin-top: 3px; color: #ff2a2a; }
+    .subtitle { margin: 11px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; font-weight: 600; }
+
+    .plus-word {
+      display: inline-block;
+      background: linear-gradient(115deg, #fefefe 0%, #eef1f5 22%, #bcc4ce 42%, #f7f8fb 55%, #9ca5b0 73%, #eef2f6 100%);
+      background-size: 220% 220%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+      font-weight: 900;
+      animation: silverShift 4.5s linear infinite;
+    }
+
+    .price-green {
+      color: #6dff9a;
+      font-weight: 900;
+      text-shadow: 0 0 18px rgba(109, 255, 154, 0.22);
+    }
+
+    @keyframes silverShift {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+
+    .notice {
+      margin-top: 12px;
+      padding: 12px 13px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #d4d8de;
+      font-size: 11px;
+      line-height: 1.55;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .notice code {
+      margin-top: 7px;
+      display: block;
+      color: #ffb5b5;
+      font-size: 10px;
+      line-height: 1.5;
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 78px;
+      margin-top: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 96, 96, 0.7);
+      background: #2f2f33;
+      color: #fff;
+      padding: 12px 14px;
+      outline: none;
+      font-size: 13px;
+      line-height: 1.45;
+      resize: vertical;
+    }
+
+    textarea::placeholder { color: #8f8f93; }
+
+    .btn {
+      width: 100%;
+      min-height: 44px;
+      margin-top: 12px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 12px 24px rgba(255, 20, 20, 0.18);
+    }
+
+    .btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.85; cursor: wait; }
+
+    #status { min-height: 22px; margin-top: 10px; color: #f0f0f0; font-size: 12px; }
+    #status.success { color: var(--success); font-weight: 800; }
+    #status.error { color: #ff7070; font-weight: 800; }
+    #result { margin-top: 12px; }
+
+    #previewShell {
+      background: #1a1a1d;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    #placeholderAsset {
+      width: 100%;
+      min-height: 420px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #20242d, #16191f);
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #9ea7b4;
+      font-weight: 800;
+      text-align: center;
+      overflow: hidden;
+      gap: 14px;
+    }
+
+    .asset-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 62px);
+      grid-template-rows: repeat(3, 62px);
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .asset-grid div {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      color: white;
+      font-size: 20px;
+      font-weight: 900;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    .asset-grid .red { background: linear-gradient(180deg, #ff4e4e, #c61f1f); }
+    .asset-grid .blue { background: linear-gradient(180deg, #39a2ff, #1868c7); }
+    .asset-grid .green { background: linear-gradient(180deg, #37d88d, #19985d); }
+    .asset-grid .yellow { background: linear-gradient(180deg, #ffd34a, #cc9618); }
+
+    .asset-file-icon {
+      width: 88px;
+      height: 104px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      color: #ffb3b3;
+    }
+
+    .result-card {
+      display: grid;
+      gap: 10px;
+    }
+
+    .result-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .metaPill {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #f0f3f8;
+      font-size: 11px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .actionRow {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+
+    .downloadBtn,
+    .secondaryBtn {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      border: 0;
+    }
+
+    .downloadBtn {
+      background: var(--danger);
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(255, 20, 20, 0.18);
+    }
+
+    .secondaryBtn {
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .video-box {
+      border-radius: 12px;
+      border: 1px solid rgba(130, 160, 220, 0.08);
+      background: rgba(17, 20, 26, 0.48);
+      padding: 12px;
+      margin-top: 14px;
+    }
+
+    .video-placeholder {
+      min-height: 220px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 18px;
+      background: linear-gradient(180deg, #252b35, #1c212b);
+      border: 1px dashed rgba(255,255,255,0.16);
+      color: #d7dce4;
+      font-size: 13px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .plus-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .plus-promo { display: grid; gap: 12px; }
+    .plus-topline { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .plus-kicker, .plus-price { font-size: 11px; font-weight: 800; color: #cdd3dc; }
+    .plus-card h3 { margin: 0; font-size: 28px; line-height: 0.95; font-weight: 900; }
+    .plus-card h3 span { display: block; }
+    .plus-card h3 span:last-child { color: #ff2a2a; }
+    .plus-card p { margin: 0; color: #d7dbe2; font-size: 12px; line-height: 1.6; font-weight: 600; }
+
+    .perk-list { display: grid; gap: 10px; }
+    .perk {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      display: grid;
+      gap: 4px;
+    }
+
+    .perk strong { color: #fff; font-size: 12px; }
+    .perk span { color: #cdd3dc; font-size: 11px; line-height: 1.5; font-weight: 600; }
+    .plus-actions { display: grid; gap: 10px; }
+    .plus-link {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      text-decoration: none;
+      color: #fff;
+      background: var(--danger);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .showcase-card {
+      margin-top: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
+      padding: 20px;
+    }
+
+    .showcase-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .showcase-title { margin: 0; font-size: 18px; font-weight: 900; }
+    .slide-viewport { overflow: hidden; border-radius: 16px; }
+    .showcase-layout { display: grid; grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1fr); gap: 16px; align-items: center; }
+    .slide-panel { padding: 18px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; transition: transform 0.22s ease, opacity 0.22s ease; }
+    .slide-panel.animating { opacity: 0.4; transform: translateX(14px); }
+    .logo-preview {
+      min-height: 220px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #50395a, #2d2035);
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo-glyph svg {
+      width: 120px;
+      height: 120px;
+      stroke: #fff;
+      stroke-width: 2.2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .logo-tag {
+      position: absolute;
+      left: 14px;
+      bottom: 14px;
+      min-height: 28px;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      background: rgba(8, 10, 14, 0.3);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+    }
+
+    #slidePills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .tool-pill {
+      min-height: 28px;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .tool-pill.plus { color: #fff; }
+    .tool-name { margin: 0; font-size: 28px; line-height: 1; font-weight: 900; }
+    .tool-desc { margin: 10px 0 0; color: #c9ced6; font-size: 13px; line-height: 1.6; font-weight: 600; }
+    .tool-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .mini-btn {
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .mini-btn.primary { background: var(--danger); border-color: transparent; }
+    .showcase-progress { margin-top: 12px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .showcase-progress span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff6b6b, #ff1f1f); }
+
+    .faq-wrap { margin-top: 14px; display: grid; gap: 8px; }
+    .faq-item { border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); overflow: hidden; }
+    .faq-q {
+      width: 100%;
+      min-height: 54px;
+      padding: 0 14px;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      text-align: left;
+      cursor: pointer;
+    }
+    .faq-a { display: none; padding: 0 14px 14px; color: #c8ced6; font-size: 12px; line-height: 1.55; font-weight: 600; }
+    .faq-item.open .faq-a { display: block; }
+
+    .gate-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(5, 7, 10, 0.72);
+      z-index: 40;
+    }
+
+    .gate-overlay.open { display: flex; }
+    .gate-modal {
+      width: min(100%, 420px);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, #26262b, #1b1b1f);
+      padding: 22px;
+      display: grid;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .gate-modal h3 { margin: 0; font-size: 28px; line-height: 0.95; font-weight: 900; }
+    .gate-modal h3 span { display: block; }
+    .gate-modal p { margin: 0; color: #cbd0d8; font-size: 12px; line-height: 1.6; font-weight: 600; }
+    .gate-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .plans-btn, .close-btn {
+      min-height: 42px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 900;
+      text-decoration: none;
+      border: 0;
+      cursor: pointer;
+    }
+    .plans-btn { background: var(--danger); color: #fff; }
+    .close-btn { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.08); }
+
+    @media (max-width: 960px) {
+      .top-grid { grid-template-columns: 1fr; }
+      .showcase-layout { grid-template-columns: 1fr; }
+      .logo-preview { min-height: 180px; }
+    }
+
+    @media (max-width: 620px) {
+      .asset-grid { grid-template-columns: repeat(4, 52px); grid-template-rows: repeat(3, 52px); }
+      .card h2, .tool-name, .gate-modal h3 { font-size: 26px; }
+      .gate-actions { grid-template-columns: 1fr; }
+      main { padding-left: 10px; padding-right: 10px; }
+    }
+  </style>
+  <script src="./global-shell.js"></script>
+</head>
+<body>
+  <div class="bg-wrap" aria-hidden="true">
+    <div class="orb orb-one"></div>
+    <div class="orb orb-two"></div>
+    <div class="orb orb-three"></div>
+    <div class="orb orb-four"></div>
+  </div>
+
+  <main>
+    <section class="hero">
+      <h1><span>Developer Asset</span><span>Downloader</span></h1>
+      <p>Download supported Roblox creator marketplace model packs and developer assets as RBXM or RBXMX files from one clean page.</p>
+    </section>
+
+    <section class="top-grid">
+      <article class="card">
+        <div class="badge">Developer Marketplace</div>
+        <h2><span>Developer Asset</span><span>Downloader</span></h2>
+        <p class="subtitle">Grab creator marketplace model packs and development assets with a cleaner workflow.</p>
+
+        <div class="notice">
+          Free plan: unlimited downloads 1 by 1. <span class="plus-word">Plus</span>: 2-5 at once with comma-separated IDs.
+          <code>Ex: 118003513749243, 123456789012345</code>
+        </div>
+
+        <textarea id="assetId" placeholder="Enter one Roblox developer asset ID, or comma-separated IDs for Plus"></textarea>
+        <button id="assetButton" class="btn" type="button" onclick="generateDeveloperAsset()">Download Asset Pack</button>
+        <div id="status"></div>
+        <div id="result"></div>
+      </article>
+
+      <div class="side-stack">
+        <article class="card promo-card">
+          <div class="badge">How To Use</div>
+          <h2><span>Quick</span><span>Guide</span></h2>
+          <div class="video-box">
+            <div class="video-placeholder">
+              Paste a Roblox creator marketplace model ID, click download, and the tool will save the pack as an <strong>RBXM</strong> or <strong>RBXMX</strong> file when supported.
+            </div>
+          </div>
+        </article>
+
+        <section class="card plus-card">
+          <div class="plus-promo">
+            <div class="plus-topline">
+              <span class="plus-kicker">RBLXTools Sponsor</span>
+              <span class="plus-price">More power. Less waiting.</span>
+            </div>
+            <h3><span>RBLXTools</span><span><span class="plus-word">Plus</span> Plan</span></h3>
+            <p>RBTools <span class="plus-word">Plus</span> unlocks the premium side of the website with bulk usage upgrades, premium creator tools, cleaner visuals, and extra account cosmetics built for heavy Roblox workflows.</p>
+            <div class="perk-list">
+              <div class="perk"><strong>Bulk downloads and tool usage</strong><span>Use supported tools faster with 2-5 at a time workflows where available.</span></div>
+              <div class="perk"><strong>Premium creator tools</strong><span>Open more advanced asset workflows for Roblox development.</span></div>
+              <div class="perk"><strong>Cleaner website experience</strong><span>Get a more polished premium feel across supported site sections.</span></div>
+            </div>
+            <div class="plus-actions">
+              <p><span class="price-green">$1.00</span> a month for premium tools, creator perks, and a more premium RBLX Tools experience.</p>
+              <a class="plus-link" href="./subscriptions">View Plans</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="showcase-card">
+      <div class="showcase-header">
+        <h3 class="showcase-title">Other Tools</h3>
+      </div>
+      <div class="slide-viewport" id="showcaseViewport">
+        <div class="showcase-layout slide-panel" id="showcasePanel">
+          <div class="logo-preview" id="slideLogoPreview">
+            <div class="logo-glyph" id="slideGlyph"></div>
+            <div class="logo-tag" id="slideTag">TOOL PREVIEW</div>
+          </div>
+          <div>
+            <div id="slidePills"></div>
+            <h3 class="tool-name" id="slideName"></h3>
+            <p class="tool-desc" id="slideDesc"></p>
+            <div class="tool-actions">
+              <button class="mini-btn" type="button" id="prevTool">Previous</button>
+              <button class="mini-btn primary" type="button" id="openTool">Open Tool</button>
+              <button class="mini-btn" type="button" id="nextTool">Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="showcase-progress"><span id="showcaseProgress"></span></div>
+    </section>
+
+    <section class="faq-wrap">
+      <div class="faq-item open">
+        <button class="faq-q" type="button">What does this tool download?</button>
+        <div class="faq-a">It downloads supported Roblox creator marketplace and model assets as RBXM or RBXMX files for development workflows.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button">Do I paste full Roblox URLs?</button>
+        <div class="faq-a">You can paste the numeric ID. If you paste a Roblox asset URL, the downloader will try to pull the ID from it.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button">Why did my file fail?</button>
+        <div class="faq-a">Most common reasons are an invalid ID, a non-model asset type, a restricted asset, or Roblox blocking the delivery request.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button">Does this support multi-download?</button>
+        <div class="faq-a">Yes, but only for <span class="plus-word">Plus</span> accounts, up to 5 asset IDs at once.</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="gate-overlay" id="plusGate">
+    <div class="gate-modal">
+      <h3><span><span class="plus-word">Plus</span> Required</span><span>You Don't Own <span class="plus-word">Plus</span></span></h3>
+      <p>This tool is locked to <span class="plus-word">Plus</span>. Upgrade your plan to unlock it, then come right back.</p>
+      <div class="gate-actions">
+        <a class="plans-btn" href="./subscriptions">View Plans</a>
+        <button class="close-btn" type="button" id="closeGate">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    const TOKEN_KEY = "rblxtools_auth_token";
+    const PROFILE_KEY = "rblxtools_profile_overview";
+    const PLUS_STATUS_KEY = "rblxtools_plus_cache";
+    const SHOWCASE_INTERVAL_MS = 5000;
+
+    let knownPlus = null;
+    let currentDownloads = [];
+    let currentDownloadIndex = 0;
+    let showcaseTimer = null;
+    let showcaseProgressTimer = null;
+    let activeToolIndex = 0;
+
+    const toolsData = [
+      { name: "Template Downloader", desc: "Download supported Roblox clothing templates fast.", href: "./template-downloader", plus: false, icon: "spark", tag: "Template Tool", tone: "linear-gradient(180deg,#50395a,#2d2035)" },
+      { name: "UGC Downloader", desc: "Download supported UGC accessory files for creator workflows.", href: "./ugc-downloader", plus: false, icon: "hat", tag: "UGC Tool", tone: "linear-gradient(180deg,#2a4a6c,#1e2f42)" },
+      { name: "Media Downloader", desc: "Grab supported Roblox media assets from one clean page.", href: "./media-downloader", plus: false, icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#39526a,#1f3140)" },
+      { name: "Audio Downloader", desc: "Fetch supported Roblox audio files with a simpler creator workflow.", href: "./audio-downloader", plus: false, icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#4a4f6d,#262c46)" },
+      { name: "Background Changer", desc: "Restore the official Roblox template background around clothing artwork.", href: "./template-background-changer", plus: false, icon: "spark", tag: "Cleanup Tool", tone: "linear-gradient(180deg,#3e5b47,#23372b)" },
+      { name: "Texture Baker", desc: "Bake matching UGC mesh textures into export-ready model results.", href: "./texture-baker", plus: true, icon: "texture", tag: "Plus Tool", tone: "linear-gradient(180deg,#5d4343,#311d1d)" },
+      { name: "Animation Spoofer", desc: "Pull supported animation assets for faster creator workflows.", href: "./animation-spoofer", plus: true, icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#4b3f5e,#261f33)" }
+    ];
+
+    function getStoredToken() {
+      try { return localStorage.getItem(TOKEN_KEY) || ""; }
+      catch (_error) { return ""; }
+    }
+
+    function hasPlusFromPayload(payload) {
+      if (!payload || typeof payload !== "object") return false;
+      return Boolean(
+        payload.plus === true ||
+        payload.isPlus === true ||
+        payload.hasPlus === true ||
+        payload.plusActive === true ||
+        payload.subscription === "plus" ||
+        payload.plan === "plus" ||
+        payload.tier === "plus"
+      );
+    }
+
+    function readCachedPlusStatus() {
+      try {
+        const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed.isPlus === "boolean") return parsed.isPlus;
+        }
+      } catch (_error) {}
+
+      try {
+        const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+        return hasPlusFromPayload(cachedUser) ? true : null;
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function writeCachedPlusStatus(isPlus) {
+      try {
+        localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
+          isPlus: Boolean(isPlus),
+          updatedAt: Date.now()
+        }));
+      } catch (_error) {}
+    }
+
+    function clearCachedPlusStatus() {
+      try {
+        localStorage.removeItem(PLUS_STATUS_KEY);
+      } catch (_error) {}
+    }
+
+    async function fetchPlusStatus(options) {
+      const token = getStoredToken();
+      if (!token) {
+        clearCachedPlusStatus();
+        return false;
+      }
+
+      const settings = options && typeof options === "object" ? options : {};
+      if (!settings.force) {
+        const cachedStatus = readCachedPlusStatus();
+        if (cachedStatus !== null) {
+          window.setTimeout(function () {
+            fetchPlusStatus({ force: true, background: true });
+          }, 0);
+          return cachedStatus;
+        }
+      }
+
+      try {
+        const premiumResponse = await fetch(API_BASE + "/auth/premium-status", { method: "GET", headers: { Authorization: "Bearer " + token } });
+        if (premiumResponse.ok) {
+          const premiumPayload = await premiumResponse.json().catch(() => null);
+          const hasPlus = hasPlusFromPayload(premiumPayload);
+          writeCachedPlusStatus(hasPlus);
+          return hasPlus;
+        }
+
+        if (premiumResponse.status === 401 || premiumResponse.status === 403) {
+          clearCachedPlusStatus();
+          return false;
+        }
+
+        const response = await fetch(API_BASE + "/auth/me", { method: "GET", headers: { Authorization: "Bearer " + token } });
+        if (!response.ok) return readCachedPlusStatus() === true;
+        const payload = await response.json().catch(() => null);
+        const hasPlus = hasPlusFromPayload(payload);
+        writeCachedPlusStatus(hasPlus);
+        return hasPlus;
+      } catch (_error) {
+        return readCachedPlusStatus() === true;
+      }
+    }
+
+    async function bootstrapPlusStatus() {
+      if (knownPlus === true) return true;
+      if (knownPlus === false) return false;
+      knownPlus = await fetchPlusStatus();
+      return knownPlus;
+    }
+
+    knownPlus = readCachedPlusStatus();
+
+    function getToolUserName(source) {
+      const user = source && typeof source === "object" ? source : {};
+      const displayName = String(user.displayName || user.profileDisplayName || user.publicDisplayName || user.username || user.name || "").trim();
+      if (displayName) return displayName;
+      const email = String(user.email || user.userEmail || user.accountEmail || "").trim();
+      return email ? email.split("@")[0].trim() : "";
+    }
+
+    function getCachedToolUser() {
+      try {
+        const raw = localStorage.getItem("rblxtools_auth_user") || "";
+        const parsed = raw ? JSON.parse(raw) : null;
+        return parsed && typeof parsed === "object" ? parsed : null;
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function getStoredProfileName() {
+      try {
+        const cachedUser = getCachedToolUser();
+        const cachedUserId = String(cachedUser && cachedUser.id || "").trim();
+        const keys = [
+          cachedUserId ? PROFILE_KEY + ":" + cachedUserId : "",
+          PROFILE_KEY,
+          "rblxtools_account_profile",
+          cachedUserId ? "rblxtools_account_profile:" + cachedUserId : "",
+          "rblxtools_profile",
+          cachedUserId ? "rblxtools_profile:" + cachedUserId : ""
+        ].filter(Boolean);
+
+        for (const key of keys) {
+          try {
+            const raw = localStorage.getItem(key) || "";
+            if (!raw) continue;
+            const parsed = JSON.parse(raw);
+            const name = getToolUserName(parsed);
+            if (name) return name;
+          } catch (_error) {}
+        }
+
+        return "";
+      } catch (_error) {
+        return "";
+      }
+    }
+
+    function getActivityNameFromCache() {
+      return getStoredProfileName() || getToolUserName(getCachedToolUser());
+    }
+
+    function rememberToolActivity(toolName) {
+      try {
+        var actorName = String(getActivityNameFromCache() || "Guest").trim() || "Guest";
+        var cacheKey = "rblxtools_tool_activity_cache";
+        var entries = [];
+        try {
+          entries = JSON.parse(localStorage.getItem(cacheKey) || "[]");
+          if (!Array.isArray(entries)) entries = [];
+        } catch (_error) {
+          entries = [];
+        }
+        entries = entries.filter(function (entry) {
+          return entry && typeof entry === "object";
+        }).slice(-79);
+        entries.push({
+          messageId: "",
+          toolName: String(toolName || "").trim(),
+          actorName: actorName,
+          createdAt: new Date().toISOString()
+        });
+        localStorage.setItem(cacheKey, JSON.stringify(entries.slice(-80)));
+      } catch (_error) {}
+    }
+
+    function normalizeIds(rawValue) {
+      return String(rawValue || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+    }
+
+    function buildDeveloperAssetFetchUrl(assetId) {
+      const url = new URL(API_BASE + "/developer-asset");
+      url.searchParams.set("id", String(assetId || "").trim());
+      url.searchParams.set("displayName", getActivityNameFromCache());
+      return url.toString();
+    }
+
+    function formatFileSize(bytes) {
+      const size = Number(bytes || 0);
+      if (!Number.isFinite(size) || size <= 0) return "Unknown Size";
+      if (size >= 1024 * 1024) return (size / (1024 * 1024)).toFixed(2) + " MB";
+      if (size >= 1024) return (size / 1024).toFixed(1) + " KB";
+      return size + " B";
+    }
+
+    function buildDefaultPreview() {
+      return `
+        <div id="previewShell">
+          <div id="placeholderAsset">
+            <div class="asset-file-icon">RBXM</div>
+            <div class="asset-grid">
+              <div class="blue">PK</div><div class="red">3D</div><div class="green">FX</div><div class="yellow">UI</div>
+              <div class="red">RB</div><div class="blue">XM</div><div class="green">DEV</div><div class="yellow">TO</div>
+              <div class="green">AS</div><div class="yellow">SET</div><div class="blue">PA</div><div class="red">CK</div>
+            </div>
+            <p>Your Roblox developer asset pack will pop up here.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateResultView() {
+      if (!currentDownloads.length) return;
+      const active = currentDownloads[currentDownloadIndex];
+      document.getElementById("activeAssetId").textContent = "ID " + active.id;
+      document.getElementById("activeAssetType").textContent = active.extension.toUpperCase();
+      document.getElementById("activeAssetSize").textContent = active.sizeLabel;
+      document.getElementById("slideCounter").textContent = currentDownloads.length > 1
+        ? (currentDownloadIndex + 1) + " of " + currentDownloads.length
+        : "Single Asset";
+      const downloadBtn = document.getElementById("downloadBtn");
+      downloadBtn.href = active.url;
+      downloadBtn.download = active.fileName;
+    }
+
+    function showSlide(direction) {
+      if (currentDownloads.length < 2) return;
+      currentDownloadIndex = (currentDownloadIndex + direction + currentDownloads.length) % currentDownloads.length;
+      updateResultView();
+    }
+
+    function downloadAllSlides() {
+      currentDownloads.forEach((item, index) => {
+        setTimeout(() => {
+          const link = document.createElement("a");
+          link.href = item.url;
+          link.download = item.fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }, index * 140);
+      });
+    }
+
+    function renderDownloads(files) {
+      currentDownloads = files.slice();
+      currentDownloadIndex = 0;
+      const result = document.getElementById("result");
+      const isMulti = files.length > 1;
+
+      result.innerHTML = `
+        <div id="previewShell">
+          <div class="result-card">
+            <div id="placeholderAsset">
+              <div class="asset-file-icon">RBXM</div>
+              <p>Developer marketplace asset ready to save.</p>
+            </div>
+            <div class="result-meta">
+              <div class="metaPill">Asset Pack Ready</div>
+              <div class="metaPill" id="activeAssetId"></div>
+              <div class="metaPill" id="activeAssetType"></div>
+              <div class="metaPill" id="activeAssetSize"></div>
+              <div class="metaPill" id="slideCounter">${isMulti ? `1 of ${files.length}` : "Single Asset"}</div>
+            </div>
+            <div class="actionRow">
+              <button class="secondaryBtn" type="button" ${isMulti ? "" : "style=\"display:none;\""} onclick="showSlide(-1)">Previous File</button>
+              <a class="downloadBtn" id="downloadBtn" href="#">Save Asset Pack</a>
+              <button class="secondaryBtn" type="button" ${isMulti ? "" : "style=\"display:none;\""} onclick="showSlide(1)">Next File</button>
+              ${isMulti ? '<button class="secondaryBtn" type="button" onclick="downloadAllSlides()">Download All</button>' : ""}
+            </div>
+          </div>
+        </div>
+      `;
+
+      updateResultView();
+    }
+
+    async function fetchDeveloperAssetFile(id) {
+      const url = buildDeveloperAssetFetchUrl(id);
+      const res = await fetch(url);
+
+      if (!res.ok) {
+        let message = "Failed to fetch developer asset";
+        try {
+          const data = await res.json();
+          if (data && data.error) message = data.error;
+        } catch (_error) {}
+        throw new Error(message);
+      }
+
+      const blob = await res.blob();
+      const extension = String(res.headers.get("X-Roblox-Asset-Extension") || "rbxm").trim().toLowerCase() || "rbxm";
+      const fileName = `roblox-dev-asset-${id}.${extension}`;
+      const urlObject = URL.createObjectURL(blob);
+
+      return {
+        id: id,
+        url: urlObject,
+        fileName: fileName,
+        extension: extension,
+        sizeLabel: formatFileSize(blob.size)
+      };
+    }
+
+    async function generateDeveloperAsset() {
+      const rawValue = document.getElementById("assetId").value.trim();
+      const ids = normalizeIds(rawValue);
+      const status = document.getElementById("status");
+      const result = document.getElementById("result");
+      const button = document.getElementById("assetButton");
+
+      if (!ids.length) { status.className = "error"; status.innerText = "Enter at least one Roblox asset ID."; return; }
+      if (ids.length > 5) { status.className = "error"; status.innerHTML = '<span class="plus-word">Plus</span> users can download up to 5 asset packs at a time.'; return; }
+      if (ids.some((id) => !/\d{4,}/.test(id))) { status.className = "error"; status.innerText = "Use valid Roblox asset IDs separated by commas."; return; }
+
+      if (ids.length > 1) {
+        const hasPlus = await bootstrapPlusStatus();
+        if (!hasPlus) {
+          status.className = "error";
+          status.innerHTML = 'Must be a <span class="plus-word">Plus</span> subscriber for multi-download. <a href="./subscriptions"><span class="plus-word">Upgrade to Plus</span></a>';
+          return;
+        }
+      }
+
+      status.className = "";
+      status.innerText = ids.length > 1 ? "Fetching developer assets..." : "Fetching developer asset...";
+      result.innerHTML = buildDefaultPreview();
+      button.disabled = true;
+      button.innerText = ids.length > 1 ? "Loading Asset Packs..." : "Loading...";
+
+      try {
+        const files = await Promise.all(ids.map((id) => fetchDeveloperAssetFile(id)));
+        status.className = "success";
+        status.innerText = ids.length > 1 ? "Asset packs found. Ready to download." : "Asset pack found. Ready to download.";
+        renderDownloads(files);
+        rememberToolActivity("Developer Asset Downloader");
+      } catch (error) {
+        status.className = "error";
+        status.innerText = error.message || "Failed to fetch developer asset";
+        result.innerHTML = buildDefaultPreview();
+      } finally {
+        button.disabled = false;
+        button.innerText = "Download Asset Pack";
+      }
+    }
+
+    window.generateDeveloperAsset = generateDeveloperAsset;
+    window.showSlide = showSlide;
+    window.downloadAllSlides = downloadAllSlides;
+
+    function getToolShowcaseIcon(kind) {
+      const icons = {
+        spark: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l2.9 8.1L35 17l-8.1 2.9L24 28l-2.9-8.1L13 17l8.1-2.9L24 6z"></path><path d="M36 26l1.8 5 5 1.8-5 1.8-1.8 5-1.8-5-5-1.8 5-1.8 1.8-5z"></path><path d="M13 28l1.5 4.1 4.1 1.5-4.1 1.5L13 39l-1.5-4.1-4.1-1.5 4.1-1.5L13 28z"></path></svg>`,
+        hat: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 26c1.9-5.8 6.1-9 10-9s8.1 3.2 10 9"></path><path d="M8 28.5c4.9-2.7 10.4-4 16-4s11.1 1.3 16 4"></path><path d="M10 29v3.5c0 2.5 6.3 4.5 14 4.5s14-2 14-4.5V29"></path></svg>`,
+        media: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="11" width="32" height="26" rx="5"></rect><circle cx="17" cy="19" r="3"></circle><path d="M13 32l7-7 5 5 5-4 5 6"></path></svg>`,
+        audio: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 29h5l7 7V12l-7 7h-5z"></path><path d="M32 18c2.8 2 4.5 5.2 4.5 8.5S34.8 33 32 35"></path><path d="M35.5 13.5c4.1 3.1 6.5 7.8 6.5 13s-2.4 9.9-6.5 13"></path></svg>`,
+        texture: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="10" y="10" width="28" height="28" rx="5"></rect><path d="M19.5 10v28"></path><path d="M28.5 10v28"></path><path d="M10 19.5h28"></path><path d="M10 28.5h28"></path></svg>`,
+        rig: `<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="11" r="4"></circle><path d="M24 15v10"></path><path d="M24 19l-8 4"></path><path d="M24 19l8 4"></path><path d="M24 25l-6 10"></path><path d="M24 25l6 10"></path><path d="M18 35h12"></path></svg>`
+      };
+      return icons[kind] || icons.spark;
+    }
+
+    function updateShowcaseProgress() {
+      const showcaseProgress = document.getElementById("showcaseProgress");
+      if (!showcaseProgress) return;
+      showcaseProgress.style.width = "0%";
+      const start = Date.now();
+
+      if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
+      showcaseProgressTimer = setInterval(() => {
+        const elapsed = Date.now() - start;
+        const percent = Math.min(100, (elapsed / SHOWCASE_INTERVAL_MS) * 100);
+        showcaseProgress.style.width = percent + "%";
+        if (percent >= 100) clearInterval(showcaseProgressTimer);
+      }, 200);
+    }
+
+    function renderToolSlide() {
+      const tool = toolsData[activeToolIndex];
+      document.getElementById("slidePills").innerHTML = `
+        <span class="tool-pill">Other Tool</span>
+        ${tool.plus ? '<span class="tool-pill plus"><span class="plus-word">Plus</span> Required</span>' : '<span class="tool-pill">Free Access</span>'}
+      `;
+      document.getElementById("slideName").textContent = tool.name;
+      document.getElementById("slideDesc").textContent = tool.desc;
+      document.getElementById("slideGlyph").innerHTML = getToolShowcaseIcon(tool.icon);
+      document.getElementById("slideTag").textContent = tool.tag;
+      document.getElementById("slideLogoPreview").style.background = tool.tone;
+    }
+
+    function animateToolSlide(nextIndex) {
+      const showcasePanel = document.getElementById("showcasePanel");
+      if (nextIndex === activeToolIndex || !showcasePanel) return;
+      showcasePanel.classList.add("animating");
+      window.setTimeout(() => {
+        activeToolIndex = nextIndex;
+        renderToolSlide();
+        showcasePanel.classList.remove("animating");
+      }, 220);
+    }
+
+    function restartShowcaseTimer() {
+      if (showcaseTimer) clearInterval(showcaseTimer);
+      updateShowcaseProgress();
+      showcaseTimer = setInterval(() => {
+        animateToolSlide((activeToolIndex + 1) % toolsData.length);
+        updateShowcaseProgress();
+      }, SHOWCASE_INTERVAL_MS);
+    }
+
+    function goToTool(nextIndex) {
+      const normalizedIndex = (nextIndex + toolsData.length) % toolsData.length;
+      animateToolSlide(normalizedIndex);
+      restartShowcaseTimer();
+    }
+
+    function showPlusGate() { document.getElementById("plusGate").classList.add("open"); }
+    function hidePlusGate() { document.getElementById("plusGate").classList.remove("open"); }
+
+    async function openCurrentTool() {
+      const tool = toolsData[activeToolIndex];
+      if (!tool.plus) { window.location.href = tool.href; return; }
+      if (knownPlus === true) { window.location.href = tool.href; return; }
+      const hasPlus = await bootstrapPlusStatus();
+      if (hasPlus) { window.location.href = tool.href; return; }
+      showPlusGate();
+    }
+
+    document.getElementById("prevTool").addEventListener("click", () => goToTool(activeToolIndex - 1));
+    document.getElementById("nextTool").addEventListener("click", () => goToTool(activeToolIndex + 1));
+    document.getElementById("openTool").addEventListener("click", openCurrentTool);
+    document.getElementById("closeGate").addEventListener("click", hidePlusGate);
+    document.getElementById("plusGate").addEventListener("click", (e) => { if (e.target.id === "plusGate") hidePlusGate(); });
+    document.getElementById("showcaseViewport").addEventListener("mouseenter", () => {
+      if (showcaseTimer) clearInterval(showcaseTimer);
+      if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
+    });
+    document.getElementById("showcaseViewport").addEventListener("mouseleave", restartShowcaseTimer);
+
+    document.getElementById("assetId").addEventListener("keydown", function (event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        generateDeveloperAsset();
+      }
+    });
+
+    document.getElementById("result").innerHTML = buildDefaultPreview();
+    renderToolSlide();
+    restartShowcaseTimer();
+    bootstrapPlusStatus();
+  </script>
+</body>
+</html>

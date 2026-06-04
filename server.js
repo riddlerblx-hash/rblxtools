@@ -3035,6 +3035,7 @@ app.get("/api", async (_req, res) => {
     audioEndpoint: "/audio?id=ROBLOX_AUDIO_ID",
     mediaEndpoint: "/media?id=ROBLOX_ID_OR_URL",
     templateEndpoint: "/template?id=ROBLOX_ID",
+    developerAssetEndpoint: "/developer-asset?id=ROBLOX_ASSET_ID",
     ugcObjEndpoint: "/ugc-obj?id=ROBLOX_UGC_ID",
     ugcTextureEndpoint: "/ugc-texture?id=ROBLOX_UGC_ID",
     authSignupEndpoint: "/auth/signup",
@@ -4122,6 +4123,59 @@ app.get("/template", async (req, res) => {
   }
 });
 
+app.get("/developer-asset", async (req, res) => {
+  const inputId = extractRobloxAssetIdFromInput(req.query.id || req.query.url || req.query.input || "");
+  const id = String(inputId || "").trim();
+
+  if (!/^[0-9]+$/.test(id)) {
+    return res.status(400).json({ error: "Enter a valid Roblox developer marketplace asset ID." });
+  }
+
+  try {
+    const assetUrl = `https://assetdelivery.roblox.com/v1/asset/?id=${id}`;
+    const assetFetch = await fetchBuffer(assetUrl);
+    const bodyText = assetFetch.buffer.toString("utf8");
+
+    if (isAuthRequiredResponse(bodyText)) {
+      return res.status(403).json({
+        error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
+      });
+    }
+
+    if (!assetFetch.response.ok) {
+      return res.status(404).json({
+        error: "That Roblox asset pack could not be downloaded.",
+      });
+    }
+
+    const extension = guessRobloxAssetFileExtension(
+      assetFetch.response.headers.get("content-type") || "",
+      assetFetch.buffer
+    );
+
+    if (extension !== "rbxm" && extension !== "rbxmx") {
+      return res.status(404).json({
+        error: "That ID does not appear to be a downloadable Roblox model or asset pack.",
+      });
+    }
+
+    await safeIncrementDailyUsage();
+    await emitToolActivityForRequest(req, "developer-asset-downloader", getRequestActivityParam(req, "displayName", displayNameLength));
+
+    res.setHeader("Content-Type", extension === "rbxmx" ? "application/xml; charset=utf-8" : "application/octet-stream");
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Content-Disposition", `attachment; filename="roblox-dev-asset-${id}.${extension}"`);
+    res.setHeader("X-Roblox-Asset-Extension", extension);
+
+    return res.send(assetFetch.buffer);
+  } catch (error) {
+    console.error("Developer asset fetch failed:", error);
+    return res.status(500).json({
+      error: "Could not download that Roblox asset pack right now.",
+    });
+  }
+});
+
 app.get("/ugc-texture", async (req, res) => {
   const id = String(req.query.id || "").trim();
 
@@ -4650,6 +4704,7 @@ function emitSpecialAnnouncement(room, text) {
 
 const allowedToolActivityLabels = {
   "template-downloader": "Template Downloader",
+  "developer-asset-downloader": "Developer Asset Downloader",
   "background-changer": "Background Changer",
   "ugc-downloader": "UGC Downloader",
   "media-downloader": "Media Downloader",
