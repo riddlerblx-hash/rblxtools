@@ -1866,6 +1866,10 @@
 
     function lockPlusPage(reason) {
       if (!els.plusGate || FORCE_OPEN_EMBED) return;
+      if (reason !== "login" && browserAlreadyKnowsPlus()) {
+        clearPageLockOverlay();
+        return;
+      }
 
       els.plusGate.classList.add("open", "page-plus-lock");
       if (els.plusGate.dataset.lockBound !== "true") {
@@ -2022,6 +2026,21 @@
       } catch (_error) {
         return null;
       }
+    }
+
+    function getCachedAuthUser() {
+      try {
+        const raw = localStorage.getItem("rblxtools_auth_user") || "";
+        return raw ? JSON.parse(raw) : null;
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function browserAlreadyKnowsPlus() {
+      const cachedStatus = readCachedPlusStatus();
+      if (cachedStatus === true) return true;
+      return hasPlusFromPayload(getCachedAuthUser());
     }
 
     function writeCachedPlusStatus(isPlus) {
@@ -2955,7 +2974,7 @@
       }
     });
 
-    fetchPlusStatus().then((status) => {
+    fetchPlusStatus({ force: true }).then((status) => {
       showAccessGate(status.ok ? "ok" : status.reason);
       if (!status.ok) lockPlusPage(status.reason);
     }).catch(() => {
