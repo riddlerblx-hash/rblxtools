@@ -1015,55 +1015,24 @@
   let currentObjUrls = [];
   let currentViewerCleanup = null;
 
-      function getActivityNameFromCache() {
-      function readNameFrom(value) {
-        const source = value && typeof value === "object" ? value : {};
-        const displayName = String(
-          source.displayName ||
-          source.profileDisplayName ||
-          source.publicDisplayName ||
-          source.username ||
-          source.name ||
-          ""
-        ).trim();
-        if (displayName) return displayName;
-        const email = String(source.email || source.userEmail || source.accountEmail || "").trim();
-        return email ? email.split("@")[0].trim() : "";
-      }
-
-      try {
-        const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
-        const cachedUserId = String(cachedUser && cachedUser.id || "").trim();
-        const keys = [
-          cachedUserId ? "rblxtools_profile_overview:" + cachedUserId : "",
-          "rblxtools_profile_overview",
-          "rblxtools_account_profile",
-          cachedUserId ? "rblxtools_account_profile:" + cachedUserId : "",
-          "rblxtools_profile",
-          cachedUserId ? "rblxtools_profile:" + cachedUserId : ""
-        ].filter(Boolean);
-
-        for (const key of keys) {
-          const raw = localStorage.getItem(key) || "";
-          if (!raw) continue;
-          const parsed = JSON.parse(raw);
-          const nextName = readNameFrom(parsed);
-          if (nextName) return nextName;
-        }
-
-        const cachedName = readNameFrom(cachedUser);
-        if (cachedName) return cachedName;
-        return "";
-      } catch (_error) {
-        return "";
-      }
+  function getActivityNameFromCache() {
+    function readNameFrom(value) {
+      const source = value && typeof value === "object" ? value : {};
+      const displayName = String(
+        source.displayName ||
+        source.profileDisplayName ||
+        source.publicDisplayName ||
+        source.username ||
+        source.name ||
+        ""
+      ).trim();
+      if (displayName) return displayName;
+      const email = String(source.email || source.userEmail || source.accountEmail || "").trim();
+      return email ? email.split("@")[0].trim() : "";
     }
 
     try {
       const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
-      const cachedName = readNameFrom(cachedUser);
-      if (cachedName) return cachedName;
-
       const cachedUserId = String(cachedUser && cachedUser.id || "").trim();
       const keys = [
         cachedUserId ? "rblxtools_profile_overview:" + cachedUserId : "",
@@ -1082,6 +1051,8 @@
         if (nextName) return nextName;
       }
 
+      const cachedName = readNameFrom(cachedUser);
+      if (cachedName) return cachedName;
       return "";
     } catch (_error) {
       return "";

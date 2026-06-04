@@ -1948,10 +1948,53 @@
     restartShowcaseTimer();
   }
 
+  function setFaqItemOpenState(item, isOpen) {
+    if (!item) return;
+    item.classList.toggle("open", Boolean(isOpen));
+    var button = item.querySelector(".faq-q");
+    if (button) {
+      button.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    }
+  }
+
+  function normalizeFaqWrap(wrap) {
+    if (!wrap) return;
+    var items = Array.prototype.slice.call(wrap.querySelectorAll(".faq-item"));
+    var foundOpen = false;
+    items.forEach(function (item) {
+      var shouldStayOpen = !foundOpen && item.classList.contains("open");
+      setFaqItemOpenState(item, shouldStayOpen);
+      if (shouldStayOpen) foundOpen = true;
+    });
+  }
+
+  function initFaqAccordions() {
+    if (document.body.hasAttribute("data-rblx-faq-bound")) return;
+    document.body.setAttribute("data-rblx-faq-bound", "true");
+
+    document.querySelectorAll(".faq-wrap").forEach(normalizeFaqWrap);
+
+    document.addEventListener("click", function (event) {
+      var button = event.target && event.target.closest ? event.target.closest(".faq-q") : null;
+      if (!button) return;
+
+      var item = button.closest(".faq-item");
+      var wrap = button.closest(".faq-wrap");
+      if (!item || !wrap) return;
+
+      var shouldOpen = !item.classList.contains("open");
+      wrap.querySelectorAll(".faq-item.open").forEach(function (openItem) {
+        setFaqItemOpenState(openItem, false);
+      });
+      setFaqItemOpenState(item, shouldOpen);
+    });
+  }
+
   function initShell() {
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
+    initFaqAccordions();
     initSharedToolShowcase();
     document.body.classList.add("rblx-shell-ready");
     shellState.deviceId = getDeviceId();
