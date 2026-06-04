@@ -4132,6 +4132,8 @@ app.get("/developer-asset", async (req, res) => {
   }
 
   try {
+    await requireAdminUser(req);
+
     const assetUrl = `https://assetdelivery.roblox.com/v1/asset/?id=${id}`;
     const assetFetch = await fetchBuffer(assetUrl);
     const bodyText = assetFetch.buffer.toString("utf8");

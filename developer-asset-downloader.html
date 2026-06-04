@@ -36,6 +36,11 @@
       isolation: isolate;
     }
 
+    body.admin-checking main,
+    body.admin-checking .bg-wrap {
+      visibility: hidden;
+    }
+
     body::before {
       content: "";
       position: fixed;
@@ -551,7 +556,7 @@
   </style>
   <script src="./global-shell.js"></script>
 </head>
-<body>
+<body class="admin-checking">
   <div class="bg-wrap" aria-hidden="true">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -674,6 +679,7 @@
   <script>
     const API_BASE = window.location.origin;
     const TOKEN_KEY = "rblxtools_auth_token";
+    const USER_KEY = "rblxtools_auth_user";
     const PROFILE_KEY = "rblxtools_profile_overview";
     const PLUS_STATUS_KEY = "rblxtools_plus_cache";
     const SHOWCASE_INTERVAL_MS = 5000;
@@ -698,6 +704,88 @@
     function getStoredToken() {
       try { return localStorage.getItem(TOKEN_KEY) || ""; }
       catch (_error) { return ""; }
+    }
+
+    function getCachedToolUser() {
+      try {
+        const raw = localStorage.getItem(USER_KEY) || "";
+        const parsed = raw ? JSON.parse(raw) : null;
+        return parsed && typeof parsed === "object" ? parsed : null;
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function saveCachedToolUser(user) {
+      try {
+        if (user && typeof user === "object") {
+          localStorage.setItem(USER_KEY, JSON.stringify(user));
+        } else {
+          localStorage.removeItem(USER_KEY);
+        }
+      } catch (_error) {}
+    }
+
+    function isAdminFromPayload(payload) {
+      if (!payload || typeof payload !== "object") return false;
+      return Boolean(
+        payload.isAdmin === true ||
+        payload.admin === true ||
+        (payload.user && payload.user.isAdmin === true)
+      );
+    }
+
+    function finishAdminGate() {
+      document.body.classList.remove("admin-checking");
+    }
+
+    function redirectUnauthorized() {
+      const token = getStoredToken();
+      window.location.replace(token ? "./index" : "./login");
+    }
+
+    async function ensureAdminAccess() {
+      const token = getStoredToken();
+      if (!token) {
+        redirectUnauthorized();
+        return false;
+      }
+
+      try {
+        const response = await fetch(API_BASE + "/auth/me", {
+          method: "GET",
+          headers: { Authorization: "Bearer " + token }
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            saveCachedToolUser(null);
+          }
+          redirectUnauthorized();
+          return false;
+        }
+
+        const payload = await response.json().catch(() => null);
+        const user = payload && payload.user ? payload.user : payload;
+        saveCachedToolUser(user);
+
+        if (!isAdminFromPayload(user) && !isAdminFromPayload(payload)) {
+          redirectUnauthorized();
+          return false;
+        }
+
+        finishAdminGate();
+        return true;
+      } catch (_error) {
+        const cachedUser = getCachedToolUser();
+        if (cachedUser && isAdminFromPayload(cachedUser)) {
+          finishAdminGate();
+          return true;
+        }
+
+        redirectUnauthorized();
+        return false;
+      }
     }
 
     function hasPlusFromPayload(payload) {
@@ -978,7 +1066,11 @@
 
     async function fetchDeveloperAssetFile(id) {
       const url = buildDeveloperAssetFetchUrl(id);
-      const res = await fetch(url);
+      const token = getStoredToken();
+      const headers = token ? {
+        Authorization: "Bearer " + token
+      } : {};
+      const res = await fetch(url, { headers });
 
       if (!res.ok) {
         let message = "Failed to fetch developer asset";
@@ -1127,28 +1219,32 @@
       showPlusGate();
     }
 
-    document.getElementById("prevTool").addEventListener("click", () => goToTool(activeToolIndex - 1));
-    document.getElementById("nextTool").addEventListener("click", () => goToTool(activeToolIndex + 1));
-    document.getElementById("openTool").addEventListener("click", openCurrentTool);
-    document.getElementById("closeGate").addEventListener("click", hidePlusGate);
-    document.getElementById("plusGate").addEventListener("click", (e) => { if (e.target.id === "plusGate") hidePlusGate(); });
-    document.getElementById("showcaseViewport").addEventListener("mouseenter", () => {
-      if (showcaseTimer) clearInterval(showcaseTimer);
-      if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
-    });
-    document.getElementById("showcaseViewport").addEventListener("mouseleave", restartShowcaseTimer);
+    ensureAdminAccess().then((allowed) => {
+      if (!allowed) return;
 
-    document.getElementById("assetId").addEventListener("keydown", function (event) {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        generateDeveloperAsset();
-      }
-    });
+      document.getElementById("prevTool").addEventListener("click", () => goToTool(activeToolIndex - 1));
+      document.getElementById("nextTool").addEventListener("click", () => goToTool(activeToolIndex + 1));
+      document.getElementById("openTool").addEventListener("click", openCurrentTool);
+      document.getElementById("closeGate").addEventListener("click", hidePlusGate);
+      document.getElementById("plusGate").addEventListener("click", (e) => { if (e.target.id === "plusGate") hidePlusGate(); });
+      document.getElementById("showcaseViewport").addEventListener("mouseenter", () => {
+        if (showcaseTimer) clearInterval(showcaseTimer);
+        if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
+      });
+      document.getElementById("showcaseViewport").addEventListener("mouseleave", restartShowcaseTimer);
 
-    document.getElementById("result").innerHTML = buildDefaultPreview();
-    renderToolSlide();
-    restartShowcaseTimer();
-    bootstrapPlusStatus();
+      document.getElementById("assetId").addEventListener("keydown", function (event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          generateDeveloperAsset();
+        }
+      });
+
+      document.getElementById("result").innerHTML = buildDefaultPreview();
+      renderToolSlide();
+      restartShowcaseTimer();
+      bootstrapPlusStatus();
+    });
   </script>
 </body>
 </html>
