@@ -1222,6 +1222,7 @@
     let currentSlides = [];
     let currentSlideIndex = 0;
     let cachedActivityIdentity = null;
+    const PLUS_STATUS_KEY = "rblxtools_plus_cache";
     let knownPlus = null;
     let showcaseTimer = null;
     let showcaseProgressTimer = null;
@@ -1475,32 +1476,92 @@
       return url.toString();
     }
 
-    async function fetchPlusStatus() {
+    function readCachedPlusStatus() {
+      try {
+        const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed.isPlus === "boolean") {
+            return parsed.isPlus;
+          }
+        }
+      } catch (_error) {}
+
+      try {
+        const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+        return hasPlusFromPayload(cachedUser) ? true : null;
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function writeCachedPlusStatus(isPlus) {
+      try {
+        localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
+          isPlus: Boolean(isPlus),
+          updatedAt: Date.now()
+        }));
+      } catch (_error) {}
+    }
+
+    function clearCachedPlusStatus() {
+      try {
+        localStorage.removeItem(PLUS_STATUS_KEY);
+      } catch (_error) {}
+    }
+
+    async function fetchPlusStatus(options) {
       const token = getStoredToken();
-      if (!token) return false;
+      if (!token) {
+        clearCachedPlusStatus();
+        return false;
+      }
+
+      const settings = options && typeof options === "object" ? options : {};
+      if (!settings.force) {
+        const cachedStatus = readCachedPlusStatus();
+        if (cachedStatus !== null) {
+          window.setTimeout(function () {
+            fetchPlusStatus({ force: true, background: true });
+          }, 0);
+          return cachedStatus;
+        }
+      }
 
       try {
         const premiumResponse = await fetch(API_BASE + "/auth/premium-status", { method: "GET", headers: { Authorization: "Bearer " + token } });
 
         if (premiumResponse.ok) {
           const premiumPayload = await premiumResponse.json().catch(() => null);
-          return hasPlusFromPayload(premiumPayload);
+          const hasPlus = hasPlusFromPayload(premiumPayload);
+          writeCachedPlusStatus(hasPlus);
+          return hasPlus;
         }
 
-        if (premiumResponse.status === 401 || premiumResponse.status === 403) return false;
+        if (premiumResponse.status === 401 || premiumResponse.status === 403) {
+          clearCachedPlusStatus();
+          return false;
+        }
 
         const response = await fetch(API_BASE + "/auth/me", { method: "GET", headers: { Authorization: "Bearer " + token } });
-        if (!response.ok) return false;
+        if (!response.ok) return readCachedPlusStatus() === true;
         const payload = await response.json().catch(() => null);
-        return hasPlusFromPayload(payload);
-      } catch (_e) { return false; }
+        const hasPlus = hasPlusFromPayload(payload);
+        writeCachedPlusStatus(hasPlus);
+        return hasPlus;
+      } catch (_e) {
+        return readCachedPlusStatus() === true;
+      }
     }
 
     async function bootstrapPlusStatus() {
       if (knownPlus === true) return true;
+      if (knownPlus === false) return false;
       knownPlus = await fetchPlusStatus();
       return knownPlus;
     }
+
+    knownPlus = readCachedPlusStatus();
 
     function buildDefaultPreview() {
       return `

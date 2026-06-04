@@ -5,6 +5,7 @@
   var API_BASE = window.location.origin;
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
+  var PLUS_STATUS_KEY = "rblxtools_plus_cache";
   var PROFILE_KEY = "rblxtools_profile_overview";
   var DEVICE_KEY = "rblxtools_device_id";
   var TOOL_ACTIVITY_CACHE_KEY = "rblxtools_tool_activity_cache";
@@ -1672,6 +1673,7 @@
           try {
             localStorage.removeItem(TOKEN_KEY);
             localStorage.removeItem(USER_KEY);
+            localStorage.removeItem(PLUS_STATUS_KEY);
           } catch (_error) {}
           window.location.reload();
         });

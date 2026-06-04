@@ -1783,9 +1783,59 @@
         return fallbackCopy(value);
       }
 
-      async function fetchPlusStatus() {
+      const PLUS_STATUS_KEY = "rblxtools_plus_cache";
+
+      function readCachedPlusStatus() {
+        try {
+          const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed.isPlus === "boolean") {
+              return parsed.isPlus;
+            }
+          }
+        } catch (_error) {}
+
+        try {
+          const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+          return hasPlusFromPayload(cachedUser) ? true : null;
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      function writeCachedPlusStatus(isPlus) {
+        try {
+          localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
+            isPlus: Boolean(isPlus),
+            updatedAt: Date.now()
+          }));
+        } catch (_error) {}
+      }
+
+      function clearCachedPlusStatus() {
+        try {
+          localStorage.removeItem(PLUS_STATUS_KEY);
+        } catch (_error) {}
+      }
+
+      async function fetchPlusStatus(options) {
         const token = getStoredToken();
-        if (!token) return { ok: false, reason: "login" };
+        if (!token) {
+          clearCachedPlusStatus();
+          return { ok: false, reason: "login" };
+        }
+
+        const settings = options && typeof options === "object" ? options : {};
+        if (!settings.force) {
+          const cachedStatus = readCachedPlusStatus();
+          if (cachedStatus !== null) {
+            window.setTimeout(function () {
+              fetchPlusStatus({ force: true, background: true });
+            }, 0);
+            return cachedStatus ? { ok: true } : { ok: false, reason: "plus" };
+          }
+        }
 
         try {
           const premiumResponse = await fetch(API_BASE_ROOT + "/auth/premium-status", {
@@ -1797,10 +1847,13 @@
 
           if (premiumResponse.ok) {
             const premiumPayload = await premiumResponse.json().catch(() => null);
-            return hasPlusFromPayload(premiumPayload) ? { ok: true } : { ok: false, reason: "plus" };
+            const hasPlus = hasPlusFromPayload(premiumPayload);
+            writeCachedPlusStatus(hasPlus);
+            return hasPlus ? { ok: true } : { ok: false, reason: "plus" };
           }
 
           if (premiumResponse.status === 401 || premiumResponse.status === 403) {
+            clearCachedPlusStatus();
             return { ok: false, reason: "login" };
           }
 
@@ -1814,12 +1867,14 @@
           if (!response.ok) {
             return response.status === 401 || response.status === 403
               ? { ok: false, reason: "login" }
-              : { ok: false, reason: "plus" };
+              : (readCachedPlusStatus() === true ? { ok: true } : { ok: false, reason: "plus" });
           }
           const payload = await response.json().catch(() => null);
-          return hasPlusFromPayload(payload) ? { ok: true } : { ok: false, reason: "plus" };
+          const hasPlus = hasPlusFromPayload(payload);
+          writeCachedPlusStatus(hasPlus);
+          return hasPlus ? { ok: true } : { ok: false, reason: "plus" };
         } catch (_error) {
-          return { ok: false, reason: "plus" };
+          return readCachedPlusStatus() === true ? { ok: true } : { ok: false, reason: "plus" };
         }
       }
 
@@ -2266,15 +2321,39 @@
     </script>
 <script>
     (function () {
+      const HEIGHT_STORAGE_KEY = "rblxtools_layout_height:animation-spoofer";
+
+      function readStoredHeight() {
+        try {
+          const stored = Number(sessionStorage.getItem(HEIGHT_STORAGE_KEY) || "0");
+          return Number.isFinite(stored) && stored > 0 ? Math.ceil(stored) : 0;
+        } catch (_error) {
+          return 0;
+        }
+      }
+
+      function writeStoredHeight(value) {
+        try {
+          sessionStorage.setItem(HEIGHT_STORAGE_KEY, String(value));
+        } catch (_error) {}
+      }
+
+      function applyStoredHeight() {
+        const animationCard = document.querySelector("#toolMount #animation-spoofer-card");
+        if (!animationCard) return;
+        const storedHeight = readStoredHeight();
+        animationCard.style.minHeight = (storedHeight > 0 ? storedHeight : 760) + "px";
+      }
+
       function syncAnimationToolHeight() {
         const sideStack = document.querySelector(".side-stack");
         const animationCard = document.querySelector("#toolMount #animation-spoofer-card");
         if (!sideStack || !animationCard) return;
 
-        animationCard.style.minHeight = "0px";
         const targetHeight = Math.ceil(sideStack.getBoundingClientRect().height);
         if (targetHeight > 0) {
           animationCard.style.minHeight = targetHeight + "px";
+          writeStoredHeight(targetHeight);
         }
       }
 
@@ -2293,6 +2372,7 @@
       window.addEventListener("resize", scheduleSync);
 
       const mount = document.getElementById("toolMount");
+      applyStoredHeight();
       if (mount && "MutationObserver" in window) {
         const observer = new MutationObserver(scheduleSync);
         observer.observe(mount, { childList: true, subtree: true });

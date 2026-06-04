@@ -1095,9 +1095,59 @@
         );
       }
 
-      async function fetchPlusStatus() {
+      var PLUS_STATUS_KEY = "rblxtools_plus_cache";
+
+      function readCachedPlusStatus() {
+        try {
+          var raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && typeof parsed.isPlus === "boolean") {
+              return parsed.isPlus;
+            }
+          }
+        } catch (_error) {}
+
+        try {
+          var cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+          return hasPlusFromPayload(cachedUser) ? true : null;
+        } catch (_error2) {
+          return null;
+        }
+      }
+
+      function writeCachedPlusStatus(isPlus) {
+        try {
+          localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
+            isPlus: Boolean(isPlus),
+            updatedAt: Date.now()
+          }));
+        } catch (_error) {}
+      }
+
+      function clearCachedPlusStatus() {
+        try {
+          localStorage.removeItem(PLUS_STATUS_KEY);
+        } catch (_error) {}
+      }
+
+      async function fetchPlusStatus(options) {
         var token = getStoredToken();
-        if (!token) return false;
+        if (!token) {
+          clearCachedPlusStatus();
+          return false;
+        }
+
+        var settings = options && typeof options === "object" ? options : {};
+        if (!settings.force) {
+          var cachedStatus = readCachedPlusStatus();
+          if (cachedStatus !== null) {
+            window.setTimeout(function () {
+              fetchPlusStatus({ force: true, background: true });
+            }, 0);
+            return cachedStatus;
+          }
+        }
 
         try {
           var premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
@@ -1109,10 +1159,13 @@
 
           if (premiumResponse.ok) {
             var premiumPayload = await premiumResponse.json().catch(function () { return null; });
-            return hasPlusFromPayload(premiumPayload);
+            var hasPlus = hasPlusFromPayload(premiumPayload);
+            writeCachedPlusStatus(hasPlus);
+            return hasPlus;
           }
 
           if (premiumResponse.status === 401 || premiumResponse.status === 403) {
+            clearCachedPlusStatus();
             return false;
           }
 
@@ -1123,11 +1176,14 @@
             }
           });
 
-          if (!response.ok) return false;
+          if (!response.ok) return readCachedPlusStatus() === true;
           var payload = await response.json().catch(function () { return null; });
-          return hasPlusFromPayload(payload);
-        } catch (e) {
-          return false;
+          var hasPlus = hasPlusFromPayload(payload);
+          writeCachedPlusStatus(hasPlus);
+          return hasPlus;
+        } catch (_error3) {
+          var cachedStatus = readCachedPlusStatus();
+          return cachedStatus === true;
         }
       }
 

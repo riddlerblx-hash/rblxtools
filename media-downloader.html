@@ -1298,15 +1298,39 @@
   </script>
 <script>
     (function () {
+      const HEIGHT_STORAGE_KEY = "rblxtools_layout_height:media-downloader";
+
+      function readStoredHeight() {
+        try {
+          const stored = Number(sessionStorage.getItem(HEIGHT_STORAGE_KEY) || "0");
+          return Number.isFinite(stored) && stored > 0 ? Math.ceil(stored) : 0;
+        } catch (_error) {
+          return 0;
+        }
+      }
+
+      function writeStoredHeight(value) {
+        try {
+          sessionStorage.setItem(HEIGHT_STORAGE_KEY, String(value));
+        } catch (_error) {}
+      }
+
+      function applyStoredHeight() {
+        const mediaCard = document.querySelector("#toolMount #rblxMediaCard");
+        if (!mediaCard) return;
+        const storedHeight = readStoredHeight();
+        mediaCard.style.minHeight = (storedHeight > 0 ? storedHeight : 760) + "px";
+      }
+
       function syncMediaToolHeight() {
         const sideStack = document.querySelector(".side-stack");
         const mediaCard = document.querySelector("#toolMount #rblxMediaCard");
         if (!sideStack || !mediaCard) return;
 
-        mediaCard.style.minHeight = "0px";
         const targetHeight = Math.ceil(sideStack.getBoundingClientRect().height);
         if (targetHeight > 0) {
           mediaCard.style.minHeight = targetHeight + "px";
+          writeStoredHeight(targetHeight);
         }
       }
 
@@ -1325,6 +1349,7 @@
       window.addEventListener("resize", scheduleSync);
 
       const mount = document.getElementById("toolMount");
+      applyStoredHeight();
       if (mount && "MutationObserver" in window) {
         const observer = new MutationObserver(scheduleSync);
         observer.observe(mount, { childList: true, subtree: true });

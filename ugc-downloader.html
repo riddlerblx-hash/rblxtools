@@ -1162,9 +1162,59 @@
     );
   }
 
-  async function fetchPlusStatus() {
+  const PLUS_STATUS_KEY = "rblxtools_plus_cache";
+
+  function readCachedPlusStatus() {
+    try {
+      const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.isPlus === "boolean") {
+          return parsed.isPlus;
+        }
+      }
+    } catch (_error) {}
+
+    try {
+      const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+      return hasPlusFromPayload(cachedUser) ? true : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function writeCachedPlusStatus(isPlus) {
+    try {
+      localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
+        isPlus: Boolean(isPlus),
+        updatedAt: Date.now()
+      }));
+    } catch (_error) {}
+  }
+
+  function clearCachedPlusStatus() {
+    try {
+      localStorage.removeItem(PLUS_STATUS_KEY);
+    } catch (_error) {}
+  }
+
+  async function fetchPlusStatus(options) {
     const token = getStoredToken();
-    if (!token) return false;
+    if (!token) {
+      clearCachedPlusStatus();
+      return false;
+    }
+
+    const settings = options && typeof options === "object" ? options : {};
+    if (!settings.force) {
+      const cachedStatus = readCachedPlusStatus();
+      if (cachedStatus !== null) {
+        window.setTimeout(function () {
+          fetchPlusStatus({ force: true, background: true });
+        }, 0);
+        return cachedStatus;
+      }
+    }
 
     try {
       const premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
@@ -1176,10 +1226,13 @@
 
       if (premiumResponse.ok) {
         const premiumPayload = await premiumResponse.json().catch(() => null);
-        return hasPlusFromPayload(premiumPayload);
+        const hasPlus = hasPlusFromPayload(premiumPayload);
+        writeCachedPlusStatus(hasPlus);
+        return hasPlus;
       }
 
       if (premiumResponse.status === 401 || premiumResponse.status === 403) {
+        clearCachedPlusStatus();
         return false;
       }
 
@@ -1190,11 +1243,13 @@
         }
       });
 
-      if (!response.ok) return false;
+      if (!response.ok) return readCachedPlusStatus() === true;
       const payload = await response.json().catch(() => null);
-      return hasPlusFromPayload(payload);
-    } catch (e) {
-      return false;
+      const hasPlus = hasPlusFromPayload(payload);
+      writeCachedPlusStatus(hasPlus);
+      return hasPlus;
+    } catch (_error) {
+      return readCachedPlusStatus() === true;
     }
   }
 
@@ -1544,15 +1599,39 @@
 </script>
 <script>
     (function () {
+      const HEIGHT_STORAGE_KEY = "rblxtools_layout_height:ugc-downloader";
+
+      function readStoredHeight() {
+        try {
+          const stored = Number(sessionStorage.getItem(HEIGHT_STORAGE_KEY) || "0");
+          return Number.isFinite(stored) && stored > 0 ? Math.ceil(stored) : 0;
+        } catch (_error) {
+          return 0;
+        }
+      }
+
+      function writeStoredHeight(value) {
+        try {
+          sessionStorage.setItem(HEIGHT_STORAGE_KEY, String(value));
+        } catch (_error) {}
+      }
+
+      function applyStoredHeight() {
+        const ugcCard = document.querySelector("#toolMount #roblox-ugc-card");
+        if (!ugcCard) return;
+        const storedHeight = readStoredHeight();
+        ugcCard.style.minHeight = (storedHeight > 0 ? storedHeight : 760) + "px";
+      }
+
       function syncUgcToolHeight() {
         const sideStack = document.querySelector(".side-stack");
         const ugcCard = document.querySelector("#toolMount #roblox-ugc-card");
         if (!sideStack || !ugcCard) return;
 
-        ugcCard.style.minHeight = "0px";
         const targetHeight = Math.ceil(sideStack.getBoundingClientRect().height);
         if (targetHeight > 0) {
           ugcCard.style.minHeight = targetHeight + "px";
+          writeStoredHeight(targetHeight);
         }
       }
 
@@ -1571,6 +1650,7 @@
       window.addEventListener("resize", scheduleSync);
 
       const mount = document.getElementById("toolMount");
+      applyStoredHeight();
       if (mount && "MutationObserver" in window) {
         const observer = new MutationObserver(scheduleSync);
         observer.observe(mount, { childList: true, subtree: true });
