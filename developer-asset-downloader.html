@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RBLX Tools - Developer Asset Downloader</title>
+  <link rel="stylesheet" href="./global-shell.css" />
   <style>
     :root {
       --bg-0: #080b11;
@@ -11,7 +12,7 @@
       --bg-2: #151c28;
       --red-0: rgba(255, 34, 34, 0.26);
       --red-1: rgba(255, 74, 74, 0.12);
-      --red-2: rgba(255, 124, 124, 0.1);
+      --red-2: rgba(255, 124, 124, 0.10);
       --line: rgba(255, 255, 255, 0.06);
       --text: #ffffff;
       --muted: #b8bec7;
@@ -142,15 +143,15 @@
       animation: silverShift 4.5s linear infinite;
     }
 
+    @keyframes silverShift {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+
     .price-green {
       color: #6dff9a;
       font-weight: 900;
       text-shadow: 0 0 18px rgba(109, 255, 154, 0.22);
-    }
-
-    @keyframes silverShift {
-      0% { background-position: 0% 50%; }
-      100% { background-position: 100% 50%; }
     }
 
     .notice {
@@ -236,104 +237,78 @@
       font-weight: 800;
       text-align: center;
       overflow: hidden;
-      gap: 14px;
     }
-
-    .asset-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 62px);
-      grid-template-rows: repeat(3, 62px);
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .asset-grid div {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 14px;
-      color: white;
-      font-size: 20px;
-      font-weight: 900;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
-    }
-
-    .asset-grid .red { background: linear-gradient(180deg, #ff4e4e, #c61f1f); }
-    .asset-grid .blue { background: linear-gradient(180deg, #39a2ff, #1868c7); }
-    .asset-grid .green { background: linear-gradient(180deg, #37d88d, #19985d); }
-    .asset-grid .yellow { background: linear-gradient(180deg, #ffd34a, #cc9618); }
 
     .asset-file-icon {
-      width: 88px;
-      height: 104px;
-      border-radius: 18px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
-      border: 1px solid rgba(255,255,255,0.08);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 26px;
-      color: #ffb3b3;
-    }
-
-    .result-card {
-      display: grid;
-      gap: 10px;
-    }
-
-    .result-meta {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .metaPill {
-      min-height: 38px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 12px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      color: #f0f3f8;
-      font-size: 11px;
-      font-weight: 800;
-      text-align: center;
-    }
-
-    .actionRow {
-      margin-top: 10px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 10px;
-    }
-
-    .downloadBtn,
-    .secondaryBtn {
-      min-height: 44px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 10px;
-      text-decoration: none;
-      font-size: 13px;
+      min-width: 110px;
+      min-height: 110px;
+      border-radius: 24px;
+      margin-bottom: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #fff;
+      font-size: 24px;
       font-weight: 900;
+      letter-spacing: 1.6px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    .asset-grid { display: grid; grid-template-columns: repeat(4, 62px); grid-template-rows: repeat(3, 62px); gap: 5px; margin-bottom: 22px; }
+    .asset-grid div { display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 900; border-radius: 14px; }
+    .red { background: #ef1f1f; } .blue { background: #0b8ed8; } .green { background: #0bbd63; } .yellow { background: #f5ba00; }
+
+    #metaRow { margin-top: 10px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .metaPill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #303030;
+      color: #d3d3d3;
+      font-size: 10px;
+      font-weight: 800;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    #actionRow { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+    .download-link,
+    .action-btn {
+      border: none;
+      color: #fff;
       cursor: pointer;
-      border: 0;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease;
+      min-height: 40px;
+      padding: 0 16px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ff3333 0%, #ff1111 100%);
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 10px 20px rgba(255, 20, 20, 0.16);
     }
 
-    .downloadBtn {
-      background: var(--danger);
-      color: #fff;
-      box-shadow: 0 12px 24px rgba(255, 20, 20, 0.18);
+    .promo-card {
+      background:
+        radial-gradient(circle at top right, rgba(69, 145, 255, 0.14), transparent 34%),
+        linear-gradient(180deg, #29303a 0%, #232730 100%);
+      border: 1px solid rgba(110, 160, 255, 0.1);
     }
 
-    .secondaryBtn {
-      background: rgba(255,255,255,0.06);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.08);
+    .plus-card {
+      background:
+        radial-gradient(circle at top right, rgba(255, 72, 72, 0.18), transparent 32%),
+        linear-gradient(180deg, #221d21 0%, #171417 100%);
+      border: 1px solid rgba(255, 120, 120, 0.12);
+      height: 100%;
     }
 
     .video-box {
@@ -341,223 +316,184 @@
       border: 1px solid rgba(130, 160, 220, 0.08);
       background: rgba(17, 20, 26, 0.48);
       padding: 12px;
-      margin-top: 14px;
-    }
-
-    .video-placeholder {
-      min-height: 220px;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      padding: 18px;
-      background: linear-gradient(180deg, #252b35, #1c212b);
-      border: 1px dashed rgba(255,255,255,0.16);
-      color: #d7dce4;
-      font-size: 13px;
-      line-height: 1.55;
-      font-weight: 700;
-    }
-
-    .plus-card {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .plus-promo { display: grid; gap: 12px; }
-    .plus-topline { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .plus-kicker, .plus-price { font-size: 11px; font-weight: 800; color: #cdd3dc; }
-    .plus-card h3 { margin: 0; font-size: 28px; line-height: 0.95; font-weight: 900; }
-    .plus-card h3 span { display: block; }
-    .plus-card h3 span:last-child { color: #ff2a2a; }
-    .plus-card p { margin: 0; color: #d7dbe2; font-size: 12px; line-height: 1.6; font-weight: 600; }
-
-    .perk-list { display: grid; gap: 10px; }
-    .perk {
-      padding: 12px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.06);
-      display: grid;
-      gap: 4px;
-    }
-
-    .perk strong { color: #fff; font-size: 12px; }
-    .perk span { color: #cdd3dc; font-size: 11px; line-height: 1.5; font-weight: 600; }
-    .plus-actions { display: grid; gap: 10px; }
-    .plus-link {
-      min-height: 42px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      text-decoration: none;
-      color: #fff;
-      background: var(--danger);
-      font-size: 13px;
-      font-weight: 900;
-    }
-
-    .showcase-card {
-      margin-top: 14px;
-      border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      background: linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
-      padding: 20px;
-    }
-
-    .showcase-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-    .showcase-title { margin: 0; font-size: 18px; font-weight: 900; }
-    .slide-viewport { overflow: hidden; border-radius: 16px; }
-    .showcase-layout { display: grid; grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1fr); gap: 16px; align-items: center; }
-    .slide-panel { padding: 18px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; transition: transform 0.22s ease, opacity 0.22s ease; }
-    .slide-panel.animating { opacity: 0.4; transform: translateX(14px); }
-    .logo-preview {
-      min-height: 220px;
-      border-radius: 18px;
-      background: linear-gradient(180deg, #50395a, #2d2035);
-      display: grid;
-      place-items: center;
-      position: relative;
       overflow: hidden;
     }
 
+    .guide-placeholder {
+      border-radius: 10px;
+      min-height: 220px;
+      display: grid;
+      align-content: center;
+      gap: 14px;
+      text-align: center;
+      padding: 20px;
+      background: linear-gradient(180deg, #252b35, #1c212b);
+      border: 1px dashed rgba(255,255,255,0.2);
+      color: #cfd7e3;
+      font-weight: 800;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .guide-placeholder strong {
+      color: #ffffff;
+      font-size: 14px;
+    }
+
+    .plus-topline,
+    .plus-actions,
+    .tool-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .plus-kicker,
+    .tool-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      color: #ffadad;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+    }
+
+    .plus-link,
+    .mini-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 0 16px;
+      min-height: 38px;
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .mini-btn.primary {
+      background: linear-gradient(180deg, #ff3d3d, #ff1212);
+      box-shadow: 0 12px 24px rgba(255, 30, 30, 0.22);
+    }
+
+    .showcase-card,
+    .faq-wrap {
+      margin-top: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: radial-gradient(circle at top right, rgba(255, 70, 70, 0.12), transparent 34%), var(--card);
+      padding: 20px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+    }
+
+    .showcase-title,
+    .tool-name {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1;
+      letter-spacing: -1px;
+      font-weight: 900;
+    }
+
+    .slide-viewport { margin-top: 12px; }
+    .showcase-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+      gap: 16px;
+      align-items: center;
+    }
+
+    .slide-panel.animating { opacity: 0.65; transform: translateY(3px); transition: opacity 0.18s ease, transform 0.18s ease; }
+
+    .logo-preview {
+      min-height: 230px;
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      padding: 20px;
+      background: linear-gradient(180deg, #50395a, #2d2035);
+    }
+
     .logo-glyph svg {
-      width: 120px;
-      height: 120px;
+      width: 84px;
+      height: 84px;
       stroke: #fff;
-      stroke-width: 2.2;
       fill: none;
+      stroke-width: 2.2;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
 
     .logo-tag {
-      position: absolute;
-      left: 14px;
-      bottom: 14px;
       min-height: 28px;
       padding: 0 12px;
+      border-radius: 999px;
       display: inline-flex;
       align-items: center;
-      border-radius: 999px;
-      background: rgba(8, 10, 14, 0.3);
-      border: 1px solid rgba(255,255,255,0.12);
+      justify-content: center;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
       font-size: 10px;
       font-weight: 900;
-      letter-spacing: 0.7px;
+      letter-spacing: 1px;
     }
 
-    #slidePills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-    .tool-pill {
-      min-height: 28px;
-      padding: 0 12px;
-      display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      font-size: 10px;
-      font-weight: 900;
-    }
+    .tool-desc { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; font-weight: 700; }
+    .showcase-progress { margin-top: 14px; width: 100%; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .showcase-progress span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #ff4c4c, #ff1b1b); }
 
-    .tool-pill.plus { color: #fff; }
-    .tool-name { margin: 0; font-size: 28px; line-height: 1; font-weight: 900; }
-    .tool-desc { margin: 10px 0 0; color: #c9ced6; font-size: 13px; line-height: 1.6; font-weight: 600; }
-    .tool-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
-    .mini-btn {
-      min-height: 40px;
+    .faq-item + .faq-item { margin-top: 10px; }
+    .faq-q {
+      width: 100%;
+      min-height: 44px;
       padding: 0 14px;
-      border-radius: 10px;
+      border-radius: 12px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(255,255,255,0.04);
       color: #fff;
-      font-size: 12px;
-      font-weight: 900;
-      cursor: pointer;
-    }
-
-    .mini-btn.primary { background: var(--danger); border-color: transparent; }
-    .showcase-progress { margin-top: 12px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
-    .showcase-progress span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff6b6b, #ff1f1f); }
-
-    .faq-wrap { margin-top: 14px; display: grid; gap: 8px; }
-    .faq-item { border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); overflow: hidden; }
-    .faq-q {
-      width: 100%;
-      min-height: 54px;
-      padding: 0 14px;
-      border: 0;
-      background: transparent;
-      color: #fff;
-      font-size: 13px;
-      font-weight: 800;
       text-align: left;
+      font-size: 14px;
+      font-weight: 800;
       cursor: pointer;
     }
-    .faq-a { display: none; padding: 0 14px 14px; color: #c8ced6; font-size: 12px; line-height: 1.55; font-weight: 600; }
+    .faq-a {
+      display: none;
+      padding: 12px 14px 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
     .faq-item.open .faq-a { display: block; }
 
-    .gate-overlay {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      background: rgba(5, 7, 10, 0.72);
-      z-index: 40;
-    }
-
-    .gate-overlay.open { display: flex; }
-    .gate-modal {
-      width: min(100%, 420px);
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: linear-gradient(180deg, #26262b, #1b1b1f);
-      padding: 22px;
-      display: grid;
-      gap: 12px;
-      text-align: center;
-    }
-
-    .gate-modal h3 { margin: 0; font-size: 28px; line-height: 0.95; font-weight: 900; }
-    .gate-modal h3 span { display: block; }
-    .gate-modal p { margin: 0; color: #cbd0d8; font-size: 12px; line-height: 1.6; font-weight: 600; }
-    .gate-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .plans-btn, .close-btn {
-      min-height: 42px;
-      border-radius: 10px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 900;
-      text-decoration: none;
-      border: 0;
-      cursor: pointer;
-    }
-    .plans-btn { background: var(--danger); color: #fff; }
-    .close-btn { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.08); }
-
-    @media (max-width: 960px) {
-      .top-grid { grid-template-columns: 1fr; }
+    @media (max-width: 980px) {
+      .top-grid,
       .showcase-layout { grid-template-columns: 1fr; }
-      .logo-preview { min-height: 180px; }
     }
 
     @media (max-width: 620px) {
       .asset-grid { grid-template-columns: repeat(4, 52px); grid-template-rows: repeat(3, 52px); }
-      .card h2, .tool-name, .gate-modal h3 { font-size: 26px; }
-      .gate-actions { grid-template-columns: 1fr; }
+      .card h2, .tool-name { font-size: 26px; }
       main { padding-left: 10px; padding-right: 10px; }
     }
   </style>
-  <script src="./global-shell.js"></script>
 </head>
 <body class="admin-checking">
-  <div class="bg-wrap" aria-hidden="true">
+  <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
     <div class="orb orb-three"></div>
@@ -567,22 +503,22 @@
   <main>
     <section class="hero">
       <h1><span>Developer Asset</span><span>Downloader</span></h1>
-      <p>Download supported Roblox creator marketplace model packs and developer assets as RBXM or RBXMX files from one clean page.</p>
+      <p>Download supported Roblox creator marketplace model packs and development assets in native Roblox model format.</p>
     </section>
 
     <section class="top-grid">
       <article class="card">
-        <div class="badge">Developer Marketplace</div>
+        <div class="badge">Creator Marketplace</div>
         <h2><span>Developer Asset</span><span>Downloader</span></h2>
-        <p class="subtitle">Grab creator marketplace model packs and development assets with a cleaner workflow.</p>
+        <p class="subtitle">Same tool-page layout as Template Downloader, but built for Roblox dev marketplace asset packs.</p>
 
         <div class="notice">
-          Free plan: unlimited downloads 1 by 1. <span class="plus-word">Plus</span>: 2-5 at once with comma-separated IDs.
+          Admin tool: paste one or more supported Roblox asset IDs, then save the pack as RBXM or RBXMX.
           <code>Ex: 118003513749243, 123456789012345</code>
         </div>
 
-        <textarea id="assetId" placeholder="Enter one Roblox developer asset ID, or comma-separated IDs for Plus"></textarea>
-        <button id="assetButton" class="btn" type="button" onclick="generateDeveloperAsset()">Download Asset Pack</button>
+        <textarea id="assetId" placeholder="Enter one Roblox creator marketplace asset ID, or comma-separated IDs"></textarea>
+        <button id="assetButton" class="btn" type="button">Download Asset Pack</button>
         <div id="status"></div>
         <div id="result"></div>
       </article>
@@ -592,38 +528,29 @@
           <div class="badge">How To Use</div>
           <h2><span>Quick</span><span>Guide</span></h2>
           <div class="video-box">
-            <div class="video-placeholder">
-              Paste a Roblox creator marketplace model ID, click download, and the tool will save the pack as an <strong>RBXM</strong> or <strong>RBXMX</strong> file when supported.
+            <div class="guide-placeholder">
+              <strong>Paste the creator marketplace asset ID and click download.</strong>
+              <span>This tool is meant for Roblox Studio workflows, so supported packs download as <strong>RBXM</strong> or <strong>RBXMX</strong> instead of flattened exports.</span>
             </div>
           </div>
         </article>
 
         <section class="card plus-card">
-          <div class="plus-promo">
-            <div class="plus-topline">
-              <span class="plus-kicker">RBLXTools Sponsor</span>
-              <span class="plus-price">More power. Less waiting.</span>
-            </div>
-            <h3><span>RBLXTools</span><span><span class="plus-word">Plus</span> Plan</span></h3>
-            <p>RBTools <span class="plus-word">Plus</span> unlocks the premium side of the website with bulk usage upgrades, premium creator tools, cleaner visuals, and extra account cosmetics built for heavy Roblox workflows.</p>
-            <div class="perk-list">
-              <div class="perk"><strong>Bulk downloads and tool usage</strong><span>Use supported tools faster with 2-5 at a time workflows where available.</span></div>
-              <div class="perk"><strong>Premium creator tools</strong><span>Open more advanced asset workflows for Roblox development.</span></div>
-              <div class="perk"><strong>Cleaner website experience</strong><span>Get a more polished premium feel across supported site sections.</span></div>
-            </div>
-            <div class="plus-actions">
-              <p><span class="price-green">$1.00</span> a month for premium tools, creator perks, and a more premium RBLX Tools experience.</p>
-              <a class="plus-link" href="./subscriptions">View Plans</a>
-            </div>
+          <div class="plus-topline">
+            <span class="plus-kicker">RBLXTools Internal</span>
+            <span class="price-green">Admin Workflow</span>
+          </div>
+          <h2><span>Native Roblox</span><span>Model Pulls</span></h2>
+          <p class="subtitle">This internal tool is kept admin-only so you can test creator marketplace packs without showing unfinished workflows to normal users.</p>
+          <div class="notice">
+            Best use: Roblox Studio imports, asset inspection, and internal testing on supported marketplace model packs.
           </div>
         </section>
       </div>
     </section>
 
     <section class="showcase-card">
-      <div class="showcase-header">
-        <h3 class="showcase-title">Other Tools</h3>
-      </div>
+      <h3 class="showcase-title">Other Tools</h3>
       <div class="slide-viewport" id="showcaseViewport">
         <div class="showcase-layout slide-panel" id="showcasePanel">
           <div class="logo-preview" id="slideLogoPreview">
@@ -648,72 +575,56 @@
     <section class="faq-wrap">
       <div class="faq-item open">
         <button class="faq-q" type="button">What does this tool download?</button>
-        <div class="faq-a">It downloads supported Roblox creator marketplace and model assets as RBXM or RBXMX files for development workflows.</div>
+        <div class="faq-a">It downloads supported Roblox creator marketplace model packs and development assets as RBXM or RBXMX files.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q" type="button">Do I paste full Roblox URLs?</button>
-        <div class="faq-a">You can paste the numeric ID. If you paste a Roblox asset URL, the downloader will try to pull the ID from it.</div>
+        <div class="faq-a">You can paste the numeric item ID. If you paste a Roblox asset URL, the downloader will try to pull the ID from it.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-q" type="button">Why did my file fail?</button>
+        <button class="faq-q" type="button">Why is my item not loading?</button>
         <div class="faq-a">Most common reasons are an invalid ID, a non-model asset type, a restricted asset, or Roblox blocking the delivery request.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-q" type="button">Does this support multi-download?</button>
-        <div class="faq-a">Yes, but only for <span class="plus-word">Plus</span> accounts, up to 5 asset IDs at once.</div>
+        <button class="faq-q" type="button">Why RBXM instead of OBJ?</button>
+        <div class="faq-a">Marketplace packs are usually Roblox model containers, so native Roblox model format is much more useful for Studio import than flattening everything into OBJ.</div>
       </div>
     </section>
   </main>
-
-  <div class="gate-overlay" id="plusGate">
-    <div class="gate-modal">
-      <h3><span><span class="plus-word">Plus</span> Required</span><span>You Don't Own <span class="plus-word">Plus</span></span></h3>
-      <p>This tool is locked to <span class="plus-word">Plus</span>. Upgrade your plan to unlock it, then come right back.</p>
-      <div class="gate-actions">
-        <a class="plans-btn" href="./subscriptions">View Plans</a>
-        <button class="close-btn" type="button" id="closeGate">Close</button>
-      </div>
-    </div>
-  </div>
 
   <script>
     const API_BASE = window.location.origin;
     const TOKEN_KEY = "rblxtools_auth_token";
     const USER_KEY = "rblxtools_auth_user";
     const PROFILE_KEY = "rblxtools_profile_overview";
-    const PLUS_STATUS_KEY = "rblxtools_plus_cache";
-    const SHOWCASE_INTERVAL_MS = 5000;
-
-    let knownPlus = null;
-    let currentDownloads = [];
-    let currentDownloadIndex = 0;
+    const SHOWCASE_INTERVAL_MS = 45000;
+    const assetIdInput = document.getElementById("assetId");
+    const showcasePanel = document.getElementById("showcasePanel");
+    const showcaseViewport = document.getElementById("showcaseViewport");
+    const showcaseProgress = document.getElementById("showcaseProgress");
+    let currentSlides = [];
+    let currentSlideIndex = 0;
     let showcaseTimer = null;
     let showcaseProgressTimer = null;
     let activeToolIndex = 0;
+    let adminVerified = false;
 
     const toolsData = [
-      { name: "Template Downloader", desc: "Download supported Roblox clothing templates fast.", href: "./template-downloader", plus: false, icon: "spark", tag: "Template Tool", tone: "linear-gradient(180deg,#50395a,#2d2035)" },
-      { name: "UGC Downloader", desc: "Download supported UGC accessory files for creator workflows.", href: "./ugc-downloader", plus: false, icon: "hat", tag: "UGC Tool", tone: "linear-gradient(180deg,#2a4a6c,#1e2f42)" },
-      { name: "Media Downloader", desc: "Grab supported Roblox media assets from one clean page.", href: "./media-downloader", plus: false, icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#39526a,#1f3140)" },
-      { name: "Audio Downloader", desc: "Fetch supported Roblox audio files with a simpler creator workflow.", href: "./audio-downloader", plus: false, icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#4a4f6d,#262c46)" },
-      { name: "Background Changer", desc: "Restore the official Roblox template background around clothing artwork.", href: "./template-background-changer", plus: false, icon: "spark", tag: "Cleanup Tool", tone: "linear-gradient(180deg,#3e5b47,#23372b)" },
-      { name: "Texture Baker", desc: "Bake matching UGC mesh textures into export-ready model results.", href: "./texture-baker", plus: true, icon: "texture", tag: "Plus Tool", tone: "linear-gradient(180deg,#5d4343,#311d1d)" },
-      { name: "Animation Spoofer", desc: "Pull supported animation assets for faster creator workflows.", href: "./animation-spoofer", plus: true, icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#4b3f5e,#261f33)" }
+      { name: "Template Background Changer", desc: "Remove marks and restore a clean classic template background.", href: "./template-background-changer", icon: "spark", tag: "Cleanup Tool", tone: "linear-gradient(180deg,#31506a,#1f2f42)" },
+      { name: "UGC Downloader", desc: "Download supported UGC accessory files for creator workflows.", href: "./ugc-downloader", icon: "hat", tag: "UGC Tool", tone: "linear-gradient(180deg,#2a4a6c,#1e2f42)" },
+      { name: "Robux Calculator", desc: "Fast conversion math for Robux and pricing plans.", href: "./robux-calculator", icon: "calc", tag: "Value Tool", tone: "linear-gradient(180deg,#3e5b35,#27391f)" },
+      { name: "Media Downloader", desc: "Pull supported media assets quickly.", href: "./media-downloader", icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#5a3b61,#32213a)" },
+      { name: "Audio Downloader", desc: "Fetch audio asset files from supported IDs.", href: "./audio-downloader", icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#6a3e3a,#3f2523)" },
+      { name: "Texture Baker", desc: "Premium texture workflow and cleaner UGC output.", href: "./texture-baker", icon: "texture", tag: "Plus Tool", tone: "linear-gradient(180deg,#4a406b,#2a2441)" },
+      { name: "Animation Spoofer", desc: "Premium animation utility for advanced workflows.", href: "./animation-spoofer", icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
     ];
 
-    function getStoredToken() {
-      try { return localStorage.getItem(TOKEN_KEY) || ""; }
-      catch (_error) { return ""; }
+    function normalizeIds(rawValue) {
+      return String(rawValue || "").split(",").map((value) => value.trim()).filter(Boolean);
     }
 
-    function getCachedToolUser() {
-      try {
-        const raw = localStorage.getItem(USER_KEY) || "";
-        const parsed = raw ? JSON.parse(raw) : null;
-        return parsed && typeof parsed === "object" ? parsed : null;
-      } catch (_error) {
-        return null;
-      }
+    function getStoredToken() {
+      try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (_error) { return ""; }
     }
 
     function saveCachedToolUser(user) {
@@ -726,16 +637,84 @@
       } catch (_error) {}
     }
 
-    function isAdminFromPayload(payload) {
-      if (!payload || typeof payload !== "object") return false;
-      return Boolean(
-        payload.isAdmin === true ||
-        payload.admin === true ||
-        (payload.user && payload.user.isAdmin === true)
-      );
+    function getCachedToolUser() {
+      try {
+        const raw = localStorage.getItem(USER_KEY) || "";
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : null;
+      } catch (_error) {
+        return null;
+      }
     }
 
-    function finishAdminGate() {
+    function getToolUserName(user) {
+      const source = user && typeof user === "object" ? user : {};
+      const displayName = String(source.displayName || source.profileDisplayName || source.publicDisplayName || source.username || source.name || "").trim();
+      if (displayName) return displayName;
+      const email = String(source.email || "").trim();
+      return email ? email.split("@")[0].trim() : "";
+    }
+
+    function getStoredProfileName() {
+      const cachedUser = getCachedToolUser();
+      const cachedUserId = String(cachedUser && cachedUser.id || "").trim();
+      const keys = [
+        cachedUserId ? PROFILE_KEY + ":" + cachedUserId : "",
+        PROFILE_KEY,
+        "rblxtools_account_profile",
+        cachedUserId ? "rblxtools_account_profile:" + cachedUserId : "",
+        "rblxtools_profile",
+        cachedUserId ? "rblxtools_profile:" + cachedUserId : ""
+      ].filter(Boolean);
+
+      for (const key of keys) {
+        try {
+          const raw = localStorage.getItem(key) || "";
+          if (!raw) continue;
+          const parsed = JSON.parse(raw);
+          const name = getToolUserName(parsed);
+          if (name) return name;
+        } catch (_error) {}
+      }
+
+      return "";
+    }
+
+    function getActivityNameFromCache() {
+      return getStoredProfileName() || getToolUserName(getCachedToolUser());
+    }
+
+    function isAdminFromPayload(payload) {
+      if (!payload || typeof payload !== "object") return false;
+      return Boolean(payload.isAdmin === true || payload.admin === true || (payload.user && payload.user.isAdmin === true));
+    }
+
+    function rememberToolActivity(toolName) {
+      try {
+        var actorName = String(getActivityNameFromCache() || "Guest").trim() || "Guest";
+        var cacheKey = "rblxtools_tool_activity_cache";
+        var entries = [];
+        try {
+          entries = JSON.parse(localStorage.getItem(cacheKey) || "[]");
+          if (!Array.isArray(entries)) entries = [];
+        } catch (_error) {
+          entries = [];
+        }
+        entries = entries.filter(function (entry) {
+          return entry && typeof entry === "object";
+        }).slice(-79);
+        entries.push({
+          messageId: "",
+          toolName: String(toolName || "").trim(),
+          actorName: actorName,
+          createdAt: new Date().toISOString()
+        });
+        localStorage.setItem(cacheKey, JSON.stringify(entries.slice(-80)));
+      } catch (_error) {}
+    }
+
+    function releaseAdminGate() {
       document.body.classList.remove("admin-checking");
     }
 
@@ -774,197 +753,19 @@
           return false;
         }
 
-        finishAdminGate();
+        adminVerified = true;
+        releaseAdminGate();
         return true;
       } catch (_error) {
         const cachedUser = getCachedToolUser();
         if (cachedUser && isAdminFromPayload(cachedUser)) {
-          finishAdminGate();
+          adminVerified = true;
+          releaseAdminGate();
           return true;
         }
-
         redirectUnauthorized();
         return false;
       }
-    }
-
-    function hasPlusFromPayload(payload) {
-      if (!payload || typeof payload !== "object") return false;
-      return Boolean(
-        payload.plus === true ||
-        payload.isPlus === true ||
-        payload.hasPlus === true ||
-        payload.plusActive === true ||
-        payload.subscription === "plus" ||
-        payload.plan === "plus" ||
-        payload.tier === "plus"
-      );
-    }
-
-    function readCachedPlusStatus() {
-      try {
-        const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed.isPlus === "boolean") return parsed.isPlus;
-        }
-      } catch (_error) {}
-
-      try {
-        const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
-        return hasPlusFromPayload(cachedUser) ? true : null;
-      } catch (_error) {
-        return null;
-      }
-    }
-
-    function writeCachedPlusStatus(isPlus) {
-      try {
-        localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
-          isPlus: Boolean(isPlus),
-          updatedAt: Date.now()
-        }));
-      } catch (_error) {}
-    }
-
-    function clearCachedPlusStatus() {
-      try {
-        localStorage.removeItem(PLUS_STATUS_KEY);
-      } catch (_error) {}
-    }
-
-    async function fetchPlusStatus(options) {
-      const token = getStoredToken();
-      if (!token) {
-        clearCachedPlusStatus();
-        return false;
-      }
-
-      const settings = options && typeof options === "object" ? options : {};
-      if (!settings.force) {
-        const cachedStatus = readCachedPlusStatus();
-        if (cachedStatus !== null) {
-          window.setTimeout(function () {
-            fetchPlusStatus({ force: true, background: true });
-          }, 0);
-          return cachedStatus;
-        }
-      }
-
-      try {
-        const premiumResponse = await fetch(API_BASE + "/auth/premium-status", { method: "GET", headers: { Authorization: "Bearer " + token } });
-        if (premiumResponse.ok) {
-          const premiumPayload = await premiumResponse.json().catch(() => null);
-          const hasPlus = hasPlusFromPayload(premiumPayload);
-          writeCachedPlusStatus(hasPlus);
-          return hasPlus;
-        }
-
-        if (premiumResponse.status === 401 || premiumResponse.status === 403) {
-          clearCachedPlusStatus();
-          return false;
-        }
-
-        const response = await fetch(API_BASE + "/auth/me", { method: "GET", headers: { Authorization: "Bearer " + token } });
-        if (!response.ok) return readCachedPlusStatus() === true;
-        const payload = await response.json().catch(() => null);
-        const hasPlus = hasPlusFromPayload(payload);
-        writeCachedPlusStatus(hasPlus);
-        return hasPlus;
-      } catch (_error) {
-        return readCachedPlusStatus() === true;
-      }
-    }
-
-    async function bootstrapPlusStatus() {
-      if (knownPlus === true) return true;
-      if (knownPlus === false) return false;
-      knownPlus = await fetchPlusStatus();
-      return knownPlus;
-    }
-
-    knownPlus = readCachedPlusStatus();
-
-    function getToolUserName(source) {
-      const user = source && typeof source === "object" ? source : {};
-      const displayName = String(user.displayName || user.profileDisplayName || user.publicDisplayName || user.username || user.name || "").trim();
-      if (displayName) return displayName;
-      const email = String(user.email || user.userEmail || user.accountEmail || "").trim();
-      return email ? email.split("@")[0].trim() : "";
-    }
-
-    function getCachedToolUser() {
-      try {
-        const raw = localStorage.getItem("rblxtools_auth_user") || "";
-        const parsed = raw ? JSON.parse(raw) : null;
-        return parsed && typeof parsed === "object" ? parsed : null;
-      } catch (_error) {
-        return null;
-      }
-    }
-
-    function getStoredProfileName() {
-      try {
-        const cachedUser = getCachedToolUser();
-        const cachedUserId = String(cachedUser && cachedUser.id || "").trim();
-        const keys = [
-          cachedUserId ? PROFILE_KEY + ":" + cachedUserId : "",
-          PROFILE_KEY,
-          "rblxtools_account_profile",
-          cachedUserId ? "rblxtools_account_profile:" + cachedUserId : "",
-          "rblxtools_profile",
-          cachedUserId ? "rblxtools_profile:" + cachedUserId : ""
-        ].filter(Boolean);
-
-        for (const key of keys) {
-          try {
-            const raw = localStorage.getItem(key) || "";
-            if (!raw) continue;
-            const parsed = JSON.parse(raw);
-            const name = getToolUserName(parsed);
-            if (name) return name;
-          } catch (_error) {}
-        }
-
-        return "";
-      } catch (_error) {
-        return "";
-      }
-    }
-
-    function getActivityNameFromCache() {
-      return getStoredProfileName() || getToolUserName(getCachedToolUser());
-    }
-
-    function rememberToolActivity(toolName) {
-      try {
-        var actorName = String(getActivityNameFromCache() || "Guest").trim() || "Guest";
-        var cacheKey = "rblxtools_tool_activity_cache";
-        var entries = [];
-        try {
-          entries = JSON.parse(localStorage.getItem(cacheKey) || "[]");
-          if (!Array.isArray(entries)) entries = [];
-        } catch (_error) {
-          entries = [];
-        }
-        entries = entries.filter(function (entry) {
-          return entry && typeof entry === "object";
-        }).slice(-79);
-        entries.push({
-          messageId: "",
-          toolName: String(toolName || "").trim(),
-          actorName: actorName,
-          createdAt: new Date().toISOString()
-        });
-        localStorage.setItem(cacheKey, JSON.stringify(entries.slice(-80)));
-      } catch (_error) {}
-    }
-
-    function normalizeIds(rawValue) {
-      return String(rawValue || "")
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
     }
 
     function buildDeveloperAssetFetchUrl(assetId) {
@@ -972,6 +773,22 @@
       url.searchParams.set("id", String(assetId || "").trim());
       url.searchParams.set("displayName", getActivityNameFromCache());
       return url.toString();
+    }
+
+    function buildDefaultPreview() {
+      return `
+        <div id="previewShell">
+          <div id="placeholderAsset">
+            <div class="asset-file-icon">RBXM</div>
+            <div class="asset-grid">
+              <div class="blue">PK</div><div class="red">3D</div><div class="yellow">RB</div><div class="blue">XM</div>
+              <div class="green">DEV</div><div class="red">AS</div><div class="yellow">SET</div><div class="blue">PACK</div>
+              <div class="yellow">TO</div><div class="green">OL</div><div class="red">RB</div><div class="blue">X</div>
+            </div>
+            <p>Your Roblox developer asset pack will pop up here.</p>
+          </div>
+        </div>
+      `;
     }
 
     function formatFileSize(bytes) {
@@ -982,44 +799,39 @@
       return size + " B";
     }
 
-    function buildDefaultPreview() {
-      return `
-        <div id="previewShell">
-          <div id="placeholderAsset">
-            <div class="asset-file-icon">RBXM</div>
-            <div class="asset-grid">
-              <div class="blue">PK</div><div class="red">3D</div><div class="green">FX</div><div class="yellow">UI</div>
-              <div class="red">RB</div><div class="blue">XM</div><div class="green">DEV</div><div class="yellow">TO</div>
-              <div class="green">AS</div><div class="yellow">SET</div><div class="blue">PA</div><div class="red">CK</div>
-            </div>
-            <p>Your Roblox developer asset pack will pop up here.</p>
-          </div>
-        </div>
-      `;
+    function getToolShowcaseIcon(kind) {
+      const icons = {
+        spark: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l2.9 8.1L35 17l-8.1 2.9L24 28l-2.9-8.1L13 17l8.1-2.9L24 6z"></path><path d="M36 26l1.8 5 5 1.8-5 1.8-1.8 5-1.8-5-5-1.8 5-1.8 1.8-5z"></path><path d="M13 28l1.5 4.1 4.1 1.5-4.1 1.5L13 39l-1.5-4.1-4.1-1.5 4.1-1.5L13 28z"></path></svg>`,
+        hat: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 26c1.9-5.8 6.1-9 10-9s8.1 3.2 10 9"></path><path d="M8 28.5c4.9-2.7 10.4-4 16-4s11.1 1.3 16 4"></path><path d="M10 29v3.5c0 2.5 6.3 4.5 14 4.5s14-2 14-4.5V29"></path></svg>`,
+        calc: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="13" y="7" width="22" height="34" rx="5"></rect><rect x="17" y="12" width="14" height="6" rx="2"></rect><path d="M18 25h4"></path><path d="M18 31h4"></path><path d="M18 37h4"></path><path d="M26 25h4"></path><path d="M26 31h4"></path><path d="M26 37h4"></path></svg>`,
+        media: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="11" width="32" height="26" rx="5"></rect><circle cx="17" cy="19" r="3"></circle><path d="M13 32l7-7 5 5 5-4 5 6"></path></svg>`,
+        audio: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 29h5l7 7V12l-7 7h-5z"></path><path d="M32 18c2.8 2 4.5 5.2 4.5 8.5S34.8 33 32 35"></path><path d="M35.5 13.5c4.1 3.1 6.5 7.8 6.5 13s-2.4 9.9-6.5 13"></path></svg>`,
+        texture: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="10" y="10" width="28" height="28" rx="5"></rect><path d="M19.5 10v28"></path><path d="M28.5 10v28"></path><path d="M10 19.5h28"></path><path d="M10 28.5h28"></path></svg>`,
+        rig: `<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="11" r="4"></circle><path d="M24 15v10"></path><path d="M24 19l-8 4"></path><path d="M24 19l8 4"></path><path d="M24 25l-6 10"></path><path d="M24 25l6 10"></path><path d="M18 35h12"></path></svg>`
+      };
+      return icons[kind] || icons.spark;
     }
 
     function updateResultView() {
-      if (!currentDownloads.length) return;
-      const active = currentDownloads[currentDownloadIndex];
+      if (!currentSlides.length) return;
+      const active = currentSlides[currentSlideIndex];
       document.getElementById("activeAssetId").textContent = "ID " + active.id;
       document.getElementById("activeAssetType").textContent = active.extension.toUpperCase();
       document.getElementById("activeAssetSize").textContent = active.sizeLabel;
-      document.getElementById("slideCounter").textContent = currentDownloads.length > 1
-        ? (currentDownloadIndex + 1) + " of " + currentDownloads.length
-        : "Single Asset";
+      document.getElementById("slideCounter").textContent = currentSlides.length > 1 ? (currentSlideIndex + 1) + " of " + currentSlides.length : "Single Asset";
       const downloadBtn = document.getElementById("downloadBtn");
       downloadBtn.href = active.url;
       downloadBtn.download = active.fileName;
     }
 
     function showSlide(direction) {
-      if (currentDownloads.length < 2) return;
-      currentDownloadIndex = (currentDownloadIndex + direction + currentDownloads.length) % currentDownloads.length;
+      if (currentSlides.length < 2) return;
+      currentSlideIndex = (currentSlideIndex + direction + currentSlides.length) % currentSlides.length;
       updateResultView();
     }
 
     function downloadAllSlides() {
-      currentDownloads.forEach((item, index) => {
+      currentSlides.forEach((item, index) => {
         setTimeout(() => {
           const link = document.createElement("a");
           link.href = item.url;
@@ -1031,33 +843,36 @@
       });
     }
 
-    function renderDownloads(files) {
-      currentDownloads = files.slice();
-      currentDownloadIndex = 0;
+    function renderSlides(files) {
+      currentSlides = files.slice();
+      currentSlideIndex = 0;
       const result = document.getElementById("result");
       const isMulti = files.length > 1;
 
       result.innerHTML = `
         <div id="previewShell">
-          <div class="result-card">
-            <div id="placeholderAsset">
-              <div class="asset-file-icon">RBXM</div>
-              <p>Developer marketplace asset ready to save.</p>
+          <div id="placeholderAsset">
+            <div class="asset-file-icon">RBXM</div>
+            <div class="asset-grid">
+              <div class="blue">PK</div><div class="red">3D</div><div class="yellow">RB</div><div class="blue">XM</div>
+              <div class="green">DEV</div><div class="red">AS</div><div class="yellow">SET</div><div class="blue">PACK</div>
+              <div class="yellow">SAVE</div><div class="green">TO</div><div class="red">ST</div><div class="blue">UDIO</div>
             </div>
-            <div class="result-meta">
-              <div class="metaPill">Asset Pack Ready</div>
-              <div class="metaPill" id="activeAssetId"></div>
-              <div class="metaPill" id="activeAssetType"></div>
-              <div class="metaPill" id="activeAssetSize"></div>
-              <div class="metaPill" id="slideCounter">${isMulti ? `1 of ${files.length}` : "Single Asset"}</div>
-            </div>
-            <div class="actionRow">
-              <button class="secondaryBtn" type="button" ${isMulti ? "" : "style=\"display:none;\""} onclick="showSlide(-1)">Previous File</button>
-              <a class="downloadBtn" id="downloadBtn" href="#">Save Asset Pack</a>
-              <button class="secondaryBtn" type="button" ${isMulti ? "" : "style=\"display:none;\""} onclick="showSlide(1)">Next File</button>
-              ${isMulti ? '<button class="secondaryBtn" type="button" onclick="downloadAllSlides()">Download All</button>' : ""}
-            </div>
+            <p>Developer marketplace asset ready to save.</p>
           </div>
+        </div>
+        <div id="metaRow">
+          <div class="metaPill">Asset Pack Ready</div>
+          <div class="metaPill" id="activeAssetId"></div>
+          <div class="metaPill" id="activeAssetType"></div>
+          <div class="metaPill" id="activeAssetSize"></div>
+          <div class="metaPill" id="slideCounter">${isMulti ? "1 of " + files.length : "Single Asset"}</div>
+        </div>
+        <div id="actionRow">
+          ${isMulti ? '<button class="action-btn" type="button" onclick="showSlide(-1)">&lsaquo; Previous</button>' : ""}
+          <a class="download-link" id="downloadBtn" href="#">Save Asset Pack</a>
+          ${isMulti ? '<button class="action-btn" type="button" onclick="showSlide(1)">Next &rsaquo;</button>' : ""}
+          ${isMulti ? '<button class="action-btn" type="button" onclick="downloadAllSlides()">Download All</button>' : ""}
         </div>
       `;
 
@@ -1065,12 +880,9 @@
     }
 
     async function fetchDeveloperAssetFile(id) {
-      const url = buildDeveloperAssetFetchUrl(id);
       const token = getStoredToken();
-      const headers = token ? {
-        Authorization: "Bearer " + token
-      } : {};
-      const res = await fetch(url, { headers });
+      const headers = token ? { Authorization: "Bearer " + token } : {};
+      const res = await fetch(buildDeveloperAssetFetchUrl(id), { headers });
 
       if (!res.ok) {
         let message = "Failed to fetch developer asset";
@@ -1083,49 +895,37 @@
 
       const blob = await res.blob();
       const extension = String(res.headers.get("X-Roblox-Asset-Extension") || "rbxm").trim().toLowerCase() || "rbxm";
-      const fileName = `roblox-dev-asset-${id}.${extension}`;
-      const urlObject = URL.createObjectURL(blob);
-
       return {
         id: id,
-        url: urlObject,
-        fileName: fileName,
+        url: URL.createObjectURL(blob),
+        fileName: "roblox-dev-asset-" + id + "." + extension,
         extension: extension,
         sizeLabel: formatFileSize(blob.size)
       };
     }
 
     async function generateDeveloperAsset() {
-      const rawValue = document.getElementById("assetId").value.trim();
-      const ids = normalizeIds(rawValue);
+      if (!adminVerified) return;
+      const ids = normalizeIds(assetIdInput.value.trim());
       const status = document.getElementById("status");
       const result = document.getElementById("result");
       const button = document.getElementById("assetButton");
 
       if (!ids.length) { status.className = "error"; status.innerText = "Enter at least one Roblox asset ID."; return; }
-      if (ids.length > 5) { status.className = "error"; status.innerHTML = '<span class="plus-word">Plus</span> users can download up to 5 asset packs at a time.'; return; }
-      if (ids.some((id) => !/\d{4,}/.test(id))) { status.className = "error"; status.innerText = "Use valid Roblox asset IDs separated by commas."; return; }
-
-      if (ids.length > 1) {
-        const hasPlus = await bootstrapPlusStatus();
-        if (!hasPlus) {
-          status.className = "error";
-          status.innerHTML = 'Must be a <span class="plus-word">Plus</span> subscriber for multi-download. <a href="./subscriptions"><span class="plus-word">Upgrade to Plus</span></a>';
-          return;
-        }
-      }
+      if (ids.length > 10) { status.className = "error"; status.innerText = "Use 10 asset IDs or fewer at a time."; return; }
+      if (ids.some((id) => !/^\d+$/.test(id))) { status.className = "error"; status.innerText = "Use only Roblox asset IDs separated by commas."; return; }
 
       status.className = "";
       status.innerText = ids.length > 1 ? "Fetching developer assets..." : "Fetching developer asset...";
       result.innerHTML = buildDefaultPreview();
       button.disabled = true;
-      button.innerText = ids.length > 1 ? "Loading Asset Packs..." : "Loading...";
+      button.textContent = ids.length > 1 ? "Loading Asset Packs..." : "Loading...";
 
       try {
         const files = await Promise.all(ids.map((id) => fetchDeveloperAssetFile(id)));
         status.className = "success";
         status.innerText = ids.length > 1 ? "Asset packs found. Ready to download." : "Asset pack found. Ready to download.";
-        renderDownloads(files);
+        renderSlides(files);
         rememberToolActivity("Developer Asset Downloader");
       } catch (error) {
         status.className = "error";
@@ -1133,7 +933,7 @@
         result.innerHTML = buildDefaultPreview();
       } finally {
         button.disabled = false;
-        button.innerText = "Download Asset Pack";
+        button.textContent = "Download Asset Pack";
       }
     }
 
@@ -1141,24 +941,10 @@
     window.showSlide = showSlide;
     window.downloadAllSlides = downloadAllSlides;
 
-    function getToolShowcaseIcon(kind) {
-      const icons = {
-        spark: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l2.9 8.1L35 17l-8.1 2.9L24 28l-2.9-8.1L13 17l8.1-2.9L24 6z"></path><path d="M36 26l1.8 5 5 1.8-5 1.8-1.8 5-1.8-5-5-1.8 5-1.8 1.8-5z"></path><path d="M13 28l1.5 4.1 4.1 1.5-4.1 1.5L13 39l-1.5-4.1-4.1-1.5 4.1-1.5L13 28z"></path></svg>`,
-        hat: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 26c1.9-5.8 6.1-9 10-9s8.1 3.2 10 9"></path><path d="M8 28.5c4.9-2.7 10.4-4 16-4s11.1 1.3 16 4"></path><path d="M10 29v3.5c0 2.5 6.3 4.5 14 4.5s14-2 14-4.5V29"></path></svg>`,
-        media: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="11" width="32" height="26" rx="5"></rect><circle cx="17" cy="19" r="3"></circle><path d="M13 32l7-7 5 5 5-4 5 6"></path></svg>`,
-        audio: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 29h5l7 7V12l-7 7h-5z"></path><path d="M32 18c2.8 2 4.5 5.2 4.5 8.5S34.8 33 32 35"></path><path d="M35.5 13.5c4.1 3.1 6.5 7.8 6.5 13s-2.4 9.9-6.5 13"></path></svg>`,
-        texture: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="10" y="10" width="28" height="28" rx="5"></rect><path d="M19.5 10v28"></path><path d="M28.5 10v28"></path><path d="M10 19.5h28"></path><path d="M10 28.5h28"></path></svg>`,
-        rig: `<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="11" r="4"></circle><path d="M24 15v10"></path><path d="M24 19l-8 4"></path><path d="M24 19l8 4"></path><path d="M24 25l-6 10"></path><path d="M24 25l6 10"></path><path d="M18 35h12"></path></svg>`
-      };
-      return icons[kind] || icons.spark;
-    }
-
     function updateShowcaseProgress() {
-      const showcaseProgress = document.getElementById("showcaseProgress");
       if (!showcaseProgress) return;
       showcaseProgress.style.width = "0%";
       const start = Date.now();
-
       if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
       showcaseProgressTimer = setInterval(() => {
         const elapsed = Date.now() - start;
@@ -1170,10 +956,7 @@
 
     function renderToolSlide() {
       const tool = toolsData[activeToolIndex];
-      document.getElementById("slidePills").innerHTML = `
-        <span class="tool-pill">Other Tool</span>
-        ${tool.plus ? '<span class="tool-pill plus"><span class="plus-word">Plus</span> Required</span>' : '<span class="tool-pill">Free Access</span>'}
-      `;
+      document.getElementById("slidePills").innerHTML = '<span class="tool-pill">Other Tool</span><span class="tool-pill">Open Tool</span>';
       document.getElementById("slideName").textContent = tool.name;
       document.getElementById("slideDesc").textContent = tool.desc;
       document.getElementById("slideGlyph").innerHTML = getToolShowcaseIcon(tool.icon);
@@ -1182,8 +965,7 @@
     }
 
     function animateToolSlide(nextIndex) {
-      const showcasePanel = document.getElementById("showcasePanel");
-      if (nextIndex === activeToolIndex || !showcasePanel) return;
+      if (nextIndex === activeToolIndex) return;
       showcasePanel.classList.add("animating");
       window.setTimeout(() => {
         activeToolIndex = nextIndex;
@@ -1207,33 +989,22 @@
       restartShowcaseTimer();
     }
 
-    function showPlusGate() { document.getElementById("plusGate").classList.add("open"); }
-    function hidePlusGate() { document.getElementById("plusGate").classList.remove("open"); }
-
-    async function openCurrentTool() {
+    function openCurrentTool() {
       const tool = toolsData[activeToolIndex];
-      if (!tool.plus) { window.location.href = tool.href; return; }
-      if (knownPlus === true) { window.location.href = tool.href; return; }
-      const hasPlus = await bootstrapPlusStatus();
-      if (hasPlus) { window.location.href = tool.href; return; }
-      showPlusGate();
+      window.location.href = tool.href;
     }
 
-    ensureAdminAccess().then((allowed) => {
-      if (!allowed) return;
-
+    function initPage() {
+      document.getElementById("assetButton").addEventListener("click", generateDeveloperAsset);
       document.getElementById("prevTool").addEventListener("click", () => goToTool(activeToolIndex - 1));
       document.getElementById("nextTool").addEventListener("click", () => goToTool(activeToolIndex + 1));
       document.getElementById("openTool").addEventListener("click", openCurrentTool);
-      document.getElementById("closeGate").addEventListener("click", hidePlusGate);
-      document.getElementById("plusGate").addEventListener("click", (e) => { if (e.target.id === "plusGate") hidePlusGate(); });
-      document.getElementById("showcaseViewport").addEventListener("mouseenter", () => {
+      showcaseViewport.addEventListener("mouseenter", () => {
         if (showcaseTimer) clearInterval(showcaseTimer);
         if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
       });
-      document.getElementById("showcaseViewport").addEventListener("mouseleave", restartShowcaseTimer);
-
-      document.getElementById("assetId").addEventListener("keydown", function (event) {
+      showcaseViewport.addEventListener("mouseleave", restartShowcaseTimer);
+      assetIdInput.addEventListener("keydown", function (event) {
         if (event.key === "Enter" && !event.shiftKey) {
           event.preventDefault();
           generateDeveloperAsset();
@@ -1243,8 +1014,12 @@
       document.getElementById("result").innerHTML = buildDefaultPreview();
       renderToolSlide();
       restartShowcaseTimer();
-      bootstrapPlusStatus();
+    }
+
+    ensureAdminAccess().then(function (allowed) {
+      if (allowed) initPage();
     });
   </script>
+  <script src="./global-shell.js"></script>
 </body>
 </html>
