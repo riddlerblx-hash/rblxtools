@@ -1960,11 +1960,8 @@
   function normalizeFaqWrap(wrap) {
     if (!wrap) return;
     var items = Array.prototype.slice.call(wrap.querySelectorAll(".faq-item"));
-    var foundOpen = false;
     items.forEach(function (item) {
-      var shouldStayOpen = !foundOpen && item.classList.contains("open");
-      setFaqItemOpenState(item, shouldStayOpen);
-      if (shouldStayOpen) foundOpen = true;
+      setFaqItemOpenState(item, false);
     });
   }
 

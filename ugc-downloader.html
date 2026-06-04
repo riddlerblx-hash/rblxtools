@@ -1372,6 +1372,9 @@
     });
   }
 
+  window.showSlide = showSlide;
+  window.downloadAllSlides = downloadAllSlides;
+
   function renderSlides(slides) {
     currentSlides = slides.slice();
     currentSlideIndex = 0;
@@ -1528,6 +1531,15 @@
       button.innerText = "Download OBJ";
       scheduleEmbedHeightReport();
     }
+  }
+
+  window.generateUgc = generateUgc;
+  const ugcButton = document.getElementById("ugcButton");
+  if (ugcButton) {
+    ugcButton.addEventListener("click", function (event) {
+      event.preventDefault();
+      generateUgc();
+    });
   }
 </script>
 <script>
