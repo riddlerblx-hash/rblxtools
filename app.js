@@ -4133,31 +4133,49 @@ app.get("/developer-asset", async (req, res) => {
 
   try {
     await requireAdminUser(req);
+    const candidateUrls = [
+      `https://assetdelivery.roblox.com/v2/assetId/${id}`,
+      `https://assetdelivery.roblox.com/v1/assetId/${id}`,
+      `https://assetdelivery.roblox.com/v1/asset/?id=${id}`
+    ];
+    let assetFetch = null;
+    let extension = "";
+    let lastFailure = "";
 
-    const assetUrl = `https://assetdelivery.roblox.com/v1/asset/?id=${id}`;
-    const assetFetch = await fetchBuffer(assetUrl);
-    const bodyText = assetFetch.buffer.toString("utf8");
+    for (const assetUrl of candidateUrls) {
+      const currentFetch = await fetchBuffer(assetUrl);
+      const bodyText = currentFetch.buffer.toString("utf8");
 
-    if (isAuthRequiredResponse(bodyText)) {
-      return res.status(403).json({
-        error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
-      });
+      if (isAuthRequiredResponse(bodyText)) {
+        return res.status(403).json({
+          error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
+        });
+      }
+
+      if (!currentFetch.response.ok) {
+        lastFailure = `assetdelivery ${currentFetch.response.status}`;
+        continue;
+      }
+
+      const currentExtension = guessRobloxAssetFileExtension(
+        currentFetch.response.headers.get("content-type") || "",
+        currentFetch.buffer
+      );
+
+      if (currentExtension === "rbxm" || currentExtension === "rbxmx") {
+        assetFetch = currentFetch;
+        extension = currentExtension;
+        break;
+      }
+
+      lastFailure = `unexpected asset type ${currentExtension || "unknown"}`;
     }
 
-    if (!assetFetch.response.ok) {
+    if (!assetFetch || !extension) {
       return res.status(404).json({
-        error: "That Roblox asset pack could not be downloaded.",
-      });
-    }
-
-    const extension = guessRobloxAssetFileExtension(
-      assetFetch.response.headers.get("content-type") || "",
-      assetFetch.buffer
-    );
-
-    if (extension !== "rbxm" && extension !== "rbxmx") {
-      return res.status(404).json({
-        error: "That ID does not appear to be a downloadable Roblox model or asset pack.",
+        error: lastFailure
+          ? `That ID could not be resolved as a downloadable Roblox model pack (${lastFailure}).`
+          : "That ID does not appear to be a downloadable Roblox model or asset pack.",
       });
     }
 

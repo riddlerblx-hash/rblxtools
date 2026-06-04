@@ -340,6 +340,220 @@
       font-size: 14px;
     }
 
+    .video-player {
+      width: 100%;
+      display: block;
+      border-radius: 12px;
+      background: #0f1319;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .tutorial-video-cover {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 0;
+      border-radius: 14px;
+      background: rgba(8, 12, 18, 0.46);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      cursor: default;
+      transition: opacity 0.18s ease;
+    }
+
+    .tutorial-video-cover__icon {
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ff4343 0%, #ff1111 100%);
+      box-shadow: 0 14px 30px rgba(255, 34, 34, 0.24);
+      font-size: 22px;
+    }
+
+    .tutorial-video-cover__text {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .plus-card {
+      padding: 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      overflow: hidden;
+    }
+
+    .plus-promo {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 120, 120, 0.12);
+      background:
+        radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.16), transparent 18%),
+        radial-gradient(circle at 100% 0%, rgba(255, 68, 68, 0.22), transparent 30%),
+        radial-gradient(circle at 82% 82%, rgba(255, 86, 86, 0.12), transparent 24%),
+        linear-gradient(145deg, rgba(18, 22, 30, 0.98), rgba(30, 15, 18, 0.98)) !important;
+      padding: 16px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+    }
+
+    .plus-promo::before {
+      content: "";
+      position: absolute;
+      inset: auto -16% -34% auto;
+      width: 260px;
+      height: 260px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(255, 60, 60, 0.34), rgba(255, 60, 60, 0.12) 36%, transparent 68%);
+      pointer-events: none;
+      animation: promoPulseWide 8s ease-in-out infinite;
+    }
+
+    .plus-promo::after {
+      content: "";
+      position: absolute;
+      inset: -24% auto auto -16%;
+      width: 280px;
+      height: 280px;
+      background: linear-gradient(120deg, transparent 18%, rgba(255, 255, 255, 0.16) 48%, transparent 74%);
+      transform: rotate(16deg);
+      opacity: 0.6;
+      pointer-events: none;
+      animation: promoSweepWide 6.8s ease-in-out infinite;
+    }
+
+    .plus-floaters {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .plus-floaters::before,
+    .plus-floaters::after {
+      content: "+ + + + + +";
+      position: absolute;
+      color: rgba(255, 255, 255, 0.11);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 14px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .plus-floaters::before {
+      top: 24px;
+      left: 18px;
+      animation: driftPlusWide 11s ease-in-out infinite;
+    }
+
+    .plus-floaters::after {
+      right: 16px;
+      bottom: 18px;
+      animation: driftPlusWide 13s ease-in-out infinite reverse;
+    }
+
+    .plus-floater {
+      position: absolute;
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1;
+      opacity: 0.3;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.14);
+    }
+
+    .plus-floater.one { top: 18px; right: 20px; }
+    .plus-floater.two { top: 86px; left: 24px; font-size: 14px; }
+    .plus-floater.three { top: 138px; right: 102px; font-size: 16px; }
+    .plus-floater.four { top: 222px; right: 34px; font-size: 18px; }
+    .plus-floater.five { bottom: 116px; left: 42px; font-size: 16px; }
+    .plus-floater.six { bottom: 70px; right: 124px; font-size: 14px; }
+    .plus-floater.seven { bottom: 26px; left: 162px; font-size: 18px; }
+
+    .plus-promo h3 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 0.95;
+      letter-spacing: -1px;
+      font-weight: 900;
+      position: relative;
+      z-index: 1;
+    }
+
+    .plus-promo h3 span { display: block; }
+    .plus-promo h3 span:last-child { color: #ff4b4b; margin-top: 3px; }
+
+    .plus-promo p {
+      margin: 10px 0 0;
+      color: #d8dee8;
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+      position: relative;
+      z-index: 1;
+    }
+
+    .perk-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .perk {
+      min-height: 52px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      padding: 10px;
+    }
+
+    .perk strong {
+      display: block;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.35;
+    }
+
+    .perk span {
+      display: block;
+      margin-top: 4px;
+      color: #d6dce7;
+      font-size: 10px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    @keyframes promoPulseWide {
+      0%, 100% { transform: scale(0.92); opacity: 0.52; }
+      50% { transform: scale(1.06); opacity: 0.82; }
+    }
+
+    @keyframes promoSweepWide {
+      0%, 100% { transform: translateX(0) rotate(16deg); opacity: 0.28; }
+      50% { transform: translateX(24px) rotate(16deg); opacity: 0.62; }
+    }
+
+    @keyframes driftPlusWide {
+      0%, 100% { transform: translateY(0); opacity: 0.14; }
+      50% { transform: translateY(8px); opacity: 0.26; }
+    }
+
     .plus-topline,
     .plus-actions,
     .tool-actions {
@@ -363,6 +577,12 @@
       font-weight: 900;
       letter-spacing: 0.9px;
       text-transform: uppercase;
+    }
+
+    .tool-pill.plus {
+      background: linear-gradient(180deg, rgba(233, 239, 255, 0.22), rgba(151, 164, 199, 0.16));
+      border-color: rgba(220, 227, 255, 0.24);
+      color: #f4f6ff;
     }
 
     .plus-link,
@@ -513,7 +733,7 @@
         <p class="subtitle">Same tool-page layout as Template Downloader, but built for Roblox dev marketplace asset packs.</p>
 
         <div class="notice">
-          Admin tool: paste one or more supported Roblox asset IDs, then save the pack as RBXM or RBXMX.
+          Paste one or more supported Roblox asset IDs, then save the pack as RBXM or RBXMX.
           <code>Ex: 118003513749243, 123456789012345</code>
         </div>
 
@@ -526,24 +746,45 @@
       <div class="side-stack">
         <article class="card promo-card">
           <div class="badge">How To Use</div>
-          <h2><span>Quick</span><span>Guide</span></h2>
+          <h2><span>Video</span><span>Tutorial</span></h2>
           <div class="video-box">
-            <div class="guide-placeholder">
-              <strong>Paste the creator marketplace asset ID and click download.</strong>
-              <span>This tool is meant for Roblox Studio workflows, so supported packs download as <strong>RBXM</strong> or <strong>RBXMX</strong> instead of flattened exports.</span>
-            </div>
+            <div class="guide-placeholder"></div>
+            <button class="tutorial-video-cover" type="button" aria-label="Developer asset downloader tutorial coming soon">
+              <span class="tutorial-video-cover__icon">&#9654;</span>
+              <span class="tutorial-video-cover__text">Click to watch tutorial</span>
+            </button>
           </div>
         </article>
 
         <section class="card plus-card">
-          <div class="plus-topline">
-            <span class="plus-kicker">RBLXTools Internal</span>
-            <span class="price-green">Admin Workflow</span>
-          </div>
-          <h2><span>Native Roblox</span><span>Model Pulls</span></h2>
-          <p class="subtitle">This internal tool is kept admin-only so you can test creator marketplace packs without showing unfinished workflows to normal users.</p>
-          <div class="notice">
-            Best use: Roblox Studio imports, asset inspection, and internal testing on supported marketplace model packs.
+          <div class="plus-promo">
+            <div class="plus-floaters">
+              <span class="plus-floater plus-word one">+</span>
+              <span class="plus-floater plus-word two">+</span>
+              <span class="plus-floater plus-word three">+</span>
+              <span class="plus-floater plus-word four">+</span>
+              <span class="plus-floater plus-word five">+</span>
+              <span class="plus-floater plus-word six">+</span>
+              <span class="plus-floater plus-word seven">+</span>
+            </div>
+            <div class="plus-topline">
+              <span class="plus-kicker">RBLXTools Sponsor</span>
+              <span class="plus-price">More power. Less waiting.</span>
+            </div>
+            <h3><span>RBLXTools</span><span><span class="plus-word">Plus</span> Plan</span></h3>
+            <p>RBTools <span class="plus-word">Plus</span> unlocks the premium side of the website with bulk usage upgrades, premium creator tools, cleaner visuals, and extra account cosmetics built for heavy Roblox workflows.</p>
+            <div class="perk-list">
+              <div class="perk"><strong>Animation Downloader</strong><span>Open Animation Downloader access as part of your premium tool set.</span></div>
+              <div class="perk"><strong>UGC Texture Baking</strong><span>Unlock texture baking tools for cleaner UGC creator workflows.</span></div>
+              <div class="perk"><strong>Bulk downloads and bulk tool usage</strong><span>Use supported tools faster with 2-5 at a time workflows where available.</span></div>
+              <div class="perk"><strong>Cool chat tag cosmetic</strong><span>Show off a premium member cosmetic inside the live site chat experience.</span></div>
+              <div class="perk"><strong>More premium website feel</strong><span>Get a more polished account-side experience across premium parts of the site.</span></div>
+              <div class="perk"><strong>No site advertisements</strong><span>Use the website with a cleaner premium experience and no site ads.</span></div>
+            </div>
+            <div class="plus-actions">
+              <p><span class="price-green">$1.00</span> a month for premium tools, creator perks, no site advertisements, and a more premium RBLX Tools experience.</p>
+              <a class="plus-link" href="./subscriptions">View Plans</a>
+            </div>
           </div>
         </section>
       </div>
@@ -610,13 +851,13 @@
     let adminVerified = false;
 
     const toolsData = [
-      { name: "Template Background Changer", desc: "Remove marks and restore a clean classic template background.", href: "./template-background-changer", icon: "spark", tag: "Cleanup Tool", tone: "linear-gradient(180deg,#31506a,#1f2f42)" },
-      { name: "UGC Downloader", desc: "Download supported UGC accessory files for creator workflows.", href: "./ugc-downloader", icon: "hat", tag: "UGC Tool", tone: "linear-gradient(180deg,#2a4a6c,#1e2f42)" },
-      { name: "Robux Calculator", desc: "Fast conversion math for Robux and pricing plans.", href: "./robux-calculator", icon: "calc", tag: "Value Tool", tone: "linear-gradient(180deg,#3e5b35,#27391f)" },
-      { name: "Media Downloader", desc: "Pull supported media assets quickly.", href: "./media-downloader", icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#5a3b61,#32213a)" },
-      { name: "Audio Downloader", desc: "Fetch audio asset files from supported IDs.", href: "./audio-downloader", icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#6a3e3a,#3f2523)" },
-      { name: "Texture Baker", desc: "Premium texture workflow and cleaner UGC output.", href: "./texture-baker", icon: "texture", tag: "Plus Tool", tone: "linear-gradient(180deg,#4a406b,#2a2441)" },
-      { name: "Animation Spoofer", desc: "Premium animation utility for advanced workflows.", href: "./animation-spoofer", icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
+      { name: "Template Background Changer", desc: "Remove marks and restore a clean classic template background.", href: "./template-background-changer", plus: false, icon: "spark", tag: "Cleanup Tool", tone: "linear-gradient(180deg,#31506a,#1f2f42)" },
+      { name: "UGC Downloader", desc: "Download supported UGC accessory files for creator workflows.", href: "./ugc-downloader", plus: false, icon: "hat", tag: "UGC Tool", tone: "linear-gradient(180deg,#2a4a6c,#1e2f42)" },
+      { name: "Robux Calculator", desc: "Fast conversion math for Robux and pricing plans.", href: "./robux-calculator", plus: false, icon: "calc", tag: "Value Tool", tone: "linear-gradient(180deg,#3e5b35,#27391f)" },
+      { name: "Media Downloader", desc: "Pull supported media assets quickly.", href: "./media-downloader", plus: false, icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#5a3b61,#32213a)" },
+      { name: "Audio Downloader", desc: "Fetch audio asset files from supported IDs.", href: "./audio-downloader", plus: false, icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#6a3e3a,#3f2523)" },
+      { name: "Texture Baker", desc: "Premium texture workflow and cleaner UGC output.", href: "./texture-baker", plus: true, icon: "texture", tag: "Plus Tool", tone: "linear-gradient(180deg,#4a406b,#2a2441)" },
+      { name: "Animation Spoofer", desc: "Premium animation utility for advanced workflows.", href: "./animation-spoofer", plus: true, icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
     ];
 
     function normalizeIds(rawValue) {
@@ -956,7 +1197,10 @@
 
     function renderToolSlide() {
       const tool = toolsData[activeToolIndex];
-      document.getElementById("slidePills").innerHTML = '<span class="tool-pill">Other Tool</span><span class="tool-pill">Open Tool</span>';
+      document.getElementById("slidePills").innerHTML = `
+        <span class="tool-pill">Other Tool</span>
+        ${tool.plus ? '<span class="tool-pill plus"><span class="plus-word">Plus</span> Required</span>' : '<span class="tool-pill">Free Access</span>'}
+      `;
       document.getElementById("slideName").textContent = tool.name;
       document.getElementById("slideDesc").textContent = tool.desc;
       document.getElementById("slideGlyph").innerHTML = getToolShowcaseIcon(tool.icon);
