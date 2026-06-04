@@ -797,6 +797,26 @@
   }
 
   function buildAuthMarkup() {
+    var currentUser = shellState.currentUser || {};
+    if (currentUser.loggedIn) {
+      if (currentUser.plan === "plus") {
+        return (
+          '<div class="rblx-shell-auth" id="rblxShellAuth">' +
+            '<a class="rblx-shell-btn" href="./account-overview">Account</a>' +
+            '<button class="rblx-shell-btn" type="button" id="rblxShellLogout">Log Out</button>' +
+          "</div>"
+        );
+      }
+
+      return (
+        '<div class="rblx-shell-auth" id="rblxShellAuth">' +
+          '<a class="rblx-shell-btn" href="./account-overview">Account</a>' +
+          '<a class="rblx-shell-btn is-primary" href="./subscriptions">View Plans</a>' +
+          '<button class="rblx-shell-btn" type="button" id="rblxShellLogout">Log Out</button>' +
+        "</div>"
+      );
+    }
+
     return (
       '<div class="rblx-shell-auth" id="rblxShellAuth">' +
         '<a class="rblx-shell-btn is-primary" href="./login">Login / Sign Up</a>' +
@@ -1680,6 +1700,38 @@
     );
   }
 
+  function getImmediateUserState() {
+    var token = getToken();
+    var cachedUser = getCachedAuthUser();
+    if (!token || !cachedUser) {
+      return {
+        loggedIn: false,
+        plan: "guest",
+        message: "You are browsing this website as a guest.",
+        userId: getGuestHash(),
+        username: "",
+        displayName: "Guest",
+        isAdmin: false,
+        moderation: shellState.moderation
+      };
+    }
+
+    var displayName = getPreferredUserName(cachedUser, cachedUser);
+    var plus = hasPlusFromPayload(cachedUser);
+    return {
+      loggedIn: true,
+      plan: plus ? "plus" : "free",
+      message: plus
+        ? "You are browsing this website as a Plus subscriber. Thank you for your support" + (displayName ? ", " + displayName : "") + "."
+        : "You are browsing this website as a free plan user" + (displayName ? ", " + displayName : "") + ".",
+      userId: cachedUser && cachedUser.id ? String(cachedUser.id) : "",
+      username: cachedUser && cachedUser.username ? String(cachedUser.username) : "",
+      displayName: displayName,
+      isAdmin: Boolean(cachedUser && cachedUser.isAdmin),
+      moderation: shellState.moderation
+    };
+  }
+
   async function resolveUserState() {
     var token = getToken();
     var cachedUser = getCachedAuthUser();
@@ -1988,6 +2040,18 @@
   }
 
   function initShell() {
+    var initialState = getImmediateUserState();
+    shellState.currentUser = {
+      loggedIn: Boolean(initialState.loggedIn),
+      plan: initialState.plan || "guest",
+      message: initialState.message || "",
+      userId: initialState.userId || "",
+      username: initialState.username || "",
+      displayName: initialState.displayName || ""
+    };
+    shellState.isAdmin = Boolean(initialState.isAdmin);
+    refreshCurrentProfile();
+
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
@@ -2026,6 +2090,7 @@
         }
       }
     });
+    updateAuthUi(initialState);
     resolveUserState().then(updateAuthUi).catch(function () {
       updateAuthUi({
         loggedIn: false,
