@@ -90,6 +90,41 @@
 
   var starterMessages = [];
 
+  function isMobileShellViewport() {
+    return window.matchMedia("(max-width: 820px)").matches;
+  }
+
+  function closeMobilePanels() {
+    document.body.classList.remove("rblx-mobile-nav-open");
+    document.body.classList.remove("rblx-mobile-chat-open");
+    var overlay = document.getElementById("rblxMobileOverlay");
+    if (overlay) {
+      overlay.hidden = true;
+    }
+  }
+
+  function openMobilePanel(kind) {
+    if (!isMobileShellViewport()) return;
+    var overlay = document.getElementById("rblxMobileOverlay");
+    document.body.classList.toggle("rblx-mobile-nav-open", kind === "nav");
+    document.body.classList.toggle("rblx-mobile-chat-open", kind === "chat");
+    if (overlay) {
+      overlay.hidden = false;
+    }
+  }
+
+  function syncMobileShellState() {
+    if (isMobileShellViewport()) {
+      document.body.classList.add("rblx-mobile-shell");
+      document.body.classList.remove("rblx-shell-left-collapsed");
+      document.body.classList.remove("rblx-shell-right-collapsed");
+      return;
+    }
+
+    document.body.classList.remove("rblx-mobile-shell");
+    closeMobilePanels();
+  }
+
   function ensureAdSenseSetup() {
     var head = document.head || document.getElementsByTagName("head")[0];
     if (!head) return;
@@ -874,6 +909,14 @@
     );
   }
 
+  function buildMobileAccountMarkup() {
+    var currentUser = shellState.currentUser || {};
+    if (currentUser.loggedIn) {
+      return '<a class="rblx-mobile-dock-link" href="./account-overview" id="rblxMobileAccountLink">Account</a>';
+    }
+    return '<a class="rblx-mobile-dock-link is-primary" href="./login" id="rblxMobileAccountLink">Login</a>';
+  }
+
   function buildShellMarkup() {
     return (
       '<div class="rblx-shell" id="rblxShellRoot">' +
@@ -948,6 +991,13 @@
             "</div>" +
           "</aside>" +
         "</div>" +
+        '<div class="rblx-mobile-dock" id="rblxMobileDock">' +
+          '<button class="rblx-mobile-dock-btn" type="button" id="rblxMobileNavButton">Menu</button>' +
+          '<a class="rblx-mobile-dock-link" href="./index">Home</a>' +
+          '<button class="rblx-mobile-dock-btn" type="button" id="rblxMobileChatButton">Chat</button>' +
+          buildMobileAccountMarkup() +
+        '</div>' +
+        '<button class="rblx-mobile-overlay" type="button" id="rblxMobileOverlay" hidden aria-label="Close mobile panel"></button>' +
         '<div class="rblx-shell-profile-overlay" id="rblxShellProfileOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-profile-modal" id="rblxShellProfileModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellProfileName">' +
             '<button class="rblx-shell-profile-close" type="button" id="rblxShellProfileClose" aria-label="Close profile" style="position:absolute;top:10px;right:10px;left:auto;z-index:4;">X</button>' +
@@ -1672,6 +1722,11 @@
   }
 
   function applyCollapsedState(body) {
+    if (isMobileShellViewport()) {
+      body.classList.remove("rblx-shell-left-collapsed");
+      body.classList.remove("rblx-shell-right-collapsed");
+      return;
+    }
     var leftCollapsed = Boolean(readStorage(LEFT_STATE_KEY, false));
     var rightCollapsed = Boolean(readStorage(RIGHT_STATE_KEY, false));
     body.classList.toggle("rblx-shell-left-collapsed", leftCollapsed);
@@ -1683,6 +1738,10 @@
     var rightToggle = document.getElementById("rblxShellRightToggle");
     if (leftToggle) {
       leftToggle.addEventListener("click", function () {
+        if (isMobileShellViewport()) {
+          openMobilePanel("nav");
+          return;
+        }
         var next = !document.body.classList.contains("rblx-shell-left-collapsed");
         document.body.classList.toggle("rblx-shell-left-collapsed", next);
         writeStorage(LEFT_STATE_KEY, next);
@@ -1690,11 +1749,57 @@
     }
     if (rightToggle) {
       rightToggle.addEventListener("click", function () {
+        if (isMobileShellViewport()) {
+          openMobilePanel("chat");
+          return;
+        }
         var next = !document.body.classList.contains("rblx-shell-right-collapsed");
         document.body.classList.toggle("rblx-shell-right-collapsed", next);
         writeStorage(RIGHT_STATE_KEY, next);
       });
     }
+
+    var mobileNavButton = document.getElementById("rblxMobileNavButton");
+    var mobileChatButton = document.getElementById("rblxMobileChatButton");
+    var mobileOverlay = document.getElementById("rblxMobileOverlay");
+    if (mobileNavButton) {
+      mobileNavButton.addEventListener("click", function () {
+        if (document.body.classList.contains("rblx-mobile-nav-open")) {
+          closeMobilePanels();
+          return;
+        }
+        openMobilePanel("nav");
+      });
+    }
+    if (mobileChatButton) {
+      mobileChatButton.addEventListener("click", function () {
+        if (document.body.classList.contains("rblx-mobile-chat-open")) {
+          closeMobilePanels();
+          return;
+        }
+        openMobilePanel("chat");
+      });
+    }
+    if (mobileOverlay) {
+      mobileOverlay.addEventListener("click", closeMobilePanels);
+    }
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target || !isMobileShellViewport()) return;
+      var actionLink = target.closest(".rblx-shell-left a, .rblx-shell-right a, .rblx-mobile-dock a");
+      if (actionLink) {
+        closeMobilePanels();
+      }
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closeMobilePanels();
+      }
+    });
+    window.addEventListener("resize", function () {
+      syncMobileShellState();
+      applyCollapsedState(document.body);
+    });
   }
   function updateAuthUi(state) {
     var auth = document.getElementById("rblxShellAuth");
@@ -1718,6 +1823,19 @@
     refreshCurrentProfile();
     syncChatIdentity();
     applyModerationState(state.moderation || shellState.moderation);
+
+    var mobileAccountLink = document.getElementById("rblxMobileAccountLink");
+    if (mobileAccountLink) {
+      if (state.loggedIn) {
+        mobileAccountLink.textContent = "Account";
+        mobileAccountLink.setAttribute("href", "./account-overview");
+        mobileAccountLink.classList.remove("is-primary");
+      } else {
+        mobileAccountLink.textContent = "Login";
+        mobileAccountLink.setAttribute("href", "./login");
+        mobileAccountLink.classList.add("is-primary");
+      }
+    }
 
     if (state.loggedIn) {
       auth.innerHTML = state.plan === "plus"
@@ -2168,6 +2286,7 @@
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
+    syncMobileShellState();
     initFaqAccordions();
     initSharedToolShowcase();
     document.body.classList.add("rblx-shell-ready");
