@@ -3288,6 +3288,36 @@ app.get("/auth/premium-status", async (req, res) => {
   }
 });
 
+app.post("/game-launcher/launch", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const placeId = String(req.body?.placeId || "").trim();
+
+    if (!/^\d{1,20}$/.test(placeId)) {
+      return res.status(400).json({
+        error: "Use numbers only for the Roblox place ID.",
+      });
+    }
+
+    const joinUrl = `roblox://placeID=${encodeURIComponent(placeId)}`;
+    const webUrl = `https://www.roblox.com/games/${encodeURIComponent(placeId)}`;
+
+    emitToolActivity(defaultChatRoom, "game-launcher", getActionTargetLabel(user));
+
+    return res.json({
+      ok: true,
+      placeId,
+      joinUrl,
+      webUrl,
+      issuedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      error: error.message || "Could not prepare the Roblox launch link.",
+    });
+  }
+});
+
 app.post("/auth/change-password", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
@@ -4833,6 +4863,7 @@ const allowedToolActivityLabels = {
   "audio-downloader": "Audio Downloader",
   "texture-baker": "Texture Baker",
   "animation-spoofer": "Animation Spoofer",
+  "game-launcher": "Game Joiner",
 };
 
 function normalizeToolActivityKey(value) {
