@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RBLX Tools - Game Cloner</title>
+  <title>RBLX Tools - Game Joiner</title>
   <link rel="stylesheet" href="./global-shell.css" />
   <style>
     :root {
@@ -1247,23 +1247,23 @@
 
   <main>
     <section class="hero">
-      <h1><span>Game</span><span>Cloner</span></h1>
-      <p>Clone supported Roblox game packs and creator assets fast in native Roblox model format.</p>
+      <h1><span>Game</span><span>Joiner</span></h1>
+      <p>Paste one Roblox place ID and launch your account straight into that game without any movement actions.</p>
     </section>
 
     <section class="top-grid">
       <article class="card">
         <div class="badge">Creator Marketplace</div>
-        <h2><span>Game</span><span>Cloner</span></h2>
-        <p class="subtitle">Pull supported Roblox game-ready packs and creator assets instantly.</p>
+        <h2><span>Game</span><span>Joiner</span></h2>
+        <p class="subtitle">Launch Roblox directly into one place ID with a simple join-only flow.</p>
 
         <div class="notice">
-          Free plan: unlimited downloads 1 by 1. <span class="plus-word">Plus</span>: 2-5 at once with comma-separated IDs.
-          <code>Ex: 118003513749243, 130877426967862, 123456789012345</code>
+          Use one place ID only. This tool just opens the game join link for your account and does not add walking, clicking, or other movement behavior.
+          <code>Ex: 1234567890</code>
         </div>
 
-        <textarea id="robloxId" placeholder="Enter one Roblox creator marketplace asset ID, or comma-separated IDs for Plus"></textarea>
-        <button id="templateButton" class="btn" onclick="generate()">Download Asset Pack</button>
+        <textarea id="robloxId" placeholder="Enter one Roblox place ID"></textarea>
+        <button id="templateButton" class="btn" onclick="generate()">Join Game</button>
         <div id="status"></div>
         <div id="result"></div>
       </article>
@@ -1747,10 +1747,55 @@
               <div class="green">RB</div><div class="red">X</div><div class="yellow">AS</div><div class="blue">SET</div>
               <div class="yellow">ST</div><div class="green">UD</div><div class="red">IO</div><div class="blue">OK</div>
             </div>
-            <p>Your Roblox game pack will pop up here.</p>
+            <p>Your Roblox game join card will pop up here.</p>
           </div>
         </div>
       `;
+    }
+
+    function buildJoinUrl(placeId) {
+      return "roblox://placeID=" + encodeURIComponent(String(placeId || "").trim());
+    }
+
+    function buildWebJoinUrl(placeId) {
+      return "https://www.roblox.com/games/" + encodeURIComponent(String(placeId || "").trim());
+    }
+
+    function renderJoinResult(placeId) {
+      const result = document.getElementById("result");
+      const joinUrl = buildJoinUrl(placeId);
+      const webUrl = buildWebJoinUrl(placeId);
+      result.innerHTML = `
+        <div id="previewShell">
+          <div class="previewStage">
+            <div class="asset-preview-card">
+              <div class="asset-preview-file">JOIN</div>
+              <div class="template-grid">
+                <div class="blue">RB</div><div class="red">OX</div><div class="yellow">JO</div><div class="blue">IN</div>
+                <div class="green">PL</div><div class="red">AC</div><div class="yellow">E</div><div class="blue">ID</div>
+                <div class="yellow">${String(placeId).slice(0, 2) || "0"}</div><div class="green">${String(placeId).slice(2, 4) || "0"}</div><div class="red">${String(placeId).slice(4, 6) || "0"}</div><div class="blue">${String(placeId).slice(6, 8) || "0"}</div>
+              </div>
+              <div class="asset-preview-copy">
+                <strong>Place ID ${placeId}</strong>
+                <span>Roblox launch link is ready. Use the button below if the app does not open automatically.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="metaRow">
+          <div class="metaPill">Join Ready</div>
+          <div class="metaPill">Place ID ${placeId}</div>
+          <div class="metaPill">No Movement</div>
+        </div>
+        <div id="actionRow">
+          <a id="downloadBtn" href="${joinUrl}">Open Roblox App</a>
+          <a id="downloadAllBtn" href="${webUrl}" target="_blank" rel="noopener noreferrer">Open Web Page</a>
+        </div>
+      `;
+    }
+
+    function launchPlace(placeId) {
+      window.location.href = buildJoinUrl(placeId);
     }
 
     function getToolShowcaseIcon(kind) {
@@ -1878,43 +1923,33 @@
 
     async function generate() {
       if (!adminVerified) return;
-      const rawValue = document.getElementById("robloxId").value.trim();
-      const ids = normalizeIds(rawValue);
+      const placeId = document.getElementById("robloxId").value.trim();
       const status = document.getElementById("status");
       const result = document.getElementById("result");
       const button = document.getElementById("templateButton");
-      if (!ids.length) { status.className = "error"; status.innerText = "Enter at least one Roblox asset ID."; return; }
-      if (ids.length > 5) { status.className = "error"; status.innerHTML = '<span class="plus-word">Plus</span> users can download up to 5 asset packs at a time.'; return; }
-      if (ids.some((id) => !/^\d+$/.test(id))) { status.className = "error"; status.innerText = "Use only Roblox asset IDs separated by commas."; return; }
-
-      if (ids.length > 1) {
-        const hasPlus = await bootstrapPlusStatus();
-        if (!hasPlus) {
-          status.className = "error";
-          status.innerHTML = 'Must be a <span class="plus-word">Plus</span> subscriber for multi-download. <a href="./subscriptions"><span class="plus-word">Upgrade to Plus</span></a>';
-          return;
-        }
-      }
+      if (!placeId) { status.className = "error"; status.innerText = "Enter one Roblox place ID."; return; }
+      if (placeId.includes(",")) { status.className = "error"; status.innerText = "Use one place ID only."; return; }
+      if (!/^\d+$/.test(placeId)) { status.className = "error"; status.innerText = "Use numbers only for the Roblox place ID."; return; }
 
       status.className = "";
-      status.innerText = ids.length > 1 ? "Fetching asset packs..." : "Fetching asset pack...";
+      status.innerText = "Launching Roblox join link...";
       result.innerHTML = buildDefaultPreview();
       button.disabled = true;
-      button.innerText = ids.length > 1 ? "Loading Asset Packs..." : "Loading...";
+      button.innerText = "Joining...";
 
       try {
-        const slides = await Promise.all(ids.map((id) => fetchDeveloperAssetFile(id)));
         status.className = "success";
-        status.innerText = ids.length > 1 ? "Asset packs found. Ready to download." : "Asset pack found. Ready to download.";
-        renderSlides(slides);
-        rememberToolActivity("Game Cloner");
+        status.innerText = "Join link sent to Roblox. If nothing opens, use the buttons below.";
+        renderJoinResult(placeId);
+        launchPlace(placeId);
+        rememberToolActivity("Game Joiner");
       } catch (err) {
         status.className = "error";
-        status.innerText = err.message || "Failed to fetch game clone";
+        status.innerText = err.message || "Failed to launch Roblox join link";
         result.innerHTML = buildDefaultPreview();
       } finally {
         button.disabled = false;
-        button.innerText = "Download Asset Pack";
+        button.innerText = "Join Game";
       }
     }
 
