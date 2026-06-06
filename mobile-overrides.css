@@ -122,18 +122,20 @@ body {
   body.rblx-mobile-shell .rblx-shell-status {
     min-height: 0;
     width: auto;
-    margin: 2px -12px 0;
-    padding: 10px 16px 11px;
+    margin: 0 -12px 0;
+    padding: 11px 16px 12px;
     border-radius: 0;
     border: 0;
     border-top: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
     background:
-      linear-gradient(180deg, rgba(82, 34, 40, 0.88), rgba(59, 24, 30, 0.95)),
+      linear-gradient(180deg, rgba(11, 16, 24, 0.98), rgba(9, 14, 21, 0.98)),
       linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
     box-shadow: none;
     font-size: 11px;
     line-height: 1.4;
-    justify-content: flex-start;
+    justify-content: center;
+    text-align: center;
   }
 
   body.rblx-mobile-shell .rblx-shell-status-dot {
