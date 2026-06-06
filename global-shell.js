@@ -3,6 +3,7 @@
   window.__rblxShellReady = true;
 
   var API_BASE = window.location.origin;
+  var ADSENSE_CLIENT = "ca-pub-1298532626039613";
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
   var PLUS_STATUS_KEY = "rblxtools_plus_cache";
@@ -88,6 +89,31 @@
   ];
 
   var starterMessages = [];
+
+  function ensureAdSenseSetup() {
+    var head = document.head || document.getElementsByTagName("head")[0];
+    if (!head) return;
+
+    var existingMeta = document.querySelector('meta[name="google-adsense-account"]');
+    if (!existingMeta) {
+      var meta = document.createElement("meta");
+      meta.name = "google-adsense-account";
+      meta.content = ADSENSE_CLIENT;
+      head.appendChild(meta);
+    }
+
+    var existingScript = document.querySelector('script[data-rblxtools-adsense="true"]');
+    if (!existingScript) {
+      var script = document.createElement("script");
+      script.async = true;
+      script.crossOrigin = "anonymous";
+      script.dataset.rblxtoolsAdsense = "true";
+      script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + encodeURIComponent(ADSENSE_CLIENT);
+      head.appendChild(script);
+    }
+  }
+
+  ensureAdSenseSetup();
 
   function getNavIcon(kind) {
     var icons = {
