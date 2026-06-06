@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RBLX Tools - Developer Asset Downloader</title>
+  <title>RBLX Tools - Game Cloner</title>
   <link rel="stylesheet" href="./global-shell.css" />
   <style>
     :root {
@@ -1247,14 +1247,14 @@
 
   <main>
     <section class="hero">
-      <h1><span>Developer Asset</span><span>Downloader</span></h1>
+      <h1><span>Game</span><span>Cloner</span></h1>
       <p>Download supported Roblox creator marketplace model packs fast in native Roblox model format.</p>
     </section>
 
     <section class="top-grid">
       <article class="card">
         <div class="badge">Creator Marketplace</div>
-        <h2><span>Developer Asset</span><span>Downloader</span></h2>
+        <h2><span>Game</span><span>Cloner</span></h2>
         <p class="subtitle">Pull supported Roblox model packs and creator assets instantly.</p>
 
         <div class="notice">
@@ -1274,7 +1274,7 @@
           <h2><span>Video</span><span>Tutorial</span></h2>
           <div class="video-box">
             <div class="video-player tutorial-placeholder" aria-hidden="true"></div>
-            <button id="templateTutorialCover" class="tutorial-video-cover" type="button" aria-label="Developer asset tutorial coming soon"><span class="tutorial-video-cover__icon">&#9654;</span><span class="tutorial-video-cover__text">Tutorial coming soon</span></button>
+            <button id="templateTutorialCover" class="tutorial-video-cover" type="button" aria-label="Game cloner tutorial coming soon"><span class="tutorial-video-cover__icon">&#9654;</span><span class="tutorial-video-cover__text">Tutorial coming soon</span></button>
           </div>
         </article>
 
@@ -1516,7 +1516,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            tool: "Developer Asset Downloader",
+            tool: "Game Cloner",
             id: String(assetId || "Unknown"),
             time: Date.now(),
             userId: identity.userId || "",
@@ -1747,7 +1747,7 @@
               <div class="green">RB</div><div class="red">X</div><div class="yellow">AS</div><div class="blue">SET</div>
               <div class="yellow">ST</div><div class="green">UD</div><div class="red">IO</div><div class="blue">OK</div>
             </div>
-            <p>Your Roblox developer asset pack will pop up here.</p>
+            <p>Your Roblox game pack will pop up here.</p>
           </div>
         </div>
       `;
@@ -1852,7 +1852,7 @@
     async function fetchDeveloperAssetFile(id) {
       const res = await fetch(buildDeveloperAssetFetchUrl(id), { headers: { Authorization: "Bearer " + getStoredToken() } });
       if (!res.ok) {
-        let message = "Failed to fetch developer asset";
+        let message = "Failed to fetch game clone";
         try {
           const data = await res.json();
           if (data && data.error) message = data.error;
@@ -1862,10 +1862,10 @@
             if (text && text.trim()) {
               message = text.trim().slice(0, 220);
             } else {
-              message = "Failed to fetch developer asset (" + res.status + ")";
+              message = "Failed to fetch game clone (" + res.status + ")";
             }
           } catch (_textError) {
-            message = "Failed to fetch developer asset (" + res.status + ")";
+            message = "Failed to fetch game clone (" + res.status + ")";
           }
         }
         throw new Error(message);
@@ -1907,10 +1907,10 @@
         status.className = "success";
         status.innerText = ids.length > 1 ? "Asset packs found. Ready to download." : "Asset pack found. Ready to download.";
         renderSlides(slides);
-        rememberToolActivity("Developer Asset Downloader");
+        rememberToolActivity("Game Cloner");
       } catch (err) {
         status.className = "error";
-        status.innerText = err.message || "Failed to fetch developer asset";
+        status.innerText = err.message || "Failed to fetch game clone";
         result.innerHTML = buildDefaultPreview();
       } finally {
         button.disabled = false;

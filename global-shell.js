@@ -61,7 +61,7 @@
         { href: "./index", label: "Home", icon: "home" },
         { href: "./template-downloader", label: "Template Downloader", icon: "shirt" },
         { href: "./template-background-changer", label: "Background Changer", icon: "spark" },
-        { href: "./developer-asset-downloader", label: "Developer Asset Downloader", icon: "media", adminOnly: true },
+        { href: "./developer-asset-downloader", label: "Game Cloner", icon: "media", adminOnly: true },
         { href: "./ugc-downloader", label: "UGC Downloader", icon: "hat" },
         { href: "./media-downloader", label: "Media Downloader", icon: "media" },
         { href: "./audio-downloader", label: "Audio Downloader", icon: "audio" },
@@ -1980,7 +1980,7 @@
     var toolsData = [
       { name: "Template Downloader", desc: "Download supported Roblox clothing templates fast.", href: "./template-downloader", plus: false, icon: "spark", tag: "Template Tool", tone: "linear-gradient(180deg,#50395a,#2d2035)" },
       { name: "Template Background Changer", desc: "Remove marks and restore a clean classic template background.", href: "./template-background-changer", plus: false, icon: "spark", tag: "Cleanup Tool", tone: "linear-gradient(180deg,#31506a,#1f2f42)" },
-      { name: "Developer Asset Downloader", desc: "Download supported Roblox creator marketplace model packs as RBXM or RBXMX files.", href: "./developer-asset-downloader", plus: false, adminOnly: true, icon: "media", tag: "Dev Asset Tool", tone: "linear-gradient(180deg,#465164,#242d38)" },
+      { name: "Game Cloner", desc: "Clone supported Roblox game packs as RBXM or RBXMX files.", href: "./developer-asset-downloader", plus: false, adminOnly: true, icon: "media", tag: "Clone Tool", tone: "linear-gradient(180deg,#465164,#242d38)" },
       { name: "UGC Downloader", desc: "Download supported UGC accessory files for creator workflows.", href: "./ugc-downloader", plus: false, icon: "hat", tag: "UGC Tool", tone: "linear-gradient(180deg,#2a4a6c,#1e2f42)" },
       { name: "Robux Calculator", desc: "Fast conversion math for Robux and pricing plans.", href: "./robux-calculator", plus: false, icon: "calc", tag: "Value Tool", tone: "linear-gradient(180deg,#3e5b35,#27391f)" },
       { name: "Media Downloader", desc: "Pull supported media assets quickly.", href: "./media-downloader", plus: false, icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#5a3b61,#32213a)" },

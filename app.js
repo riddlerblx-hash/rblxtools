@@ -4826,7 +4826,7 @@ function emitSpecialAnnouncement(room, text) {
 
 const allowedToolActivityLabels = {
   "template-downloader": "Template Downloader",
-  "developer-asset-downloader": "Developer Asset Downloader",
+  "developer-asset-downloader": "Game Cloner",
   "background-changer": "Background Changer",
   "ugc-downloader": "UGC Downloader",
   "media-downloader": "Media Downloader",
