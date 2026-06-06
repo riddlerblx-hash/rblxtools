@@ -1,0 +1,382 @@
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (max-width: 1180px) {
+  .rblx-shell-header {
+    gap: 14px;
+    padding: 14px 16px;
+  }
+
+  .rblx-shell-header-actions,
+  .rblx-shell-auth {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .rblx-shell-body {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .rblx-shell-center {
+    order: 1;
+  }
+
+  .rblx-shell-left {
+    order: 2;
+  }
+
+  .rblx-shell-right {
+    order: 3;
+  }
+
+  .rblx-shell-left,
+  .rblx-shell-right {
+    position: relative;
+    top: 0;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    border-radius: 20px;
+  }
+
+  .rblx-shell-nav-scroll,
+  .rblx-shell-chat-scroll {
+    max-height: none;
+  }
+}
+
+@media (max-width: 820px) {
+  body::before,
+  .bg-wrap {
+    opacity: 0.48;
+  }
+
+  main,
+  .page-shell,
+  #rblx-homepage,
+  .admin-panel {
+    width: min(100%, 100%);
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  main {
+    padding-top: 16px !important;
+    padding-bottom: 28px !important;
+  }
+
+  .hero,
+  .hero-card,
+  .plus-card,
+  .section-card,
+  .home-card,
+  .feature-card,
+  .social-card,
+  .faq-card,
+  .tool-card,
+  .plus-modal-card,
+  .card,
+  .overview-frame,
+  .faq-card,
+  .content-card,
+  .summary-card,
+  .nav-card,
+  .admin-card,
+  .admin-topbar,
+  .login-lock-card,
+  .plan-banner,
+  .rblx-media-card,
+  .rblx-ugc-stack-card,
+  .acct-card {
+    border-radius: 22px !important;
+    padding: 18px !important;
+  }
+
+  .home-grid-top,
+  .home-grid-bottom,
+  .top-grid,
+  .layout,
+  .overview-grid,
+  .showcase-layout,
+  .hero-grid,
+  .hero-strip,
+  .admin-overview,
+  .admin-status-grid,
+  .admin-actions-grid,
+  .admin-compact-grid,
+  .admin-split,
+  .admin-triple,
+  .field-grid,
+  .field-grid.two,
+  .field-grid.three,
+  .field-grid.four,
+  .stats-grid,
+  .stats-grid.four,
+  .list-grid,
+  .plan-grid,
+  .comparison-grid,
+  .faq-grid,
+  .perk-list,
+  .acct-grid,
+  .hero-points,
+  .hero-bottom,
+  .tool-grid,
+  .social-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .side-stack,
+  .hero-actions,
+  .hero-links,
+  .plus-actions,
+  .tool-actions,
+  .modal-actions,
+  #actionRow,
+  .video-copy,
+  .admin-buttons,
+  .login-lock-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .hero h1,
+  .hero-title,
+  .login-lock-title,
+  .admin-title,
+  .acct-title,
+  .rblx-title,
+  #roblox-ugc-title,
+  .ugc-promo-title,
+  .title,
+  .card h2,
+  .faq-title,
+  .plan-title {
+    font-size: clamp(28px, 9vw, 40px) !important;
+    line-height: 1 !important;
+    letter-spacing: -1px !important;
+  }
+
+  .hero-copy,
+  .plus-copy,
+  .section-copy,
+  .feature-copy,
+  .social-copy,
+  .faq-copy,
+  .modal-copy,
+  .hero p,
+  .subtitle,
+  .rblx-subtitle,
+  .hero-copy,
+  .hero p,
+  .plan-banner span {
+    font-size: 13px !important;
+    line-height: 1.6 !important;
+  }
+
+  .btn,
+  .rblx-shell-btn,
+  .rblx-shell-auth a,
+  .rblx-shell-toggle,
+  .admin-btn,
+  .calc-btn,
+  #downloadBtn,
+  #downloadAllBtn {
+    width: 100% !important;
+    min-height: 48px !important;
+  }
+
+  .rblx-shell-status {
+    justify-content: flex-start;
+    padding: 12px 14px;
+    text-align: left;
+  }
+
+  .rblx-shell-brand-title {
+    font-size: 20px;
+  }
+
+  .rblx-shell-brand-subtitle {
+    letter-spacing: 0.7px;
+  }
+
+  .rblx-shell-chat-compose,
+  .rblx-shell-profile-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .rblx-shell-support-wrap,
+  .rblx-shell-support-link {
+    width: 100%;
+  }
+
+  .template-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(3, minmax(52px, auto)) !important;
+    width: min(100%, 272px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .template-grid div {
+    min-height: 52px;
+    font-size: 21px !important;
+  }
+
+  .previewStage,
+  #placeholderTemplate,
+  #previewShell,
+  #placeholderUgc,
+  #ugcViewer,
+  .video-placeholder,
+  .tutorial-video,
+  .tutorial-placeholder {
+    min-height: 240px !important;
+    height: auto !important;
+  }
+
+  #toolMount #ugcViewer {
+    height: 260px !important;
+  }
+
+  .previewArrow {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+
+  .hero-links .btn {
+    width: 100% !important;
+  }
+
+  .admin-topbar {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .rblx-shell-header {
+    padding: 12px;
+  }
+
+  .rblx-shell-brand {
+    min-height: 46px;
+    gap: 10px;
+  }
+
+  .rblx-shell-brand-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    font-size: 15px;
+  }
+
+  .rblx-shell-header-actions,
+  .rblx-shell-auth {
+    gap: 10px;
+  }
+
+  main,
+  .page-shell,
+  #rblx-homepage,
+  .admin-panel {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .hero,
+  .hero-card,
+  .plus-card,
+  .section-card,
+  .home-card,
+  .feature-card,
+  .social-card,
+  .faq-card,
+  .tool-card,
+  .plus-modal-card,
+  .card,
+  .overview-frame,
+  .content-card,
+  .summary-card,
+  .nav-card,
+  .admin-card,
+  .admin-topbar,
+  .login-lock-card,
+  .plan-banner,
+  .rblx-media-card,
+  .rblx-ugc-stack-card,
+  .acct-card {
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .hero h1,
+  .hero-title,
+  .login-lock-title,
+  .admin-title,
+  .acct-title,
+  .rblx-title,
+  #roblox-ugc-title,
+  .ugc-promo-title,
+  .title,
+  .card h2 {
+    font-size: clamp(24px, 10vw, 34px) !important;
+  }
+
+  .hero p,
+  .subtitle,
+  .rblx-subtitle,
+  .hero-copy,
+  .plus-copy,
+  .section-copy,
+  .feature-copy,
+  .social-copy,
+  .faq-copy,
+  .modal-copy,
+  .hero-chip span,
+  .faq-item span {
+    font-size: 12px !important;
+  }
+
+  .rblx-shell-status,
+  .rblx-shell-btn,
+  .rblx-shell-auth a,
+  .rblx-shell-toggle,
+  .admin-btn,
+  .calc-btn,
+  #downloadBtn,
+  #downloadAllBtn {
+    border-radius: 12px !important;
+  }
+
+  .hero-chip,
+  .metaPill,
+  .tool-pill,
+  .kicker,
+  .mini-kicker,
+  .badge {
+    min-height: 28px;
+  }
+
+  .faq-list,
+  .faq-wrap {
+    gap: 10px !important;
+  }
+
+  .rblx-shell-chat-message {
+    gap: 10px;
+  }
+
+  .rblx-shell-chat-avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .rblx-shell-profile-modal {
+    padding: 14px;
+  }
+}
+
