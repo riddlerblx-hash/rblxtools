@@ -118,6 +118,7 @@
       document.body.classList.add("rblx-mobile-shell");
       document.body.classList.remove("rblx-shell-left-collapsed");
       document.body.classList.remove("rblx-shell-right-collapsed");
+      closeMobilePanels();
       return;
     }
 
@@ -2287,6 +2288,7 @@
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
     syncMobileShellState();
+    closeMobilePanels();
     initFaqAccordions();
     initSharedToolShowcase();
     document.body.classList.add("rblx-shell-ready");

@@ -85,8 +85,12 @@ body {
     top: 0;
     z-index: 90;
     grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
-    padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 12px;
+    gap: 8px;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+    background: linear-gradient(180deg, rgba(16, 24, 34, 0.995), rgba(12, 18, 27, 0.99));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
   }
 
   body.rblx-mobile-shell .rblx-shell-header-actions {
@@ -105,6 +109,30 @@ body {
     min-height: 46px;
     width: 100%;
     margin: 0;
+  }
+
+  body.rblx-mobile-shell .rblx-shell-support-wrap {
+    padding: 0;
+  }
+
+  body.rblx-mobile-shell .rblx-shell-support-float {
+    display: none;
+  }
+
+  body.rblx-mobile-shell .rblx-shell-status {
+    min-height: 0;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: linear-gradient(180deg, rgba(78, 33, 38, 0.82), rgba(56, 23, 29, 0.92));
+    box-shadow: none;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  body.rblx-mobile-shell .rblx-shell-status-dot {
+    width: 8px;
+    height: 8px;
   }
 
   body.rblx-mobile-shell .rblx-shell-body {
@@ -175,9 +203,13 @@ body {
     inset: 0;
     z-index: 110;
     border: 0;
-    background: rgba(5, 8, 12, 0.64);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(5, 8, 12, 0.5);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  body.rblx-mobile-shell .rblx-mobile-overlay[hidden] {
+    display: none !important;
   }
 
   body.rblx-mobile-shell .rblx-mobile-dock {
@@ -195,8 +227,8 @@ body {
     border: 1px solid rgba(255,255,255,0.08);
     background: rgba(24, 37, 51, 0.94);
     box-shadow: 0 22px 44px rgba(0, 0, 0, 0.34);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   body.rblx-mobile-shell .rblx-mobile-dock-btn,
@@ -229,7 +261,12 @@ body {
 
   body::before,
   .bg-wrap {
-    opacity: 0.24;
+    opacity: 0.12;
+  }
+
+  .orb,
+  body.rblx-mobile-shell .bg-wrap {
+    display: none !important;
   }
 
   main,
@@ -242,7 +279,7 @@ body {
   }
 
   main {
-    padding-top: 16px !important;
+    padding-top: 12px !important;
     padding-bottom: 28px !important;
   }
 
@@ -438,7 +475,7 @@ body {
   body.rblx-mobile-shell .rblx-shell-chat-bottom {
     position: sticky;
     bottom: 0;
-    background: linear-gradient(180deg, rgba(15,24,34,0.82), rgba(15,24,34,0.98));
+    background: linear-gradient(180deg, rgba(15,24,34,0.98), rgba(15,24,34,1));
     padding-top: 10px;
   }
 }
