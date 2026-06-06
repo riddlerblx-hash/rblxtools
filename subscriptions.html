@@ -1012,47 +1012,73 @@
     }
 
     @media (max-width: 820px) {
+      html,
+      body {
+        overflow-x: hidden;
+      }
+
+      main {
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      .hero p,
+      .plan-banner {
+        max-width: none;
+      }
+
       .hero-strip {
         display: none;
       }
 
       .mobile-plan-stage {
-        margin-top: 4px;
+        margin-top: 8px;
+        width: 100%;
         overflow: hidden;
       }
 
       .mobile-plan-viewport {
-        overflow-x: auto;
+        width: 100%;
+        overflow-x: hidden;
         overflow-y: hidden;
         padding: 6px 0 14px;
         margin: 0;
-        scroll-behavior: smooth;
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-
-      .mobile-plan-viewport::-webkit-scrollbar {
-        display: none;
       }
 
       .plans-grid {
         display: flex;
         grid-template-columns: none;
-        gap: 14px;
+        gap: 12px;
         width: max-content;
         align-items: stretch;
-        padding: 0 34px;
+        padding: 0;
+        transition: transform 0.32s ease;
+        will-change: transform;
       }
 
       .plan-col,
       .plan-col.side-plan,
       .plan-col.plus-focus {
         display: block !important;
-        flex: 0 0 min(74vw, 320px);
-        width: min(74vw, 320px);
+        flex: 0 0 min(74vw, 318px);
+        width: min(74vw, 318px);
         padding-top: 0;
         padding-bottom: 0;
         transform: none;
+        opacity: 0.72;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+      }
+
+      .plan-col.is-active {
+        opacity: 1;
+      }
+
+      .plan-col:not(.is-active) .plan-card {
+        transform: scale(0.94);
+      }
+
+      .plan-col.is-active .plan-card {
+        transform: scale(1);
       }
 
       .plan-card {
@@ -1093,14 +1119,17 @@
         font-weight: 900;
         line-height: 1;
         box-shadow: 0 14px 28px rgba(0, 0, 0, 0.24);
+        cursor: pointer;
       }
 
       .mobile-plan-arrow.prev {
-        left: 6px;
+        left: 50%;
+        margin-left: calc(-1 * min(37vw, 159px) - 18px);
       }
 
       .mobile-plan-arrow.next {
-        right: 6px;
+        left: 50%;
+        margin-left: calc(min(37vw, 159px) - 24px);
       }
 
       .mobile-plan-arrow[disabled] {
@@ -1473,6 +1502,7 @@
         var loginRedirectTimer = 0;
         var loginCountdownTimer = 0;
         var planCards = Array.prototype.slice.call(document.querySelectorAll(".plan-card"));
+        var plansGrid = document.getElementById("plansGrid");
         var mobilePlanViewport = document.getElementById("mobilePlanViewport");
         var mobilePlanPrev = document.getElementById("mobilePlanPrev");
         var mobilePlanNext = document.getElementById("mobilePlanNext");
@@ -1490,40 +1520,29 @@
           mobilePlanNext.disabled = mobilePlanIndex >= maxIndex;
         }
 
+        function updateMobilePlanClasses() {
+          mobilePlanCols.forEach(function (col, index) {
+            col.classList.toggle("is-active", index === mobilePlanIndex);
+          });
+        }
+
         function centerMobilePlan(index, behavior) {
-          if (!mobilePlanViewport || !mobilePlanCols.length || !isMobilePlanViewport()) return;
+          if (!mobilePlanViewport || !plansGrid || !mobilePlanCols.length || !isMobilePlanViewport()) return;
           var nextIndex = Math.max(0, Math.min(index, mobilePlanCols.length - 1));
           var target = mobilePlanCols[nextIndex];
           if (!target) return;
           mobilePlanIndex = nextIndex;
-          var targetLeft = target.offsetLeft - ((mobilePlanViewport.clientWidth - target.offsetWidth) / 2);
-          var maxScroll = Math.max(0, mobilePlanViewport.scrollWidth - mobilePlanViewport.clientWidth);
-          var nextScrollLeft = Math.max(0, Math.min(targetLeft, maxScroll));
-          mobilePlanViewport.scrollTo({
-            left: nextScrollLeft,
-            behavior: behavior || "smooth"
-          });
-          updateMobilePlanArrows();
-        }
-
-        function detectCenteredPlan() {
-          if (!mobilePlanViewport || !mobilePlanCols.length || !isMobilePlanViewport()) return;
-          var viewportRect = mobilePlanViewport.getBoundingClientRect();
-          var viewportCenter = viewportRect.left + (viewportRect.width / 2);
-          var bestIndex = mobilePlanIndex;
-          var bestDistance = Infinity;
-
-          mobilePlanCols.forEach(function (col, index) {
-            var rect = col.getBoundingClientRect();
-            var center = rect.left + (rect.width / 2);
-            var distance = Math.abs(center - viewportCenter);
-            if (distance < bestDistance) {
-              bestDistance = distance;
-              bestIndex = index;
-            }
-          });
-
-          mobilePlanIndex = bestIndex;
+          var viewportWidth = mobilePlanViewport.clientWidth;
+          var targetCenter = target.offsetLeft + (target.offsetWidth / 2);
+          var nextOffset = (viewportWidth / 2) - targetCenter;
+          plansGrid.style.transitionDuration = behavior === "auto" ? "0s" : "";
+          plansGrid.style.transform = "translateX(" + nextOffset + "px)";
+          if (behavior === "auto") {
+            window.requestAnimationFrame(function () {
+              plansGrid.style.transitionDuration = "";
+            });
+          }
+          updateMobilePlanClasses();
           updateMobilePlanArrows();
         }
 
@@ -1771,22 +1790,22 @@
         });
       }
 
-      if (mobilePlanViewport) {
-        mobilePlanViewport.addEventListener("scroll", function () {
-          window.clearTimeout(mobilePlanViewport._planDetectTimer);
-          mobilePlanViewport._planDetectTimer = window.setTimeout(detectCenteredPlan, 70);
-        }, { passive: true });
-      }
-
       window.addEventListener("resize", function () {
-        if (!isMobilePlanViewport()) return;
-        centerMobilePlan(mobilePlanIndex, "auto");
+        if (isMobilePlanViewport()) {
+          centerMobilePlan(mobilePlanIndex, "auto");
+          return;
+        }
+        if (plansGrid) {
+          plansGrid.style.transform = "";
+          plansGrid.style.transitionDuration = "";
+        }
       });
 
       window.setTimeout(function () {
         if (isMobilePlanViewport()) {
           centerMobilePlan(1, "auto");
         } else {
+          updateMobilePlanClasses();
           updateMobilePlanArrows();
         }
       }, 60);
