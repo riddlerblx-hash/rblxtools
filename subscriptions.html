@@ -1034,14 +1034,15 @@
       .mobile-plan-stage {
         margin-top: 8px;
         width: 100%;
-        overflow: hidden;
+        overflow: visible;
         position: relative;
+        padding-bottom: 8px;
       }
 
       .mobile-plan-viewport {
         width: 100%;
         overflow-x: hidden;
-        overflow-y: hidden;
+        overflow-y: visible;
         padding: 6px 0 14px;
         margin: 0;
         position: relative;
@@ -1053,6 +1054,7 @@
         width: 100%;
         min-height: 0;
         position: relative;
+        overflow: visible;
       }
 
       .plan-col,
@@ -1083,18 +1085,21 @@
       .plan-col.is-left {
         opacity: 0.56;
         z-index: 2;
+        pointer-events: none;
         transform: translate3d(-56%, 16px, 0) scale(0.86);
       }
 
       .plan-col.is-right {
         opacity: 0.56;
         z-index: 2;
+        pointer-events: none;
         transform: translate3d(56%, 16px, 0) scale(0.86);
       }
 
       .plan-col.is-hidden {
         opacity: 0;
         z-index: 1;
+        pointer-events: none;
         transform: translate3d(0, 22px, 0) scale(0.82);
       }
 
@@ -1538,6 +1543,7 @@
         var loginRedirectTimer = 0;
         var loginCountdownTimer = 0;
         var planCards = Array.prototype.slice.call(document.querySelectorAll(".plan-card"));
+        var mobilePlanStage = document.getElementById("mobilePlanStage");
         var plansGrid = document.getElementById("plansGrid");
         var mobilePlanViewport = document.getElementById("mobilePlanViewport");
         var mobilePlanPrev = document.getElementById("mobilePlanPrev");
@@ -1576,15 +1582,19 @@
         }
 
         function updateMobilePlanStageHeight() {
-          if (!mobilePlanViewport || !plansGrid || !mobilePlanCols.length || !isMobilePlanViewport()) return;
-          var tallest = 0;
-          mobilePlanCols.forEach(function (col) {
-            var nextHeight = col.offsetHeight;
-            if (nextHeight > tallest) tallest = nextHeight;
-          });
-          if (tallest > 0) {
-            plansGrid.style.minHeight = tallest + "px";
-            mobilePlanViewport.style.height = tallest + 14 + "px";
+          if (!plansGrid || !mobilePlanCols.length || !isMobilePlanViewport()) return;
+          var activeCol = mobilePlanCols[mobilePlanIndex] || mobilePlanCols[0];
+          if (!activeCol) return;
+          var activeHeight = activeCol.offsetHeight;
+          if (activeHeight > 0) {
+            plansGrid.style.height = activeHeight + "px";
+            if (mobilePlanViewport) {
+              mobilePlanViewport.style.height = "";
+              mobilePlanViewport.style.minHeight = activeHeight + 14 + "px";
+            }
+            if (mobilePlanStage) {
+              mobilePlanStage.style.minHeight = activeHeight + 22 + "px";
+            }
           }
         }
 
@@ -1842,19 +1852,24 @@
         });
       }
 
-      window.addEventListener("resize", function () {
-        if (isMobilePlanViewport()) {
-          centerMobilePlan(mobilePlanIndex, "auto");
-          return;
-        }
-        if (plansGrid) {
-          plansGrid.style.transitionDuration = "";
-          plansGrid.style.minHeight = "";
-        }
-        if (mobilePlanViewport) {
-          mobilePlanViewport.style.height = "";
-        }
-      });
+        window.addEventListener("resize", function () {
+          if (isMobilePlanViewport()) {
+            centerMobilePlan(mobilePlanIndex, "auto");
+            return;
+          }
+          if (plansGrid) {
+            plansGrid.style.transitionDuration = "";
+            plansGrid.style.minHeight = "";
+            plansGrid.style.height = "";
+          }
+          if (mobilePlanViewport) {
+            mobilePlanViewport.style.height = "";
+            mobilePlanViewport.style.minHeight = "";
+          }
+          if (mobilePlanStage) {
+            mobilePlanStage.style.minHeight = "";
+          }
+        });
 
       window.setTimeout(function () {
         if (isMobilePlanViewport()) {
