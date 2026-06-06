@@ -121,8 +121,8 @@ body {
 
   body.rblx-mobile-shell .rblx-shell-status {
     min-height: 0;
-    width: auto;
-    margin: 0 -12px 0;
+    width: calc(100% + 48px);
+    margin: 0 0 0 -24px;
     padding: 11px 16px 12px;
     border-radius: 0;
     border: 0;
@@ -136,6 +136,7 @@ body {
     line-height: 1.4;
     justify-content: center;
     text-align: center;
+    align-self: stretch;
   }
 
   body.rblx-mobile-shell .rblx-shell-status-dot {
