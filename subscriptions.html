@@ -1045,6 +1045,7 @@
         padding: 6px 0 14px;
         margin: 0;
         position: relative;
+        touch-action: pan-y;
       }
 
       .plans-grid {
@@ -1107,6 +1108,32 @@
 
       .plus-card {
         animation: none;
+      }
+
+      .plus-card .card-inner {
+        padding: 14px;
+      }
+
+      .plus-card .plan-subtitle {
+        margin-top: 8px;
+      }
+
+      .plus-card .chat-preview,
+      .plus-card .coupon-box,
+      .plus-card .cta-subcopy {
+        display: none;
+      }
+
+      .plus-card .plan-grid {
+        margin-top: 10px;
+      }
+
+      .plus-card .perk-card {
+        padding: 9px;
+      }
+
+      .plus-card .status {
+        margin-top: 8px;
       }
 
       .card-inner {
@@ -1320,13 +1347,6 @@
                 </div>
               </div>
               <div class="perk-card">
-                <div class="perk-icon plus">U</div>
-                <div>
-                  <h3 class="perk-title">Unwatermarked templates</h3>
-                  <p class="perk-desc">Use the cleaner clothing templates inside Background Changer without the watermark layer.</p>
-                </div>
-              </div>
-              <div class="perk-card">
                 <div class="perk-icon plus">5</div>
                 <div>
                   <h3 class="perk-title">Bulk downloads and tool usage</h3>
@@ -1468,10 +1488,10 @@
           <strong>Do I need an account before buying Plus?</strong>
           <span>Yes. The page checks your logged-in account first so billing and premium access connect to the right profile.</span>
         </div>
-        <div class="faq-item">
-          <strong>What actually changes after I buy Plus?</strong>
-          <span>You unlock the premium-only tools, bigger supported batch actions, unwatermarked template support, and a more premium site experience overall.</span>
-        </div>
+          <div class="faq-item">
+            <strong>What actually changes after I buy Plus?</strong>
+            <span>You unlock the premium-only tools, bigger supported batch actions, and a more premium site experience overall.</span>
+          </div>
         <div class="faq-item">
           <strong>Can I stay on Free forever?</strong>
           <span>Yes. The free plan is still real and useful. Plus is there for users who want the workflow boost and premium tool access.</span>
