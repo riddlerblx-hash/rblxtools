@@ -267,6 +267,18 @@
       align-items: stretch;
     }
 
+    .mobile-plan-stage {
+      position: relative;
+    }
+
+    .mobile-plan-viewport {
+      overflow: visible;
+    }
+
+    .mobile-plan-arrow {
+      display: none;
+    }
+
     .plan-col {
       min-width: 0;
     }
@@ -998,6 +1010,103 @@
         animation: none;
       }
     }
+
+    @media (max-width: 820px) {
+      .hero-strip {
+        display: none;
+      }
+
+      .mobile-plan-stage {
+        margin-top: 4px;
+      }
+
+      .mobile-plan-viewport {
+        overflow-x: auto;
+        overflow-y: visible;
+        padding: 6px 13vw 14px;
+        margin: 0 -10px;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      .mobile-plan-viewport::-webkit-scrollbar {
+        display: none;
+      }
+
+      .plans-grid {
+        display: flex;
+        grid-template-columns: none;
+        gap: 14px;
+        width: max-content;
+        align-items: stretch;
+      }
+
+      .plan-col,
+      .plan-col.side-plan,
+      .plan-col.plus-focus {
+        flex: 0 0 min(78vw, 340px);
+        width: min(78vw, 340px);
+        padding-top: 0;
+        padding-bottom: 0;
+        transform: none;
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+      }
+
+      .plan-card {
+        min-height: 100%;
+      }
+
+      .plan-card::after {
+        animation-duration: 8.2s;
+      }
+
+      .plus-card {
+        animation: none;
+      }
+
+      .card-inner {
+        padding: 16px;
+      }
+
+      .pill-row {
+        display: none;
+      }
+
+      .mobile-plan-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 4;
+        width: 38px;
+        height: 38px;
+        border: 0;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(12, 18, 27, 0.92);
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 900;
+        line-height: 1;
+        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.24);
+      }
+
+      .mobile-plan-arrow.prev {
+        left: 4px;
+      }
+
+      .mobile-plan-arrow.next {
+        right: 4px;
+      }
+
+      .mobile-plan-arrow[disabled] {
+        opacity: 0.36;
+      }
+    }
   </style>
   <link rel="stylesheet" href="./global-shell.css" />
   <link rel="stylesheet" href="./mobile-overrides.css" />
@@ -1039,8 +1148,11 @@
       </div>
     </section>
 
-    <section class="plans-grid">
-      <div class="plan-col side-plan">
+    <div class="mobile-plan-stage" id="mobilePlanStage">
+      <button class="mobile-plan-arrow prev" id="mobilePlanPrev" type="button" aria-label="Show previous plan">&#8249;</button>
+      <div class="mobile-plan-viewport" id="mobilePlanViewport">
+      <section class="plans-grid" id="plansGrid">
+      <div class="plan-col side-plan" data-plan-index="0">
         <article class="plan-card free-card">
           <div class="card-inner">
             <div class="pill-row">
@@ -1096,7 +1208,7 @@
         </article>
       </div>
 
-      <div class="plan-col plus-focus">
+      <div class="plan-col plus-focus" data-plan-index="1">
         <article class="plan-card plus-card">
           <div class="plus-floaters" aria-hidden="true">
             <div class="plus-floater one">+</div>
@@ -1211,7 +1323,7 @@
         </article>
       </div>
 
-      <div class="plan-col side-plan">
+      <div class="plan-col side-plan" data-plan-index="2">
         <article class="plan-card pro-card">
           <div class="card-inner">
             <div class="pill-row">
@@ -1324,7 +1436,10 @@
           <span>No. Pro is only a future direction preview right now. The current live choice is between Free and Plus.</span>
         </div>
       </div>
-    </section>
+      </section>
+      </div>
+      <button class="mobile-plan-arrow next" id="mobilePlanNext" type="button" aria-label="Show next plan">&#8250;</button>
+    </div>
   </main>
 
   <div id="loginLock" class="login-lock" aria-hidden="true">
@@ -1355,9 +1470,60 @@
       var freeStatusEl = document.getElementById("freeStatus");
       var loginLock = document.getElementById("loginLock");
       var loginLockCountdown = document.getElementById("loginLockCountdown");
-      var loginRedirectTimer = 0;
-      var loginCountdownTimer = 0;
-      var planCards = Array.prototype.slice.call(document.querySelectorAll(".plan-card"));
+        var loginRedirectTimer = 0;
+        var loginCountdownTimer = 0;
+        var planCards = Array.prototype.slice.call(document.querySelectorAll(".plan-card"));
+        var mobilePlanViewport = document.getElementById("mobilePlanViewport");
+        var mobilePlanPrev = document.getElementById("mobilePlanPrev");
+        var mobilePlanNext = document.getElementById("mobilePlanNext");
+        var mobilePlanCols = Array.prototype.slice.call(document.querySelectorAll("[data-plan-index]"));
+        var mobilePlanIndex = 1;
+
+        function isMobilePlanViewport() {
+          return window.matchMedia && window.matchMedia("(max-width: 820px)").matches;
+        }
+
+        function updateMobilePlanArrows() {
+          if (!mobilePlanPrev || !mobilePlanNext) return;
+          var maxIndex = Math.max(0, mobilePlanCols.length - 1);
+          mobilePlanPrev.disabled = mobilePlanIndex <= 0;
+          mobilePlanNext.disabled = mobilePlanIndex >= maxIndex;
+        }
+
+        function centerMobilePlan(index, behavior) {
+          if (!mobilePlanViewport || !mobilePlanCols.length || !isMobilePlanViewport()) return;
+          var nextIndex = Math.max(0, Math.min(index, mobilePlanCols.length - 1));
+          var target = mobilePlanCols[nextIndex];
+          if (!target) return;
+          mobilePlanIndex = nextIndex;
+          target.scrollIntoView({
+            behavior: behavior || "smooth",
+            block: "nearest",
+            inline: "center"
+          });
+          updateMobilePlanArrows();
+        }
+
+        function detectCenteredPlan() {
+          if (!mobilePlanViewport || !mobilePlanCols.length || !isMobilePlanViewport()) return;
+          var viewportRect = mobilePlanViewport.getBoundingClientRect();
+          var viewportCenter = viewportRect.left + (viewportRect.width / 2);
+          var bestIndex = mobilePlanIndex;
+          var bestDistance = Infinity;
+
+          mobilePlanCols.forEach(function (col, index) {
+            var rect = col.getBoundingClientRect();
+            var center = rect.left + (rect.width / 2);
+            var distance = Math.abs(center - viewportCenter);
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              bestIndex = index;
+            }
+          });
+
+          mobilePlanIndex = bestIndex;
+          updateMobilePlanArrows();
+        }
 
       function setStatus(element, message, tone) {
         if (!element) return;
@@ -1590,6 +1756,38 @@
         card.style.setProperty("--card-glow-x", "74%");
         card.style.setProperty("--card-glow-y", "18%");
       });
+
+      if (mobilePlanPrev) {
+        mobilePlanPrev.addEventListener("click", function () {
+          centerMobilePlan(mobilePlanIndex - 1, "smooth");
+        });
+      }
+
+      if (mobilePlanNext) {
+        mobilePlanNext.addEventListener("click", function () {
+          centerMobilePlan(mobilePlanIndex + 1, "smooth");
+        });
+      }
+
+      if (mobilePlanViewport) {
+        mobilePlanViewport.addEventListener("scroll", function () {
+          window.clearTimeout(mobilePlanViewport._planDetectTimer);
+          mobilePlanViewport._planDetectTimer = window.setTimeout(detectCenteredPlan, 70);
+        }, { passive: true });
+      }
+
+      window.addEventListener("resize", function () {
+        if (!isMobilePlanViewport()) return;
+        centerMobilePlan(mobilePlanIndex, "auto");
+      });
+
+      window.setTimeout(function () {
+        if (isMobilePlanViewport()) {
+          centerMobilePlan(1, "auto");
+        } else {
+          updateMobilePlanArrows();
+        }
+      }, 60);
 
       detectPlanState();
     }());
