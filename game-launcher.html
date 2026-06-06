@@ -1339,7 +1339,7 @@
 
     <section class="faq-wrap">
       <div class="faq-item open">
-        <button class="faq-q" type="button">What does Game Cloner pull?</button>
+        <button class="faq-q" type="button">What does Game Joiner do?</button>
         <div class="faq-a">It pulls supported Roblox game packs and creator assets as native RBXM or RBXMX files for Studio workflows.</div>
       </div>
       <div class="faq-item">
@@ -1516,7 +1516,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            tool: "Game Cloner",
+            tool: "Game Joiner",
             id: String(assetId || "Unknown"),
             time: Date.now(),
             userId: identity.userId || "",
@@ -1917,7 +1917,7 @@
     async function fetchDeveloperAssetFile(id) {
       const res = await fetch(buildDeveloperAssetFetchUrl(id), { headers: { Authorization: "Bearer " + getStoredToken() } });
       if (!res.ok) {
-        let message = "Failed to fetch game clone";
+        let message = "This removed tool is no longer available";
         try {
           const data = await res.json();
           if (data && data.error) message = data.error;
@@ -1927,10 +1927,10 @@
             if (text && text.trim()) {
               message = text.trim().slice(0, 220);
             } else {
-              message = "Failed to fetch game clone (" + res.status + ")";
+              message = "This removed tool is no longer available (" + res.status + ")";
             }
           } catch (_textError) {
-            message = "Failed to fetch game clone (" + res.status + ")";
+            message = "This removed tool is no longer available (" + res.status + ")";
           }
         }
         throw new Error(message);

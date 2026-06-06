@@ -3089,7 +3089,6 @@ app.get("/api", async (_req, res) => {
     audioEndpoint: "/audio?id=ROBLOX_AUDIO_ID",
     mediaEndpoint: "/media?id=ROBLOX_ID_OR_URL",
     templateEndpoint: "/template?id=ROBLOX_ID",
-    developerAssetEndpoint: "/developer-asset?id=ROBLOX_ASSET_ID",
     ugcObjEndpoint: "/ugc-obj?id=ROBLOX_UGC_ID",
     ugcTextureEndpoint: "/ugc-texture?id=ROBLOX_UGC_ID",
     authSignupEndpoint: "/auth/signup",
@@ -4179,123 +4178,10 @@ app.get("/template", async (req, res) => {
   }
 });
 
-app.get("/developer-asset", async (req, res) => {
-  const inputId = extractRobloxAssetIdFromInput(req.query.id || req.query.url || req.query.input || "");
-  const id = String(inputId || "").trim();
-
-  if (!/^[0-9]+$/.test(id)) {
-    return res.status(400).json({ error: "Enter a valid Roblox developer marketplace asset ID." });
-  }
-
-  try {
-    await requireAdminUser(req);
-    let assetFetch = null;
-    let extension = "";
-    let lastFailure = "";
-    const detailPayload = await fetchJson(`https://apis.roblox.com/toolbox-service/v2/assets/${id}`, {
-      includeCookie: true,
-    });
-    const detailIds = collectCreatorStoreDetailIds(detailPayload);
-    const pendingIds = [id, ...detailIds.filter((candidate) => candidate && candidate !== id)];
-    const visitedIds = new Set();
-    const directUrlPattern = /https?:\/\/[^\s"'<>]+/i;
-
-    while (pendingIds.length > 0 && !assetFetch) {
-      const currentId = String(pendingIds.shift() || "").trim();
-      if (!currentId || visitedIds.has(currentId)) continue;
-      visitedIds.add(currentId);
-
-      const candidateUrls = [
-        `https://assetdelivery.roblox.com/v2/assetId/${currentId}`,
-        `https://assetdelivery.roblox.com/v1/assetId/${currentId}`,
-        `https://assetdelivery.roblox.com/v1/asset/?id=${currentId}`
-      ];
-
-      for (const assetUrl of candidateUrls) {
-        const currentFetch = await fetchBuffer(assetUrl);
-        const bodyText = currentFetch.buffer.toString("utf8");
-
-        if (isAuthRequiredResponse(bodyText)) {
-          return res.status(403).json({
-            error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
-          });
-        }
-
-        if (!currentFetch.response.ok) {
-          lastFailure = `assetdelivery ${currentFetch.response.status}`;
-          continue;
-        }
-
-        const currentExtension = guessRobloxAssetFileExtension(
-          currentFetch.response.headers.get("content-type") || "",
-          currentFetch.buffer
-        );
-
-        if (currentExtension === "rbxm" || currentExtension === "rbxmx") {
-          assetFetch = currentFetch;
-          extension = currentExtension;
-          break;
-        }
-
-        const directUrlMatch = bodyText.match(directUrlPattern);
-        if (directUrlMatch && /^https?:\/\//i.test(directUrlMatch[0])) {
-          const nestedFetch = await fetchBuffer(directUrlMatch[0]);
-          const nestedText = nestedFetch.buffer.toString("utf8");
-
-          if (isAuthRequiredResponse(nestedText)) {
-            return res.status(403).json({
-              error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
-            });
-          }
-
-          if (nestedFetch.response.ok) {
-            const nestedExtension = guessRobloxAssetFileExtension(
-              nestedFetch.response.headers.get("content-type") || "",
-              nestedFetch.buffer
-            );
-
-            if (nestedExtension === "rbxm" || nestedExtension === "rbxmx") {
-              assetFetch = nestedFetch;
-              extension = nestedExtension;
-              break;
-            }
-          }
-        }
-
-        const referencedIds = extractReferencedAssetIds(bodyText);
-        for (const nextId of referencedIds) {
-          if (!visitedIds.has(nextId)) {
-            pendingIds.push(nextId);
-          }
-        }
-
-        lastFailure = `unexpected asset type ${currentExtension || "unknown"}`;
-      }
-    }
-
-    if (!assetFetch || !extension) {
-      return res.status(404).json({
-        error: lastFailure
-          ? `That ID could not be resolved as a downloadable Roblox model pack (${lastFailure}).`
-          : "That ID does not appear to be a downloadable Roblox model or asset pack.",
-      });
-    }
-
-    await safeIncrementDailyUsage();
-    await emitToolActivityForRequest(req, "developer-asset-downloader", getRequestActivityParam(req, "displayName", displayNameLength));
-
-    res.setHeader("Content-Type", extension === "rbxmx" ? "application/xml; charset=utf-8" : "application/octet-stream");
-    res.setHeader("Cache-Control", "no-store");
-    res.setHeader("Content-Disposition", `attachment; filename="roblox-dev-asset-${id}.${extension}"`);
-    res.setHeader("X-Roblox-Asset-Extension", extension);
-
-    return res.send(assetFetch.buffer);
-  } catch (error) {
-    console.error("Developer asset fetch failed:", error);
-    return res.status(500).json({
-      error: "Could not download that Roblox asset pack right now.",
-    });
-  }
+app.get("/developer-asset", async (_req, res) => {
+  return res.status(410).json({
+    error: "The Game Cloner tool has been removed from this website.",
+  });
 });
 
 app.get("/ugc-texture", async (req, res) => {
@@ -4826,7 +4712,6 @@ function emitSpecialAnnouncement(room, text) {
 
 const allowedToolActivityLabels = {
   "template-downloader": "Template Downloader",
-  "developer-asset-downloader": "Game Cloner",
   "background-changer": "Background Changer",
   "ugc-downloader": "UGC Downloader",
   "media-downloader": "Media Downloader",
