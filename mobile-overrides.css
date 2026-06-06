@@ -94,9 +94,7 @@ body {
   }
 
   body.rblx-mobile-shell .rblx-shell-header-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    display: none !important;
   }
 
   body.rblx-mobile-shell .rblx-shell-auth {
@@ -226,7 +224,10 @@ body {
     border-radius: 22px;
     border: 1px solid rgba(255,255,255,0.08);
     background: rgba(24, 37, 51, 0.94);
-    box-shadow: 0 22px 44px rgba(0, 0, 0, 0.34);
+    box-shadow:
+      0 14px 28px rgba(0, 0, 0, 0.18),
+      0 30px 54px rgba(0, 0, 0, 0.12),
+      0 0 0 1px rgba(255,255,255,0.02);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -483,10 +484,6 @@ body {
 @media (max-width: 640px) {
   .rblx-shell-header {
     padding: 12px;
-  }
-
-  body.rblx-mobile-shell .rblx-shell-header-actions {
-    grid-template-columns: 1fr;
   }
 
   body.rblx-mobile-shell .rblx-shell-left,
