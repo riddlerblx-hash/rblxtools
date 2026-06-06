@@ -1035,6 +1035,7 @@
         margin-top: 8px;
         width: 100%;
         overflow: hidden;
+        position: relative;
       }
 
       .mobile-plan-viewport {
@@ -1043,42 +1044,57 @@
         overflow-y: hidden;
         padding: 6px 0 14px;
         margin: 0;
+        position: relative;
       }
 
       .plans-grid {
-        display: flex;
-        grid-template-columns: none;
-        gap: 12px;
-        width: max-content;
-        align-items: stretch;
-        padding: 0;
-        transition: transform 0.32s ease;
-        will-change: transform;
+        display: block;
+        width: 100%;
+        min-height: 0;
+        position: relative;
       }
 
       .plan-col,
       .plan-col.side-plan,
       .plan-col.plus-focus {
         display: block !important;
-        flex: 0 0 min(74vw, 318px);
+        position: absolute;
+        top: 0;
+        left: 50%;
+        flex: none;
         width: min(74vw, 318px);
         padding-top: 0;
         padding-bottom: 0;
-        transform: none;
-        opacity: 0.72;
-        transition: opacity 0.25s ease, transform 0.25s ease;
+        margin-left: calc(-0.5 * min(74vw, 318px));
+        opacity: 0;
+        pointer-events: none;
+        transition: transform 0.28s ease, opacity 0.28s ease;
+        transform: translate3d(0, 0, 0) scale(0.88);
       }
 
       .plan-col.is-active {
         opacity: 1;
+        pointer-events: auto;
+        z-index: 3;
+        transform: translate3d(0, 0, 0) scale(1);
       }
 
-      .plan-col:not(.is-active) .plan-card {
-        transform: scale(0.94);
+      .plan-col.is-left {
+        opacity: 0.56;
+        z-index: 2;
+        transform: translate3d(-56%, 16px, 0) scale(0.86);
       }
 
-      .plan-col.is-active .plan-card {
-        transform: scale(1);
+      .plan-col.is-right {
+        opacity: 0.56;
+        z-index: 2;
+        transform: translate3d(56%, 16px, 0) scale(0.86);
+      }
+
+      .plan-col.is-hidden {
+        opacity: 0;
+        z-index: 1;
+        transform: translate3d(0, 22px, 0) scale(0.82);
       }
 
       .plan-card {
@@ -1124,12 +1140,12 @@
 
       .mobile-plan-arrow.prev {
         left: 50%;
-        margin-left: calc(-1 * min(37vw, 159px) - 18px);
+        margin-left: calc(-1 * min(37vw, 159px) - 26px);
       }
 
       .mobile-plan-arrow.next {
         left: 50%;
-        margin-left: calc(min(37vw, 159px) - 24px);
+        margin-left: calc(min(37vw, 159px) - 16px);
       }
 
       .mobile-plan-arrow[disabled] {
@@ -1522,27 +1538,43 @@
 
         function updateMobilePlanClasses() {
           mobilePlanCols.forEach(function (col, index) {
-            col.classList.toggle("is-active", index === mobilePlanIndex);
+            col.classList.remove("is-active", "is-left", "is-right", "is-hidden");
+            if (index === mobilePlanIndex) {
+              col.classList.add("is-active");
+              return;
+            }
+            if (index === mobilePlanIndex - 1) {
+              col.classList.add("is-left");
+              return;
+            }
+            if (index === mobilePlanIndex + 1) {
+              col.classList.add("is-right");
+              return;
+            }
+            col.classList.add("is-hidden");
           });
+        }
+
+        function updateMobilePlanStageHeight() {
+          if (!mobilePlanViewport || !plansGrid || !mobilePlanCols.length || !isMobilePlanViewport()) return;
+          var tallest = 0;
+          mobilePlanCols.forEach(function (col) {
+            var nextHeight = col.offsetHeight;
+            if (nextHeight > tallest) tallest = nextHeight;
+          });
+          if (tallest > 0) {
+            plansGrid.style.minHeight = tallest + "px";
+            mobilePlanViewport.style.height = tallest + 14 + "px";
+          }
         }
 
         function centerMobilePlan(index, behavior) {
           if (!mobilePlanViewport || !plansGrid || !mobilePlanCols.length || !isMobilePlanViewport()) return;
           var nextIndex = Math.max(0, Math.min(index, mobilePlanCols.length - 1));
-          var target = mobilePlanCols[nextIndex];
-          if (!target) return;
           mobilePlanIndex = nextIndex;
-          var viewportWidth = mobilePlanViewport.clientWidth;
-          var targetCenter = target.offsetLeft + (target.offsetWidth / 2);
-          var nextOffset = (viewportWidth / 2) - targetCenter;
-          plansGrid.style.transitionDuration = behavior === "auto" ? "0s" : "";
-          plansGrid.style.transform = "translateX(" + nextOffset + "px)";
-          if (behavior === "auto") {
-            window.requestAnimationFrame(function () {
-              plansGrid.style.transitionDuration = "";
-            });
-          }
+          plansGrid.style.transitionDuration = "";
           updateMobilePlanClasses();
+          updateMobilePlanStageHeight();
           updateMobilePlanArrows();
         }
 
@@ -1796,8 +1828,11 @@
           return;
         }
         if (plansGrid) {
-          plansGrid.style.transform = "";
           plansGrid.style.transitionDuration = "";
+          plansGrid.style.minHeight = "";
+        }
+        if (mobilePlanViewport) {
+          mobilePlanViewport.style.height = "";
         }
       });
 
