@@ -1041,18 +1041,20 @@
 
       .mobile-plan-viewport {
         width: 100%;
-        overflow-x: hidden;
-        overflow-y: visible;
+        overflow: visible;
         padding: 6px 0 14px;
         margin: 0;
         position: relative;
         touch-action: pan-y;
+        min-height: 0 !important;
+        height: auto !important;
       }
 
       .plans-grid {
         display: block;
         width: 100%;
         min-height: 0;
+        height: auto !important;
         position: relative;
         overflow: visible;
       }
@@ -1060,47 +1062,24 @@
       .plan-col,
       .plan-col.side-plan,
       .plan-col.plus-focus {
-        display: block !important;
-        position: absolute;
-        top: 0;
-        left: 50%;
+        display: none !important;
+        position: relative;
+        top: auto;
+        left: auto;
         flex: none;
-        width: min(74vw, 318px);
+        width: min(100%, 360px);
+        max-width: 360px;
         padding-top: 0;
         padding-bottom: 0;
-        margin-left: calc(-0.5 * min(74vw, 318px));
-        opacity: 0;
-        pointer-events: none;
-        transition: transform 0.28s ease, opacity 0.28s ease;
-        transform: translate3d(0, 0, 0) scale(0.88);
+        margin: 0 auto;
+        opacity: 1;
+        pointer-events: auto;
+        transition: none;
+        transform: none;
       }
 
       .plan-col.is-active {
-        opacity: 1;
-        pointer-events: auto;
-        z-index: 3;
-        transform: translate3d(0, 0, 0) scale(1);
-      }
-
-      .plan-col.is-left {
-        opacity: 0.56;
-        z-index: 2;
-        pointer-events: none;
-        transform: translate3d(-56%, 16px, 0) scale(0.86);
-      }
-
-      .plan-col.is-right {
-        opacity: 0.56;
-        z-index: 2;
-        pointer-events: none;
-        transform: translate3d(56%, 16px, 0) scale(0.86);
-      }
-
-      .plan-col.is-hidden {
-        opacity: 0;
-        z-index: 1;
-        pointer-events: none;
-        transform: translate3d(0, 22px, 0) scale(0.82);
+        display: block !important;
       }
 
       .plan-card {
@@ -1171,13 +1150,14 @@
       }
 
       .mobile-plan-arrow.prev {
-        left: 50%;
-        margin-left: calc(-1 * min(37vw, 159px) - 26px);
+        left: 8px;
+        margin-left: 0;
       }
 
       .mobile-plan-arrow.next {
-        left: 50%;
-        margin-left: calc(min(37vw, 159px) - 16px);
+        right: 8px;
+        left: auto;
+        margin-left: 0;
       }
 
       .mobile-plan-arrow[disabled] {
@@ -1567,34 +1547,20 @@
             col.classList.remove("is-active", "is-left", "is-right", "is-hidden");
             if (index === mobilePlanIndex) {
               col.classList.add("is-active");
-              return;
             }
-            if (index === mobilePlanIndex - 1) {
-              col.classList.add("is-left");
-              return;
-            }
-            if (index === mobilePlanIndex + 1) {
-              col.classList.add("is-right");
-              return;
-            }
-            col.classList.add("is-hidden");
           });
         }
 
         function updateMobilePlanStageHeight() {
           if (!plansGrid || !mobilePlanCols.length || !isMobilePlanViewport()) return;
-          var activeCol = mobilePlanCols[mobilePlanIndex] || mobilePlanCols[0];
-          if (!activeCol) return;
-          var activeHeight = activeCol.offsetHeight;
-          if (activeHeight > 0) {
-            plansGrid.style.height = activeHeight + "px";
-            if (mobilePlanViewport) {
-              mobilePlanViewport.style.height = "";
-              mobilePlanViewport.style.minHeight = activeHeight + 14 + "px";
-            }
-            if (mobilePlanStage) {
-              mobilePlanStage.style.minHeight = activeHeight + 22 + "px";
-            }
+          plansGrid.style.height = "";
+          plansGrid.style.minHeight = "";
+          if (mobilePlanViewport) {
+            mobilePlanViewport.style.height = "";
+            mobilePlanViewport.style.minHeight = "";
+          }
+          if (mobilePlanStage) {
+            mobilePlanStage.style.minHeight = "";
           }
         }
 
