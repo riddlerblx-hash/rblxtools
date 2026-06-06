@@ -1018,14 +1018,14 @@
 
       .mobile-plan-stage {
         margin-top: 4px;
+        overflow: hidden;
       }
 
       .mobile-plan-viewport {
         overflow-x: auto;
-        overflow-y: visible;
-        padding: 6px 13vw 14px;
-        margin: 0 -10px;
-        scroll-snap-type: x mandatory;
+        overflow-y: hidden;
+        padding: 6px 0 14px;
+        margin: 0;
         scroll-behavior: smooth;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -1041,18 +1041,18 @@
         gap: 14px;
         width: max-content;
         align-items: stretch;
+        padding: 0 34px;
       }
 
       .plan-col,
       .plan-col.side-plan,
       .plan-col.plus-focus {
-        flex: 0 0 min(78vw, 340px);
-        width: min(78vw, 340px);
+        display: block !important;
+        flex: 0 0 min(74vw, 320px);
+        width: min(74vw, 320px);
         padding-top: 0;
         padding-bottom: 0;
         transform: none;
-        scroll-snap-align: center;
-        scroll-snap-stop: always;
       }
 
       .plan-card {
@@ -1080,14 +1080,14 @@
         top: 50%;
         transform: translateY(-50%);
         z-index: 4;
-        width: 38px;
-        height: 38px;
+        width: 42px;
+        height: 42px;
         border: 0;
         border-radius: 999px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        background: rgba(12, 18, 27, 0.92);
+        background: linear-gradient(180deg, rgba(20, 30, 42, 0.96), rgba(12, 18, 27, 0.96));
         color: #ffffff;
         font-size: 24px;
         font-weight: 900;
@@ -1096,11 +1096,11 @@
       }
 
       .mobile-plan-arrow.prev {
-        left: 4px;
+        left: 6px;
       }
 
       .mobile-plan-arrow.next {
-        right: 4px;
+        right: 6px;
       }
 
       .mobile-plan-arrow[disabled] {
@@ -1496,10 +1496,12 @@
           var target = mobilePlanCols[nextIndex];
           if (!target) return;
           mobilePlanIndex = nextIndex;
-          target.scrollIntoView({
-            behavior: behavior || "smooth",
-            block: "nearest",
-            inline: "center"
+          var targetLeft = target.offsetLeft - ((mobilePlanViewport.clientWidth - target.offsetWidth) / 2);
+          var maxScroll = Math.max(0, mobilePlanViewport.scrollWidth - mobilePlanViewport.clientWidth);
+          var nextScrollLeft = Math.max(0, Math.min(targetLeft, maxScroll));
+          mobilePlanViewport.scrollTo({
+            left: nextScrollLeft,
+            behavior: behavior || "smooth"
           });
           updateMobilePlanArrows();
         }
