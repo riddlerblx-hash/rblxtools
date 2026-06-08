@@ -285,7 +285,7 @@ function getSafePortalReturnUrl() {
 }
 
 function getSafeCheckoutSuccessUrl() {
-  return `${getSafePortalReturnUrl()}?checkout=success`;
+  return `${getSafePortalReturnUrl()}?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
 }
 
 function getSafeCheckoutCancelUrl() {
@@ -4793,7 +4793,7 @@ app.get("/coupon-status", async (req, res) => {
 });
 
 app.post("/auth/create-checkout-session", async (req, res) => {
-  try {
+    try {
     assertStripeCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const customerId = await getOrCreateStripeCustomerForUser(user);
@@ -4830,11 +4830,76 @@ app.post("/auth/create-checkout-session", async (req, res) => {
     return res.status(error.statusCode || 500).json({
       error: error.message || "Could not create a Stripe checkout session.",
     });
-  }
-});
-
-app.post("/auth/create-portal-session", async (req, res) => {
-  try {
+    }
+  });
+  
+  app.get("/auth/checkout-session-summary", async (req, res) => {
+    try {
+      assertStripeCheckoutConfigured();
+      const user = await requireAuthenticatedUser(req);
+      const sessionId = String(req.query?.session_id || "").trim();
+      if (!sessionId) {
+        return res.status(400).json({ error: "A checkout session ID is required." });
+      }
+      const session = await stripeClient.checkout.sessions.retrieve(sessionId);
+      const sessionCustomerId = typeof session?.customer === "string"
+        ? session.customer
+        : session?.customer && session.customer.id
+          ? session.customer.id
+          : "";
+      const matchesUser = Boolean(
+        (user.stripe_customer_id && sessionCustomerId && sessionCustomerId === user.stripe_customer_id) ||
+        String(session?.client_reference_id || "") === String(user.id || "") ||
+        String(session?.metadata?.appUserId || "") === String(user.id || "")
+      );
+      if (!matchesUser) {
+        return res.status(403).json({ error: "That checkout session does not belong to this account." });
+      }
+      const lineItems = await stripeClient.checkout.sessions.listLineItems(sessionId, {
+        limit: 10,
+        expand: ["data.price.product"],
+      }).catch(() => ({ data: [] }));
+      const items = Array.isArray(lineItems?.data)
+        ? lineItems.data.map((line) => {
+            const productName = typeof line?.price?.product === "object" && line.price.product
+              ? String(line.price.product.name || "").trim()
+              : "";
+            const description = String(line?.description || "").trim();
+            return {
+              description: productName || description || "RBTools Plus",
+              quantity: Number(line?.quantity || 1),
+            };
+          })
+        : [];
+      const currency = String(session?.currency || "usd").toUpperCase();
+      const amountTotal = Number(session?.amount_total || 0);
+      const amountTotalFormatted = Number.isFinite(amountTotal)
+        ? new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency,
+          }).format(amountTotal / 100)
+        : null;
+      return res.json({
+        ok: true,
+        sessionId,
+        status: session?.status || null,
+        paymentStatus: session?.payment_status || null,
+        mode: session?.mode || null,
+        itemName: items[0]?.description || "RBTools Plus",
+        items,
+        amountTotal,
+        amountTotalFormatted,
+        currency,
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        error: error.message || "Could not load the checkout summary.",
+      });
+    }
+  });
+  
+  app.post("/auth/create-portal-session", async (req, res) => {
+    try {
     assertStripePortalConfigured();
     const user = await requireAuthenticatedUser(req);
 
@@ -6258,12 +6323,16 @@ app.use((req, res, next) => {
 });
 
 app.use(express.static(STATIC_ROOT, { extensions: ["html"] }));
+  
+  app.get("/", (_req, res) => {
+    res.sendFile(path.join(STATIC_ROOT, "index.html"));
+  });
 
-app.get("/", (_req, res) => {
-  res.sendFile(path.join(STATIC_ROOT, "index.html"));
-});
-
-const PORT = process.env.PORT || 3000;
+  app.get("/account", (_req, res) => {
+    res.sendFile(path.join(STATIC_ROOT, "account-overview.html"));
+  });
+  
+  const PORT = process.env.PORT || 3000;
 
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

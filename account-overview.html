@@ -394,6 +394,30 @@
     }
 
     #rbtools-account-overview .acct-note strong { color: #fff; }
+    #rbtools-account-overview .acct-checkout-banner {
+      margin-top: 16px;
+      display: grid;
+      gap: 6px;
+      border-color: rgba(88, 230, 138, 0.28);
+      background: linear-gradient(145deg, rgba(22, 52, 33, 0.92), rgba(16, 28, 21, 0.96));
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+    }
+    #rbtools-account-overview .acct-checkout-banner.error {
+      border-color: rgba(255, 159, 159, 0.3);
+      background: linear-gradient(145deg, rgba(64, 25, 28, 0.92), rgba(31, 17, 18, 0.96));
+    }
+    #rbtools-account-overview .acct-checkout-title {
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #f6fff4;
+    }
+    #rbtools-account-overview .acct-checkout-copy {
+      font-size: 13px;
+      line-height: 1.65;
+      color: rgba(241, 247, 244, 0.92);
+    }
 
     #rbtools-account-overview .acct-profile {
       display: grid;
@@ -1208,6 +1232,11 @@
                       Confirm your current access level, refresh Plus state, and jump into Stripe tools without leaving the account center.
                     </p>
 
+                    <div id="acctCheckoutBanner" class="acct-note acct-checkout-banner hidden">
+                      <div id="acctCheckoutTitle" class="acct-checkout-title">Purchase successful</div>
+                      <div id="acctCheckoutCopy" class="acct-checkout-copy">We are syncing your membership now.</div>
+                    </div>
+
                     <div class="acct-info-grid">
                       <div class="acct-pill-card">
                         <div class="acct-pill-label">Email</div>
@@ -1507,6 +1536,8 @@
       var state = {
         token: "",
         user: null,
+        checkoutStatus: new URLSearchParams(window.location.search || "").get("checkout") || "",
+        checkoutSessionId: new URLSearchParams(window.location.search || "").get("session_id") || "",
         deleteCountdown: 10,
         deleteCountdownTimer: null,
         membershipPollTimer: null,
@@ -1542,6 +1573,9 @@
         acctPlusExpiresAt: document.getElementById("acctPlusExpiresAt"),
         acctUserId: document.getElementById("acctUserId"),
         acctCustomerId: document.getElementById("acctCustomerId"),
+        acctCheckoutBanner: document.getElementById("acctCheckoutBanner"),
+        acctCheckoutTitle: document.getElementById("acctCheckoutTitle"),
+        acctCheckoutCopy: document.getElementById("acctCheckoutCopy"),
         acctMembershipStatus: document.getElementById("acctMembershipStatus"),
         acctBillingStatus: document.getElementById("acctBillingStatus"),
         acctProfileStatus: document.getElementById("acctProfileStatus"),
@@ -1710,6 +1744,21 @@
         return date.toLocaleString();
       }
 
+      function setCheckoutBanner(title, message, tone) {
+        if (!els.acctCheckoutBanner || !els.acctCheckoutTitle || !els.acctCheckoutCopy) return;
+        if (!title && !message) {
+          els.acctCheckoutBanner.classList.add("hidden");
+          els.acctCheckoutBanner.classList.remove("error");
+          els.acctCheckoutTitle.textContent = "";
+          els.acctCheckoutCopy.textContent = "";
+          return;
+        }
+        els.acctCheckoutTitle.textContent = title || "Purchase update";
+        els.acctCheckoutCopy.textContent = message || "";
+        els.acctCheckoutBanner.classList.remove("hidden");
+        els.acctCheckoutBanner.classList.toggle("error", tone === "error");
+      }
+
       function getMembershipHeadline(user) {
         if (!user) return "Membership snapshot unavailable.";
         if (user.premiumActive) {
@@ -1786,6 +1835,40 @@
         }
 
         return payload;
+      }
+
+      async function loadCheckoutSummary() {
+        if (state.checkoutStatus !== "success") {
+          if (state.checkoutStatus === "cancelled") {
+            setCheckoutBanner(
+              "Checkout cancelled",
+              "Your purchase was cancelled before Stripe finished it. You can reopen the plans page anytime if you still want Plus.",
+              "error"
+            );
+          } else {
+            setCheckoutBanner("", "", "");
+          }
+          return null;
+        }
+
+        setCheckoutBanner(
+          "Purchase successful",
+          "Your purchase went through. We are syncing your Plus access and purchase details now.",
+          ""
+        );
+
+        if (!state.token || !state.checkoutSessionId) {
+          return null;
+        }
+
+        try {
+          return await apiRequest("/auth/checkout-session-summary?session_id=" + encodeURIComponent(state.checkoutSessionId), {
+            method: "GET",
+            headers: { Authorization: "Bearer " + state.token }
+          });
+        } catch (_error) {
+          return null;
+        }
       }
 
       function renderProfilePresentation() {
@@ -1908,26 +1991,50 @@
             stripeCustomerId: "",
             membershipSource: "none",
             plusDaysTotal: null,
-            plusDaysLeft: 0,
-            plusExpiresAt: null
-          });
-          setStatus(els.acctMembershipStatus, "No account is loaded yet. You can still preview the overview layout for now.", "");
-          return;
-        }
+              plusDaysLeft: 0,
+              plusExpiresAt: null
+            });
+            if (state.checkoutStatus === "success") {
+              setCheckoutBanner(
+                "Purchase successful",
+                "Your checkout went through, but this browser is not currently holding a member session. Log in again and your Plus access should appear on the account page.",
+                ""
+              );
+            }
+            setStatus(els.acctMembershipStatus, "No account is loaded yet. You can still preview the overview layout for now.", "");
+            return;
+          }
 
         setGateVisible(false);
         setStatus(els.acctMembershipStatus, "Loading account overview...", "");
 
-        try {
-          var result = await apiRequest("/auth/me", {
-            method: "GET",
-            headers: { Authorization: "Bearer " + state.token }
-          });
+          try {
+            var result = await apiRequest("/auth/me", {
+              method: "GET",
+              headers: { Authorization: "Bearer " + state.token }
+            });
 
-          renderUser(result.user || null);
-          setStatus(els.acctMembershipStatus, getMembershipHeadline(result.user || null), "success");
-          startMembershipPolling();
-        } catch (error) {
+            var loadedUser = result.user || null;
+            renderUser(loadedUser);
+            var checkoutSummary = await loadCheckoutSummary();
+            if (state.checkoutStatus === "success") {
+              var itemName = checkoutSummary && checkoutSummary.itemName ? checkoutSummary.itemName : "RBTools Plus";
+              var purchaseMessage = itemName + " purchase successfully went through.";
+              if (checkoutSummary && checkoutSummary.amountTotalFormatted) {
+                purchaseMessage += " Charged " + checkoutSummary.amountTotalFormatted + ".";
+              }
+              if (loadedUser && loadedUser.premiumActive) {
+                purchaseMessage += " Plus is already active on this account.";
+              } else {
+                purchaseMessage += " Your member access is still being refreshed in the background.";
+              }
+              setCheckoutBanner("Purchase successful", purchaseMessage, "");
+              setStatus(els.acctMembershipStatus, purchaseMessage, "success");
+            } else {
+              setStatus(els.acctMembershipStatus, getMembershipHeadline(loadedUser), "success");
+            }
+            startMembershipPolling();
+          } catch (error) {
           clearMembershipPolling();
           saveToken("");
           renderUser(null);
