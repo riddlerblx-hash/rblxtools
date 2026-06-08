@@ -220,8 +220,8 @@
 
       #animation-spoofer-card {
         background:
-          radial-gradient(circle at top, rgba(255, 72, 72, 0.1), transparent 36%),
-          linear-gradient(180deg, #2c2a2a 0%, #222222 100%);
+          radial-gradient(circle at top right, rgba(255, 70, 70, 0.12), transparent 34%),
+          linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
         transform-style: preserve-3d;
         transition: transform 0.16s ease, filter 0.16s ease, border-color 0.16s ease;
         will-change: transform;
@@ -551,6 +551,16 @@
         color: #8f8f8f;
       }
 
+      .field-label {
+        display: block;
+        margin: 0 0 7px;
+        color: #e8e8e8;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+        text-align: left;
+      }
+
       #animationAssetId:focus {
         border-color: #ff8b8b;
         box-shadow: 0 0 0 3px rgba(255, 102, 102, 0.12);
@@ -643,7 +653,7 @@
 
       #previewShell,
       .promo-preview-shell {
-        background: #1d1d1d;
+        background: #1a1a1d;
         border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 12px;
         padding: 10px;
@@ -673,7 +683,7 @@
 
       #animationPreview {
         width: 100%;
-        min-height: 285px;
+        min-height: 420px;
         border-radius: 8px;
         padding: 18px 14px 16px;
         display: flex;
@@ -1339,6 +1349,7 @@
               <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
             </div>
 
+            <label class="field-label" for="animationAssetId">Roblox Animation Asset ID</label>
             <textarea id="animationAssetId" placeholder="Enter one Roblox animation asset ID, or comma-separated IDs for Plus"></textarea>
 
             <button id="animationButton" onclick="generateAnimation()">Download Animation</button>

@@ -41,13 +41,13 @@
     }
 
     #toolMount #placeholderUgc {
-      min-height: 392px !important;
+      min-height: 420px !important;
       flex: 1 1 auto !important;
       justify-content: center !important;
     }
 
     #toolMount #ugcViewer {
-      height: 392px !important;
+      height: 420px !important;
     }
       .tutorial-video-box {
       position: relative;
@@ -181,7 +181,9 @@
 
     .rblx-ugc-stack-card {
       width: 100%;
-      background: linear-gradient(180deg, #292929 0%, #222222 100%);
+      background:
+        radial-gradient(circle at top right, rgba(255, 70, 70, 0.12), transparent 34%),
+        linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
       border-radius: 18px;
       padding: 24px 20px 20px;
       text-align: center;
@@ -196,8 +198,8 @@
 
     #roblox-ugc-card {
       background:
-        radial-gradient(circle at top, rgba(255, 72, 72, 0.10), transparent 36%),
-        linear-gradient(180deg, #2c2a2a 0%, #222222 100%);
+        radial-gradient(circle at top right, rgba(255, 70, 70, 0.12), transparent 34%),
+        linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
     }
 
     #roblox-ugc-badge {
@@ -308,6 +310,16 @@
       color: #8f8f8f;
     }
 
+    .field-label {
+      display: block;
+      margin: 0 0 7px;
+      color: #e8e8e8;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      text-align: left;
+    }
+
     #ugcId:focus {
       border-color: #ff8b8b;
       box-shadow: 0 0 0 3px rgba(255, 102, 102, 0.12);
@@ -415,7 +427,7 @@
 
     #previewShell,
     .ugc-promo-preview-shell {
-      background: #1d1d1d;
+      background: #1a1a1d;
       border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 12px;
       padding: 10px;
@@ -423,7 +435,7 @@
 
     #placeholderUgc {
       width: 100%;
-      min-height: 292px;
+      min-height: 420px;
       border-radius: 8px;
       background: radial-gradient(circle at top, #343434 0%, #161616 72%);
       padding: 18px;
@@ -499,7 +511,7 @@
 
     #ugcViewer {
       width: 100%;
-      height: 320px;
+      height: 420px;
       border-radius: 8px;
       overflow: hidden;
       background: radial-gradient(circle at top, #343434 0%, #141414 78%);
@@ -876,6 +888,7 @@
         <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
       </div>
 
+      <label class="field-label" for="ugcId">Roblox UGC Asset ID</label>
       <textarea id="ugcId" placeholder="Enter one Roblox UGC asset ID, or comma-separated IDs for Plus"></textarea>
 
       <button id="ugcButton" onclick="generateUgc()">Download OBJ</button>

@@ -155,8 +155,8 @@
     .rblx-audio-card {
       width: 100%;
       background:
-        radial-gradient(circle at top, rgba(255, 72, 72, 0.10), transparent 36%),
-        linear-gradient(180deg, #2c2a2a 0%, #222222 100%);
+        radial-gradient(circle at top right, rgba(255, 70, 70, 0.12), transparent 34%),
+        linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
       border-radius: 18px;
       padding: 24px 20px 20px;
       text-align: center;
@@ -367,7 +367,7 @@
     }
 
     .rblx-preview-shell {
-      background: #1d1d1d;
+      background: #1a1a1d;
       border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 12px;
       padding: 10px;
@@ -375,7 +375,7 @@
 
     .rblx-placeholder {
       width: 100%;
-      min-height: 250px;
+      min-height: 420px;
       border-radius: 8px;
       background:
         radial-gradient(circle at top, rgba(255, 70, 70, 0.09), transparent 34%),
@@ -532,6 +532,10 @@
       background: #151515;
       padding: 12px;
       border: 1px solid rgba(255,255,255,0.05);
+      min-height: 420px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .rblx-audio-preview audio {

@@ -193,6 +193,16 @@
 
     textarea::placeholder { color: #8f8f93; }
 
+    .field-label {
+      display: block;
+      margin: 0 0 7px;
+      color: #e8e8e8;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      text-align: left;
+    }
+
     .btn {
       width: 100%;
       min-height: 44px;
@@ -1103,6 +1113,7 @@
           <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
         </div>
 
+        <label class="field-label" for="robloxId">Roblox Clothing Asset ID</label>
         <textarea id="robloxId" placeholder="Enter one Roblox clothing asset ID, or comma-separated IDs for Plus"></textarea>
         <button id="templateButton" class="btn" onclick="generate()">Download Template</button>
         <div id="status"></div>

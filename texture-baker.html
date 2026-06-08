@@ -280,11 +280,11 @@
 
     .inner {
       padding: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 18px;
       background:
-        radial-gradient(circle at top, rgba(255, 72, 72, 0.10), transparent 36%),
-        linear-gradient(180deg, rgba(44, 40, 41, 0.96), rgba(29, 27, 28, 0.98));
+        radial-gradient(circle at top right, rgba(255, 70, 70, 0.12), transparent 34%),
+        linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
       box-shadow: var(--shadow);
     }
 
@@ -879,10 +879,10 @@
     }
 
     .preview-card {
-      padding: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.02);
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      background: #1a1a1d;
     }
 
     .preview-top {
@@ -964,8 +964,8 @@
 
     .preview-stage {
       position: relative;
-      aspect-ratio: 1.36 / 0.76;
       width: 100%;
+      min-height: 420px;
       border-radius: 14px;
       overflow: hidden;
       background:
@@ -1458,7 +1458,8 @@
           </div>
 
           <div class="stack tool-controls">
-            <input id="assetIdInput" class="text-input" type="text" inputmode="numeric" placeholder="Enter Roblox Asset ID">
+            <div class="label">Roblox UGC Asset ID</div>
+            <input id="assetIdInput" class="text-input" type="text" inputmode="numeric" placeholder="Enter one Roblox UGC asset ID to fetch its matching texture">
             <button id="grabTextureButton" class="action action-primary" type="button">Grab Texture</button>
 
             <div>

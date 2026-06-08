@@ -165,8 +165,8 @@
     .rblx-media-card {
       width: 100%;
       background:
-        radial-gradient(circle at top, rgba(255, 72, 72, 0.10), transparent 36%),
-        linear-gradient(180deg, #2c2a2a 0%, #222222 100%);
+        radial-gradient(circle at top right, rgba(255, 70, 70, 0.12), transparent 34%),
+        linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
       border-radius: 18px;
       padding: 24px 20px 20px;
       text-align: center;
@@ -385,7 +385,7 @@
     }
 
     .rblx-preview-shell {
-      background: #1d1d1d;
+      background: #1a1a1d;
       border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 12px;
       padding: 10px;
@@ -393,7 +393,7 @@
 
     .rblx-placeholder {
       width: 100%;
-      min-height: 340px;
+      min-height: 420px;
       border-radius: 8px;
       background:
         radial-gradient(circle at top, rgba(255, 70, 70, 0.09), transparent 34%),
@@ -564,7 +564,7 @@
     }
 
     .rblx-preview-stage {
-      min-height: 340px;
+      min-height: 420px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -576,7 +576,7 @@
     .rblx-preview-stage img {
       width: 100%;
       max-width: 500px;
-      max-height: 340px;
+      max-height: 500px;
       object-fit: contain;
       border-radius: 8px;
       display: block;
@@ -710,11 +710,11 @@
       </div>
 
       <div class="rblx-label">Roblox Asset ID</div>
-      <input id="mediaInput" class="rblx-field" type="text" placeholder="Ex: 92416421522960" />
+      <input id="mediaInput" class="rblx-field" type="text" placeholder="Enter one Roblox asset ID for the media type you selected" />
 
       <div class="rblx-label">Media Type</div>
       <select id="mediaKind" class="rblx-select">
-        <option value="">Choose Media Type</option>
+        <option value="">Choose the Roblox media type you want to fetch</option>
         <option value="game">Game Logo / Thumbnails</option>
         <option value="badge">Badge</option>
         <option value="developerproduct">Developer Product</option>
