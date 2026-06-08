@@ -792,14 +792,29 @@ async function getLiveStripeMembership(row) {
 async function getBestStripeMembershipForCustomer(customerId) {
   const subscriptionMembership = await getStripeMembershipFromSubscriptions(customerId);
   if (subscriptionMembership && (subscriptionMembership.currentPeriodEndAt || subscriptionMembership.totalDays != null)) {
+    console.log("[stripe-sync] subscription snapshot selected", {
+      customerId,
+      totalDays: subscriptionMembership.totalDays,
+      currentPeriodStartAt: subscriptionMembership.currentPeriodStartAt,
+      currentPeriodEndAt: subscriptionMembership.currentPeriodEndAt,
+      status: subscriptionMembership.status || null,
+    });
     return subscriptionMembership;
   }
 
   const invoiceMembership = await getStripeMembershipFromInvoices(customerId);
   if (invoiceMembership) {
+    console.log("[stripe-sync] invoice-history snapshot selected", {
+      customerId,
+      totalDays: invoiceMembership.totalDays,
+      currentPeriodStartAt: invoiceMembership.currentPeriodStartAt,
+      currentPeriodEndAt: invoiceMembership.currentPeriodEndAt,
+      status: invoiceMembership.status || null,
+    });
     return invoiceMembership;
   }
 
+  console.log("[stripe-sync] no usable Stripe membership snapshot found", { customerId });
   return subscriptionMembership;
 }
 
@@ -909,15 +924,30 @@ async function persistStripeMembershipSnapshotIfNeeded(row, membership) {
   const nextEnd = membership.currentPeriodEndAt || null;
 
   if (currentTotal === nextTotal && currentStart === nextStart && currentEnd === nextEnd) {
+    console.log("[stripe-sync] stripe snapshot already current", {
+      userId: row.id,
+      customerId: row.stripe_customer_id || null,
+      stripeDaysTotal: currentTotal,
+      stripeCurrentPeriodStartAt: currentStart,
+      stripeCurrentPeriodEndAt: currentEnd,
+    });
     return;
   }
 
   try {
-    await updateAuthUserFields(row.id, buildStripeMembershipStorageFields({
+    const updatedUser = await updateAuthUserFields(row.id, buildStripeMembershipStorageFields({
       stripeDaysTotal: nextTotal,
       stripeCurrentPeriodStartAt: nextStart,
       stripeCurrentPeriodEndAt: nextEnd,
     }));
+    console.log("[stripe-sync] persisted Stripe snapshot", {
+      userId: row.id,
+      customerId: row.stripe_customer_id || null,
+      stripeDaysTotal: nextTotal,
+      stripeCurrentPeriodStartAt: nextStart,
+      stripeCurrentPeriodEndAt: nextEnd,
+      updateReturnedUser: Boolean(updatedUser),
+    });
   } catch (error) {
     console.warn("Could not persist Stripe membership snapshot:", error.message);
   }
@@ -1579,7 +1609,18 @@ async function refreshStripeMembershipForUserIfNeeded(user) {
   }
 
   try {
+    const bestMembership = await getBestStripeMembershipForCustomer(user.stripe_customer_id);
+    if (bestMembership) {
+      await persistStripeMembershipSnapshotIfNeeded(user, bestMembership);
+    }
     await syncLatestStripeSubscriptionForCustomer(user.stripe_customer_id);
+    console.log("[stripe-sync] refreshed Stripe membership for user", {
+      userId: user.id,
+      customerId: user.stripe_customer_id,
+      bestMembershipFound: Boolean(bestMembership),
+      bestMembershipTotalDays: bestMembership?.totalDays ?? null,
+      bestMembershipCurrentPeriodEndAt: bestMembership?.currentPeriodEndAt || null,
+    });
     return await getAuthUserById(user.id);
   } catch (error) {
     console.warn("Could not refresh Stripe membership for user:", error.message);
