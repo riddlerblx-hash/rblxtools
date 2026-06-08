@@ -1547,16 +1547,20 @@ async function syncSubscriptionStateForUser(userId, customerId, subscriptionStat
       : hasComplimentaryData
         ? "complimentary"
         : "none";
+  const hasStripeSnapshotData = membershipFields &&
+    (membershipFields.stripeDaysTotal != null ||
+      membershipFields.stripeCurrentPeriodStartAt ||
+      membershipFields.stripeCurrentPeriodEndAt);
 
   return updateAuthUserFields(userId, {
-    stripe_customer_id: customerId || null,
-    premium_active: premiumActive,
-    plan: premiumActive ? "plus" : "free",
-    stripe_subscription_status: subscriptionStatus || null,
-    membership_source: membershipSource,
-    ...buildStripeMembershipStorageFields(membershipFields),
-  });
-}
+      stripe_customer_id: customerId || null,
+      premium_active: premiumActive,
+      plan: premiumActive ? "plus" : "free",
+      stripe_subscription_status: subscriptionStatus || null,
+      membership_source: membershipSource,
+      ...(hasStripeSnapshotData ? buildStripeMembershipStorageFields(membershipFields) : {}),
+    });
+  }
 
 function buildStripeMembershipFieldsFromSubscription(subscription) {
   const currentPeriodStartAt = getIsoFromUnixSeconds(subscription?.current_period_start);
