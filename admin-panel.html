@@ -731,6 +731,7 @@
               <h2 class="admin-card-title">Loaded Member</h2>
               <p class="admin-card-copy">Quick preview from the lookup tool above.</p>
             </div>
+            <button class="admin-btn blue" id="refreshMemberButton" type="button">Refresh Status</button>
           </div>
 
           <div class="admin-member-empty" id="memberEmpty">
@@ -1055,6 +1056,7 @@
         globalStatus: document.getElementById("adminGlobalStatus"),
         lookupQuery: document.getElementById("lookupQuery"),
         lookupButton: document.getElementById("lookupMemberButton"),
+        refreshMemberButton: document.getElementById("refreshMemberButton"),
         lookupStatus: document.getElementById("lookupStatus"),
         memberEmpty: document.getElementById("memberEmpty"),
         memberView: document.getElementById("memberView"),
@@ -1306,11 +1308,13 @@
           clearMemberPolling();
           refs.memberEmpty.hidden = false;
           refs.memberView.hidden = true;
+          if (refs.refreshMemberButton) refs.refreshMemberButton.disabled = true;
           return;
         }
 
         refs.memberEmpty.hidden = true;
         refs.memberView.hidden = false;
+        if (refs.refreshMemberButton) refs.refreshMemberButton.disabled = false;
         refs.memberAvatar.innerHTML = "";
         refs.memberAvatar.textContent = getInitials(member.email || member.id || "U");
         refs.memberName.textContent = member.email ? member.email.split("@")[0] : "Member";
@@ -1401,6 +1405,40 @@
         } finally {
           refs.lookupButton.disabled = false;
         }
+      }
+
+      async function refreshMemberStatus() {
+        var token = getStoredToken();
+
+        if (!token) {
+          setResult("lookupStatus", "You need to log into an approved admin account first.", "error");
+          return;
+        }
+
+        if (!loadedMember || !loadedMember.id) {
+          setResult("lookupStatus", "Load a member first.", "error");
+          return;
+        }
+
+        return withBusy(["refreshMemberButton", "lookupMemberButton"], async function () {
+          setResult("lookupStatus", "Refreshing member status...");
+
+          var payload = await fetchJson(API_BASE + "/admin/refresh-member-membership", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              userId: loadedMember.id
+            })
+          });
+
+          renderMember(normalizeLoadedMember(payload.member || loadedMember, payload));
+          setResult("lookupStatus", payload.message || "Member status refreshed.", "success");
+        }).catch(function (error) {
+          setResult("lookupStatus", error.message || "Could not refresh member status.", "error");
+        });
       }
 
       async function resolveTargetMember(targetValue) {
@@ -1902,6 +1940,7 @@
       }
 
       refs.lookupButton.addEventListener("click", lookupMember);
+      refs.refreshMemberButton.addEventListener("click", refreshMemberStatus);
       refs.lookupQuery.addEventListener("keydown", function (event) {
         if (event.key === "Enter") {
           event.preventDefault();

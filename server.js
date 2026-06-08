@@ -3920,6 +3920,44 @@ app.get("/admin/member-lookup", async (req, res) => {
   }
 });
 
+app.post("/admin/refresh-member-membership", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const targetIdentifier = String(req.body?.userId || req.body?.email || req.body?.target || "").trim();
+
+    if (!targetIdentifier) {
+      return res.status(400).json({ error: "A user ID or email is required." });
+    }
+
+    const targetUser = await getAuthUserByIdentifier(targetIdentifier);
+    if (!targetUser) {
+      return res.status(404).json({ error: "No member was found for that ID or email." });
+    }
+
+    if (targetUser.stripe_customer_id) {
+      await syncLatestStripeSubscriptionForCustomer(targetUser.stripe_customer_id);
+    }
+
+    const freshUser = await getAuthUserById(targetUser.id);
+    const moderation = await summarizeModerationForTarget(freshUser || targetUser);
+    const deviceLinks = await getDeviceLinksForUser(targetUser.id);
+
+    return res.json({
+      ok: true,
+      message: targetUser.stripe_customer_id
+        ? "Member membership refreshed from Stripe."
+        : "Member does not have a Stripe customer to refresh.",
+      member: await buildResolvedPublicUser(freshUser || targetUser),
+      moderation,
+      deviceCount: deviceLinks.length,
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      error: error.message || "Could not refresh that member.",
+    });
+  }
+});
+
 app.post("/admin/grant-plus", async (req, res) => {
   try {
     const adminUser = await requireAdminUser(req);
