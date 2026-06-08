@@ -1368,6 +1368,16 @@ async function getAuthUserByStripeCustomerId(customerId) {
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 }
 
+async function getAuthUsersWithStripeCustomerIds() {
+  const rows = await supabaseRequest(
+    buildAuthTablePath(`?stripe_customer_id=not.is.null&select=*`)
+  ).catch(() => []);
+
+  return Array.isArray(rows)
+    ? rows.filter((row) => String(row?.stripe_customer_id || "").trim())
+    : [];
+}
+
 async function getOrCreateStripeCustomerForUser(user) {
   if (user.stripe_customer_id) {
     return user.stripe_customer_id;
@@ -3969,6 +3979,64 @@ app.post("/admin/refresh-member-membership", async (req, res) => {
   } catch (error) {
     return res.status(error.statusCode || 500).json({
       error: error.message || "Could not refresh that member.",
+    });
+  }
+});
+
+app.post("/admin/backfill-stripe-memberships", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+
+    const users = await getAuthUsersWithStripeCustomerIds();
+    if (!users.length) {
+      return res.json({
+        ok: true,
+        message: "No Stripe members were found to backfill.",
+        totalChecked: 0,
+        refreshedCount: 0,
+        failedCount: 0,
+        failures: [],
+      });
+    }
+
+    var refreshedCount = 0;
+    var failedCount = 0;
+    var failures = [];
+
+    for (const user of users) {
+      try {
+        const result = await syncLatestStripeSubscriptionForCustomer(user.stripe_customer_id);
+        if (result) {
+          refreshedCount += 1;
+        } else {
+          failedCount += 1;
+          failures.push({
+            email: user.email || null,
+            userId: user.id || null,
+            reason: "No Stripe subscription data was returned."
+          });
+        }
+      } catch (error) {
+        failedCount += 1;
+        failures.push({
+          email: user.email || null,
+          userId: user.id || null,
+          reason: error && error.message ? error.message : "Unknown Stripe sync error."
+        });
+      }
+    }
+
+    return res.json({
+      ok: true,
+      message: "Stripe membership backfill finished.",
+      totalChecked: users.length,
+      refreshedCount,
+      failedCount,
+      failures: failures.slice(0, 25),
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      error: error.message || "Could not backfill Stripe memberships.",
     });
   }
 });

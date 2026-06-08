@@ -720,6 +720,9 @@
               <button class="admin-btn blue" id="lookupMemberButton" type="button">Lookup</button>
             </div>
           </div>
+          <div class="admin-buttons">
+            <button class="admin-btn blue" id="backfillStripeButton" type="button">Backfill All Stripe Members</button>
+          </div>
           <div class="admin-result" id="lookupStatus"></div>
         </div>
       </div>
@@ -1056,6 +1059,7 @@
         globalStatus: document.getElementById("adminGlobalStatus"),
         lookupQuery: document.getElementById("lookupQuery"),
         lookupButton: document.getElementById("lookupMemberButton"),
+        backfillStripeButton: document.getElementById("backfillStripeButton"),
         refreshMemberButton: document.getElementById("refreshMemberButton"),
         lookupStatus: document.getElementById("lookupStatus"),
         memberEmpty: document.getElementById("memberEmpty"),
@@ -1438,6 +1442,38 @@
           setResult("lookupStatus", payload.message || "Member status refreshed.", "success");
         }).catch(function (error) {
           setResult("lookupStatus", error.message || "Could not refresh member status.", "error");
+        });
+      }
+
+      async function backfillStripeMemberships() {
+        var token = getStoredToken();
+
+        if (!token) {
+          setResult("lookupStatus", "You need to log into an approved admin account first.", "error");
+          return;
+        }
+
+        return withBusy(["backfillStripeButton", "lookupMemberButton", "refreshMemberButton"], async function () {
+          setResult("lookupStatus", "Backfilling Stripe memberships...");
+
+          var payload = await fetchJson(API_BASE + "/admin/backfill-stripe-memberships", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            }
+          });
+
+          var summary = (payload.message || "Stripe membership backfill finished.")
+            + " Refreshed: " + String(payload.refreshedCount != null ? payload.refreshedCount : 0)
+            + ". Failed: " + String(payload.failedCount != null ? payload.failedCount : 0) + ".";
+          setResult("lookupStatus", summary, payload.failedCount ? "error" : "success");
+
+          if (loadedMember && loadedMember.id) {
+            await refreshLoadedMember(true);
+          }
+        }).catch(function (error) {
+          setResult("lookupStatus", error.message || "Could not backfill Stripe memberships.", "error");
         });
       }
 
@@ -1940,6 +1976,7 @@
       }
 
       refs.lookupButton.addEventListener("click", lookupMember);
+      refs.backfillStripeButton.addEventListener("click", backfillStripeMemberships);
       refs.refreshMemberButton.addEventListener("click", refreshMemberStatus);
       refs.lookupQuery.addEventListener("keydown", function (event) {
         if (event.key === "Enter") {
