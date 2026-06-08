@@ -1230,6 +1230,26 @@
                       </div>
 
                       <div class="acct-pill-card">
+                        <div class="acct-pill-label">Membership Source</div>
+                        <div id="acctMembershipSource" class="acct-pill-value">-</div>
+                      </div>
+
+                      <div class="acct-pill-card">
+                        <div class="acct-pill-label">Plus Days Total</div>
+                        <div id="acctPlusDaysTotal" class="acct-pill-value">-</div>
+                      </div>
+
+                      <div class="acct-pill-card">
+                        <div class="acct-pill-label">Plus Days Left</div>
+                        <div id="acctPlusDaysLeft" class="acct-pill-value">-</div>
+                      </div>
+
+                      <div class="acct-pill-card">
+                        <div class="acct-pill-label">Plus Renews / Expires</div>
+                        <div id="acctPlusExpiresAt" class="acct-pill-value">-</div>
+                      </div>
+
+                      <div class="acct-pill-card">
                         <div class="acct-pill-label">User ID</div>
                         <div id="acctUserId" class="acct-pill-value">-</div>
                       </div>
@@ -1489,6 +1509,7 @@
         user: null,
         deleteCountdown: 10,
         deleteCountdownTimer: null,
+        membershipPollTimer: null,
         profile: {
           displayName: "",
           bio: "",
@@ -1515,6 +1536,10 @@
         acctPlan: document.getElementById("acctPlan"),
         acctPremium: document.getElementById("acctPremium"),
         acctStripeStatus: document.getElementById("acctStripeStatus"),
+        acctMembershipSource: document.getElementById("acctMembershipSource"),
+        acctPlusDaysTotal: document.getElementById("acctPlusDaysTotal"),
+        acctPlusDaysLeft: document.getElementById("acctPlusDaysLeft"),
+        acctPlusExpiresAt: document.getElementById("acctPlusExpiresAt"),
         acctUserId: document.getElementById("acctUserId"),
         acctCustomerId: document.getElementById("acctCustomerId"),
         acctMembershipStatus: document.getElementById("acctMembershipStatus"),
@@ -1669,6 +1694,69 @@
         return text.split("@")[0].trim();
       }
 
+      function formatMembershipSource(value) {
+        var source = String(value || "").trim().toLowerCase();
+        if (!source || source === "none") return "none";
+        if (source === "stripe") return "stripe";
+        if (source === "complimentary") return "complimentary";
+        if (source === "account") return "account";
+        return source;
+      }
+
+      function formatPlusExpiry(value) {
+        if (!value) return "Not set";
+        var date = new Date(value);
+        if (isNaN(date.getTime())) return "Not set";
+        return date.toLocaleString();
+      }
+
+      function getMembershipHeadline(user) {
+        if (!user) return "Membership snapshot unavailable.";
+        if (user.premiumActive) {
+          var leftDays = Number(user.plusDaysLeft);
+          if (isFinite(leftDays) && leftDays > 0) {
+            return "Plus is active with " + leftDays + " day" + (leftDays === 1 ? "" : "s") + " left.";
+          }
+          return "Plus access is active.";
+        }
+        return "This account is currently on the free plan.";
+      }
+
+      function mergeMembershipSnapshot(target, snapshot) {
+        if (!target || !snapshot) return target;
+        target.plan = snapshot.plan || target.plan || "free";
+        target.premiumActive = Boolean(snapshot.premiumActive);
+        target.stripeSubscriptionStatus = snapshot.stripeSubscriptionStatus || null;
+        target.complimentaryExpiresAt = snapshot.complimentaryExpiresAt || null;
+        target.membershipSource = snapshot.membershipSource || null;
+        target.plusDaysTotal = snapshot.plusDaysTotal != null ? snapshot.plusDaysTotal : null;
+        target.plusDaysLeft = snapshot.plusDaysLeft != null ? snapshot.plusDaysLeft : 0;
+        target.plusExpiresAt = snapshot.plusExpiresAt || null;
+        target.currentPeriodStartAt = snapshot.currentPeriodStartAt || null;
+        target.currentPeriodEndAt = snapshot.currentPeriodEndAt || null;
+        return target;
+      }
+
+      function broadcastMembershipSnapshot(user) {
+        if (!user) return;
+        try {
+          window.dispatchEvent(new CustomEvent("rblxtools-membership-updated", {
+            detail: {
+              user: user,
+              plan: user.plan || "free",
+              premiumActive: Boolean(user.premiumActive),
+              membershipSource: user.membershipSource || null,
+              plusDaysTotal: user.plusDaysTotal != null ? user.plusDaysTotal : null,
+              plusDaysLeft: user.plusDaysLeft != null ? user.plusDaysLeft : 0,
+              plusExpiresAt: user.plusExpiresAt || null,
+              currentPeriodStartAt: user.currentPeriodStartAt || null,
+              currentPeriodEndAt: user.currentPeriodEndAt || null
+            }
+          }));
+        } catch (_error) {
+        }
+      }
+
       function syncBioCount() {
         if (!els.acctBioInput || !els.acctBioCount) return;
         var value = String(els.acctBioInput.value || "");
@@ -1778,15 +1866,38 @@
         els.acctPremium.textContent = String(Boolean(state.user.premiumActive));
         els.acctPremium.classList.toggle("is-good", Boolean(state.user.premiumActive));
         els.acctStripeStatus.textContent = state.user.stripeSubscriptionStatus || "-";
+        els.acctMembershipSource.textContent = formatMembershipSource(state.user.membershipSource);
+        els.acctPlusDaysTotal.textContent = state.user.plusDaysTotal != null ? String(state.user.plusDaysTotal) : "-";
+        els.acctPlusDaysLeft.textContent = state.user.plusDaysLeft != null ? String(state.user.plusDaysLeft) : "0";
+        els.acctPlusExpiresAt.textContent = formatPlusExpiry(
+          state.user.plusExpiresAt || state.user.complimentaryExpiresAt || state.user.currentPeriodEndAt
+        );
         els.acctUserId.textContent = state.user.id || "-";
         els.acctCustomerId.textContent = state.user.stripeCustomerId || "-";
         els.acctUpsell.classList.toggle("hidden", Boolean(state.user.premiumActive));
         renderProfilePresentation();
+        broadcastMembershipSnapshot(state.user);
+      }
+
+      function clearMembershipPolling() {
+        if (state.membershipPollTimer) {
+          clearInterval(state.membershipPollTimer);
+          state.membershipPollTimer = null;
+        }
+      }
+
+      function startMembershipPolling() {
+        clearMembershipPolling();
+        if (!state.token) return;
+        state.membershipPollTimer = setInterval(function () {
+          refreshPremiumStatus(true);
+        }, 15000);
       }
 
       async function loadCurrentUser() {
         loadToken();
         if (!state.token) {
+          clearMembershipPolling();
           setGateVisible(false);
           renderUser({
             id: "",
@@ -1794,7 +1905,11 @@
             plan: "free",
             premiumActive: false,
             stripeSubscriptionStatus: "not connected",
-            stripeCustomerId: ""
+            stripeCustomerId: "",
+            membershipSource: "none",
+            plusDaysTotal: null,
+            plusDaysLeft: 0,
+            plusExpiresAt: null
           });
           setStatus(els.acctMembershipStatus, "No account is loaded yet. You can still preview the overview layout for now.", "");
           return;
@@ -1810,8 +1925,10 @@
           });
 
           renderUser(result.user || null);
-          setStatus(els.acctMembershipStatus, "Account loaded.", "success");
+          setStatus(els.acctMembershipStatus, getMembershipHeadline(result.user || null), "success");
+          startMembershipPolling();
         } catch (error) {
+          clearMembershipPolling();
           saveToken("");
           renderUser(null);
           setGateVisible(true);
@@ -1819,14 +1936,16 @@
         }
       }
 
-      async function refreshPremiumStatus() {
+      async function refreshPremiumStatus(isBackgroundPoll) {
         if (!state.token) {
           redirectTop(LOGIN_PAGE_URL);
           return;
         }
 
-        els.acctRefreshButton.disabled = true;
-        setStatus(els.acctMembershipStatus, "Checking Plus status...", "");
+        if (!isBackgroundPoll) {
+          els.acctRefreshButton.disabled = true;
+          setStatus(els.acctMembershipStatus, "Checking Plus status...", "");
+        }
 
         try {
           var result = await apiRequest("/auth/premium-status", {
@@ -1835,21 +1954,23 @@
           });
 
           if (state.user) {
-            state.user.plan = result.plan || state.user.plan || "free";
-            state.user.premiumActive = Boolean(result.premiumActive);
-            state.user.stripeSubscriptionStatus = result.stripeSubscriptionStatus || state.user.stripeSubscriptionStatus || null;
+            mergeMembershipSnapshot(state.user, result || {});
             renderUser(state.user);
           }
 
           setStatus(
             els.acctMembershipStatus,
-            result.premiumActive ? "Plus access is active." : "This account is currently on the free plan.",
+            getMembershipHeadline(state.user || result || null),
             result.premiumActive ? "success" : ""
           );
         } catch (error) {
-          setStatus(els.acctMembershipStatus, error.message || "Could not check Plus status.", "error");
+          if (!isBackgroundPoll) {
+            setStatus(els.acctMembershipStatus, error.message || "Could not check Plus status.", "error");
+          }
         } finally {
-          els.acctRefreshButton.disabled = false;
+          if (!isBackgroundPoll) {
+            els.acctRefreshButton.disabled = false;
+          }
         }
       }
 
@@ -2142,6 +2263,7 @@
       }
 
       function logout() {
+        clearMembershipPolling();
         saveToken("");
         redirectTop(LOGIN_PAGE_URL);
       }

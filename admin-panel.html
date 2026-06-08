@@ -767,6 +767,18 @@
                 <div class="admin-member-key">Complimentary Plus Expires</div>
                 <div class="admin-member-value" id="memberExpiry">-</div>
               </div>
+              <div class="admin-member-box">
+                <div class="admin-member-key">Membership Source</div>
+                <div class="admin-member-value" id="memberSource">-</div>
+              </div>
+              <div class="admin-member-box">
+                <div class="admin-member-key">Plus Days Total</div>
+                <div class="admin-member-value" id="memberPlusDaysTotal">-</div>
+              </div>
+              <div class="admin-member-box">
+                <div class="admin-member-key">Plus Days Left</div>
+                <div class="admin-member-value" id="memberPlusDaysLeft">-</div>
+              </div>
               <div class="admin-member-box wide">
                 <div class="admin-member-key">Moderation</div>
                 <div class="admin-member-value" id="memberModeration">No active moderation.</div>
@@ -1012,6 +1024,7 @@
       var previewSocket = null;
       var loadedMember = null;
       var panelUnlocked = false;
+      var memberPollTimer = null;
 
       var refs = {
         pinLock: document.getElementById("adminPinLock"),
@@ -1037,6 +1050,9 @@
         memberStripe: document.getElementById("memberStripe"),
         memberDevices: document.getElementById("memberDevices"),
         memberExpiry: document.getElementById("memberExpiry"),
+        memberSource: document.getElementById("memberSource"),
+        memberPlusDaysTotal: document.getElementById("memberPlusDaysTotal"),
+        memberPlusDaysLeft: document.getElementById("memberPlusDaysLeft"),
         memberModeration: document.getElementById("memberModeration"),
         previewFeed: document.getElementById("previewFeed"),
         previewEmpty: document.getElementById("previewEmpty")
@@ -1203,10 +1219,56 @@
         return lines.length ? lines.join(" | ") : "No active moderation.";
       }
 
+      function normalizeLoadedMember(member, payload) {
+        var nextMember = Object.assign({}, loadedMember || {}, member || {});
+        if (payload && typeof payload === "object") {
+          if (payload.moderation) {
+            nextMember.moderation = payload.moderation;
+          }
+          if (payload.deviceCount != null) {
+            nextMember.deviceCount = payload.deviceCount;
+          }
+        }
+        return nextMember;
+      }
+
+      function formatMembershipSource(value) {
+        var source = String(value || "").trim().toLowerCase();
+        if (!source || source === "none") return "none";
+        if (source === "stripe") return "stripe";
+        if (source === "complimentary") return "complimentary";
+        if (source === "account") return "account";
+        return source;
+      }
+
+      function formatMemberExpiry(member) {
+        var value = member && (member.plusExpiresAt || member.complimentaryExpiresAt || member.currentPeriodEndAt);
+        if (!value) return "Not set";
+        var date = new Date(value);
+        if (isNaN(date.getTime())) return "Not set";
+        return date.toLocaleString();
+      }
+
+      function clearMemberPolling() {
+        if (memberPollTimer) {
+          clearInterval(memberPollTimer);
+          memberPollTimer = null;
+        }
+      }
+
+      function startMemberPolling() {
+        clearMemberPolling();
+        if (!loadedMember || !loadedMember.id) return;
+        memberPollTimer = setInterval(function () {
+          refreshLoadedMember(true);
+        }, 15000);
+      }
+
       function renderMember(member) {
         loadedMember = member || null;
 
         if (!member) {
+          clearMemberPolling();
           refs.memberEmpty.hidden = false;
           refs.memberView.hidden = true;
           return;
@@ -1222,10 +1284,12 @@
         refs.memberPlan.textContent = getPlanLabel(member);
         refs.memberStripe.textContent = member.stripeSubscriptionStatus || "none";
         refs.memberDevices.textContent = String(member.deviceCount != null ? member.deviceCount : 0);
-        refs.memberExpiry.textContent = member.complimentaryExpiresAt
-          ? new Date(member.complimentaryExpiresAt).toLocaleString()
-          : "Not set";
+        refs.memberExpiry.textContent = formatMemberExpiry(member);
+        refs.memberSource.textContent = formatMembershipSource(member.membershipSource);
+        refs.memberPlusDaysTotal.textContent = member.plusDaysTotal != null ? String(member.plusDaysTotal) : "-";
+        refs.memberPlusDaysLeft.textContent = member.plusDaysLeft != null ? String(member.plusDaysLeft) : "0";
         refs.memberModeration.textContent = formatModeration(member);
+        startMemberPolling();
       }
 
       async function fetchJson(url, options) {
@@ -1237,6 +1301,32 @@
         }
 
         return payload || {};
+      }
+
+      async function refreshLoadedMember(isBackgroundPoll) {
+        var token = getStoredToken();
+        var query = loadedMember && (loadedMember.id || loadedMember.email);
+
+        if (!token || !query) {
+          return;
+        }
+
+        try {
+          var payload = await fetchJson(API_BASE + "/admin/member-lookup?q=" + encodeURIComponent(query), {
+            headers: {
+              Authorization: "Bearer " + token
+            }
+          });
+
+          renderMember(normalizeLoadedMember(payload.member || null, payload));
+          if (!isBackgroundPoll) {
+            setResult("lookupStatus", "Member refreshed.", "success");
+          }
+        } catch (error) {
+          if (!isBackgroundPoll) {
+            setResult("lookupStatus", error.message || "Could not refresh that member.", "error");
+          }
+        }
       }
 
       async function lookupMember() {
@@ -1255,6 +1345,7 @@
 
         refs.lookupButton.disabled = true;
         setResult("lookupStatus", "Loading member...");
+        clearMemberPolling();
 
         try {
           var payload = await fetchJson(API_BASE + "/admin/member-lookup?q=" + encodeURIComponent(query), {
@@ -1263,7 +1354,7 @@
             }
           });
 
-          renderMember(payload.member || null);
+          renderMember(normalizeLoadedMember(payload.member || null, payload));
           setResult("lookupStatus", "Member loaded.", "success");
         } catch (error) {
           renderMember(null);
@@ -1321,7 +1412,7 @@
             })
           });
 
-          renderMember(payload.member || target);
+          renderMember(normalizeLoadedMember(payload.member || target, payload));
           setResult("plusStatus", payload.message || "Complimentary Plus granted.", "success");
         }).catch(function (error) {
           setResult("plusStatus", error.message || "Could not grant Plus.", "error");
@@ -1344,7 +1435,7 @@
             })
           });
 
-          renderMember(payload.member || target);
+          renderMember(normalizeLoadedMember(payload.member || target, payload));
           setResult("plusStatus", payload.message || "Plus access removed.", "success");
         }).catch(function (error) {
           setResult("plusStatus", error.message || "Could not remove Plus.", "error");
@@ -1368,7 +1459,7 @@
             })
           });
 
-          renderMember(payload.member || target);
+          renderMember(normalizeLoadedMember(payload.member || target, payload));
           setResult("blacklistStatus", payload.message || "Website lock applied.", "success");
         }).catch(function (error) {
           setResult("blacklistStatus", error.message || "Could not apply website lock.", "error");
@@ -1391,7 +1482,7 @@
             })
           });
 
-          renderMember(payload.member || target);
+          renderMember(normalizeLoadedMember(payload.member || target, payload));
           setResult("blacklistStatus", payload.message || "Website lock cleared.", "success");
         }).catch(function (error) {
           setResult("blacklistStatus", error.message || "Could not clear website lock.", "error");
@@ -1433,7 +1524,7 @@
             })
           });
 
-          renderMember(payload.member || target);
+          renderMember(normalizeLoadedMember(payload.member || target, payload));
           setResult("timeoutStatus", payload.message || "Chat timeout applied.", "success");
         }).catch(function (error) {
           setResult("timeoutStatus", error.message || "Could not apply timeout.", "error");
@@ -1456,7 +1547,7 @@
             })
           });
 
-          renderMember(payload.member || target);
+          renderMember(normalizeLoadedMember(payload.member || target, payload));
           setResult("timeoutStatus", payload.message || "Chat timeout cleared.", "success");
         }).catch(function (error) {
           setResult("timeoutStatus", error.message || "Could not clear timeout.", "error");
@@ -1480,7 +1571,7 @@
             })
           });
 
-          renderMember(payload.member || target);
+          renderMember(normalizeLoadedMember(payload.member || target, payload));
           setResult("chatBanStatus", payload.message || "Chat ban applied.", "success");
         }).catch(function (error) {
           setResult("chatBanStatus", error.message || "Could not apply chat ban.", "error");
@@ -1503,7 +1594,7 @@
             })
           });
 
-          renderMember(payload.member || target);
+          renderMember(normalizeLoadedMember(payload.member || target, payload));
           setResult("chatBanStatus", payload.message || "Chat ban cleared.", "success");
         }).catch(function (error) {
           setResult("chatBanStatus", error.message || "Could not clear chat ban.", "error");

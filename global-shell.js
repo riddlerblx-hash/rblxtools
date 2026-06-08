@@ -1927,7 +1927,13 @@
     dispatchMembershipUpdate({
       user: mergedUser,
       plan: nextState.plan,
-      premiumActive: nextState.plan === "plus"
+      premiumActive: nextState.plan === "plus",
+      membershipSource: mergedUser.membershipSource || null,
+      plusDaysTotal: mergedUser.plusDaysTotal != null ? mergedUser.plusDaysTotal : null,
+      plusDaysLeft: mergedUser.plusDaysLeft != null ? mergedUser.plusDaysLeft : 0,
+      plusExpiresAt: mergedUser.plusExpiresAt || null,
+      currentPeriodStartAt: mergedUser.currentPeriodStartAt || null,
+      currentPeriodEndAt: mergedUser.currentPeriodEndAt || null
     });
   }
 
