@@ -554,42 +554,9 @@ function parseComplimentaryStatus(value) {
 }
 
 function getEffectiveMembership(row) {
-  const storedSnapshot = getStoredMembershipSnapshot(row);
-  if (storedSnapshot) {
-    return storedSnapshot;
-  }
-
-  const complimentary = parseComplimentaryStatus(row?.stripe_subscription_status);
-  if (complimentary) {
-    const daysLeft = getDaysLeftUntil(complimentary.expiresAt);
-    return {
-      premiumActive: complimentary.active,
-      plan: complimentary.active ? "plus" : "free",
-      stripeSubscriptionStatus: complimentary.active ? "complimentary" : "expired",
-      complimentaryExpiresAt: complimentary.expiresAt,
-      complimentaryActive: complimentary.active,
-      membershipSource: "complimentary",
-      plusDaysTotal: complimentary.totalDays != null ? complimentary.totalDays : daysLeft,
-      plusDaysLeft: daysLeft,
-      plusExpiresAt: complimentary.expiresAt,
-      currentPeriodStartAt: null,
-      currentPeriodEndAt: complimentary.expiresAt,
-    };
-  }
-
-  return {
-    premiumActive: Boolean(row?.premium_active),
-    plan: row?.plan || "free",
-    stripeSubscriptionStatus: row?.stripe_subscription_status || null,
-    complimentaryExpiresAt: null,
-    complimentaryActive: false,
-    membershipSource: row?.stripe_subscription_status ? "account" : "none",
-    plusDaysTotal: null,
-    plusDaysLeft: 0,
-    plusExpiresAt: null,
-    currentPeriodStartAt: null,
-    currentPeriodEndAt: null,
-  };
+  const complimentaryMembership = getStoredComplimentaryMembership(row);
+  const storedStripeMembership = getStoredStripeMembership(row);
+  return buildCombinedMembershipSnapshot(storedStripeMembership, complimentaryMembership, row);
 }
 
 function buildPublicUser(row) {
@@ -643,43 +610,152 @@ function getDaysLeftUntil(endIso) {
   return endIso ? Math.max(0, getDaysBetween(new Date().toISOString(), endIso) || 0) : 0;
 }
 
-function getStoredMembershipSnapshot(row) {
+function getLaterIsoDate(leftIso, rightIso) {
+  const left = parseIsoDate(leftIso);
+  const right = parseIsoDate(rightIso);
+  if (!left && !right) return null;
+  if (!left) return right.toISOString();
+  if (!right) return left.toISOString();
+  return left.getTime() >= right.getTime() ? left.toISOString() : right.toISOString();
+}
+
+function buildMembershipBreakdownEntry(options = {}) {
+  const totalRaw = Number.parseInt(String(options.totalDays ?? ""), 10);
+  const totalDays = Number.isFinite(totalRaw) ? Math.max(0, totalRaw) : null;
+  const expiresAt = parseIsoDate(options.expiresAt)?.toISOString() || null;
+  const currentPeriodStartAt = parseIsoDate(options.currentPeriodStartAt)?.toISOString() || null;
+  const currentPeriodEndAt = parseIsoDate(options.currentPeriodEndAt)?.toISOString() || null;
+  const daysLeft = options.daysLeft != null
+    ? Math.max(0, Number(options.daysLeft) || 0)
+    : getDaysLeftUntil(expiresAt || currentPeriodEndAt || null);
+  const active = typeof options.active === "boolean"
+    ? options.active
+    : (daysLeft > 0 || Boolean(options.status && isPremiumStatus(options.status)));
+
+  return {
+    active,
+    totalDays,
+    daysLeft,
+    expiresAt,
+    currentPeriodStartAt,
+    currentPeriodEndAt,
+    status: options.status || null,
+  };
+}
+
+function getStoredStripeMembership(row) {
   if (!row || typeof row !== "object") {
     return null;
   }
 
-  const membershipSource = String(row.membership_source || "").trim().toLowerCase();
-  const plusExpiresAt = parseIsoDate(row.plus_expires_at)?.toISOString() || null;
-  const currentPeriodStartAt = parseIsoDate(row.plus_current_period_start_at)?.toISOString() || null;
-  const currentPeriodEndAt = parseIsoDate(row.plus_current_period_end_at)?.toISOString() || null;
-  const plusDaysTotalRaw = Number.parseInt(String(row.plus_days_total ?? ""), 10);
-  const plusDaysTotal = Number.isFinite(plusDaysTotalRaw) ? Math.max(0, plusDaysTotalRaw) : null;
-  const computedSource = membershipSource || (plusExpiresAt || currentPeriodEndAt || plusDaysTotal != null ? "account" : "");
-
-  if (!computedSource) {
+  const rawStatus = String(row.stripe_subscription_status || "").trim();
+  if (!rawStatus || parseComplimentaryStatus(rawStatus)) {
     return null;
   }
 
-  const effectiveExpiry = plusExpiresAt || currentPeriodEndAt || null;
-  const plusDaysLeft = getDaysLeftUntil(effectiveExpiry);
-  const premiumActive = Boolean(row.premium_active) || plusDaysLeft > 0;
-  const plan = premiumActive ? "plus" : (row.plan || "free");
-  const normalizedSource = computedSource === "complimentary" || computedSource === "stripe" || computedSource === "account"
-    ? computedSource
-    : "account";
+  const normalizedStatus = rawStatus.toLowerCase();
+  return buildMembershipBreakdownEntry({
+    active: isPremiumStatus(normalizedStatus),
+    totalDays: null,
+    daysLeft: 0,
+    expiresAt: null,
+    currentPeriodStartAt: null,
+    currentPeriodEndAt: null,
+    status: normalizedStatus,
+  });
+}
+
+function getStoredComplimentaryMembership(row) {
+  if (!row || typeof row !== "object") {
+    return null;
+  }
+
+  const oldComplimentary = parseComplimentaryStatus(row.stripe_subscription_status);
+  const plusExpiresAt = parseIsoDate(row.plus_expires_at)?.toISOString() || oldComplimentary?.expiresAt || null;
+  const currentPeriodStartAt = parseIsoDate(row.plus_current_period_start_at)?.toISOString() || null;
+  const currentPeriodEndAt = parseIsoDate(row.plus_current_period_end_at)?.toISOString() || oldComplimentary?.expiresAt || null;
+  const plusDaysTotalRaw = Number.parseInt(String(row.plus_days_total ?? ""), 10);
+  const plusDaysTotal = Number.isFinite(plusDaysTotalRaw)
+    ? Math.max(0, plusDaysTotalRaw)
+    : (Number.isFinite(oldComplimentary?.totalDays) ? oldComplimentary.totalDays : null);
+
+  if (!plusExpiresAt && !currentPeriodEndAt && plusDaysTotal == null && !oldComplimentary) {
+    return null;
+  }
+
+  return buildMembershipBreakdownEntry({
+    active: oldComplimentary ? oldComplimentary.active : undefined,
+    totalDays: plusDaysTotal,
+    daysLeft: plusExpiresAt || currentPeriodEndAt ? undefined : 0,
+    expiresAt: plusExpiresAt,
+    currentPeriodStartAt,
+    currentPeriodEndAt,
+    status: "complimentary",
+  });
+}
+
+function buildCombinedMembershipSnapshot(stripeMembership, complimentaryMembership, row) {
+  const stripe = stripeMembership || buildMembershipBreakdownEntry({ active: false, totalDays: null, daysLeft: 0, status: row?.stripe_subscription_status || null });
+  const complimentary = complimentaryMembership || buildMembershipBreakdownEntry({ active: false, totalDays: null, daysLeft: 0, status: "complimentary" });
+  const hasStripeData = Boolean(stripe.status || stripe.currentPeriodEndAt || stripe.currentPeriodStartAt || stripe.totalDays != null);
+  const hasComplimentaryData = Boolean(
+    complimentary.totalDays != null ||
+    complimentary.expiresAt ||
+    complimentary.currentPeriodEndAt ||
+    complimentary.currentPeriodStartAt
+  );
+  const stripeTotal = stripe.totalDays != null ? stripe.totalDays : 0;
+  const complimentaryTotal = complimentary.totalDays != null ? complimentary.totalDays : 0;
+  const stripeLeft = stripe.daysLeft != null ? stripe.daysLeft : 0;
+  const complimentaryLeft = complimentary.daysLeft != null ? complimentary.daysLeft : 0;
+  const plusDaysTotal = stripe.totalDays == null && complimentary.totalDays == null
+    ? null
+    : stripeTotal + complimentaryTotal;
+  const plusDaysLeft = stripeLeft + complimentaryLeft;
+  const premiumActive = Boolean(stripe.active || complimentary.active || plusDaysLeft > 0 || row?.premium_active);
+  const membershipSource = hasStripeData && hasComplimentaryData
+    ? "stripe + complimentary"
+    : hasStripeData
+      ? "stripe"
+      : hasComplimentaryData
+        ? "complimentary"
+        : "none";
+  const combinedExpiresAt = plusDaysLeft > 0
+    ? new Date(Date.now() + (plusDaysLeft * 86400000)).toISOString()
+    : getLaterIsoDate(stripe.expiresAt || stripe.currentPeriodEndAt, complimentary.expiresAt || complimentary.currentPeriodEndAt);
 
   return {
     premiumActive,
-    plan,
-    stripeSubscriptionStatus: row.stripe_subscription_status || null,
-    complimentaryExpiresAt: normalizedSource === "complimentary" ? effectiveExpiry : null,
-    complimentaryActive: normalizedSource === "complimentary" && plusDaysLeft > 0,
-    membershipSource: normalizedSource,
-    plusDaysTotal: plusDaysTotal != null ? plusDaysTotal : (currentPeriodStartAt && currentPeriodEndAt ? getDaysBetween(currentPeriodStartAt, currentPeriodEndAt) : plusDaysLeft),
+    plan: premiumActive ? "plus" : (row?.plan || "free"),
+    stripeSubscriptionStatus: stripe.status || row?.stripe_subscription_status || null,
+    complimentaryExpiresAt: complimentary.expiresAt || complimentary.currentPeriodEndAt || null,
+    complimentaryActive: Boolean(complimentary.active),
+    membershipSource,
+    plusDaysTotal,
     plusDaysLeft,
-    plusExpiresAt: effectiveExpiry,
-    currentPeriodStartAt,
-    currentPeriodEndAt,
+    plusExpiresAt: combinedExpiresAt,
+    currentPeriodStartAt: stripe.currentPeriodStartAt || complimentary.currentPeriodStartAt || null,
+    currentPeriodEndAt: stripe.currentPeriodEndAt || complimentary.currentPeriodEndAt || null,
+    membershipBreakdown: {
+      stripe: {
+        active: Boolean(stripe.active),
+        status: stripe.status || row?.stripe_subscription_status || null,
+        totalDays: stripe.totalDays,
+        daysLeft: stripe.daysLeft != null ? stripe.daysLeft : 0,
+        expiresAt: stripe.expiresAt || stripe.currentPeriodEndAt || null,
+        currentPeriodStartAt: stripe.currentPeriodStartAt || null,
+        currentPeriodEndAt: stripe.currentPeriodEndAt || null,
+      },
+      complimentary: {
+        active: Boolean(complimentary.active),
+        status: "complimentary",
+        totalDays: complimentary.totalDays,
+        daysLeft: complimentary.daysLeft != null ? complimentary.daysLeft : 0,
+        expiresAt: complimentary.expiresAt || complimentary.currentPeriodEndAt || null,
+        currentPeriodStartAt: complimentary.currentPeriodStartAt || null,
+        currentPeriodEndAt: complimentary.currentPeriodEndAt || null,
+      },
+    },
   };
 }
 
@@ -722,19 +798,15 @@ async function getLiveStripeMembership(row) {
     const currentPeriodEndAt = getIsoFromUnixSeconds(subscription.current_period_end);
     const plusDaysLeft = getDaysLeftUntil(currentPeriodEndAt);
 
-    return {
-      premiumActive: isPremiumStatus(status),
-      plan: isPremiumStatus(status) ? "plus" : "free",
-      stripeSubscriptionStatus: status || null,
-      complimentaryExpiresAt: null,
-      complimentaryActive: false,
-      membershipSource: "stripe",
-      plusDaysTotal: getDaysBetween(currentPeriodStartAt, currentPeriodEndAt),
-      plusDaysLeft,
-      plusExpiresAt: currentPeriodEndAt,
+    return buildMembershipBreakdownEntry({
+      active: isPremiumStatus(status),
+      totalDays: getDaysBetween(currentPeriodStartAt, currentPeriodEndAt),
+      daysLeft: plusDaysLeft,
+      expiresAt: currentPeriodEndAt,
       currentPeriodStartAt,
       currentPeriodEndAt,
-    };
+      status: status || null,
+    });
   } catch (error) {
     console.warn("Could not load live Stripe membership:", error.message);
     return null;
@@ -742,14 +814,9 @@ async function getLiveStripeMembership(row) {
 }
 
 async function resolveMembershipSnapshot(row) {
-  const localMembership = getEffectiveMembership(row);
+  const complimentaryMembership = getStoredComplimentaryMembership(row);
   const liveStripeMembership = await getLiveStripeMembership(row);
-
-  if (liveStripeMembership && (liveStripeMembership.premiumActive || localMembership.membershipSource !== "complimentary")) {
-    return liveStripeMembership;
-  }
-
-  return localMembership;
+  return buildCombinedMembershipSnapshot(liveStripeMembership, complimentaryMembership, row);
 }
 
 async function buildResolvedPublicUser(row) {
@@ -774,6 +841,7 @@ async function buildResolvedPublicUser(row) {
     plusExpiresAt: membership.plusExpiresAt,
     currentPeriodStartAt: membership.currentPeriodStartAt,
     currentPeriodEndAt: membership.currentPeriodEndAt,
+    membershipBreakdown: membership.membershipBreakdown,
     createdAt: row.created_at || null,
     updatedAt: row.updated_at || null,
   };
@@ -1298,15 +1366,29 @@ function buildMembershipStorageFields(snapshot = {}) {
 }
 
 async function syncSubscriptionStateForUser(userId, customerId, subscriptionStatus, membershipFields = {}) {
+  const currentUser = await getAuthUserById(userId);
+  const complimentaryMembership = getStoredComplimentaryMembership(currentUser);
+  const hasComplimentaryData = Boolean(
+    complimentaryMembership &&
+    (complimentaryMembership.totalDays != null ||
+      complimentaryMembership.expiresAt ||
+      complimentaryMembership.currentPeriodEndAt)
+  );
+  const stripeActive = isPremiumStatus(subscriptionStatus);
+  const premiumActive = stripeActive || Boolean(complimentaryMembership && complimentaryMembership.active);
+  const membershipSource = stripeActive && hasComplimentaryData
+    ? "stripe + complimentary"
+    : stripeActive
+      ? "stripe"
+      : hasComplimentaryData
+        ? "complimentary"
+        : "none";
   return updateAuthUserFields(userId, {
     stripe_customer_id: customerId || null,
-    ...buildMembershipStorageFields({
-      premiumActive: isPremiumStatus(subscriptionStatus),
-      plan: getPlanForSubscriptionStatus(subscriptionStatus),
-      stripeSubscriptionStatus: subscriptionStatus || null,
-      membershipSource: customerId ? "stripe" : "none",
-      ...membershipFields,
-    }),
+    premium_active: premiumActive,
+    plan: premiumActive ? "plus" : "free",
+    stripe_subscription_status: subscriptionStatus || null,
+    membership_source: membershipSource,
   });
 }
 
@@ -1333,36 +1415,17 @@ async function syncSubscriptionStateFromStripeSubscription(subscription) {
   }
 
   if (String(subscription.status || "").toLowerCase() === "canceled") {
+    const complimentaryMembership = getStoredComplimentaryMembership(user);
     return updateAuthUserFields(user.id, {
       stripe_customer_id: customerId,
-      ...buildMembershipStorageFields({
-        premiumActive: false,
-        plan: "free",
-        stripeSubscriptionStatus: subscription.status || null,
-        membershipSource: "stripe",
-        plusDaysTotal: getDaysBetween(
-          getIsoFromUnixSeconds(subscription.current_period_start),
-          getIsoFromUnixSeconds(subscription.current_period_end)
-        ),
-        plusExpiresAt: getIsoFromUnixSeconds(subscription.current_period_end),
-        currentPeriodStartAt: getIsoFromUnixSeconds(subscription.current_period_start),
-        currentPeriodEndAt: getIsoFromUnixSeconds(subscription.current_period_end),
-      }),
+      premium_active: Boolean(complimentaryMembership && complimentaryMembership.active),
+      plan: complimentaryMembership && complimentaryMembership.active ? "plus" : "free",
+      stripe_subscription_status: subscription.status || null,
+      membership_source: complimentaryMembership ? "complimentary" : "none",
     });
   }
 
-  return syncSubscriptionStateForUser(user.id, customerId, subscription.status || null, {
-    premiumActive: isPremiumStatus(subscription.status || null),
-    plan: getPlanForSubscriptionStatus(subscription.status || null),
-    membershipSource: "stripe",
-    plusDaysTotal: getDaysBetween(
-      getIsoFromUnixSeconds(subscription.current_period_start),
-      getIsoFromUnixSeconds(subscription.current_period_end)
-    ),
-    plusExpiresAt: getIsoFromUnixSeconds(subscription.current_period_end),
-    currentPeriodStartAt: getIsoFromUnixSeconds(subscription.current_period_start),
-    currentPeriodEndAt: getIsoFromUnixSeconds(subscription.current_period_end),
-  });
+  return syncSubscriptionStateForUser(user.id, customerId, subscription.status || null);
 }
 
 async function setBillingAccessForCustomer(customerId, updates) {
@@ -1625,9 +1688,10 @@ async function grantComplimentaryPlusToUser(userId, days) {
   const safeDays = Number.isFinite(days)
     ? Math.max(1, Math.min(days, MAX_COMPLIMENTARY_PLUS_DAYS))
     : DEFAULT_COMPLIMENTARY_PLUS_DAYS;
-  const existingComplimentary = parseComplimentaryStatus(targetUser.stripe_subscription_status);
-  const extensionBaseMs = existingComplimentary && existingComplimentary.expiresDate.getTime() > Date.now()
-    ? existingComplimentary.expiresDate.getTime()
+  const existingComplimentary = getStoredComplimentaryMembership(targetUser);
+  const existingExpiry = parseIsoDate(existingComplimentary?.expiresAt || existingComplimentary?.currentPeriodEndAt);
+  const extensionBaseMs = existingExpiry && existingExpiry.getTime() > Date.now()
+    ? existingExpiry.getTime()
     : Date.now();
   const expiresAt = new Date(extensionBaseMs + safeDays * 24 * 60 * 60 * 1000).toISOString();
   const totalDays = Math.max(
@@ -1635,18 +1699,16 @@ async function grantComplimentaryPlusToUser(userId, days) {
     Number.isFinite(existingComplimentary?.totalDays) ? existingComplimentary.totalDays : 0
   ) + safeDays;
   const currentPeriodStartAt = new Date().toISOString();
+  const hasStripeAccess = isPremiumStatus(targetUser.stripe_subscription_status);
 
   const updatedUser = await updateAuthUserFields(targetUser.id, {
-    ...buildMembershipStorageFields({
-      premiumActive: true,
-      plan: "plus",
-      stripeSubscriptionStatus: "complimentary_until:" + expiresAt + "|total_days:" + totalDays,
-      membershipSource: "complimentary",
-      plusDaysTotal: totalDays,
-      plusExpiresAt: expiresAt,
-      currentPeriodStartAt,
-      currentPeriodEndAt: expiresAt,
-    }),
+    premium_active: true,
+    plan: "plus",
+    membership_source: hasStripeAccess ? "stripe + complimentary" : "complimentary",
+    plus_days_total: totalDays,
+    plus_expires_at: expiresAt,
+    plus_current_period_start_at: currentPeriodStartAt,
+    plus_current_period_end_at: expiresAt,
   });
   if (!updatedUser) {
     const error = new Error("Could not save the complimentary Plus grant.");
@@ -1670,17 +1732,15 @@ async function removePlusFromUser(userId) {
     throw error;
   }
 
+  const hasStripeAccess = isPremiumStatus(targetUser.stripe_subscription_status);
   const updatedUser = await updateAuthUserFields(targetUser.id, {
-    ...buildMembershipStorageFields({
-      premiumActive: false,
-      plan: "free",
-      stripeSubscriptionStatus: "admin_removed",
-      membershipSource: "account",
-      plusDaysTotal: targetUser.plus_days_total != null ? targetUser.plus_days_total : null,
-      plusExpiresAt: targetUser.plus_expires_at || null,
-      currentPeriodStartAt: targetUser.plus_current_period_start_at || null,
-      currentPeriodEndAt: targetUser.plus_current_period_end_at || null,
-    }),
+    premium_active: hasStripeAccess,
+    plan: hasStripeAccess ? "plus" : "free",
+    membership_source: hasStripeAccess ? "stripe" : "none",
+    plus_days_total: null,
+    plus_expires_at: null,
+    plus_current_period_start_at: null,
+    plus_current_period_end_at: null,
   });
   if (!updatedUser) {
     const error = new Error("Could not save the Plus removal.");
@@ -3770,6 +3830,9 @@ app.post("/admin/grant-plus", async (req, res) => {
     if (!targetIdentifier) {
       return res.status(400).json({ error: "A user ID or email is required." });
     }
+    if (!note) {
+      return res.status(400).json({ error: "A note is required before complimentary Plus can be granted." });
+    }
 
     const targetUser = await getAuthUserByIdentifier(targetIdentifier);
     if (!targetUser) {
@@ -3798,7 +3861,7 @@ app.post("/admin/grant-plus", async (req, res) => {
     return res.json({
       ok: true,
       message: "Complimentary Plus granted for " + grantResult.days + " days.",
-      member: buildPublicUser(updatedUser || targetUser),
+      member: await buildResolvedPublicUser(updatedUser || targetUser),
       days: grantResult.days,
       expiresAt: grantResult.expiresAt,
       grantedBy: {
@@ -3847,7 +3910,7 @@ app.post("/admin/remove-plus", async (req, res) => {
     return res.json({
       ok: true,
       message: "Plus access removed successfully.",
-      member: buildPublicUser(updatedUser || targetUser),
+      member: await buildResolvedPublicUser(updatedUser || targetUser),
       removedBy: {
         id: adminUser.id,
         email: adminUser.email,

@@ -764,7 +764,7 @@
                 <div class="admin-member-value" id="memberDevices">-</div>
               </div>
               <div class="admin-member-box wide">
-                <div class="admin-member-key">Complimentary Plus Expires</div>
+                <div class="admin-member-key">Effective Plus Expires</div>
                 <div class="admin-member-value" id="memberExpiry">-</div>
               </div>
               <div class="admin-member-box">
@@ -778,6 +778,22 @@
               <div class="admin-member-box">
                 <div class="admin-member-key">Plus Days Left</div>
                 <div class="admin-member-value" id="memberPlusDaysLeft">-</div>
+              </div>
+              <div class="admin-member-box">
+                <div class="admin-member-key">Stripe Days Total</div>
+                <div class="admin-member-value" id="memberStripeDaysTotal">-</div>
+              </div>
+              <div class="admin-member-box">
+                <div class="admin-member-key">Stripe Days Left</div>
+                <div class="admin-member-value" id="memberStripeDaysLeft">-</div>
+              </div>
+              <div class="admin-member-box">
+                <div class="admin-member-key">Complimentary Days Total</div>
+                <div class="admin-member-value" id="memberComplimentaryDaysTotal">-</div>
+              </div>
+              <div class="admin-member-box">
+                <div class="admin-member-key">Complimentary Days Left</div>
+                <div class="admin-member-value" id="memberComplimentaryDaysLeft">-</div>
               </div>
               <div class="admin-member-box wide">
                 <div class="admin-member-key">Moderation</div>
@@ -809,7 +825,7 @@
             </div>
             <div class="admin-field">
               <label class="admin-label" for="plusNote">Note</label>
-              <input class="admin-input" id="plusNote" type="text" placeholder="Optional" />
+              <input class="admin-input" id="plusNote" type="text" placeholder="Required reason for the grant or removal" />
             </div>
           </div>
           <div class="admin-buttons">
@@ -1053,6 +1069,10 @@
         memberSource: document.getElementById("memberSource"),
         memberPlusDaysTotal: document.getElementById("memberPlusDaysTotal"),
         memberPlusDaysLeft: document.getElementById("memberPlusDaysLeft"),
+        memberStripeDaysTotal: document.getElementById("memberStripeDaysTotal"),
+        memberStripeDaysLeft: document.getElementById("memberStripeDaysLeft"),
+        memberComplimentaryDaysTotal: document.getElementById("memberComplimentaryDaysTotal"),
+        memberComplimentaryDaysLeft: document.getElementById("memberComplimentaryDaysLeft"),
         memberModeration: document.getElementById("memberModeration"),
         previewFeed: document.getElementById("previewFeed"),
         previewEmpty: document.getElementById("previewEmpty")
@@ -1237,8 +1257,23 @@
         if (!source || source === "none") return "none";
         if (source === "stripe") return "stripe";
         if (source === "complimentary") return "complimentary";
+        if (source === "stripe + complimentary") return "stripe + complimentary";
         if (source === "account") return "account";
         return source;
+      }
+
+      function getMembershipBreakdown(member, key) {
+        if (!member || !member.membershipBreakdown || !member.membershipBreakdown[key]) {
+          return null;
+        }
+        return member.membershipBreakdown[key];
+      }
+
+      function formatDayCount(value, fallback) {
+        if (value == null || value === "") {
+          return fallback;
+        }
+        return String(value);
       }
 
       function formatMemberExpiry(member) {
@@ -1288,6 +1323,10 @@
         refs.memberSource.textContent = formatMembershipSource(member.membershipSource);
         refs.memberPlusDaysTotal.textContent = member.plusDaysTotal != null ? String(member.plusDaysTotal) : "-";
         refs.memberPlusDaysLeft.textContent = member.plusDaysLeft != null ? String(member.plusDaysLeft) : "0";
+        refs.memberStripeDaysTotal.textContent = formatDayCount(getMembershipBreakdown(member, "stripe") && getMembershipBreakdown(member, "stripe").totalDays, "-");
+        refs.memberStripeDaysLeft.textContent = formatDayCount(getMembershipBreakdown(member, "stripe") && getMembershipBreakdown(member, "stripe").daysLeft, "0");
+        refs.memberComplimentaryDaysTotal.textContent = formatDayCount(getMembershipBreakdown(member, "complimentary") && getMembershipBreakdown(member, "complimentary").totalDays, "-");
+        refs.memberComplimentaryDaysLeft.textContent = formatDayCount(getMembershipBreakdown(member, "complimentary") && getMembershipBreakdown(member, "complimentary").daysLeft, "0");
         refs.memberModeration.textContent = formatModeration(member);
         startMemberPolling();
       }
@@ -1398,6 +1437,10 @@
       async function grantPlus() {
         return withBusy(["grantPlusButton", "removePlusButton"], async function () {
           var token = getStoredToken();
+          var note = getFieldValue("plusNote");
+          if (!note) {
+            throw new Error("A note is required before complimentary Plus can be granted.");
+          }
           var target = await resolveTargetMember(getFieldValue("plusTarget"));
           var payload = await fetchJson(API_BASE + "/admin/grant-plus", {
             method: "POST",
@@ -1408,7 +1451,7 @@
             body: JSON.stringify({
               userId: target.id,
               days: Math.max(1, Math.min(getFieldNumber("plusDays", 14), 3650)),
-              note: getFieldValue("plusNote")
+              note: note
             })
           });
 
