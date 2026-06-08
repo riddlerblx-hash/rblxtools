@@ -789,8 +789,18 @@ async function getLiveStripeMembership(row) {
   }
 }
 
-async function getBestStripeMembershipForCustomer(customerId) {
+async function getBestStripeMembershipForCustomer(customerId, debug = null) {
   const subscriptionMembership = await getStripeMembershipFromSubscriptions(customerId);
+  if (debug) {
+    debug.subscriptionCandidate = subscriptionMembership
+      ? {
+          totalDays: subscriptionMembership.totalDays ?? null,
+          currentPeriodStartAt: subscriptionMembership.currentPeriodStartAt || null,
+          currentPeriodEndAt: subscriptionMembership.currentPeriodEndAt || null,
+          status: subscriptionMembership.status || null,
+        }
+      : null;
+  }
   if (subscriptionMembership && (subscriptionMembership.currentPeriodEndAt || subscriptionMembership.totalDays != null)) {
     console.log("[stripe-sync] subscription snapshot selected", {
       customerId,
@@ -799,10 +809,23 @@ async function getBestStripeMembershipForCustomer(customerId) {
       currentPeriodEndAt: subscriptionMembership.currentPeriodEndAt,
       status: subscriptionMembership.status || null,
     });
+    if (debug) {
+      debug.selectedSource = "subscription";
+    }
     return subscriptionMembership;
   }
 
   const invoiceMembership = await getStripeMembershipFromInvoices(customerId);
+  if (debug) {
+    debug.invoiceCandidate = invoiceMembership
+      ? {
+          totalDays: invoiceMembership.totalDays ?? null,
+          currentPeriodStartAt: invoiceMembership.currentPeriodStartAt || null,
+          currentPeriodEndAt: invoiceMembership.currentPeriodEndAt || null,
+          status: invoiceMembership.status || null,
+        }
+      : null;
+  }
   if (invoiceMembership) {
     console.log("[stripe-sync] invoice-history snapshot selected", {
       customerId,
@@ -811,10 +834,16 @@ async function getBestStripeMembershipForCustomer(customerId) {
       currentPeriodEndAt: invoiceMembership.currentPeriodEndAt,
       status: invoiceMembership.status || null,
     });
+    if (debug) {
+      debug.selectedSource = "invoice";
+    }
     return invoiceMembership;
   }
 
   console.log("[stripe-sync] no usable Stripe membership snapshot found", { customerId });
+  if (debug) {
+    debug.selectedSource = subscriptionMembership ? "subscription_incomplete" : "none";
+  }
   return subscriptionMembership;
 }
 
@@ -910,7 +939,7 @@ async function getStripeMembershipFromInvoices(customerId) {
   });
 }
 
-async function persistStripeMembershipSnapshotIfNeeded(row, membership) {
+async function persistStripeMembershipSnapshotIfNeeded(row, membership, debug = null) {
   if (!row?.id || !membership) {
     return;
   }
@@ -931,6 +960,14 @@ async function persistStripeMembershipSnapshotIfNeeded(row, membership) {
       stripeCurrentPeriodStartAt: currentStart,
       stripeCurrentPeriodEndAt: currentEnd,
     });
+    if (debug) {
+      debug.persistResult = "already_current";
+      debug.persistPayload = {
+        stripeDaysTotal: currentTotal,
+        stripeCurrentPeriodStartAt: currentStart,
+        stripeCurrentPeriodEndAt: currentEnd,
+      };
+    }
     return;
   }
 
@@ -948,8 +985,20 @@ async function persistStripeMembershipSnapshotIfNeeded(row, membership) {
       stripeCurrentPeriodEndAt: nextEnd,
       updateReturnedUser: Boolean(updatedUser),
     });
+    if (debug) {
+      debug.persistResult = Boolean(updatedUser) ? "updated" : "no_row_returned";
+      debug.persistPayload = {
+        stripeDaysTotal: nextTotal,
+        stripeCurrentPeriodStartAt: nextStart,
+        stripeCurrentPeriodEndAt: nextEnd,
+      };
+    }
   } catch (error) {
     console.warn("Could not persist Stripe membership snapshot:", error.message);
+    if (debug) {
+      debug.persistResult = "error";
+      debug.persistError = error.message;
+    }
   }
 }
 
@@ -1584,8 +1633,11 @@ function rankStripeSubscription(left, right) {
   return Number(right?.created || 0) - Number(left?.created || 0);
 }
 
-async function syncLatestStripeSubscriptionForCustomer(customerId) {
+async function syncLatestStripeSubscriptionForCustomer(customerId, debug = null) {
   if (!stripeClient || !customerId) {
+    if (debug) {
+      debug.subscriptionSyncResult = "skipped_no_client_or_customer";
+    }
     return null;
   }
 
@@ -1597,15 +1649,28 @@ async function syncLatestStripeSubscriptionForCustomer(customerId) {
 
   const items = Array.isArray(subscriptions?.data) ? subscriptions.data.filter(Boolean) : [];
   if (!items.length) {
+    if (debug) {
+      debug.subscriptionSyncResult = "no_subscriptions";
+    }
     return null;
   }
 
   const subscription = items.sort(rankStripeSubscription)[0];
   if (!subscription) {
+    if (debug) {
+      debug.subscriptionSyncResult = "no_ranked_subscription";
+    }
     return null;
   }
 
-  return syncSubscriptionStateFromStripeSubscription(subscription);
+  const result = await syncSubscriptionStateFromStripeSubscription(subscription);
+  if (debug) {
+    debug.subscriptionSyncResult = result ? "updated" : "no_user_matched";
+    debug.subscriptionStatus = subscription.status || null;
+    debug.subscriptionPeriodStartAt = getIsoFromUnixSeconds(subscription.current_period_start);
+    debug.subscriptionPeriodEndAt = getIsoFromUnixSeconds(subscription.current_period_end);
+  }
+  return result;
 }
 
 async function refreshStripeMembershipForUserIfNeeded(user) {
@@ -1613,12 +1678,17 @@ async function refreshStripeMembershipForUserIfNeeded(user) {
     return user;
   }
 
+  const debug = {
+    customerId: user.stripe_customer_id,
+    userId: user.id,
+  };
+
   try {
-    const bestMembership = await getBestStripeMembershipForCustomer(user.stripe_customer_id);
+    const bestMembership = await getBestStripeMembershipForCustomer(user.stripe_customer_id, debug);
     if (bestMembership) {
-      await persistStripeMembershipSnapshotIfNeeded(user, bestMembership);
+      await persistStripeMembershipSnapshotIfNeeded(user, bestMembership, debug);
     }
-    await syncLatestStripeSubscriptionForCustomer(user.stripe_customer_id);
+    await syncLatestStripeSubscriptionForCustomer(user.stripe_customer_id, debug);
     console.log("[stripe-sync] refreshed Stripe membership for user", {
       userId: user.id,
       customerId: user.stripe_customer_id,
@@ -1626,9 +1696,15 @@ async function refreshStripeMembershipForUserIfNeeded(user) {
       bestMembershipTotalDays: bestMembership?.totalDays ?? null,
       bestMembershipCurrentPeriodEndAt: bestMembership?.currentPeriodEndAt || null,
     });
-    return await getAuthUserById(user.id);
+    const refreshedUser = await getAuthUserById(user.id);
+    if (refreshedUser) {
+      refreshedUser.__stripeSyncDebug = debug;
+    }
+    return refreshedUser || user;
   } catch (error) {
     console.warn("Could not refresh Stripe membership for user:", error.message);
+    debug.error = error.message;
+    user.__stripeSyncDebug = debug;
     return user;
   }
 }
@@ -4055,13 +4131,14 @@ app.get("/admin/member-lookup", async (req, res) => {
     const moderation = await summarizeModerationForTarget(freshTargetUser || targetUser);
     const deviceLinks = await getDeviceLinksForUser((freshTargetUser || targetUser).id);
 
-    return res.json({
-      ok: true,
-      admin: await buildResolvedPublicUser(adminUser),
-      member: await buildResolvedPublicUser(freshTargetUser || targetUser),
-      moderation,
-      deviceCount: deviceLinks.length,
-    });
+      return res.json({
+        ok: true,
+        admin: await buildResolvedPublicUser(adminUser),
+        member: await buildResolvedPublicUser(freshTargetUser || targetUser),
+        stripeSyncDebug: (freshTargetUser || targetUser)?.__stripeSyncDebug || null,
+        moderation,
+        deviceCount: deviceLinks.length,
+      });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
       error: error.message || "Could not look up that member.",
