@@ -777,44 +777,122 @@ async function getLiveStripeMembership(row) {
   }
 
   try {
-    const subscriptions = await stripeClient.subscriptions.list({
-      customer: row.stripe_customer_id,
-      status: "all",
-      limit: 10,
-    });
-
-    const items = Array.isArray(subscriptions?.data) ? subscriptions.data : [];
-    if (!items.length) {
+    const membership = await getBestStripeMembershipForCustomer(row.stripe_customer_id);
+    if (!membership) {
       return null;
     }
-
-    const rankedItems = items.filter(Boolean).sort(rankStripeSubscription);
-
-    const subscription = rankedItems[0];
-    if (!subscription) {
-      return null;
-    }
-
-    const status = String(subscription.status || "").toLowerCase();
-    const currentPeriodStartAt = getIsoFromUnixSeconds(subscription.current_period_start);
-    const currentPeriodEndAt = getIsoFromUnixSeconds(subscription.current_period_end);
-    const plusDaysLeft = getDaysLeftUntil(currentPeriodEndAt);
-
-    const membership = buildMembershipBreakdownEntry({
-      active: isPremiumStatus(status),
-      totalDays: getDaysBetween(currentPeriodStartAt, currentPeriodEndAt),
-      daysLeft: plusDaysLeft,
-      expiresAt: currentPeriodEndAt,
-      currentPeriodStartAt,
-      currentPeriodEndAt,
-      status: status || null,
-    });
     await persistStripeMembershipSnapshotIfNeeded(row, membership);
     return membership;
   } catch (error) {
     console.warn("Could not load live Stripe membership:", error.message);
     return null;
   }
+}
+
+async function getBestStripeMembershipForCustomer(customerId) {
+  const subscriptionMembership = await getStripeMembershipFromSubscriptions(customerId);
+  if (subscriptionMembership && (subscriptionMembership.currentPeriodEndAt || subscriptionMembership.totalDays != null)) {
+    return subscriptionMembership;
+  }
+
+  const invoiceMembership = await getStripeMembershipFromInvoices(customerId);
+  if (invoiceMembership) {
+    return invoiceMembership;
+  }
+
+  return subscriptionMembership;
+}
+
+async function getStripeMembershipFromSubscriptions(customerId) {
+  if (!stripeClient || !customerId) {
+    return null;
+  }
+
+  const subscriptions = await stripeClient.subscriptions.list({
+    customer: customerId,
+    status: "all",
+    limit: 10,
+  });
+
+  const items = Array.isArray(subscriptions?.data) ? subscriptions.data : [];
+  if (!items.length) {
+    return null;
+  }
+
+  const rankedItems = items.filter(Boolean).sort(rankStripeSubscription);
+  const subscription = rankedItems[0];
+  if (!subscription) {
+    return null;
+  }
+
+  const status = String(subscription.status || "").toLowerCase();
+  const currentPeriodStartAt = getIsoFromUnixSeconds(subscription.current_period_start);
+  const currentPeriodEndAt = getIsoFromUnixSeconds(subscription.current_period_end);
+  const plusDaysLeft = getDaysLeftUntil(currentPeriodEndAt);
+
+  return buildMembershipBreakdownEntry({
+    active: isPremiumStatus(status),
+    totalDays: getDaysBetween(currentPeriodStartAt, currentPeriodEndAt),
+    daysLeft: plusDaysLeft,
+    expiresAt: currentPeriodEndAt,
+    currentPeriodStartAt,
+    currentPeriodEndAt,
+    status: status || null,
+  });
+}
+
+async function getStripeMembershipFromInvoices(customerId) {
+  if (!stripeClient || !customerId) {
+    return null;
+  }
+
+  const invoices = await stripeClient.invoices.list({
+    customer: customerId,
+    limit: 25,
+  });
+
+  const items = Array.isArray(invoices?.data) ? invoices.data.filter(Boolean) : [];
+  if (!items.length) {
+    return null;
+  }
+
+  const paidInvoices = items
+    .filter((invoice) => {
+      const paid = invoice?.paid === true || String(invoice?.status || "").toLowerCase() === "paid";
+      return paid;
+    })
+    .sort((left, right) => {
+      const leftTime = Number(left?.status_transitions?.paid_at || left?.created || 0);
+      const rightTime = Number(right?.status_transitions?.paid_at || right?.created || 0);
+      return rightTime - leftTime;
+    });
+
+  const invoice = paidInvoices[0];
+  if (!invoice) {
+    return null;
+  }
+
+  const lines = Array.isArray(invoice?.lines?.data) ? invoice.lines.data : [];
+  const subscriptionLine = lines.find((line) => String(line?.type || "").toLowerCase() === "subscription") || lines[0];
+  if (!subscriptionLine) {
+    return null;
+  }
+
+  const periodStartAt = getIsoFromUnixSeconds(subscriptionLine?.period?.start);
+  const periodEndAt = getIsoFromUnixSeconds(subscriptionLine?.period?.end);
+  const paidAtIso = getIsoFromUnixSeconds(invoice?.status_transitions?.paid_at || invoice?.created);
+  const plusDaysLeft = getDaysLeftUntil(periodEndAt);
+  const active = Boolean(periodEndAt && plusDaysLeft > 0);
+
+  return buildMembershipBreakdownEntry({
+    active,
+    totalDays: getDaysBetween(periodStartAt, periodEndAt),
+    daysLeft: plusDaysLeft,
+    expiresAt: periodEndAt,
+    currentPeriodStartAt: periodStartAt || paidAtIso,
+    currentPeriodEndAt: periodEndAt,
+    status: active ? "active" : "paid_history",
+  });
 }
 
 async function persistStripeMembershipSnapshotIfNeeded(row, membership) {
