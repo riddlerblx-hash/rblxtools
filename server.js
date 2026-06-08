@@ -1770,6 +1770,7 @@ async function performStripeAdminAction(targetUser, action, payload = {}) {
       plan: "free",
       stripe_subscription_status: "canceled",
       membership_source: "none",
+      stripe_customer_id: null,
       stripe_days_total: null,
       stripe_current_period_start_at: null,
       stripe_current_period_end_at: null,
