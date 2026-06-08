@@ -772,10 +772,6 @@
                 <div class="admin-member-value" id="memberSource">-</div>
               </div>
               <div class="admin-member-box">
-                <div class="admin-member-key">Plus Days Total</div>
-                <div class="admin-member-value" id="memberPlusDaysTotal">-</div>
-              </div>
-              <div class="admin-member-box">
                 <div class="admin-member-key">Plus Days Left</div>
                 <div class="admin-member-value" id="memberPlusDaysLeft">-</div>
               </div>
@@ -833,40 +829,6 @@
             <button class="admin-btn red" id="removePlusButton" type="button">Remove Plus</button>
           </div>
             <div class="admin-result" id="plusStatus"></div>
-          </div>
-        </div>
-
-        <div class="admin-card">
-          <div class="admin-card-inner">
-            <div class="admin-card-head">
-              <div>
-                <h2 class="admin-card-title">Stripe Plus</h2>
-                <p class="admin-card-copy">Owner-pin protected real Stripe actions for live subscriptions. Use carefully because these actions touch actual billing state.</p>
-              </div>
-            </div>
-            <div class="admin-field">
-              <label class="admin-label" for="stripePlusTarget">User ID Or Email</label>
-              <input class="admin-input" id="stripePlusTarget" type="text" placeholder="Target member for Stripe actions" />
-            </div>
-            <div class="admin-triple">
-              <div class="admin-field">
-                <label class="admin-label" for="stripePlusDays">Add Days</label>
-                <input class="admin-input" id="stripePlusDays" type="number" min="1" max="365" value="7" />
-              </div>
-              <div class="admin-field">
-                <label class="admin-label" for="stripeOwnerPin">Owner Pin</label>
-                <input class="admin-input" id="stripeOwnerPin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="Required" />
-              </div>
-              <div class="admin-field">
-                <label class="admin-label" for="stripePlusNote">Note</label>
-                <input class="admin-input" id="stripePlusNote" type="text" placeholder="Optional internal note" />
-              </div>
-            </div>
-            <div class="admin-buttons">
-              <button class="admin-btn green" id="stripeAddDaysButton" type="button">Add Days</button>
-              <button class="admin-btn red" id="stripeRemovePlusButton" type="button">Remove Plus</button>
-            </div>
-            <div class="admin-result" id="stripePlusStatus"></div>
           </div>
         </div>
 
@@ -1101,7 +1063,6 @@
         memberDevices: document.getElementById("memberDevices"),
         memberExpiry: document.getElementById("memberExpiry"),
         memberSource: document.getElementById("memberSource"),
-        memberPlusDaysTotal: document.getElementById("memberPlusDaysTotal"),
         memberPlusDaysLeft: document.getElementById("memberPlusDaysLeft"),
         memberStripeDaysTotal: document.getElementById("memberStripeDaysTotal"),
         memberStripeDaysLeft: document.getElementById("memberStripeDaysLeft"),
@@ -1355,7 +1316,6 @@
         refs.memberDevices.textContent = String(member.deviceCount != null ? member.deviceCount : 0);
         refs.memberExpiry.textContent = formatMemberExpiry(member);
         refs.memberSource.textContent = formatMembershipSource(member.membershipSource);
-        refs.memberPlusDaysTotal.textContent = member.plusDaysTotal != null ? String(member.plusDaysTotal) : "-";
         refs.memberPlusDaysLeft.textContent = member.plusDaysLeft != null ? String(member.plusDaysLeft) : "0";
         refs.memberStripeDaysTotal.textContent = formatDayCount(getMembershipBreakdown(member, "stripe") && getMembershipBreakdown(member, "stripe").totalDays, "-");
         refs.memberStripeDaysLeft.textContent = formatDayCount(getMembershipBreakdown(member, "stripe") && getMembershipBreakdown(member, "stripe").daysLeft, "0");
@@ -1516,40 +1476,6 @@
           setResult("plusStatus", payload.message || "Plus access removed.", "success");
         }).catch(function (error) {
           setResult("plusStatus", error.message || "Could not remove Plus.", "error");
-        });
-      }
-
-      async function runStripePlusAction(action) {
-        var busyIds = [
-          "stripeAddDaysButton",
-          "stripeRemovePlusButton"
-        ];
-        return withBusy(busyIds, async function () {
-          var token = getStoredToken();
-          var ownerPin = getFieldValue("stripeOwnerPin");
-          if (!ownerPin) {
-            throw new Error("Owner pin is required for Stripe Plus actions.");
-          }
-          var target = await resolveTargetMember(getFieldValue("stripePlusTarget"));
-          var payload = await fetchJson(API_BASE + "/admin/stripe-plus-action", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token
-            },
-            body: JSON.stringify({
-              userId: target.id,
-              action: action,
-              days: Math.max(1, Math.min(getFieldNumber("stripePlusDays", 7), 365)),
-              ownerPin: ownerPin,
-              note: getFieldValue("stripePlusNote")
-            })
-          });
-
-          renderMember(normalizeLoadedMember(payload.member || target, payload));
-          setResult("stripePlusStatus", payload.message || "Stripe action completed.", "success");
-        }).catch(function (error) {
-          setResult("stripePlusStatus", error.message || "Could not complete the Stripe action.", "error");
         });
       }
 
@@ -1979,8 +1905,6 @@
 
       document.getElementById("grantPlusButton").addEventListener("click", grantPlus);
       document.getElementById("removePlusButton").addEventListener("click", removePlus);
-      document.getElementById("stripeAddDaysButton").addEventListener("click", function () { runStripePlusAction("add_days"); });
-      document.getElementById("stripeRemovePlusButton").addEventListener("click", function () { runStripePlusAction("remove_plus"); });
       document.getElementById("blacklistButton").addEventListener("click", applyWebsiteLock);
       document.getElementById("clearBlacklistButton").addEventListener("click", clearWebsiteLock);
       document.getElementById("timeoutButton").addEventListener("click", applyChatTimeout);

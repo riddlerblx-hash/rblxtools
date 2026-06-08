@@ -1488,6 +1488,180 @@ body.rblx-shell-ready {
   z-index: 1;
 }
 
+.rblx-shell-checkout-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(5, 8, 12, 0.68);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 72;
+}
+
+.rblx-shell-checkout-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.rblx-shell-checkout-modal {
+  position: relative;
+  width: min(560px, calc(100vw - 32px));
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background:
+    radial-gradient(circle at top right, rgba(88, 230, 138, 0.22), transparent 28%),
+    radial-gradient(circle at 18% 100%, rgba(255, 209, 90, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(15, 27, 23, 0.98), rgba(10, 18, 16, 0.98));
+  box-shadow: 0 32px 74px rgba(0,0,0,0.48);
+  padding: 24px 22px 22px;
+  transform: translateY(10px) scale(0.985);
+  transition: transform 0.22s ease;
+}
+
+.rblx-shell-checkout-modal.is-open {
+  transform: translateY(0) scale(1);
+}
+
+.rblx-shell-checkout-kicker {
+  position: relative;
+  z-index: 1;
+  color: #9effbb;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.rblx-shell-checkout-title {
+  position: relative;
+  z-index: 1;
+  margin: 10px 0 0;
+  color: #ffffff;
+  font-size: clamp(28px, 4vw, 38px);
+  line-height: 0.98;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.rblx-shell-checkout-copy,
+.rblx-shell-checkout-thankyou {
+  position: relative;
+  z-index: 1;
+  color: #d9e6dc;
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 700;
+}
+
+.rblx-shell-checkout-copy {
+  margin: 12px 0 0;
+  max-width: 44ch;
+}
+
+.rblx-shell-checkout-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.rblx-shell-checkout-row {
+  display: grid;
+  gap: 5px;
+  padding: 14px 15px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+}
+
+.rblx-shell-checkout-row span {
+  color: #9fb4a7;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+}
+
+.rblx-shell-checkout-row strong {
+  color: #ffffff;
+  font-size: 18px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.rblx-shell-checkout-thankyou {
+  margin-top: 14px;
+}
+
+.rblx-shell-checkout-button {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.rblx-shell-checkout-button[disabled] {
+  opacity: 0.7;
+  filter: saturate(0.85);
+  cursor: not-allowed;
+}
+
+.rblx-shell-checkout-confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.rblx-shell-checkout-confetti-piece {
+  position: absolute;
+  top: -12%;
+  left: var(--confetti-left);
+  width: var(--confetti-size);
+  height: calc(var(--confetti-size) * 1.6);
+  border-radius: 999px;
+  opacity: 0;
+  transform: translate3d(0, 0, 0) rotate(0deg);
+  animation: shellCheckoutConfetti var(--confetti-duration) linear infinite;
+  animation-delay: var(--confetti-delay);
+}
+
+.rblx-shell-checkout-confetti-piece.is-green {
+  background: linear-gradient(180deg, #9affbc 0%, #4fdd85 100%);
+}
+
+.rblx-shell-checkout-confetti-piece.is-gold {
+  background: linear-gradient(180deg, #ffe696 0%, #ffc94b 100%);
+}
+
+.rblx-shell-checkout-confetti-piece.is-blue {
+  background: linear-gradient(180deg, #b8d6ff 0%, #6ea9ff 100%);
+}
+
+@keyframes shellCheckoutConfetti {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -10%, 0) rotate(0deg);
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-18px, 132%, 0) rotate(420deg);
+  }
+}
+
 .rblx-shell-profile-close {
   position: absolute;
   top: 10px;
@@ -2103,6 +2277,16 @@ body.rblx-shell-left-collapsed #rblxShellLeftToggle { right: -20px; }
   .rblx-shell-profile-modal {
     width: min(100%, 520px);
     padding: 16px;
+  }
+
+  .rblx-shell-checkout-overlay {
+    padding: 12px;
+  }
+
+  .rblx-shell-checkout-modal {
+    width: min(100%, 520px);
+    padding: 20px 16px 18px;
+    border-radius: 22px;
   }
 
   .rblx-shell-profile-top {

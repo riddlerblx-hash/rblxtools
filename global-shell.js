@@ -49,6 +49,14 @@
     chatSpecials: null,
     chatBottom: null,
     chatRainOverlay: null,
+    checkoutSuccessOverlay: null,
+    checkoutSuccessModal: null,
+    checkoutSuccessClose: null,
+    checkoutSuccessItem: null,
+    checkoutSuccessAmount: null,
+    checkoutSuccessCopy: null,
+    checkoutSuccessTimer: null,
+    checkoutSuccessCountdown: null,
     roomSpecials: null,
     roomSpecialsTimer: null,
     serverTimeOffset: 0,
@@ -185,6 +193,19 @@
 
   function getToggleIcon() {
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.25h14M5 12h14M5 16.75h14"/></svg>';
+  }
+
+  function buildCheckoutConfetti() {
+    var pieces = "";
+    for (var index = 0; index < 26; index += 1) {
+      var left = 4 + ((index * 13) % 92);
+      var delay = ((index % 8) * 0.28).toFixed(2);
+      var duration = (4.6 + (index % 5) * 0.55).toFixed(2);
+      var size = 8 + (index % 4) * 3;
+      var hue = index % 3 === 0 ? "green" : (index % 3 === 1 ? "gold" : "blue");
+      pieces += '<span class="rblx-shell-checkout-confetti-piece is-' + hue + '" style="--confetti-left:' + left + '%;--confetti-delay:' + delay + 's;--confetti-duration:' + duration + 's;--confetti-size:' + size + 'px;"></span>';
+    }
+    return pieces;
   }
 
   function getToken() {
@@ -1024,6 +1045,20 @@
             "</div>" +
           "</div>" +
         "</div>" +
+        '<div class="rblx-shell-checkout-overlay" id="rblxShellCheckoutOverlay" aria-hidden="true">' +
+          '<div class="rblx-shell-checkout-modal" id="rblxShellCheckoutModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellCheckoutTitle">' +
+            '<div class="rblx-shell-checkout-confetti" aria-hidden="true">' + buildCheckoutConfetti() + '</div>' +
+            '<div class="rblx-shell-checkout-kicker">Purchase Successful</div>' +
+            '<h3 class="rblx-shell-checkout-title" id="rblxShellCheckoutTitle">Thanks for supporting RBLXTools</h3>' +
+            '<p class="rblx-shell-checkout-copy" id="rblxShellCheckoutCopy">Your order went through and your account is being updated now.</p>' +
+            '<div class="rblx-shell-checkout-grid">' +
+              '<div class="rblx-shell-checkout-row"><span>Purchased</span><strong id="rblxShellCheckoutItem">RBTools Plus</strong></div>' +
+              '<div class="rblx-shell-checkout-row"><span>Charged</span><strong id="rblxShellCheckoutAmount">$0.00</strong></div>' +
+            '</div>' +
+            '<div class="rblx-shell-checkout-thankyou">Thank you for supporting the tools, updates, and everything we are building next.</div>' +
+            '<button class="rblx-shell-btn is-primary rblx-shell-checkout-button" type="button" id="rblxShellCheckoutClose" disabled>Back To Account (10)</button>' +
+          '</div>' +
+        '</div>' +
         '<div class="rblx-shell-site-lock" id="rblxShellSiteLock" aria-hidden="true">' +
           '<div class="rblx-shell-site-lock-card">' +
             '<div class="rblx-shell-site-lock-kicker">Website Locked</div>' +
@@ -1722,6 +1757,77 @@
     });
   }
 
+  function clearCheckoutSuccessTimer() {
+    if (shellState.checkoutSuccessTimer) {
+      clearInterval(shellState.checkoutSuccessTimer);
+      shellState.checkoutSuccessTimer = null;
+    }
+  }
+
+  function closeCheckoutSuccessModal() {
+    clearCheckoutSuccessTimer();
+    if (!shellState.checkoutSuccessOverlay || !shellState.checkoutSuccessModal) return;
+    shellState.checkoutSuccessOverlay.classList.remove("is-open");
+    shellState.checkoutSuccessOverlay.setAttribute("aria-hidden", "true");
+    shellState.checkoutSuccessModal.classList.remove("is-open");
+  }
+
+  function openCheckoutSuccessModal(detail) {
+    if (!shellState.checkoutSuccessOverlay || !shellState.checkoutSuccessModal) return;
+    var itemName = detail && detail.itemName ? String(detail.itemName) : "RBTools Plus";
+    var amountText = detail && detail.amountTotalFormatted ? String(detail.amountTotalFormatted) : "$0.00";
+    var plusReady = Boolean(detail && detail.premiumActive);
+    if (shellState.checkoutSuccessItem) {
+      shellState.checkoutSuccessItem.textContent = itemName;
+    }
+    if (shellState.checkoutSuccessAmount) {
+      shellState.checkoutSuccessAmount.textContent = amountText;
+    }
+    if (shellState.checkoutSuccessCopy) {
+      shellState.checkoutSuccessCopy.textContent = plusReady
+        ? "Your purchase went through and Plus is already active on this account."
+        : "Your purchase went through and we are finishing your Plus sync now.";
+    }
+    if (shellState.checkoutSuccessClose) {
+      shellState.checkoutSuccessClose.disabled = true;
+      shellState.checkoutSuccessClose.textContent = "Back To Account (10)";
+    }
+    shellState.checkoutSuccessCountdown = 10;
+    shellState.checkoutSuccessOverlay.classList.add("is-open");
+    shellState.checkoutSuccessOverlay.setAttribute("aria-hidden", "false");
+    shellState.checkoutSuccessModal.classList.add("is-open");
+    clearCheckoutSuccessTimer();
+    shellState.checkoutSuccessTimer = setInterval(function () {
+      shellState.checkoutSuccessCountdown -= 1;
+      if (!shellState.checkoutSuccessClose) return;
+      if (shellState.checkoutSuccessCountdown <= 0) {
+        clearCheckoutSuccessTimer();
+        shellState.checkoutSuccessClose.disabled = false;
+        shellState.checkoutSuccessClose.textContent = "Back To Account";
+        return;
+      }
+      shellState.checkoutSuccessClose.textContent = "Back To Account (" + shellState.checkoutSuccessCountdown + ")";
+    }, 1000);
+  }
+
+  function initCheckoutSuccessModal() {
+    shellState.checkoutSuccessOverlay = document.getElementById("rblxShellCheckoutOverlay");
+    shellState.checkoutSuccessModal = document.getElementById("rblxShellCheckoutModal");
+    shellState.checkoutSuccessClose = document.getElementById("rblxShellCheckoutClose");
+    shellState.checkoutSuccessItem = document.getElementById("rblxShellCheckoutItem");
+    shellState.checkoutSuccessAmount = document.getElementById("rblxShellCheckoutAmount");
+    shellState.checkoutSuccessCopy = document.getElementById("rblxShellCheckoutCopy");
+
+    if (shellState.checkoutSuccessClose) {
+      shellState.checkoutSuccessClose.addEventListener("click", closeCheckoutSuccessModal);
+    }
+
+    window.addEventListener("rblxtools-checkout-success", function (event) {
+      var detail = event && event.detail ? event.detail : {};
+      openCheckoutSuccessModal(detail);
+    });
+  }
+
   function applyCollapsedState(body) {
     if (isMobileShellViewport()) {
       body.classList.remove("rblx-shell-left-collapsed");
@@ -2301,6 +2407,7 @@
     shellState.deviceId = getDeviceId();
     applyCollapsedState(document.body);
     initProfileOverlay();
+    initCheckoutSuccessModal();
     initToggles();
     initChat();
     initAdminWindow();

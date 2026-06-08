@@ -1229,13 +1229,8 @@
                     <div class="acct-section-kicker">Membership</div>
                     <h3 class="acct-section-title">Membership & Access</h3>
                     <p class="acct-section-copy">
-                      Confirm your current access level, refresh Plus state, and jump into Stripe tools without leaving the account center.
+                      Confirm your current access level and jump into Stripe tools without leaving the account center.
                     </p>
-
-                    <div id="acctCheckoutBanner" class="acct-note acct-checkout-banner hidden">
-                      <div id="acctCheckoutTitle" class="acct-checkout-title">Purchase successful</div>
-                      <div id="acctCheckoutCopy" class="acct-checkout-copy">We are syncing your membership now.</div>
-                    </div>
 
                     <div class="acct-info-grid">
                       <div class="acct-pill-card">
@@ -1264,11 +1259,6 @@
                       </div>
 
                       <div class="acct-pill-card">
-                        <div class="acct-pill-label">Plus Days Total</div>
-                        <div id="acctPlusDaysTotal" class="acct-pill-value">-</div>
-                      </div>
-
-                      <div class="acct-pill-card">
                         <div class="acct-pill-label">Plus Days Left</div>
                         <div id="acctPlusDaysLeft" class="acct-pill-value">-</div>
                       </div>
@@ -1290,7 +1280,6 @@
                     </div>
 
                     <div class="acct-actions">
-                      <button id="acctRefreshButton" class="acct-button secondary" type="button">Refresh Plus Status</button>
                       <button id="acctPortalButton" class="acct-button plans" type="button">Manage Subscription</button>
                       <button id="acctPlansButton" class="acct-button" type="button">View Plans</button>
                     </div>
@@ -1568,19 +1557,14 @@
         acctPremium: document.getElementById("acctPremium"),
         acctStripeStatus: document.getElementById("acctStripeStatus"),
         acctMembershipSource: document.getElementById("acctMembershipSource"),
-        acctPlusDaysTotal: document.getElementById("acctPlusDaysTotal"),
         acctPlusDaysLeft: document.getElementById("acctPlusDaysLeft"),
         acctPlusExpiresAt: document.getElementById("acctPlusExpiresAt"),
         acctUserId: document.getElementById("acctUserId"),
         acctCustomerId: document.getElementById("acctCustomerId"),
-        acctCheckoutBanner: document.getElementById("acctCheckoutBanner"),
-        acctCheckoutTitle: document.getElementById("acctCheckoutTitle"),
-        acctCheckoutCopy: document.getElementById("acctCheckoutCopy"),
         acctMembershipStatus: document.getElementById("acctMembershipStatus"),
         acctBillingStatus: document.getElementById("acctBillingStatus"),
         acctProfileStatus: document.getElementById("acctProfileStatus"),
         acctDangerStatus: document.getElementById("acctDangerStatus"),
-        acctRefreshButton: document.getElementById("acctRefreshButton"),
         acctPortalButton: document.getElementById("acctPortalButton"),
         acctPlansButton: document.getElementById("acctPlansButton"),
         acctUpsell: document.getElementById("acctUpsell"),
@@ -1744,21 +1728,6 @@
         return date.toLocaleString();
       }
 
-      function setCheckoutBanner(title, message, tone) {
-        if (!els.acctCheckoutBanner || !els.acctCheckoutTitle || !els.acctCheckoutCopy) return;
-        if (!title && !message) {
-          els.acctCheckoutBanner.classList.add("hidden");
-          els.acctCheckoutBanner.classList.remove("error");
-          els.acctCheckoutTitle.textContent = "";
-          els.acctCheckoutCopy.textContent = "";
-          return;
-        }
-        els.acctCheckoutTitle.textContent = title || "Purchase update";
-        els.acctCheckoutCopy.textContent = message || "";
-        els.acctCheckoutBanner.classList.remove("hidden");
-        els.acctCheckoutBanner.classList.toggle("error", tone === "error");
-      }
-
       function getMembershipHeadline(user) {
         if (!user) return "Membership snapshot unavailable.";
         if (user.premiumActive) {
@@ -1839,23 +1808,8 @@
 
       async function loadCheckoutSummary() {
         if (state.checkoutStatus !== "success") {
-          if (state.checkoutStatus === "cancelled") {
-            setCheckoutBanner(
-              "Checkout cancelled",
-              "Your purchase was cancelled before Stripe finished it. You can reopen the plans page anytime if you still want Plus.",
-              "error"
-            );
-          } else {
-            setCheckoutBanner("", "", "");
-          }
           return null;
         }
-
-        setCheckoutBanner(
-          "Purchase successful",
-          "Your purchase went through. We are syncing your Plus access and purchase details now.",
-          ""
-        );
 
         if (!state.token || !state.checkoutSessionId) {
           return null;
@@ -1869,6 +1823,44 @@
         } catch (_error) {
           return null;
         }
+      }
+
+      function dispatchCheckoutCelebration(summary, loadedUser) {
+        if (state.checkoutStatus !== "success") return;
+        var sessionId = String(state.checkoutSessionId || "");
+        var seenKey = "rblxtools_checkout_popup_seen_" + sessionId;
+        try {
+          if (sessionId && sessionStorage.getItem(seenKey) === "1") {
+            return;
+          }
+        } catch (_error) {}
+
+        var itemName = summary && summary.itemName ? summary.itemName : "RBTools Plus";
+        var amountText = summary && summary.amountTotalFormatted ? summary.amountTotalFormatted : "$0.00";
+        try {
+          window.dispatchEvent(new CustomEvent("rblxtools-checkout-success", {
+            detail: {
+              sessionId: sessionId,
+              itemName: itemName,
+              amountTotalFormatted: amountText,
+              premiumActive: Boolean(loadedUser && loadedUser.premiumActive),
+              email: loadedUser && loadedUser.email ? loadedUser.email : ""
+            }
+          }));
+        } catch (_error) {}
+
+        try {
+          if (sessionId) {
+            sessionStorage.setItem(seenKey, "1");
+          }
+        } catch (_error) {}
+
+        try {
+          if (window.history && typeof window.history.replaceState === "function") {
+            var cleanUrl = window.location.pathname || "./account";
+            window.history.replaceState({}, document.title, cleanUrl);
+          }
+        } catch (_error) {}
       }
 
       function renderProfilePresentation() {
@@ -1950,7 +1942,6 @@
         els.acctPremium.classList.toggle("is-good", Boolean(state.user.premiumActive));
         els.acctStripeStatus.textContent = state.user.stripeSubscriptionStatus || "-";
         els.acctMembershipSource.textContent = formatMembershipSource(state.user.membershipSource);
-        els.acctPlusDaysTotal.textContent = state.user.plusDaysTotal != null ? String(state.user.plusDaysTotal) : "-";
         els.acctPlusDaysLeft.textContent = state.user.plusDaysLeft != null ? String(state.user.plusDaysLeft) : "0";
         els.acctPlusExpiresAt.textContent = formatPlusExpiry(
           state.user.plusExpiresAt || state.user.complimentaryExpiresAt || state.user.currentPeriodEndAt
@@ -1991,16 +1982,9 @@
             stripeCustomerId: "",
             membershipSource: "none",
             plusDaysTotal: null,
-              plusDaysLeft: 0,
-              plusExpiresAt: null
-            });
-            if (state.checkoutStatus === "success") {
-              setCheckoutBanner(
-                "Purchase successful",
-                "Your checkout went through, but this browser is not currently holding a member session. Log in again and your Plus access should appear on the account page.",
-                ""
-              );
-            }
+            plusDaysLeft: 0,
+            plusExpiresAt: null
+          });
             setStatus(els.acctMembershipStatus, "No account is loaded yet. You can still preview the overview layout for now.", "");
             return;
           }
@@ -2018,18 +2002,8 @@
             renderUser(loadedUser);
             var checkoutSummary = await loadCheckoutSummary();
             if (state.checkoutStatus === "success") {
-              var itemName = checkoutSummary && checkoutSummary.itemName ? checkoutSummary.itemName : "RBTools Plus";
-              var purchaseMessage = itemName + " purchase successfully went through.";
-              if (checkoutSummary && checkoutSummary.amountTotalFormatted) {
-                purchaseMessage += " Charged " + checkoutSummary.amountTotalFormatted + ".";
-              }
-              if (loadedUser && loadedUser.premiumActive) {
-                purchaseMessage += " Plus is already active on this account.";
-              } else {
-                purchaseMessage += " Your member access is still being refreshed in the background.";
-              }
-              setCheckoutBanner("Purchase successful", purchaseMessage, "");
-              setStatus(els.acctMembershipStatus, purchaseMessage, "success");
+              dispatchCheckoutCelebration(checkoutSummary, loadedUser);
+              setStatus(els.acctMembershipStatus, getMembershipHeadline(loadedUser), loadedUser && loadedUser.premiumActive ? "success" : "");
             } else {
               setStatus(els.acctMembershipStatus, getMembershipHeadline(loadedUser), "success");
             }
@@ -2050,7 +2024,6 @@
         }
 
         if (!isBackgroundPoll) {
-          els.acctRefreshButton.disabled = true;
           setStatus(els.acctMembershipStatus, "Checking Plus status...", "");
         }
 
@@ -2075,9 +2048,6 @@
             setStatus(els.acctMembershipStatus, error.message || "Could not check Plus status.", "error");
           }
         } finally {
-          if (!isBackgroundPoll) {
-            els.acctRefreshButton.disabled = false;
-          }
         }
       }
 
@@ -2379,7 +2349,6 @@
       syncBioCount();
       renderUser(null);
 
-      els.acctRefreshButton.addEventListener("click", refreshPremiumStatus);
       els.acctPortalButton.addEventListener("click", function () {
         openPortal(els.acctPortalButton, els.acctMembershipStatus);
       });
