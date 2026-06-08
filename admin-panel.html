@@ -806,11 +806,11 @@
     </section>
 
     <section class="admin-actions-grid">
-      <div class="admin-card">
-        <div class="admin-card-inner">
-          <div class="admin-card-head">
-            <div>
-              <h2 class="admin-card-title">Complimentary Plus</h2>
+        <div class="admin-card">
+          <div class="admin-card-inner">
+            <div class="admin-card-head">
+              <div>
+                <h2 class="admin-card-title">Complimentary Plus</h2>
               <p class="admin-card-copy">Grant or remove Plus using this action’s own target field.</p>
             </div>
           </div>
@@ -832,13 +832,50 @@
             <button class="admin-btn green" id="grantPlusButton" type="button">Grant Plus</button>
             <button class="admin-btn red" id="removePlusButton" type="button">Remove Plus</button>
           </div>
-          <div class="admin-result" id="plusStatus"></div>
+            <div class="admin-result" id="plusStatus"></div>
+          </div>
         </div>
-      </div>
 
-      <div class="admin-card">
-        <div class="admin-card-inner">
-          <div class="admin-card-head">
+        <div class="admin-card">
+          <div class="admin-card-inner">
+            <div class="admin-card-head">
+              <div>
+                <h2 class="admin-card-title">Stripe Plus</h2>
+                <p class="admin-card-copy">Owner-pin protected real Stripe actions for live subscriptions. Use carefully because these actions touch actual billing state.</p>
+              </div>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="stripePlusTarget">User ID Or Email</label>
+              <input class="admin-input" id="stripePlusTarget" type="text" placeholder="Target member for Stripe actions" />
+            </div>
+            <div class="admin-triple">
+              <div class="admin-field">
+                <label class="admin-label" for="stripePlusDays">Add Days</label>
+                <input class="admin-input" id="stripePlusDays" type="number" min="1" max="365" value="7" />
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="stripeOwnerPin">Owner Pin</label>
+                <input class="admin-input" id="stripeOwnerPin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="Required" />
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="stripePlusNote">Note</label>
+                <input class="admin-input" id="stripePlusNote" type="text" placeholder="Optional internal note" />
+              </div>
+            </div>
+            <div class="admin-buttons">
+              <button class="admin-btn blue" id="stripeSyncButton" type="button">Sync Stripe</button>
+              <button class="admin-btn green" id="stripeAddDaysButton" type="button">Add Days</button>
+              <button class="admin-btn ghost" id="stripeResumeButton" type="button">Resume Renewal</button>
+              <button class="admin-btn red" id="stripeCancelPeriodEndButton" type="button">Cancel At Period End</button>
+              <button class="admin-btn red" id="stripeCancelNowButton" type="button">Cancel Now</button>
+            </div>
+            <div class="admin-result" id="stripePlusStatus"></div>
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-card-inner">
+            <div class="admin-card-head">
             <div>
               <h2 class="admin-card-title">Website Lock</h2>
               <p class="admin-card-copy">Lock a user’s current browser/device from using the site until cleared.</p>
@@ -1485,6 +1522,43 @@
         });
       }
 
+      async function runStripePlusAction(action) {
+        var busyIds = [
+          "stripeSyncButton",
+          "stripeAddDaysButton",
+          "stripeResumeButton",
+          "stripeCancelPeriodEndButton",
+          "stripeCancelNowButton"
+        ];
+        return withBusy(busyIds, async function () {
+          var token = getStoredToken();
+          var ownerPin = getFieldValue("stripeOwnerPin");
+          if (!ownerPin) {
+            throw new Error("Owner pin is required for Stripe Plus actions.");
+          }
+          var target = await resolveTargetMember(getFieldValue("stripePlusTarget"));
+          var payload = await fetchJson(API_BASE + "/admin/stripe-plus-action", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+              userId: target.id,
+              action: action,
+              days: Math.max(1, Math.min(getFieldNumber("stripePlusDays", 7), 365)),
+              ownerPin: ownerPin,
+              note: getFieldValue("stripePlusNote")
+            })
+          });
+
+          renderMember(normalizeLoadedMember(payload.member || target, payload));
+          setResult("stripePlusStatus", payload.message || "Stripe action completed.", "success");
+        }).catch(function (error) {
+          setResult("stripePlusStatus", error.message || "Could not complete the Stripe action.", "error");
+        });
+      }
+
       async function applyWebsiteLock() {
         return withBusy(["blacklistButton", "clearBlacklistButton"], async function () {
           var token = getStoredToken();
@@ -1911,6 +1985,11 @@
 
       document.getElementById("grantPlusButton").addEventListener("click", grantPlus);
       document.getElementById("removePlusButton").addEventListener("click", removePlus);
+      document.getElementById("stripeSyncButton").addEventListener("click", function () { runStripePlusAction("sync"); });
+      document.getElementById("stripeAddDaysButton").addEventListener("click", function () { runStripePlusAction("add_days"); });
+      document.getElementById("stripeResumeButton").addEventListener("click", function () { runStripePlusAction("resume_renewal"); });
+      document.getElementById("stripeCancelPeriodEndButton").addEventListener("click", function () { runStripePlusAction("cancel_period_end"); });
+      document.getElementById("stripeCancelNowButton").addEventListener("click", function () { runStripePlusAction("cancel_now"); });
       document.getElementById("blacklistButton").addEventListener("click", applyWebsiteLock);
       document.getElementById("clearBlacklistButton").addEventListener("click", clearWebsiteLock);
       document.getElementById("timeoutButton").addEventListener("click", applyChatTimeout);
