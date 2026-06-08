@@ -1485,6 +1485,20 @@ async function syncLatestStripeSubscriptionForCustomer(customerId) {
   return syncSubscriptionStateFromStripeSubscription(subscription);
 }
 
+async function refreshStripeMembershipForUserIfNeeded(user) {
+  if (!user?.stripe_customer_id) {
+    return user;
+  }
+
+  try {
+    await syncLatestStripeSubscriptionForCustomer(user.stripe_customer_id);
+    return await getAuthUserById(user.id);
+  } catch (error) {
+    console.warn("Could not refresh Stripe membership for user:", error.message);
+    return user;
+  }
+}
+
 async function syncSubscriptionStateFromStripeSubscription(subscription) {
   const customerId =
     typeof subscription.customer === "string"
@@ -3738,14 +3752,15 @@ app.post("/auth/google", async (req, res) => {
 app.get("/auth/me", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
+    const freshUser = await refreshStripeMembershipForUserIfNeeded(user);
     const deviceId = getRequestDeviceId(req);
     if (deviceId) {
-      await linkDeviceToUser(user, deviceId).catch(() => null);
+      await linkDeviceToUser(freshUser || user, deviceId).catch(() => null);
     }
-    const moderation = await summarizeModerationForTarget(user, deviceId);
+    const moderation = await summarizeModerationForTarget(freshUser || user, deviceId);
     return res.json({
       ok: true,
-      user: await buildResolvedPublicUser(user),
+      user: await buildResolvedPublicUser(freshUser || user),
       moderation,
     });
   } catch (error) {
@@ -3902,13 +3917,14 @@ app.get("/admin/member-lookup", async (req, res) => {
     if (!targetUser) {
       return res.status(404).json({ error: "No member was found for that ID or email." });
     }
-    const moderation = await summarizeModerationForTarget(targetUser);
-    const deviceLinks = await getDeviceLinksForUser(targetUser.id);
+    const freshTargetUser = await refreshStripeMembershipForUserIfNeeded(targetUser);
+    const moderation = await summarizeModerationForTarget(freshTargetUser || targetUser);
+    const deviceLinks = await getDeviceLinksForUser((freshTargetUser || targetUser).id);
 
     return res.json({
       ok: true,
       admin: await buildResolvedPublicUser(adminUser),
-      member: await buildResolvedPublicUser(targetUser),
+      member: await buildResolvedPublicUser(freshTargetUser || targetUser),
       moderation,
       deviceCount: deviceLinks.length,
     });
