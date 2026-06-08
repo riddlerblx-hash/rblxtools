@@ -1607,6 +1607,16 @@ body.rblx-shell-ready {
   outline: none;
 }
 
+.rblx-shell-support-field select {
+  color: #111111;
+  background: #ffffff;
+}
+
+.rblx-shell-support-field select option {
+  color: #111111;
+  background: #ffffff;
+}
+
 .rblx-shell-support-field textarea {
   min-height: 140px;
   resize: vertical;
