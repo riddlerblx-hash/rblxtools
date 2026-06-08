@@ -863,11 +863,8 @@
               </div>
             </div>
             <div class="admin-buttons">
-              <button class="admin-btn blue" id="stripeSyncButton" type="button">Sync Stripe</button>
               <button class="admin-btn green" id="stripeAddDaysButton" type="button">Add Days</button>
-              <button class="admin-btn ghost" id="stripeResumeButton" type="button">Resume Renewal</button>
-              <button class="admin-btn red" id="stripeCancelPeriodEndButton" type="button">Cancel At Period End</button>
-              <button class="admin-btn red" id="stripeCancelNowButton" type="button">Cancel Now</button>
+              <button class="admin-btn red" id="stripeRemovePlusButton" type="button">Remove Plus</button>
             </div>
             <div class="admin-result" id="stripePlusStatus"></div>
           </div>
@@ -1524,11 +1521,8 @@
 
       async function runStripePlusAction(action) {
         var busyIds = [
-          "stripeSyncButton",
           "stripeAddDaysButton",
-          "stripeResumeButton",
-          "stripeCancelPeriodEndButton",
-          "stripeCancelNowButton"
+          "stripeRemovePlusButton"
         ];
         return withBusy(busyIds, async function () {
           var token = getStoredToken();
@@ -1985,11 +1979,8 @@
 
       document.getElementById("grantPlusButton").addEventListener("click", grantPlus);
       document.getElementById("removePlusButton").addEventListener("click", removePlus);
-      document.getElementById("stripeSyncButton").addEventListener("click", function () { runStripePlusAction("sync"); });
       document.getElementById("stripeAddDaysButton").addEventListener("click", function () { runStripePlusAction("add_days"); });
-      document.getElementById("stripeResumeButton").addEventListener("click", function () { runStripePlusAction("resume_renewal"); });
-      document.getElementById("stripeCancelPeriodEndButton").addEventListener("click", function () { runStripePlusAction("cancel_period_end"); });
-      document.getElementById("stripeCancelNowButton").addEventListener("click", function () { runStripePlusAction("cancel_now"); });
+      document.getElementById("stripeRemovePlusButton").addEventListener("click", function () { runStripePlusAction("remove_plus"); });
       document.getElementById("blacklistButton").addEventListener("click", applyWebsiteLock);
       document.getElementById("clearBlacklistButton").addEventListener("click", clearWebsiteLock);
       document.getElementById("timeoutButton").addEventListener("click", applyChatTimeout);

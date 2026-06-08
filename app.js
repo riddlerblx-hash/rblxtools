@@ -1709,33 +1709,15 @@ async function performStripeAdminAction(targetUser, action, payload = {}) {
     error.statusCode = 400;
     throw error;
   }
-  const subscription = await getPrimaryStripeSubscriptionForCustomer(targetUser.stripe_customer_id, {
-    includeCanceled: action === "cancel_now",
-  });
-  if (!subscription) {
-    const error = new Error("No active Stripe subscription was found for this member.");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  let stripeResult = subscription;
-  if (action === "sync") {
-    await syncLatestStripeSubscriptionForCustomer(targetUser.stripe_customer_id);
-  } else if (action === "cancel_period_end") {
-    stripeResult = await stripeClient.subscriptions.update(subscription.id, {
-      cancel_at_period_end: true,
+  if (action === "add_days") {
+    const subscription = await getPrimaryStripeSubscriptionForCustomer(targetUser.stripe_customer_id, {
+      includeCanceled: false,
     });
-    await syncStripeSubscriptionObject(stripeResult);
-  } else if (action === "resume_renewal") {
-    stripeResult = await stripeClient.subscriptions.update(subscription.id, {
-      cancel_at_period_end: false,
-      cancel_at: null,
-    });
-    await syncStripeSubscriptionObject(stripeResult);
-  } else if (action === "cancel_now") {
-    stripeResult = await stripeClient.subscriptions.cancel(subscription.id);
-    await syncStripeSubscriptionObject(stripeResult);
-  } else if (action === "add_days") {
+    if (!subscription) {
+      const error = new Error("No active Stripe subscription was found for this member.");
+      error.statusCode = 404;
+      throw error;
+    }
     const requestedDays = Number.parseInt(String(payload.days || "0"), 10);
     const days = Number.isFinite(requestedDays) ? Math.max(1, Math.min(requestedDays, 365)) : 0;
     if (!days) {
@@ -1757,6 +1739,29 @@ async function performStripeAdminAction(targetUser, action, payload = {}) {
       throw wrapped;
     }
     await syncStripeSubscriptionObject(stripeResult);
+  } else if (action === "remove_plus") {
+    const subscriptions = await stripeClient.subscriptions.list({
+      customer: targetUser.stripe_customer_id,
+      status: "all",
+      limit: 100,
+    });
+    const items = Array.isArray(subscriptions?.data) ? subscriptions.data.filter(Boolean) : [];
+    const activeSubscriptions = items.filter((subscription) => {
+      const status = String(subscription?.status || "").toLowerCase();
+      return !["canceled", "incomplete_expired"].includes(status);
+    });
+    for (const subscription of activeSubscriptions) {
+      await stripeClient.subscriptions.cancel(subscription.id);
+    }
+    await updateAuthUserFields(targetUser.id, {
+      premium_active: false,
+      plan: "free",
+      stripe_subscription_status: "canceled",
+      membership_source: "none",
+      stripe_days_total: null,
+      stripe_current_period_start_at: null,
+      stripe_current_period_end_at: null,
+    });
   } else {
     const error = new Error("That Stripe action is not supported.");
     error.statusCode = 400;
@@ -4487,13 +4492,10 @@ app.post("/admin/stripe-plus-action", async (req, res) => {
       })
     );
     await refreshMembershipStateForConnectedUser(updatedUser || targetUser);
-    const messageMap = {
-      sync: "Stripe membership synced from Stripe successfully.",
-      cancel_period_end: "Stripe subscription will cancel at period end.",
-      resume_renewal: "Stripe subscription auto-renewal resumed.",
-      cancel_now: "Stripe subscription canceled immediately.",
-      add_days: "Stripe subscription extension attempted and synced.",
-    };
+      const messageMap = {
+        add_days: "Stripe subscription extension attempted and synced.",
+        remove_plus: "Stripe subscription canceled and Plus removed from the account.",
+      };
     return res.json({
       ok: true,
       message: messageMap[action] || "Stripe action completed successfully.",
