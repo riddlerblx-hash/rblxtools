@@ -209,16 +209,16 @@
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.25h14M5 12h14M5 16.75h14"/></svg>';
   }
 
-  function getSupportCategoryOptionsMarkup() {
-    return [
-      '<option value="website_bug">Website Bugs</option>',
-      '<option value="live_chat_issue">Live Chat Related Issues</option>',
-      '<option value="membership_issue">Membership Related Issues</option>',
-      '<option value="billing_issue">Billing / Purchase Issues</option>',
-      '<option value="user_report">Report A Member</option>',
-      '<option value="other">Other Reason</option>'
-    ].join("");
-  }
+    function getSupportCategoryOptionsMarkup() {
+      return [
+        '<option value="website_bug">🐞 Website Bugs</option>',
+        '<option value="live_chat_issue">💬 Live Chat Related Issues</option>',
+        '<option value="membership_issue">💎 Membership Related Issues</option>',
+        '<option value="billing_issue">💳 Billing / Purchase Issues</option>',
+        '<option value="user_report">🚨 Report A Member</option>',
+        '<option value="other">🧩 Other Reason</option>'
+      ].join("");
+    }
 
   function buildCheckoutConfetti() {
     var pieces = "";
@@ -1031,7 +1031,7 @@
                   "</div>" +
                 "</form>" +
                 '<div class="rblx-shell-chat-foot">' +
-                  '<button class="rblx-shell-chat-report" type="button" id="rblxShellReportButton">Report Issue</button>' +
+                  '<button class="rblx-shell-chat-report" type="button" id="rblxShellReportButton">🛟 Report Issue</button>' +
                   '<a class="rblx-shell-chat-rules" href="#" id="rblxShellRulesLink">Chat Rules</a>' +
                   '<span class="rblx-shell-chat-online"><span class="rblx-shell-chat-online-dot"></span><span id="rblxShellOnlineCount">17</span></span>' +
                 "</div>" +
