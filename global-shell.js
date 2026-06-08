@@ -45,6 +45,20 @@
     siteLockReason: null,
     chatAlert: null,
     chatAlertText: null,
+    chatReportButton: null,
+    supportOverlay: null,
+    supportModal: null,
+    supportCategory: null,
+    supportReporterId: null,
+    supportReportedIdWrap: null,
+    supportReportedId: null,
+    supportDetails: null,
+    supportAttachment: null,
+    supportAttachmentName: null,
+    supportStatus: null,
+    supportSubmit: null,
+    supportCancel: null,
+    lastViewedProfileUserId: "",
     moderationCountdownTimer: null,
     chatSpecials: null,
     chatBottom: null,
@@ -193,6 +207,17 @@
 
   function getToggleIcon() {
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.25h14M5 12h14M5 16.75h14"/></svg>';
+  }
+
+  function getSupportCategoryOptionsMarkup() {
+    return [
+      '<option value="website_bug">Website Bugs</option>',
+      '<option value="live_chat_issue">Live Chat Related Issues</option>',
+      '<option value="membership_issue">Membership Related Issues</option>',
+      '<option value="billing_issue">Billing / Purchase Issues</option>',
+      '<option value="user_report">Report A Member</option>',
+      '<option value="other">Other Reason</option>'
+    ].join("");
   }
 
   function buildCheckoutConfetti() {
@@ -1006,6 +1031,7 @@
                   "</div>" +
                 "</form>" +
                 '<div class="rblx-shell-chat-foot">' +
+                  '<button class="rblx-shell-chat-report" type="button" id="rblxShellReportButton">Report Issue</button>' +
                   '<a class="rblx-shell-chat-rules" href="#" id="rblxShellRulesLink">Chat Rules</a>' +
                   '<span class="rblx-shell-chat-online"><span class="rblx-shell-chat-online-dot"></span><span id="rblxShellOnlineCount">17</span></span>' +
                 "</div>" +
@@ -1057,6 +1083,44 @@
             '</div>' +
             '<div class="rblx-shell-checkout-thankyou">Thank you for supporting the tools, updates, and everything we are building next.</div>' +
             '<button class="rblx-shell-btn is-primary rblx-shell-checkout-button" type="button" id="rblxShellCheckoutClose" disabled>Back To Account (10)</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="rblx-shell-support-overlay" id="rblxShellSupportOverlay" aria-hidden="true">' +
+          '<div class="rblx-shell-support-modal" id="rblxShellSupportModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellSupportTitle">' +
+            '<div class="rblx-shell-support-kicker">Website Support</div>' +
+            '<h3 class="rblx-shell-support-title" id="rblxShellSupportTitle">Send a report</h3>' +
+            '<p class="rblx-shell-support-copy">Use this if something on the site, chat, or membership flow is off. If you are reporting a member, open their chat profile and copy the user ID shown there.</p>' +
+            '<div class="rblx-shell-support-grid">' +
+              '<label class="rblx-shell-support-field">' +
+                '<span>Report reason</span>' +
+                '<select id="rblxShellSupportCategory">' + getSupportCategoryOptionsMarkup() + '</select>' +
+              '</label>' +
+              '<label class="rblx-shell-support-field">' +
+                '<span>Your user ID</span>' +
+                '<input id="rblxShellSupportReporterId" type="text" placeholder="Your account user ID" maxlength="80" />' +
+              '</label>' +
+            '</div>' +
+            '<div class="rblx-shell-support-target-wrap" id="rblxShellSupportReportedWrap" hidden>' +
+              '<label class="rblx-shell-support-field">' +
+                '<span>Reported user ID</span>' +
+                '<input id="rblxShellSupportReportedId" type="text" placeholder="Open their chat profile and paste the user ID here" maxlength="80" />' +
+              '</label>' +
+              '<div class="rblx-shell-support-help">Tip: click their profile in live chat, then copy the user ID from the popup.</div>' +
+            '</div>' +
+            '<label class="rblx-shell-support-field">' +
+              '<span>What happened?</span>' +
+              '<textarea id="rblxShellSupportDetails" maxlength="1800" placeholder="Explain the issue as clearly as you can."></textarea>' +
+            '</label>' +
+            '<label class="rblx-shell-support-field">' +
+              '<span>Picture / document (optional)</span>' +
+              '<input id="rblxShellSupportAttachment" type="file" accept="image/*,.pdf,.txt,.doc,.docx,.zip" />' +
+              '<div class="rblx-shell-support-help" id="rblxShellSupportAttachmentName">No file attached.</div>' +
+            '</label>' +
+            '<div class="rblx-shell-support-status" id="rblxShellSupportStatus"></div>' +
+            '<div class="rblx-shell-support-actions">' +
+              '<button class="rblx-shell-btn" type="button" id="rblxShellSupportCancel">Cancel</button>' +
+              '<button class="rblx-shell-btn is-primary" type="button" id="rblxShellSupportSubmit">Submit Report</button>' +
+            '</div>' +
           '</div>' +
         '</div>' +
         '<div class="rblx-shell-site-lock" id="rblxShellSiteLock" aria-hidden="true">' +
@@ -1239,6 +1303,7 @@
     }
     var profile = index >= 0 && shellState.profileCache[index] ? shellState.profileCache[index] : getMessageProfile(message);
     var isPlus = profile.plan === "plus" || String(profile.badge || "").toLowerCase() === "plus";
+    shellState.lastViewedProfileUserId = profile.userId || "";
 
     shellState.profileAvatar.classList.toggle("has-image", Boolean(profile.avatarUrl));
     if (profile.avatarUrl) {
@@ -1288,6 +1353,163 @@
     shellState.profileOverlay.setAttribute("aria-hidden", "true");
   }
 
+  function setSupportStatus(message, tone) {
+    if (!shellState.supportStatus) return;
+    shellState.supportStatus.textContent = message || "";
+    shellState.supportStatus.className = "rblx-shell-support-status" + (tone ? " is-" + tone : "");
+  }
+
+  function getCurrentSupportReporterId() {
+    if (shellState.currentUser && shellState.currentUser.userId) {
+      return String(shellState.currentUser.userId);
+    }
+    var cachedUser = getCachedAuthUser();
+    return cachedUser && cachedUser.id ? String(cachedUser.id) : "";
+  }
+
+  function toggleSupportTargetField() {
+    if (!shellState.supportCategory || !shellState.supportReportedIdWrap) return;
+    var needsTarget = String(shellState.supportCategory.value || "") === "user_report";
+    shellState.supportReportedIdWrap.hidden = !needsTarget;
+    if (needsTarget && shellState.supportReportedId && !shellState.supportReportedId.value && shellState.lastViewedProfileUserId) {
+      shellState.supportReportedId.value = shellState.lastViewedProfileUserId;
+    }
+  }
+
+  function openSupportModal() {
+    if (!getToken()) {
+      window.alert("Please log in before sending a support report.");
+      return;
+    }
+    if (!shellState.supportOverlay) return;
+    if (shellState.supportReporterId) {
+      shellState.supportReporterId.value = getCurrentSupportReporterId();
+    }
+    if (shellState.supportCategory) {
+      shellState.supportCategory.value = shellState.supportCategory.value || "website_bug";
+    }
+    if (shellState.supportDetails) {
+      shellState.supportDetails.value = "";
+    }
+    if (shellState.supportAttachment) {
+      shellState.supportAttachment.value = "";
+    }
+    if (shellState.supportAttachmentName) {
+      shellState.supportAttachmentName.textContent = "No file attached.";
+    }
+    if (shellState.supportReportedId) {
+      shellState.supportReportedId.value = shellState.lastViewedProfileUserId || "";
+    }
+    toggleSupportTargetField();
+    setSupportStatus("", "");
+    shellState.supportOverlay.classList.add("is-open");
+    shellState.supportOverlay.setAttribute("aria-hidden", "false");
+  }
+
+  function closeSupportModal() {
+    if (!shellState.supportOverlay) return;
+    shellState.supportOverlay.classList.remove("is-open");
+    shellState.supportOverlay.setAttribute("aria-hidden", "true");
+    setSupportStatus("", "");
+  }
+
+  function readSupportAttachment(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file) {
+        resolve(null);
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        reject(new Error("Attachment must be 5 MB or smaller."));
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        resolve({
+          name: file.name || "attachment",
+          type: file.type || "application/octet-stream",
+          size: file.size || 0,
+          dataUrl: typeof reader.result === "string" ? reader.result : ""
+        });
+      };
+      reader.onerror = function () {
+        reject(new Error("Could not read that attachment."));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function submitSupportReport() {
+    var token = getToken();
+    if (!token) {
+      window.alert("Please log in before sending a support report.");
+      return;
+    }
+    if (!shellState.supportCategory || !shellState.supportReporterId || !shellState.supportDetails || !shellState.supportSubmit) {
+      return;
+    }
+
+    var category = String(shellState.supportCategory.value || "").trim();
+    var reporterUserId = String(shellState.supportReporterId.value || "").trim();
+    var details = String(shellState.supportDetails.value || "").trim();
+    var reportedUserId = shellState.supportReportedId ? String(shellState.supportReportedId.value || "").trim() : "";
+
+    if (!reporterUserId) {
+      setSupportStatus("Your user ID is required.", "error");
+      return;
+    }
+    if (!details) {
+      setSupportStatus("Please explain what happened before sending the report.", "error");
+      return;
+    }
+    if (category === "user_report" && !reportedUserId) {
+      setSupportStatus("A reported user ID is required for member reports.", "error");
+      return;
+    }
+
+    shellState.supportSubmit.disabled = true;
+    if (shellState.supportCancel) {
+      shellState.supportCancel.disabled = true;
+    }
+    setSupportStatus("Sending report...", "");
+
+    try {
+      var attachmentFile = shellState.supportAttachment && shellState.supportAttachment.files ? shellState.supportAttachment.files[0] : null;
+      var attachment = await readSupportAttachment(attachmentFile);
+      var response = await fetch(API_BASE + "/support/report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({
+          category: category,
+          reporterUserId: reporterUserId,
+          reportedUserId: reportedUserId,
+          details: details,
+          pageUrl: window.location.href,
+          reporterDisplayName: shellState.currentUser && shellState.currentUser.displayName ? shellState.currentUser.displayName : "",
+          attachment: attachment
+        })
+      });
+      var result = await response.json().catch(function () { return null; });
+      if (!response.ok) {
+        throw new Error(result && result.error ? result.error : "Request failed.");
+      }
+      setSupportStatus("Report submitted successfully.", "success");
+      window.setTimeout(function () {
+        closeSupportModal();
+      }, 700);
+    } catch (error) {
+      setSupportStatus(error.message || "Could not send the support report.", "error");
+    } finally {
+      shellState.supportSubmit.disabled = false;
+      if (shellState.supportCancel) {
+        shellState.supportCancel.disabled = false;
+      }
+    }
+  }
+
   function syncChatIdentity() {
     if (!shellState.chatList || !shellState.chatMessages.length) return;
           renderChatMessages(shellState.chatList, shellState.chatMessages);
@@ -1299,6 +1521,7 @@
     var input = document.getElementById("rblxShellChatInput");
     var sendButton = document.getElementById("rblxShellChatSendButton");
     var adminButton = document.getElementById("rblxShellAdminButton");
+    var reportButton = document.getElementById("rblxShellReportButton");
     var chatAlert = document.getElementById("rblxShellChatAlert");
     var chatAlertText = document.getElementById("rblxShellChatAlertText");
     var chatSpecials = document.getElementById("rblxShellChatSpecials");
@@ -1310,6 +1533,7 @@
     shellState.chatInput = input;
     shellState.chatSendButton = sendButton;
     shellState.chatAdminButton = adminButton;
+    shellState.chatReportButton = reportButton;
     shellState.chatAlert = chatAlert;
     shellState.chatAlertText = chatAlertText;
     shellState.chatSpecials = chatSpecials;
@@ -1318,6 +1542,9 @@
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.hidden = true;
       shellState.chatAdminButton.style.display = "none";
+    }
+    if (shellState.chatReportButton) {
+      shellState.chatReportButton.addEventListener("click", openSupportModal);
     }
     renderChatMessages(list, starterMessages, { forceBottom: true });
 
@@ -1753,6 +1980,49 @@
     document.addEventListener("keydown", function (event) {
       if (event.key === "Escape") {
         closeProfileModal();
+      }
+    });
+  }
+
+  function initSupportModal() {
+    shellState.supportOverlay = document.getElementById("rblxShellSupportOverlay");
+    shellState.supportModal = document.getElementById("rblxShellSupportModal");
+    shellState.supportCategory = document.getElementById("rblxShellSupportCategory");
+    shellState.supportReporterId = document.getElementById("rblxShellSupportReporterId");
+    shellState.supportReportedIdWrap = document.getElementById("rblxShellSupportReportedWrap");
+    shellState.supportReportedId = document.getElementById("rblxShellSupportReportedId");
+    shellState.supportDetails = document.getElementById("rblxShellSupportDetails");
+    shellState.supportAttachment = document.getElementById("rblxShellSupportAttachment");
+    shellState.supportAttachmentName = document.getElementById("rblxShellSupportAttachmentName");
+    shellState.supportStatus = document.getElementById("rblxShellSupportStatus");
+    shellState.supportSubmit = document.getElementById("rblxShellSupportSubmit");
+    shellState.supportCancel = document.getElementById("rblxShellSupportCancel");
+
+    if (shellState.supportCategory) {
+      shellState.supportCategory.addEventListener("change", toggleSupportTargetField);
+    }
+    if (shellState.supportAttachment && shellState.supportAttachmentName) {
+      shellState.supportAttachment.addEventListener("change", function () {
+        var file = shellState.supportAttachment.files && shellState.supportAttachment.files[0];
+        shellState.supportAttachmentName.textContent = file ? (file.name + " (" + Math.max(1, Math.round(file.size / 1024)) + " KB)") : "No file attached.";
+      });
+    }
+    if (shellState.supportSubmit) {
+      shellState.supportSubmit.addEventListener("click", submitSupportReport);
+    }
+    if (shellState.supportCancel) {
+      shellState.supportCancel.addEventListener("click", closeSupportModal);
+    }
+    if (shellState.supportOverlay) {
+      shellState.supportOverlay.addEventListener("click", function (event) {
+        if (event.target === shellState.supportOverlay) {
+          closeSupportModal();
+        }
+      });
+    }
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && shellState.supportOverlay && shellState.supportOverlay.classList.contains("is-open")) {
+        closeSupportModal();
       }
     });
   }
@@ -2408,6 +2678,7 @@
     applyCollapsedState(document.body);
     initProfileOverlay();
     initCheckoutSuccessModal();
+    initSupportModal();
     initToggles();
     initChat();
     initAdminWindow();

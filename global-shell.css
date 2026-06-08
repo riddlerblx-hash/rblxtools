@@ -1376,6 +1376,30 @@ body.rblx-shell-ready {
   gap: 8px;
 }
 
+.rblx-shell-chat-report {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: #ffd8d8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+
+.rblx-shell-chat-report:hover {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(255,255,255,0.14);
+  transform: translateY(-1px);
+}
+
 .rblx-shell-chat-online-dot {
   width: 10px;
   height: 10px;
@@ -1486,6 +1510,137 @@ body.rblx-shell-ready {
 .rblx-shell-profile-modal > *:not(.rblx-shell-profile-pluses) {
   position: relative;
   z-index: 1;
+}
+
+.rblx-shell-support-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(5, 8, 12, 0.66);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 74;
+}
+
+.rblx-shell-support-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.rblx-shell-support-modal {
+  width: min(620px, calc(100vw - 32px));
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background:
+    radial-gradient(circle at top right, rgba(110,179,255,0.14), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(255,103,103,0.12), transparent 28%),
+    linear-gradient(180deg, rgba(18, 24, 35, 0.98), rgba(11, 15, 23, 0.98));
+  box-shadow: 0 30px 72px rgba(0,0,0,0.48);
+  padding: 22px;
+}
+
+.rblx-shell-support-kicker {
+  color: #ffb9b9;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.rblx-shell-support-title {
+  margin: 8px 0 0;
+  color: #fff;
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.rblx-shell-support-copy {
+  margin: 10px 0 0;
+  color: #c4cfdd;
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 700;
+}
+
+.rblx-shell-support-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.rblx-shell-support-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.rblx-shell-support-field span {
+  color: #ffbdbd;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+}
+
+.rblx-shell-support-field input,
+.rblx-shell-support-field select,
+.rblx-shell-support-field textarea {
+  width: 100%;
+  min-width: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: #ffffff;
+  padding: 12px 13px;
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+}
+
+.rblx-shell-support-field textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.rblx-shell-support-help {
+  color: #9eb0c8;
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+.rblx-shell-support-status {
+  min-height: 18px;
+  margin-top: 12px;
+  color: #b9c7d9;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+
+.rblx-shell-support-status.is-error {
+  color: #ffb0b0;
+}
+
+.rblx-shell-support-status.is-success {
+  color: #8ff0b0;
+}
+
+.rblx-shell-support-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .rblx-shell-checkout-overlay {
@@ -2287,6 +2442,24 @@ body.rblx-shell-left-collapsed #rblxShellLeftToggle { right: -20px; }
     width: min(100%, 520px);
     padding: 20px 16px 18px;
     border-radius: 22px;
+  }
+
+  .rblx-shell-support-overlay {
+    padding: 12px;
+  }
+
+  .rblx-shell-support-modal {
+    width: min(100%, 560px);
+    padding: 18px 14px;
+    border-radius: 20px;
+  }
+
+  .rblx-shell-support-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rblx-shell-support-actions {
+    flex-direction: column;
   }
 
   .rblx-shell-profile-top {

@@ -45,6 +45,11 @@ const ADMIN_USER_EMAILS = (process.env.ADMIN_USER_EMAILS || "")
 const DEFAULT_COMPLIMENTARY_PLUS_DAYS = 14;
 const MAX_COMPLIMENTARY_PLUS_DAYS = 3650;
 const OWNER_STRIPE_PIN = "0212";
+const DISCORD_SUPPORT_WEBHOOK_URL = String(process.env.DISCORD_SUPPORT_WEBHOOK_URL || process.env.SUPPORT_DISCORD_WEBHOOK_URL || "").trim();
+const SUPPORT_BOT_ENDPOINT = String(process.env.SUPPORT_BOT_ENDPOINT || "").trim();
+const SUPPORT_BOT_SECRET = String(process.env.SUPPORT_BOT_SECRET || "").trim();
+const SUPPORT_STAFF_MENTION = String(process.env.SUPPORT_STAFF_MENTION || "").trim();
+const MAX_SUPPORT_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MAX_CHAT_TIMEOUT_SECONDS = 3650 * 24 * 60 * 60;
 const AUTH_JWT_TTL_DAYS = Math.max(
   1,
@@ -788,6 +793,236 @@ async function getLiveStripeMembership(row) {
     console.warn("Could not load live Stripe membership:", error.message);
     return null;
   }
+}
+
+function normalizeSupportCategory(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "website_bug") return "website_bug";
+  if (normalized === "live_chat_issue") return "live_chat_issue";
+  if (normalized === "membership_issue") return "membership_issue";
+  if (normalized === "billing_issue") return "billing_issue";
+  if (normalized === "user_report") return "user_report";
+  if (normalized === "other") return "other";
+  return "";
+}
+
+function getSupportCategoryLabel(category) {
+  switch (normalizeSupportCategory(category)) {
+    case "website_bug":
+      return "Website Bugs";
+    case "live_chat_issue":
+      return "Live Chat Related Issues";
+    case "membership_issue":
+      return "Membership Related Issues";
+    case "billing_issue":
+      return "Billing / Purchase Issues";
+    case "user_report":
+      return "Report A Member";
+    case "other":
+      return "Other Reason";
+    default:
+      return "Support Report";
+  }
+}
+
+function sanitizeSupportFileName(value) {
+  const safe = cleanText(value || "attachment", 120).replace(/[^a-zA-Z0-9._()\- ]+/g, "_");
+  return safe || "attachment";
+}
+
+function parseSupportAttachment(rawAttachment) {
+  if (!rawAttachment || typeof rawAttachment !== "object") {
+    return null;
+  }
+
+  const dataUrl = String(rawAttachment.dataUrl || "").trim();
+  if (!dataUrl) {
+    return null;
+  }
+
+  const match = dataUrl.match(/^data:([^;,]+)?;base64,(.+)$/i);
+  if (!match || !match[2]) {
+    const error = new Error("Attachment data was invalid.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  let buffer = null;
+  try {
+    buffer = Buffer.from(match[2], "base64");
+  } catch (_error) {
+    const error = new Error("Attachment could not be decoded.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!buffer || !buffer.length) {
+    return null;
+  }
+
+  if (buffer.length > MAX_SUPPORT_ATTACHMENT_BYTES) {
+    const error = new Error("Attachments must be 5 MB or smaller.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return {
+    name: sanitizeSupportFileName(rawAttachment.name || "attachment"),
+    type: cleanText(rawAttachment.type || match[1] || "application/octet-stream", 100) || "application/octet-stream",
+    size: buffer.length,
+    buffer,
+    base64: buffer.toString("base64"),
+  };
+}
+
+function extractMentionIds(value, pattern) {
+  const text = String(value || "");
+  const matches = [];
+  let match = null;
+  const regex = new RegExp(pattern, "g");
+  while ((match = regex.exec(text))) {
+    if (match[1]) {
+      matches.push(match[1]);
+    }
+  }
+  return Array.from(new Set(matches));
+}
+
+function buildSupportDiscordPayload(report) {
+  const roleMentions = extractMentionIds(SUPPORT_STAFF_MENTION, "<@&(\\d+)>");
+  const userMentions = extractMentionIds(SUPPORT_STAFF_MENTION, "<@(\\d+)>");
+  const content = SUPPORT_STAFF_MENTION || "";
+  const attachmentText = report.attachment
+    ? `${report.attachment.name} (${Math.max(1, Math.round(report.attachment.size / 1024))} KB)`
+    : "None";
+
+  return {
+    content,
+    allowed_mentions: {
+      parse: ["roles", "users"],
+      roles: roleMentions,
+      users: userMentions,
+    },
+    embeds: [
+      {
+        title: `New Support Report: ${report.categoryLabel}`,
+        color: 0xff5f5f,
+        description: report.details.slice(0, 3500),
+        fields: [
+          { name: "Reporter User ID", value: report.reporterUserId || "Unknown", inline: true },
+          { name: "Reporter Email", value: report.reporterEmail || "Unknown", inline: true },
+          { name: "Reporter Name", value: report.reporterDisplayName || "Unknown", inline: true },
+          { name: "Reported User ID", value: report.reportedUserId || "Not provided", inline: true },
+          { name: "Page", value: report.pageUrl || "Unknown", inline: false },
+          { name: "Attachment", value: attachmentText, inline: false }
+        ],
+        footer: {
+          text: `Submitted ${report.submittedAt}`
+        }
+      }
+    ]
+  };
+}
+
+async function sendSupportReportToBot(report) {
+  if (!SUPPORT_BOT_ENDPOINT) {
+    return null;
+  }
+
+  const response = await fetch(SUPPORT_BOT_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(SUPPORT_BOT_SECRET ? { "X-Support-Secret": SUPPORT_BOT_SECRET } : {}),
+    },
+    body: JSON.stringify({
+      type: "support-report",
+      category: report.category,
+      categoryLabel: report.categoryLabel,
+      details: report.details,
+      reporter: {
+        userId: report.reporterUserId,
+        email: report.reporterEmail,
+        displayName: report.reporterDisplayName,
+      },
+      reportedUserId: report.reportedUserId || null,
+      pageUrl: report.pageUrl || "",
+      submittedAt: report.submittedAt,
+      userAgent: report.userAgent || "",
+      attachment: report.attachment
+        ? {
+            name: report.attachment.name,
+            type: report.attachment.type,
+            size: report.attachment.size,
+            base64: report.attachment.base64,
+          }
+        : null,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || "The support bot endpoint rejected the report.");
+  }
+
+  return { destination: "bot" };
+}
+
+async function sendSupportReportToWebhook(report) {
+  if (!DISCORD_SUPPORT_WEBHOOK_URL) {
+    return null;
+  }
+
+  const payload = buildSupportDiscordPayload(report);
+
+  if (report.attachment && typeof FormData !== "undefined" && typeof Blob !== "undefined") {
+    const formData = new FormData();
+    formData.append("payload_json", JSON.stringify(payload));
+    formData.append(
+      "file0",
+      new Blob([report.attachment.buffer], { type: report.attachment.type || "application/octet-stream" }),
+      report.attachment.name
+    );
+
+    const response = await fetch(DISCORD_SUPPORT_WEBHOOK_URL, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || "Discord webhook rejected the support report.");
+    }
+
+    return { destination: "discord-webhook" };
+  }
+
+  const response = await fetch(DISCORD_SUPPORT_WEBHOOK_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || "Discord webhook rejected the support report.");
+  }
+
+  return { destination: "discord-webhook" };
+}
+
+async function deliverSupportReport(report) {
+  if (SUPPORT_BOT_ENDPOINT) {
+    return sendSupportReportToBot(report);
+  }
+  if (DISCORD_SUPPORT_WEBHOOK_URL) {
+    return sendSupportReportToWebhook(report);
+  }
+  const error = new Error("Support reporting is not configured yet. Add SUPPORT_BOT_ENDPOINT or DISCORD_SUPPORT_WEBHOOK_URL.");
+  error.statusCode = 500;
+  throw error;
 }
 
 async function getBestStripeMembershipForCustomer(customerId, debug = null) {
@@ -4142,6 +4377,65 @@ app.get("/auth/premium-status", async (req, res) => {
   } catch (error) {
     return res.status(error.statusCode || 500).json({
       error: error.message || "Could not load premium status.",
+    });
+  }
+});
+
+app.post("/support/report", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const category = normalizeSupportCategory(req.body?.category);
+    const reporterUserId = cleanText(req.body?.reporterUserId, 80);
+    const reportedUserId = cleanText(req.body?.reportedUserId, 80);
+    const details = cleanText(req.body?.details, 1800);
+    const pageUrl = cleanText(req.body?.pageUrl, 300);
+    const reporterDisplayName = cleanText(
+      req.body?.reporterDisplayName || user.display_name || user.username || user.email || "",
+      displayNameLength
+    );
+
+    if (!category) {
+      return res.status(400).json({ error: "Choose a support report reason." });
+    }
+    if (!reporterUserId) {
+      return res.status(400).json({ error: "Your user ID is required." });
+    }
+    if (String(user.id) !== reporterUserId) {
+      return res.status(400).json({ error: "Use your own account user ID when sending a report." });
+    }
+    if (category === "user_report" && !reportedUserId) {
+      return res.status(400).json({ error: "A reported user ID is required for member reports." });
+    }
+    if (!details) {
+      return res.status(400).json({ error: "Add a short explanation before sending the report." });
+    }
+
+    const attachment = parseSupportAttachment(req.body?.attachment);
+    const report = {
+      category,
+      categoryLabel: getSupportCategoryLabel(category),
+      details,
+      reporterUserId: String(user.id),
+      reporterEmail: user.email || "",
+      reporterDisplayName: reporterDisplayName || user.email || "Member",
+      reportedUserId: reportedUserId || "",
+      pageUrl: pageUrl || "",
+      submittedAt: new Date().toISOString(),
+      userAgent: cleanText(req.headers["user-agent"] || "", 240),
+      attachment,
+    };
+
+    const delivery = await deliverSupportReport(report);
+
+    return res.json({
+      ok: true,
+      message: "Support report sent successfully.",
+      destination: delivery && delivery.destination ? delivery.destination : "unknown",
+    });
+  } catch (error) {
+    console.error("POST /support/report failed:", error.message);
+    return res.status(error.statusCode || 500).json({
+      error: error.message || "Could not send the support report.",
     });
   }
 });
