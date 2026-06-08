@@ -55,6 +55,9 @@ const OPTIONAL_AUTH_USER_COLUMNS = new Set([
   "plus_expires_at",
   "plus_current_period_start_at",
   "plus_current_period_end_at",
+  "stripe_days_total",
+  "stripe_current_period_start_at",
+  "stripe_current_period_end_at",
 ]);
 const missingOptionalAuthUserColumns = new Set();
 let dracoDecoderModulePromise = null;
@@ -149,13 +152,15 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
               : null;
 
         if (customerId) {
-          await setBillingAccessForCustomer(customerId, buildMembershipStorageFields({
-            premiumActive: true,
-            plan: "plus",
-            stripeSubscriptionStatus: "active",
-            membershipSource: "stripe",
-          }));
-
+          const synced = await syncLatestStripeSubscriptionForCustomer(customerId);
+          if (!synced) {
+            await setBillingAccessForCustomer(customerId, buildMembershipStorageFields({
+              premiumActive: true,
+              plan: "plus",
+              stripeSubscriptionStatus: "active",
+              membershipSource: "stripe",
+            }));
+          }
         }
         break;
       }
@@ -170,12 +175,15 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
               : null;
 
         if (customerId) {
-          await setBillingAccessForCustomer(customerId, buildMembershipStorageFields({
-            premiumActive: false,
-            plan: "free",
-            stripeSubscriptionStatus: "past_due",
-            membershipSource: "stripe",
-          }));
+          const synced = await syncLatestStripeSubscriptionForCustomer(customerId);
+          if (!synced) {
+            await setBillingAccessForCustomer(customerId, buildMembershipStorageFields({
+              premiumActive: false,
+              plan: "free",
+              stripeSubscriptionStatus: "past_due",
+              membershipSource: "stripe",
+            }));
+          }
         }
         break;
       }
@@ -654,13 +662,17 @@ function getStoredStripeMembership(row) {
   }
 
   const normalizedStatus = rawStatus.toLowerCase();
+  const currentPeriodStartAt = parseIsoDate(row.stripe_current_period_start_at)?.toISOString() || null;
+  const currentPeriodEndAt = parseIsoDate(row.stripe_current_period_end_at)?.toISOString() || null;
+  const stripeDaysTotalRaw = Number.parseInt(String(row.stripe_days_total ?? ""), 10);
+  const stripeDaysTotal = Number.isFinite(stripeDaysTotalRaw) ? Math.max(0, stripeDaysTotalRaw) : null;
   return buildMembershipBreakdownEntry({
     active: isPremiumStatus(normalizedStatus),
-    totalDays: null,
-    daysLeft: 0,
-    expiresAt: null,
-    currentPeriodStartAt: null,
-    currentPeriodEndAt: null,
+    totalDays: stripeDaysTotal,
+    daysLeft: currentPeriodEndAt ? undefined : 0,
+    expiresAt: currentPeriodEndAt,
+    currentPeriodStartAt,
+    currentPeriodEndAt,
     status: normalizedStatus,
   });
 }
@@ -776,17 +788,7 @@ async function getLiveStripeMembership(row) {
       return null;
     }
 
-    const rankedItems = items
-      .filter(Boolean)
-      .sort((left, right) => {
-        const leftRank = isPremiumStatus(left?.status) ? 3 : String(left?.status || "").toLowerCase() === "past_due" ? 2 : 1;
-        const rightRank = isPremiumStatus(right?.status) ? 3 : String(right?.status || "").toLowerCase() === "past_due" ? 2 : 1;
-        if (leftRank !== rightRank) {
-          return rightRank - leftRank;
-        }
-
-        return Number(right?.created || 0) - Number(left?.created || 0);
-      });
+    const rankedItems = items.filter(Boolean).sort(rankStripeSubscription);
 
     const subscription = rankedItems[0];
     if (!subscription) {
@@ -798,7 +800,7 @@ async function getLiveStripeMembership(row) {
     const currentPeriodEndAt = getIsoFromUnixSeconds(subscription.current_period_end);
     const plusDaysLeft = getDaysLeftUntil(currentPeriodEndAt);
 
-    return buildMembershipBreakdownEntry({
+    const membership = buildMembershipBreakdownEntry({
       active: isPremiumStatus(status),
       totalDays: getDaysBetween(currentPeriodStartAt, currentPeriodEndAt),
       daysLeft: plusDaysLeft,
@@ -807,9 +809,39 @@ async function getLiveStripeMembership(row) {
       currentPeriodEndAt,
       status: status || null,
     });
+    await persistStripeMembershipSnapshotIfNeeded(row, membership);
+    return membership;
   } catch (error) {
     console.warn("Could not load live Stripe membership:", error.message);
     return null;
+  }
+}
+
+async function persistStripeMembershipSnapshotIfNeeded(row, membership) {
+  if (!row?.id || !membership) {
+    return;
+  }
+
+  const currentTotalRaw = Number.parseInt(String(row.stripe_days_total ?? ""), 10);
+  const currentTotal = Number.isFinite(currentTotalRaw) ? Math.max(0, currentTotalRaw) : null;
+  const currentStart = parseIsoDate(row.stripe_current_period_start_at)?.toISOString() || null;
+  const currentEnd = parseIsoDate(row.stripe_current_period_end_at)?.toISOString() || null;
+  const nextTotal = membership.totalDays != null ? Math.max(0, Number(membership.totalDays) || 0) : null;
+  const nextStart = membership.currentPeriodStartAt || null;
+  const nextEnd = membership.currentPeriodEndAt || null;
+
+  if (currentTotal === nextTotal && currentStart === nextStart && currentEnd === nextEnd) {
+    return;
+  }
+
+  try {
+    await updateAuthUserFields(row.id, buildStripeMembershipStorageFields({
+      stripeDaysTotal: nextTotal,
+      stripeCurrentPeriodStartAt: nextStart,
+      stripeCurrentPeriodEndAt: nextEnd,
+    }));
+  } catch (error) {
+    console.warn("Could not persist Stripe membership snapshot:", error.message);
   }
 }
 
@@ -916,6 +948,9 @@ async function createAuthUser(email, password) {
     plus_expires_at: null,
     plus_current_period_start_at: null,
     plus_current_period_end_at: null,
+    stripe_days_total: null,
+    stripe_current_period_start_at: null,
+    stripe_current_period_end_at: null,
     created_at: nowIso,
     updated_at: nowIso,
   });
@@ -1362,7 +1397,18 @@ function buildMembershipStorageFields(snapshot = {}) {
     plus_expires_at: snapshot.plusExpiresAt || null,
     plus_current_period_start_at: snapshot.currentPeriodStartAt || null,
     plus_current_period_end_at: snapshot.currentPeriodEndAt || null,
+    stripe_days_total: snapshot.stripeDaysTotal != null ? Math.max(0, Number(snapshot.stripeDaysTotal) || 0) : null,
+    stripe_current_period_start_at: snapshot.stripeCurrentPeriodStartAt || null,
+    stripe_current_period_end_at: snapshot.stripeCurrentPeriodEndAt || null,
   };
+}
+
+function buildStripeMembershipStorageFields(snapshot = {}) {
+  return filterOptionalAuthColumns({
+    stripe_days_total: snapshot.stripeDaysTotal != null ? Math.max(0, Number(snapshot.stripeDaysTotal) || 0) : null,
+    stripe_current_period_start_at: snapshot.stripeCurrentPeriodStartAt || null,
+    stripe_current_period_end_at: snapshot.stripeCurrentPeriodEndAt || null,
+  });
 }
 
 async function syncSubscriptionStateForUser(userId, customerId, subscriptionStatus, membershipFields = {}) {
@@ -1390,7 +1436,54 @@ async function syncSubscriptionStateForUser(userId, customerId, subscriptionStat
     plan: premiumActive ? "plus" : "free",
     stripe_subscription_status: subscriptionStatus || null,
     membership_source: membershipSource,
+    ...buildStripeMembershipStorageFields(membershipFields),
   });
+}
+
+function buildStripeMembershipFieldsFromSubscription(subscription) {
+  const currentPeriodStartAt = getIsoFromUnixSeconds(subscription?.current_period_start);
+  const currentPeriodEndAt = getIsoFromUnixSeconds(subscription?.current_period_end);
+  return {
+    stripeDaysTotal: getDaysBetween(currentPeriodStartAt, currentPeriodEndAt),
+    stripeCurrentPeriodStartAt: currentPeriodStartAt,
+    stripeCurrentPeriodEndAt: currentPeriodEndAt,
+  };
+}
+
+function rankStripeSubscription(left, right) {
+  const leftStatus = String(left?.status || "").toLowerCase();
+  const rightStatus = String(right?.status || "").toLowerCase();
+  const leftRank = isPremiumStatus(leftStatus) ? 3 : leftStatus === "past_due" ? 2 : 1;
+  const rightRank = isPremiumStatus(rightStatus) ? 3 : rightStatus === "past_due" ? 2 : 1;
+  if (leftRank !== rightRank) {
+    return rightRank - leftRank;
+  }
+
+  return Number(right?.created || 0) - Number(left?.created || 0);
+}
+
+async function syncLatestStripeSubscriptionForCustomer(customerId) {
+  if (!stripeClient || !customerId) {
+    return null;
+  }
+
+  const subscriptions = await stripeClient.subscriptions.list({
+    customer: customerId,
+    status: "all",
+    limit: 10,
+  });
+
+  const items = Array.isArray(subscriptions?.data) ? subscriptions.data.filter(Boolean) : [];
+  if (!items.length) {
+    return null;
+  }
+
+  const subscription = items.sort(rankStripeSubscription)[0];
+  if (!subscription) {
+    return null;
+  }
+
+  return syncSubscriptionStateFromStripeSubscription(subscription);
 }
 
 async function syncSubscriptionStateFromStripeSubscription(subscription) {
@@ -1423,10 +1516,20 @@ async function syncSubscriptionStateFromStripeSubscription(subscription) {
       plan: complimentaryMembership && complimentaryMembership.active ? "plus" : "free",
       stripe_subscription_status: subscription.status || null,
       membership_source: complimentaryMembership ? "complimentary" : "none",
+      ...buildStripeMembershipStorageFields({
+        stripeDaysTotal: null,
+        stripeCurrentPeriodStartAt: null,
+        stripeCurrentPeriodEndAt: null,
+      }),
     });
   }
 
-  return syncSubscriptionStateForUser(user.id, customerId, subscription.status || null);
+  return syncSubscriptionStateForUser(
+    user.id,
+    customerId,
+    subscription.status || null,
+    buildStripeMembershipFieldsFromSubscription(subscription)
+  );
 }
 
 async function setBillingAccessForCustomer(customerId, updates) {
