@@ -1,8 +1,4 @@
 User-agent: *
 Allow: /
 
-Disallow: /admin-panel
-Disallow: /account-overview
-Disallow: /login
-
 Sitemap: https://rblxtools.net/sitemap.xml
