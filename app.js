@@ -252,15 +252,18 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
       green > blue + 10;
     maskBuffer[index] = looksLikeTemplateZone ? 255 : 0;
   }
+  const maskImageBuffer = await sharp(maskBuffer, {
+    raw: {
+      width: AI_CLOTHING_OUTPUT_WIDTH,
+      height: AI_CLOTHING_OUTPUT_HEIGHT,
+      channels: 1,
+    },
+  })
+    .png()
+    .toBuffer();
   const maskedArtworkBuffer = await sharp(resizedGeneratedBuffer)
     .ensureAlpha()
-    .joinChannel(maskBuffer, {
-      raw: {
-        width: AI_CLOTHING_OUTPUT_WIDTH,
-        height: AI_CLOTHING_OUTPUT_HEIGHT,
-        channels: 1,
-      },
-    })
+    .composite([{ input: maskImageBuffer, blend: "dest-in" }])
     .png()
     .toBuffer();
   const finalBuffer = await sharp(resizedTemplateBuffer)
