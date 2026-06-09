@@ -1051,24 +1051,6 @@
       </div>
     </section>
 
-    <section class="ai-card ai-result-card" id="aiResultCard">
-      <div class="ai-kicker">Latest Generation</div>
-      <div class="ai-result-grid">
-        <div class="ai-result-preview">
-          <img id="aiResultImage" alt="AI-generated Roblox clothing preview" />
-        </div>
-        <div class="ai-result-meta">
-          <h2 class="ai-section-title" style="margin:0;">Roblox-ready output</h2>
-          <p class="ai-note" id="aiResultSummary">When generation is connected, this card will show the latest 585 x 559 Roblox clothing result built from your visible prompt and the stronger hidden AI prompt.</p>
-          <div class="ai-result-pill-row">
-            <div class="ai-result-pill" id="aiResultSize">585 x 559 PNG</div>
-            <div class="ai-result-pill" id="aiResultGarment">Shirt Template</div>
-            <div class="ai-result-pill" id="aiResultModel">GPT Image</div>
-          </div>
-          <a class="ai-download-btn" id="aiDownloadButton" href="#" download="rblxtools-ai-clothing.png">Download Output PNG</a>
-        </div>
-      </div>
-    </section>
   </main>
 
   <div class="ai-generation-overlay" id="aiGenerationOverlay" aria-hidden="true">
@@ -1135,7 +1117,6 @@
       var styleDirection = document.getElementById("aiStyleDirection");
       var colorPalette = document.getElementById("aiColorPalette");
       var audience = document.getElementById("aiAudience");
-      var resultCard = document.getElementById("aiResultCard");
       var generationOverlay = document.getElementById("aiGenerationOverlay");
       var generationClose = document.getElementById("aiGenerationClose");
       var generationLoading = document.getElementById("aiGenerationLoading");
@@ -1395,7 +1376,6 @@
           resultModel.textContent = String(payload.model || "GPT Image").replace(/-/g, " ");
           downloadButton.href = payload.imageDataUrl;
           downloadButton.download = payload.downloadFileName || "rblxtools-ai-clothing.png";
-          resultCard.classList.add("is-visible");
           showGenerationResult();
           status.textContent = "Clothing generated. The stronger hidden prompt was sent to the AI, the result was resized into Roblox's 585 x 559 format, and the artwork was composited into the real template blueprint.";
         } catch (error) {
@@ -1423,7 +1403,6 @@
           chip.classList.toggle("is-active", index === 0);
         });
         status.textContent = "Prompt form reset. Users can stay simple at the top bar, and power users can open Advanced Settings whenever they want more control.";
-        resultCard.classList.remove("is-visible");
         resultImage.removeAttribute("src");
         downloadButton.href = "#";
         generationResult.classList.remove("is-visible");
