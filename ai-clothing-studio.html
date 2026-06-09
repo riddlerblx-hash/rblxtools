@@ -113,7 +113,7 @@
       width: auto;
       max-width: 1180px;
       margin: 0 auto;
-      padding: 24px 14px 34px;
+      padding: 34px 14px 40px;
       display: grid;
       gap: 18px;
       min-width: 0;
@@ -207,7 +207,7 @@
     }
 
     .ai-hero {
-      padding: 40px 28px 28px;
+      padding: 44px 28px 30px;
     }
 
     .ai-hero-center {
@@ -461,11 +461,11 @@
     .ai-bottom-grid.is-open {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 18px;
+      gap: 22px;
     }
 
     .ai-card-block {
-      padding: 24px;
+      padding: 28px;
     }
 
     .ai-section-title {
@@ -482,14 +482,17 @@
 
     .ai-form-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-top: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 18px;
+      row-gap: 16px;
+      margin-top: 22px;
+      align-items: start;
     }
 
     .ai-field {
       display: grid;
-      gap: 7px;
+      gap: 8px;
+      min-width: 0;
     }
 
     .ai-field.wide {
@@ -503,12 +506,15 @@
       letter-spacing: 0.8px;
       text-transform: uppercase;
       line-height: 1.2;
+      padding-left: 2px;
     }
 
     .ai-input,
     .ai-select,
     .ai-textarea {
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
       border-radius: 16px;
       border: 1px solid rgba(255, 102, 102, 0.28);
       background: #252931;
@@ -520,20 +526,21 @@
 
     .ai-input,
     .ai-select {
-      min-height: 52px;
-      padding: 0 15px;
+      min-height: 54px;
+      padding: 0 16px;
       font-weight: 700;
     }
 
     .ai-textarea {
-      min-height: 126px;
-      padding: 13px 15px;
+      min-height: 140px;
+      padding: 14px 16px;
       resize: vertical;
       font-weight: 700;
+      line-height: 1.55;
     }
 
     .ai-textarea.generated {
-      min-height: 180px;
+      min-height: 190px;
     }
 
     .ai-input::placeholder,
@@ -553,13 +560,14 @@
     .ai-helper,
     .ai-advanced-note {
       margin: 0;
+      max-width: 92ch;
     }
 
     .ai-button-row {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
-      margin-top: 16px;
+      margin-top: 20px;
     }
 
     .ai-mini-btn {
@@ -595,7 +603,7 @@
 
     @media (max-width: 760px) {
       .ai-page {
-        padding: 16px 14px 40px;
+        padding: 24px 14px 40px;
       }
 
       .ai-hero,
