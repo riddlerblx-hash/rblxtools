@@ -1124,9 +1124,9 @@
 
           builtPrompt.value = payload.enhancedPrompt || enhancedPrompt;
           resultImage.src = payload.imageDataUrl;
-          resultSummary.textContent = "Generated from your visible request and the stronger hidden Roblox-template-aware prompt. This output is already resized for Roblox clothing upload.";
+          resultSummary.textContent = "Generated from your visible request and the stronger hidden Roblox-template-aware prompt. The backend kept the real Roblox blueprint sheet and only painted the clothing art into the actual template panels.";
           resultSize.textContent = (payload.outputWidth || 585) + " x " + (payload.outputHeight || 559) + " PNG";
-          resultGarment.textContent = payload.garmentType === "pants"
+          resultGarment.textContent = payload.templateType === "pants"
             ? "Pants Template"
             : payload.garmentType === "set"
               ? "Matching Set"
@@ -1137,7 +1137,7 @@
           downloadButton.href = payload.imageDataUrl;
           downloadButton.download = payload.downloadFileName || "rblxtools-ai-clothing.png";
           resultCard.classList.add("is-visible");
-          status.textContent = "Clothing generated. The stronger hidden prompt was sent to the AI and the result was resized into Roblox's 585 x 559 format.";
+          status.textContent = "Clothing generated. The stronger hidden prompt was sent to the AI, the result was resized into Roblox's 585 x 559 format, and the artwork was composited into the real template blueprint.";
           resultCard.scrollIntoView({ behavior: "smooth", block: "start" });
         } catch (error) {
           status.textContent = error && error.message

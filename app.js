@@ -61,16 +61,8 @@ const AI_CLOTHING_OUTPUT_HEIGHT = 559;
 const AI_CLOTHING_MODEL = "gpt-image-2";
 const AI_CLOTHING_GENERATION_SIZE = "832x800";
 const AI_TEMPLATE_REFERENCE_PATHS = {
-  shirt: [path.join(__dirname, "assets", "template-backgrounds", "shirt.png")],
-  pants: [path.join(__dirname, "assets", "template-backgrounds", "pants.png")],
-  set: [
-    path.join(__dirname, "assets", "template-backgrounds", "shirt.png"),
-    path.join(__dirname, "assets", "template-backgrounds", "pants.png"),
-  ],
-  layered: [
-    path.join(__dirname, "assets", "template-backgrounds", "shirt.png"),
-    path.join(__dirname, "assets", "template-backgrounds", "pants.png"),
-  ],
+  shirt: path.join(__dirname, "assets", "template-backgrounds", "shirt.png"),
+  pants: path.join(__dirname, "assets", "template-backgrounds", "pants.png"),
 };
 const AUTH_JWT_TTL_DAYS = Math.max(
   1,
@@ -142,6 +134,10 @@ function normalizeAIClothingGarmentType(value) {
   return "shirt";
 }
 
+function getAIBaseTemplateType(garmentType) {
+  return normalizeAIClothingGarmentType(garmentType) === "pants" ? "pants" : "shirt";
+}
+
 function cleanAIClothingText(value, maxLength = 1200) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
@@ -169,7 +165,8 @@ function buildAIClothingPrompt(input = {}) {
     `Final export must be exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
     `Generate the source image at ${AI_CLOTHING_GENERATION_SIZE} so it can be safely downscaled into the final Roblox template size.`,
     garmentInstruction,
-    "Respect seam zones, sleeve and leg boundaries, chest readability, and the actual Roblox clothing mapping layout instead of composing this like a generic square poster.",
+    "Follow the template blueprint strictly. The final result should feel like a real Roblox template sheet with art placed into the proper clothing zones, not like a standalone poster or mockup.",
+    "Keep the Roblox blueprint visible and stable. The clothing art should live inside the actual clothing panels and respect seam zones, sleeve or leg boundaries, torso readability, and avatar wearability.",
     `Style direction: ${style}.`,
     `Color palette: ${palette}.`,
     `Target vibe: ${vibe}.`,
@@ -195,21 +192,18 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
     throw error;
   }
 
-  const referencePaths = AI_TEMPLATE_REFERENCE_PATHS[normalizeAIClothingGarmentType(garmentType)] || AI_TEMPLATE_REFERENCE_PATHS.shirt;
+  const templateType = getAIBaseTemplateType(garmentType);
+  const templatePath = AI_TEMPLATE_REFERENCE_PATHS[templateType] || AI_TEMPLATE_REFERENCE_PATHS.shirt;
   const { toFile } = getOpenAIUploadHelpers();
-  const referenceImages = await Promise.all(
-    referencePaths.map(async (filePath) => {
-      await fs.promises.access(filePath, fs.constants.R_OK);
-      return toFile(fs.createReadStream(filePath), path.basename(filePath), {
-        type: "image/png",
-      });
-    })
-  );
+  await fs.promises.access(templatePath, fs.constants.R_OK);
+  const templateUpload = await toFile(fs.createReadStream(templatePath), path.basename(templatePath), {
+    type: "image/png",
+  });
 
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
-    image: referenceImages.length === 1 ? referenceImages[0] : referenceImages,
-    prompt: promptText,
+    image: templateUpload,
+    prompt: `${promptText} Keep the final art aligned to the supplied Roblox ${templateType} template blueprint. The green placeholder panels are the clothing zones. Create the clothing art so it belongs inside those blueprint panels.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -223,12 +217,54 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
     throw error;
   }
 
+  const sharp = getSharp();
   const generatedBuffer = Buffer.from(generatedBase64, "base64");
-  const finalBuffer = await getSharp()(generatedBuffer)
+  const templateBuffer = await fs.promises.readFile(templatePath);
+  const resizedGeneratedBuffer = await sharp(generatedBuffer)
     .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
       fit: "fill",
       kernel: "lanczos3",
     })
+    .png()
+    .toBuffer();
+  const resizedTemplateBuffer = await sharp(templateBuffer)
+    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
+      fit: "fill",
+      kernel: "nearest",
+    })
+    .png()
+    .toBuffer();
+  const templateRaw = await sharp(resizedTemplateBuffer)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const maskBuffer = Buffer.alloc(AI_CLOTHING_OUTPUT_WIDTH * AI_CLOTHING_OUTPUT_HEIGHT);
+  for (let index = 0; index < maskBuffer.length; index += 1) {
+    const offset = index * 4;
+    const red = templateRaw.data[offset];
+    const green = templateRaw.data[offset + 1];
+    const blue = templateRaw.data[offset + 2];
+    const alpha = templateRaw.data[offset + 3];
+    const looksLikeTemplateZone =
+      alpha > 0 &&
+      green >= 70 &&
+      green > red + 10 &&
+      green > blue + 10;
+    maskBuffer[index] = looksLikeTemplateZone ? 255 : 0;
+  }
+  const maskedArtworkBuffer = await sharp(resizedGeneratedBuffer)
+    .ensureAlpha()
+    .joinChannel(maskBuffer, {
+      raw: {
+        width: AI_CLOTHING_OUTPUT_WIDTH,
+        height: AI_CLOTHING_OUTPUT_HEIGHT,
+        channels: 1,
+      },
+    })
+    .png()
+    .toBuffer();
+  const finalBuffer = await sharp(resizedTemplateBuffer)
+    .composite([{ input: maskedArtworkBuffer, blend: "over" }])
     .png()
     .toBuffer();
 
@@ -240,6 +276,7 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
     outputHeight: AI_CLOTHING_OUTPUT_HEIGHT,
     sourceGenerationSize: AI_CLOTHING_GENERATION_SIZE,
     model: AI_CLOTHING_MODEL,
+    templateType,
   };
 }
 
@@ -4612,6 +4649,7 @@ app.post("/ai/generate-clothing", async (req, res) => {
     return res.json({
       ok: true,
       garmentType: built.garmentType,
+      templateType: result.templateType,
       enhancedPrompt: built.enhancedPrompt,
       model: result.model,
       sourceGenerationSize: result.sourceGenerationSize,
