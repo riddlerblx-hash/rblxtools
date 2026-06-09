@@ -41,20 +41,6 @@
       z-index: 0;
     }
 
-    body::after {
-      content: "";
-      position: fixed;
-      width: 640px;
-      height: 640px;
-      left: 50%;
-      bottom: -260px;
-      transform: translateX(-50%);
-      background: radial-gradient(circle, rgba(135, 89, 255, 0.18), transparent 68%);
-      filter: blur(16px);
-      pointer-events: none;
-      z-index: 0;
-    }
-
     .ai-page,
     .ai-gate {
       position: relative;
@@ -62,12 +48,13 @@
     }
 
     .ai-page {
-      width: 100%;
-      max-width: 1320px;
+      width: auto;
+      max-width: 1180px;
       margin: 0 auto;
-      padding: 88px 22px 56px;
+      padding: 24px 14px 34px;
       display: grid;
       gap: 18px;
+      min-width: 0;
     }
 
     .ai-hidden {
