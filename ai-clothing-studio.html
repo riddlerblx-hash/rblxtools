@@ -10,13 +10,13 @@
   <style>
     html, body {
       margin: 0;
+      height: 100%;
       min-height: 100%;
       color: #fff;
     }
 
     body {
-      overflow-x: hidden;
-      overflow-y: auto;
+      overflow: hidden;
       background:
         radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.26), transparent 28%),
         radial-gradient(circle at 86% 14%, rgba(134, 92, 255, 0.18), transparent 24%),
@@ -47,14 +47,47 @@
       z-index: 2;
     }
 
+    body.ai-shell-page.rblx-shell-ready,
+    body.ai-shell-page.rblx-shell-ready .rblx-shell {
+      height: 100vh;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    body.ai-shell-page.rblx-shell-ready .rblx-shell-body {
+      min-height: 0;
+      height: calc(100vh - var(--shell-header-height));
+      overflow: hidden;
+    }
+
+    body.ai-shell-page.rblx-shell-ready .rblx-shell-center,
+    body.ai-shell-page.rblx-shell-ready .rblx-shell-page {
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body.ai-shell-page .rblx-mobile-dock,
+    body.ai-shell-page .rblx-mobile-overlay {
+      display: none !important;
+    }
+
     .ai-page {
       width: auto;
       max-width: 1180px;
       margin: 0 auto;
       padding: 24px 14px 34px;
+      height: 100%;
       display: grid;
       gap: 18px;
       min-width: 0;
+      overflow: auto;
+      scrollbar-width: none;
+    }
+
+    .ai-page::-webkit-scrollbar {
+      width: 0;
+      height: 0;
     }
 
     .ai-hidden {
@@ -562,7 +595,7 @@
     }
   </style>
 </head>
-<body>
+<body class="ai-shell-page">
   <div class="ai-gate" id="aiAccessGate">
     <div class="ai-gate-card">
       <div class="ai-kicker">Admin Only</div>
