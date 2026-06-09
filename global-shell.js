@@ -94,6 +94,12 @@
       ]
     },
     {
+      title: "AI Tools",
+      items: [
+        { href: "./ai-clothing-studio", label: "AI Clothing Studio", icon: "ai", adminOnly: true }
+      ]
+    },
+    {
       title: "Account",
       items: [
         { href: "./subscriptions", label: "Subscriptions", icon: "plan" },
@@ -216,6 +222,7 @@
       calc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm2 3h6v2H9V6Zm0 5h2v2H9v-2Zm4 0h2v2h-2v-2Zm-4 4h2v2H9v-2Zm4 0h2v2h-2v-2Z"/></svg>',
       texture: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h6v6H5V5Zm8 0h6v6h-6V5ZM5 13h6v6H5v-6Zm8 0h6v6h-6v-6Z"/></svg>',
       rig: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a2.2 2.2 0 1 1 0 4.4 2.2 2.2 0 0 1 0-4.4ZM9.2 10l2.8 1.5 2.8-1.5 1.2 2.1-2.6 1.4v2.1l2.1 4.1-2.1 1-1.4-3-1.4 3-2.1-1 2.1-4.1v-2.1L8 12.1 9.2 10Z"/></svg>',
+      ai: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7.5A2.5 2.5 0 1 1 10.5 10 2.5 2.5 0 0 1 8 7.5Zm5.8 1.7h3.7a1.8 1.8 0 0 1 1.8 1.8v4.8a1.8 1.8 0 0 1-1.8 1.8H12a2.7 2.7 0 0 1-2.7-2.7v-1.2m-2.6 1.6h2.1m7 0h2.1M15 6.2V4.5m0 15v-1.7M4.7 12h1.7m8.1-7.3 1.2 1.2m-10.1 0-1.2 1.2m10.1 9.9 1.2-1.2m-10.1 0-1.2-1.2"/></svg>',
       plan: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 14.6 8l5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L5.2 8.7l5-.7L12 3.5Z"/></svg>',
       account: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5a3.7 3.7 0 1 1 0 7.4 3.7 3.7 0 0 1 0-7.4ZM5 19c.6-3 3.4-5 7-5s6.4 2 7 5H5Z"/></svg>',
       login: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5h6v14h-6M4 12h10m-3.5-3.5L14 12l-3.5 3.5"/></svg>',

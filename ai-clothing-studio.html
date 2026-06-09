@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Clothing Studio - RBLXTools</title>
+  <meta name="description" content="Admin-only AI clothing workspace for future RBLXTools clothing generation and concept drafting." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="./global-shell.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; color: #fff; }
+    body {
+      overflow-x: hidden;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.24), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(96, 82, 255, 0.14), transparent 24%),
+        radial-gradient(circle at 82% 74%, rgba(255, 74, 74, 0.12), transparent 30%),
+        radial-gradient(circle at 22% 86%, rgba(124, 124, 255, 0.08), transparent 26%),
+        linear-gradient(180deg, #151c28 0%, #0c1119 38%, #080b11 100%);
+      position: relative;
+      isolation: isolate;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      background:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at center, black 54%, transparent 100%);
+      pointer-events: none;
+      opacity: 0.82;
+      z-index: 0;
+    }
+    .ai-page {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 1260px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      gap: 18px;
+    }
+    .ai-card,
+    .ai-gate-card {
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at top right, rgba(111, 66, 255, 0.14), transparent 28%),
+        radial-gradient(circle at 12% 100%, rgba(255, 60, 60, 0.12), transparent 24%),
+        linear-gradient(180deg, rgba(18, 21, 28, 0.98), rgba(11, 13, 18, 0.98));
+      box-shadow: 0 28px 58px rgba(0,0,0,0.34);
+      overflow: hidden;
+    }
+    .ai-card::before,
+    .ai-gate-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), transparent 26%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.016) 0 1px, transparent 1px 11px);
+      pointer-events: none;
+    }
+    .ai-card > *,
+    .ai-gate-card > * {
+      position: relative;
+      z-index: 1;
+    }
+    .ai-hero,
+    .ai-section {
+      padding: 24px;
+    }
+    .ai-kicker,
+    .ai-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      color: #ffb6d8;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+    }
+    .ai-pill {
+      color: #e7dcff;
+      background: linear-gradient(180deg, rgba(164, 102, 255, 0.22), rgba(107, 49, 204, 0.16));
+      border-color: rgba(190, 143, 255, 0.22);
+    }
+    .ai-hero-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .ai-title {
+      margin: 16px 0 0;
+      font-size: clamp(40px, 5vw, 66px);
+      line-height: 0.94;
+      letter-spacing: -2px;
+      font-weight: 900;
+      max-width: 10ch;
+    }
+    .ai-title span { display: block; }
+    .ai-title span:first-child {
+      background: linear-gradient(180deg, #ffd0e1 0%, #ffc0d8 84%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+    }
+    .ai-title span:last-child {
+      margin-top: 6px;
+      background: linear-gradient(180deg, #ff7b7b 0%, #ff2020 86%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+    }
+    .ai-copy,
+    .ai-label,
+    .ai-note,
+    .ai-preview-copy,
+    .ai-list li,
+    .ai-gate-copy {
+      color: #c6cfdb;
+      font-size: 13px;
+      line-height: 1.65;
+      font-weight: 700;
+    }
+    .ai-copy {
+      margin: 14px 0 0;
+      max-width: 70ch;
+    }
+    .ai-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .ai-panel {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.035);
+    }
+    .ai-section-title {
+      margin: 10px 0 0;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: -0.8px;
+      font-weight: 900;
+    }
+    .ai-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .ai-field {
+      display: grid;
+      gap: 7px;
+    }
+    .ai-field.wide {
+      grid-column: 1 / -1;
+    }
+    .ai-label {
+      color: #f3f3f3;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+    .ai-input,
+    .ai-select,
+    .ai-textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 102, 102, 0.32);
+      background: #252931;
+      color: #fff;
+      font: inherit;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .ai-input,
+    .ai-select {
+      min-height: 48px;
+      padding: 0 14px;
+    }
+    .ai-textarea {
+      min-height: 116px;
+      padding: 12px 14px;
+      resize: vertical;
+    }
+    .ai-input::placeholder,
+    .ai-textarea::placeholder {
+      color: #8d97a7;
+    }
+    .ai-input:focus,
+    .ai-select:focus,
+    .ai-textarea:focus {
+      border-color: rgba(198, 136, 255, 0.68);
+      box-shadow: 0 0 0 4px rgba(162, 93, 255, 0.12);
+    }
+    .ai-button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .ai-btn {
+      min-height: 48px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.14s ease, filter 0.14s ease;
+    }
+    .ai-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+    .ai-btn:disabled {
+      opacity: 0.58;
+      cursor: not-allowed;
+    }
+    .ai-btn.primary {
+      background: linear-gradient(180deg, #b76bff 0%, #7f2fff 100%);
+      box-shadow: 0 18px 30px rgba(127, 47, 255, 0.22);
+    }
+    .ai-btn.ghost {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .ai-status {
+      min-height: 18px;
+      margin-top: 10px;
+      color: #d9e0eb;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .ai-preview-shell {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
+        rgba(12, 15, 22, 0.94);
+    }
+    .ai-preview-box {
+      min-height: 400px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+        radial-gradient(circle at 22% 18%, rgba(206, 161, 255, 0.12), transparent 20%),
+        linear-gradient(180deg, #171b25 0%, #10141c 100%);
+      background-size: 24px 24px, 24px 24px, auto, auto;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      text-align: center;
+    }
+    .ai-preview-box strong {
+      display: block;
+      font-size: 28px;
+      line-height: 1;
+      letter-spacing: -1px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .ai-preview-copy {
+      max-width: 34ch;
+    }
+    .ai-list {
+      margin: 14px 0 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+    }
+    .ai-gate {
+      min-height: 72vh;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+      z-index: 2;
+    }
+    .ai-gate.is-active {
+      display: flex;
+    }
+    .ai-gate-card {
+      position: relative;
+      width: min(520px, 100%);
+      padding: 24px;
+      text-align: center;
+    }
+    .ai-gate-title {
+      margin: 12px 0 0;
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+    .ai-gate-copy {
+      margin: 12px 0 0;
+    }
+    .ai-hidden {
+      display: none !important;
+    }
+    @media (max-width: 980px) {
+      .ai-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 680px) {
+      .ai-page {
+        padding: 14px;
+      }
+      .ai-hero,
+      .ai-section {
+        padding: 20px;
+      }
+      .ai-form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ai-gate" id="aiAccessGate">
+    <div class="ai-gate-card">
+      <div class="ai-kicker">Admin Only</div>
+      <h2 class="ai-gate-title">Checking AI tool access...</h2>
+      <p class="ai-gate-copy" id="aiGateStatus">Verifying your RBLXTools admin account before loading the AI workspace.</p>
+    </div>
+  </div>
+
+  <main class="ai-page ai-hidden" id="aiPage">
+    <section class="ai-card ai-hero">
+      <div class="ai-hero-head">
+        <div>
+          <div class="ai-kicker">RBLXTools AI</div>
+          <h1 class="ai-title">
+            <span>AI Clothing</span>
+            <span>Studio</span>
+          </h1>
+          <p class="ai-copy">Start the new admin-only workspace for future AI-generated Roblox clothing concepts, prompt drafting, palette exploration, and reference-driven outfit planning. This first pass gives you the shell and layout so we can hook the generator into something solid next.</p>
+        </div>
+        <div class="ai-pill">Admin Sandbox</div>
+      </div>
+
+      <div class="ai-grid">
+        <div class="ai-panel">
+          <div class="ai-kicker">Prompt Setup</div>
+          <h2 class="ai-section-title">Clothing concept builder</h2>
+          <div class="ai-form-grid">
+            <div class="ai-field">
+              <label class="ai-label" for="aiGarmentType">Garment Type</label>
+              <select class="ai-select" id="aiGarmentType">
+                <option>Shirt Template</option>
+                <option>Pants Template</option>
+                <option>Matching Set</option>
+                <option>Layered Outfit Concept</option>
+              </select>
+            </div>
+            <div class="ai-field">
+              <label class="ai-label" for="aiStyleDirection">Style Direction</label>
+              <input class="ai-input" id="aiStyleDirection" type="text" placeholder="Ex: y2k streetwear, fantasy armor, clean minimal, anime inspired" />
+            </div>
+            <div class="ai-field">
+              <label class="ai-label" for="aiColorPalette">Color Palette</label>
+              <input class="ai-input" id="aiColorPalette" type="text" placeholder="Ex: black, silver, neon pink, icy blue" />
+            </div>
+            <div class="ai-field">
+              <label class="ai-label" for="aiAudience">Target Vibe</label>
+              <input class="ai-input" id="aiAudience" type="text" placeholder="Ex: trendy catalog item, premium street set, edgy group merch" />
+            </div>
+            <div class="ai-field wide">
+              <label class="ai-label" for="aiPrompt">Main Design Prompt</label>
+              <textarea class="ai-textarea" id="aiPrompt" placeholder="Describe the clothing concept you want the AI to build. Mention details like silhouette, logo placement, patterns, sleeves, fit, accessories, layering ideas, and overall mood."></textarea>
+            </div>
+            <div class="ai-field wide">
+              <label class="ai-label" for="aiNegativePrompt">Negative Prompt / Avoid</label>
+              <textarea class="ai-textarea" id="aiNegativePrompt" placeholder="List what the design should avoid. Ex: no muddy textures, no oversized logos, no low-detail sleeves, no washed-out colors."></textarea>
+            </div>
+          </div>
+          <div class="ai-button-row">
+            <button class="ai-btn primary" id="aiDraftButton" type="button">Start Drafting</button>
+            <button class="ai-btn ghost" id="aiResetButton" type="button">Reset Form</button>
+          </div>
+          <div class="ai-status" id="aiStudioStatus">Generator hookup is the next step. This page is ready for the AI workflow shell.</div>
+        </div>
+
+        <div class="ai-panel">
+          <div class="ai-kicker">Output Preview</div>
+          <h2 class="ai-section-title">Generation staging area</h2>
+          <div class="ai-preview-shell">
+            <div class="ai-preview-box">
+              <div>
+                <strong>AI preview will land here</strong>
+                <div class="ai-preview-copy">Once we connect the model, this area can show generated clothing drafts, iteration thumbnails, prompt summaries, and selected output history.</div>
+              </div>
+            </div>
+          </div>
+          <ul class="ai-list">
+            <li>Good next additions: prompt presets, reference image upload, upscaling, and shirt/pants export framing.</li>
+            <li>We can also add admin-only generation history so you can compare older outputs fast.</li>
+            <li>This page is intentionally hidden from non-admin users through the shared shell and page check.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var API_BASE = window.location.origin;
+      var TOKEN_KEY = "rblxtools_auth_token";
+      var gate = document.getElementById("aiAccessGate");
+      var gateStatus = document.getElementById("aiGateStatus");
+      var page = document.getElementById("aiPage");
+      var draftButton = document.getElementById("aiDraftButton");
+      var resetButton = document.getElementById("aiResetButton");
+      var status = document.getElementById("aiStudioStatus");
+      var prompt = document.getElementById("aiPrompt");
+      var negativePrompt = document.getElementById("aiNegativePrompt");
+      var garmentType = document.getElementById("aiGarmentType");
+      var styleDirection = document.getElementById("aiStyleDirection");
+      var colorPalette = document.getElementById("aiColorPalette");
+      var audience = document.getElementById("aiAudience");
+
+      function getToken() {
+        try { return localStorage.getItem(TOKEN_KEY) || ""; }
+        catch (_error) { return ""; }
+      }
+
+      function redirectTop(href) {
+        if (window.top && window.top !== window) {
+          window.top.location.href = href;
+          return;
+        }
+        window.location.href = href;
+      }
+
+      function showWorkspace() {
+        gate.classList.remove("is-active");
+        page.classList.remove("ai-hidden");
+      }
+
+      function showGate(message) {
+        gate.classList.add("is-active");
+        page.classList.add("ai-hidden");
+        gateStatus.textContent = message;
+      }
+
+      async function verifyAdminAccess() {
+        var token = getToken();
+        if (!token) {
+          showGate("No signed-in admin account was found. Redirecting to login...");
+          setTimeout(function () { redirectTop("./login"); }, 800);
+          return;
+        }
+
+        try {
+          var response = await fetch(API_BASE + "/auth/me", {
+            method: "GET",
+            headers: {
+              Authorization: "Bearer " + token
+            }
+          });
+          if (!response.ok) {
+            throw new Error("Could not verify your admin session.");
+          }
+          var payload = await response.json().catch(function () { return null; });
+          var user = payload && payload.user ? payload.user : payload;
+          if (!user || !user.isAdmin) {
+            showGate("This AI workspace is only available to backend-approved admin accounts. Redirecting...");
+            setTimeout(function () { redirectTop("./index"); }, 900);
+            return;
+          }
+          showWorkspace();
+        } catch (_error) {
+          showGate("Could not verify admin access right now. Redirecting...");
+          setTimeout(function () { redirectTop("./index"); }, 900);
+        }
+      }
+
+      function resetDraftForm() {
+        garmentType.selectedIndex = 0;
+        styleDirection.value = "";
+        colorPalette.value = "";
+        audience.value = "";
+        prompt.value = "";
+        negativePrompt.value = "";
+        status.textContent = "Prompt form reset. Generator hookup is still the next step.";
+      }
+
+      function startDrafting() {
+        status.textContent = "AI generation is not connected yet. The workspace shell is ready, so the next step is wiring the model and output pipeline.";
+      }
+
+      draftButton.addEventListener("click", startDrafting);
+      resetButton.addEventListener("click", resetDraftForm);
+      verifyAdminAccess();
+    })();
+  </script>
+  <script src="./global-shell.js"></script>
+</body>
+</html>
