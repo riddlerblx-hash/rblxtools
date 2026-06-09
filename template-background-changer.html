@@ -1408,7 +1408,12 @@
       }
 
       async function drawTemplatePreview() {
+        var template = await getTemplateData(typeSelect.value);
         ctx.clearRect(0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+        ctx.drawImage(template.image, 0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
+        if (emptyPreview) {
+          emptyPreview.classList.add("hidden");
+        }
         scheduleHeightReport();
       }
 
