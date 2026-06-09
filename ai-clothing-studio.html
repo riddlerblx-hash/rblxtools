@@ -982,6 +982,15 @@
             </div>
           </div>
 
+          <div>
+            <div class="ai-chip-heading">Sleeve Length:</div>
+            <div class="ai-goal-row" id="aiSleeveLengthRow" style="margin-top:10px;">
+              <button class="ai-goal-chip" data-sleeve="short" type="button">Short sleeves</button>
+              <button class="ai-goal-chip is-active" data-sleeve="long" type="button">Long sleeves</button>
+              <button class="ai-goal-chip" data-sleeve="sleeveless" type="button">Sleeveless</button>
+            </div>
+          </div>
+
           <button class="ai-generate-btn" id="aiStartButton" type="button"><span>Generate Clothing <span aria-hidden="true">→</span></span></button>
 
           <div class="ai-advanced-launch">
@@ -1006,6 +1015,15 @@
               <option value="pants">Pants Template</option>
               <option value="set">Matching Shirt + Pants Set</option>
               <option value="layered">Layered Outfit Concept</option>
+            </select>
+          </div>
+
+          <div class="ai-field">
+            <label class="ai-label" for="aiSleeveLength">Sleeve Length</label>
+            <select class="ai-select" id="aiSleeveLength">
+              <option value="long" selected>Long Sleeves</option>
+              <option value="short">Short Sleeves</option>
+              <option value="sleeveless">Sleeveless</option>
             </select>
           </div>
 
@@ -1130,6 +1148,8 @@
       var downloadButton = document.getElementById("aiDownloadButton");
       var styleChips = Array.prototype.slice.call(document.querySelectorAll(".ai-style-chip"));
       var goalChips = Array.prototype.slice.call(document.querySelectorAll(".ai-goal-chip"));
+      var sleeveLength = document.getElementById("aiSleeveLength");
+      var sleeveChips = Array.prototype.slice.call(document.querySelectorAll("[data-sleeve]"));
       var garmentCards = Array.prototype.slice.call(document.querySelectorAll(".ai-option-card"));
       var activeStyle = "";
       var generationInFlight = false;
@@ -1209,10 +1229,23 @@
 
       function getActiveGoalTexts() {
         return goalChips.filter(function (chip) {
-          return chip.classList.contains("is-active");
+          return !chip.hasAttribute("data-sleeve") && chip.classList.contains("is-active");
         }).map(function (chip) {
           return chip.getAttribute("data-goal") || "";
         }).filter(Boolean);
+      }
+
+      function setSleeveLength(value) {
+        var normalized = String(value || "").trim().toLowerCase();
+        if (normalized !== "short" && normalized !== "sleeveless") {
+          normalized = "long";
+        }
+        if (sleeveLength) {
+          sleeveLength.value = normalized;
+        }
+        sleeveChips.forEach(function (chip) {
+          chip.classList.toggle("is-active", chip.getAttribute("data-sleeve") === normalized);
+        });
       }
 
       function syncVisiblePrompt() {
@@ -1242,6 +1275,7 @@
         syncVisiblePrompt();
 
         var garment = garmentType.value;
+        var sleeve = sleeveLength ? String(sleeveLength.value || "long").trim().toLowerCase() : "long";
         var style = activeStyle || String(styleDirection.value || "").trim() || "custom style";
         var palette = String(colorPalette.value || "").trim() || "designer-selected cohesive color palette";
         var vibe = String(audience.value || "").trim() || "catalog-ready Roblox outfit";
@@ -1253,20 +1287,28 @@
           : garment === "set"
             ? "Create a matching Roblox shirt and pants set that shares motifs across both templates while still respecting the separate shirt and pants layouts in a 585 x 559 output pipeline."
             : garment === "layered"
-              ? "Create a layered Roblox outfit concept that can still be translated cleanly onto shirt and pants templates without losing the strongest details."
-              : "Use the real Roblox shirt template structure and keep torso, sleeve, and back details cleanly mapped for a 585 x 559 export.";
+                ? "Create a layered Roblox outfit concept that can still be translated cleanly onto shirt and pants templates without losing the strongest details."
+                : "Use the real Roblox shirt template structure and keep torso, sleeve, and back details cleanly mapped for a 585 x 559 export.";
+        var sleeveInstruction = garment === "pants"
+          ? "Do not invent shirt sleeves for a pants-only result."
+          : sleeve === "short"
+            ? "Use short sleeves and always leave a clean hand opening at the wrist end of the Roblox sleeve blueprint so the avatar hands stay exposed."
+            : sleeve === "sleeveless"
+              ? "Use sleeveless arm treatment and keep the hand and arm opening areas fully clear on the Roblox blueprint."
+              : "Use long sleeves but always leave a clear hand opening and cuff break at the wrist end of the Roblox sleeve blueprint so the avatar hands stay exposed.";
 
         var lines = [
           "Generate a Roblox clothing concept that is designed specifically for the official Roblox clothing templates.",
           "Output target: 585 x 559 pixels.",
           templateInstruction,
+          sleeveInstruction,
           "Style direction: " + style + ".",
           "Color palette: " + palette + ".",
           "Target vibe: " + vibe + ".",
           "Core design request: " + (userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, and sleeve or leg zones.") + ".",
           "Priority goals: " + (goals.length ? goals.join(", ") : "clean readable torso zones, balanced front and back composition, catalog-ready readability") + ".",
           "Important instruction: do not compose this like a random square poster. The design must feel intentionally built around Roblox shirt and pants mapping zones, seams, and wearability on avatar bodies.",
-          "Avoid: " + (avoidPrompt || "muddy textures, blurry seam areas, giant unreadable logos, off-center chest graphics, weak sleeve detail, broken leg alignment, and low-detail filler art") + "."
+          "Avoid: " + (avoidPrompt || "muddy textures, blurry seam areas, giant unreadable logos, off-center chest graphics, weak sleeve detail, sealed sleeve ends that cover the hand opening, broken leg alignment, and low-detail filler art") + "."
         ];
 
         builtPrompt.value = lines.join(" ");
@@ -1313,6 +1355,7 @@
         var styleValue = activeStyle || String(styleDirection.value || "").trim();
         return {
           garmentType: garmentType.value,
+          sleeveLength: sleeveLength ? sleeveLength.value : "long",
           styleDirection: styleValue,
           colorPalette: colorPalette.value,
           audience: audience.value,
@@ -1399,7 +1442,9 @@
         audience.value = "";
         setActiveStyle("");
         setGarment("shirt");
+        setSleeveLength("long");
         goalChips.forEach(function (chip, index) {
+          if (chip.hasAttribute("data-sleeve")) return;
           chip.classList.toggle("is-active", index === 0);
         });
         status.textContent = "Prompt form reset. Users can stay simple at the top bar, and power users can open Advanced Settings whenever they want more control.";
@@ -1419,8 +1464,22 @@
       });
 
       goalChips.forEach(function (chip) {
+        if (chip.hasAttribute("data-sleeve")) {
+          chip.addEventListener("click", function () {
+            setSleeveLength(chip.getAttribute("data-sleeve"));
+            buildGeneratorPrompt();
+          });
+          return;
+        }
         chip.addEventListener("click", function () {
           chip.classList.toggle("is-active");
+          if (!getActiveGoalTexts().length) {
+            var firstGoalChip = goalChips.find(function (candidate) {
+              return candidate.hasAttribute("data-goal");
+            });
+            if (firstGoalChip) firstGoalChip.classList.add("is-active");
+          }
+          buildGeneratorPrompt();
         });
       });
 
@@ -1434,6 +1493,12 @@
       garmentType.addEventListener("change", function () {
         setGarment(garmentType.value);
       });
+      if (sleeveLength) {
+        sleeveLength.addEventListener("change", function () {
+          setSleeveLength(sleeveLength.value);
+          buildGeneratorPrompt();
+        });
+      }
 
       sendPromptButton.addEventListener("click", generateClothing);
       startButton.addEventListener("click", generateClothing);
@@ -1448,6 +1513,7 @@
       });
 
       setGarment("shirt");
+      setSleeveLength("long");
       verifyAdminAccess();
     })();
   </script>

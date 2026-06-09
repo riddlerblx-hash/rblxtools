@@ -142,8 +142,17 @@ function cleanAIClothingText(value, maxLength = 1200) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
+function normalizeAIClothingSleeveLength(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "short" || normalized === "sleeveless") {
+    return normalized;
+  }
+  return "long";
+}
+
 function buildAIClothingPrompt(input = {}) {
   const garment = normalizeAIClothingGarmentType(input.garmentType);
+  const sleeveLength = normalizeAIClothingSleeveLength(input.sleeveLength);
   const style = cleanAIClothingText(input.styleDirection, 160) || "custom Roblox catalog style";
   const palette = cleanAIClothingText(input.colorPalette, 200) || "designer-selected cohesive color palette";
   const vibe = cleanAIClothingText(input.audience, 200) || "catalog-ready Roblox outfit";
@@ -154,18 +163,26 @@ function buildAIClothingPrompt(input = {}) {
     ? input.templateGoals.map((goal) => cleanAIClothingText(goal, 80)).filter(Boolean).slice(0, 8)
     : [];
   const garmentInstruction = garment === "pants"
-    ? "Use the real Roblox pants template structure and keep leg zones, cuffs, knees, side seams, and waist transitions readable and aligned."
-    : garment === "set"
-      ? "Create a matching Roblox shirt and pants set that shares motifs across both templates while still respecting the separate shirt and pants layout zones."
-      : garment === "layered"
-        ? "Create a layered Roblox outfit concept that still maps cleanly onto Roblox shirt and pants templates without losing the strongest details."
-        : "Use the real Roblox shirt template structure and keep torso, sleeves, shoulders, and back-panel details readable and aligned.";
+      ? "Use the real Roblox pants template structure and keep leg zones, cuffs, knees, side seams, and waist transitions readable and aligned."
+      : garment === "set"
+        ? "Create a matching Roblox shirt and pants set that shares motifs across both templates while still respecting the separate shirt and pants layout zones."
+        : garment === "layered"
+          ? "Create a layered Roblox outfit concept that still maps cleanly onto Roblox shirt and pants templates without losing the strongest details."
+          : "Use the real Roblox shirt template structure and keep torso, sleeves, shoulders, and back-panel details readable and aligned.";
+  const sleeveInstruction = garment === "pants"
+    ? "Do not invent shirt sleeves for a pants-only result."
+    : sleeveLength === "short"
+      ? "Use short sleeves and always leave a clean hand opening at the wrist end of the Roblox sleeve blueprint so the avatar hands stay exposed."
+      : sleeveLength === "sleeveless"
+        ? "Use sleeveless arm treatment and keep the hand and arm opening areas fully clear on the Roblox blueprint."
+        : "Use long sleeves but always leave a clear hand opening and cuff break at the wrist end of the Roblox sleeve blueprint so the avatar hands stay exposed.";
   const lines = [
     "Generate a Roblox clothing design specifically planned for the official Roblox clothing templates.",
     `Final export must be exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
-    `Generate the source image at ${AI_CLOTHING_GENERATION_SIZE} so it can be safely downscaled into the final Roblox template size.`,
-    garmentInstruction,
-    "Follow the template blueprint strictly. The final result should feel like a real Roblox template sheet with art placed into the proper clothing zones, not like a standalone poster or mockup.",
+      `Generate the source image at ${AI_CLOTHING_GENERATION_SIZE} so it can be safely downscaled into the final Roblox template size.`,
+      garmentInstruction,
+      sleeveInstruction,
+      "Follow the template blueprint strictly. The final result should feel like a real Roblox template sheet with art placed into the proper clothing zones, not like a standalone poster or mockup.",
     "Keep the Roblox blueprint visible and stable. The clothing art should live inside the actual clothing panels and respect seam zones, sleeve or leg boundaries, torso readability, and avatar wearability.",
     `Style direction: ${style}.`,
     `Color palette: ${palette}.`,
@@ -173,7 +190,7 @@ function buildAIClothingPrompt(input = {}) {
     styleName ? `Suggested preset style tag: ${styleName}.` : "",
     `Core design request: ${userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
     `Priority goals: ${goalTexts.length ? goalTexts.join(", ") : "clean torso readability, balanced front and back composition, strong sleeve details, clean seam alignment, catalog-ready presentation"}.`,
-    `Avoid: ${negativePrompt || "muddy textures, blurry seam areas, giant unreadable logos, floating accessories, low-detail sleeves, broken leg alignment, and template-breaking cutoffs"}.`,
+      `Avoid: ${negativePrompt || "muddy textures, blurry seam areas, giant unreadable logos, floating accessories, low-detail sleeves, sealed sleeve ends that cover the hand opening, broken leg alignment, and template-breaking cutoffs"}.`,
     "Keep the clothing wearable, polished, and export-ready for Roblox creators who need a real template image rather than a concept sketch.",
   ];
 
@@ -4632,9 +4649,10 @@ app.post("/support/report", async (req, res) => {
 app.post("/ai/generate-clothing", async (req, res) => {
   try {
     await requireAdminUser(req);
-    const promptPayload = {
-      garmentType: req.body?.garmentType,
-      styleDirection: req.body?.styleDirection,
+      const promptPayload = {
+        garmentType: req.body?.garmentType,
+        sleeveLength: req.body?.sleeveLength,
+        styleDirection: req.body?.styleDirection,
       colorPalette: req.body?.colorPalette,
       audience: req.body?.audience,
       userPrompt: req.body?.userPrompt,
