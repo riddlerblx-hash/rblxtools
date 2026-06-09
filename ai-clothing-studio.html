@@ -65,7 +65,7 @@
       width: 100%;
       max-width: 1320px;
       margin: 0 auto;
-      padding: 26px 22px 56px;
+      padding: 88px 22px 56px;
       display: grid;
       gap: 18px;
     }
@@ -262,16 +262,14 @@
     }
 
     .ai-generate-inline-btn {
-      min-width: 210px;
+      min-width: 62px;
       min-height: 62px;
       padding: 0 18px;
       border-radius: 18px;
       background: linear-gradient(180deg, #ff6868 0%, #ff2929 100%);
       box-shadow: 0 16px 28px rgba(255, 41, 41, 0.28);
-      font-size: 13px;
+      font-size: 24px;
       font-weight: 900;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
     }
 
     .ai-chip-heading {
@@ -600,7 +598,7 @@
           <div class="ai-prompt-shell">
             <div class="ai-prompt-row">
               <input class="ai-prompt-input" id="aiHeroPrompt" type="text" placeholder="Ex: dark cyber y2k jacket with glowing purple seams, layered chest logo, and sharp sleeve details" />
-              <button class="ai-generate-inline-btn" id="aiSendPromptButton" type="button">Generate Clothing</button>
+              <button class="ai-generate-inline-btn" id="aiSendPromptButton" type="button" aria-label="Generate Clothing">✦</button>
             </div>
           </div>
 
@@ -876,7 +874,6 @@
 
         builtPrompt.value = lines.join(" ");
         status.textContent = "Visible user prompt translated. The hidden AI prompt now has Roblox-template wording, seam awareness, and 585 x 559 output instructions layered in.";
-        openAdvancedSettings();
       }
 
       function resetDraftForm() {
