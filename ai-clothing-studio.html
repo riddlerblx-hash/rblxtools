@@ -8,31 +8,21 @@
   <meta name="robots" content="noindex, nofollow" />
   <link rel="stylesheet" href="./global-shell.css" />
   <style>
-    :root {
-      --ai-bg: #f6efe7;
-      --ai-ink: #1f203f;
-      --ai-subtle: #66708d;
-      --ai-orange: #ff8a3d;
-      --ai-orange-deep: #ff5b3f;
-      --ai-pink: #d7a7ff;
-      --ai-card-shadow: 0 24px 70px rgba(31, 32, 63, 0.14);
-      --ai-card-border: rgba(255, 138, 61, 0.24);
-    }
-
     html, body {
       margin: 0;
       min-height: 100%;
-      color: var(--ai-ink);
+      color: #fff;
     }
 
     body {
       overflow-x: hidden;
       overflow-y: auto;
       background:
-        radial-gradient(circle at 18% 18%, rgba(208, 168, 255, 0.24), transparent 24%),
-        radial-gradient(circle at 82% 26%, rgba(255, 144, 64, 0.18), transparent 24%),
-        radial-gradient(circle at 62% 82%, rgba(175, 160, 255, 0.16), transparent 22%),
-        linear-gradient(180deg, #f8f0e8 0%, #f6efe7 48%, #f3ece4 100%);
+        radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.26), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(144, 106, 255, 0.16), transparent 24%),
+        radial-gradient(circle at 82% 74%, rgba(255, 74, 74, 0.12), transparent 30%),
+        radial-gradient(circle at 22% 86%, rgba(145, 124, 255, 0.08), transparent 26%),
+        linear-gradient(180deg, #151c28 0%, #0c1119 38%, #080b11 100%);
       position: relative;
       isolation: isolate;
     }
@@ -40,26 +30,27 @@
     body::before {
       content: "";
       position: fixed;
-      inset: 0;
+      inset: -18%;
       background:
-        linear-gradient(rgba(74, 56, 110, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(74, 56, 110, 0.08) 1px, transparent 1px);
-      background-size: 66px 66px;
-      mask-image: radial-gradient(circle at center, black 58%, transparent 100%);
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at center, black 54%, transparent 100%);
       pointer-events: none;
+      opacity: 0.82;
       z-index: 0;
     }
 
     body::after {
       content: "";
       position: fixed;
-      width: 520px;
-      height: 520px;
+      width: 560px;
+      height: 560px;
       left: 50%;
-      bottom: -180px;
+      bottom: -200px;
       transform: translateX(-50%);
-      background: radial-gradient(circle, rgba(189, 171, 255, 0.22), transparent 66%);
-      filter: blur(12px);
+      background: radial-gradient(circle, rgba(143, 90, 255, 0.16), transparent 68%);
+      filter: blur(14px);
       pointer-events: none;
       z-index: 0;
     }
@@ -72,11 +63,15 @@
 
     .ai-page {
       width: 100%;
-      max-width: 1320px;
+      max-width: 1380px;
       margin: 0 auto;
-      padding: 36px 22px 60px;
+      padding: 26px 22px 56px;
       display: grid;
       gap: 18px;
+    }
+
+    .ai-hidden {
+      display: none !important;
     }
 
     .ai-gate {
@@ -91,32 +86,68 @@
       display: flex;
     }
 
-    .ai-gate-card {
-      width: min(520px, 100%);
-      padding: 28px;
-      text-align: center;
-      border-radius: 28px;
-      background: rgba(255, 255, 255, 0.78);
-      border: 1px solid rgba(99, 79, 144, 0.12);
-      box-shadow: var(--ai-card-shadow);
-      backdrop-filter: blur(16px);
+    .ai-gate-card,
+    .ai-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at top right, rgba(111, 66, 255, 0.14), transparent 28%),
+        radial-gradient(circle at 12% 100%, rgba(255, 60, 60, 0.12), transparent 24%),
+        linear-gradient(180deg, rgba(18, 21, 28, 0.98), rgba(11, 13, 18, 0.98));
+      box-shadow: 0 28px 58px rgba(0,0,0,0.34);
     }
 
-    .ai-kicker {
+    .ai-gate-card::before,
+    .ai-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), transparent 26%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.016) 0 1px, transparent 1px 11px);
+      pointer-events: none;
+    }
+
+    .ai-gate-card > *,
+    .ai-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .ai-gate-card {
+      width: min(520px, 100%);
+      padding: 26px;
+      text-align: center;
+    }
+
+    .ai-kicker,
+    .ai-section-kicker,
+    .ai-status-pill {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 34px;
+      min-height: 32px;
       padding: 0 14px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.74);
-      border: 1px solid rgba(255, 138, 61, 0.28);
-      color: #8d5aff;
-      font-size: 11px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #ffb6d8;
+      font-size: 10px;
       font-weight: 900;
-      letter-spacing: 0.8px;
+      letter-spacing: 0.9px;
       text-transform: uppercase;
-      box-shadow: 0 10px 22px rgba(255, 138, 61, 0.10);
+    }
+
+    .ai-status-pill {
+      color: #eadbff;
+      background: linear-gradient(180deg, rgba(164, 102, 255, 0.22), rgba(107, 49, 204, 0.16));
+      border-color: rgba(190, 143, 255, 0.22);
+    }
+
+    .ai-section-kicker {
+      color: #ffd1d1;
     }
 
     .ai-gate-title {
@@ -125,7 +156,6 @@
       line-height: 0.96;
       letter-spacing: -1.4px;
       font-weight: 900;
-      color: var(--ai-ink);
     }
 
     .ai-gate-copy,
@@ -133,38 +163,24 @@
     .ai-note,
     .ai-preview-copy,
     .ai-list li,
-    .ai-meta-card p,
-    .ai-prompt-helper,
-    .ai-chip-note {
-      color: var(--ai-subtle);
+    .ai-spec-list li,
+    .ai-spec-copy,
+    .ai-status,
+    .ai-helper {
+      color: #c6cfdb;
       font-size: 13px;
       line-height: 1.65;
       font-weight: 700;
     }
 
-    .ai-hidden {
-      display: none !important;
-    }
-
-    .ai-hero-card,
-    .ai-workspace-card,
-    .ai-meta-card {
-      border-radius: 34px;
-      background: rgba(255, 255, 255, 0.58);
-      border: 1px solid rgba(122, 98, 175, 0.10);
-      box-shadow: var(--ai-card-shadow);
-      backdrop-filter: blur(18px);
-      overflow: hidden;
-    }
-
-    .ai-hero-card {
-      padding: 44px 28px 32px;
+    .ai-hero {
+      padding: 34px 28px 28px;
     }
 
     .ai-hero-layout {
       display: grid;
-      grid-template-columns: minmax(120px, 168px) minmax(0, 1fr) minmax(120px, 168px);
-      gap: 18px;
+      grid-template-columns: minmax(120px, 156px) minmax(0, 1fr) minmax(120px, 156px);
+      gap: 20px;
       align-items: center;
     }
 
@@ -174,72 +190,82 @@
     }
 
     .ai-look-card {
-      width: clamp(112px, 12vw, 148px);
+      width: clamp(114px, 12vw, 148px);
       aspect-ratio: 1;
-      border-radius: 26px;
-      border: 4px solid rgba(255, 138, 61, 0.86);
+      border-radius: 24px;
+      border: 3px solid rgba(255, 123, 71, 0.92);
       box-shadow:
-        0 0 0 4px rgba(198, 148, 255, 0.24),
-        0 22px 48px rgba(255, 138, 61, 0.18);
+        0 0 0 4px rgba(184, 126, 255, 0.22),
+        0 22px 42px rgba(255, 123, 71, 0.14);
       background:
-        radial-gradient(circle at 18% 18%, rgba(211, 167, 255, 0.16), transparent 22%),
-        rgba(255, 255, 255, 0.82);
+        radial-gradient(circle at 16% 16%, rgba(201, 144, 255, 0.18), transparent 24%),
+        linear-gradient(180deg, rgba(255,255,255,0.94), rgba(241, 244, 250, 0.88));
+      padding: 12px;
       display: grid;
       place-items: center;
-      overflow: hidden;
     }
 
     .ai-look-card img {
-      width: 78%;
-      height: 78%;
+      width: 100%;
+      height: 100%;
       object-fit: contain;
       display: block;
-      filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.12));
+      filter: drop-shadow(0 14px 18px rgba(0,0,0,0.14));
     }
 
     .ai-hero-center {
-      text-align: center;
       display: grid;
       gap: 18px;
       justify-items: center;
+      text-align: center;
     }
 
     .ai-title {
       margin: 0;
-      font-size: clamp(48px, 6vw, 84px);
+      font-size: clamp(46px, 5.7vw, 84px);
       line-height: 0.92;
       letter-spacing: -3px;
       font-weight: 900;
-      color: var(--ai-ink);
+      max-width: 13ch;
     }
 
     .ai-title span {
       display: block;
     }
 
+    .ai-title span:first-child {
+      color: #f5f0f5;
+    }
+
     .ai-title span:last-child {
       margin-top: 8px;
-      background: linear-gradient(180deg, #ffbf9d 0%, #ff9a45 22%, #ff7a39 62%, #ff5b3f 100%);
+      background: linear-gradient(180deg, #ffb2b2 0%, #ff7f56 22%, #ff533f 62%, #ff2727 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
       color: transparent;
+      text-shadow: 0 14px 28px rgba(255, 51, 51, 0.12);
     }
 
     .ai-copy {
       margin: 0;
-      font-size: 18px;
-      line-height: 1.55;
-      max-width: 36ch;
+      max-width: 46ch;
+      font-size: 15px;
+    }
+
+    .ai-builder {
+      width: min(100%, 930px);
+      margin-top: 6px;
+      display: grid;
+      gap: 14px;
     }
 
     .ai-prompt-shell {
-      width: min(100%, 710px);
       padding: 10px;
-      border-radius: 26px;
-      background: rgba(255, 255, 255, 0.76);
-      border: 1px solid rgba(255, 138, 61, 0.22);
-      box-shadow: 0 18px 46px rgba(50, 32, 83, 0.11);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 20px 44px rgba(0,0,0,0.24);
     }
 
     .ai-prompt-row {
@@ -252,19 +278,19 @@
     .ai-prompt-input {
       width: 100%;
       min-height: 62px;
-      border-radius: 20px;
-      border: 0;
-      background: rgba(255, 255, 255, 0.92);
+      border-radius: 18px;
+      border: 1px solid rgba(255, 114, 114, 0.20);
+      background: rgba(255,255,255,0.94);
       padding: 0 18px;
-      color: var(--ai-ink);
+      color: #26293a;
       font: inherit;
-      font-size: 19px;
+      font-size: 17px;
       font-weight: 700;
       outline: none;
     }
 
     .ai-prompt-input::placeholder {
-      color: #afb3c7;
+      color: #a2aac0;
     }
 
     .ai-send-btn {
@@ -273,40 +299,36 @@
       min-height: 62px;
       border: 0;
       border-radius: 18px;
-      background: linear-gradient(180deg, #ff9b44 0%, #ff6b3f 100%);
+      background: linear-gradient(180deg, #ff8f4f 0%, #ff5538 100%);
       color: #fff;
       font-size: 28px;
       font-weight: 900;
-      box-shadow: 0 14px 28px rgba(255, 107, 63, 0.28);
+      box-shadow: 0 16px 28px rgba(255, 85, 56, 0.28);
       cursor: pointer;
       transition: transform 0.14s ease, filter 0.14s ease;
     }
 
     .ai-send-btn:hover,
-    .ai-action-btn:hover,
+    .ai-start-btn:hover,
     .ai-style-chip:hover,
-    .ai-mini-chip:hover {
+    .ai-goal-chip:hover,
+    .ai-option-card:hover,
+    .ai-mini-btn:hover {
       transform: translateY(-1px);
       filter: brightness(1.04);
     }
 
-    .ai-chip-zone {
-      display: grid;
-      gap: 10px;
-      justify-items: center;
-    }
-
     .ai-chip-heading {
-      color: var(--ai-ink);
-      font-size: 18px;
+      color: #f0f2f7;
+      font-size: 17px;
       line-height: 1;
       font-weight: 900;
-      letter-spacing: 0.8px;
+      letter-spacing: 1px;
       text-transform: uppercase;
     }
 
     .ai-chip-row,
-    .ai-mini-chip-row {
+    .ai-goal-row {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
@@ -314,13 +336,13 @@
     }
 
     .ai-style-chip,
-    .ai-mini-chip {
-      min-height: 48px;
-      padding: 0 22px;
+    .ai-goal-chip {
+      min-height: 44px;
+      padding: 0 20px;
       border-radius: 999px;
-      border: 1px solid rgba(255, 138, 61, 0.30);
-      background: rgba(255, 255, 255, 0.68);
-      color: #ff7a39;
+      border: 1px solid rgba(255, 124, 89, 0.26);
+      background: rgba(255,255,255,0.05);
+      color: #ff9a72;
       font-size: 13px;
       font-weight: 900;
       letter-spacing: 0.2px;
@@ -328,87 +350,106 @@
       transition: transform 0.14s ease, filter 0.14s ease, border-color 0.14s ease, background 0.14s ease;
     }
 
-    .ai-mini-chip {
+    .ai-goal-chip {
       min-height: 38px;
       padding: 0 16px;
-      color: #7e57ff;
-      border-color: rgba(148, 121, 255, 0.28);
+      color: #dbd2ff;
+      border-color: rgba(160, 126, 255, 0.22);
     }
 
-    .ai-style-chip.is-active,
-    .ai-mini-chip.is-active {
+    .ai-style-chip.is-active {
       color: #fff;
       border-color: transparent;
-      background: linear-gradient(180deg, #ff9b44 0%, #ff6b3f 100%);
-      box-shadow: 0 12px 24px rgba(255, 107, 63, 0.22);
+      background: linear-gradient(180deg, #ff8f4f 0%, #ff5538 100%);
+      box-shadow: 0 12px 22px rgba(255, 85, 56, 0.18);
     }
 
-    .ai-mini-chip.is-active {
-      background: linear-gradient(180deg, #bc87ff 0%, #8b55ff 100%);
-      box-shadow: 0 12px 24px rgba(139, 85, 255, 0.18);
-    }
-
-    .ai-chip-note {
-      margin: 0;
-      max-width: 58ch;
-      text-align: center;
-    }
-
-    .ai-action-btn {
-      min-width: 324px;
-      min-height: 66px;
-      padding: 0 32px;
-      border: 0;
-      border-radius: 22px;
-      background: linear-gradient(180deg, #ff9b44 0%, #ff6b3f 100%);
+    .ai-goal-chip.is-active {
       color: #fff;
-      font-size: 31px;
+      border-color: transparent;
+      background: linear-gradient(180deg, #b979ff 0%, #7b46ff 100%);
+      box-shadow: 0 12px 22px rgba(123, 70, 255, 0.16);
+    }
+
+    .ai-start-btn {
+      min-width: 280px;
+      min-height: 62px;
+      padding: 0 28px;
+      border: 0;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #ff8f4f 0%, #ff5538 100%);
+      color: #fff;
+      font-size: 28px;
       font-weight: 900;
-      letter-spacing: -0.5px;
-      box-shadow: 0 22px 42px rgba(255, 107, 63, 0.22);
+      letter-spacing: -0.4px;
+      box-shadow: 0 20px 36px rgba(255, 85, 56, 0.18);
       cursor: pointer;
       transition: transform 0.14s ease, filter 0.14s ease;
     }
 
-    .ai-action-btn span {
+    .ai-start-btn span {
       display: inline-flex;
       align-items: center;
       gap: 12px;
     }
 
-    .ai-workspace-grid {
+    .ai-hero-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+      width: 100%;
+    }
+
+    .ai-option-card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.045);
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.14s ease, filter 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+    }
+
+    .ai-option-card.is-active {
+      border-color: rgba(255, 121, 74, 0.44);
+      background: linear-gradient(180deg, rgba(255, 118, 65, 0.12), rgba(255,255,255,0.04));
+      box-shadow: inset 0 0 0 1px rgba(255, 121, 74, 0.18);
+    }
+
+    .ai-option-card strong {
+      display: block;
+      color: #fff;
+      font-size: 14px;
+      line-height: 1.15;
+      font-weight: 900;
+      letter-spacing: -0.2px;
+      margin-bottom: 6px;
+    }
+
+    .ai-option-card span {
+      color: #c6cfdb;
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .ai-bottom-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
       gap: 18px;
     }
 
-    .ai-workspace-card,
-    .ai-meta-card {
+    .ai-card-block {
       padding: 24px;
-    }
-
-    .ai-section-kicker {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      padding: 0 12px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.72);
-      border: 1px solid rgba(155, 115, 255, 0.18);
-      color: #9f6df7;
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
     }
 
     .ai-section-title {
       margin: 12px 0 0;
-      font-size: 30px;
+      font-size: 28px;
       line-height: 0.98;
-      letter-spacing: -1.2px;
+      letter-spacing: -1.1px;
       font-weight: 900;
-      color: var(--ai-ink);
     }
 
     .ai-note {
@@ -432,7 +473,7 @@
     }
 
     .ai-label {
-      color: var(--ai-ink);
+      color: #f2f5fb;
       font-size: 11px;
       font-weight: 900;
       letter-spacing: 0.8px;
@@ -445,9 +486,9 @@
     .ai-textarea {
       width: 100%;
       border-radius: 16px;
-      border: 1px solid rgba(255, 138, 61, 0.26);
-      background: rgba(255, 255, 255, 0.88);
-      color: var(--ai-ink);
+      border: 1px solid rgba(255, 102, 102, 0.28);
+      background: #252931;
+      color: #fff;
       font: inherit;
       outline: none;
       transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
@@ -469,19 +510,19 @@
 
     .ai-input::placeholder,
     .ai-textarea::placeholder {
-      color: #9aa1b4;
+      color: #8f99aa;
     }
 
     .ai-input:focus,
     .ai-select:focus,
     .ai-textarea:focus,
     .ai-prompt-input:focus {
-      border-color: rgba(143, 104, 255, 0.48);
-      box-shadow: 0 0 0 4px rgba(163, 111, 255, 0.12);
+      border-color: rgba(198, 136, 255, 0.68);
+      box-shadow: 0 0 0 4px rgba(162, 93, 255, 0.12);
       transform: translateY(-1px);
     }
 
-    .ai-prompt-helper {
+    .ai-helper {
       margin: 0;
     }
 
@@ -492,8 +533,8 @@
       margin-top: 16px;
     }
 
-    .ai-btn {
-      min-height: 50px;
+    .ai-mini-btn {
+      min-height: 48px;
       padding: 0 18px;
       border: 0;
       border-radius: 16px;
@@ -506,53 +547,34 @@
       transition: transform 0.14s ease, filter 0.14s ease;
     }
 
-    .ai-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      filter: brightness(1.05);
+    .ai-mini-btn.primary {
+      background: linear-gradient(180deg, #bc87ff 0%, #7f2fff 100%);
+      box-shadow: 0 16px 28px rgba(127, 47, 255, 0.18);
     }
 
-    .ai-btn:disabled {
-      opacity: 0.58;
-      cursor: not-allowed;
-    }
-
-    .ai-btn.primary {
-      background: linear-gradient(180deg, #bc87ff 0%, #8b55ff 100%);
-      box-shadow: 0 16px 28px rgba(139, 85, 255, 0.18);
-    }
-
-    .ai-btn.ghost {
-      background: rgba(255,255,255,0.68);
-      border: 1px solid rgba(122, 98, 175, 0.14);
-      color: var(--ai-ink);
-    }
-
-    .ai-status {
-      min-height: 18px;
-      margin-top: 12px;
-      color: var(--ai-ink);
-      font-size: 12px;
-      font-weight: 800;
+    .ai-mini-btn.ghost {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
     }
 
     .ai-preview-shell {
       margin-top: 18px;
       padding: 14px;
-      border-radius: 26px;
-      border: 1px solid rgba(255, 138, 61, 0.16);
-      background: rgba(255, 255, 255, 0.68);
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.035);
     }
 
     .ai-preview-box {
-      min-height: 520px;
-      border-radius: 22px;
-      border: 1px solid rgba(122, 98, 175, 0.12);
+      min-height: 500px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
       background:
-        linear-gradient(rgba(86, 62, 124, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(86, 62, 124, 0.08) 1px, transparent 1px),
-        radial-gradient(circle at 18% 12%, rgba(219, 180, 255, 0.26), transparent 18%),
-        radial-gradient(circle at 84% 18%, rgba(255, 152, 79, 0.18), transparent 18%),
-        linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.70));
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
+        radial-gradient(circle at 18% 12%, rgba(209, 161, 255, 0.14), transparent 18%),
+        radial-gradient(circle at 84% 18%, rgba(255, 120, 84, 0.12), transparent 18%),
+        linear-gradient(180deg, #171b25 0%, #10141c 100%);
       background-size: 28px 28px, 28px 28px, auto, auto, auto;
       display: grid;
       place-items: center;
@@ -572,7 +594,7 @@
       display: inline-flex;
       align-items: center;
       border-radius: 999px;
-      background: rgba(31, 32, 63, 0.86);
+      background: rgba(10, 14, 22, 0.84);
       color: #fff;
       font-size: 10px;
       font-weight: 900;
@@ -582,11 +604,11 @@
 
     .ai-preview-box strong {
       display: block;
-      font-size: 34px;
+      font-size: 32px;
       line-height: 0.96;
-      letter-spacing: -1.2px;
+      letter-spacing: -1px;
       font-weight: 900;
-      color: var(--ai-ink);
+      color: #fff;
       margin-bottom: 10px;
     }
 
@@ -600,8 +622,8 @@
       aspect-ratio: 585 / 559;
       margin: 24px auto 0;
       border-radius: 20px;
-      border: 2px dashed rgba(255, 138, 61, 0.26);
-      background: rgba(255, 255, 255, 0.56);
+      border: 2px dashed rgba(255, 119, 86, 0.28);
+      background: rgba(255,255,255,0.05);
       display: grid;
       place-items: center;
       padding: 16px;
@@ -618,8 +640,8 @@
 
     .ai-template-tile {
       border-radius: 16px;
-      border: 1px solid rgba(122, 98, 175, 0.16);
-      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
       padding: 12px;
       display: grid;
       gap: 10px;
@@ -636,47 +658,21 @@
     }
 
     .ai-template-tile span {
-      color: var(--ai-ink);
+      color: #f0f3fa;
       font-size: 11px;
       font-weight: 900;
       letter-spacing: 0.8px;
       text-transform: uppercase;
     }
 
-    .ai-list {
+    .ai-spec-list {
       margin: 14px 0 0;
       padding-left: 18px;
       display: grid;
       gap: 8px;
     }
 
-    .ai-meta-grid {
-      display: grid;
-      gap: 14px;
-      margin-top: 18px;
-    }
-
-    .ai-meta-card h3 {
-      margin: 0;
-      font-size: 18px;
-      line-height: 1;
-      font-weight: 900;
-      letter-spacing: -0.4px;
-      color: var(--ai-ink);
-    }
-
-    .ai-meta-card p,
-    .ai-meta-card ul {
-      margin: 10px 0 0;
-    }
-
-    .ai-meta-card ul {
-      padding-left: 18px;
-      display: grid;
-      gap: 8px;
-    }
-
-    @media (max-width: 1160px) {
+    @media (max-width: 1180px) {
       .ai-hero-layout {
         grid-template-columns: 1fr;
       }
@@ -689,55 +685,42 @@
         order: 1;
       }
 
-      .ai-workspace-grid {
+      .ai-bottom-grid {
         grid-template-columns: 1fr;
       }
     }
 
     @media (max-width: 760px) {
       .ai-page {
-        padding: 18px 14px 44px;
+        padding: 16px 14px 40px;
       }
 
-      .ai-hero-card,
-      .ai-workspace-card,
-      .ai-meta-card,
+      .ai-hero,
+      .ai-card-block,
       .ai-gate-card {
-        border-radius: 24px;
-      }
-
-      .ai-hero-card,
-      .ai-workspace-card,
-      .ai-meta-card {
         padding: 20px;
       }
 
       .ai-title {
-        font-size: clamp(42px, 11vw, 62px);
+        font-size: clamp(40px, 11vw, 62px);
         letter-spacing: -2px;
       }
 
       .ai-copy {
-        font-size: 16px;
-      }
-
-      .ai-form-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .ai-action-btn {
-        min-width: 100%;
-        font-size: 26px;
+        font-size: 14px;
       }
 
       .ai-prompt-row {
         grid-template-columns: 1fr;
       }
 
-      .ai-send-btn {
+      .ai-send-btn,
+      .ai-start-btn {
         width: 100%;
       }
 
+      .ai-hero-grid,
+      .ai-form-grid,
       .ai-preview-template {
         grid-template-columns: 1fr;
       }
@@ -754,7 +737,7 @@
   </div>
 
   <main class="ai-page ai-hidden" id="aiPage">
-    <section class="ai-hero-card">
+    <section class="ai-card ai-hero">
       <div class="ai-hero-layout">
         <div class="ai-side-look">
           <div class="ai-look-card">
@@ -768,29 +751,56 @@
             <span>Create Your Dream</span>
             <span>Roblox Clothing</span>
           </h1>
-          <p class="ai-copy">Describe your clothing in words and shape a template-perfect Roblox outfit concept that is already planned around the real shirt and pants layouts your users actually need.</p>
+          <p class="ai-copy">Describe your outfit in normal words and let the builder turn that into a Roblox-template-smart generation prompt that is already planned around real shirt and pants layouts.</p>
 
-          <div class="ai-prompt-shell">
-            <div class="ai-prompt-row">
-              <input class="ai-prompt-input" id="aiHeroPrompt" type="text" placeholder="Ex: neon cyberpunk armored set with purple glow lines and a clean layered chest logo" />
-              <button class="ai-send-btn" id="aiSendPromptButton" type="button" aria-label="Send AI clothing prompt">↑</button>
+          <div class="ai-builder">
+            <div class="ai-prompt-shell">
+              <div class="ai-prompt-row">
+                <input class="ai-prompt-input" id="aiHeroPrompt" type="text" placeholder="Ex: neon cyberpunk armored set with purple glow lines and a clean layered chest logo" />
+                <button class="ai-send-btn" id="aiSendPromptButton" type="button" aria-label="Send AI clothing prompt">↑</button>
+              </div>
             </div>
-          </div>
 
-          <div class="ai-chip-zone">
-            <div class="ai-chip-heading">Pick A Style:</div>
-            <div class="ai-chip-row" id="aiStyleChipRow">
-              <button class="ai-style-chip" data-style="Meme" type="button">Meme</button>
-              <button class="ai-style-chip" data-style="Anime" type="button">Anime</button>
-              <button class="ai-style-chip" data-style="Street" type="button">Street</button>
-              <button class="ai-style-chip" data-style="Emo" type="button">Emo</button>
-              <button class="ai-style-chip" data-style="Y2K" type="button">Y2K</button>
-              <button class="ai-style-chip" data-style="Fantasy" type="button">Fantasy</button>
+            <div>
+              <div class="ai-chip-heading">Pick A Style:</div>
+              <div class="ai-chip-row" id="aiStyleChipRow" style="margin-top:10px;">
+                <button class="ai-style-chip" data-style="Meme" type="button">Meme</button>
+                <button class="ai-style-chip" data-style="Anime" type="button">Anime</button>
+                <button class="ai-style-chip" data-style="Street" type="button">Street</button>
+                <button class="ai-style-chip" data-style="Emo" type="button">Emo</button>
+                <button class="ai-style-chip" data-style="Y2K" type="button">Y2K</button>
+                <button class="ai-style-chip" data-style="Fantasy" type="button">Fantasy</button>
+              </div>
             </div>
-            <p class="ai-chip-note">These style chips are there to keep prompts easy for users, but the generator builder below still expands them into clearer Roblox-template-aware instructions for the AI.</p>
-          </div>
 
-          <button class="ai-action-btn" id="aiStartButton" type="button"><span>Start <span aria-hidden="true">→</span></span></button>
+            <div class="ai-hero-grid">
+              <button class="ai-option-card is-active" data-garment="shirt" type="button">
+                <strong>Shirt Template</strong>
+                <span>Builds a prompt around chest, sleeves, back panel, and clean torso readability.</span>
+              </button>
+              <button class="ai-option-card" data-garment="pants" type="button">
+                <strong>Pants Template</strong>
+                <span>Targets balanced leg details, seam safety, and strong lower-body pattern control.</span>
+              </button>
+              <button class="ai-option-card" data-garment="set" type="button">
+                <strong>Matching Set</strong>
+                <span>Plans both shirt and pants together so the final outfit feels like one complete release.</span>
+              </button>
+            </div>
+
+            <div>
+              <div class="ai-chip-heading">Template Goals:</div>
+              <div class="ai-goal-row" id="aiTemplateGoalRow" style="margin-top:10px;">
+                <button class="ai-goal-chip is-active" data-goal="clean readable torso zones" type="button">Clean torso zones</button>
+                <button class="ai-goal-chip" data-goal="strong sleeve detailing" type="button">Strong sleeves</button>
+                <button class="ai-goal-chip" data-goal="balanced front and back composition" type="button">Balanced front/back</button>
+                <button class="ai-goal-chip" data-goal="catalog-ready readability" type="button">Catalog ready</button>
+                <button class="ai-goal-chip" data-goal="sharp seam alignment" type="button">Sharp seams</button>
+              </div>
+            </div>
+
+            <button class="ai-start-btn" id="aiStartButton" type="button"><span>Start <span aria-hidden="true">→</span></span></button>
+          </div>
         </div>
 
         <div class="ai-side-look">
@@ -801,11 +811,11 @@
       </div>
     </section>
 
-    <section class="ai-workspace-grid">
-      <div class="ai-workspace-card">
-        <div class="ai-section-kicker">Prompt Setup</div>
-        <h2 class="ai-section-title">Template-aware clothing generator</h2>
-        <p class="ai-note">This builder is intentionally designed around real Roblox clothing generation rules: every finished output should target <strong>585 x 559 pixels</strong>, respect the actual shirt and pants template zones, and avoid random image compositions that would fail once placed on a Roblox template.</p>
+    <section class="ai-bottom-grid">
+      <div class="ai-card ai-card-block">
+        <div class="ai-section-kicker">Prompt Builder</div>
+        <h2 class="ai-section-title">Template-aware generator controls</h2>
+        <p class="ai-note">Everything here is still meant to feed one strong Roblox-clothing-generation prompt, but the setup stays simple enough that regular users won’t get lost once we hook the AI up.</p>
 
         <div class="ai-form-grid">
           <div class="ai-field">
@@ -836,7 +846,7 @@
           <div class="ai-field wide">
             <label class="ai-label" for="aiPrompt">Main Design Prompt</label>
             <textarea class="ai-textarea" id="aiPrompt" placeholder="Describe the outfit clearly. Mention the silhouette, chest and sleeve details, trim, logo placement, pattern behavior, fabric mood, front/back balance, and what the finished Roblox template should feel like once worn on avatar torsos and legs."></textarea>
-            <p class="ai-prompt-helper">Best results usually mention where the strongest details should live on the Roblox template instead of only describing the outfit in a generic fashion way.</p>
+            <p class="ai-helper">Best results usually mention where the strongest details should live on the Roblox template instead of describing the outfit like a generic poster or concept image.</p>
           </div>
 
           <div class="ai-field wide">
@@ -845,60 +855,45 @@
           </div>
         </div>
 
-        <div class="ai-chip-zone" style="margin-top:18px;justify-items:start;">
-          <div class="ai-chip-heading">Template Goals</div>
-          <div class="ai-mini-chip-row" id="aiTemplateGoalRow">
-            <button class="ai-mini-chip is-active" data-goal="clean readable torso zones" type="button">Clean torso zones</button>
-            <button class="ai-mini-chip" data-goal="strong sleeve detailing" type="button">Strong sleeves</button>
-            <button class="ai-mini-chip" data-goal="balanced front and back composition" type="button">Balanced front/back</button>
-            <button class="ai-mini-chip" data-goal="catalog-ready readability" type="button">Catalog ready</button>
-            <button class="ai-mini-chip" data-goal="sharp seam alignment" type="button">Sharp seams</button>
-          </div>
-        </div>
-
         <div class="ai-button-row">
-          <button class="ai-btn primary" id="aiDraftButton" type="button">Build Generator Prompt</button>
-          <button class="ai-btn ghost" id="aiResetButton" type="button">Reset Form</button>
+          <button class="ai-mini-btn primary" id="aiDraftButton" type="button">Build Generator Prompt</button>
+          <button class="ai-mini-btn ghost" id="aiResetButton" type="button">Reset Form</button>
         </div>
-        <div class="ai-status" id="aiStudioStatus">Generator hookup is still the next step, but the prompt system below is now shaped specifically for Roblox template clothing generation.</div>
+        <div class="ai-status" id="aiStudioStatus">Generator hookup is still the next step, but this page now builds prompts around real Roblox template logic instead of generic clothing art prompts.</div>
       </div>
 
-      <div class="ai-meta-grid">
-        <section class="ai-meta-card">
-          <div class="ai-section-kicker">Output Rules</div>
-          <h3>Real Roblox sizing + templates</h3>
-          <p>The generation pipeline should always end in a <strong>585 x 559</strong> canvas so the final result is already aligned with Roblox clothing requirements. The AI should design into the real shirt and pants layouts, not into a generic square mockup.</p>
-          <ul class="ai-list">
-            <li>Use the real uploaded RBLXTools shirt and pants templates as the generation framing references.</li>
-            <li>Keep important chest and leg details away from seam zones unless the prompt intentionally wants seam detail.</li>
-            <li>Favor readable, export-ready designs over abstract art that would break once mapped to the template.</li>
-          </ul>
-        </section>
+      <div class="ai-card ai-card-block">
+        <div class="ai-section-kicker">Output Rules</div>
+        <h2 class="ai-section-title">585 x 559 + real templates</h2>
+        <p class="ai-spec-copy">Every future output should be generated around the actual Roblox clothing workflow: same sizing, same template discipline, and clean design decisions that survive once mapped onto avatars.</p>
 
-        <section class="ai-meta-card">
-          <div class="ai-section-kicker">Preview Staging</div>
-          <h3>585 x 559 generation frame</h3>
-          <div class="ai-preview-shell">
-            <div class="ai-preview-box">
-              <div>
-                <strong>AI preview will land here</strong>
-                <div class="ai-preview-copy">When we hook the model up, this preview can show a real Roblox-template-framed generation instead of a loose concept image.</div>
-                <div class="ai-preview-frame">
-                  <div class="ai-preview-template">
-                    <div class="ai-template-tile">
-                      <img src="./assets/template-backgrounds/shirt.png" alt="Template shirt frame" />
-                      <span>Shirt template</span>
-                    </div>
-                    <div class="ai-template-tile">
-                      <img src="./assets/template-backgrounds/Plus%20Pants.png" alt="Template pants frame" />
-                      <span>Pants template</span>
-                    </div>
+        <div class="ai-preview-shell">
+          <div class="ai-preview-box">
+            <div>
+              <strong>AI preview will land here</strong>
+              <div class="ai-preview-copy">When the model is connected, this area should show a real Roblox-template-framed output instead of a generic concept square.</div>
+              <div class="ai-preview-frame">
+                <div class="ai-preview-template">
+                  <div class="ai-template-tile">
+                    <img src="./assets/template-backgrounds/shirt.png" alt="Template shirt frame" />
+                    <span>Shirt template</span>
+                  </div>
+                  <div class="ai-template-tile">
+                    <img src="./assets/template-backgrounds/Plus%20Pants.png" alt="Template pants frame" />
+                    <span>Pants template</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+
+        <ul class="ai-spec-list">
+          <li>Use the real uploaded RBLXTools shirt and pants templates as the generation framing references.</li>
+          <li>Always target 585 x 559 pixels so the finished asset is already Roblox-ready.</li>
+          <li>Keep important chest, sleeve, and leg details readable around seam zones unless the prompt intentionally wants seam-heavy art.</li>
+          <li>Favor catalog-ready readability over abstract filler art that looks good in a square but breaks on a template.</li>
+        </ul>
       </div>
     </section>
   </main>
@@ -923,7 +918,8 @@
       var colorPalette = document.getElementById("aiColorPalette");
       var audience = document.getElementById("aiAudience");
       var styleChips = Array.prototype.slice.call(document.querySelectorAll(".ai-style-chip"));
-      var goalChips = Array.prototype.slice.call(document.querySelectorAll(".ai-mini-chip"));
+      var goalChips = Array.prototype.slice.call(document.querySelectorAll(".ai-goal-chip"));
+      var garmentCards = Array.prototype.slice.call(document.querySelectorAll(".ai-option-card"));
       var activeStyle = "";
 
       function getToken() {
@@ -987,6 +983,16 @@
         styleChips.forEach(function (chip) {
           chip.classList.toggle("is-active", chip.getAttribute("data-style") === activeStyle);
         });
+        if (activeStyle) {
+          styleDirection.value = activeStyle;
+        }
+      }
+
+      function setGarment(value) {
+        garmentType.value = value;
+        garmentCards.forEach(function (card) {
+          card.classList.toggle("is-active", card.getAttribute("data-garment") === value);
+        });
       }
 
       function getActiveGoalTexts() {
@@ -1040,31 +1046,24 @@
       }
 
       function resetDraftForm() {
-        garmentType.selectedIndex = 0;
         heroPrompt.value = "";
+        prompt.value = "";
+        negativePrompt.value = "";
         styleDirection.value = "";
         colorPalette.value = "";
         audience.value = "";
-        prompt.value = "";
-        negativePrompt.value = "";
         setActiveStyle("");
+        setGarment("shirt");
         goalChips.forEach(function (chip, index) {
           chip.classList.toggle("is-active", index === 0);
         });
-        status.textContent = "Prompt form reset. The workspace is ready for the AI hookup, but the prompt structure is already optimized for Roblox templates.";
-      }
-
-      function startDrafting() {
-        buildGeneratorPrompt();
+        status.textContent = "Prompt form reset. The AI page is still not connected to generation yet, but the setup is now centered around Roblox template logic.";
       }
 
       styleChips.forEach(function (chip) {
         chip.addEventListener("click", function () {
           var nextStyle = chip.getAttribute("data-style") || "";
           setActiveStyle(nextStyle === activeStyle ? "" : nextStyle);
-          if (activeStyle) {
-            styleDirection.value = activeStyle;
-          }
         });
       });
 
@@ -1072,6 +1071,17 @@
         chip.addEventListener("click", function () {
           chip.classList.toggle("is-active");
         });
+      });
+
+      garmentCards.forEach(function (card) {
+        card.addEventListener("click", function () {
+          var nextGarment = card.getAttribute("data-garment") || "shirt";
+          setGarment(nextGarment);
+        });
+      });
+
+      garmentType.addEventListener("change", function () {
+        setGarment(garmentType.value);
       });
 
       sendPromptButton.addEventListener("click", function () {
@@ -1086,11 +1096,13 @@
           prompt.value = heroPrompt.value.trim();
         }
         buildGeneratorPrompt();
-        window.scrollTo({ top: document.querySelector(".ai-workspace-grid").offsetTop - 24, behavior: "smooth" });
+        window.scrollTo({ top: document.querySelector(".ai-bottom-grid").offsetTop - 24, behavior: "smooth" });
       });
 
-      draftButton.addEventListener("click", startDrafting);
+      draftButton.addEventListener("click", buildGeneratorPrompt);
       resetButton.addEventListener("click", resetDraftForm);
+
+      setGarment("shirt");
       verifyAdminAccess();
     })();
   </script>
