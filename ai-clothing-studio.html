@@ -8,6 +8,12 @@
   <meta name="robots" content="noindex, nofollow" />
   <link rel="stylesheet" href="./global-shell.css" />
   <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
     html, body {
       margin: 0;
       height: 100%;
@@ -484,7 +490,7 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       column-gap: 18px;
-      row-gap: 16px;
+      row-gap: 18px;
       margin-top: 22px;
       align-items: start;
     }
@@ -515,6 +521,7 @@
       width: 100%;
       max-width: 100%;
       min-width: 0;
+      display: block;
       border-radius: 16px;
       border: 1px solid rgba(255, 102, 102, 0.28);
       background: #252931;
@@ -561,6 +568,10 @@
     .ai-advanced-note {
       margin: 0;
       max-width: 92ch;
+    }
+
+    .ai-field .ai-helper {
+      margin-top: 2px;
     }
 
     .ai-button-row {
