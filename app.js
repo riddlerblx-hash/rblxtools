@@ -4641,16 +4641,18 @@ app.post("/ai/generate-clothing", async (req, res) => {
     };
 
     const built = buildAIClothingPrompt(promptPayload);
+    const providedEnhancedPrompt = cleanAIClothingText(req.body?.enhancedPrompt, 6000);
+    const finalEnhancedPrompt = providedEnhancedPrompt || built.enhancedPrompt;
     const result = await generateAIClothingImage({
       garmentType: built.garmentType,
-      enhancedPrompt: built.enhancedPrompt,
+      enhancedPrompt: finalEnhancedPrompt,
     });
 
     return res.json({
       ok: true,
       garmentType: built.garmentType,
       templateType: result.templateType,
-      enhancedPrompt: built.enhancedPrompt,
+      enhancedPrompt: finalEnhancedPrompt,
       model: result.model,
       sourceGenerationSize: result.sourceGenerationSize,
       outputWidth: result.outputWidth,

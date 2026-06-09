@@ -555,6 +555,174 @@
       filter: brightness(1.04);
     }
 
+    .ai-generation-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1400;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      background: rgba(5, 8, 14, 0.78);
+      backdrop-filter: blur(16px);
+    }
+
+    .ai-generation-overlay.is-open {
+      display: flex;
+    }
+
+    .ai-generation-modal {
+      width: min(960px, calc(100vw - 40px));
+      max-height: min(92vh, 980px);
+      overflow: auto;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background:
+        radial-gradient(circle at top right, rgba(111, 66, 255, 0.16), transparent 26%),
+        radial-gradient(circle at 10% 100%, rgba(255, 60, 60, 0.14), transparent 24%),
+        linear-gradient(180deg, rgba(16, 19, 27, 0.98), rgba(9, 11, 17, 0.98));
+      box-shadow: 0 34px 82px rgba(0,0,0,0.44);
+    }
+
+    .ai-generation-modal::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .ai-generation-modal::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+    }
+
+    .ai-generation-head,
+    .ai-generation-body {
+      position: relative;
+      z-index: 1;
+    }
+
+    .ai-generation-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 24px 28px 0;
+    }
+
+    .ai-generation-heading {
+      display: grid;
+      gap: 8px;
+    }
+
+    .ai-generation-title {
+      margin: 0;
+      font-size: 30px;
+      line-height: 0.95;
+      letter-spacing: -1.4px;
+      font-weight: 900;
+      color: #f7f8fc;
+    }
+
+    .ai-generation-title span {
+      display: block;
+      margin-top: 6px;
+      background: linear-gradient(180deg, #ffb2c5 0%, #ff6d8c 24%, #ff4747 60%, #ff2020 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .ai-generation-close {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.14s ease, filter 0.14s ease;
+    }
+
+    .ai-generation-close:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    .ai-generation-body {
+      padding: 20px 28px 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .ai-generation-loading {
+      display: none;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .ai-generation-loading.is-visible {
+      display: flex;
+    }
+
+    .ai-generation-spinner {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.16);
+      border-top-color: #ff5a7e;
+      animation: ai-spin 0.85s linear infinite;
+      flex: 0 0 auto;
+    }
+
+    @keyframes ai-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .ai-generation-loading strong {
+      display: block;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+
+    .ai-generation-loading span {
+      color: #c6cfdb;
+      font-size: 13px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .ai-generation-error {
+      display: none;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 82, 82, 0.22);
+      background: rgba(255, 45, 45, 0.08);
+      color: #ffd0d0;
+      font-size: 13px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .ai-generation-error.is-visible {
+      display: block;
+    }
+
+    .ai-generation-result {
+      display: none;
+      gap: 18px;
+    }
+
+    .ai-generation-result.is-visible {
+      display: grid;
+    }
+
     .ai-card-block {
       padding: 30px 38px 34px;
     }
@@ -740,6 +908,12 @@
       .ai-generate-btn {
         width: 100%;
       }
+
+      .ai-generation-head,
+      .ai-generation-body {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
     }
   </style>
 </head>
@@ -897,6 +1071,48 @@
     </section>
   </main>
 
+  <div class="ai-generation-overlay" id="aiGenerationOverlay" aria-hidden="true">
+    <div class="ai-generation-modal" role="dialog" aria-modal="true" aria-labelledby="aiGenerationTitle">
+      <div class="ai-generation-head">
+        <div class="ai-generation-heading">
+          <div class="ai-kicker">AI Generation</div>
+          <h2 class="ai-generation-title" id="aiGenerationTitle">Roblox Template <span>Generation</span></h2>
+        </div>
+        <button class="ai-generation-close" id="aiGenerationClose" type="button" aria-label="Close generation popup">×</button>
+      </div>
+      <div class="ai-generation-body">
+        <div class="ai-generation-loading" id="aiGenerationLoading">
+          <div class="ai-generation-spinner" aria-hidden="true"></div>
+          <div>
+            <strong>Generating clothing now...</strong>
+            <span>This can take a little bit. We’re building your Roblox template and will drop the finished image right here when it’s ready.</span>
+          </div>
+        </div>
+        <div class="ai-generation-error" id="aiGenerationError"></div>
+        <div class="ai-generation-result" id="aiGenerationResult">
+          <section class="ai-card ai-result-card is-visible" style="display:grid;">
+            <div class="ai-kicker">Latest Generation</div>
+            <div class="ai-result-grid">
+              <div class="ai-result-preview">
+                <img id="aiResultImage" alt="AI-generated Roblox clothing preview" />
+              </div>
+              <div class="ai-result-meta">
+                <h2 class="ai-section-title" style="margin:0;">Roblox-ready output</h2>
+                <p class="ai-note" id="aiResultSummary">When generation is connected, this card will show the latest 585 x 559 Roblox clothing result built from your visible prompt and the stronger hidden AI prompt.</p>
+                <div class="ai-result-pill-row">
+                  <div class="ai-result-pill" id="aiResultSize">585 x 559 PNG</div>
+                  <div class="ai-result-pill" id="aiResultGarment">Shirt Template</div>
+                  <div class="ai-result-pill" id="aiResultModel">GPT Image</div>
+                </div>
+                <a class="ai-download-btn" id="aiDownloadButton" href="#" download="rblxtools-ai-clothing.png">Download Output PNG</a>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function () {
       var API_BASE = window.location.origin;
@@ -920,6 +1136,11 @@
       var colorPalette = document.getElementById("aiColorPalette");
       var audience = document.getElementById("aiAudience");
       var resultCard = document.getElementById("aiResultCard");
+      var generationOverlay = document.getElementById("aiGenerationOverlay");
+      var generationClose = document.getElementById("aiGenerationClose");
+      var generationLoading = document.getElementById("aiGenerationLoading");
+      var generationError = document.getElementById("aiGenerationError");
+      var generationResult = document.getElementById("aiGenerationResult");
       var resultImage = document.getElementById("aiResultImage");
       var resultSummary = document.getElementById("aiResultSummary");
       var resultSize = document.getElementById("aiResultSize");
@@ -1072,6 +1293,41 @@
         return builtPrompt.value;
       }
 
+      function openGenerationOverlay() {
+        generationOverlay.classList.add("is-open");
+        generationOverlay.setAttribute("aria-hidden", "false");
+      }
+
+      function closeGenerationOverlay() {
+        if (generationInFlight) return;
+        generationOverlay.classList.remove("is-open");
+        generationOverlay.setAttribute("aria-hidden", "true");
+      }
+
+      function showGenerationLoading() {
+        openGenerationOverlay();
+        generationError.classList.remove("is-visible");
+        generationError.textContent = "";
+        generationResult.classList.remove("is-visible");
+        generationLoading.classList.add("is-visible");
+      }
+
+      function showGenerationError(message) {
+        openGenerationOverlay();
+        generationLoading.classList.remove("is-visible");
+        generationResult.classList.remove("is-visible");
+        generationError.textContent = message || "AI clothing generation failed.";
+        generationError.classList.add("is-visible");
+      }
+
+      function showGenerationResult() {
+        openGenerationOverlay();
+        generationLoading.classList.remove("is-visible");
+        generationError.classList.remove("is-visible");
+        generationError.textContent = "";
+        generationResult.classList.add("is-visible");
+      }
+
       function getRequestPayload() {
         var styleValue = activeStyle || String(styleDirection.value || "").trim();
         return {
@@ -1082,7 +1338,8 @@
           userPrompt: prompt.value,
           negativePrompt: negativePrompt.value,
           styleName: styleValue,
-          templateGoals: getActiveGoalTexts()
+          templateGoals: getActiveGoalTexts(),
+          enhancedPrompt: builtPrompt.value
         };
       }
 
@@ -1094,6 +1351,7 @@
         resetButton.disabled = isLoading;
         if (isLoading) {
           status.textContent = "Generating clothing with the stronger hidden AI prompt now...";
+          showGenerationLoading();
         }
       }
 
@@ -1138,12 +1396,14 @@
           downloadButton.href = payload.imageDataUrl;
           downloadButton.download = payload.downloadFileName || "rblxtools-ai-clothing.png";
           resultCard.classList.add("is-visible");
+          showGenerationResult();
           status.textContent = "Clothing generated. The stronger hidden prompt was sent to the AI, the result was resized into Roblox's 585 x 559 format, and the artwork was composited into the real template blueprint.";
-          resultCard.scrollIntoView({ behavior: "smooth", block: "start" });
         } catch (error) {
-          status.textContent = error && error.message
+          var errorMessage = error && error.message
             ? error.message
             : "AI clothing generation failed.";
+          status.textContent = errorMessage;
+          showGenerationError(errorMessage);
         } finally {
           setGenerationLoading(false);
         }
@@ -1166,6 +1426,10 @@
         resultCard.classList.remove("is-visible");
         resultImage.removeAttribute("src");
         downloadButton.href = "#";
+        generationResult.classList.remove("is-visible");
+        generationLoading.classList.remove("is-visible");
+        generationError.classList.remove("is-visible");
+        generationError.textContent = "";
       }
 
       styleChips.forEach(function (chip) {
@@ -1197,6 +1461,12 @@
       advancedToggleButton.addEventListener("click", toggleAdvancedSettings);
       draftButton.addEventListener("click", buildGeneratorPrompt);
       resetButton.addEventListener("click", resetDraftForm);
+      generationClose.addEventListener("click", closeGenerationOverlay);
+      generationOverlay.addEventListener("click", function (event) {
+        if (event.target === generationOverlay) {
+          closeGenerationOverlay();
+        }
+      });
 
       setGarment("shirt");
       verifyAdminAccess();
