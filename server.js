@@ -10,12 +10,16 @@ const {
   scryptSync,
 } = require("crypto");
 const { mkdtemp, writeFile, rm } = require("fs/promises");
+const fs = require("fs");
 const path = require("path");
 const { tmpdir } = require("os");
 const { Server } = require("socket.io");
 const obj2gltf = require("obj2gltf");
 let draco3d = null;
 let stripeClient = null;
+let openaiClient = null;
+let sharpLib = null;
+let openaiUploadHelpers = null;
 
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
@@ -49,8 +53,25 @@ const DISCORD_SUPPORT_WEBHOOK_URL = String(process.env.DISCORD_SUPPORT_WEBHOOK_U
 const SUPPORT_BOT_ENDPOINT = String(process.env.SUPPORT_BOT_ENDPOINT || "").trim();
 const SUPPORT_BOT_SECRET = String(process.env.SUPPORT_BOT_SECRET || "").trim();
 const SUPPORT_STAFF_MENTION = String(process.env.SUPPORT_STAFF_MENTION || "").trim();
+const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || "").trim();
 const MAX_SUPPORT_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MAX_CHAT_TIMEOUT_SECONDS = 3650 * 24 * 60 * 60;
+const AI_CLOTHING_OUTPUT_WIDTH = 585;
+const AI_CLOTHING_OUTPUT_HEIGHT = 559;
+const AI_CLOTHING_MODEL = "gpt-image-2";
+const AI_CLOTHING_GENERATION_SIZE = "832x800";
+const AI_TEMPLATE_REFERENCE_PATHS = {
+  shirt: [path.join(__dirname, "assets", "template-backgrounds", "shirt.png")],
+  pants: [path.join(__dirname, "assets", "template-backgrounds", "pants.png")],
+  set: [
+    path.join(__dirname, "assets", "template-backgrounds", "shirt.png"),
+    path.join(__dirname, "assets", "template-backgrounds", "pants.png"),
+  ],
+  layered: [
+    path.join(__dirname, "assets", "template-backgrounds", "shirt.png"),
+    path.join(__dirname, "assets", "template-backgrounds", "pants.png"),
+  ],
+};
 const AUTH_JWT_TTL_DAYS = Math.max(
   1,
   Number.parseInt(process.env.AUTH_JWT_TTL_DAYS || "30", 10) || 30
@@ -80,6 +101,146 @@ try {
   }
 } catch (_error) {
   stripeClient = null;
+}
+
+function getOpenAIClient() {
+  if (openaiClient) return openaiClient;
+  const OpenAI = require("openai");
+  openaiClient = new OpenAI({ apiKey: OPENAI_API_KEY });
+  return openaiClient;
+}
+
+function getOpenAIUploadHelpers() {
+  if (openaiUploadHelpers) return openaiUploadHelpers;
+  openaiUploadHelpers = require("openai/uploads");
+  return openaiUploadHelpers;
+}
+
+function getSharp() {
+  if (sharpLib) return sharpLib;
+  sharpLib = require("sharp");
+  return sharpLib;
+}
+
+function isAIClothingConfigured() {
+  return Boolean(OPENAI_API_KEY);
+}
+
+function assertAIClothingConfigured() {
+  if (!isAIClothingConfigured()) {
+    const error = new Error("AI clothing generation is not configured yet.");
+    error.statusCode = 500;
+    throw error;
+  }
+}
+
+function normalizeAIClothingGarmentType(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "pants" || normalized === "set" || normalized === "layered") {
+    return normalized;
+  }
+  return "shirt";
+}
+
+function cleanAIClothingText(value, maxLength = 1200) {
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function buildAIClothingPrompt(input = {}) {
+  const garment = normalizeAIClothingGarmentType(input.garmentType);
+  const style = cleanAIClothingText(input.styleDirection, 160) || "custom Roblox catalog style";
+  const palette = cleanAIClothingText(input.colorPalette, 200) || "designer-selected cohesive color palette";
+  const vibe = cleanAIClothingText(input.audience, 200) || "catalog-ready Roblox outfit";
+  const userPrompt = cleanAIClothingText(input.userPrompt || input.prompt, 1200);
+  const negativePrompt = cleanAIClothingText(input.negativePrompt, 700);
+  const styleName = cleanAIClothingText(input.styleName, 60);
+  const goalTexts = Array.isArray(input.templateGoals)
+    ? input.templateGoals.map((goal) => cleanAIClothingText(goal, 80)).filter(Boolean).slice(0, 8)
+    : [];
+  const garmentInstruction = garment === "pants"
+    ? "Use the real Roblox pants template structure and keep leg zones, cuffs, knees, side seams, and waist transitions readable and aligned."
+    : garment === "set"
+      ? "Create a matching Roblox shirt and pants set that shares motifs across both templates while still respecting the separate shirt and pants layout zones."
+      : garment === "layered"
+        ? "Create a layered Roblox outfit concept that still maps cleanly onto Roblox shirt and pants templates without losing the strongest details."
+        : "Use the real Roblox shirt template structure and keep torso, sleeves, shoulders, and back-panel details readable and aligned.";
+  const lines = [
+    "Generate a Roblox clothing design specifically planned for the official Roblox clothing templates.",
+    `Final export must be exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
+    `Generate the source image at ${AI_CLOTHING_GENERATION_SIZE} so it can be safely downscaled into the final Roblox template size.`,
+    garmentInstruction,
+    "Respect seam zones, sleeve and leg boundaries, chest readability, and the actual Roblox clothing mapping layout instead of composing this like a generic square poster.",
+    `Style direction: ${style}.`,
+    `Color palette: ${palette}.`,
+    `Target vibe: ${vibe}.`,
+    styleName ? `Suggested preset style tag: ${styleName}.` : "",
+    `Core design request: ${userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
+    `Priority goals: ${goalTexts.length ? goalTexts.join(", ") : "clean torso readability, balanced front and back composition, strong sleeve details, clean seam alignment, catalog-ready presentation"}.`,
+    `Avoid: ${negativePrompt || "muddy textures, blurry seam areas, giant unreadable logos, floating accessories, low-detail sleeves, broken leg alignment, and template-breaking cutoffs"}.`,
+    "Keep the clothing wearable, polished, and export-ready for Roblox creators who need a real template image rather than a concept sketch.",
+  ];
+
+  return {
+    garmentType: garment,
+    enhancedPrompt: lines.filter(Boolean).join(" "),
+  };
+}
+
+async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
+  assertAIClothingConfigured();
+  const promptText = cleanAIClothingText(enhancedPrompt, 6000);
+  if (!promptText) {
+    const error = new Error("A clothing prompt is required before generation.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const referencePaths = AI_TEMPLATE_REFERENCE_PATHS[normalizeAIClothingGarmentType(garmentType)] || AI_TEMPLATE_REFERENCE_PATHS.shirt;
+  const { toFile } = getOpenAIUploadHelpers();
+  const referenceImages = await Promise.all(
+    referencePaths.map(async (filePath) => {
+      await fs.promises.access(filePath, fs.constants.R_OK);
+      return toFile(fs.createReadStream(filePath), path.basename(filePath), {
+        type: "image/png",
+      });
+    })
+  );
+
+  const generation = await getOpenAIClient().images.edit({
+    model: AI_CLOTHING_MODEL,
+    image: referenceImages.length === 1 ? referenceImages[0] : referenceImages,
+    prompt: promptText,
+    size: AI_CLOTHING_GENERATION_SIZE,
+  });
+
+  const generatedBase64 = generation && generation.data && generation.data[0] && generation.data[0].b64_json
+    ? generation.data[0].b64_json
+    : "";
+
+  if (!generatedBase64) {
+    const error = new Error("OpenAI did not return an image for this clothing request.");
+    error.statusCode = 502;
+    throw error;
+  }
+
+  const generatedBuffer = Buffer.from(generatedBase64, "base64");
+  const finalBuffer = await getSharp()(generatedBuffer)
+    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
+      fit: "fill",
+      kernel: "lanczos3",
+    })
+    .png()
+    .toBuffer();
+
+  return {
+    outputBuffer: finalBuffer,
+    outputMime: "image/png",
+    outputBase64: finalBuffer.toString("base64"),
+    outputWidth: AI_CLOTHING_OUTPUT_WIDTH,
+    outputHeight: AI_CLOTHING_OUTPUT_HEIGHT,
+    sourceGenerationSize: AI_CLOTHING_GENERATION_SIZE,
+    model: AI_CLOTHING_MODEL,
+  };
 }
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
@@ -4436,6 +4597,45 @@ app.post("/support/report", async (req, res) => {
     console.error("POST /support/report failed:", error.message);
     return res.status(error.statusCode || 500).json({
       error: error.message || "Could not send the support report.",
+    });
+  }
+});
+
+app.post("/ai/generate-clothing", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const promptPayload = {
+      garmentType: req.body?.garmentType,
+      styleDirection: req.body?.styleDirection,
+      colorPalette: req.body?.colorPalette,
+      audience: req.body?.audience,
+      userPrompt: req.body?.userPrompt,
+      negativePrompt: req.body?.negativePrompt,
+      styleName: req.body?.styleName,
+      templateGoals: Array.isArray(req.body?.templateGoals) ? req.body.templateGoals : [],
+    };
+
+    const built = buildAIClothingPrompt(promptPayload);
+    const result = await generateAIClothingImage({
+      garmentType: built.garmentType,
+      enhancedPrompt: built.enhancedPrompt,
+    });
+
+    return res.json({
+      ok: true,
+      garmentType: built.garmentType,
+      enhancedPrompt: built.enhancedPrompt,
+      model: result.model,
+      sourceGenerationSize: result.sourceGenerationSize,
+      outputWidth: result.outputWidth,
+      outputHeight: result.outputHeight,
+      imageDataUrl: `data:${result.outputMime};base64,${result.outputBase64}`,
+      downloadFileName: `rblxtools-ai-${built.garmentType}-${Date.now()}.png`,
+    });
+  } catch (error) {
+    console.error("POST /ai/generate-clothing failed:", error);
+    return res.status(error.statusCode || 500).json({
+      error: error.message || "AI clothing generation failed.",
     });
   }
 });
