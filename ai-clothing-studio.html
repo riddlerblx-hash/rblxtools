@@ -471,9 +471,10 @@
     }
 
     .ai-result-card {
-      padding: 28px 30px;
+      padding: 0;
       display: none;
-      gap: 20px;
+      gap: 0;
+      overflow: hidden;
     }
 
     .ai-result-card.is-visible {
@@ -482,31 +483,37 @@
 
     .ai-result-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
-      gap: 22px;
-      align-items: start;
+      grid-template-columns: 1fr;
+      min-height: 72vh;
+      position: relative;
     }
 
     .ai-result-preview {
-      padding: 18px;
-      border-radius: 22px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.04);
+      padding: 22px 22px 170px;
+      border-radius: 0;
+      border: 0;
+      background:
+        radial-gradient(circle at 50% 14%, rgba(113, 85, 255, 0.18), transparent 22%),
+        radial-gradient(circle at 22% 78%, rgba(255, 53, 53, 0.12), transparent 24%),
+        linear-gradient(180deg, #0e1420 0%, #0a0f18 56%, #090d15 100%);
       display: grid;
-      gap: 16px;
+      gap: 0;
+      min-height: 72vh;
+      position: relative;
     }
 
     .ai-rig-stage {
       position: relative;
       width: 100%;
-      border-radius: 18px;
+      border-radius: 28px;
       border: 1px solid rgba(255,255,255,0.08);
       overflow: hidden;
       background:
-        radial-gradient(circle at 50% 24%, rgba(255,255,255,0.7), transparent 34%),
-        linear-gradient(180deg, #fff7f0 0%, #fff2e3 52%, #fbe6d4 100%);
-      aspect-ratio: 1 / 1;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+        radial-gradient(circle at 50% 18%, rgba(106, 80, 255, 0.16), transparent 28%),
+        radial-gradient(circle at 50% 58%, rgba(255,255,255,0.03), transparent 34%),
+        linear-gradient(180deg, rgba(17, 22, 34, 0.94) 0%, rgba(10, 14, 22, 0.98) 100%);
+      min-height: 64vh;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 26px 54px rgba(0,0,0,0.34);
     }
 
     .ai-rig-viewer {
@@ -515,7 +522,7 @@
       z-index: 1;
       width: 100%;
       height: 100%;
-      min-height: 520px;
+      min-height: 64vh;
       background: transparent;
       --poster-color: transparent;
     }
@@ -533,11 +540,11 @@
       position: absolute;
       inset: 0;
       background-image:
-        radial-gradient(circle, rgba(243, 182, 125, 0.34) 1px, transparent 1.2px),
-        linear-gradient(rgba(242, 179, 125, 0.18) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(242, 179, 125, 0.18) 1px, transparent 1px);
-      background-size: 18px 18px, 84px 84px, 84px 84px;
-      background-position: 0 0, 0 55%, 0 55%;
+        radial-gradient(circle, rgba(255, 88, 88, 0.18) 1px, transparent 1.2px),
+        linear-gradient(rgba(131, 98, 255, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(131, 98, 255, 0.12) 1px, transparent 1px);
+      background-size: 18px 18px, 96px 96px, 96px 96px;
+      background-position: 0 0, 0 76%, 0 76%;
       pointer-events: none;
       opacity: 0.75;
     }
@@ -559,15 +566,17 @@
     }
 
     .ai-rate-block {
-      display: grid;
-      gap: 8px;
-      justify-items: center;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
       text-align: center;
     }
 
     .ai-rate-title {
       color: #f8f2ee;
-      font-size: 18px;
+      font-size: 15px;
       line-height: 1.1;
       font-weight: 900;
       letter-spacing: -0.3px;
@@ -605,7 +614,7 @@
     .ai-rating-feedback {
       color: #d8dde8;
       font-size: 13px;
-      line-height: 1.55;
+      line-height: 1.4;
       font-weight: 700;
       min-height: 20px;
     }
@@ -615,9 +624,11 @@
     }
 
     .ai-preview-actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
     }
 
     .ai-preview-action,
@@ -626,27 +637,28 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      min-height: 52px;
+      min-height: 54px;
       border-radius: 18px;
       text-decoration: none;
       font-size: 14px;
       font-weight: 900;
       letter-spacing: 0.2px;
       transition: transform 0.14s ease, filter 0.14s ease;
+      min-width: 176px;
     }
 
     .ai-preview-action {
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.86);
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.94);
       color: #232838;
     }
 
     .ai-upload-soon-btn {
-      border: 1px solid rgba(255, 177, 126, 0.34);
-      background: linear-gradient(180deg, #ffb063 0%, #ff7a2e 100%);
+      border: 1px solid rgba(255, 126, 126, 0.24);
+      background: linear-gradient(180deg, #ff9554 0%, #ff5b2f 100%);
       color: #fff;
       cursor: not-allowed;
-      box-shadow: 0 16px 26px rgba(255, 122, 46, 0.18);
+      box-shadow: 0 16px 26px rgba(255, 91, 47, 0.18);
     }
 
     .ai-preview-action:hover,
@@ -668,8 +680,14 @@
     }
 
     .ai-result-meta {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      right: 24px;
       display: grid;
-      gap: 14px;
+      gap: 12px;
+      justify-items: start;
+      pointer-events: none;
     }
 
     .ai-result-pill-row {
@@ -692,29 +710,35 @@
       font-weight: 900;
       letter-spacing: 0.7px;
       text-transform: uppercase;
+      backdrop-filter: blur(10px);
     }
 
-    .ai-download-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      min-height: 52px;
-      border-radius: 18px;
-      background: linear-gradient(180deg, #bc87ff 0%, #7f2fff 100%);
-      color: #fff;
-      font-size: 14px;
-      font-weight: 900;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
-      text-decoration: none;
-      box-shadow: 0 18px 28px rgba(127, 47, 255, 0.18);
-      transition: transform 0.14s ease, filter 0.14s ease;
+    .ai-result-footer {
+      position: absolute;
+      left: 50%;
+      bottom: 26px;
+      transform: translateX(-50%);
+      width: min(880px, calc(100% - 40px));
+      display: grid;
+      gap: 14px;
+      justify-items: center;
+      padding: 18px 20px;
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background:
+        linear-gradient(180deg, rgba(11, 15, 23, 0.7), rgba(11, 15, 23, 0.92));
+      box-shadow: 0 20px 44px rgba(0,0,0,0.34);
+      backdrop-filter: blur(16px);
     }
 
-    .ai-download-btn:hover {
-      transform: translateY(-1px);
-      filter: brightness(1.04);
+    .ai-result-summary {
+      max-width: 780px;
+      margin: 0;
+      text-align: center;
+      color: #cfd5e2;
+      font-size: 13px;
+      line-height: 1.55;
+      font-weight: 700;
     }
 
     .ai-generation-overlay {
@@ -734,8 +758,8 @@
     }
 
     .ai-generation-modal {
-      width: min(960px, calc(100vw - 40px));
-      max-height: min(92vh, 980px);
+      width: min(1380px, calc(100vw - 32px));
+      max-height: min(96vh, 1200px);
       overflow: auto;
       border-radius: 30px;
       border: 1px solid rgba(255,255,255,0.1);
@@ -1035,8 +1059,13 @@
         grid-template-columns: 1fr;
       }
 
-      .ai-preview-actions {
-        grid-template-columns: 1fr;
+      .ai-result-preview {
+        padding-bottom: 220px;
+      }
+
+      .ai-result-footer {
+        width: calc(100% - 28px);
+        bottom: 14px;
       }
     }
 
@@ -1260,7 +1289,6 @@
         <div class="ai-generation-error" id="aiGenerationError"></div>
         <div class="ai-generation-result" id="aiGenerationResult">
           <section class="ai-card ai-result-card is-visible" style="display:grid;">
-            <div class="ai-kicker">Latest Generation</div>
             <div class="ai-result-grid">
               <div class="ai-result-preview">
                 <div class="ai-rig-stage">
@@ -1282,31 +1310,32 @@
                   <canvas class="ai-rig-canvas" id="aiRigCanvas" width="720" height="720" aria-label="AI-generated Roblox clothing on preview rig"></canvas>
                   <img class="ai-result-source" id="aiResultImage" alt="AI-generated Roblox clothing source template" />
                 </div>
-                <div class="ai-rate-block">
-                  <div class="ai-rate-title">Rate the clothing</div>
-                  <div class="ai-stars" id="aiRatingStars" aria-label="Rate this clothing output from one to five stars">
-                    <button class="ai-star-btn" data-rating="1" type="button" aria-label="Rate 1 star">★</button>
-                    <button class="ai-star-btn" data-rating="2" type="button" aria-label="Rate 2 stars">★</button>
-                    <button class="ai-star-btn" data-rating="3" type="button" aria-label="Rate 3 stars">★</button>
-                    <button class="ai-star-btn" data-rating="4" type="button" aria-label="Rate 4 stars">★</button>
-                    <button class="ai-star-btn" data-rating="5" type="button" aria-label="Rate 5 stars">★</button>
+                <div class="ai-result-meta">
+                  <div class="ai-kicker">Latest Generation</div>
+                  <div class="ai-result-pill-row">
+                    <div class="ai-result-pill" id="aiResultSize">585 x 559 PNG</div>
+                    <div class="ai-result-pill" id="aiResultGarment">Shirt Template</div>
+                    <div class="ai-result-pill" id="aiResultModel">GPT Image</div>
                   </div>
-                  <div class="ai-rating-feedback" id="aiRatingFeedback">Rate this result and you can still edit your stars later if you change your mind.</div>
                 </div>
-                <div class="ai-preview-actions">
-                  <a class="ai-preview-action" id="aiDownloadButton" href="#" download="rblxtools-ai-clothing.png">↓ Download Template</a>
-                  <button class="ai-upload-soon-btn" id="aiUploadSoonButton" type="button">☁ Upload to Roblox <small>Coming soon</small></button>
+                <div class="ai-result-footer">
+                  <div class="ai-rate-block">
+                    <div class="ai-rate-title">Rate the clothing</div>
+                    <div class="ai-stars" id="aiRatingStars" aria-label="Rate this clothing output from one to five stars">
+                      <button class="ai-star-btn" data-rating="1" type="button" aria-label="Rate 1 star">★</button>
+                      <button class="ai-star-btn" data-rating="2" type="button" aria-label="Rate 2 stars">★</button>
+                      <button class="ai-star-btn" data-rating="3" type="button" aria-label="Rate 3 stars">★</button>
+                      <button class="ai-star-btn" data-rating="4" type="button" aria-label="Rate 4 stars">★</button>
+                      <button class="ai-star-btn" data-rating="5" type="button" aria-label="Rate 5 stars">★</button>
+                    </div>
+                    <div class="ai-rating-feedback" id="aiRatingFeedback">Rate this result and you can still edit your stars later if you change your mind.</div>
+                  </div>
+                  <div class="ai-preview-actions">
+                    <a class="ai-preview-action" id="aiDownloadButton" href="#" download="rblxtools-ai-clothing.png">↓ Download Template</a>
+                    <button class="ai-upload-soon-btn" id="aiUploadSoonButton" type="button">☁ Upload to Roblox <small>Coming soon</small></button>
+                  </div>
+                  <p class="ai-result-summary" id="aiResultSummary">When generation is connected, this stage will show your latest Roblox clothing result on the preview rig while download still gives you the real upload-ready template PNG.</p>
                 </div>
-              </div>
-              <div class="ai-result-meta">
-                <h2 class="ai-section-title" style="margin:0;">Roblox-ready output</h2>
-                <p class="ai-note" id="aiResultSummary">When generation is connected, this card will show the latest 585 x 559 Roblox clothing result built from your visible prompt and the stronger hidden AI prompt.</p>
-                <div class="ai-result-pill-row">
-                  <div class="ai-result-pill" id="aiResultSize">585 x 559 PNG</div>
-                  <div class="ai-result-pill" id="aiResultGarment">Shirt Template</div>
-                  <div class="ai-result-pill" id="aiResultModel">GPT Image</div>
-                </div>
-                <div class="ai-status" style="padding:0;" id="aiResultMetaNote">The rig preview is just for presentation. Download always gives you the real Roblox template PNG for upload or editing.</div>
               </div>
             </div>
           </section>
@@ -1365,7 +1394,14 @@
       var hoverRating = 0;
       var previewTemplateType = "shirt";
       var latestGeneratedTextureUrl = "";
+      var latestRigTextureUrl = "";
       var rigViewerLoaded = false;
+      var templateBlueprints = {
+        shirt: new Image(),
+        pants: new Image()
+      };
+      templateBlueprints.shirt.src = "./assets/template-backgrounds/shirt.png";
+      templateBlueprints.pants.src = "./assets/template-backgrounds/pants.png";
 
       var TEMPLATE_PARTS = {
         shirt: {
@@ -1692,6 +1728,62 @@
         ctx.stroke();
       }
 
+      function buildViewerTextureDataUrl(textureUrl, templateType) {
+        if (!textureUrl) return Promise.resolve("");
+        var blueprint = templateType === "pants" ? templateBlueprints.pants : templateBlueprints.shirt;
+        return new Promise(function (resolve) {
+          var generated = new Image();
+          generated.onload = function () {
+            var width = generated.naturalWidth || generated.width || 585;
+            var height = generated.naturalHeight || generated.height || 559;
+            var canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            var ctx = canvas.getContext("2d");
+
+            if (!ctx) {
+              resolve(textureUrl);
+              return;
+            }
+
+            ctx.clearRect(0, 0, width, height);
+            ctx.drawImage(generated, 0, 0, width, height);
+            var generatedData = ctx.getImageData(0, 0, width, height);
+            var generatedPixels = generatedData.data;
+
+            if (blueprint && blueprint.complete && blueprint.naturalWidth) {
+              var baseCanvas = document.createElement("canvas");
+              baseCanvas.width = width;
+              baseCanvas.height = height;
+              var baseCtx = baseCanvas.getContext("2d");
+              if (baseCtx) {
+                baseCtx.drawImage(blueprint, 0, 0, width, height);
+                var basePixels = baseCtx.getImageData(0, 0, width, height).data;
+                for (var i = 0; i < generatedPixels.length; i += 4) {
+                  var alpha = generatedPixels[i + 3];
+                  if (alpha < 10) {
+                    generatedPixels[i + 3] = 0;
+                    continue;
+                  }
+                  var diff = Math.abs(generatedPixels[i] - basePixels[i])
+                    + Math.abs(generatedPixels[i + 1] - basePixels[i + 1])
+                    + Math.abs(generatedPixels[i + 2] - basePixels[i + 2]);
+                  if (diff < 34) {
+                    generatedPixels[i + 3] = 0;
+                  }
+                }
+                ctx.putImageData(generatedData, 0, 0);
+              }
+            }
+            resolve(canvas.toDataURL("image/png"));
+          };
+          generated.onerror = function () {
+            resolve(textureUrl);
+          };
+          generated.src = textureUrl;
+        });
+      }
+
       async function applyTextureToViewer(textureUrl) {
         if (!rigViewer || !rigViewer.model || !textureUrl) return false;
         try {
@@ -1701,27 +1793,14 @@
           }
 
           var texture = await rigViewer.createTexture(textureUrl);
-          var candidates = [];
-          var fallbackCandidates = [];
-
-          materials.forEach(function (material) {
-            var materialName = String(material && material.name || "").toLowerCase();
-            var isSkinMaterial = /skin|head|face|neck|hand|body|default/.test(materialName);
-            var hasBaseTextureSlot = Boolean(
+          var targets = materials.filter(function (material) {
+            return Boolean(
               material &&
               material.pbrMetallicRoughness &&
               material.pbrMetallicRoughness.baseColorTexture &&
               typeof material.pbrMetallicRoughness.baseColorTexture.setTexture === "function"
             );
-
-            if (!hasBaseTextureSlot) return;
-            fallbackCandidates.push(material);
-            if (!isSkinMaterial) {
-              candidates.push(material);
-            }
           });
-
-          var targets = candidates.length ? candidates : fallbackCandidates;
           if (!targets.length) return false;
 
           targets.forEach(function (material) {
@@ -1742,8 +1821,8 @@
 
       async function refreshRigPreview() {
         var usedViewer = false;
-        if (rigViewer && rigViewerLoaded && latestGeneratedTextureUrl) {
-          usedViewer = await applyTextureToViewer(latestGeneratedTextureUrl);
+        if (rigViewer && rigViewerLoaded && latestRigTextureUrl) {
+          usedViewer = await applyTextureToViewer(latestRigTextureUrl);
         }
         if (!usedViewer) {
           if (rigCanvas) {
@@ -1863,6 +1942,7 @@
           builtPrompt.value = payload.enhancedPrompt || enhancedPrompt;
           previewTemplateType = payload.templateType === "pants" ? "pants" : "shirt";
           latestGeneratedTextureUrl = payload.imageDataUrl || "";
+          latestRigTextureUrl = await buildViewerTextureDataUrl(latestGeneratedTextureUrl, previewTemplateType);
           resultImage.src = payload.imageDataUrl;
           resultSummary.textContent = previewTemplateType === "pants"
             ? "Your generated pants template is now previewed on the Roblox body rig here. Download still gives you the real 585 x 559 pants template PNG."
@@ -1880,7 +1960,7 @@
           downloadButton.download = payload.downloadFileName || "rblxtools-ai-clothing.png";
           resetRatingState();
           showGenerationResult();
-          status.textContent = "Clothing generated. The stronger hidden prompt was sent to the AI, the result was resized into Roblox's 585 x 559 format, and the artwork was composited into the real template blueprint.";
+          status.textContent = "Clothing generated. The stronger hidden prompt was sent to the AI, the result was resized into Roblox's 585 x 559 format, and the cleaned clothing texture was pushed onto the preview rig.";
         } catch (error) {
           var errorMessage = error && error.message
             ? error.message
@@ -1910,6 +1990,7 @@
         status.textContent = "Prompt form reset. Users can stay simple at the top bar, and power users can open Advanced Settings whenever they want more control.";
         resultImage.removeAttribute("src");
         latestGeneratedTextureUrl = "";
+        latestRigTextureUrl = "";
         if (rigContext && rigCanvas) {
           rigContext.clearRect(0, 0, rigCanvas.width, rigCanvas.height);
         }
