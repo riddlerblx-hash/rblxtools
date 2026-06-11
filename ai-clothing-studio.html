@@ -492,17 +492,179 @@
       border-radius: 22px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(255,255,255,0.04);
+      display: grid;
+      gap: 16px;
     }
 
-    .ai-result-preview img {
-      display: block;
+    .ai-rig-stage {
+      position: relative;
       width: 100%;
-      height: auto;
       border-radius: 18px;
       border: 1px solid rgba(255,255,255,0.08);
-      background: linear-gradient(180deg, #1c212b 0%, #12161e 100%);
-      aspect-ratio: 585 / 559;
-      object-fit: cover;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 24%, rgba(255,255,255,0.7), transparent 34%),
+        linear-gradient(180deg, #fff7f0 0%, #fff2e3 52%, #fbe6d4 100%);
+      aspect-ratio: 1 / 1;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+    }
+
+    .ai-rig-viewer {
+      display: block;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      min-height: 520px;
+      background: transparent;
+      --poster-color: transparent;
+    }
+
+    .ai-rig-viewer::part(default-progress-bar) {
+      display: none;
+    }
+
+    .ai-rig-viewer::part(default-ar-button) {
+      display: none;
+    }
+
+    .ai-rig-stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle, rgba(243, 182, 125, 0.34) 1px, transparent 1.2px),
+        linear-gradient(rgba(242, 179, 125, 0.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(242, 179, 125, 0.18) 1px, transparent 1px);
+      background-size: 18px 18px, 84px 84px, 84px 84px;
+      background-position: 0 0, 0 55%, 0 55%;
+      pointer-events: none;
+      opacity: 0.75;
+    }
+
+    .ai-rig-canvas {
+      display: block;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: auto;
+    }
+
+    .ai-rig-canvas.is-hidden {
+      display: none;
+    }
+
+    .ai-result-source {
+      display: none;
+    }
+
+    .ai-rate-block {
+      display: grid;
+      gap: 8px;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .ai-rate-title {
+      color: #f8f2ee;
+      font-size: 18px;
+      line-height: 1.1;
+      font-weight: 900;
+      letter-spacing: -0.3px;
+    }
+
+    .ai-stars {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ai-star-btn {
+      width: 44px;
+      height: 44px;
+      border: 0;
+      padding: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: rgba(255, 168, 120, 0.48);
+      font-size: 34px;
+      line-height: 1;
+      cursor: pointer;
+      transition: transform 0.14s ease, color 0.14s ease, text-shadow 0.14s ease;
+    }
+
+    .ai-star-btn:hover,
+    .ai-star-btn.is-active {
+      color: #ff9b48;
+      transform: translateY(-1px) scale(1.03);
+      text-shadow: 0 12px 18px rgba(255, 147, 61, 0.22);
+    }
+
+    .ai-rating-feedback {
+      color: #d8dde8;
+      font-size: 13px;
+      line-height: 1.55;
+      font-weight: 700;
+      min-height: 20px;
+    }
+
+    .ai-rating-feedback.is-success {
+      color: #ffcf9d;
+    }
+
+    .ai-preview-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .ai-preview-action,
+    .ai-upload-soon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 52px;
+      border-radius: 18px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+      transition: transform 0.14s ease, filter 0.14s ease;
+    }
+
+    .ai-preview-action {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.86);
+      color: #232838;
+    }
+
+    .ai-upload-soon-btn {
+      border: 1px solid rgba(255, 177, 126, 0.34);
+      background: linear-gradient(180deg, #ffb063 0%, #ff7a2e 100%);
+      color: #fff;
+      cursor: not-allowed;
+      box-shadow: 0 16px 26px rgba(255, 122, 46, 0.18);
+    }
+
+    .ai-preview-action:hover,
+    .ai-upload-soon-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.03);
+    }
+
+    .ai-upload-soon-btn small {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.16);
+      color: rgba(255,255,255,0.92);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
     }
 
     .ai-result-meta {
@@ -872,6 +1034,10 @@
       .ai-result-grid {
         grid-template-columns: 1fr;
       }
+
+      .ai-preview-actions {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 760px) {
@@ -1097,7 +1263,40 @@
             <div class="ai-kicker">Latest Generation</div>
             <div class="ai-result-grid">
               <div class="ai-result-preview">
-                <img id="aiResultImage" alt="AI-generated Roblox clothing preview" />
+                <div class="ai-rig-stage">
+                  <model-viewer
+                    class="ai-rig-viewer"
+                    id="aiRigViewer"
+                    src="./assets/ai-rig/Starter_Blocky_Rig.glb"
+                    camera-controls
+                    touch-action="pan-y"
+                    interaction-prompt="none"
+                    shadow-intensity="0.8"
+                    exposure="1.05"
+                    camera-orbit="0deg 78deg 3.6m"
+                    min-camera-orbit="auto auto 2.8m"
+                    max-camera-orbit="auto auto 5m"
+                    field-of-view="22deg"
+                    alt="3D Roblox clothing preview rig"
+                  ></model-viewer>
+                  <canvas class="ai-rig-canvas" id="aiRigCanvas" width="720" height="720" aria-label="AI-generated Roblox clothing on preview rig"></canvas>
+                  <img class="ai-result-source" id="aiResultImage" alt="AI-generated Roblox clothing source template" />
+                </div>
+                <div class="ai-rate-block">
+                  <div class="ai-rate-title">Rate the clothing</div>
+                  <div class="ai-stars" id="aiRatingStars" aria-label="Rate this clothing output from one to five stars">
+                    <button class="ai-star-btn" data-rating="1" type="button" aria-label="Rate 1 star">★</button>
+                    <button class="ai-star-btn" data-rating="2" type="button" aria-label="Rate 2 stars">★</button>
+                    <button class="ai-star-btn" data-rating="3" type="button" aria-label="Rate 3 stars">★</button>
+                    <button class="ai-star-btn" data-rating="4" type="button" aria-label="Rate 4 stars">★</button>
+                    <button class="ai-star-btn" data-rating="5" type="button" aria-label="Rate 5 stars">★</button>
+                  </div>
+                  <div class="ai-rating-feedback" id="aiRatingFeedback">Rate this result and you can still edit your stars later if you change your mind.</div>
+                </div>
+                <div class="ai-preview-actions">
+                  <a class="ai-preview-action" id="aiDownloadButton" href="#" download="rblxtools-ai-clothing.png">↓ Download Template</a>
+                  <button class="ai-upload-soon-btn" id="aiUploadSoonButton" type="button">☁ Upload to Roblox <small>Coming soon</small></button>
+                </div>
               </div>
               <div class="ai-result-meta">
                 <h2 class="ai-section-title" style="margin:0;">Roblox-ready output</h2>
@@ -1107,7 +1306,7 @@
                   <div class="ai-result-pill" id="aiResultGarment">Shirt Template</div>
                   <div class="ai-result-pill" id="aiResultModel">GPT Image</div>
                 </div>
-                <a class="ai-download-btn" id="aiDownloadButton" href="#" download="rblxtools-ai-clothing.png">Download Output PNG</a>
+                <div class="ai-status" style="padding:0;" id="aiResultMetaNote">The rig preview is just for presentation. Download always gives you the real Roblox template PNG for upload or editing.</div>
               </div>
             </div>
           </section>
@@ -1143,12 +1342,18 @@
       var generationLoading = document.getElementById("aiGenerationLoading");
       var generationError = document.getElementById("aiGenerationError");
       var generationResult = document.getElementById("aiGenerationResult");
+      var rigViewer = document.getElementById("aiRigViewer");
+      var rigCanvas = document.getElementById("aiRigCanvas");
+      var rigContext = rigCanvas && rigCanvas.getContext ? rigCanvas.getContext("2d") : null;
       var resultImage = document.getElementById("aiResultImage");
       var resultSummary = document.getElementById("aiResultSummary");
       var resultSize = document.getElementById("aiResultSize");
       var resultGarment = document.getElementById("aiResultGarment");
       var resultModel = document.getElementById("aiResultModel");
       var downloadButton = document.getElementById("aiDownloadButton");
+      var uploadSoonButton = document.getElementById("aiUploadSoonButton");
+      var ratingFeedback = document.getElementById("aiRatingFeedback");
+      var ratingButtons = Array.prototype.slice.call(document.querySelectorAll(".ai-star-btn"));
       var styleChips = Array.prototype.slice.call(document.querySelectorAll(".ai-style-chip"));
       var goalChips = Array.prototype.slice.call(document.querySelectorAll(".ai-goal-chip"));
       var sleeveLength = document.getElementById("aiSleeveLength");
@@ -1156,6 +1361,23 @@
       var garmentCards = Array.prototype.slice.call(document.querySelectorAll(".ai-option-card"));
       var activeStyle = "";
       var generationInFlight = false;
+      var currentRating = 0;
+      var hoverRating = 0;
+      var previewTemplateType = "shirt";
+      var latestGeneratedTextureUrl = "";
+      var rigViewerLoaded = false;
+
+      var TEMPLATE_PARTS = {
+        shirt: {
+          torso: { x: 228, y: 73, w: 130, h: 128 },
+          rightArm: { x: 111, y: 355, w: 52, h: 129 },
+          leftArm: { x: 423, y: 355, w: 52, h: 129 }
+        },
+        pants: {
+          rightLeg: { x: 111, y: 355, w: 52, h: 129 },
+          leftLeg: { x: 423, y: 355, w: 52, h: 129 }
+        }
+      };
 
       function getToken() {
         try { return localStorage.getItem(TOKEN_KEY) || ""; }
@@ -1323,6 +1545,233 @@
         return builtPrompt.value;
       }
 
+      function roundRectPath(ctx, x, y, width, height, radius) {
+        var safeRadius = Math.max(0, Math.min(radius || 0, Math.min(width, height) / 2));
+        ctx.beginPath();
+        ctx.moveTo(x + safeRadius, y);
+        ctx.lineTo(x + width - safeRadius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+        ctx.lineTo(x + width, y + height - safeRadius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
+        ctx.lineTo(x + safeRadius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
+        ctx.lineTo(x, y + safeRadius);
+        ctx.quadraticCurveTo(x, y, x + safeRadius, y);
+        ctx.closePath();
+      }
+
+      function fillRoundedRect(ctx, x, y, width, height, radius, fillStyle) {
+        ctx.save();
+        roundRectPath(ctx, x, y, width, height, radius);
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawTexturedPart(ctx, image, sourceRect, destRect, options) {
+        if (!ctx || !image || !sourceRect || !destRect) return;
+        var settings = options || {};
+        var rotation = settings.rotation || 0;
+        var radius = settings.radius == null ? 18 : settings.radius;
+        var centerX = destRect.x + (destRect.w / 2);
+        var centerY = destRect.y + (destRect.h / 2);
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        if (rotation) {
+          ctx.rotate(rotation);
+        }
+        roundRectPath(ctx, -destRect.w / 2, -destRect.h / 2, destRect.w, destRect.h, radius);
+        ctx.clip();
+        ctx.drawImage(
+          image,
+          sourceRect.x, sourceRect.y, sourceRect.w, sourceRect.h,
+          -destRect.w / 2, -destRect.h / 2, destRect.w, destRect.h
+        );
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        if (rotation) {
+          ctx.rotate(rotation);
+        }
+        roundRectPath(ctx, -destRect.w / 2, -destRect.h / 2, destRect.w, destRect.h, radius);
+        ctx.strokeStyle = "rgba(20, 24, 32, 0.14)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawRigBackground(ctx, width, height) {
+        var gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "#fff8f0");
+        gradient.addColorStop(0.56, "#fff0df");
+        gradient.addColorStop(1, "#f8e4d0");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = "rgba(228, 171, 117, 0.12)";
+        ctx.lineWidth = 1;
+        for (var row = 410; row <= height + 80; row += 52) {
+          ctx.beginPath();
+          ctx.moveTo(0, row);
+          ctx.lineTo(width, row);
+          ctx.stroke();
+        }
+        for (var x = -120; x <= width + 160; x += 88) {
+          ctx.beginPath();
+          ctx.moveTo(x, 420);
+          ctx.lineTo(x + 54, height);
+          ctx.stroke();
+        }
+      }
+
+      function drawRigPreview() {
+        if (!rigContext || !rigCanvas) return;
+        var ctx = rigContext;
+        var canvas = rigCanvas;
+        var image = resultImage;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawRigBackground(ctx, canvas.width, canvas.height);
+
+        var shadow = ctx.createRadialGradient(360, 530, 24, 360, 530, 128);
+        shadow.addColorStop(0, "rgba(80, 62, 48, 0.18)");
+        shadow.addColorStop(1, "rgba(80, 62, 48, 0)");
+        ctx.fillStyle = shadow;
+        ctx.beginPath();
+        ctx.ellipse(360, 532, 138, 34, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        var rig = {
+          head: { x: 316, y: 82, w: 88, h: 92 },
+          neck: { x: 345, y: 162, w: 30, h: 18 },
+          torso: { x: 276, y: 178, w: 168, h: 160 },
+          leftArm: { x: 220, y: 188, w: 68, h: 154, rotation: 0.09 },
+          rightArm: { x: 432, y: 188, w: 68, h: 154, rotation: -0.09 },
+          leftHand: { x: 222, y: 328, w: 54, h: 36, rotation: 0.07 },
+          rightHand: { x: 444, y: 328, w: 54, h: 36, rotation: -0.07 },
+          leftLeg: { x: 304, y: 352, w: 60, h: 164 },
+          rightLeg: { x: 372, y: 352, w: 60, h: 164 },
+          leftFoot: { x: 300, y: 504, w: 68, h: 26 },
+          rightFoot: { x: 368, y: 504, w: 68, h: 26 }
+        };
+
+        fillRoundedRect(ctx, rig.leftHand.x, rig.leftHand.y, rig.leftHand.w, rig.leftHand.h, 18, "#e4e4e4");
+        fillRoundedRect(ctx, rig.rightHand.x, rig.rightHand.y, rig.rightHand.w, rig.rightHand.h, 18, "#e4e4e4");
+        fillRoundedRect(ctx, rig.leftFoot.x, rig.leftFoot.y, rig.leftFoot.w, rig.leftFoot.h, 14, "#dcdcdc");
+        fillRoundedRect(ctx, rig.rightFoot.x, rig.rightFoot.y, rig.rightFoot.w, rig.rightFoot.h, 14, "#dcdcdc");
+        fillRoundedRect(ctx, rig.neck.x, rig.neck.y, rig.neck.w, rig.neck.h, 12, "#d9d9d9");
+        fillRoundedRect(ctx, rig.torso.x, rig.torso.y, rig.torso.w, rig.torso.h, 22, "#f8f8f8");
+        fillRoundedRect(ctx, rig.leftLeg.x, rig.leftLeg.y, rig.leftLeg.w, rig.leftLeg.h, 18, "#191d24");
+        fillRoundedRect(ctx, rig.rightLeg.x, rig.rightLeg.y, rig.rightLeg.w, rig.rightLeg.h, 18, "#191d24");
+
+        ctx.save();
+        var headGradient = ctx.createLinearGradient(rig.head.x, rig.head.y, rig.head.x, rig.head.y + rig.head.h);
+        headGradient.addColorStop(0, "#e6e6e6");
+        headGradient.addColorStop(1, "#cfcfcf");
+        roundRectPath(ctx, rig.head.x, rig.head.y, rig.head.w, rig.head.h, 28);
+        ctx.fillStyle = headGradient;
+        ctx.fill();
+        ctx.restore();
+
+        if (image && image.complete && image.naturalWidth && image.naturalHeight) {
+          if (previewTemplateType !== "pants") {
+            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.torso, rig.torso, { radius: 22 });
+            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.rightArm, rig.leftArm, { radius: 18, rotation: rig.leftArm.rotation });
+            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.leftArm, rig.rightArm, { radius: 18, rotation: rig.rightArm.rotation });
+          }
+          if (previewTemplateType === "pants") {
+            drawTexturedPart(ctx, image, TEMPLATE_PARTS.pants.rightLeg, rig.leftLeg, { radius: 16 });
+            drawTexturedPart(ctx, image, TEMPLATE_PARTS.pants.leftLeg, rig.rightLeg, { radius: 16 });
+          }
+        }
+
+        ctx.strokeStyle = "rgba(30, 35, 44, 0.08)";
+        ctx.lineWidth = 2;
+        roundRectPath(ctx, rig.torso.x, rig.torso.y, rig.torso.w, rig.torso.h, 22);
+        ctx.stroke();
+      }
+
+      async function applyTextureToViewer(textureUrl) {
+        if (!rigViewer || !rigViewer.model || !textureUrl) return false;
+        try {
+          var materials = Array.isArray(rigViewer.model.materials) ? rigViewer.model.materials : [];
+          if (!materials.length || typeof rigViewer.createTexture !== "function") {
+            return false;
+          }
+
+          var texture = await rigViewer.createTexture(textureUrl);
+          var candidates = [];
+          var fallbackCandidates = [];
+
+          materials.forEach(function (material) {
+            var materialName = String(material && material.name || "").toLowerCase();
+            var isSkinMaterial = /skin|head|face|neck|hand|body|default/.test(materialName);
+            var hasBaseTextureSlot = Boolean(
+              material &&
+              material.pbrMetallicRoughness &&
+              material.pbrMetallicRoughness.baseColorTexture &&
+              typeof material.pbrMetallicRoughness.baseColorTexture.setTexture === "function"
+            );
+
+            if (!hasBaseTextureSlot) return;
+            fallbackCandidates.push(material);
+            if (!isSkinMaterial) {
+              candidates.push(material);
+            }
+          });
+
+          var targets = candidates.length ? candidates : fallbackCandidates;
+          if (!targets.length) return false;
+
+          targets.forEach(function (material) {
+            material.pbrMetallicRoughness.baseColorTexture.setTexture(texture);
+            if (typeof material.pbrMetallicRoughness.setBaseColorFactor === "function") {
+              material.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
+            }
+          });
+
+          if (rigCanvas) {
+            rigCanvas.classList.add("is-hidden");
+          }
+          return true;
+        } catch (_error) {
+          return false;
+        }
+      }
+
+      async function refreshRigPreview() {
+        var usedViewer = false;
+        if (rigViewer && rigViewerLoaded && latestGeneratedTextureUrl) {
+          usedViewer = await applyTextureToViewer(latestGeneratedTextureUrl);
+        }
+        if (!usedViewer) {
+          if (rigCanvas) {
+            rigCanvas.classList.remove("is-hidden");
+          }
+          drawRigPreview();
+        }
+      }
+
+      function resetRatingState() {
+        currentRating = 0;
+        hoverRating = 0;
+        if (ratingFeedback) {
+          ratingFeedback.classList.remove("is-success");
+          ratingFeedback.textContent = "Rate this result and you can still edit your stars later if you change your mind.";
+        }
+        updateRatingButtons();
+      }
+
+      function updateRatingButtons() {
+        var activeCount = hoverRating || currentRating;
+        ratingButtons.forEach(function (button) {
+          var value = Number(button.getAttribute("data-rating") || 0);
+          button.classList.toggle("is-active", value <= activeCount);
+          button.setAttribute("aria-pressed", currentRating === value ? "true" : "false");
+        });
+      }
+
       function openGenerationOverlay() {
         generationOverlay.classList.add("is-open");
         generationOverlay.setAttribute("aria-hidden", "false");
@@ -1412,8 +1861,12 @@
           }
 
           builtPrompt.value = payload.enhancedPrompt || enhancedPrompt;
+          previewTemplateType = payload.templateType === "pants" ? "pants" : "shirt";
+          latestGeneratedTextureUrl = payload.imageDataUrl || "";
           resultImage.src = payload.imageDataUrl;
-          resultSummary.textContent = "Generated from your visible request and the stronger hidden Roblox-template-aware prompt. The backend kept the real Roblox blueprint sheet and only painted the clothing art into the actual template panels.";
+          resultSummary.textContent = previewTemplateType === "pants"
+            ? "Your generated pants template is now previewed on the Roblox body rig here. Download still gives you the real 585 x 559 pants template PNG."
+            : "Your generated shirt template is now previewed on the Roblox body rig here. Download still gives you the real 585 x 559 shirt template PNG.";
           resultSize.textContent = (payload.outputWidth || 585) + " x " + (payload.outputHeight || 559) + " PNG";
           resultGarment.textContent = payload.templateType === "pants"
             ? "Pants Template"
@@ -1425,6 +1878,7 @@
           resultModel.textContent = String(payload.model || "GPT Image").replace(/-/g, " ");
           downloadButton.href = payload.imageDataUrl;
           downloadButton.download = payload.downloadFileName || "rblxtools-ai-clothing.png";
+          resetRatingState();
           showGenerationResult();
           status.textContent = "Clothing generated. The stronger hidden prompt was sent to the AI, the result was resized into Roblox's 585 x 559 format, and the artwork was composited into the real template blueprint.";
         } catch (error) {
@@ -1455,6 +1909,14 @@
         });
         status.textContent = "Prompt form reset. Users can stay simple at the top bar, and power users can open Advanced Settings whenever they want more control.";
         resultImage.removeAttribute("src");
+        latestGeneratedTextureUrl = "";
+        if (rigContext && rigCanvas) {
+          rigContext.clearRect(0, 0, rigCanvas.width, rigCanvas.height);
+        }
+        if (rigCanvas) {
+          rigCanvas.classList.remove("is-hidden");
+        }
+        resetRatingState();
         downloadButton.href = "#";
         generationResult.classList.remove("is-visible");
         generationLoading.classList.remove("is-visible");
@@ -1517,6 +1979,54 @@
         startButton.addEventListener("click", generateClothing);
         advancedToggleButton.addEventListener("click", toggleAdvancedSettings);
         resetButton.addEventListener("click", resetDraftForm);
+      resultImage.addEventListener("load", refreshRigPreview);
+      if (rigViewer) {
+        rigViewer.addEventListener("load", function () {
+          rigViewerLoaded = true;
+          if (latestGeneratedTextureUrl) {
+            refreshRigPreview();
+          }
+        });
+        rigViewer.addEventListener("error", function () {
+          rigViewerLoaded = false;
+          if (rigCanvas) {
+            rigCanvas.classList.remove("is-hidden");
+          }
+          drawRigPreview();
+        });
+      }
+      if (uploadSoonButton) {
+        uploadSoonButton.addEventListener("click", function () {
+          status.textContent = "Upload to Roblox is coming soon. For now, download the real template PNG and upload it manually.";
+        });
+      }
+      ratingButtons.forEach(function (button) {
+        button.addEventListener("mouseenter", function () {
+          hoverRating = Number(button.getAttribute("data-rating") || 0);
+          updateRatingButtons();
+        });
+        button.addEventListener("focus", function () {
+          hoverRating = Number(button.getAttribute("data-rating") || 0);
+          updateRatingButtons();
+        });
+        button.addEventListener("mouseleave", function () {
+          hoverRating = 0;
+          updateRatingButtons();
+        });
+        button.addEventListener("blur", function () {
+          hoverRating = 0;
+          updateRatingButtons();
+        });
+        button.addEventListener("click", function () {
+          currentRating = Number(button.getAttribute("data-rating") || 0);
+          hoverRating = 0;
+          updateRatingButtons();
+          if (ratingFeedback) {
+            ratingFeedback.classList.add("is-success");
+            ratingFeedback.textContent = "Thanks for rating this design " + currentRating + "/5. You can still edit this rating any time.";
+          }
+        });
+      });
       generationClose.addEventListener("click", closeGenerationOverlay);
       generationOverlay.addEventListener("click", function (event) {
         if (event.target === generationOverlay) {
@@ -1526,9 +2036,12 @@
 
       setGarment("shirt");
       setSleeveLength("long");
+      resetRatingState();
       verifyAdminAccess();
     })();
   </script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+  <script nomodule src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer-legacy.js"></script>
   <script src="./global-shell.js"></script>
 </body>
 </html>
