@@ -508,6 +508,8 @@
       border-radius: 28px;
       border: 1px solid rgba(255,255,255,0.08);
       overflow: hidden;
+      display: grid;
+      place-items: center;
       background:
         radial-gradient(circle at 50% 18%, rgba(106, 80, 255, 0.16), transparent 28%),
         radial-gradient(circle at 50% 58%, rgba(255,255,255,0.03), transparent 34%),
@@ -517,7 +519,7 @@
     }
 
     .ai-rig-viewer {
-      display: block;
+      display: none;
       position: relative;
       z-index: 1;
       width: 100%;
@@ -529,6 +531,19 @@
 
     .ai-rig-viewer::part(default-progress-bar) {
       display: none;
+    }
+
+    .ai-rig-viewport {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      min-height: 64vh;
+    }
+
+    .ai-rig-viewport canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
 
     .ai-rig-viewer::part(default-ar-button) {
@@ -553,7 +568,7 @@
       display: block;
       position: relative;
       z-index: 1;
-      width: 100%;
+      width: min(100%, 720px);
       height: auto;
     }
 
@@ -1292,21 +1307,7 @@
             <div class="ai-result-grid">
               <div class="ai-result-preview">
                 <div class="ai-rig-stage">
-                  <model-viewer
-                    class="ai-rig-viewer"
-                    id="aiRigViewer"
-                    src="./assets/ai-rig/Starter_Blocky_Rig.glb"
-                    camera-controls
-                    touch-action="pan-y"
-                    interaction-prompt="none"
-                    shadow-intensity="0.8"
-                    exposure="1.05"
-                    camera-orbit="0deg 78deg 3.6m"
-                    min-camera-orbit="auto auto 2.8m"
-                    max-camera-orbit="auto auto 5m"
-                    field-of-view="22deg"
-                    alt="3D Roblox clothing preview rig"
-                  ></model-viewer>
+                  <div class="ai-rig-viewport" id="aiRigViewport" aria-label="3D Roblox clothing preview rig"></div>
                   <canvas class="ai-rig-canvas" id="aiRigCanvas" width="720" height="720" aria-label="AI-generated Roblox clothing on preview rig"></canvas>
                   <img class="ai-result-source" id="aiResultImage" alt="AI-generated Roblox clothing source template" />
                 </div>
@@ -1371,7 +1372,7 @@
       var generationLoading = document.getElementById("aiGenerationLoading");
       var generationError = document.getElementById("aiGenerationError");
       var generationResult = document.getElementById("aiGenerationResult");
-      var rigViewer = document.getElementById("aiRigViewer");
+      var rigViewport = document.getElementById("aiRigViewport");
       var rigCanvas = document.getElementById("aiRigCanvas");
       var rigContext = rigCanvas && rigCanvas.getContext ? rigCanvas.getContext("2d") : null;
       var resultImage = document.getElementById("aiResultImage");
@@ -1395,7 +1396,20 @@
       var previewTemplateType = "shirt";
       var latestGeneratedTextureUrl = "";
       var latestRigTextureUrl = "";
-      var rigViewerLoaded = false;
+      var rigPreview3D = {
+        initialized: false,
+        failed: false,
+        renderer: null,
+        scene: null,
+        camera: null,
+        controls: null,
+        loadPromise: null,
+        baseObject: null,
+        overlayObject: null,
+        overlayMaterial: null,
+        frameHandle: 0,
+        resizeHandler: null
+      };
       var templateBlueprints = {
         shirt: new Image(),
         pants: new Image()
@@ -1405,15 +1419,169 @@
 
       var TEMPLATE_PARTS = {
         shirt: {
-          torso: { x: 228, y: 73, w: 130, h: 128 },
-          rightArm: { x: 111, y: 355, w: 52, h: 129 },
-          leftArm: { x: 423, y: 355, w: 52, h: 129 }
+          torsoFront: { x: 231, y: 74, w: 128, h: 128 },
+          rightArmFront: { x: 217, y: 355, w: 64, h: 128 },
+          leftArmFront: { x: 308, y: 355, w: 64, h: 128 }
         },
         pants: {
-          rightLeg: { x: 111, y: 355, w: 52, h: 129 },
-          leftLeg: { x: 423, y: 355, w: 52, h: 129 }
+          rightLegFront: { x: 217, y: 355, w: 64, h: 128 },
+          leftLegFront: { x: 308, y: 355, w: 64, h: 128 }
         }
       };
+
+      function waitForRigLibraries() {
+        return new Promise(function (resolve, reject) {
+          var startedAt = Date.now();
+          (function poll() {
+            if (window.THREE && window.THREE.OBJLoader && window.THREE.OrbitControls) {
+              resolve();
+              return;
+            }
+            if (Date.now() - startedAt > 12000) {
+              reject(new Error("3D preview libraries did not load."));
+              return;
+            }
+            setTimeout(poll, 80);
+          })();
+        });
+      }
+
+      function cloneMaterialWithMap(material, texture) {
+        var nextMaterial = material.clone();
+        nextMaterial.color.setRGB(1, 1, 1);
+        nextMaterial.map = texture;
+        nextMaterial.transparent = true;
+        nextMaterial.alphaTest = 0.06;
+        nextMaterial.depthWrite = false;
+        nextMaterial.side = window.THREE.DoubleSide;
+        nextMaterial.polygonOffset = true;
+        nextMaterial.polygonOffsetFactor = -2;
+        nextMaterial.polygonOffsetUnits = -2;
+        nextMaterial.needsUpdate = true;
+        return nextMaterial;
+      }
+
+      function setRigViewportSize() {
+        if (!rigPreview3D.renderer || !rigPreview3D.camera || !rigViewport) return;
+        var width = Math.max(320, Math.round(rigViewport.clientWidth || 720));
+        var height = Math.max(420, Math.round(rigViewport.clientHeight || 720));
+        rigPreview3D.renderer.setSize(width, height, false);
+        rigPreview3D.camera.aspect = width / height;
+        rigPreview3D.camera.updateProjectionMatrix();
+      }
+
+      async function ensureThreeRigPreview() {
+        if (rigPreview3D.initialized || rigPreview3D.failed || !rigViewport) {
+          return rigPreview3D.initialized;
+        }
+        if (rigPreview3D.loadPromise) {
+          return rigPreview3D.loadPromise;
+        }
+
+        rigPreview3D.loadPromise = waitForRigLibraries().then(function () {
+          var THREE = window.THREE;
+          var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+          renderer.outputEncoding = THREE.sRGBEncoding;
+          renderer.shadowMap.enabled = false;
+          rigViewport.innerHTML = "";
+          rigViewport.appendChild(renderer.domElement);
+
+          var scene = new THREE.Scene();
+          var camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+          camera.position.set(0, 1.45, 8.5);
+
+          var controls = new THREE.OrbitControls(camera, renderer.domElement);
+          controls.enableDamping = true;
+          controls.enablePan = false;
+          controls.target.set(0, 1.45, 0);
+          controls.minDistance = 5.8;
+          controls.maxDistance = 12.5;
+          controls.minPolarAngle = 0.95;
+          controls.maxPolarAngle = 1.72;
+
+          scene.add(new THREE.AmbientLight(0xffffff, 1.15));
+          var keyLight = new THREE.DirectionalLight(0xffffff, 1.55);
+          keyLight.position.set(4.5, 7.5, 6.5);
+          scene.add(keyLight);
+          var rimLight = new THREE.DirectionalLight(0xa8c4ff, 0.75);
+          rimLight.position.set(-5, 4, -6);
+          scene.add(rimLight);
+
+          var floor = new THREE.Mesh(
+            new THREE.CircleGeometry(2.2, 48),
+            new THREE.MeshBasicMaterial({ color: 0x251d18, transparent: true, opacity: 0.13 })
+          );
+          floor.rotation.x = -Math.PI / 2;
+          floor.position.y = -2.1;
+          scene.add(floor);
+
+          rigPreview3D.renderer = renderer;
+          rigPreview3D.scene = scene;
+          rigPreview3D.camera = camera;
+          rigPreview3D.controls = controls;
+
+          return new Promise(function (resolve, reject) {
+            var loader = new THREE.OBJLoader();
+            loader.load("./assets/ai-rig/roblox%20rig.obj", function (object) {
+              var box = new THREE.Box3().setFromObject(object);
+              var center = box.getCenter(new THREE.Vector3());
+              var size = box.getSize(new THREE.Vector3());
+              var maxAxis = Math.max(size.x, size.y, size.z) || 1;
+              var scale = 4.4 / maxAxis;
+
+              object.position.sub(center);
+              object.scale.setScalar(scale);
+
+              object.traverse(function (child) {
+                if (!child.isMesh) return;
+                child.castShadow = false;
+                child.receiveShadow = false;
+                child.material = new THREE.MeshStandardMaterial({
+                  color: 0xd7dbe2,
+                  roughness: 0.94,
+                  metalness: 0.02,
+                  side: THREE.DoubleSide
+                });
+              });
+
+              var overlay = object.clone(true);
+              overlay.traverse(function (child) {
+                if (!child.isMesh) return;
+                child.material = child.material.clone();
+              });
+              overlay.visible = false;
+
+              scene.add(object);
+              scene.add(overlay);
+
+              rigPreview3D.baseObject = object;
+              rigPreview3D.overlayObject = overlay;
+              rigPreview3D.overlayMaterial = null;
+              rigPreview3D.initialized = true;
+
+              rigPreview3D.resizeHandler = setRigViewportSize;
+              window.addEventListener("resize", rigPreview3D.resizeHandler);
+              setRigViewportSize();
+
+              (function renderLoop() {
+                rigPreview3D.frameHandle = window.requestAnimationFrame(renderLoop);
+                controls.update();
+                renderer.render(scene, camera);
+              })();
+
+              resolve(true);
+            }, void 0, function (error) {
+              reject(error || new Error("Could not load Roblox rig OBJ."));
+            });
+          });
+        }).catch(function () {
+          rigPreview3D.failed = true;
+          return false;
+        });
+
+        return rigPreview3D.loadPromise;
+      }
 
       function getToken() {
         try { return localStorage.getItem(TOKEN_KEY) || ""; }
@@ -1431,6 +1599,11 @@
       function showWorkspace() {
         gate.classList.remove("is-active");
         page.classList.remove("ai-hidden");
+        ensureThreeRigPreview().then(function (ready) {
+          if (ready && rigCanvas) {
+            rigCanvas.classList.add("is-hidden");
+          }
+        });
       }
 
       function showGate(message) {
@@ -1712,13 +1885,13 @@
 
         if (image && image.complete && image.naturalWidth && image.naturalHeight) {
           if (previewTemplateType !== "pants") {
-            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.torso, rig.torso, { radius: 22 });
-            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.rightArm, rig.leftArm, { radius: 18, rotation: rig.leftArm.rotation });
-            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.leftArm, rig.rightArm, { radius: 18, rotation: rig.rightArm.rotation });
+            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.torsoFront, rig.torso, { radius: 22 });
+            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.rightArmFront, rig.leftArm, { radius: 18, rotation: rig.leftArm.rotation });
+            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.leftArmFront, rig.rightArm, { radius: 18, rotation: rig.rightArm.rotation });
           }
           if (previewTemplateType === "pants") {
-            drawTexturedPart(ctx, image, TEMPLATE_PARTS.pants.rightLeg, rig.leftLeg, { radius: 16 });
-            drawTexturedPart(ctx, image, TEMPLATE_PARTS.pants.leftLeg, rig.rightLeg, { radius: 16 });
+            drawTexturedPart(ctx, image, TEMPLATE_PARTS.pants.rightLegFront, rig.leftLeg, { radius: 16 });
+            drawTexturedPart(ctx, image, TEMPLATE_PARTS.pants.leftLegFront, rig.rightLeg, { radius: 16 });
           }
         }
 
@@ -1785,29 +1958,31 @@
       }
 
       async function applyTextureToViewer(textureUrl) {
-        if (!rigViewer || !rigViewer.model || !textureUrl) return false;
-        try {
-          var materials = Array.isArray(rigViewer.model.materials) ? rigViewer.model.materials : [];
-          if (!materials.length || typeof rigViewer.createTexture !== "function") {
-            return false;
-          }
+        if (!textureUrl) return false;
+        var ready = await ensureThreeRigPreview();
+        if (!ready || !rigPreview3D.overlayObject || !window.THREE) {
+          return false;
+        }
 
-          var texture = await rigViewer.createTexture(textureUrl);
-          var targets = materials.filter(function (material) {
-            return Boolean(
-              material &&
-              material.pbrMetallicRoughness &&
-              material.pbrMetallicRoughness.baseColorTexture &&
-              typeof material.pbrMetallicRoughness.baseColorTexture.setTexture === "function"
+        try {
+          var THREE = window.THREE;
+          var texture = await new Promise(function (resolve, reject) {
+            new THREE.TextureLoader().load(
+              textureUrl,
+              resolve,
+              void 0,
+              function () { reject(new Error("Could not load preview texture.")); }
             );
           });
-          if (!targets.length) return false;
 
-          targets.forEach(function (material) {
-            material.pbrMetallicRoughness.baseColorTexture.setTexture(texture);
-            if (typeof material.pbrMetallicRoughness.setBaseColorFactor === "function") {
-              material.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
-            }
+          texture.flipY = false;
+          texture.encoding = THREE.sRGBEncoding;
+          texture.needsUpdate = true;
+
+          rigPreview3D.overlayObject.visible = true;
+          rigPreview3D.overlayObject.traverse(function (child) {
+            if (!child.isMesh) return;
+            child.material = cloneMaterialWithMap(child.material, texture);
           });
 
           if (rigCanvas) {
@@ -1821,7 +1996,15 @@
 
       async function refreshRigPreview() {
         var usedViewer = false;
-        if (rigViewer && rigViewerLoaded && latestRigTextureUrl) {
+        var viewerReady = await ensureThreeRigPreview();
+        if (viewerReady && rigPreview3D.overlayObject && !latestRigTextureUrl) {
+          rigPreview3D.overlayObject.visible = false;
+          if (rigCanvas) {
+            rigCanvas.classList.add("is-hidden");
+          }
+          return;
+        }
+        if (viewerReady && latestRigTextureUrl) {
           usedViewer = await applyTextureToViewer(latestRigTextureUrl);
         }
         if (!usedViewer) {
@@ -1945,8 +2128,8 @@
           latestRigTextureUrl = await buildViewerTextureDataUrl(latestGeneratedTextureUrl, previewTemplateType);
           resultImage.src = payload.imageDataUrl;
           resultSummary.textContent = previewTemplateType === "pants"
-            ? "Your generated pants template is now previewed on the Roblox body rig here. Download still gives you the real 585 x 559 pants template PNG."
-            : "Your generated shirt template is now previewed on the Roblox body rig here. Download still gives you the real 585 x 559 shirt template PNG.";
+            ? "Your generated pants template is now previewed on the Roblox rig here. Download still gives you the real 585 x 559 pants template PNG."
+            : "Your generated shirt template is now previewed on the Roblox rig here. Download still gives you the real 585 x 559 shirt template PNG.";
           resultSize.textContent = (payload.outputWidth || 585) + " x " + (payload.outputHeight || 559) + " PNG";
           resultGarment.textContent = payload.templateType === "pants"
             ? "Pants Template"
@@ -1960,7 +2143,7 @@
           downloadButton.download = payload.downloadFileName || "rblxtools-ai-clothing.png";
           resetRatingState();
           showGenerationResult();
-          status.textContent = "Clothing generated. The stronger hidden prompt was sent to the AI, the result was resized into Roblox's 585 x 559 format, and the cleaned clothing texture was pushed onto the preview rig.";
+          status.textContent = "Clothing generated. The stronger hidden prompt was sent to the AI, the result was resized into Roblox's 585 x 559 format, and the template was pushed onto the 3D Roblox rig preview while download still keeps the original template file.";
         } catch (error) {
           var errorMessage = error && error.message
             ? error.message
@@ -1991,11 +2174,14 @@
         resultImage.removeAttribute("src");
         latestGeneratedTextureUrl = "";
         latestRigTextureUrl = "";
+        if (rigPreview3D.overlayObject) {
+          rigPreview3D.overlayObject.visible = false;
+        }
         if (rigContext && rigCanvas) {
           rigContext.clearRect(0, 0, rigCanvas.width, rigCanvas.height);
         }
         if (rigCanvas) {
-          rigCanvas.classList.remove("is-hidden");
+          rigCanvas.classList.add("is-hidden");
         }
         resetRatingState();
         downloadButton.href = "#";
@@ -2061,21 +2247,6 @@
         advancedToggleButton.addEventListener("click", toggleAdvancedSettings);
         resetButton.addEventListener("click", resetDraftForm);
       resultImage.addEventListener("load", refreshRigPreview);
-      if (rigViewer) {
-        rigViewer.addEventListener("load", function () {
-          rigViewerLoaded = true;
-          if (latestGeneratedTextureUrl) {
-            refreshRigPreview();
-          }
-        });
-        rigViewer.addEventListener("error", function () {
-          rigViewerLoaded = false;
-          if (rigCanvas) {
-            rigCanvas.classList.remove("is-hidden");
-          }
-          drawRigPreview();
-        });
-      }
       if (uploadSoonButton) {
         uploadSoonButton.addEventListener("click", function () {
           status.textContent = "Upload to Roblox is coming soon. For now, download the real template PNG and upload it manually.";
@@ -2121,8 +2292,9 @@
       verifyAdminAccess();
     })();
   </script>
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
-  <script nomodule src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer-legacy.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="./global-shell.js"></script>
 </body>
 </html>
