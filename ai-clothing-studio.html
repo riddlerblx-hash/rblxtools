@@ -1179,10 +1179,6 @@
               <strong>Pants Template</strong>
               <span>Pushes the design toward clean leg mapping and seam-safe lower-body detail.</span>
             </button>
-            <button class="ai-option-card" data-garment="set" type="button">
-              <strong>Matching Set</strong>
-              <span>Builds both shirt and pants together so the release feels like one outfit.</span>
-            </button>
           </div>
 
           <div>
@@ -1227,7 +1223,6 @@
             <select class="ai-select" id="aiGarmentType">
               <option value="shirt">Shirt Template</option>
               <option value="pants">Pants Template</option>
-              <option value="set">Matching Shirt + Pants Set</option>
               <option value="layered">Layered Outfit Concept</option>
             </select>
           </div>
@@ -1406,7 +1401,8 @@
         loadPromise: null,
         baseObject: null,
         overlayObject: null,
-        overlayMaterial: null,
+        overlayTexture: null,
+        meshParts: [],
         frameHandle: 0,
         resizeHandler: null
       };
@@ -1459,6 +1455,34 @@
         nextMaterial.polygonOffsetUnits = -2;
         nextMaterial.needsUpdate = true;
         return nextMaterial;
+      }
+
+      function classifyRigMesh(mesh) {
+        if (!window.THREE || !mesh || !mesh.isMesh) return "other";
+        mesh.geometry.computeBoundingBox();
+        var box = mesh.geometry.boundingBox.clone();
+        box.applyMatrix4(mesh.matrixWorld);
+        var center = box.getCenter(new window.THREE.Vector3());
+        var size = box.getSize(new window.THREE.Vector3());
+
+        if (center.y > 1.6) {
+          if (size.z > 1.4) return "torso";
+          if (Math.abs(center.z) > 1.0) return center.y > 2.45 ? "arm" : "forearm";
+          return center.y > 3.85 ? "head" : "neck";
+        }
+
+        if (center.y > -0.15) {
+          return Math.abs(center.z) > 0.4 ? "leg" : "hip";
+        }
+
+        return Math.abs(center.z) > 0.4 ? "foot" : "other";
+      }
+
+      function shouldOverlayPart(part, templateType) {
+        if (templateType === "pants") {
+          return part === "leg";
+        }
+        return part === "torso" || part === "arm" || part === "forearm";
       }
 
       function setRigViewportSize() {
@@ -1532,6 +1556,7 @@
 
               object.position.sub(center);
               object.scale.setScalar(scale);
+              object.updateMatrixWorld(true);
 
               object.traverse(function (child) {
                 if (!child.isMesh) return;
@@ -1551,13 +1576,22 @@
                 child.material = child.material.clone();
               });
               overlay.visible = false;
+              overlay.updateMatrixWorld(true);
 
               scene.add(object);
               scene.add(overlay);
 
               rigPreview3D.baseObject = object;
               rigPreview3D.overlayObject = overlay;
-              rigPreview3D.overlayMaterial = null;
+              rigPreview3D.overlayTexture = null;
+              rigPreview3D.meshParts = [];
+              overlay.traverse(function (child) {
+                if (!child.isMesh) return;
+                rigPreview3D.meshParts.push({
+                  mesh: child,
+                  part: classifyRigMesh(child)
+                });
+              });
               rigPreview3D.initialized = true;
 
               rigPreview3D.resizeHandler = setRigViewportSize;
@@ -1655,9 +1689,10 @@
       }
 
       function setGarment(value) {
-        garmentType.value = value;
+        var normalized = value === "pants" || value === "layered" ? value : "shirt";
+        garmentType.value = normalized;
         garmentCards.forEach(function (card) {
-          card.classList.toggle("is-active", card.getAttribute("data-garment") === value);
+          card.classList.toggle("is-active", card.getAttribute("data-garment") === normalized);
         });
       }
 
@@ -1718,9 +1753,7 @@
         var goals = getActiveGoalTexts();
         var templateInstruction = garment === "pants"
           ? "Use only the Roblox pants template logic. Focus strictly on waist, thigh, knee, calf, cuff, and ankle zones. Do not generate shirt collars, chest panels, sleeves, shoulder seams, or upper-body outfit pieces."
-          : garment === "set"
-            ? "Create a matching outfit direction, but the final template image still must respect the currently selected Roblox template structure exactly. Shared motifs are okay, but do not break the blueprint or invent off-template garment pieces."
-            : garment === "layered"
+          : garment === "layered"
               ? "Create a layered Roblox outfit concept that still maps cleanly onto the selected Roblox template without drifting into unrelated garment pieces or off-template rendering."
               : "Use only the Roblox shirt template logic. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate pants-leg-only layouts or lower-body outfit pieces that do not belong on the shirt template.";
         var sleeveInstruction = garment === "pants"
@@ -1957,7 +1990,7 @@
         });
       }
 
-      async function applyTextureToViewer(textureUrl) {
+      async function applyTextureToViewer(textureUrl, templateType) {
         if (!textureUrl) return false;
         var ready = await ensureThreeRigPreview();
         if (!ready || !rigPreview3D.overlayObject || !window.THREE) {
@@ -1978,11 +2011,14 @@
           texture.flipY = false;
           texture.encoding = THREE.sRGBEncoding;
           texture.needsUpdate = true;
+          rigPreview3D.overlayTexture = texture;
 
           rigPreview3D.overlayObject.visible = true;
-          rigPreview3D.overlayObject.traverse(function (child) {
-            if (!child.isMesh) return;
-            child.material = cloneMaterialWithMap(child.material, texture);
+          rigPreview3D.meshParts.forEach(function (entry) {
+            if (!entry || !entry.mesh) return;
+            entry.mesh.visible = shouldOverlayPart(entry.part, templateType);
+            if (!entry.mesh.visible) return;
+            entry.mesh.material = cloneMaterialWithMap(entry.mesh.material, texture);
           });
 
           if (rigCanvas) {
@@ -2005,7 +2041,7 @@
           return;
         }
         if (viewerReady && latestRigTextureUrl) {
-          usedViewer = await applyTextureToViewer(latestRigTextureUrl);
+          usedViewer = await applyTextureToViewer(latestRigTextureUrl, previewTemplateType);
         }
         if (!usedViewer) {
           if (rigCanvas) {
@@ -2133,9 +2169,7 @@
           resultSize.textContent = (payload.outputWidth || 585) + " x " + (payload.outputHeight || 559) + " PNG";
           resultGarment.textContent = payload.templateType === "pants"
             ? "Pants Template"
-            : payload.garmentType === "set"
-              ? "Matching Set"
-              : payload.garmentType === "layered"
+            : payload.garmentType === "layered"
                 ? "Layered Concept"
                 : "Shirt Template";
           resultModel.textContent = String(payload.model || "GPT Image").replace(/-/g, " ");
