@@ -1403,8 +1403,10 @@
         parts: {},
         overlayTextures: [],
         frameHandle: 0,
-        resizeHandler: null
+        resizeHandler: null,
+        rigKind: "fallback"
       };
+      var RIG_MODEL_URL = "./assets/ai-rig/Starter_Blocky_Rig.glb";
       var RIG_COLORS = {
         skin: 0xe4e4e4,
         head: 0xdedee2,
@@ -1469,7 +1471,7 @@
         return new Promise(function (resolve, reject) {
           var startedAt = Date.now();
           (function poll() {
-            if (window.THREE && window.THREE.OrbitControls) {
+            if (window.THREE && window.THREE.OrbitControls && window.THREE.GLTFLoader) {
               resolve();
               return;
             }
@@ -1570,6 +1572,46 @@
         ];
       }
 
+      function createTemplateTexture(sourceImage, options) {
+        if (!sourceImage) return null;
+        var settings = options || {};
+        var canvas = document.createElement("canvas");
+        canvas.width = sourceImage.naturalWidth || sourceImage.width || 585;
+        canvas.height = sourceImage.naturalHeight || sourceImage.height || 559;
+        var ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+
+        if (settings.flipY) {
+          ctx.save();
+          ctx.translate(0, canvas.height);
+          ctx.scale(1, -1);
+          ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+          ctx.restore();
+        } else {
+          ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+        }
+
+        var texture = new window.THREE.CanvasTexture(canvas);
+        texture.flipY = false;
+        texture.encoding = window.THREE.sRGBEncoding;
+        texture.needsUpdate = true;
+        rigPreview3D.overlayTextures.push(texture);
+        return texture;
+      }
+
+      function createTemplateMaterial(sourceImage, fallbackHex, options) {
+        var texture = createTemplateTexture(sourceImage, options);
+        if (!texture) {
+          return cloneBaseMaterial(typeof fallbackHex === "number" ? fallbackHex : 0xf2f3f5);
+        }
+        return new window.THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          map: texture,
+          roughness: 0.96,
+          metalness: 0.0
+        });
+      }
+
       function createRigPartGeometry(THREE, size, radius) {
         var roundedCtor = THREE.RoundedBoxGeometry;
         if (typeof roundedCtor === "function") {
@@ -1586,12 +1628,65 @@
 
       function applyBaseRigMaterials() {
         if (!rigPreview3D.parts) return;
+        if (rigPreview3D.rigKind === "gltf") {
+          replacePartMaterials(rigPreview3D.parts.head, cloneBaseMaterial(RIG_COLORS.head));
+          replacePartMaterials(rigPreview3D.parts.torso, cloneBaseMaterial(RIG_COLORS.shirt));
+          replacePartMaterials(rigPreview3D.parts.rightArm, cloneBaseMaterial(RIG_COLORS.shirt));
+          replacePartMaterials(rigPreview3D.parts.leftArm, cloneBaseMaterial(RIG_COLORS.shirt));
+          replacePartMaterials(rigPreview3D.parts.rightLeg, cloneBaseMaterial(RIG_COLORS.pants));
+          replacePartMaterials(rigPreview3D.parts.leftLeg, cloneBaseMaterial(RIG_COLORS.pants));
+          return;
+        }
         replacePartMaterials(rigPreview3D.parts.head, buildPartMaterials(null, null, RIG_COLORS.head));
         replacePartMaterials(rigPreview3D.parts.torso, buildPartMaterials(null, null, RIG_COLORS.shirt));
         replacePartMaterials(rigPreview3D.parts.rightArm, buildPartMaterials(null, null, RIG_COLORS.shirt));
         replacePartMaterials(rigPreview3D.parts.leftArm, buildPartMaterials(null, null, RIG_COLORS.shirt));
         replacePartMaterials(rigPreview3D.parts.rightLeg, buildPartMaterials(null, null, RIG_COLORS.pants));
         replacePartMaterials(rigPreview3D.parts.leftLeg, buildPartMaterials(null, null, RIG_COLORS.pants));
+      }
+
+      function setupGltfRigParts(root) {
+        var meshLookup = {
+          "Head": "head",
+          "Torso": "torso",
+          "Left Arm": "leftArm",
+          "Right Arm": "rightArm",
+          "Left Leg": "leftLeg",
+          "Right Leg": "rightLeg"
+        };
+
+        root.traverse(function (object) {
+          if (!object || !object.isMesh) return;
+          if (meshLookup[object.name]) {
+            rigPreview3D.parts[meshLookup[object.name]] = object;
+            object.castShadow = false;
+            object.receiveShadow = false;
+            object.visible = true;
+            return;
+          }
+          object.visible = false;
+        });
+      }
+
+      function fitRigModel(root, THREE) {
+        var box = new THREE.Box3().setFromObject(root);
+        var size = new THREE.Vector3();
+        var center = new THREE.Vector3();
+        box.getSize(size);
+        box.getCenter(center);
+        if (!size.y) return;
+
+        var targetHeight = 6.25;
+        var scale = targetHeight / size.y;
+        root.scale.setScalar(scale);
+
+        box.setFromObject(root);
+        box.getCenter(center);
+        root.position.x -= center.x;
+        root.position.z -= center.z;
+        root.position.y -= box.min.y;
+        root.position.y -= 0.02;
+        root.rotation.y = 0.06;
       }
 
       function setRigViewportSize() {
@@ -1653,48 +1748,83 @@
           rigPreview3D.scene = scene;
           rigPreview3D.camera = camera;
           rigPreview3D.controls = controls;
+          function buildFallbackRig() {
+            rigPreview3D.parts = {};
+            rigPreview3D.rigKind = "fallback";
+            var avatar = new THREE.Group();
 
-          var avatar = new THREE.Group();
+            function addPart(name, size, position, baseMaterial, radius) {
+              var geometry = createRigPartGeometry(THREE, size, radius);
+              var baseMesh = new THREE.Mesh(geometry, baseMaterial);
+              baseMesh.position.set(position[0], position[1], position[2]);
+              avatar.add(baseMesh);
+              rigPreview3D.parts[name] = baseMesh;
+              return baseMesh;
+            }
 
-          function addPart(name, size, position, baseMaterial, radius) {
-            var geometry = createRigPartGeometry(THREE, size, radius);
-            var baseMesh = new THREE.Mesh(geometry, baseMaterial);
-            baseMesh.position.set(position[0], position[1], position[2]);
-            avatar.add(baseMesh);
-            rigPreview3D.parts[name] = baseMesh;
-            return baseMesh;
+            addPart("head", [1.9, 1.9, 1.9], [0, 5.02, 0], createColorMaterial(RIG_COLORS.head), 0.2);
+            addPart("neck", [0.5, 0.3, 0.5], [0, 3.86, 0], createColorMaterial(RIG_COLORS.skin), 0.08);
+            addPart("torso", [2, 2, 1], [0, 2.74, 0], createColorMaterial(RIG_COLORS.shirt), 0.12);
+            addPart("rightArm", [1, 1.62, 1], [-1.54, 2.88, 0], createColorMaterial(RIG_COLORS.shirt), 0.1);
+            addPart("leftArm", [1, 1.62, 1], [1.54, 2.88, 0], createColorMaterial(RIG_COLORS.shirt), 0.1);
+            addPart("rightHand", [0.86, 0.3, 0.86], [-1.54, 1.86, 0], createColorMaterial(RIG_COLORS.skin), 0.07);
+            addPart("leftHand", [0.86, 0.3, 0.86], [1.54, 1.86, 0], createColorMaterial(RIG_COLORS.skin), 0.07);
+            addPart("rightLeg", [1, 1.7, 1], [-0.52, 0.96, 0], createColorMaterial(RIG_COLORS.pants), 0.09);
+            addPart("leftLeg", [1, 1.7, 1], [0.52, 0.96, 0], createColorMaterial(RIG_COLORS.pants), 0.09);
+            addPart("rightFoot", [0.92, 0.22, 0.92], [-0.52, -0.05, 0], createColorMaterial(RIG_COLORS.shoes), 0.06);
+            addPart("leftFoot", [0.92, 0.22, 0.92], [0.52, -0.05, 0], createColorMaterial(RIG_COLORS.shoes), 0.06);
+
+            avatar.rotation.y = 0.06;
+            scene.add(avatar);
+            rigPreview3D.root = avatar;
           }
 
-          addPart("head", [1.9, 1.9, 1.9], [0, 5.02, 0], createColorMaterial(RIG_COLORS.head), 0.2);
-          addPart("neck", [0.5, 0.3, 0.5], [0, 3.86, 0], createColorMaterial(RIG_COLORS.skin), 0.08);
-          addPart("torso", [2, 2, 1], [0, 2.74, 0], createColorMaterial(RIG_COLORS.shirt), 0.12);
-          addPart("rightArm", [1, 1.62, 1], [-1.54, 2.88, 0], createColorMaterial(RIG_COLORS.shirt), 0.1);
-          addPart("leftArm", [1, 1.62, 1], [1.54, 2.88, 0], createColorMaterial(RIG_COLORS.shirt), 0.1);
-          addPart("rightHand", [0.86, 0.3, 0.86], [-1.54, 1.86, 0], createColorMaterial(RIG_COLORS.skin), 0.07);
-          addPart("leftHand", [0.86, 0.3, 0.86], [1.54, 1.86, 0], createColorMaterial(RIG_COLORS.skin), 0.07);
-          addPart("rightLeg", [1, 1.7, 1], [-0.52, 0.96, 0], createColorMaterial(RIG_COLORS.pants), 0.09);
-          addPart("leftLeg", [1, 1.7, 1], [0.52, 0.96, 0], createColorMaterial(RIG_COLORS.pants), 0.09);
-          addPart("rightFoot", [0.92, 0.22, 0.92], [-0.52, -0.05, 0], createColorMaterial(RIG_COLORS.shoes), 0.06);
-          addPart("leftFoot", [0.92, 0.22, 0.92], [0.52, -0.05, 0], createColorMaterial(RIG_COLORS.shoes), 0.06);
+          return new Promise(function (resolve) {
+            var loader = new THREE.GLTFLoader();
+            loader.load(
+              RIG_MODEL_URL,
+              function (gltf) {
+                rigPreview3D.parts = {};
+                rigPreview3D.rigKind = "gltf";
+                var avatar = gltf.scene || gltf.scenes[0];
+                if (!avatar) {
+                  buildFallbackRig();
+                  resolve(true);
+                  return;
+                }
+                setupGltfRigParts(avatar);
+                if (!rigPreview3D.parts.torso || !rigPreview3D.parts.leftArm || !rigPreview3D.parts.rightArm || !rigPreview3D.parts.leftLeg || !rigPreview3D.parts.rightLeg) {
+                  buildFallbackRig();
+                  resolve(true);
+                  return;
+                }
+                fitRigModel(avatar, THREE);
+                scene.add(avatar);
+                rigPreview3D.root = avatar;
+                resolve(true);
+              },
+              undefined,
+              function () {
+                buildFallbackRig();
+                resolve(true);
+              }
+            );
+          }).then(function () {
+            rigPreview3D.initialized = true;
+            applyBaseRigMaterials();
 
-          avatar.rotation.y = 0.06;
+            rigPreview3D.resizeHandler = setRigViewportSize;
+            window.addEventListener("resize", rigPreview3D.resizeHandler);
+            setRigViewportSize();
 
-          scene.add(avatar);
-          rigPreview3D.root = avatar;
-          rigPreview3D.initialized = true;
-          applyBaseRigMaterials();
+            (function renderLoop() {
+              rigPreview3D.frameHandle = window.requestAnimationFrame(renderLoop);
+              controls.update();
+              renderer.render(scene, camera);
+            })();
 
-          rigPreview3D.resizeHandler = setRigViewportSize;
-          window.addEventListener("resize", rigPreview3D.resizeHandler);
-          setRigViewportSize();
-
-          (function renderLoop() {
-            rigPreview3D.frameHandle = window.requestAnimationFrame(renderLoop);
-            controls.update();
-            renderer.render(scene, camera);
-          })();
-
-          return true;
+            return true;
+          });
         }).catch(function () {
           rigPreview3D.failed = true;
           return false;
@@ -2038,7 +2168,18 @@
           disposeOverlayTextures();
           applyBaseRigMaterials();
 
-          if (templateType === "pants") {
+          if (rigPreview3D.rigKind === "gltf") {
+            var templateMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.shirt);
+            var pantsMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.pants);
+            if (templateType === "pants") {
+              replacePartMaterials(rigPreview3D.parts.rightLeg, pantsMaterial.clone());
+              replacePartMaterials(rigPreview3D.parts.leftLeg, pantsMaterial.clone());
+            } else {
+              replacePartMaterials(rigPreview3D.parts.torso, templateMaterial.clone());
+              replacePartMaterials(rigPreview3D.parts.rightArm, templateMaterial.clone());
+              replacePartMaterials(rigPreview3D.parts.leftArm, templateMaterial.clone());
+            }
+          } else if (templateType === "pants") {
             replacePartMaterials(rigPreview3D.parts.rightLeg, buildPartMaterials(sourceImage, TEMPLATE_PARTS.pants.rightLeg, RIG_COLORS.pants));
             replacePartMaterials(rigPreview3D.parts.leftLeg, buildPartMaterials(sourceImage, TEMPLATE_PARTS.pants.leftLeg, RIG_COLORS.pants));
           } else {
@@ -2338,6 +2479,7 @@
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/RoundedBoxGeometry.js"></script>
   <script src="./global-shell.js"></script>
 </body>
