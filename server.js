@@ -62,8 +62,8 @@ const AI_CLOTHING_OUTPUT_HEIGHT = 559;
 const AI_CLOTHING_MODEL = "gpt-image-2";
 const AI_CLOTHING_GENERATION_SIZE = "832x800";
 const AI_TEMPLATE_REFERENCE_PATHS = {
-  shirt: path.join(__dirname, "assets", "ai-rig", "Template-Shirts-R15.png"),
-  pants: path.join(__dirname, "assets", "ai-rig", "Template-Pants-R15.png"),
+  shirt: path.join(__dirname, "assets", "ai-rig", "referencetemp.png"),
+  pants: path.join(__dirname, "assets", "ai-rig", "referencetemp.png"),
 };
 const AI_TEMPLATE_APPLICATION_PATHS = {
   shirt: path.join(__dirname, "assets", "template-backgrounds", "shirt.png"),
