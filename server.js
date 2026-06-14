@@ -12,6 +12,7 @@ const {
 const { mkdtemp, writeFile, rm } = require("fs/promises");
 const fs = require("fs");
 const path = require("path");
+const { Readable } = require("stream");
 const { tmpdir } = require("os");
 const { Server } = require("socket.io");
 const obj2gltf = require("obj2gltf");
@@ -217,7 +218,44 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
   const templatePath = AI_TEMPLATE_REFERENCE_PATHS[templateType] || AI_TEMPLATE_REFERENCE_PATHS.shirt;
   const { toFile } = getOpenAIUploadHelpers();
   await fs.promises.access(templatePath, fs.constants.R_OK);
-  const templateUpload = await toFile(fs.createReadStream(templatePath), path.basename(templatePath), {
+  const sharp = getSharp();
+  const templateBuffer = await fs.promises.readFile(templatePath);
+  const cleanedTemplateBuffer = await sharp(templateBuffer)
+    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
+      fit: "fill",
+      kernel: "nearest",
+    })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+    .then(async (templateRaw) => {
+      const cleanedRaw = Buffer.from(templateRaw.data);
+      for (let offset = 0; offset < cleanedRaw.length; offset += 4) {
+        const red = cleanedRaw[offset];
+        const green = cleanedRaw[offset + 1];
+        const blue = cleanedRaw[offset + 2];
+        const alpha = cleanedRaw[offset + 3];
+        const isGuideLine =
+          alpha > 0 &&
+          red >= 240 &&
+          green >= 240 &&
+          blue >= 240 &&
+          Math.max(red, green, blue) - Math.min(red, green, blue) <= 18;
+        if (isGuideLine) {
+          cleanedRaw[offset + 3] = 0;
+        }
+      }
+      return sharp(cleanedRaw, {
+        raw: {
+          width: templateRaw.info.width,
+          height: templateRaw.info.height,
+          channels: 4,
+        },
+      })
+        .png()
+        .toBuffer();
+    });
+  const templateUpload = await toFile(Readable.from([cleanedTemplateBuffer]), path.basename(templatePath), {
     type: "image/png",
   });
 
@@ -238,9 +276,7 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
     throw error;
   }
 
-  const sharp = getSharp();
   const generatedBuffer = Buffer.from(generatedBase64, "base64");
-  const templateBuffer = await fs.promises.readFile(templatePath);
   const resizedGeneratedBuffer = await sharp(generatedBuffer)
     .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
       fit: "fill",
@@ -248,14 +284,7 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
     })
     .png()
     .toBuffer();
-  const resizedTemplateBuffer = await sharp(templateBuffer)
-    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
-      fit: "fill",
-      kernel: "nearest",
-    })
-    .png()
-    .toBuffer();
-  const templateRaw = await sharp(resizedTemplateBuffer)
+  const templateRaw = await sharp(cleanedTemplateBuffer)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -287,7 +316,7 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
     .composite([{ input: maskImageBuffer, blend: "dest-in" }])
     .png()
     .toBuffer();
-  const finalBuffer = await sharp(resizedTemplateBuffer)
+  const finalBuffer = await sharp(cleanedTemplateBuffer)
     .composite([{ input: maskedArtworkBuffer, blend: "over" }])
     .png()
     .toBuffer();
