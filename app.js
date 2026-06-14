@@ -65,6 +65,11 @@ const AI_TEMPLATE_REFERENCE_PATHS = {
   shirt: path.join(__dirname, "assets", "ai-rig", "Template-Shirts-R15.png"),
   pants: path.join(__dirname, "assets", "ai-rig", "Template-Pants-R15.png"),
 };
+const AI_TEMPLATE_APPLICATION_PATHS = {
+  shirt: path.join(__dirname, "assets", "template-backgrounds", "shirt.png"),
+  pants: path.join(__dirname, "assets", "template-backgrounds", "pants.png"),
+};
+const AI_CLOTHING_MASK_BLEED_PX = 2;
 const AUTH_JWT_TTL_DAYS = Math.max(
   1,
   Number.parseInt(process.env.AUTH_JWT_TTL_DAYS || "30", 10) || 30
@@ -151,6 +156,30 @@ function normalizeAIClothingSleeveLength(value) {
   return "long";
 }
 
+function expandAIClothingMask(maskBuffer, width, height, radius) {
+  const bleed = Math.max(0, radius | 0);
+  if (!bleed) {
+    return Buffer.from(maskBuffer);
+  }
+  const expanded = Buffer.from(maskBuffer);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = y * width + x;
+      if (!maskBuffer[index]) continue;
+      for (let offsetY = -bleed; offsetY <= bleed; offsetY += 1) {
+        const nextY = y + offsetY;
+        if (nextY < 0 || nextY >= height) continue;
+        for (let offsetX = -bleed; offsetX <= bleed; offsetX += 1) {
+          const nextX = x + offsetX;
+          if (nextX < 0 || nextX >= width) continue;
+          expanded[nextY * width + nextX] = 255;
+        }
+      }
+    }
+  }
+  return expanded;
+}
+
 function buildAIClothingPrompt(input = {}) {
   const garment = normalizeAIClothingGarmentType(input.garmentType);
   const sleeveLength = normalizeAIClothingSleeveLength(input.sleeveLength);
@@ -215,12 +244,14 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
   }
 
   const templateType = getAIBaseTemplateType(garmentType);
-  const templatePath = AI_TEMPLATE_REFERENCE_PATHS[templateType] || AI_TEMPLATE_REFERENCE_PATHS.shirt;
+  const referenceTemplatePath = AI_TEMPLATE_REFERENCE_PATHS[templateType] || AI_TEMPLATE_REFERENCE_PATHS.shirt;
+  const applicationTemplatePath = AI_TEMPLATE_APPLICATION_PATHS[templateType] || AI_TEMPLATE_APPLICATION_PATHS.shirt;
   const { toFile } = getOpenAIUploadHelpers();
-  await fs.promises.access(templatePath, fs.constants.R_OK);
+  await fs.promises.access(referenceTemplatePath, fs.constants.R_OK);
+  await fs.promises.access(applicationTemplatePath, fs.constants.R_OK);
   const sharp = getSharp();
-  const templateBuffer = await fs.promises.readFile(templatePath);
-  const cleanedTemplateBuffer = await sharp(templateBuffer)
+  const referenceTemplateBuffer = await fs.promises.readFile(referenceTemplatePath);
+  const cleanedReferenceTemplateBuffer = await sharp(referenceTemplateBuffer)
     .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
       fit: "fill",
       kernel: "nearest",
@@ -255,7 +286,7 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
         .png()
         .toBuffer();
     });
-  const templateUpload = await toFile(Readable.from([cleanedTemplateBuffer]), path.basename(templatePath), {
+  const templateUpload = await toFile(Readable.from([cleanedReferenceTemplateBuffer]), path.basename(referenceTemplatePath), {
     type: "image/png",
   });
 
@@ -284,7 +315,15 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
     })
     .png()
     .toBuffer();
-  const templateRaw = await sharp(cleanedTemplateBuffer)
+  const applyTemplateBuffer = await fs.promises.readFile(applicationTemplatePath);
+  const cleanedApplyTemplateBuffer = await sharp(applyTemplateBuffer)
+    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
+      fit: "fill",
+      kernel: "nearest",
+    })
+    .png()
+    .toBuffer();
+  const templateRaw = await sharp(cleanedApplyTemplateBuffer)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -302,7 +341,13 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
       green > blue + 10;
     maskBuffer[index] = looksLikeTemplateZone ? 255 : 0;
   }
-  const maskImageBuffer = await sharp(maskBuffer, {
+  const expandedMaskBuffer = expandAIClothingMask(
+    maskBuffer,
+    AI_CLOTHING_OUTPUT_WIDTH,
+    AI_CLOTHING_OUTPUT_HEIGHT,
+    AI_CLOTHING_MASK_BLEED_PX
+  );
+  const maskImageBuffer = await sharp(expandedMaskBuffer, {
     raw: {
       width: AI_CLOTHING_OUTPUT_WIDTH,
       height: AI_CLOTHING_OUTPUT_HEIGHT,
