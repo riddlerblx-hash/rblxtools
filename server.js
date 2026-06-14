@@ -188,44 +188,36 @@ function buildAIClothingPrompt(input = {}) {
   const vibe = cleanAIClothingText(input.audience, 200) || "catalog-ready Roblox outfit";
   const userPrompt = cleanAIClothingText(input.userPrompt || input.prompt, 1200);
   const negativePrompt = cleanAIClothingText(input.negativePrompt, 700);
-  const styleName = cleanAIClothingText(input.styleName, 60);
-  const goalTexts = Array.isArray(input.templateGoals)
-    ? input.templateGoals.map((goal) => cleanAIClothingText(goal, 80)).filter(Boolean).slice(0, 8)
-    : [];
   const garmentInstruction = garment === "pants"
-      ? "Use only the Roblox pants template logic. Focus strictly on waist, thigh, knee, calf, cuff, and ankle zones. Do not generate shirt collars, chest panels, sleeves, shoulder seams, or upper-body outfit pieces."
+      ? "Use only the Roblox pants template logic. Keep the design inside the waist, leg, cuff, and ankle zones."
       : garment === "set"
-        ? "Create a matching outfit direction, but the final template image still must respect the currently selected Roblox template structure exactly. Shared motifs are okay, but do not break the blueprint or invent off-template garment pieces."
+        ? "Create a matching outfit concept that still respects the selected Roblox template structure."
         : garment === "layered"
-          ? "Create a layered Roblox outfit concept that still maps cleanly onto the selected Roblox template without drifting into unrelated garment pieces or off-template rendering."
-          : "Use only the Roblox shirt template logic. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate pants-leg-only layouts or lower-body outfit pieces that do not belong on the shirt template.";
+          ? "Create a layered Roblox outfit concept that still maps cleanly onto the selected Roblox template."
+          : "Use only the Roblox shirt template logic. Focus on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and the neck opening.";
   const sleeveInstruction = garment === "pants"
-    ? "Do not invent shirt sleeves for a pants-only result. The bottom leg ends act like ankle openings and should leave clean skin-opening space instead of sealing the leg shut."
+    ? "Keep the leg openings readable at the ankle and do not seal the pant ends shut."
     : sleeveLength === "short"
-      ? "Use short sleeves and always leave a clean hand opening at the wrist end of the Roblox sleeve blueprint so the avatar hands stay exposed."
+      ? "Use short sleeves and leave the wrist opening clear so the avatar hands stay exposed."
       : sleeveLength === "sleeveless"
-        ? "Use sleeveless arm treatment and keep the hand and arm opening areas fully clear on the Roblox blueprint."
-        : "Use long sleeves but always leave a clear hand opening and cuff break at the wrist end of the Roblox sleeve blueprint so the avatar hands stay exposed.";
+        ? "Use sleeveless arm treatment and keep the arm openings clear."
+        : "Use long sleeves but leave a clear hand opening and cuff break at the wrist.";
   const landmarkInstruction = garment === "pants"
-    ? "The lowest exposed parts of the pants blueprint represent ankle and shoe-entry territory, not random fabric panels. Keep those ankle openings readable and never treat them like sealed solid blocks."
-    : "The very top-center opening on the shirt blueprint is always the neck area and must stay clear for the avatar neck. Never treat that zone like a face or head area, and never place ears, hair, helmets, or head features there. The lower ends of the arm strips are always hand-opening territory and must stay readable as wrist and hand exits.";
+    ? "Keep the ankle openings clear and readable."
+    : "Keep the neck opening clear and do not place head features there. Keep the wrist exits readable at the sleeve ends.";
   const lines = [
     "Generate a Roblox clothing design specifically planned for the official Roblox clothing templates.",
     `Final export must be exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
-      `Generate the source image at ${AI_CLOTHING_GENERATION_SIZE} so it can be safely downscaled into the final Roblox template size.`,
-      garmentInstruction,
-      sleeveInstruction,
-      landmarkInstruction,
-      "Follow the template blueprint strictly. The final result should feel like a real Roblox template sheet with art placed into the proper clothing zones, not like a standalone poster or mockup.",
-    "Keep the Roblox blueprint visible and stable. The clothing art should live inside the actual clothing panels and respect seam zones, sleeve or leg boundaries, torso readability, and avatar wearability.",
+    `Generate the source image at ${AI_CLOTHING_GENERATION_SIZE} so it can be safely downscaled into the final Roblox template size.`,
+    garmentInstruction,
+    sleeveInstruction,
+    landmarkInstruction,
     `Style direction: ${style}.`,
     `Color palette: ${palette}.`,
     `Target vibe: ${vibe}.`,
-    styleName ? `Suggested preset style tag: ${styleName}.` : "",
-    `Core design request: ${userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
-    `Priority goals: ${goalTexts.length ? goalTexts.join(", ") : "clean torso readability, balanced front and back composition, strong sleeve details, clean seam alignment, catalog-ready presentation"}.`,
-      `Avoid: ${negativePrompt || "muddy textures, blurry seam areas, giant unreadable logos, floating accessories, low-detail sleeves, visible white seam lines, edge outlines, border strokes, or guide marks, sealed sleeve ends that cover the hand opening, sealed ankle ends, broken leg alignment, head features placed on the neck opening, full outfits that ignore the selected template type, and template-breaking cutoffs"}.`,
-    "Keep the clothing wearable, polished, and export-ready for Roblox creators who need a real template image rather than a concept sketch.",
+    `Core design request: ${userPrompt || "Create a polished Roblox clothing design with clear front, back, and sleeve or leg zones."}.`,
+    negativePrompt ? `Avoid: ${negativePrompt}.` : "",
+    "Do not include white lines or template guide marks.",
   ];
 
   return {
@@ -293,7 +285,7 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: templateUpload,
-    prompt: `${promptText} Keep the final art aligned to the supplied Roblox ${templateType} template blueprint. The green placeholder panels are the clothing zones. Create the clothing art so it belongs inside those blueprint panels. Do not draw white seam lines, border strokes, or template guide marks on the clothing texture.`,
+    prompt: `${promptText} Keep the final art aligned to the supplied Roblox ${templateType} template blueprint. The green placeholder panels are the clothing zones. Create the clothing art so it belongs inside those blueprint panels. Do not include white lines or template guide marks.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -4735,31 +4727,27 @@ app.post("/support/report", async (req, res) => {
 app.post("/ai/generate-clothing", async (req, res) => {
   try {
     await requireAdminUser(req);
-      const promptPayload = {
-        garmentType: req.body?.garmentType,
-        sleeveLength: req.body?.sleeveLength,
-        styleDirection: req.body?.styleDirection,
+    const promptPayload = {
+      garmentType: req.body?.garmentType,
+      sleeveLength: req.body?.sleeveLength,
+      styleDirection: req.body?.styleDirection,
       colorPalette: req.body?.colorPalette,
       audience: req.body?.audience,
       userPrompt: req.body?.userPrompt,
       negativePrompt: req.body?.negativePrompt,
-      styleName: req.body?.styleName,
-      templateGoals: Array.isArray(req.body?.templateGoals) ? req.body.templateGoals : [],
     };
 
     const built = buildAIClothingPrompt(promptPayload);
-    const providedEnhancedPrompt = cleanAIClothingText(req.body?.enhancedPrompt, 6000);
-    const finalEnhancedPrompt = providedEnhancedPrompt || built.enhancedPrompt;
     const result = await generateAIClothingImage({
       garmentType: built.garmentType,
-      enhancedPrompt: finalEnhancedPrompt,
+      enhancedPrompt: built.enhancedPrompt,
     });
 
     return res.json({
       ok: true,
       garmentType: built.garmentType,
       templateType: result.templateType,
-      enhancedPrompt: finalEnhancedPrompt,
+      enhancedPrompt: built.enhancedPrompt,
       model: result.model,
       sourceGenerationSize: result.sourceGenerationSize,
       outputWidth: result.outputWidth,

@@ -1144,12 +1144,12 @@
           <span>Create Your Dream</span>
           <span>Roblox Clothing</span>
         </h1>
-        <p class="ai-copy">Type what you want in normal words. The system will quietly translate that into a smarter Roblox-template-aware prompt before it ever reaches the clothing model.</p>
+        <p class="ai-copy">Type what you want in normal words and the generator will turn it into a Roblox clothing result.</p>
 
         <div class="ai-builder">
           <div class="ai-prompt-shell">
             <div class="ai-prompt-row">
-              <input class="ai-prompt-input" id="aiHeroPrompt" type="text" placeholder="Ex: dark cyber y2k jacket with glowing purple seams, layered chest logo, and sharp sleeve details" />
+              <input class="ai-prompt-input" id="aiHeroPrompt" type="text" placeholder="Ex: dark cyber y2k jacket with a bold logo and sharp sleeve details" />
               <button class="ai-generate-inline-btn" id="aiSendPromptButton" type="button" aria-label="Generate Clothing">✦</button>
             </div>
           </div>
@@ -1165,8 +1165,6 @@
                 <button class="ai-style-chip" data-style="Fantasy" type="button">Fantasy</button>
                 <button class="ai-style-chip" data-style="Cartoon" type="button">Cartoon</button>
                 <button class="ai-style-chip" data-style="Sports" type="button">Sports</button>
-                <button class="ai-style-chip" data-style="Grunge" type="button">Grunge</button>
-                <button class="ai-style-chip" data-style="Minimal" type="button">Minimal</button>
               </div>
             </div>
 
@@ -1177,19 +1175,8 @@
             </button>
             <button class="ai-option-card" data-garment="pants" type="button">
               <strong>Pants Template</strong>
-              <span>Pushes the design toward clean leg mapping and seam-safe lower-body detail.</span>
+              <span>Pushes the design toward clean leg mapping and lower-body detail.</span>
             </button>
-          </div>
-
-          <div>
-            <div class="ai-chip-heading">Template Goals:</div>
-            <div class="ai-goal-row" id="aiTemplateGoalRow" style="margin-top:10px;">
-              <button class="ai-goal-chip is-active" data-goal="clean readable torso zones" type="button">Clean torso zones</button>
-              <button class="ai-goal-chip" data-goal="strong sleeve detailing" type="button">Strong sleeves</button>
-              <button class="ai-goal-chip" data-goal="balanced front and back composition" type="button">Balanced front/back</button>
-              <button class="ai-goal-chip" data-goal="catalog-ready readability" type="button">Catalog ready</button>
-              <button class="ai-goal-chip" data-goal="sharp seam alignment" type="button">Sharp seams</button>
-            </div>
           </div>
 
           <div>
@@ -1205,7 +1192,7 @@
 
           <div class="ai-advanced-launch">
             <button class="ai-advanced-toggle-btn" id="aiAdvancedToggleButton" type="button">Advanced Settings</button>
-            <p class="ai-advanced-note">Advanced settings are for the nerds who want more precise generation control and want to see how the hidden AI prompt is really being shaped.</p>
+            <p class="ai-advanced-note">Advanced settings help tune the garment type, sleeve length, palette, and vibe without crowding the main prompt.</p>
           </div>
         </div>
       </div>
@@ -1214,8 +1201,8 @@
     <section class="ai-bottom-grid" id="aiBottomGrid">
       <div class="ai-card ai-card-block">
         <div class="ai-kicker">Advanced Settings</div>
-        <h2 class="ai-section-title">Prompt control for power users</h2>
-        <p class="ai-note">The top bar is still the user's main prompt. Everything below just helps tighten how that prompt gets translated before it is eventually sent to the AI.</p>
+        <h2 class="ai-section-title">Prompt controls</h2>
+        <p class="ai-note">The top bar is still the main prompt. Everything below just helps steer the final clothing result.</p>
 
         <div class="ai-form-grid">
           <div class="ai-field">
@@ -1259,13 +1246,7 @@
 
           <div class="ai-field wide">
             <label class="ai-label" for="aiNegativePrompt">Negative Prompt / Avoid</label>
-            <textarea class="ai-textarea" id="aiNegativePrompt" placeholder="Ex: avoid muddy textures, blurry seam areas, oversized text, low-detail sleeves, template-breaking cutoffs, or random floating accessories."></textarea>
-          </div>
-
-          <div class="ai-field wide">
-            <label class="ai-label" for="aiBuiltPrompt">Behind-The-Scenes AI Prompt</label>
-            <textarea class="ai-textarea generated" id="aiBuiltPrompt" readonly placeholder="When you generate clothing, the stronger Roblox-template-aware AI prompt will appear here."></textarea>
-            <p class="ai-advanced-note">This is where the system translates the simple user request into a better AI instruction set with real Roblox template language, seam-awareness, and 585 x 559 output rules.</p>
+            <textarea class="ai-textarea" id="aiNegativePrompt" placeholder="Ex: avoid muddy textures, oversized text, low-detail sleeves, or random floating accessories."></textarea>
           </div>
         </div>
 
@@ -1273,7 +1254,7 @@
           <button class="ai-mini-btn ghost" id="aiResetButton" type="button">Reset Form</button>
         </div>
 
-        <div class="ai-status" id="aiStudioStatus">Your visible prompt updates the stronger hidden Roblox-template-aware AI prompt live in the background. Advanced settings are just there if you want to tighten it further.</div>
+        <div class="ai-status" id="aiStudioStatus">Your visible prompt drives the generator. Advanced settings just help narrow the result.</div>
       </div>
     </section>
 
@@ -1356,7 +1337,6 @@
       var status = document.getElementById("aiStudioStatus");
       var heroPrompt = document.getElementById("aiHeroPrompt");
       var prompt = document.getElementById("aiPrompt");
-      var builtPrompt = document.getElementById("aiBuiltPrompt");
       var negativePrompt = document.getElementById("aiNegativePrompt");
       var garmentType = document.getElementById("aiGarmentType");
       var styleDirection = document.getElementById("aiStyleDirection");
@@ -1380,7 +1360,6 @@
       var ratingFeedback = document.getElementById("aiRatingFeedback");
       var ratingButtons = Array.prototype.slice.call(document.querySelectorAll(".ai-star-btn"));
       var styleChips = Array.prototype.slice.call(document.querySelectorAll(".ai-style-chip"));
-      var goalChips = Array.prototype.slice.call(document.querySelectorAll(".ai-goal-chip"));
       var sleeveLength = document.getElementById("aiSleeveLength");
       var sleeveChips = Array.prototype.slice.call(document.querySelectorAll("[data-sleeve]"));
       var garmentCards = Array.prototype.slice.call(document.querySelectorAll(".ai-option-card"));
@@ -2001,14 +1980,6 @@
         });
       }
 
-      function getActiveGoalTexts() {
-        return goalChips.filter(function (chip) {
-          return !chip.hasAttribute("data-sleeve") && chip.classList.contains("is-active");
-        }).map(function (chip) {
-          return chip.getAttribute("data-goal") || "";
-        }).filter(Boolean);
-      }
-
       function setSleeveLength(value) {
         var normalized = String(value || "").trim().toLowerCase();
         if (normalized !== "short" && normalized !== "sleeveless") {
@@ -2047,49 +2018,11 @@
 
       function buildGeneratorPrompt() {
         syncVisiblePrompt();
-
-        var garment = garmentType.value;
-        var sleeve = sleeveLength ? String(sleeveLength.value || "long").trim().toLowerCase() : "long";
-        var style = activeStyle || String(styleDirection.value || "").trim() || "custom style";
-        var palette = String(colorPalette.value || "").trim() || "designer-selected cohesive color palette";
-        var vibe = String(audience.value || "").trim() || "catalog-ready Roblox outfit";
         var userPrompt = String(prompt.value || "").trim();
-        var avoidPrompt = String(negativePrompt.value || "").trim();
-        var goals = getActiveGoalTexts();
-        var templateInstruction = garment === "pants"
-          ? "Use only the Roblox pants template logic. Focus strictly on waist, thigh, knee, calf, cuff, and ankle zones. Do not generate shirt collars, chest panels, sleeves, shoulder seams, or upper-body outfit pieces."
-          : garment === "layered"
-              ? "Create a layered Roblox outfit concept that still maps cleanly onto the selected Roblox template without drifting into unrelated garment pieces or off-template rendering."
-              : "Use only the Roblox shirt template logic. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate pants-leg-only layouts or lower-body outfit pieces that do not belong on the shirt template.";
-        var sleeveInstruction = garment === "pants"
-          ? "Do not invent shirt sleeves for a pants-only result. The bottom leg ends act like ankle openings and should leave clean skin-opening space instead of sealing the leg shut."
-          : sleeve === "short"
-            ? "Use short sleeves and always leave a clean hand opening at the wrist end of the Roblox sleeve blueprint so the avatar hands stay exposed."
-            : sleeve === "sleeveless"
-              ? "Use sleeveless arm treatment and keep the hand and arm opening areas fully clear on the Roblox blueprint."
-              : "Use long sleeves but always leave a clear hand opening and cuff break at the wrist end of the Roblox sleeve blueprint so the avatar hands stay exposed.";
-        var landmarkInstruction = garment === "pants"
-          ? "The lowest exposed parts of the pants blueprint represent ankle and shoe-entry territory, not random fabric panels. Keep those ankle openings readable and never treat them like sealed solid blocks."
-          : "The very top-center opening on the shirt blueprint is always the neck area and must stay clear for the avatar neck. Never treat that zone like a face or head area, and never place ears, hair, helmets, or head features there. The lower ends of the arm strips are always hand-opening territory and must stay readable as wrist/hand exits.";
-
-        var lines = [
-          "Generate a Roblox clothing concept that is designed specifically for the official Roblox clothing templates.",
-          "Output target: 585 x 559 pixels.",
-          templateInstruction,
-          sleeveInstruction,
-          landmarkInstruction,
-          "Style direction: " + style + ".",
-          "Color palette: " + palette + ".",
-          "Target vibe: " + vibe + ".",
-          "Core design request: " + (userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, and sleeve or leg zones.") + ".",
-          "Priority goals: " + (goals.length ? goals.join(", ") : "clean readable torso zones, balanced front and back composition, catalog-ready readability") + ".",
-          "Important instruction: do not compose this like a random square poster. The design must feel intentionally built around Roblox shirt and pants mapping zones, seams, and wearability on avatar bodies.",
-          "Avoid: " + (avoidPrompt || "muddy textures, blurry seam areas, giant unreadable logos, off-center chest graphics, weak sleeve detail, sealed sleeve ends that cover the hand opening, sealed ankle ends, broken leg alignment, head features placed on the neck opening, full outfits that ignore the selected template type, and low-detail filler art") + "."
-        ];
-
-        builtPrompt.value = lines.join(" ");
-        status.textContent = "Visible user prompt translated. The hidden AI prompt now has Roblox-template wording, seam awareness, and 585 x 559 output instructions layered in.";
-        return builtPrompt.value;
+        status.textContent = userPrompt
+          ? "Prompt ready for generation."
+          : "Type a prompt in the main bar first, then generate the clothing.";
+        return userPrompt;
       }
 
       function roundRectPath(ctx, x, y, width, height, radius) {
@@ -2353,10 +2286,7 @@
           colorPalette: colorPalette.value,
           audience: audience.value,
           userPrompt: prompt.value,
-          negativePrompt: negativePrompt.value,
-          styleName: styleValue,
-          templateGoals: getActiveGoalTexts(),
-          enhancedPrompt: builtPrompt.value
+          negativePrompt: negativePrompt.value
         };
       }
 
@@ -2366,14 +2296,14 @@
         startButton.disabled = isLoading;
         resetButton.disabled = isLoading;
         if (isLoading) {
-          status.textContent = "Generating clothing with the stronger hidden AI prompt now...";
+          status.textContent = "Generating clothing now...";
           showGenerationLoading();
         }
       }
 
       async function generateClothing() {
         if (generationInFlight) return;
-        var enhancedPrompt = buildGeneratorPrompt();
+        buildGeneratorPrompt();
         syncVisiblePrompt();
         if (!String(prompt.value || "").trim()) {
           status.textContent = "Type what you want in the main prompt bar first, then generate the clothing.";
@@ -2397,7 +2327,6 @@
             throw new Error(payload && payload.error ? payload.error : "AI clothing generation failed.");
           }
 
-          builtPrompt.value = payload.enhancedPrompt || enhancedPrompt;
           previewTemplateType = payload.templateType === "pants" ? "pants" : "shirt";
           latestGeneratedTextureUrl = payload.imageDataUrl || "";
           latestRigTextureUrl = latestGeneratedTextureUrl;
@@ -2416,7 +2345,7 @@
           downloadButton.download = payload.downloadFileName || "rblxtools-ai-clothing.png";
           resetRatingState();
           showGenerationResult();
-          status.textContent = "Clothing generated. The stronger hidden prompt was sent to the AI, the result was resized into Roblox's 585 x 559 format, and the template was pushed onto the 3D Roblox rig preview while download still keeps the original template file.";
+          status.textContent = "Clothing generated. The result was resized into Roblox's 585 x 559 format and pushed onto the 3D Roblox rig preview.";
         } catch (error) {
           var errorMessage = error && error.message
             ? error.message
@@ -2431,7 +2360,6 @@
       function resetDraftForm() {
         heroPrompt.value = "";
         prompt.value = "";
-        builtPrompt.value = "";
         negativePrompt.value = "";
         styleDirection.value = "";
         colorPalette.value = "";
@@ -2439,11 +2367,7 @@
         setActiveStyle("");
         setGarment("shirt");
         setSleeveLength("long");
-        goalChips.forEach(function (chip, index) {
-          if (chip.hasAttribute("data-sleeve")) return;
-          chip.classList.toggle("is-active", index === 0);
-        });
-        status.textContent = "Prompt form reset. Users can stay simple at the top bar, and power users can open Advanced Settings whenever they want more control.";
+        status.textContent = "Prompt form reset. Use the main prompt bar to start a new clothing idea.";
         resultImage.removeAttribute("src");
         latestGeneratedTextureUrl = "";
         latestRigTextureUrl = "";
@@ -2464,26 +2388,6 @@
         });
       });
 
-        goalChips.forEach(function (chip) {
-          if (chip.hasAttribute("data-sleeve")) {
-            chip.addEventListener("click", function () {
-              setSleeveLength(chip.getAttribute("data-sleeve"));
-              buildGeneratorPrompt();
-          });
-          return;
-        }
-        chip.addEventListener("click", function () {
-          chip.classList.toggle("is-active");
-          if (!getActiveGoalTexts().length) {
-            var firstGoalChip = goalChips.find(function (candidate) {
-              return candidate.hasAttribute("data-goal");
-            });
-            if (firstGoalChip) firstGoalChip.classList.add("is-active");
-          }
-          buildGeneratorPrompt();
-        });
-      });
-
       garmentCards.forEach(function (card) {
         card.addEventListener("click", function () {
           var nextGarment = card.getAttribute("data-garment") || "shirt";
@@ -2491,27 +2395,27 @@
         });
       });
 
-        garmentType.addEventListener("change", function () {
-          setGarment(garmentType.value);
+      garmentType.addEventListener("change", function () {
+        setGarment(garmentType.value);
+        buildGeneratorPrompt();
+      });
+      if (sleeveLength) {
+        sleeveLength.addEventListener("change", function () {
+          setSleeveLength(sleeveLength.value);
           buildGeneratorPrompt();
         });
-        if (sleeveLength) {
-          sleeveLength.addEventListener("change", function () {
-            setSleeveLength(sleeveLength.value);
-            buildGeneratorPrompt();
-          });
-        }
-        heroPrompt.addEventListener("input", buildGeneratorPrompt);
-        prompt.addEventListener("input", buildGeneratorPrompt);
-        styleDirection.addEventListener("input", buildGeneratorPrompt);
-        colorPalette.addEventListener("input", buildGeneratorPrompt);
-        audience.addEventListener("input", buildGeneratorPrompt);
-        negativePrompt.addEventListener("input", buildGeneratorPrompt);
+      }
+      heroPrompt.addEventListener("input", buildGeneratorPrompt);
+      prompt.addEventListener("input", buildGeneratorPrompt);
+      styleDirection.addEventListener("input", buildGeneratorPrompt);
+      colorPalette.addEventListener("input", buildGeneratorPrompt);
+      audience.addEventListener("input", buildGeneratorPrompt);
+      negativePrompt.addEventListener("input", buildGeneratorPrompt);
 
-        sendPromptButton.addEventListener("click", generateClothing);
-        startButton.addEventListener("click", generateClothing);
-        advancedToggleButton.addEventListener("click", toggleAdvancedSettings);
-        resetButton.addEventListener("click", resetDraftForm);
+      sendPromptButton.addEventListener("click", generateClothing);
+      startButton.addEventListener("click", generateClothing);
+      advancedToggleButton.addEventListener("click", toggleAdvancedSettings);
+      resetButton.addEventListener("click", resetDraftForm);
       resultImage.addEventListener("load", refreshRigPreview);
       if (uploadSoonButton) {
         uploadSoonButton.addEventListener("click", function () {
