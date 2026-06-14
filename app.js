@@ -316,10 +316,7 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
     .composite([{ input: maskImageBuffer, blend: "dest-in" }])
     .png()
     .toBuffer();
-  const finalBuffer = await sharp(cleanedTemplateBuffer)
-    .composite([{ input: maskedArtworkBuffer, blend: "over" }])
-    .png()
-    .toBuffer();
+  const finalBuffer = await maskedArtworkBuffer;
 
   return {
     outputBuffer: finalBuffer,
