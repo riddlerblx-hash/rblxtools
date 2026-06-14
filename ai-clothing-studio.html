@@ -1406,13 +1406,11 @@
         resizeHandler: null,
         rigKind: "fallback"
       };
-      var RIG_MODEL_URL = "./assets/ai-rig/Starter_Blocky_Rig.obj";
+      var RIG_MODEL_URL = "./assets/ai-rig/PreviewRigNewer.obj";
       var RIG_COLORS = {
-        skin: 0xe4e4e4,
         head: 0xdedee2,
         shirt: 0xf2f3f5,
-        pants: 0x202631,
-        shoes: 0xdcdcdc
+        pants: 0x202631
       };
 
       var TEMPLATE_PARTS = {
@@ -1466,6 +1464,112 @@
           leftLegFront: { x: 308, y: 355, w: 64, h: 128 }
         }
       };
+      var preparedTemplateSourceCache = typeof WeakMap === "function" ? new WeakMap() : null;
+
+      function isNearWhitePixel(r, g, b, a) {
+        if (a < 8) return false;
+        var maxChannel = Math.max(r, g, b);
+        var minChannel = Math.min(r, g, b);
+        return maxChannel >= 245 && (maxChannel - minChannel) <= 18;
+      }
+
+      function prepareTemplateSource(sourceImage) {
+        if (!sourceImage) return null;
+        if (preparedTemplateSourceCache && preparedTemplateSourceCache.has(sourceImage)) {
+          return preparedTemplateSourceCache.get(sourceImage);
+        }
+
+        var canvas = document.createElement("canvas");
+        canvas.width = sourceImage.naturalWidth || sourceImage.width || 585;
+        canvas.height = sourceImage.naturalHeight || sourceImage.height || 559;
+        var ctx = canvas.getContext("2d");
+        if (!ctx) return sourceImage;
+
+        ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+
+        try {
+          var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          var data = imageData.data;
+          var width = canvas.width;
+          var height = canvas.height;
+          var total = width * height;
+          var visited = new Uint8Array(total);
+          var queue = new Uint32Array(total);
+          var head = 0;
+          var tail = 0;
+
+          function enqueue(index) {
+            if (visited[index]) return;
+            visited[index] = 1;
+            queue[tail++] = index;
+          }
+
+          function trySeed(x, y) {
+            var index = y * width + x;
+            var offset = index * 4;
+            if (isNearWhitePixel(data[offset], data[offset + 1], data[offset + 2], data[offset + 3])) {
+              enqueue(index);
+            }
+          }
+
+          var x;
+          var y;
+          for (x = 0; x < width; x++) {
+            trySeed(x, 0);
+            trySeed(x, height - 1);
+          }
+          for (y = 1; y < height - 1; y++) {
+            trySeed(0, y);
+            trySeed(width - 1, y);
+          }
+
+          while (head < tail) {
+            var current = queue[head++];
+            var cx = current % width;
+            var cy = (current / width) | 0;
+            var offset = current * 4;
+            data[offset + 3] = 0;
+
+            if (cx > 0) {
+              var leftIndex = current - 1;
+              var leftOffset = leftIndex * 4;
+              if (!visited[leftIndex] && isNearWhitePixel(data[leftOffset], data[leftOffset + 1], data[leftOffset + 2], data[leftOffset + 3])) {
+                enqueue(leftIndex);
+              }
+            }
+            if (cx < width - 1) {
+              var rightIndex = current + 1;
+              var rightOffset = rightIndex * 4;
+              if (!visited[rightIndex] && isNearWhitePixel(data[rightOffset], data[rightOffset + 1], data[rightOffset + 2], data[rightOffset + 3])) {
+                enqueue(rightIndex);
+              }
+            }
+            if (cy > 0) {
+              var upIndex = current - width;
+              var upOffset = upIndex * 4;
+              if (!visited[upIndex] && isNearWhitePixel(data[upOffset], data[upOffset + 1], data[upOffset + 2], data[upOffset + 3])) {
+                enqueue(upIndex);
+              }
+            }
+            if (cy < height - 1) {
+              var downIndex = current + width;
+              var downOffset = downIndex * 4;
+              if (!visited[downIndex] && isNearWhitePixel(data[downOffset], data[downOffset + 1], data[downOffset + 2], data[downOffset + 3])) {
+                enqueue(downIndex);
+              }
+            }
+          }
+
+          ctx.putImageData(imageData, 0, 0);
+        } catch (_error) {
+          // Leave the original image intact if pixel access fails.
+        }
+
+        if (preparedTemplateSourceCache) {
+          preparedTemplateSourceCache.set(sourceImage, canvas);
+        }
+        return canvas;
+      }
 
       function waitForRigLibraries() {
         return new Promise(function (resolve, reject) {
@@ -1505,48 +1609,6 @@
         return createColorMaterial(hexColor);
       }
 
-      function createFaceCanvas(sourceImage, rect, options) {
-        var settings = options || {};
-        var canvas = document.createElement("canvas");
-        canvas.width = rect.w;
-        canvas.height = rect.h;
-        var ctx = canvas.getContext("2d");
-        if (!ctx) return canvas;
-
-        if (settings.flipX || settings.flipY) {
-          ctx.save();
-          ctx.translate(settings.flipX ? rect.w : 0, settings.flipY ? rect.h : 0);
-          ctx.scale(settings.flipX ? -1 : 1, settings.flipY ? -1 : 1);
-          ctx.drawImage(sourceImage, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
-          ctx.restore();
-        } else {
-          ctx.drawImage(sourceImage, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
-        }
-        return canvas;
-      }
-
-      function createFaceTexture(sourceImage, rect, options) {
-        var texture = new window.THREE.CanvasTexture(createFaceCanvas(sourceImage, rect, options));
-        texture.flipY = false;
-        texture.encoding = window.THREE.sRGBEncoding;
-        texture.needsUpdate = true;
-        rigPreview3D.overlayTextures.push(texture);
-        return texture;
-      }
-
-      function createFaceMaterial(sourceImage, rect, options, fallbackHex) {
-        if (!rect) {
-          return cloneBaseMaterial(typeof fallbackHex === "number" ? fallbackHex : 0xf2f3f5);
-        }
-        return new window.THREE.MeshStandardMaterial({
-          map: createFaceTexture(sourceImage, rect, options),
-          transparent: false,
-          roughness: 0.98,
-          metalness: 0.0,
-          side: window.THREE.FrontSide
-        });
-      }
-
       function replacePartMaterials(mesh, materials) {
         if (!mesh) return;
         if (Array.isArray(mesh.material)) {
@@ -1561,25 +1623,15 @@
         mesh.material = materials;
       }
 
-      function buildPartMaterials(sourceImage, rects, fallbackHex) {
-        return [
-          createFaceMaterial(sourceImage, rects && rects.right, null, fallbackHex),
-          createFaceMaterial(sourceImage, rects && rects.left, null, fallbackHex),
-          createFaceMaterial(sourceImage, rects && rects.top, null, fallbackHex),
-          createFaceMaterial(sourceImage, rects && rects.bottom, null, fallbackHex),
-          createFaceMaterial(sourceImage, rects && rects.front, null, fallbackHex),
-          createFaceMaterial(sourceImage, rects && rects.back, null, fallbackHex)
-        ];
-      }
-
       function createTemplateTexture(sourceImage, options) {
-        if (!sourceImage) return null;
+        var preparedSource = prepareTemplateSource(sourceImage);
+        if (!preparedSource) return null;
         var canvas = document.createElement("canvas");
-        canvas.width = sourceImage.naturalWidth || sourceImage.width || 585;
-        canvas.height = sourceImage.naturalHeight || sourceImage.height || 559;
+        canvas.width = preparedSource.naturalWidth || preparedSource.width || 585;
+        canvas.height = preparedSource.naturalHeight || preparedSource.height || 559;
         var ctx = canvas.getContext("2d");
         if (!ctx) return null;
-        ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(preparedSource, 0, 0, canvas.width, canvas.height);
 
         var texture = new window.THREE.CanvasTexture(canvas);
         texture.flipY = true;
@@ -1591,7 +1643,7 @@
 
       function showRigLoadFailure(message) {
         if (!rigViewport) return;
-        rigViewport.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:24px;text-align:center;color:#f6d7d7;font:700 14px/1.5 system-ui,sans-serif;background:linear-gradient(180deg, rgba(44,18,18,0.52), rgba(18,10,10,0.72));">3D rig failed to load.<br>' + String(message || "Starter_Blocky_Rig.obj could not be loaded.") + '</div>';
+        rigViewport.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:24px;text-align:center;color:#f6d7d7;font:700 14px/1.5 system-ui,sans-serif;background:linear-gradient(180deg, rgba(44,18,18,0.52), rgba(18,10,10,0.72));">3D rig failed to load.<br>' + String(message || "PreviewRigNewer.obj could not be loaded.") + '</div>';
       }
 
       function createTemplateMaterial(sourceImage, fallbackHex, options) {
@@ -1632,17 +1684,39 @@
       }
 
       function setupObjRigParts(root) {
+        var meshCandidates = [];
+        function findFirstMeshDescendant(node) {
+          var found = null;
+          if (!node) return null;
+          node.traverse(function (child) {
+            if (found || !child || !child.isMesh) return;
+            found = child;
+          });
+          return found;
+        }
+
         root.traverse(function (object) {
-          if (!object || !object.isMesh) return;
           var normalizedName = String(object.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
           var partKey = null;
-          if (normalizedName.indexOf("head") !== -1) partKey = "head";
+          if (normalizedName.indexOf("head") !== -1 || normalizedName.indexOf("headgeo") !== -1) partKey = "head";
           else if (normalizedName.indexOf("torso") !== -1) partKey = "torso";
           else if (normalizedName.indexOf("rightarm") !== -1) partKey = "rightArm";
           else if (normalizedName.indexOf("leftarm") !== -1) partKey = "leftArm";
           else if (normalizedName.indexOf("rightleg") !== -1) partKey = "rightLeg";
           else if (normalizedName.indexOf("leftleg") !== -1) partKey = "leftLeg";
 
+          if (!object || !object.isMesh) {
+            if (partKey && !rigPreview3D.parts[partKey]) {
+              var meshChild = findFirstMeshDescendant(object);
+              if (meshChild) {
+                rigPreview3D.parts[partKey] = meshChild;
+                meshCandidates.push(meshChild);
+              }
+            }
+            return;
+          }
+
+          meshCandidates.push(object);
           if (partKey) {
             rigPreview3D.parts[partKey] = object;
             object.castShadow = false;
@@ -1652,6 +1726,64 @@
           }
           object.visible = false;
         });
+
+        if (rigPreview3D.parts.head && rigPreview3D.parts.torso && rigPreview3D.parts.leftArm && rigPreview3D.parts.rightArm && rigPreview3D.parts.leftLeg && rigPreview3D.parts.rightLeg) {
+          return;
+        }
+
+        if (!meshCandidates.length || !window.THREE) return;
+
+        var box = new window.THREE.Box3();
+        var tmpSize = new window.THREE.Vector3();
+        var tmpCenter = new window.THREE.Vector3();
+        var scored = meshCandidates.map(function (mesh) {
+          box.setFromObject(mesh);
+          box.getSize(tmpSize);
+          box.getCenter(tmpCenter);
+          return {
+            mesh: mesh,
+            centerX: tmpCenter.x,
+            centerY: tmpCenter.y,
+            centerZ: tmpCenter.z,
+            sizeX: tmpSize.x,
+            sizeY: tmpSize.y,
+            sizeZ: tmpSize.z
+          };
+        });
+
+        function pick(predicate) {
+          var best = null;
+          scored.forEach(function (item) {
+            if (!predicate(item)) return;
+            if (!best) {
+              best = item;
+              return;
+            }
+            if (item.sizeY > best.sizeY) {
+              best = item;
+            }
+          });
+          return best && best.mesh;
+        }
+
+        if (!rigPreview3D.parts.head) {
+          rigPreview3D.parts.head = pick(function (item) { return item.centerY > 3.0; });
+        }
+        if (!rigPreview3D.parts.torso) {
+          rigPreview3D.parts.torso = pick(function (item) { return item.centerY <= 3.2 && item.centerY >= 1.4; });
+        }
+        if (!rigPreview3D.parts.leftArm) {
+          rigPreview3D.parts.leftArm = pick(function (item) { return item.centerX < -0.35 && item.centerY >= 1.3 && item.centerY <= 3.2; });
+        }
+        if (!rigPreview3D.parts.rightArm) {
+          rigPreview3D.parts.rightArm = pick(function (item) { return item.centerX > 0.35 && item.centerY >= 1.3 && item.centerY <= 3.2; });
+        }
+        if (!rigPreview3D.parts.leftLeg) {
+          rigPreview3D.parts.leftLeg = pick(function (item) { return item.centerY < 1.35 && item.centerX < 0; });
+        }
+        if (!rigPreview3D.parts.rightLeg) {
+          rigPreview3D.parts.rightLeg = pick(function (item) { return item.centerY < 1.35 && item.centerX >= 0; });
+        }
       }
 
       function fitRigModel(root, THREE) {
@@ -1763,7 +1895,7 @@
             );
           }).then(function () {
             if (!rigPreview3D.root || rigPreview3D.rigKind !== "obj") {
-              showRigLoadFailure("Starter_Blocky_Rig.obj did not initialize.");
+              showRigLoadFailure("PreviewRigNewer.obj did not initialize.");
               rigPreview3D.failed = true;
               return false;
             }
@@ -1986,6 +2118,7 @@
       function drawTexturedPart(ctx, image, sourceRect, destRect, options) {
         if (!ctx || !image || !sourceRect || !destRect) return;
         var settings = options || {};
+        var preparedSource = prepareTemplateSource(image);
         var rotation = settings.rotation || 0;
         var radius = settings.radius == null ? 18 : settings.radius;
         var centerX = destRect.x + (destRect.w / 2);
@@ -1999,7 +2132,7 @@
         roundRectPath(ctx, -destRect.w / 2, -destRect.h / 2, destRect.w, destRect.h, radius);
         ctx.clip();
         ctx.drawImage(
-          image,
+          preparedSource,
           sourceRect.x, sourceRect.y, sourceRect.w, sourceRect.h,
           -destRect.w / 2, -destRect.h / 2, destRect.w, destRect.h
         );
