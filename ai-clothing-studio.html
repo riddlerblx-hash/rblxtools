@@ -1545,11 +1545,14 @@
         if (!rigPreview3D.parts) return;
         var showShirt = templateType === "shirt" || templateType === "layered";
         var showPants = templateType === "pants";
-        ["torsoFrontDecal", "torsoBackDecal", "rightArmFrontDecal", "rightArmBackDecal", "leftArmFrontDecal", "leftArmBackDecal"].forEach(function (key) {
+        ["torsoFrontDecal", "rightArmFrontDecal", "leftArmFrontDecal"].forEach(function (key) {
           if (rigPreview3D.parts[key]) rigPreview3D.parts[key].visible = showShirt;
         });
-        ["rightLegFrontDecal", "rightLegBackDecal", "leftLegFrontDecal", "leftLegBackDecal"].forEach(function (key) {
+        ["rightLegFrontDecal", "leftLegFrontDecal"].forEach(function (key) {
           if (rigPreview3D.parts[key]) rigPreview3D.parts[key].visible = showPants;
+        });
+        ["torsoBackDecal", "rightArmBackDecal", "leftArmBackDecal", "rightLegBackDecal", "leftLegBackDecal"].forEach(function (key) {
+          if (rigPreview3D.parts[key]) rigPreview3D.parts[key].visible = false;
         });
       }
 
@@ -1644,15 +1647,10 @@
           addPart("leftLeg", [1, 2, 1], [0.52, 0.85, 0], createColorMaterial(0x202631));
 
           addDecal("torsoFrontDecal", 2, 2, [0, 2.85, 0.515], 0);
-          addDecal("torsoBackDecal", 2, 2, [0, 2.85, -0.515], Math.PI);
           addDecal("rightArmFrontDecal", 1, 2, [-1.55, 2.85, 0.515], 0);
-          addDecal("rightArmBackDecal", 1, 2, [-1.55, 2.85, -0.515], Math.PI);
           addDecal("leftArmFrontDecal", 1, 2, [1.55, 2.85, 0.515], 0);
-          addDecal("leftArmBackDecal", 1, 2, [1.55, 2.85, -0.515], Math.PI);
           addDecal("rightLegFrontDecal", 1, 2, [-0.52, 0.85, 0.515], 0);
-          addDecal("rightLegBackDecal", 1, 2, [-0.52, 0.85, -0.515], Math.PI);
           addDecal("leftLegFrontDecal", 1, 2, [0.52, 0.85, 0.515], 0);
-          addDecal("leftLegBackDecal", 1, 2, [0.52, 0.85, -0.515], Math.PI);
 
           scene.add(avatar);
           rigPreview3D.root = avatar;
@@ -2070,16 +2068,11 @@
 
           if (templateType === "pants") {
             rigPreview3D.parts.rightLegFrontDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.pants.rightLeg.front);
-            rigPreview3D.parts.rightLegBackDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.pants.rightLeg.back, { flipX: true });
             rigPreview3D.parts.leftLegFrontDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.pants.leftLeg.front);
-            rigPreview3D.parts.leftLegBackDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.pants.leftLeg.back, { flipX: true });
           } else {
             rigPreview3D.parts.torsoFrontDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.torso.front);
-            rigPreview3D.parts.torsoBackDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.torso.back, { flipX: true });
             rigPreview3D.parts.rightArmFrontDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.rightArm.front);
-            rigPreview3D.parts.rightArmBackDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.rightArm.back, { flipX: true });
             rigPreview3D.parts.leftArmFrontDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.leftArm.front);
-            rigPreview3D.parts.leftArmBackDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.leftArm.back, { flipX: true });
           }
 
           setOverlayVisibility(templateType);
