@@ -1424,43 +1424,43 @@
           },
           rightArm: {
             left: { x: 19, y: 355, w: 64, h: 128 },
-            front: { x: 85, y: 355, w: 64, h: 128 },
+            front: { x: 19, y: 355, w: 64, h: 128 },
             right: { x: 151, y: 355, w: 64, h: 128 },
-            back: { x: 217, y: 355, w: 64, h: 128 },
+            back: { x: 151, y: 355, w: 64, h: 128 },
             top: { x: 217, y: 289, w: 64, h: 64 },
             bottom: { x: 217, y: 485, w: 64, h: 64 }
           },
           leftArm: {
             left: { x: 308, y: 355, w: 64, h: 128 },
-            front: { x: 374, y: 355, w: 64, h: 128 },
+            front: { x: 308, y: 355, w: 64, h: 128 },
             right: { x: 440, y: 355, w: 64, h: 128 },
-            back: { x: 506, y: 355, w: 64, h: 128 },
+            back: { x: 440, y: 355, w: 64, h: 128 },
             top: { x: 308, y: 289, w: 64, h: 64 },
             bottom: { x: 308, y: 485, w: 64, h: 64 }
           },
           torsoFront: { x: 231, y: 74, w: 128, h: 128 },
-          rightArmFront: { x: 85, y: 355, w: 64, h: 128 },
-          leftArmFront: { x: 374, y: 355, w: 64, h: 128 }
+          rightArmFront: { x: 19, y: 355, w: 64, h: 128 },
+          leftArmFront: { x: 308, y: 355, w: 64, h: 128 }
         },
         pants: {
           rightLeg: {
             left: { x: 19, y: 355, w: 64, h: 128 },
-            front: { x: 85, y: 355, w: 64, h: 128 },
+            front: { x: 19, y: 355, w: 64, h: 128 },
             right: { x: 151, y: 355, w: 64, h: 128 },
-            back: { x: 217, y: 355, w: 64, h: 128 },
+            back: { x: 151, y: 355, w: 64, h: 128 },
             top: { x: 217, y: 289, w: 64, h: 64 },
             bottom: { x: 217, y: 485, w: 64, h: 64 }
           },
           leftLeg: {
             left: { x: 308, y: 355, w: 64, h: 128 },
-            front: { x: 374, y: 355, w: 64, h: 128 },
+            front: { x: 308, y: 355, w: 64, h: 128 },
             right: { x: 440, y: 355, w: 64, h: 128 },
-            back: { x: 506, y: 355, w: 64, h: 128 },
+            back: { x: 440, y: 355, w: 64, h: 128 },
             top: { x: 308, y: 289, w: 64, h: 64 },
             bottom: { x: 308, y: 485, w: 64, h: 64 }
           },
-          rightLegFront: { x: 85, y: 355, w: 64, h: 128 },
-          leftLegFront: { x: 374, y: 355, w: 64, h: 128 }
+          rightLegFront: { x: 19, y: 355, w: 64, h: 128 },
+          leftLegFront: { x: 308, y: 355, w: 64, h: 128 }
         }
       };
 
@@ -1527,42 +1527,30 @@
         return texture;
       }
 
-      function createPartMaterials(sourceImage, faceMap, options) {
-        var settings = options || {};
-        var flipFrontBack = Boolean(settings.flipFrontBack);
-        var flipSides = Boolean(settings.flipSides);
-        var hideTopBottom = Boolean(settings.hideTopBottom);
-        function makeFaceMaterial(textureRect, textureOptions) {
-          if (!textureRect) {
-            return new window.THREE.MeshStandardMaterial({ transparent: true, opacity: 0, depthWrite: false });
-          }
-          return new window.THREE.MeshStandardMaterial({
-            map: createFaceTexture(sourceImage, textureRect, textureOptions),
-            transparent: true,
-            alphaTest: 0.06,
-            roughness: 0.98,
-            metalness: 0.0
-          });
+      function createDecalMaterial(sourceImage, rect, options) {
+        if (!rect) {
+          return new window.THREE.MeshStandardMaterial({ transparent: true, opacity: 0, depthWrite: false });
         }
-        return [
-          makeFaceMaterial(faceMap.right, { flipX: flipSides }),
-          makeFaceMaterial(faceMap.left, { flipX: flipSides }),
-          makeFaceMaterial(hideTopBottom ? null : faceMap.top),
-          makeFaceMaterial(hideTopBottom ? null : faceMap.bottom),
-          makeFaceMaterial(faceMap.front, { flipX: flipFrontBack }),
-          makeFaceMaterial(faceMap.back, { flipX: flipFrontBack })
-        ];
+        return new window.THREE.MeshStandardMaterial({
+          map: createFaceTexture(sourceImage, rect, options),
+          transparent: true,
+          alphaTest: 0.06,
+          roughness: 0.98,
+          metalness: 0.0,
+          side: window.THREE.DoubleSide
+        });
       }
 
       function setOverlayVisibility(templateType) {
         if (!rigPreview3D.parts) return;
         var showShirt = templateType === "shirt" || templateType === "layered";
         var showPants = templateType === "pants";
-        if (rigPreview3D.parts.torsoOverlay) rigPreview3D.parts.torsoOverlay.visible = showShirt;
-        if (rigPreview3D.parts.rightArmOverlay) rigPreview3D.parts.rightArmOverlay.visible = showShirt;
-        if (rigPreview3D.parts.leftArmOverlay) rigPreview3D.parts.leftArmOverlay.visible = showShirt;
-        if (rigPreview3D.parts.rightLegOverlay) rigPreview3D.parts.rightLegOverlay.visible = showPants;
-        if (rigPreview3D.parts.leftLegOverlay) rigPreview3D.parts.leftLegOverlay.visible = showPants;
+        ["torsoFrontDecal", "torsoBackDecal", "rightArmFrontDecal", "rightArmBackDecal", "leftArmFrontDecal", "leftArmBackDecal"].forEach(function (key) {
+          if (rigPreview3D.parts[key]) rigPreview3D.parts[key].visible = showShirt;
+        });
+        ["rightLegFrontDecal", "rightLegBackDecal", "leftLegFrontDecal", "leftLegBackDecal"].forEach(function (key) {
+          if (rigPreview3D.parts[key]) rigPreview3D.parts[key].visible = showPants;
+        });
       }
 
       function setRigViewportSize() {
@@ -1636,15 +1624,16 @@
             return baseMesh;
           }
 
-          function addOverlayPart(name, size, position) {
-            var geometry = new THREE.BoxGeometry(size[0] + 0.01, size[1] + 0.01, size[2] + 0.01);
-            var transparentMaterial = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0, depthWrite: false });
-            var overlayMesh = new THREE.Mesh(geometry, [transparentMaterial, transparentMaterial, transparentMaterial, transparentMaterial, transparentMaterial, transparentMaterial]);
-            overlayMesh.position.set(position[0], position[1], position[2]);
-            overlayMesh.visible = false;
-            avatar.add(overlayMesh);
-            rigPreview3D.parts[name] = overlayMesh;
-            return overlayMesh;
+          function addDecal(name, width, height, position, rotationY) {
+            var geometry = new THREE.PlaneGeometry(width, height);
+            var transparentMaterial = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+            var decalMesh = new THREE.Mesh(geometry, transparentMaterial);
+            decalMesh.position.set(position[0], position[1], position[2]);
+            decalMesh.rotation.y = rotationY || 0;
+            decalMesh.visible = false;
+            avatar.add(decalMesh);
+            rigPreview3D.parts[name] = decalMesh;
+            return decalMesh;
           }
 
           addPart("head", [2, 2, 2], [0, 4.55, 0], createColorMaterial(0xdedee2));
@@ -1654,11 +1643,16 @@
           addPart("rightLeg", [1, 2, 1], [-0.52, 0.85, 0], createColorMaterial(0x202631));
           addPart("leftLeg", [1, 2, 1], [0.52, 0.85, 0], createColorMaterial(0x202631));
 
-          addOverlayPart("torsoOverlay", [2, 2, 1], [0, 2.85, 0]);
-          addOverlayPart("rightArmOverlay", [1, 2, 1], [-1.55, 2.85, 0]);
-          addOverlayPart("leftArmOverlay", [1, 2, 1], [1.55, 2.85, 0]);
-          addOverlayPart("rightLegOverlay", [1, 2, 1], [-0.52, 0.85, 0]);
-          addOverlayPart("leftLegOverlay", [1, 2, 1], [0.52, 0.85, 0]);
+          addDecal("torsoFrontDecal", 2, 2, [0, 2.85, 0.515], 0);
+          addDecal("torsoBackDecal", 2, 2, [0, 2.85, -0.515], Math.PI);
+          addDecal("rightArmFrontDecal", 1, 2, [-1.55, 2.85, 0.515], 0);
+          addDecal("rightArmBackDecal", 1, 2, [-1.55, 2.85, -0.515], Math.PI);
+          addDecal("leftArmFrontDecal", 1, 2, [1.55, 2.85, 0.515], 0);
+          addDecal("leftArmBackDecal", 1, 2, [1.55, 2.85, -0.515], Math.PI);
+          addDecal("rightLegFrontDecal", 1, 2, [-0.52, 0.85, 0.515], 0);
+          addDecal("rightLegBackDecal", 1, 2, [-0.52, 0.85, -0.515], Math.PI);
+          addDecal("leftLegFrontDecal", 1, 2, [0.52, 0.85, 0.515], 0);
+          addDecal("leftLegBackDecal", 1, 2, [0.52, 0.85, -0.515], Math.PI);
 
           scene.add(avatar);
           rigPreview3D.root = avatar;
@@ -2072,14 +2066,20 @@
           });
 
           disposeOverlayTextures();
+          setOverlayVisibility("none");
 
           if (templateType === "pants") {
-            rigPreview3D.parts.rightLegOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.pants.rightLeg, { hideTopBottom: true });
-            rigPreview3D.parts.leftLegOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.pants.leftLeg, { hideTopBottom: true });
+            rigPreview3D.parts.rightLegFrontDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.pants.rightLeg.front);
+            rigPreview3D.parts.rightLegBackDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.pants.rightLeg.back, { flipX: true });
+            rigPreview3D.parts.leftLegFrontDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.pants.leftLeg.front);
+            rigPreview3D.parts.leftLegBackDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.pants.leftLeg.back, { flipX: true });
           } else {
-            rigPreview3D.parts.torsoOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.torso, { hideTopBottom: true });
-            rigPreview3D.parts.rightArmOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.rightArm, { hideTopBottom: true });
-            rigPreview3D.parts.leftArmOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.leftArm, { hideTopBottom: true });
+            rigPreview3D.parts.torsoFrontDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.torso.front);
+            rigPreview3D.parts.torsoBackDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.torso.back, { flipX: true });
+            rigPreview3D.parts.rightArmFrontDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.rightArm.front);
+            rigPreview3D.parts.rightArmBackDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.rightArm.back, { flipX: true });
+            rigPreview3D.parts.leftArmFrontDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.leftArm.front);
+            rigPreview3D.parts.leftArmBackDecal.material = createDecalMaterial(sourceImage, TEMPLATE_PARTS.shirt.leftArm.back, { flipX: true });
           }
 
           setOverlayVisibility(templateType);
