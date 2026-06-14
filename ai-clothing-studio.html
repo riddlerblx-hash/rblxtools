@@ -1494,8 +1494,8 @@
       function createColorMaterial(hexColor) {
         return new window.THREE.MeshStandardMaterial({
           color: hexColor,
-          roughness: 0.92,
-          metalness: 0.02
+          roughness: 0.88,
+          metalness: 0.01
         });
       }
 
@@ -1570,6 +1570,20 @@
         ];
       }
 
+      function createRigPartGeometry(THREE, size, radius) {
+        var roundedCtor = THREE.RoundedBoxGeometry;
+        if (typeof roundedCtor === "function") {
+          return new roundedCtor(
+            size[0],
+            size[1],
+            size[2],
+            4,
+            Math.min(radius || 0.12, size[0] * 0.22, size[1] * 0.22, size[2] * 0.22)
+          );
+        }
+        return new THREE.BoxGeometry(size[0], size[1], size[2]);
+      }
+
       function applyBaseRigMaterials() {
         if (!rigPreview3D.parts) return;
         replacePartMaterials(rigPreview3D.parts.head, buildPartMaterials(null, null, RIG_COLORS.head));
@@ -1607,24 +1621,24 @@
           rigViewport.appendChild(renderer.domElement);
 
           var scene = new THREE.Scene();
-          var camera = new THREE.PerspectiveCamera(26, 1, 0.1, 100);
-          camera.position.set(0, 2.2, 11.6);
+          var camera = new THREE.PerspectiveCamera(24, 1, 0.1, 100);
+          camera.position.set(0, 2.36, 12.4);
 
           var controls = new THREE.OrbitControls(camera, renderer.domElement);
           controls.enableDamping = true;
           controls.enablePan = false;
-          controls.target.set(0, 2.3, 0);
-          controls.minDistance = 8.2;
-          controls.maxDistance = 15.2;
+          controls.target.set(0, 2.38, 0);
+          controls.minDistance = 8.8;
+          controls.maxDistance = 16.4;
           controls.minPolarAngle = 1.05;
           controls.maxPolarAngle = 1.66;
 
-          scene.add(new THREE.AmbientLight(0xffffff, 1.15));
-          var keyLight = new THREE.DirectionalLight(0xffffff, 1.55);
-          keyLight.position.set(4.5, 7.5, 6.5);
+          scene.add(new THREE.AmbientLight(0xffffff, 1.22));
+          var keyLight = new THREE.DirectionalLight(0xffffff, 1.7);
+          keyLight.position.set(4.8, 7.8, 7.1);
           scene.add(keyLight);
-          var rimLight = new THREE.DirectionalLight(0xa8c4ff, 0.75);
-          rimLight.position.set(-5, 4, -6);
+          var rimLight = new THREE.DirectionalLight(0xa8c4ff, 0.52);
+          rimLight.position.set(-5.4, 4.4, -6.2);
           scene.add(rimLight);
 
           var floor = new THREE.Mesh(
@@ -1642,8 +1656,8 @@
 
           var avatar = new THREE.Group();
 
-          function addPart(name, size, position, baseMaterial) {
-            var geometry = new THREE.BoxGeometry(size[0], size[1], size[2]);
+          function addPart(name, size, position, baseMaterial, radius) {
+            var geometry = createRigPartGeometry(THREE, size, radius);
             var baseMesh = new THREE.Mesh(geometry, baseMaterial);
             baseMesh.position.set(position[0], position[1], position[2]);
             avatar.add(baseMesh);
@@ -1651,17 +1665,19 @@
             return baseMesh;
           }
 
-          addPart("head", [2, 2, 2], [0, 5.05, 0], createColorMaterial(RIG_COLORS.head));
-          addPart("neck", [0.56, 0.34, 0.56], [0, 3.82, 0], createColorMaterial(RIG_COLORS.skin));
-          addPart("torso", [2, 2, 1], [0, 2.72, 0], createColorMaterial(RIG_COLORS.shirt));
-          addPart("rightArm", [1, 1.66, 1], [-1.55, 2.88, 0], createColorMaterial(RIG_COLORS.shirt));
-          addPart("leftArm", [1, 1.66, 1], [1.55, 2.88, 0], createColorMaterial(RIG_COLORS.shirt));
-          addPart("rightHand", [0.82, 0.34, 0.82], [-1.55, 1.83, 0], createColorMaterial(RIG_COLORS.skin));
-          addPart("leftHand", [0.82, 0.34, 0.82], [1.55, 1.83, 0], createColorMaterial(RIG_COLORS.skin));
-          addPart("rightLeg", [1, 1.72, 1], [-0.52, 0.96, 0], createColorMaterial(RIG_COLORS.pants));
-          addPart("leftLeg", [1, 1.72, 1], [0.52, 0.96, 0], createColorMaterial(RIG_COLORS.pants));
-          addPart("rightFoot", [0.9, 0.24, 0.9], [-0.52, -0.08, 0], createColorMaterial(RIG_COLORS.shoes));
-          addPart("leftFoot", [0.9, 0.24, 0.9], [0.52, -0.08, 0], createColorMaterial(RIG_COLORS.shoes));
+          addPart("head", [1.9, 1.9, 1.9], [0, 5.02, 0], createColorMaterial(RIG_COLORS.head), 0.2);
+          addPart("neck", [0.5, 0.3, 0.5], [0, 3.86, 0], createColorMaterial(RIG_COLORS.skin), 0.08);
+          addPart("torso", [2, 2, 1], [0, 2.74, 0], createColorMaterial(RIG_COLORS.shirt), 0.12);
+          addPart("rightArm", [1, 1.62, 1], [-1.54, 2.88, 0], createColorMaterial(RIG_COLORS.shirt), 0.1);
+          addPart("leftArm", [1, 1.62, 1], [1.54, 2.88, 0], createColorMaterial(RIG_COLORS.shirt), 0.1);
+          addPart("rightHand", [0.86, 0.3, 0.86], [-1.54, 1.86, 0], createColorMaterial(RIG_COLORS.skin), 0.07);
+          addPart("leftHand", [0.86, 0.3, 0.86], [1.54, 1.86, 0], createColorMaterial(RIG_COLORS.skin), 0.07);
+          addPart("rightLeg", [1, 1.7, 1], [-0.52, 0.96, 0], createColorMaterial(RIG_COLORS.pants), 0.09);
+          addPart("leftLeg", [1, 1.7, 1], [0.52, 0.96, 0], createColorMaterial(RIG_COLORS.pants), 0.09);
+          addPart("rightFoot", [0.92, 0.22, 0.92], [-0.52, -0.05, 0], createColorMaterial(RIG_COLORS.shoes), 0.06);
+          addPart("leftFoot", [0.92, 0.22, 0.92], [0.52, -0.05, 0], createColorMaterial(RIG_COLORS.shoes), 0.06);
+
+          avatar.rotation.y = 0.06;
 
           scene.add(avatar);
           rigPreview3D.root = avatar;
@@ -2322,6 +2338,7 @@
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/RoundedBoxGeometry.js"></script>
   <script src="./global-shell.js"></script>
 </body>
 </html>
