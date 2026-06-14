@@ -180,6 +180,73 @@ function expandAIClothingMask(maskBuffer, width, height, radius) {
   return expanded;
 }
 
+function cleanAIClothingWhiteArtifacts(rawBuffer, width, height) {
+  const source = Buffer.from(rawBuffer);
+  const cleaned = Buffer.from(rawBuffer);
+  const isNearWhite = (red, green, blue, alpha) => {
+    if (alpha < 32) return false;
+    const maxChannel = Math.max(red, green, blue);
+    const minChannel = Math.min(red, green, blue);
+    return maxChannel >= 232 && maxChannel - minChannel <= 34;
+  };
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = y * width + x;
+      const offset = index * 4;
+      const red = source[offset];
+      const green = source[offset + 1];
+      const blue = source[offset + 2];
+      const alpha = source[offset + 3];
+
+      if (!isNearWhite(red, green, blue, alpha)) {
+        continue;
+      }
+
+      let sampleCount = 0;
+      let sampleRed = 0;
+      let sampleGreen = 0;
+      let sampleBlue = 0;
+      let sampleAlpha = 0;
+
+      for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+        const nextY = y + offsetY;
+        if (nextY < 0 || nextY >= height) continue;
+        for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+          const nextX = x + offsetX;
+          if (nextX < 0 || nextX >= width) continue;
+          if (!offsetX && !offsetY) continue;
+
+          const neighborOffset = (nextY * width + nextX) * 4;
+          const neighborRed = source[neighborOffset];
+          const neighborGreen = source[neighborOffset + 1];
+          const neighborBlue = source[neighborOffset + 2];
+          const neighborAlpha = source[neighborOffset + 3];
+
+          if (isNearWhite(neighborRed, neighborGreen, neighborBlue, neighborAlpha)) {
+            continue;
+          }
+
+          sampleCount += 1;
+          sampleRed += neighborRed;
+          sampleGreen += neighborGreen;
+          sampleBlue += neighborBlue;
+          sampleAlpha += neighborAlpha;
+        }
+      }
+
+      if (sampleCount >= 2) {
+        cleaned[offset] = Math.round(sampleRed / sampleCount);
+        cleaned[offset + 1] = Math.round(sampleGreen / sampleCount);
+        cleaned[offset + 2] = Math.round(sampleBlue / sampleCount);
+        cleaned[offset + 3] = Math.max(0, Math.min(255, Math.round(sampleAlpha / sampleCount)));
+      }
+    }
+  }
+
+  return cleaned;
+}
+
 function buildAIClothingPrompt(input = {}) {
   const garment = normalizeAIClothingGarmentType(input.garmentType);
   const sleeveLength = normalizeAIClothingSleeveLength(input.sleeveLength);
@@ -307,6 +374,26 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
     })
     .png()
     .toBuffer();
+  const cleanedGeneratedBuffer = await sharp(resizedGeneratedBuffer)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+    .then(async (generatedRaw) => {
+      const cleanedRaw = cleanAIClothingWhiteArtifacts(
+        generatedRaw.data,
+        generatedRaw.info.width,
+        generatedRaw.info.height
+      );
+      return sharp(cleanedRaw, {
+        raw: {
+          width: generatedRaw.info.width,
+          height: generatedRaw.info.height,
+          channels: 4,
+        },
+      })
+        .png()
+        .toBuffer();
+    });
   const applyTemplateBuffer = await fs.promises.readFile(applicationTemplatePath);
   const cleanedApplyTemplateBuffer = await sharp(applyTemplateBuffer)
     .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
@@ -348,7 +435,7 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
   })
     .png()
     .toBuffer();
-  const finalBuffer = await sharp(resizedGeneratedBuffer)
+  const finalBuffer = await sharp(cleanedGeneratedBuffer)
     .ensureAlpha()
     .composite([{ input: maskImageBuffer, blend: "dest-in" }])
     .png()
