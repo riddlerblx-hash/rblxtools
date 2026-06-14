@@ -2169,8 +2169,8 @@
           applyBaseRigMaterials();
 
           if (rigPreview3D.rigKind === "gltf") {
-            var templateMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.shirt);
-            var pantsMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.pants);
+            var templateMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.shirt, { flipY: true });
+            var pantsMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.pants, { flipY: true });
             if (templateType === "pants") {
               replacePartMaterials(rigPreview3D.parts.rightLeg, pantsMaterial.clone());
               replacePartMaterials(rigPreview3D.parts.leftLeg, pantsMaterial.clone());
