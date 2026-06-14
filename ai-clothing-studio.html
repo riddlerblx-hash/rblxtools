@@ -1531,13 +1531,26 @@
         var settings = options || {};
         var flipFrontBack = Boolean(settings.flipFrontBack);
         var flipSides = Boolean(settings.flipSides);
+        var hideTopBottom = Boolean(settings.hideTopBottom);
+        function makeFaceMaterial(textureRect, textureOptions) {
+          if (!textureRect) {
+            return new window.THREE.MeshStandardMaterial({ transparent: true, opacity: 0, depthWrite: false });
+          }
+          return new window.THREE.MeshStandardMaterial({
+            map: createFaceTexture(sourceImage, textureRect, textureOptions),
+            transparent: true,
+            alphaTest: 0.06,
+            roughness: 0.98,
+            metalness: 0.0
+          });
+        }
         return [
-          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.right, { flipX: flipSides }), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 }),
-          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.left, { flipX: flipSides }), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 }),
-          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.top), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 }),
-          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.bottom), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 }),
-          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.front, { flipX: flipFrontBack }), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 }),
-          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.back, { flipX: flipFrontBack }), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 })
+          makeFaceMaterial(faceMap.right, { flipX: flipSides }),
+          makeFaceMaterial(faceMap.left, { flipX: flipSides }),
+          makeFaceMaterial(hideTopBottom ? null : faceMap.top),
+          makeFaceMaterial(hideTopBottom ? null : faceMap.bottom),
+          makeFaceMaterial(faceMap.front, { flipX: flipFrontBack }),
+          makeFaceMaterial(faceMap.back, { flipX: flipFrontBack })
         ];
       }
 
@@ -1579,17 +1592,17 @@
           rigViewport.appendChild(renderer.domElement);
 
           var scene = new THREE.Scene();
-          var camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
-          camera.position.set(0, 2.4, 10.2);
+          var camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+          camera.position.set(0, 1.95, 10.8);
 
           var controls = new THREE.OrbitControls(camera, renderer.domElement);
           controls.enableDamping = true;
           controls.enablePan = false;
-          controls.target.set(0, 2.2, 0);
-          controls.minDistance = 7.2;
-          controls.maxDistance = 13.5;
-          controls.minPolarAngle = 0.9;
-          controls.maxPolarAngle = 1.78;
+          controls.target.set(0, 1.95, 0);
+          controls.minDistance = 7.8;
+          controls.maxDistance = 14.5;
+          controls.minPolarAngle = 1.1;
+          controls.maxPolarAngle = 1.62;
 
           scene.add(new THREE.AmbientLight(0xffffff, 1.15));
           var keyLight = new THREE.DirectionalLight(0xffffff, 1.55);
@@ -1624,7 +1637,7 @@
           }
 
           function addOverlayPart(name, size, position) {
-            var geometry = new THREE.BoxGeometry(size[0] + 0.04, size[1] + 0.04, size[2] + 0.04);
+            var geometry = new THREE.BoxGeometry(size[0] + 0.01, size[1] + 0.01, size[2] + 0.01);
             var transparentMaterial = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0, depthWrite: false });
             var overlayMesh = new THREE.Mesh(geometry, [transparentMaterial, transparentMaterial, transparentMaterial, transparentMaterial, transparentMaterial, transparentMaterial]);
             overlayMesh.position.set(position[0], position[1], position[2]);
@@ -2061,12 +2074,12 @@
           disposeOverlayTextures();
 
           if (templateType === "pants") {
-            rigPreview3D.parts.rightLegOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.pants.rightLeg);
-            rigPreview3D.parts.leftLegOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.pants.leftLeg);
+            rigPreview3D.parts.rightLegOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.pants.rightLeg, { hideTopBottom: true });
+            rigPreview3D.parts.leftLegOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.pants.leftLeg, { hideTopBottom: true });
           } else {
-            rigPreview3D.parts.torsoOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.torso);
-            rigPreview3D.parts.rightArmOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.rightArm);
-            rigPreview3D.parts.leftArmOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.leftArm);
+            rigPreview3D.parts.torsoOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.torso, { hideTopBottom: true });
+            rigPreview3D.parts.rightArmOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.rightArm, { hideTopBottom: true });
+            rigPreview3D.parts.leftArmOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.leftArm, { hideTopBottom: true });
           }
 
           setOverlayVisibility(templateType);
