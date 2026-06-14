@@ -1599,6 +1599,11 @@
         return texture;
       }
 
+      function showRigLoadFailure(message) {
+        if (!rigViewport) return;
+        rigViewport.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:24px;text-align:center;color:#f6d7d7;font:700 14px/1.5 system-ui,sans-serif;background:linear-gradient(180deg, rgba(44,18,18,0.52), rgba(18,10,10,0.72));">3D rig failed to load.<br>' + String(message || "Starter_Blocky_Rig.glb could not be loaded.") + '</div>';
+      }
+
       function createTemplateMaterial(sourceImage, fallbackHex, options) {
         var texture = createTemplateTexture(sourceImage, options);
         if (!texture) {
@@ -1748,37 +1753,6 @@
           rigPreview3D.scene = scene;
           rigPreview3D.camera = camera;
           rigPreview3D.controls = controls;
-          function buildFallbackRig() {
-            rigPreview3D.parts = {};
-            rigPreview3D.rigKind = "fallback";
-            var avatar = new THREE.Group();
-
-            function addPart(name, size, position, baseMaterial, radius) {
-              var geometry = createRigPartGeometry(THREE, size, radius);
-              var baseMesh = new THREE.Mesh(geometry, baseMaterial);
-              baseMesh.position.set(position[0], position[1], position[2]);
-              avatar.add(baseMesh);
-              rigPreview3D.parts[name] = baseMesh;
-              return baseMesh;
-            }
-
-            addPart("head", [1.9, 1.9, 1.9], [0, 5.02, 0], createColorMaterial(RIG_COLORS.head), 0.2);
-            addPart("neck", [0.5, 0.3, 0.5], [0, 3.86, 0], createColorMaterial(RIG_COLORS.skin), 0.08);
-            addPart("torso", [2, 2, 1], [0, 2.74, 0], createColorMaterial(RIG_COLORS.shirt), 0.12);
-            addPart("rightArm", [1, 1.62, 1], [-1.54, 2.88, 0], createColorMaterial(RIG_COLORS.shirt), 0.1);
-            addPart("leftArm", [1, 1.62, 1], [1.54, 2.88, 0], createColorMaterial(RIG_COLORS.shirt), 0.1);
-            addPart("rightHand", [0.86, 0.3, 0.86], [-1.54, 1.86, 0], createColorMaterial(RIG_COLORS.skin), 0.07);
-            addPart("leftHand", [0.86, 0.3, 0.86], [1.54, 1.86, 0], createColorMaterial(RIG_COLORS.skin), 0.07);
-            addPart("rightLeg", [1, 1.7, 1], [-0.52, 0.96, 0], createColorMaterial(RIG_COLORS.pants), 0.09);
-            addPart("leftLeg", [1, 1.7, 1], [0.52, 0.96, 0], createColorMaterial(RIG_COLORS.pants), 0.09);
-            addPart("rightFoot", [0.92, 0.22, 0.92], [-0.52, -0.05, 0], createColorMaterial(RIG_COLORS.shoes), 0.06);
-            addPart("leftFoot", [0.92, 0.22, 0.92], [0.52, -0.05, 0], createColorMaterial(RIG_COLORS.shoes), 0.06);
-
-            avatar.rotation.y = 0.06;
-            scene.add(avatar);
-            rigPreview3D.root = avatar;
-          }
-
           return new Promise(function (resolve) {
             var loader = new THREE.GLTFLoader();
             loader.load(
@@ -1788,14 +1762,12 @@
                 rigPreview3D.rigKind = "gltf";
                 var avatar = gltf.scene || gltf.scenes[0];
                 if (!avatar) {
-                  buildFallbackRig();
-                  resolve(true);
+                  resolve(false);
                   return;
                 }
                 setupGltfRigParts(avatar);
                 if (!rigPreview3D.parts.torso || !rigPreview3D.parts.leftArm || !rigPreview3D.parts.rightArm || !rigPreview3D.parts.leftLeg || !rigPreview3D.parts.rightLeg) {
-                  buildFallbackRig();
-                  resolve(true);
+                  resolve(false);
                   return;
                 }
                 fitRigModel(avatar, THREE);
@@ -1805,11 +1777,15 @@
               },
               undefined,
               function () {
-                buildFallbackRig();
-                resolve(true);
+                resolve(false);
               }
             );
           }).then(function () {
+            if (!rigPreview3D.root || rigPreview3D.rigKind !== "gltf") {
+              showRigLoadFailure("Starter_Blocky_Rig.glb did not initialize.");
+              rigPreview3D.failed = true;
+              return false;
+            }
             rigPreview3D.initialized = true;
             applyBaseRigMaterials();
 
@@ -2169,8 +2145,8 @@
           applyBaseRigMaterials();
 
           if (rigPreview3D.rigKind === "gltf") {
-            var templateMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.shirt, { flipY: true });
-            var pantsMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.pants, { flipY: true });
+            var templateMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.shirt);
+            var pantsMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.pants);
             if (templateType === "pants") {
               replacePartMaterials(rigPreview3D.parts.rightLeg, pantsMaterial.clone());
               replacePartMaterials(rigPreview3D.parts.leftLeg, pantsMaterial.clone());
