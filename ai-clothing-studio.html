@@ -1399,10 +1399,9 @@
         camera: null,
         controls: null,
         loadPromise: null,
-        baseObject: null,
-        overlayObject: null,
-        overlayTexture: null,
-        meshParts: [],
+        root: null,
+        parts: {},
+        overlayTextures: [],
         frameHandle: 0,
         resizeHandler: null
       };
@@ -1415,13 +1414,53 @@
 
       var TEMPLATE_PARTS = {
         shirt: {
+          torso: {
+            top: { x: 231, y: 8, w: 128, h: 64 },
+            left: { x: 165, y: 74, w: 64, h: 128 },
+            front: { x: 231, y: 74, w: 128, h: 128 },
+            right: { x: 361, y: 74, w: 64, h: 128 },
+            back: { x: 427, y: 74, w: 128, h: 128 },
+            bottom: { x: 231, y: 204, w: 128, h: 64 }
+          },
+          rightArm: {
+            left: { x: 19, y: 355, w: 64, h: 128 },
+            front: { x: 85, y: 355, w: 64, h: 128 },
+            right: { x: 151, y: 355, w: 64, h: 128 },
+            back: { x: 217, y: 355, w: 64, h: 128 },
+            top: { x: 217, y: 289, w: 64, h: 64 },
+            bottom: { x: 217, y: 485, w: 64, h: 64 }
+          },
+          leftArm: {
+            left: { x: 308, y: 355, w: 64, h: 128 },
+            front: { x: 374, y: 355, w: 64, h: 128 },
+            right: { x: 440, y: 355, w: 64, h: 128 },
+            back: { x: 506, y: 355, w: 64, h: 128 },
+            top: { x: 308, y: 289, w: 64, h: 64 },
+            bottom: { x: 308, y: 485, w: 64, h: 64 }
+          },
           torsoFront: { x: 231, y: 74, w: 128, h: 128 },
-          rightArmFront: { x: 217, y: 355, w: 64, h: 128 },
-          leftArmFront: { x: 308, y: 355, w: 64, h: 128 }
+          rightArmFront: { x: 85, y: 355, w: 64, h: 128 },
+          leftArmFront: { x: 374, y: 355, w: 64, h: 128 }
         },
         pants: {
-          rightLegFront: { x: 217, y: 355, w: 64, h: 128 },
-          leftLegFront: { x: 308, y: 355, w: 64, h: 128 }
+          rightLeg: {
+            left: { x: 19, y: 355, w: 64, h: 128 },
+            front: { x: 85, y: 355, w: 64, h: 128 },
+            right: { x: 151, y: 355, w: 64, h: 128 },
+            back: { x: 217, y: 355, w: 64, h: 128 },
+            top: { x: 217, y: 289, w: 64, h: 64 },
+            bottom: { x: 217, y: 485, w: 64, h: 64 }
+          },
+          leftLeg: {
+            left: { x: 308, y: 355, w: 64, h: 128 },
+            front: { x: 374, y: 355, w: 64, h: 128 },
+            right: { x: 440, y: 355, w: 64, h: 128 },
+            back: { x: 506, y: 355, w: 64, h: 128 },
+            top: { x: 308, y: 289, w: 64, h: 64 },
+            bottom: { x: 308, y: 485, w: 64, h: 64 }
+          },
+          rightLegFront: { x: 85, y: 355, w: 64, h: 128 },
+          leftLegFront: { x: 374, y: 355, w: 64, h: 128 }
         }
       };
 
@@ -1429,7 +1468,7 @@
         return new Promise(function (resolve, reject) {
           var startedAt = Date.now();
           (function poll() {
-            if (window.THREE && window.THREE.OBJLoader && window.THREE.OrbitControls) {
+            if (window.THREE && window.THREE.OrbitControls) {
               resolve();
               return;
             }
@@ -1442,47 +1481,75 @@
         });
       }
 
-      function cloneMaterialWithMap(material, texture) {
-        var nextMaterial = material.clone();
-        nextMaterial.color.setRGB(1, 1, 1);
-        nextMaterial.map = texture;
-        nextMaterial.transparent = true;
-        nextMaterial.alphaTest = 0.06;
-        nextMaterial.depthWrite = false;
-        nextMaterial.side = window.THREE.DoubleSide;
-        nextMaterial.polygonOffset = true;
-        nextMaterial.polygonOffsetFactor = -2;
-        nextMaterial.polygonOffsetUnits = -2;
-        nextMaterial.needsUpdate = true;
-        return nextMaterial;
+      function disposeOverlayTextures() {
+        rigPreview3D.overlayTextures.forEach(function (texture) {
+          if (texture && typeof texture.dispose === "function") {
+            texture.dispose();
+          }
+        });
+        rigPreview3D.overlayTextures = [];
       }
 
-      function classifyRigMesh(mesh) {
-        if (!window.THREE || !mesh || !mesh.isMesh) return "other";
-        mesh.geometry.computeBoundingBox();
-        var box = mesh.geometry.boundingBox.clone();
-        box.applyMatrix4(mesh.matrixWorld);
-        var center = box.getCenter(new window.THREE.Vector3());
-        var size = box.getSize(new window.THREE.Vector3());
-
-        if (center.y > 1.6) {
-          if (size.z > 1.4) return "torso";
-          if (Math.abs(center.z) > 1.0) return center.y > 2.45 ? "arm" : "forearm";
-          return center.y > 3.85 ? "head" : "neck";
-        }
-
-        if (center.y > -0.15) {
-          return Math.abs(center.z) > 0.4 ? "leg" : "hip";
-        }
-
-        return Math.abs(center.z) > 0.4 ? "foot" : "other";
+      function createColorMaterial(hexColor) {
+        return new window.THREE.MeshStandardMaterial({
+          color: hexColor,
+          roughness: 0.92,
+          metalness: 0.02
+        });
       }
 
-      function shouldOverlayPart(part, templateType) {
-        if (templateType === "pants") {
-          return part === "leg";
+      function createFaceCanvas(sourceImage, rect, options) {
+        var settings = options || {};
+        var canvas = document.createElement("canvas");
+        canvas.width = rect.w;
+        canvas.height = rect.h;
+        var ctx = canvas.getContext("2d");
+        if (!ctx) return canvas;
+
+        if (settings.flipX || settings.flipY) {
+          ctx.save();
+          ctx.translate(settings.flipX ? rect.w : 0, settings.flipY ? rect.h : 0);
+          ctx.scale(settings.flipX ? -1 : 1, settings.flipY ? -1 : 1);
+          ctx.drawImage(sourceImage, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
+          ctx.restore();
+        } else {
+          ctx.drawImage(sourceImage, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
         }
-        return part === "torso" || part === "arm" || part === "forearm";
+        return canvas;
+      }
+
+      function createFaceTexture(sourceImage, rect, options) {
+        var texture = new window.THREE.CanvasTexture(createFaceCanvas(sourceImage, rect, options));
+        texture.flipY = false;
+        texture.encoding = window.THREE.sRGBEncoding;
+        texture.needsUpdate = true;
+        rigPreview3D.overlayTextures.push(texture);
+        return texture;
+      }
+
+      function createPartMaterials(sourceImage, faceMap, options) {
+        var settings = options || {};
+        var flipFrontBack = Boolean(settings.flipFrontBack);
+        var flipSides = Boolean(settings.flipSides);
+        return [
+          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.right, { flipX: flipSides }), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 }),
+          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.left, { flipX: flipSides }), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 }),
+          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.top), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 }),
+          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.bottom), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 }),
+          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.front, { flipX: flipFrontBack }), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 }),
+          new window.THREE.MeshStandardMaterial({ map: createFaceTexture(sourceImage, faceMap.back, { flipX: flipFrontBack }), transparent: true, alphaTest: 0.06, roughness: 0.98, metalness: 0.0 })
+        ];
+      }
+
+      function setOverlayVisibility(templateType) {
+        if (!rigPreview3D.parts) return;
+        var showShirt = templateType === "shirt" || templateType === "layered";
+        var showPants = templateType === "pants";
+        if (rigPreview3D.parts.torsoOverlay) rigPreview3D.parts.torsoOverlay.visible = showShirt;
+        if (rigPreview3D.parts.rightArmOverlay) rigPreview3D.parts.rightArmOverlay.visible = showShirt;
+        if (rigPreview3D.parts.leftArmOverlay) rigPreview3D.parts.leftArmOverlay.visible = showShirt;
+        if (rigPreview3D.parts.rightLegOverlay) rigPreview3D.parts.rightLegOverlay.visible = showPants;
+        if (rigPreview3D.parts.leftLegOverlay) rigPreview3D.parts.leftLegOverlay.visible = showPants;
       }
 
       function setRigViewportSize() {
@@ -1513,16 +1580,16 @@
 
           var scene = new THREE.Scene();
           var camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
-          camera.position.set(0, 1.45, 8.5);
+          camera.position.set(0, 2.4, 10.2);
 
           var controls = new THREE.OrbitControls(camera, renderer.domElement);
           controls.enableDamping = true;
           controls.enablePan = false;
-          controls.target.set(0, 1.45, 0);
-          controls.minDistance = 5.8;
-          controls.maxDistance = 12.5;
-          controls.minPolarAngle = 0.95;
-          controls.maxPolarAngle = 1.72;
+          controls.target.set(0, 2.2, 0);
+          controls.minDistance = 7.2;
+          controls.maxDistance = 13.5;
+          controls.minPolarAngle = 0.9;
+          controls.maxPolarAngle = 1.78;
 
           scene.add(new THREE.AmbientLight(0xffffff, 1.15));
           var keyLight = new THREE.DirectionalLight(0xffffff, 1.55);
@@ -1545,70 +1612,56 @@
           rigPreview3D.camera = camera;
           rigPreview3D.controls = controls;
 
-          return new Promise(function (resolve, reject) {
-            var loader = new THREE.OBJLoader();
-            loader.load("./assets/ai-rig/roblox%20rig.obj", function (object) {
-              var box = new THREE.Box3().setFromObject(object);
-              var center = box.getCenter(new THREE.Vector3());
-              var size = box.getSize(new THREE.Vector3());
-              var maxAxis = Math.max(size.x, size.y, size.z) || 1;
-              var scale = 4.4 / maxAxis;
+          var avatar = new THREE.Group();
 
-              object.position.sub(center);
-              object.scale.setScalar(scale);
-              object.updateMatrixWorld(true);
+          function addPart(name, size, position, baseMaterial) {
+            var geometry = new THREE.BoxGeometry(size[0], size[1], size[2]);
+            var baseMesh = new THREE.Mesh(geometry, baseMaterial);
+            baseMesh.position.set(position[0], position[1], position[2]);
+            avatar.add(baseMesh);
+            rigPreview3D.parts[name] = baseMesh;
+            return baseMesh;
+          }
 
-              object.traverse(function (child) {
-                if (!child.isMesh) return;
-                child.castShadow = false;
-                child.receiveShadow = false;
-                child.material = new THREE.MeshStandardMaterial({
-                  color: 0xd7dbe2,
-                  roughness: 0.94,
-                  metalness: 0.02,
-                  side: THREE.DoubleSide
-                });
-              });
+          function addOverlayPart(name, size, position) {
+            var geometry = new THREE.BoxGeometry(size[0] + 0.04, size[1] + 0.04, size[2] + 0.04);
+            var transparentMaterial = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0, depthWrite: false });
+            var overlayMesh = new THREE.Mesh(geometry, [transparentMaterial, transparentMaterial, transparentMaterial, transparentMaterial, transparentMaterial, transparentMaterial]);
+            overlayMesh.position.set(position[0], position[1], position[2]);
+            overlayMesh.visible = false;
+            avatar.add(overlayMesh);
+            rigPreview3D.parts[name] = overlayMesh;
+            return overlayMesh;
+          }
 
-              var overlay = object.clone(true);
-              overlay.traverse(function (child) {
-                if (!child.isMesh) return;
-                child.material = child.material.clone();
-              });
-              overlay.visible = false;
-              overlay.updateMatrixWorld(true);
+          addPart("head", [2, 2, 2], [0, 4.55, 0], createColorMaterial(0xdedee2));
+          addPart("torso", [2, 2, 1], [0, 2.85, 0], createColorMaterial(0xf2f3f5));
+          addPart("rightArm", [1, 2, 1], [-1.55, 2.85, 0], createColorMaterial(0xf2f3f5));
+          addPart("leftArm", [1, 2, 1], [1.55, 2.85, 0], createColorMaterial(0xf2f3f5));
+          addPart("rightLeg", [1, 2, 1], [-0.52, 0.85, 0], createColorMaterial(0x202631));
+          addPart("leftLeg", [1, 2, 1], [0.52, 0.85, 0], createColorMaterial(0x202631));
 
-              scene.add(object);
-              scene.add(overlay);
+          addOverlayPart("torsoOverlay", [2, 2, 1], [0, 2.85, 0]);
+          addOverlayPart("rightArmOverlay", [1, 2, 1], [-1.55, 2.85, 0]);
+          addOverlayPart("leftArmOverlay", [1, 2, 1], [1.55, 2.85, 0]);
+          addOverlayPart("rightLegOverlay", [1, 2, 1], [-0.52, 0.85, 0]);
+          addOverlayPart("leftLegOverlay", [1, 2, 1], [0.52, 0.85, 0]);
 
-              rigPreview3D.baseObject = object;
-              rigPreview3D.overlayObject = overlay;
-              rigPreview3D.overlayTexture = null;
-              rigPreview3D.meshParts = [];
-              overlay.traverse(function (child) {
-                if (!child.isMesh) return;
-                rigPreview3D.meshParts.push({
-                  mesh: child,
-                  part: classifyRigMesh(child)
-                });
-              });
-              rigPreview3D.initialized = true;
+          scene.add(avatar);
+          rigPreview3D.root = avatar;
+          rigPreview3D.initialized = true;
 
-              rigPreview3D.resizeHandler = setRigViewportSize;
-              window.addEventListener("resize", rigPreview3D.resizeHandler);
-              setRigViewportSize();
+          rigPreview3D.resizeHandler = setRigViewportSize;
+          window.addEventListener("resize", rigPreview3D.resizeHandler);
+          setRigViewportSize();
 
-              (function renderLoop() {
-                rigPreview3D.frameHandle = window.requestAnimationFrame(renderLoop);
-                controls.update();
-                renderer.render(scene, camera);
-              })();
+          (function renderLoop() {
+            rigPreview3D.frameHandle = window.requestAnimationFrame(renderLoop);
+            controls.update();
+            renderer.render(scene, camera);
+          })();
 
-              resolve(true);
-            }, void 0, function (error) {
-              reject(error || new Error("Could not load Roblox rig OBJ."));
-            });
-          });
+          return true;
         }).catch(function () {
           rigPreview3D.failed = true;
           return false;
@@ -1993,33 +2046,30 @@
       async function applyTextureToViewer(textureUrl, templateType) {
         if (!textureUrl) return false;
         var ready = await ensureThreeRigPreview();
-        if (!ready || !rigPreview3D.overlayObject || !window.THREE) {
+        if (!ready || !rigPreview3D.parts || !window.THREE) {
           return false;
         }
 
         try {
-          var THREE = window.THREE;
-          var texture = await new Promise(function (resolve, reject) {
-            new THREE.TextureLoader().load(
-              textureUrl,
-              resolve,
-              void 0,
-              function () { reject(new Error("Could not load preview texture.")); }
-            );
+          var sourceImage = await new Promise(function (resolve, reject) {
+            var image = new Image();
+            image.onload = function () { resolve(image); };
+            image.onerror = function () { reject(new Error("Could not load preview texture.")); };
+            image.src = textureUrl;
           });
 
-          texture.flipY = false;
-          texture.encoding = THREE.sRGBEncoding;
-          texture.needsUpdate = true;
-          rigPreview3D.overlayTexture = texture;
+          disposeOverlayTextures();
 
-          rigPreview3D.overlayObject.visible = true;
-          rigPreview3D.meshParts.forEach(function (entry) {
-            if (!entry || !entry.mesh) return;
-            entry.mesh.visible = shouldOverlayPart(entry.part, templateType);
-            if (!entry.mesh.visible) return;
-            entry.mesh.material = cloneMaterialWithMap(entry.mesh.material, texture);
-          });
+          if (templateType === "pants") {
+            rigPreview3D.parts.rightLegOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.pants.rightLeg);
+            rigPreview3D.parts.leftLegOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.pants.leftLeg);
+          } else {
+            rigPreview3D.parts.torsoOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.torso);
+            rigPreview3D.parts.rightArmOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.rightArm);
+            rigPreview3D.parts.leftArmOverlay.material = createPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.leftArm);
+          }
+
+          setOverlayVisibility(templateType);
 
           if (rigCanvas) {
             rigCanvas.classList.add("is-hidden");
@@ -2033,8 +2083,8 @@
       async function refreshRigPreview() {
         var usedViewer = false;
         var viewerReady = await ensureThreeRigPreview();
-        if (viewerReady && rigPreview3D.overlayObject && !latestRigTextureUrl) {
-          rigPreview3D.overlayObject.visible = false;
+        if (viewerReady && !latestRigTextureUrl) {
+          setOverlayVisibility("none");
           if (rigCanvas) {
             rigCanvas.classList.add("is-hidden");
           }
@@ -2208,9 +2258,8 @@
         resultImage.removeAttribute("src");
         latestGeneratedTextureUrl = "";
         latestRigTextureUrl = "";
-        if (rigPreview3D.overlayObject) {
-          rigPreview3D.overlayObject.visible = false;
-        }
+        disposeOverlayTextures();
+        setOverlayVisibility("none");
         if (rigContext && rigCanvas) {
           rigContext.clearRect(0, 0, rigCanvas.width, rigCanvas.height);
         }
@@ -2327,7 +2376,6 @@
     })();
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="./global-shell.js"></script>
 </body>
