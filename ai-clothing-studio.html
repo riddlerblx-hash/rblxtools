@@ -1406,7 +1406,7 @@
         resizeHandler: null,
         rigKind: "fallback"
       };
-      var RIG_MODEL_URL = "./assets/ai-rig/Starter_Blocky_Rig.glb";
+      var RIG_MODEL_URL = "./assets/ai-rig/Starter_Blocky_Rig.obj";
       var RIG_COLORS = {
         skin: 0xe4e4e4,
         head: 0xdedee2,
@@ -1471,7 +1471,7 @@
         return new Promise(function (resolve, reject) {
           var startedAt = Date.now();
           (function poll() {
-            if (window.THREE && window.THREE.OrbitControls && window.THREE.GLTFLoader) {
+            if (window.THREE && window.THREE.OrbitControls && window.THREE.OBJLoader) {
               resolve();
               return;
             }
@@ -1574,25 +1574,15 @@
 
       function createTemplateTexture(sourceImage, options) {
         if (!sourceImage) return null;
-        var settings = options || {};
         var canvas = document.createElement("canvas");
         canvas.width = sourceImage.naturalWidth || sourceImage.width || 585;
         canvas.height = sourceImage.naturalHeight || sourceImage.height || 559;
         var ctx = canvas.getContext("2d");
         if (!ctx) return null;
-
-        if (settings.flipY) {
-          ctx.save();
-          ctx.translate(0, canvas.height);
-          ctx.scale(1, -1);
-          ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
-          ctx.restore();
-        } else {
-          ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
-        }
+        ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
 
         var texture = new window.THREE.CanvasTexture(canvas);
-        texture.flipY = false;
+        texture.flipY = true;
         texture.encoding = window.THREE.sRGBEncoding;
         texture.needsUpdate = true;
         rigPreview3D.overlayTextures.push(texture);
@@ -1601,7 +1591,7 @@
 
       function showRigLoadFailure(message) {
         if (!rigViewport) return;
-        rigViewport.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:24px;text-align:center;color:#f6d7d7;font:700 14px/1.5 system-ui,sans-serif;background:linear-gradient(180deg, rgba(44,18,18,0.52), rgba(18,10,10,0.72));">3D rig failed to load.<br>' + String(message || "Starter_Blocky_Rig.glb could not be loaded.") + '</div>';
+        rigViewport.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:24px;text-align:center;color:#f6d7d7;font:700 14px/1.5 system-ui,sans-serif;background:linear-gradient(180deg, rgba(44,18,18,0.52), rgba(18,10,10,0.72));">3D rig failed to load.<br>' + String(message || "Starter_Blocky_Rig.obj could not be loaded.") + '</div>';
       }
 
       function createTemplateMaterial(sourceImage, fallbackHex, options) {
@@ -1633,37 +1623,28 @@
 
       function applyBaseRigMaterials() {
         if (!rigPreview3D.parts) return;
-        if (rigPreview3D.rigKind === "gltf") {
-          replacePartMaterials(rigPreview3D.parts.head, cloneBaseMaterial(RIG_COLORS.head));
-          replacePartMaterials(rigPreview3D.parts.torso, cloneBaseMaterial(RIG_COLORS.shirt));
-          replacePartMaterials(rigPreview3D.parts.rightArm, cloneBaseMaterial(RIG_COLORS.shirt));
-          replacePartMaterials(rigPreview3D.parts.leftArm, cloneBaseMaterial(RIG_COLORS.shirt));
-          replacePartMaterials(rigPreview3D.parts.rightLeg, cloneBaseMaterial(RIG_COLORS.pants));
-          replacePartMaterials(rigPreview3D.parts.leftLeg, cloneBaseMaterial(RIG_COLORS.pants));
-          return;
-        }
-        replacePartMaterials(rigPreview3D.parts.head, buildPartMaterials(null, null, RIG_COLORS.head));
-        replacePartMaterials(rigPreview3D.parts.torso, buildPartMaterials(null, null, RIG_COLORS.shirt));
-        replacePartMaterials(rigPreview3D.parts.rightArm, buildPartMaterials(null, null, RIG_COLORS.shirt));
-        replacePartMaterials(rigPreview3D.parts.leftArm, buildPartMaterials(null, null, RIG_COLORS.shirt));
-        replacePartMaterials(rigPreview3D.parts.rightLeg, buildPartMaterials(null, null, RIG_COLORS.pants));
-        replacePartMaterials(rigPreview3D.parts.leftLeg, buildPartMaterials(null, null, RIG_COLORS.pants));
+        replacePartMaterials(rigPreview3D.parts.head, cloneBaseMaterial(RIG_COLORS.head));
+        replacePartMaterials(rigPreview3D.parts.torso, cloneBaseMaterial(RIG_COLORS.shirt));
+        replacePartMaterials(rigPreview3D.parts.rightArm, cloneBaseMaterial(RIG_COLORS.shirt));
+        replacePartMaterials(rigPreview3D.parts.leftArm, cloneBaseMaterial(RIG_COLORS.shirt));
+        replacePartMaterials(rigPreview3D.parts.rightLeg, cloneBaseMaterial(RIG_COLORS.pants));
+        replacePartMaterials(rigPreview3D.parts.leftLeg, cloneBaseMaterial(RIG_COLORS.pants));
       }
 
-      function setupGltfRigParts(root) {
-        var meshLookup = {
-          "Head": "head",
-          "Torso": "torso",
-          "Left Arm": "leftArm",
-          "Right Arm": "rightArm",
-          "Left Leg": "leftLeg",
-          "Right Leg": "rightLeg"
-        };
-
+      function setupObjRigParts(root) {
         root.traverse(function (object) {
           if (!object || !object.isMesh) return;
-          if (meshLookup[object.name]) {
-            rigPreview3D.parts[meshLookup[object.name]] = object;
+          var normalizedName = String(object.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+          var partKey = null;
+          if (normalizedName.indexOf("head") !== -1) partKey = "head";
+          else if (normalizedName.indexOf("torso") !== -1) partKey = "torso";
+          else if (normalizedName.indexOf("rightarm") !== -1) partKey = "rightArm";
+          else if (normalizedName.indexOf("leftarm") !== -1) partKey = "leftArm";
+          else if (normalizedName.indexOf("rightleg") !== -1) partKey = "rightLeg";
+          else if (normalizedName.indexOf("leftleg") !== -1) partKey = "leftLeg";
+
+          if (partKey) {
+            rigPreview3D.parts[partKey] = object;
             object.castShadow = false;
             object.receiveShadow = false;
             object.visible = true;
@@ -1754,18 +1735,18 @@
           rigPreview3D.camera = camera;
           rigPreview3D.controls = controls;
           return new Promise(function (resolve) {
-            var loader = new THREE.GLTFLoader();
+            var loader = new THREE.OBJLoader();
             loader.load(
               RIG_MODEL_URL,
-              function (gltf) {
+              function (object) {
                 rigPreview3D.parts = {};
-                rigPreview3D.rigKind = "gltf";
-                var avatar = gltf.scene || gltf.scenes[0];
+                rigPreview3D.rigKind = "obj";
+                var avatar = object;
                 if (!avatar) {
                   resolve(false);
                   return;
                 }
-                setupGltfRigParts(avatar);
+                setupObjRigParts(avatar);
                 if (!rigPreview3D.parts.torso || !rigPreview3D.parts.leftArm || !rigPreview3D.parts.rightArm || !rigPreview3D.parts.leftLeg || !rigPreview3D.parts.rightLeg) {
                   resolve(false);
                   return;
@@ -1781,8 +1762,8 @@
               }
             );
           }).then(function () {
-            if (!rigPreview3D.root || rigPreview3D.rigKind !== "gltf") {
-              showRigLoadFailure("Starter_Blocky_Rig.glb did not initialize.");
+            if (!rigPreview3D.root || rigPreview3D.rigKind !== "obj") {
+              showRigLoadFailure("Starter_Blocky_Rig.obj did not initialize.");
               rigPreview3D.failed = true;
               return false;
             }
@@ -2144,24 +2125,15 @@
           disposeOverlayTextures();
           applyBaseRigMaterials();
 
-          if (rigPreview3D.rigKind === "gltf") {
-            var templateMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.shirt);
+          if (templateType === "pants") {
             var pantsMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.pants);
-            if (templateType === "pants") {
-              replacePartMaterials(rigPreview3D.parts.rightLeg, pantsMaterial.clone());
-              replacePartMaterials(rigPreview3D.parts.leftLeg, pantsMaterial.clone());
-            } else {
-              replacePartMaterials(rigPreview3D.parts.torso, templateMaterial.clone());
-              replacePartMaterials(rigPreview3D.parts.rightArm, templateMaterial.clone());
-              replacePartMaterials(rigPreview3D.parts.leftArm, templateMaterial.clone());
-            }
-          } else if (templateType === "pants") {
-            replacePartMaterials(rigPreview3D.parts.rightLeg, buildPartMaterials(sourceImage, TEMPLATE_PARTS.pants.rightLeg, RIG_COLORS.pants));
-            replacePartMaterials(rigPreview3D.parts.leftLeg, buildPartMaterials(sourceImage, TEMPLATE_PARTS.pants.leftLeg, RIG_COLORS.pants));
+            replacePartMaterials(rigPreview3D.parts.rightLeg, pantsMaterial.clone());
+            replacePartMaterials(rigPreview3D.parts.leftLeg, pantsMaterial.clone());
           } else {
-            replacePartMaterials(rigPreview3D.parts.torso, buildPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.torso, RIG_COLORS.shirt));
-            replacePartMaterials(rigPreview3D.parts.rightArm, buildPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.rightArm, RIG_COLORS.shirt));
-            replacePartMaterials(rigPreview3D.parts.leftArm, buildPartMaterials(sourceImage, TEMPLATE_PARTS.shirt.leftArm, RIG_COLORS.shirt));
+            var shirtMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.shirt);
+            replacePartMaterials(rigPreview3D.parts.torso, shirtMaterial.clone());
+            replacePartMaterials(rigPreview3D.parts.rightArm, shirtMaterial.clone());
+            replacePartMaterials(rigPreview3D.parts.leftArm, shirtMaterial.clone());
           }
           return true;
         } catch (_error) {
@@ -2455,7 +2427,7 @@
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/RoundedBoxGeometry.js"></script>
   <script src="./global-shell.js"></script>
 </body>
