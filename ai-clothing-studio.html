@@ -565,9 +565,9 @@
     }
 
     .ai-rig-canvas {
-      display: block;
+      display: none;
       position: relative;
-      z-index: 1;
+      z-index: 0;
       width: min(100%, 720px);
       height: auto;
     }
@@ -2076,10 +2076,6 @@
           }
 
           setOverlayVisibility(templateType);
-
-          if (rigCanvas) {
-            rigCanvas.classList.add("is-hidden");
-          }
           return true;
         } catch (_error) {
           return false;
@@ -2087,24 +2083,18 @@
       }
 
       async function refreshRigPreview() {
-        var usedViewer = false;
         var viewerReady = await ensureThreeRigPreview();
         if (viewerReady && !latestRigTextureUrl) {
           setOverlayVisibility("none");
-          if (rigCanvas) {
-            rigCanvas.classList.add("is-hidden");
-          }
           return;
         }
         if (viewerReady && latestRigTextureUrl) {
-          usedViewer = await applyTextureToViewer(latestRigTextureUrl, previewTemplateType);
-        }
-        if (!usedViewer) {
-          if (rigCanvas) {
-            rigCanvas.classList.remove("is-hidden");
+          var usedViewer = await applyTextureToViewer(latestRigTextureUrl, previewTemplateType);
+          if (usedViewer) {
+            return;
           }
-          drawRigPreview();
         }
+        // Keep the canvas fallback disabled so it cannot visually override the 3D preview.
       }
 
       function resetRatingState() {
@@ -2266,12 +2256,6 @@
         latestRigTextureUrl = "";
         disposeOverlayTextures();
         setOverlayVisibility("none");
-        if (rigContext && rigCanvas) {
-          rigContext.clearRect(0, 0, rigCanvas.width, rigCanvas.height);
-        }
-        if (rigCanvas) {
-          rigCanvas.classList.add("is-hidden");
-        }
         resetRatingState();
         downloadButton.href = "#";
         generationResult.classList.remove("is-visible");
