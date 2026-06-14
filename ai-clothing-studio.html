@@ -1998,62 +1998,6 @@
         ctx.stroke();
       }
 
-      function buildViewerTextureDataUrl(textureUrl, templateType) {
-        if (!textureUrl) return Promise.resolve("");
-        var blueprint = templateType === "pants" ? templateBlueprints.pants : templateBlueprints.shirt;
-        return new Promise(function (resolve) {
-          var generated = new Image();
-          generated.onload = function () {
-            var width = generated.naturalWidth || generated.width || 585;
-            var height = generated.naturalHeight || generated.height || 559;
-            var canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            var ctx = canvas.getContext("2d");
-
-            if (!ctx) {
-              resolve(textureUrl);
-              return;
-            }
-
-            ctx.clearRect(0, 0, width, height);
-            ctx.drawImage(generated, 0, 0, width, height);
-            var generatedData = ctx.getImageData(0, 0, width, height);
-            var generatedPixels = generatedData.data;
-
-            if (blueprint && blueprint.complete && blueprint.naturalWidth) {
-              var baseCanvas = document.createElement("canvas");
-              baseCanvas.width = width;
-              baseCanvas.height = height;
-              var baseCtx = baseCanvas.getContext("2d");
-              if (baseCtx) {
-                baseCtx.drawImage(blueprint, 0, 0, width, height);
-                var basePixels = baseCtx.getImageData(0, 0, width, height).data;
-                for (var i = 0; i < generatedPixels.length; i += 4) {
-                  var alpha = generatedPixels[i + 3];
-                  if (alpha < 10) {
-                    generatedPixels[i + 3] = 0;
-                    continue;
-                  }
-                  var diff = Math.abs(generatedPixels[i] - basePixels[i])
-                    + Math.abs(generatedPixels[i + 1] - basePixels[i + 1])
-                    + Math.abs(generatedPixels[i + 2] - basePixels[i + 2]);
-                  if (diff < 34) {
-                    generatedPixels[i + 3] = 0;
-                  }
-                }
-                ctx.putImageData(generatedData, 0, 0);
-              }
-            }
-            resolve(canvas.toDataURL("image/png"));
-          };
-          generated.onerror = function () {
-            resolve(textureUrl);
-          };
-          generated.src = textureUrl;
-        });
-      }
-
       async function applyTextureToViewer(textureUrl, templateType) {
         if (!textureUrl) return false;
         var ready = await ensureThreeRigPreview();
@@ -2212,7 +2156,7 @@
           builtPrompt.value = payload.enhancedPrompt || enhancedPrompt;
           previewTemplateType = payload.templateType === "pants" ? "pants" : "shirt";
           latestGeneratedTextureUrl = payload.imageDataUrl || "";
-          latestRigTextureUrl = await buildViewerTextureDataUrl(latestGeneratedTextureUrl, previewTemplateType);
+          latestRigTextureUrl = latestGeneratedTextureUrl;
           resultImage.src = payload.imageDataUrl;
           resultSummary.textContent = previewTemplateType === "pants"
             ? "Your generated pants template is now previewed on the Roblox rig here. Download still gives you the real 585 x 559 pants template PNG."
