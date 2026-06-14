@@ -194,7 +194,7 @@ function buildAIClothingPrompt(input = {}) {
     styleName ? `Suggested preset style tag: ${styleName}.` : "",
     `Core design request: ${userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
     `Priority goals: ${goalTexts.length ? goalTexts.join(", ") : "clean torso readability, balanced front and back composition, strong sleeve details, clean seam alignment, catalog-ready presentation"}.`,
-      `Avoid: ${negativePrompt || "muddy textures, blurry seam areas, giant unreadable logos, floating accessories, low-detail sleeves, sealed sleeve ends that cover the hand opening, sealed ankle ends, broken leg alignment, head features placed on the neck opening, full outfits that ignore the selected template type, and template-breaking cutoffs"}.`,
+      `Avoid: ${negativePrompt || "muddy textures, blurry seam areas, giant unreadable logos, floating accessories, low-detail sleeves, visible white seam lines, edge outlines, border strokes, or guide marks, sealed sleeve ends that cover the hand opening, sealed ankle ends, broken leg alignment, head features placed on the neck opening, full outfits that ignore the selected template type, and template-breaking cutoffs"}.`,
     "Keep the clothing wearable, polished, and export-ready for Roblox creators who need a real template image rather than a concept sketch.",
   ];
 
@@ -224,7 +224,7 @@ async function generateAIClothingImage({ garmentType, enhancedPrompt }) {
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: templateUpload,
-    prompt: `${promptText} Keep the final art aligned to the supplied Roblox ${templateType} template blueprint. The green placeholder panels are the clothing zones. Create the clothing art so it belongs inside those blueprint panels.`,
+    prompt: `${promptText} Keep the final art aligned to the supplied Roblox ${templateType} template blueprint. The green placeholder panels are the clothing zones. Create the clothing art so it belongs inside those blueprint panels. Do not draw white seam lines, border strokes, or template guide marks on the clothing texture.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
