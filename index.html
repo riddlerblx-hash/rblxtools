@@ -39,9 +39,10 @@
       overflow-x: hidden;
       background:
         radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.26), transparent 28%),
-        radial-gradient(circle at 86% 14%, rgba(255, 0, 0, 0.12), transparent 24%),
+        radial-gradient(circle at 86% 14%, rgba(136, 101, 255, 0.18), transparent 24%),
         radial-gradient(circle at 82% 74%, rgba(255, 74, 74, 0.12), transparent 30%),
-        radial-gradient(circle at 22% 86%, rgba(255, 124, 124, 0.10), transparent 26%),
+        radial-gradient(circle at 22% 86%, rgba(145, 124, 255, 0.10), transparent 26%),
+        radial-gradient(circle at 58% 48%, rgba(87, 160, 255, 0.12), transparent 32%),
         linear-gradient(180deg, #151c28 0%, #0c1119 38%, #080b11 100%);
       position: relative;
     }
@@ -492,6 +493,9 @@
 
     .plus-actions {
       margin-top: 18px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     .section-card {
@@ -1123,9 +1127,9 @@
 
           <div class="hero-promo">
             <div>
-              <h2 class="hero-promo-title">Built To Help You Avoid Scam Sites</h2>
+              <h2 class="hero-promo-title">We're Asking For Your Help</h2>
               <p class="hero-promo-copy">
-                RBLXTools does not ask for Roblox passwords, private account information, browser tokens, linking your account, or weird PowerShell steps. The goal is a cleaner tool website people can actually trust while they build and work toward profit.
+                Keeping RBLXTools online, maintained, and improving is getting expensive, and we're doing everything we can to keep the core tools free. If you want to support the project, even $1 helps us cover server costs, build more free tools, and keep adding useful content for free plan users and guests.
               </p>
             </div>
             <div class="support-card">
@@ -1165,11 +1169,11 @@
             <div class="plus-benefit">Bulk downloads and bulk tool usage</div>
             <div class="plus-benefit">Cool chat tag cosmetic</div>
             <div class="plus-benefit">More premium website feel</div>
-            <div class="plus-benefit">No site advertisements</div>
           </div>
 
           <div class="plus-actions">
             <a class="btn plus pulse-green" href="./subscriptions" id="plusSpotlightButton">View Plans</a>
+            <a class="btn ghost" href="https://discord.gg/SXKbEw4zwZ" target="_blank" rel="noopener noreferrer">Pay with Robux</a>
           </div>
         </aside>
       </section>

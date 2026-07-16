@@ -774,6 +774,12 @@
       text-align: center;
     }
 
+    .plus-cta-group {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
     @keyframes cardSweep {
       0% { transform: translateX(-160%) rotate(12deg); }
       100% { transform: translateX(340%) rotate(12deg); }
@@ -856,6 +862,17 @@
     .cta.is-owned {
       background: linear-gradient(180deg, #3dd06d 0%, #169348 100%);
       box-shadow: 0 14px 24px rgba(31, 185, 85, 0.18);
+      animation: none;
+    }
+
+    .cta-link {
+      text-decoration: none;
+    }
+
+    .cta.secondary {
+      background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05));
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.2);
       animation: none;
     }
 
@@ -1034,15 +1051,16 @@
       .mobile-plan-stage {
         margin-top: 8px;
         width: 100%;
-        overflow: hidden;
+        max-width: 100%;
+        overflow: visible;
         position: relative;
         padding-bottom: 10px;
       }
 
       .mobile-plan-viewport {
         width: 100%;
-        overflow-x: hidden;
-        overflow-y: visible;
+        max-width: 100%;
+        overflow: visible;
         padding: 6px 0 14px;
         margin: 0;
         position: relative;
@@ -1050,48 +1068,36 @@
       }
 
       .plans-grid {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
         align-items: stretch;
-        gap: 12px;
-        width: max-content;
+        justify-content: stretch;
+        gap: 14px;
+        width: 100%;
         min-height: 0;
-        padding: 0 32px;
-        transform: translateX(0);
-        transition: transform 0.32s ease;
-        will-change: transform;
+        padding: 0;
       }
 
       .plan-col,
       .plan-col.side-plan,
-      .plan-col.plus-focus {
+      .plan-col.plus-focus,
+      .plan-col.is-active,
+      .plan-col.is-left,
+      .plan-col.is-right,
+      .plan-col.is-hidden {
         display: block !important;
         position: relative;
         top: auto;
         left: auto;
-        flex: none;
-        width: min(74vw, 318px);
-        max-width: min(74vw, 318px);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
         padding-top: 0;
         padding-bottom: 0;
         margin: 0;
-        opacity: 0.58;
-        pointer-events: auto;
-        transition: opacity 0.24s ease, transform 0.24s ease;
-        transform: scale(0.88) translateY(16px);
-      }
-
-      .plan-col.is-active {
         opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-
-      .plan-col.is-left,
-      .plan-col.is-right {
-        opacity: 0.68;
-      }
-
-      .plan-col.is-hidden {
-        opacity: 0.42;
+        pointer-events: auto;
+        transform: none;
       }
 
       .plan-card {
@@ -1172,6 +1178,24 @@
         margin-left: calc(min(37vw, 159px) - 18px);
       }
 
+      .mobile-plan-arrow {
+        display: none !important;
+      }
+
+      .hero,
+      .plan-banner,
+      .plan-banner span,
+      .plan-card,
+      .card-inner {
+        max-width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .hero p,
+      .plan-banner span {
+        text-align: left;
+      }
       .mobile-plan-arrow[disabled] {
         opacity: 0.36;
       }
@@ -1346,15 +1370,8 @@
               <div class="perk-card">
                 <div class="perk-icon plus">5</div>
                 <div>
-                  <h3 class="perk-title">Bulk downloads and tool usage</h3>
-                  <p class="perk-desc">Use supported tools in bigger batches instead of grinding through everything one by one.</p>
-                </div>
-              </div>
-              <div class="perk-card">
-                <div class="perk-icon plus">0</div>
-                <div>
-                  <h3 class="perk-title">Ad-free experience</h3>
-                  <p class="perk-desc">Get the cleaner experience without ads breaking up the flow while you use the site.</p>
+                  <h3 class="perk-title">Bulk downloads and tool usage (1-5)</h3>
+                  <p class="perk-desc">Use supported tools in bigger 1 to 5 item batches instead of grinding through everything one by one.</p>
                 </div>
               </div>
               <div class="perk-card">
@@ -1378,7 +1395,10 @@
               <div class="coupon-copy">Your purchase opens a secure Stripe checkout tied to the logged-in account, so your Plus access lands on the right profile automatically without extra setup afterward.</div>
             </div>
 
-            <button id="plusCheckoutBtn" class="cta" type="button">Start Plus Membership</button>
+            <div class="plus-cta-group">
+              <button id="plusCheckoutBtn" class="cta" type="button">Start Plus Membership</button>
+              <a class="cta secondary cta-link" href="https://discord.gg/SXKbEw4zwZ" target="_blank" rel="noopener noreferrer">Pay with Robux</a>
+            </div>
             <div class="cta-subcopy">One clean upgrade. Premium tools, faster actions, and a way better overall workflow.</div>
             <div id="plusStatus" class="status"></div>
           </div>
@@ -1400,7 +1420,7 @@
                   <span>RBTools</span>
                   <span class="accent-pro">Pro</span>
                 </h2>
-                <p class="plan-subtitle">A future creator tier planned for heavier workflows, stronger limits, and a bigger utility layer beyond the normal Plus setup.</p>
+                <p class="plan-subtitle">A teaser for the next premium tier focused on stronger AI utility, faster access, and bigger perks beyond the current Plus setup.</p>
               </div>
 
               <div class="price-box">
@@ -1411,38 +1431,43 @@
             </div>
 
             <div class="plus-highlight" style="background: radial-gradient(circle at top right, rgba(255, 190, 78, 0.18), transparent 35%), linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));">
-              <div class="plus-highlight-title">Planned direction</div>
-              <div class="plus-highlight-copy">Built for the future power-user crowd that may eventually want heavier limits, stronger creator access, and bigger actions than the normal site flow.</div>
+              <div class="plus-highlight-title">What Pro is planned to include</div>
+              <div class="plus-highlight-copy">This tier is still a teaser, but the goal is to give heavier users a clearer jump with better AI access and a faster premium queue.</div>
             </div>
 
-            <div class="plan-grid single">
+            <div class="plan-grid">
               <div class="perk-card">
-                <div class="perk-icon pro">H</div>
+                <div class="perk-icon pro">45</div>
                 <div>
-                  <h3 class="perk-title">Higher limits</h3>
-                  <p class="perk-desc">Planned for users who may eventually need more than the current Plus 5-at-a-time workflow ceiling.</p>
+                  <h3 class="perk-title">45 AI Generation Tokens</h3>
+                  <p class="perk-desc">Planned token balance for users who want more serious AI usage built into the higher-tier experience.</p>
                 </div>
               </div>
               <div class="perk-card">
-                <div class="perk-icon pro">A</div>
+                <div class="perk-icon pro">Q</div>
                 <div>
-                  <h3 class="perk-title">Advanced creator access</h3>
-                  <p class="perk-desc">Reserved for stronger exports, heavier creator workflows, and more advanced utility later on.</p>
+                  <h3 class="perk-title">Priority Speed Queue</h3>
+                  <p class="perk-desc">Faster handling for heavier premium actions so Pro feels more immediate when demand is higher.</p>
+                </div>
+              </div>
+              <div class="perk-card">
+                <div class="perk-icon pro">10</div>
+                <div>
+                  <h3 class="perk-title">Even bulkier downloads and tool usage (5-10)</h3>
+                  <p class="perk-desc">Planned bigger 5 to 10 item batches for users who want heavier workflows than the current Plus limit.</p>
+                </div>
+              </div>
+              <div class="perk-card">
+                <div class="perk-icon soon">+</div>
+                <div>
+                  <h3 class="perk-title">More coming soon</h3>
+                  <p class="perk-desc">The Pro tier is still being shaped, so more premium-only features can be added as the site grows.</p>
                 </div>
               </div>
             </div>
 
-            <div class="section-kicker pro">Coming Later</div>
-            <div class="perk-card">
-              <div class="perk-icon soon">P</div>
-              <div>
-                <h3 class="perk-title">Pro is planned, not live yet</h3>
-                <p class="perk-desc">This card previews the next tier direction while the current release stays focused on Free and Plus.</p>
-              </div>
-            </div>
-
-            <div class="note-box">Best for future power users, developers, and creators who know they will want more than the normal site limits.</div>
-            <div class="status pro">Pro plan is still being planned.</div>
+            <div class="note-box">Best for future power users who want the next step after Plus once the bigger AI and queue perks are ready.</div>
+            <div class="status pro">Pro is still a teaser and is not purchasable yet.</div>
           </div>
         </article>
       </div>
@@ -1466,16 +1491,16 @@
           <h3>Plus</h3>
           <div class="compare-list">
             <div class="compare-item"><strong>Best for:</strong> creators, resellers, and repeat users who want faster utility flow.</div>
-            <div class="compare-item"><strong>Why people buy:</strong> Texture Baker, Animation Spoofer, 5-at-a-time actions, and a more premium site experience.</div>
+            <div class="compare-item"><strong>Why people buy:</strong> Texture Baker, Animation Spoofer, 1-5 item bulk actions, and a more premium site experience.</div>
             <div class="compare-item"><strong>Biggest win:</strong> the whole site starts feeling built for real workflows instead of tiny single-use steps.</div>
           </div>
         </div>
         <div class="compare-column">
           <h3>Pro</h3>
           <div class="compare-list">
-            <div class="compare-item"><strong>Best for:</strong> future power users who want the next step after Plus.</div>
-            <div class="compare-item"><strong>Why it exists:</strong> to leave room for stronger limits and heavier creator-side features later.</div>
-            <div class="compare-item"><strong>Current reality:</strong> it is not live yet, so Plus is still the main premium upgrade today.</div>
+            <div class="compare-item"><strong>Best for:</strong> future heavy users who want the next step after Plus.</div>
+            <div class="compare-item"><strong>Planned perks:</strong> 45 AI Generation Tokens, Priority Speed Queue, 5-10 item bulk actions, and more premium-only upgrades later on.</div>
+            <div class="compare-item"><strong>Current reality:</strong> it is still just a teaser, so there is no purchase button or live Pro access yet.</div>
           </div>
         </div>
       </div>
@@ -1590,23 +1615,56 @@
           }
         }
 
+        function getMobilePlanOffset(index) {
+          if (!mobilePlanViewport || !mobilePlanCols.length) return 0;
+          var target = mobilePlanCols[index];
+          if (!target) return 0;
+          var targetLeft = target.offsetLeft - ((mobilePlanViewport.clientWidth - target.offsetWidth) / 2);
+          var maxScroll = Math.max(0, mobilePlanViewport.scrollWidth - mobilePlanViewport.clientWidth);
+          return Math.max(0, Math.min(targetLeft, maxScroll));
+        }
+
         function centerMobilePlan(index, behavior) {
           if (!mobilePlanViewport || !plansGrid || !mobilePlanCols.length || !isMobilePlanViewport()) return;
           var nextIndex = Math.max(0, Math.min(index, mobilePlanCols.length - 1));
           mobilePlanIndex = nextIndex;
-          var target = mobilePlanCols[nextIndex];
-          if (target) {
-            var targetLeft = target.offsetLeft - ((mobilePlanViewport.clientWidth - target.offsetWidth) / 2);
-            plansGrid.style.transitionDuration = behavior === "auto" ? "0s" : "";
-            plansGrid.style.transform = "translateX(" + (-targetLeft) + "px)";
-            if (behavior === "auto") {
-              window.requestAnimationFrame(function () {
-                plansGrid.style.transitionDuration = "";
-              });
-            }
-          }
+          var nextLeft = getMobilePlanOffset(nextIndex);
+          mobilePlanViewport.scrollTo({
+            left: nextLeft,
+            behavior: behavior === "auto" ? "auto" : "smooth"
+          });
           updateMobilePlanClasses();
           updateMobilePlanStageHeight();
+          updateMobilePlanArrows();
+        }
+
+        function syncInitialMobilePlan() {
+          if (!isMobilePlanViewport()) return;
+          mobilePlanIndex = 1;
+          window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(function () {
+              centerMobilePlan(1, "auto");
+            });
+          });
+        }
+
+        function syncMobilePlanFromScroll() {
+          if (!mobilePlanViewport || !mobilePlanCols.length || !isMobilePlanViewport()) return;
+          var viewportCenter = mobilePlanViewport.scrollLeft + (mobilePlanViewport.clientWidth / 2);
+          var bestIndex = mobilePlanIndex;
+          var bestDistance = Infinity;
+
+          mobilePlanCols.forEach(function (col, index) {
+            var colCenter = col.offsetLeft + (col.offsetWidth / 2);
+            var distance = Math.abs(colCenter - viewportCenter);
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              bestIndex = index;
+            }
+          });
+
+          mobilePlanIndex = bestIndex;
+          updateMobilePlanClasses();
           updateMobilePlanArrows();
         }
 
@@ -1636,6 +1694,10 @@
       }
 
       function openLoginRedirectPopup() {
+        if (window.RBLXToolsAuthModal && typeof window.RBLXToolsAuthModal.open === "function") {
+          window.RBLXToolsAuthModal.open({ mode: "login", returnTo: window.location.href });
+          return;
+        }
         if (!loginLock || !loginLockCountdown) return;
 
         clearLoginRedirectTimers();
@@ -1848,11 +1910,18 @@
         });
       }
 
-      if (mobilePlanNext) {
-        mobilePlanNext.addEventListener("click", function () {
-          centerMobilePlan(mobilePlanIndex + 1, "smooth");
-        });
-      }
+        if (mobilePlanNext) {
+          mobilePlanNext.addEventListener("click", function () {
+            centerMobilePlan(mobilePlanIndex + 1, "smooth");
+          });
+        }
+
+        if (mobilePlanViewport) {
+          mobilePlanViewport.addEventListener("scroll", function () {
+            window.clearTimeout(mobilePlanViewport._planScrollTimer);
+            mobilePlanViewport._planScrollTimer = window.setTimeout(syncMobilePlanFromScroll, 60);
+          }, { passive: true });
+        }
 
         window.addEventListener("resize", function () {
           if (isMobilePlanViewport()) {
@@ -1860,12 +1929,11 @@
             return;
           }
           if (plansGrid) {
-            plansGrid.style.transitionDuration = "";
-            plansGrid.style.transform = "";
             plansGrid.style.minHeight = "";
           }
           if (mobilePlanViewport) {
             mobilePlanViewport.style.minHeight = "";
+            mobilePlanViewport.scrollLeft = 0;
           }
           if (mobilePlanStage) {
             mobilePlanStage.style.minHeight = "";
@@ -1874,12 +1942,15 @@
 
       window.setTimeout(function () {
         if (isMobilePlanViewport()) {
-          centerMobilePlan(1, "auto");
+          syncInitialMobilePlan();
         } else {
           updateMobilePlanClasses();
           updateMobilePlanArrows();
         }
       }, 60);
+
+      window.addEventListener("load", syncInitialMobilePlan);
+      window.addEventListener("pageshow", syncInitialMobilePlan);
 
       detectPlanState();
     }());
