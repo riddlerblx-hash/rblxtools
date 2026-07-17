@@ -56,7 +56,7 @@
     body.ai-shell-page.rblx-shell-ready,
     body.ai-shell-page.rblx-shell-ready .rblx-shell {
       height: 100vh;
-      min-height: 100vh;
+      min-height: calc(100vh - var(--shell-header-height));
       overflow: hidden;
     }
 
@@ -484,38 +484,41 @@
     .ai-result-grid {
       display: grid;
       grid-template-columns: 1fr;
-      min-height: 72vh;
+      min-height: calc(100vh - var(--shell-header-height));
       position: relative;
     }
 
     .ai-result-preview {
-      padding: 22px 22px 170px;
+      padding: 0 0 128px;
       border-radius: 0;
       border: 0;
       background:
-        radial-gradient(circle at 50% 14%, rgba(113, 85, 255, 0.18), transparent 22%),
-        radial-gradient(circle at 22% 78%, rgba(255, 53, 53, 0.12), transparent 24%),
-        linear-gradient(180deg, #0e1420 0%, #0a0f18 56%, #090d15 100%);
+        radial-gradient(circle at 50% 12%, rgba(113, 85, 255, 0.24), transparent 20%),
+        radial-gradient(circle at 18% 76%, rgba(255, 53, 53, 0.16), transparent 24%),
+        radial-gradient(circle at 84% 30%, rgba(61, 99, 255, 0.16), transparent 22%),
+        linear-gradient(180deg, #111726 0%, #0c111c 52%, #090d15 100%);
       display: grid;
+      grid-template-rows: 1fr;
       gap: 0;
-      min-height: 72vh;
+      min-height: calc(100vh - var(--shell-header-height));
       position: relative;
     }
 
     .ai-rig-stage {
       position: relative;
       width: 100%;
-      border-radius: 28px;
-      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 0;
+      border: 0;
       overflow: hidden;
       display: grid;
       place-items: center;
       background:
-        radial-gradient(circle at 50% 18%, rgba(106, 80, 255, 0.16), transparent 28%),
-        radial-gradient(circle at 50% 58%, rgba(255,255,255,0.03), transparent 34%),
-        linear-gradient(180deg, rgba(17, 22, 34, 0.94) 0%, rgba(10, 14, 22, 0.98) 100%);
-      min-height: 64vh;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 26px 54px rgba(0,0,0,0.34);
+        radial-gradient(circle at 50% 14%, rgba(122, 90, 255, 0.22), transparent 18%),
+        radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.04), transparent 26%),
+        linear-gradient(180deg, rgba(19, 24, 38, 0.98) 0%, rgba(11, 15, 24, 1) 62%, rgba(9, 12, 19, 1) 100%);
+      min-height: 0;
+      height: 100%;
+      box-shadow: none;
     }
 
     .ai-rig-viewer {
@@ -524,7 +527,8 @@
       z-index: 1;
       width: 100%;
       height: 100%;
-      min-height: 64vh;
+      min-height: 0;
+      height: 100%;
       background: transparent;
       --poster-color: transparent;
     }
@@ -537,7 +541,8 @@
       position: relative;
       z-index: 1;
       width: 100%;
-      min-height: 64vh;
+      min-height: 0;
+      height: 100%;
     }
 
     .ai-rig-viewport canvas {
@@ -555,13 +560,36 @@
       position: absolute;
       inset: 0;
       background-image:
-        radial-gradient(circle, rgba(255, 88, 88, 0.18) 1px, transparent 1.2px),
-        linear-gradient(rgba(131, 98, 255, 0.12) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(131, 98, 255, 0.12) 1px, transparent 1px);
-      background-size: 18px 18px, 96px 96px, 96px 96px;
-      background-position: 0 0, 0 76%, 0 76%;
+        radial-gradient(circle, rgba(255, 88, 88, 0.16) 1px, transparent 1.2px),
+        linear-gradient(rgba(131, 98, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(131, 98, 255, 0.08) 1px, transparent 1px);
+      background-size: 18px 18px, 104px 104px, 104px 104px;
+      background-position: 0 0, 0 72%, 0 72%;
       pointer-events: none;
-      opacity: 0.75;
+      opacity: 0.82;
+    }
+
+    .ai-rig-stage::after {
+      content: "";
+      position: absolute;
+      left: -6%;
+      right: -6%;
+      bottom: -10%;
+      height: 38%;
+      background:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 77, 77, 0.06), rgba(0, 0, 0, 0));
+      background-size: 100% 100%, 100% 100%, 100% 100%;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 77, 77, 0.06), rgba(0, 0, 0, 0));
+      background-size: 100% 100%, 100% 100%, 100% 100%;
+      transform: perspective(900px) rotateX(78deg);
+      transform-origin: center bottom;
+      opacity: 0.9;
+      pointer-events: none;
     }
 
     .ai-rig-canvas {
@@ -627,11 +655,7 @@
     }
 
     .ai-rating-feedback {
-      color: #d8dde8;
-      font-size: 13px;
-      line-height: 1.4;
-      font-weight: 700;
-      min-height: 20px;
+      display: none;
     }
 
     .ai-rating-feedback.is-success {
@@ -695,14 +719,7 @@
     }
 
     .ai-result-meta {
-      position: absolute;
-      top: 24px;
-      left: 24px;
-      right: 24px;
-      display: grid;
-      gap: 12px;
-      justify-items: start;
-      pointer-events: none;
+      display: none;
     }
 
     .ai-result-pill-row {
@@ -729,43 +746,40 @@
     }
 
     .ai-result-footer {
-      position: absolute;
-      left: 50%;
-      bottom: 26px;
-      transform: translateX(-50%);
-      width: min(880px, calc(100% - 40px));
+      position: fixed;
+      left: var(--shell-left-width);
+      right: var(--shell-right-width);
+      bottom: 0;
+      width: auto;
       display: grid;
-      gap: 14px;
+      gap: 12px;
       justify-items: center;
-      padding: 18px 20px;
-      border-radius: 26px;
-      border: 1px solid rgba(255,255,255,0.1);
+      padding: 14px 18px 16px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      border-radius: 0;
       background:
-        linear-gradient(180deg, rgba(11, 15, 23, 0.7), rgba(11, 15, 23, 0.92));
-      box-shadow: 0 20px 44px rgba(0,0,0,0.34);
-      backdrop-filter: blur(16px);
+        radial-gradient(circle at 50% 0%, rgba(110,179,255,0.08), transparent 30%),
+        linear-gradient(180deg, rgba(21, 33, 47, 0.985), rgba(14, 22, 33, 0.96)),
+        var(--shell-bg);
+      box-shadow: 0 -14px 30px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(12px);
+      z-index: 18;
     }
 
     .ai-result-summary {
-      max-width: 780px;
-      margin: 0;
-      text-align: center;
-      color: #cfd5e2;
-      font-size: 13px;
-      line-height: 1.55;
-      font-weight: 700;
+      display: none;
     }
 
     .ai-generation-overlay {
       position: fixed;
-      inset: 0;
-      z-index: 1400;
+      inset: var(--shell-header-height) var(--shell-right-width) 0 var(--shell-left-width);
+      z-index: 12;
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 28px;
-      background: rgba(5, 8, 14, 0.78);
-      backdrop-filter: blur(16px);
+      padding: 0;
+      background: transparent;
+      backdrop-filter: none;
     }
 
     .ai-generation-overlay.is-open {
@@ -773,16 +787,14 @@
     }
 
     .ai-generation-modal {
-      width: min(1380px, calc(100vw - 32px));
-      max-height: min(96vh, 1200px);
-      overflow: auto;
-      border-radius: 30px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background:
-        radial-gradient(circle at top right, rgba(111, 66, 255, 0.16), transparent 26%),
-        radial-gradient(circle at 10% 100%, rgba(255, 60, 60, 0.14), transparent 24%),
-        linear-gradient(180deg, rgba(16, 19, 27, 0.98), rgba(9, 11, 17, 0.98));
-      box-shadow: 0 34px 82px rgba(0,0,0,0.44);
+      width: 100%;
+      max-height: calc(100vh - var(--shell-header-height));
+      height: calc(100vh - var(--shell-header-height));
+      overflow: hidden;
+      border-radius: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
     }
 
     .ai-generation-modal::-webkit-scrollbar {
@@ -801,11 +813,7 @@
     }
 
     .ai-generation-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      padding: 24px 28px 0;
+      display: none;
     }
 
     .ai-generation-heading {
@@ -851,33 +859,67 @@
     }
 
     .ai-generation-body {
-      padding: 20px 28px 28px;
+      padding: 0;
       display: grid;
-      gap: 18px;
+      gap: 0;
+    }
+
+    @media (max-width: 920px) {
+      .ai-result-footer {
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+
+      .ai-generation-modal {
+        width: 100%;
+        max-height: calc(100vh - var(--shell-header-height));
+        height: calc(100vh - var(--shell-header-height));
+        border-radius: 0;
+      }
     }
 
     .ai-generation-loading {
       display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 5;
       align-items: center;
-      gap: 14px;
-      padding: 16px 18px;
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.04);
+      justify-content: center;
+      padding: 28px;
+      background:
+        radial-gradient(circle at 50% 24%, rgba(113, 85, 255, 0.2), transparent 18%),
+        linear-gradient(180deg, rgba(11, 15, 24, 0.52), rgba(11, 15, 24, 0.78));
+      backdrop-filter: blur(10px);
     }
 
     .ai-generation-loading.is-visible {
-      display: flex;
+      display: grid;
+      place-items: center;
+    }
+
+    .ai-generation-loading-card {
+      display: grid;
+      gap: 14px;
+      justify-items: center;
+      text-align: center;
+      width: min(420px, calc(100% - 32px));
+      padding: 24px 24px 22px;
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: linear-gradient(180deg, rgba(17, 22, 34, 0.88), rgba(10, 14, 22, 0.94));
+      box-shadow: 0 28px 60px rgba(0,0,0,0.38);
     }
 
     .ai-generation-spinner {
-      width: 22px;
-      height: 22px;
+      width: 38px;
+      height: 38px;
       border-radius: 999px;
-      border: 2px solid rgba(255,255,255,0.16);
+      border: 3px solid rgba(255,255,255,0.16);
       border-top-color: #ff5a7e;
       animation: ai-spin 0.85s linear infinite;
       flex: 0 0 auto;
+      box-shadow: 0 0 0 8px rgba(255, 90, 126, 0.08);
     }
 
     @keyframes ai-spin {
@@ -887,20 +929,26 @@
     .ai-generation-loading strong {
       display: block;
       color: #fff;
-      font-size: 15px;
+      font-size: 18px;
       font-weight: 900;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
 
     .ai-generation-loading span {
       color: #c6cfdb;
-      font-size: 13px;
-      line-height: 1.55;
+      font-size: 14px;
+      line-height: 1.6;
       font-weight: 700;
     }
 
     .ai-generation-error {
       display: none;
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(680px, calc(100% - 32px));
+      z-index: 6;
       padding: 14px 16px;
       border-radius: 16px;
       border: 1px solid rgba(255, 82, 82, 0.22);
@@ -917,7 +965,7 @@
 
     .ai-generation-result {
       display: none;
-      gap: 18px;
+      gap: 0;
     }
 
     .ai-generation-result.is-visible {
@@ -1067,6 +1115,196 @@
       border: 1px solid rgba(255,255,255,0.08);
     }
 
+    .ai-option-card {
+      text-align: left;
+    }
+
+    .ai-option-card strong {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ai-token-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(255, 122, 53, 0.14);
+      border: 1px solid rgba(255, 133, 61, 0.28);
+      color: #ffb37a;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.55px;
+      text-transform: uppercase;
+    }
+
+    .ai-live-token-cost {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #eef4ff;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.55px;
+      text-transform: uppercase;
+    }
+
+    .ai-live-token-cost strong {
+      color: #7dffb2;
+      font-size: 13px;
+    }
+
+    .ai-preview-gallery {
+      display: none;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      padding: 22px;
+      align-items: stretch;
+    }
+
+    .ai-preview-gallery.is-visible {
+      display: grid;
+    }
+
+    .ai-preview-gallery-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at top, rgba(132, 82, 255, 0.1), transparent 36%),
+        linear-gradient(180deg, rgba(17, 23, 34, 0.94), rgba(10, 13, 20, 0.98));
+      min-height: 520px;
+      box-shadow: 0 20px 44px rgba(0,0,0,0.24);
+    }
+
+    .ai-preview-gallery-card canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .ai-preview-gallery-label {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: rgba(8, 12, 19, 0.76);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.65px;
+      text-transform: uppercase;
+    }
+
+    .ai-confirm-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 65;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      background: rgba(5, 8, 13, 0.72);
+      backdrop-filter: blur(12px);
+    }
+
+    .ai-confirm-overlay.is-open {
+      display: flex;
+    }
+
+    .ai-confirm-card {
+      width: min(480px, 100%);
+      padding: 26px;
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at top right, rgba(138, 91, 255, 0.14), transparent 34%),
+        linear-gradient(180deg, rgba(17, 22, 32, 0.98), rgba(8, 12, 19, 0.98));
+      box-shadow: 0 30px 56px rgba(0,0,0,0.34);
+    }
+
+    .ai-confirm-title {
+      margin: 14px 0 0;
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: -1.1px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .ai-confirm-copy {
+      margin: 12px 0 0;
+      color: #cdd6e5;
+      font-size: 14px;
+      line-height: 1.7;
+      font-weight: 700;
+    }
+
+    .ai-confirm-cost {
+      margin-top: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 999px;
+      background: rgba(120, 255, 178, 0.08);
+      border: 1px solid rgba(120, 255, 178, 0.18);
+      color: #b6ffd2;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .ai-confirm-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .ai-confirm-check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      color: #d5def0;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .ai-confirm-check input {
+      width: 16px;
+      height: 16px;
+      accent-color: #7f2fff;
+    }
+
+    .ai-control-group.is-hidden,
+    .ai-field.is-hidden {
+      display: none !important;
+    }
+
     @media (max-width: 980px) {
       .ai-hero-grid,
       .ai-form-grid,
@@ -1081,6 +1319,10 @@
       .ai-result-footer {
         width: calc(100% - 28px);
         bottom: 14px;
+      }
+
+      .ai-preview-gallery {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -1124,6 +1366,10 @@
         padding-left: 18px;
         padding-right: 18px;
       }
+
+      .ai-confirm-actions .ai-mini-btn {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -1144,12 +1390,12 @@
           <span>Create Your Dream</span>
           <span>Roblox Clothing</span>
         </h1>
-        <p class="ai-copy">Type what you want in normal words and the generator will turn it into a Roblox clothing result.</p>
+        <p class="ai-copy">Type what you want in normal words. The system will quietly translate that into a smarter Roblox-template-aware prompt before it ever reaches the clothing model.</p>
 
         <div class="ai-builder">
           <div class="ai-prompt-shell">
             <div class="ai-prompt-row">
-              <input class="ai-prompt-input" id="aiHeroPrompt" type="text" placeholder="Ex: dark cyber y2k jacket with a bold logo and sharp sleeve details" />
+              <input class="ai-prompt-input" id="aiHeroPrompt" type="text" placeholder="Ex: dark cyber y2k jacket with glowing purple seams, layered chest logo, and sharp sleeve details" />
               <button class="ai-generate-inline-btn" id="aiSendPromptButton" type="button" aria-label="Generate Clothing">✦</button>
             </div>
           </div>
@@ -1175,24 +1421,75 @@
             </button>
             <button class="ai-option-card" data-garment="pants" type="button">
               <strong>Pants Template</strong>
-              <span>Pushes the design toward clean leg mapping and lower-body detail.</span>
+              <span>Pushes the design toward clean leg mapping and seam-safe lower-body detail.</span>
+            </button>
+            <button class="ai-option-card" data-garment="full_outfit" type="button">
+              <strong>Full Outfit</strong>
+              <span>Builds a coordinated top and bottom set for one complete look.</span>
+            </button>
+            <button class="ai-option-card" data-garment="matching_shirts" type="button">
+              <strong>Matching Shirts <span class="ai-token-badge">⚡ +1 Token</span></strong>
+              <span>Creates two coordinated shirt templates for matching looks across two people.</span>
+            </button>
+            <button class="ai-option-card" data-garment="matching_pants" type="button">
+              <strong>Matching Pants <span class="ai-token-badge">⚡ +1 Token</span></strong>
+              <span>Creates two coordinated pants templates for matching lower-body sets.</span>
+            </button>
+            <button class="ai-option-card" data-garment="matching_outfits" type="button">
+              <strong>Matching Outfits <span class="ai-token-badge">⚡ +1 Token</span></strong>
+              <span>Creates two full coordinated outfits, one for each person in the matching pair.</span>
             </button>
           </div>
 
           <div>
+            <div class="ai-chip-heading">Template Goals:</div>
+            <div class="ai-goal-row" id="aiTemplateGoalRow" style="margin-top:10px;">
+              <button class="ai-goal-chip is-active" data-goal="clean readable torso zones" type="button">Clean torso zones</button>
+              <button class="ai-goal-chip" data-goal="strong sleeve detailing" type="button">Strong sleeves</button>
+              <button class="ai-goal-chip" data-goal="balanced front and back composition" type="button">Balanced front/back</button>
+              <button class="ai-goal-chip" data-goal="catalog-ready readability" type="button">Catalog ready</button>
+              <button class="ai-goal-chip" data-goal="sharp seam alignment" type="button">Sharp seams</button>
+            </div>
+          </div>
+
+          <div class="ai-control-group" id="aiSleeveControlGroup">
             <div class="ai-chip-heading">Sleeve Length:</div>
             <div class="ai-goal-row" id="aiSleeveLengthRow" style="margin-top:10px;">
+              <button class="ai-goal-chip is-active" data-sleeve="auto" type="button">Match prompt</button>
               <button class="ai-goal-chip" data-sleeve="short" type="button">Short sleeves</button>
-              <button class="ai-goal-chip is-active" data-sleeve="long" type="button">Long sleeves</button>
+              <button class="ai-goal-chip" data-sleeve="long" type="button">Long sleeves</button>
               <button class="ai-goal-chip" data-sleeve="sleeveless" type="button">Sleeveless</button>
             </div>
           </div>
+
+          <div class="ai-control-group is-hidden" id="aiPantsLengthControlGroup">
+            <div class="ai-chip-heading">Pants / Shorts Length:</div>
+            <div class="ai-goal-row" id="aiPantsLengthRow" style="margin-top:10px;">
+              <button class="ai-goal-chip is-active" data-pants-length="auto" type="button">Match prompt</button>
+              <button class="ai-goal-chip" data-pants-length="30" type="button">Shorts 30%</button>
+              <button class="ai-goal-chip" data-pants-length="80" type="button">Cropped 80%</button>
+              <button class="ai-goal-chip" data-pants-length="100" type="button">Full 100%</button>
+            </div>
+          </div>
+
+          <div class="ai-control-group" id="aiSkinToneControlGroup">
+            <div class="ai-chip-heading">Visible Skin Tone:</div>
+            <div class="ai-goal-row" id="aiSkinToneRow" style="margin-top:10px;">
+              <button class="ai-goal-chip is-active" data-skin-tone="auto" type="button">Auto</button>
+              <button class="ai-goal-chip" data-skin-tone="none" type="button">No skin</button>
+              <button class="ai-goal-chip" data-skin-tone="white" type="button">White</button>
+              <button class="ai-goal-chip" data-skin-tone="lightskin" type="button">Lightskin</button>
+              <button class="ai-goal-chip" data-skin-tone="darkskin" type="button">Darkskin</button>
+            </div>
+          </div>
+
+          <div class="ai-live-token-cost" id="aiLiveTokenCost">This generation will cost <strong>1 token</strong></div>
 
           <button class="ai-generate-btn" id="aiStartButton" type="button"><span>Generate Clothing <span aria-hidden="true">→</span></span></button>
 
           <div class="ai-advanced-launch">
             <button class="ai-advanced-toggle-btn" id="aiAdvancedToggleButton" type="button">Advanced Settings</button>
-            <p class="ai-advanced-note">Advanced settings help tune the garment type, sleeve length, palette, and vibe without crowding the main prompt.</p>
+            <p class="ai-advanced-note">Advanced settings are for the nerds who want more precise generation control and want to see how the hidden AI prompt is really being shaped.</p>
           </div>
         </div>
       </div>
@@ -1201,8 +1498,8 @@
     <section class="ai-bottom-grid" id="aiBottomGrid">
       <div class="ai-card ai-card-block">
         <div class="ai-kicker">Advanced Settings</div>
-        <h2 class="ai-section-title">Prompt controls</h2>
-        <p class="ai-note">The top bar is still the main prompt. Everything below just helps steer the final clothing result.</p>
+        <h2 class="ai-section-title">Prompt control for power users</h2>
+        <p class="ai-note">The top bar is still the user's main prompt. Everything below just helps tighten how that prompt gets translated before it is eventually sent to the AI.</p>
 
         <div class="ai-form-grid">
           <div class="ai-field">
@@ -1210,16 +1507,41 @@
             <select class="ai-select" id="aiGarmentType">
               <option value="shirt">Shirt Template</option>
               <option value="pants">Pants Template</option>
-              <option value="layered">Layered Outfit Concept</option>
+              <option value="full_outfit">Full Outfit</option>
+              <option value="matching_shirts">Matching Shirts</option>
+              <option value="matching_pants">Matching Pants</option>
+              <option value="matching_outfits">Matching Outfits</option>
             </select>
           </div>
 
           <div class="ai-field">
             <label class="ai-label" for="aiSleeveLength">Sleeve Length</label>
             <select class="ai-select" id="aiSleeveLength">
-              <option value="long" selected>Long Sleeves</option>
+              <option value="auto" selected>Match Prompt Automatically</option>
+              <option value="long">Long Sleeves</option>
               <option value="short">Short Sleeves</option>
               <option value="sleeveless">Sleeveless</option>
+            </select>
+          </div>
+
+          <div class="ai-field is-hidden" id="aiPantsLengthField">
+            <label class="ai-label" for="aiPantsLength">Pants / Shorts Length</label>
+            <select class="ai-select" id="aiPantsLength">
+              <option value="auto" selected>Match Prompt Automatically</option>
+              <option value="30">Shorts 30%</option>
+              <option value="80">Cropped 80%</option>
+              <option value="100">Full 100%</option>
+            </select>
+          </div>
+
+          <div class="ai-field">
+            <label class="ai-label" for="aiSkinTone">Visible Skin Tone</label>
+            <select class="ai-select" id="aiSkinTone">
+              <option value="auto" selected>Auto</option>
+              <option value="none">No skin</option>
+              <option value="white">White</option>
+              <option value="lightskin">Lightskin</option>
+              <option value="darkskin">Darkskin</option>
             </select>
           </div>
 
@@ -1246,7 +1568,13 @@
 
           <div class="ai-field wide">
             <label class="ai-label" for="aiNegativePrompt">Negative Prompt / Avoid</label>
-            <textarea class="ai-textarea" id="aiNegativePrompt" placeholder="Ex: avoid muddy textures, oversized text, low-detail sleeves, or random floating accessories."></textarea>
+            <textarea class="ai-textarea" id="aiNegativePrompt" placeholder="Ex: avoid muddy textures, blurry seam areas, oversized text, low-detail sleeves, template-breaking cutoffs, or random floating accessories."></textarea>
+          </div>
+
+          <div class="ai-field wide">
+            <label class="ai-label" for="aiBuiltPrompt">Behind-The-Scenes AI Prompt</label>
+            <textarea class="ai-textarea generated" id="aiBuiltPrompt" readonly placeholder="When you generate clothing, the stronger Roblox-template-aware AI prompt will appear here."></textarea>
+            <p class="ai-advanced-note">This is where the system translates the simple user request into a better AI instruction set with real Roblox template language, seam-awareness, and 585 x 559 output rules.</p>
           </div>
         </div>
 
@@ -1254,7 +1582,7 @@
           <button class="ai-mini-btn ghost" id="aiResetButton" type="button">Reset Form</button>
         </div>
 
-        <div class="ai-status" id="aiStudioStatus">Your visible prompt drives the generator. Advanced settings just help narrow the result.</div>
+        <div class="ai-status" id="aiStudioStatus">Your visible prompt updates the stronger hidden Roblox-template-aware AI prompt live in the background. Advanced settings are just there if you want to tighten it further.</div>
       </div>
     </section>
 
@@ -1271,10 +1599,12 @@
       </div>
       <div class="ai-generation-body">
         <div class="ai-generation-loading" id="aiGenerationLoading">
-          <div class="ai-generation-spinner" aria-hidden="true"></div>
-          <div>
+          <div class="ai-generation-loading-card">
+            <div class="ai-generation-spinner" aria-hidden="true"></div>
+            <div>
             <strong>Generating clothing now...</strong>
             <span>This can take a little bit. We’re building your Roblox template and will drop the finished image right here when it’s ready.</span>
+            </div>
           </div>
         </div>
         <div class="ai-generation-error" id="aiGenerationError"></div>
@@ -1284,16 +1614,9 @@
               <div class="ai-result-preview">
                 <div class="ai-rig-stage">
                   <div class="ai-rig-viewport" id="aiRigViewport" aria-label="3D Roblox clothing preview rig"></div>
+                  <div class="ai-preview-gallery" id="aiPreviewGallery" aria-label="Matching outfit preview gallery"></div>
                   <canvas class="ai-rig-canvas" id="aiRigCanvas" width="720" height="720" aria-label="AI-generated Roblox clothing on preview rig"></canvas>
                   <img class="ai-result-source" id="aiResultImage" alt="AI-generated Roblox clothing source template" />
-                </div>
-                <div class="ai-result-meta">
-                  <div class="ai-kicker">Latest Generation</div>
-                  <div class="ai-result-pill-row">
-                    <div class="ai-result-pill" id="aiResultSize">585 x 559 PNG</div>
-                    <div class="ai-result-pill" id="aiResultGarment">Shirt Template</div>
-                    <div class="ai-result-pill" id="aiResultModel">GPT Image</div>
-                  </div>
                 </div>
                 <div class="ai-result-footer">
                   <div class="ai-rate-block">
@@ -1321,10 +1644,46 @@
     </div>
   </div>
 
+  <div class="ai-confirm-overlay" id="aiTokenConfirmOverlay" aria-hidden="true">
+    <div class="ai-confirm-card" role="dialog" aria-modal="true" aria-labelledby="aiTokenConfirmTitle">
+      <div class="ai-kicker">Token Check</div>
+      <h2 class="ai-confirm-title" id="aiTokenConfirmTitle">Confirm generation</h2>
+      <p class="ai-confirm-copy" id="aiTokenConfirmCopy">This generation will take tokens from your balance before the AI starts.</p>
+      <div class="ai-confirm-cost" id="aiTokenConfirmCost">This generation will cost 1 token</div>
+      <label class="ai-confirm-check">
+        <input id="aiTokenConfirmDisable" type="checkbox" />
+        <span>Don't show this again</span>
+      </label>
+      <div class="ai-confirm-actions">
+        <button class="ai-mini-btn primary" id="aiTokenConfirmButton" type="button">Confirm</button>
+        <button class="ai-mini-btn ghost" id="aiTokenCancelButton" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function () {
       var API_BASE = window.location.origin;
       var TOKEN_KEY = "rblxtools_auth_token";
+      var TOKEN_CONFIRM_SUPPRESS_KEY = "rblxtools_ai_skip_token_confirm";
+      var SLEEVE_KEYWORDS = {
+        long: ["hoodie", "hooded", "sweater", "sweatshirt", "jacket", "varsity", "zip up", "zipup", "coat", "flannel", "cardigan", "crewneck", "pullover"],
+        short: ["t shirt", "t-shirt", "tshirt", "tee", "polo", "jersey", "short sleeve", "short-sleeve"],
+        sleeveless: ["tank", "tank top", "beater", "wife beater", "sleeveless", "vest"]
+      };
+      var PANTS_LENGTH_KEYWORDS = {
+        "30": ["shorts", "short", "basketball shorts", "swim trunks", "boxer", "underwear shorts"],
+        "80": ["cropped", "capri", "3/4", "three quarter", "three-quarter", "highwater", "high water"],
+        "100": ["pants", "jeans", "joggers", "sweatpants", "cargo", "full length", "full-length", "slacks"]
+      };
+      var GARMENT_MODE_CONFIG = {
+        shirt: { cost: 1, matching: false, label: "Shirt Template", usesShirt: true, usesPants: false },
+        pants: { cost: 1, matching: false, label: "Pants Template", usesShirt: false, usesPants: true },
+        full_outfit: { cost: 1, matching: false, label: "Full Outfit", usesShirt: true, usesPants: true },
+        matching_shirts: { cost: 2, matching: true, label: "Matching Shirts", usesShirt: true, usesPants: false },
+        matching_pants: { cost: 2, matching: true, label: "Matching Pants", usesShirt: false, usesPants: true },
+        matching_outfits: { cost: 2, matching: true, label: "Matching Outfits", usesShirt: true, usesPants: true }
+      };
       var gate = document.getElementById("aiAccessGate");
       var gateStatus = document.getElementById("aiGateStatus");
       var page = document.getElementById("aiPage");
@@ -1337,17 +1696,23 @@
       var status = document.getElementById("aiStudioStatus");
       var heroPrompt = document.getElementById("aiHeroPrompt");
       var prompt = document.getElementById("aiPrompt");
+      var builtPrompt = document.getElementById("aiBuiltPrompt");
       var negativePrompt = document.getElementById("aiNegativePrompt");
       var garmentType = document.getElementById("aiGarmentType");
       var styleDirection = document.getElementById("aiStyleDirection");
       var colorPalette = document.getElementById("aiColorPalette");
       var audience = document.getElementById("aiAudience");
+      var sleeveControlGroup = document.getElementById("aiSleeveControlGroup");
+      var pantsLengthControlGroup = document.getElementById("aiPantsLengthControlGroup");
+      var skinToneControlGroup = document.getElementById("aiSkinToneControlGroup");
+      var pantsLengthField = document.getElementById("aiPantsLengthField");
       var generationOverlay = document.getElementById("aiGenerationOverlay");
       var generationClose = document.getElementById("aiGenerationClose");
       var generationLoading = document.getElementById("aiGenerationLoading");
       var generationError = document.getElementById("aiGenerationError");
       var generationResult = document.getElementById("aiGenerationResult");
       var rigViewport = document.getElementById("aiRigViewport");
+      var previewGallery = document.getElementById("aiPreviewGallery");
       var rigCanvas = document.getElementById("aiRigCanvas");
       var rigContext = rigCanvas && rigCanvas.getContext ? rigCanvas.getContext("2d") : null;
       var resultImage = document.getElementById("aiResultImage");
@@ -1360,16 +1725,28 @@
       var ratingFeedback = document.getElementById("aiRatingFeedback");
       var ratingButtons = Array.prototype.slice.call(document.querySelectorAll(".ai-star-btn"));
       var styleChips = Array.prototype.slice.call(document.querySelectorAll(".ai-style-chip"));
+      var goalChips = Array.prototype.slice.call(document.querySelectorAll(".ai-goal-chip"));
       var sleeveLength = document.getElementById("aiSleeveLength");
       var sleeveChips = Array.prototype.slice.call(document.querySelectorAll("[data-sleeve]"));
+      var pantsLength = document.getElementById("aiPantsLength");
+      var pantsLengthChips = Array.prototype.slice.call(document.querySelectorAll("[data-pants-length]"));
+      var skinTone = document.getElementById("aiSkinTone");
+      var skinToneChips = Array.prototype.slice.call(document.querySelectorAll("[data-skin-tone]"));
+      var liveTokenCost = document.getElementById("aiLiveTokenCost");
+      var tokenConfirmOverlay = document.getElementById("aiTokenConfirmOverlay");
+      var tokenConfirmCopy = document.getElementById("aiTokenConfirmCopy");
+      var tokenConfirmCost = document.getElementById("aiTokenConfirmCost");
+      var tokenConfirmDisable = document.getElementById("aiTokenConfirmDisable");
+      var tokenConfirmButton = document.getElementById("aiTokenConfirmButton");
+      var tokenCancelButton = document.getElementById("aiTokenCancelButton");
       var garmentCards = Array.prototype.slice.call(document.querySelectorAll(".ai-option-card"));
       var activeStyle = "";
       var generationInFlight = false;
       var currentRating = 0;
       var hoverRating = 0;
       var previewTemplateType = "shirt";
-      var latestGeneratedTextureUrl = "";
-      var latestRigTextureUrl = "";
+      var latestPreviewPayload = null;
+      var pendingGenerationRequest = null;
       var rigPreview3D = {
         initialized: false,
         failed: false,
@@ -1385,7 +1762,7 @@
         resizeHandler: null,
         rigKind: "fallback"
       };
-      var RIG_MODEL_URL = "./assets/ai-rig/PreviewRigNewer.obj";
+      var RIG_MODEL_URL = "/assets/ai-rig/MappedRig.obj?v=20260616-rigfix1";
       var RIG_COLORS = {
         head: 0xdedee2,
         shirt: 0xf2f3f5,
@@ -1450,6 +1827,107 @@
         var maxChannel = Math.max(r, g, b);
         var minChannel = Math.min(r, g, b);
         return maxChannel >= 245 && (maxChannel - minChannel) <= 18;
+      }
+
+      function bleedTransparentPixels(imageData, width, height, passes) {
+        if (!imageData || !imageData.data || !width || !height) return;
+        var source = new Uint8ClampedArray(imageData.data);
+        var target = new Uint8ClampedArray(source.length);
+        var totalPasses = Math.max(1, passes || 2);
+
+        for (var pass = 0; pass < totalPasses; pass += 1) {
+          target.set(source);
+          for (var y = 0; y < height; y += 1) {
+            for (var x = 0; x < width; x += 1) {
+              var index = (y * width + x) * 4;
+              if (source[index + 3] > 6) continue;
+
+              var redTotal = 0;
+              var greenTotal = 0;
+              var blueTotal = 0;
+              var hits = 0;
+
+              for (var offsetY = -1; offsetY <= 1; offsetY += 1) {
+                var sampleY = y + offsetY;
+                if (sampleY < 0 || sampleY >= height) continue;
+                for (var offsetX = -1; offsetX <= 1; offsetX += 1) {
+                  if (!offsetX && !offsetY) continue;
+                  var sampleX = x + offsetX;
+                  if (sampleX < 0 || sampleX >= width) continue;
+                  var sampleIndex = (sampleY * width + sampleX) * 4;
+                  if (source[sampleIndex + 3] <= 6) continue;
+                  redTotal += source[sampleIndex];
+                  greenTotal += source[sampleIndex + 1];
+                  blueTotal += source[sampleIndex + 2];
+                  hits += 1;
+                }
+              }
+
+              if (!hits) continue;
+              target[index] = Math.round(redTotal / hits);
+              target[index + 1] = Math.round(greenTotal / hits);
+              target[index + 2] = Math.round(blueTotal / hits);
+            }
+          }
+          source = target.slice(0);
+        }
+
+        imageData.data.set(source);
+      }
+
+      function extendTemplateGutterBleed(imageData, width, height, passes) {
+        if (!imageData || !imageData.data || !width || !height) return;
+        var source = new Uint8ClampedArray(imageData.data);
+        var target = new Uint8ClampedArray(source.length);
+        var totalPasses = Math.max(1, passes || 8);
+
+        function pixelIsNearWhite(index) {
+          return isNearWhitePixel(source[index], source[index + 1], source[index + 2], source[index + 3]);
+        }
+
+        for (var pass = 0; pass < totalPasses; pass += 1) {
+          target.set(source);
+          for (var y = 0; y < height; y += 1) {
+            for (var x = 0; x < width; x += 1) {
+              var index = (y * width + x) * 4;
+              var alpha = source[index + 3];
+              if (alpha > 220 && !pixelIsNearWhite(index)) continue;
+
+              var redTotal = 0;
+              var greenTotal = 0;
+              var blueTotal = 0;
+              var alphaTotal = 0;
+              var hits = 0;
+
+              for (var offsetY = -1; offsetY <= 1; offsetY += 1) {
+                var sampleY = y + offsetY;
+                if (sampleY < 0 || sampleY >= height) continue;
+                for (var offsetX = -1; offsetX <= 1; offsetX += 1) {
+                  if (!offsetX && !offsetY) continue;
+                  var sampleX = x + offsetX;
+                  if (sampleX < 0 || sampleX >= width) continue;
+                  var sampleIndex = (sampleY * width + sampleX) * 4;
+                  var sampleAlpha = source[sampleIndex + 3];
+                  if (sampleAlpha <= 220 || pixelIsNearWhite(sampleIndex)) continue;
+                  redTotal += source[sampleIndex];
+                  greenTotal += source[sampleIndex + 1];
+                  blueTotal += source[sampleIndex + 2];
+                  alphaTotal += sampleAlpha;
+                  hits += 1;
+                }
+              }
+
+              if (!hits) continue;
+              target[index] = Math.round(redTotal / hits);
+              target[index + 1] = Math.round(greenTotal / hits);
+              target[index + 2] = Math.round(blueTotal / hits);
+              target[index + 3] = Math.max(alpha, Math.round(alphaTotal / hits), 245);
+            }
+          }
+          source = target.slice(0);
+        }
+
+        imageData.data.set(source);
       }
 
       function prepareTemplateSource(sourceImage) {
@@ -1539,6 +2017,9 @@
             }
           }
 
+          bleedTransparentPixels(imageData, width, height, 3);
+          extendTemplateGutterBleed(imageData, width, height, 12);
+
           ctx.putImageData(imageData, 0, 0);
         } catch (_error) {
           // Leave the original image intact if pixel access fails.
@@ -1615,14 +2096,29 @@
         var texture = new window.THREE.CanvasTexture(canvas);
         texture.flipY = true;
         texture.encoding = window.THREE.sRGBEncoding;
+        texture.wrapS = window.THREE.ClampToEdgeWrapping;
+        texture.wrapT = window.THREE.ClampToEdgeWrapping;
+        texture.minFilter = window.THREE.LinearFilter;
+        texture.magFilter = window.THREE.LinearFilter;
+        texture.generateMipmaps = false;
+        texture.premultiplyAlpha = true;
+        texture.anisotropy = 4;
         texture.needsUpdate = true;
         rigPreview3D.overlayTextures.push(texture);
         return texture;
       }
 
+      function getRigPartDebugSummary() {
+        var partKeys = ["head", "torso", "leftArm", "rightArm", "leftLeg", "rightLeg"];
+        return partKeys.map(function (key) {
+          var mesh = rigPreview3D.parts && rigPreview3D.parts[key];
+          return key + ": " + (mesh && mesh.name ? mesh.name : (mesh ? "detected" : "missing"));
+        }).join("<br>");
+      }
+
       function showRigLoadFailure(message) {
         if (!rigViewport) return;
-        rigViewport.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:24px;text-align:center;color:#f6d7d7;font:700 14px/1.5 system-ui,sans-serif;background:linear-gradient(180deg, rgba(44,18,18,0.52), rgba(18,10,10,0.72));">3D rig failed to load.<br>' + String(message || "PreviewRigNewer.obj could not be loaded.") + '</div>';
+        rigViewport.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:24px;text-align:center;color:#f6d7d7;font:700 14px/1.5 system-ui,sans-serif;background:linear-gradient(180deg, rgba(44,18,18,0.52), rgba(18,10,10,0.72));">3D rig failed to load.<br>' + String(message || "MappedRig.obj could not be loaded.") + '<br><br><span style="font-weight:600;font-size:12px;line-height:1.5;color:#f1caca;">' + getRigPartDebugSummary() + '</span></div>';
       }
 
       function createTemplateMaterial(sourceImage, fallbackHex, options) {
@@ -1633,6 +2129,7 @@
         return new window.THREE.MeshStandardMaterial({
           color: 0xffffff,
           map: texture,
+          alphaTest: 0.02,
           roughness: 0.96,
           metalness: 0.0
         });
@@ -1652,6 +2149,42 @@
         return new THREE.BoxGeometry(size[0], size[1], size[2]);
       }
 
+      function createFallbackRig(THREE) {
+        var group = new THREE.Group();
+        var parts = {
+          head: new THREE.Mesh(createRigPartGeometry(THREE, [1.8, 1.8, 1.8], 0.16), cloneBaseMaterial(RIG_COLORS.head)),
+          torso: new THREE.Mesh(createRigPartGeometry(THREE, [3.8, 4.0, 1.9], 0.12), cloneBaseMaterial(RIG_COLORS.shirt)),
+          leftArm: new THREE.Mesh(createRigPartGeometry(THREE, [1.8, 4.0, 1.8], 0.1), cloneBaseMaterial(RIG_COLORS.shirt)),
+          rightArm: new THREE.Mesh(createRigPartGeometry(THREE, [1.8, 4.0, 1.8], 0.1), cloneBaseMaterial(RIG_COLORS.shirt)),
+          leftLeg: new THREE.Mesh(createRigPartGeometry(THREE, [1.7, 4.0, 1.8], 0.1), cloneBaseMaterial(RIG_COLORS.pants)),
+          rightLeg: new THREE.Mesh(createRigPartGeometry(THREE, [1.7, 4.0, 1.8], 0.1), cloneBaseMaterial(RIG_COLORS.pants))
+        };
+        parts.head.name = "fallbackHead";
+        parts.torso.name = "fallbackTorso";
+        parts.leftArm.name = "fallbackLeftArm";
+        parts.rightArm.name = "fallbackRightArm";
+        parts.leftLeg.name = "fallbackLeftLeg";
+        parts.rightLeg.name = "fallbackRightLeg";
+
+        parts.head.position.set(0, 6.2, 0);
+        parts.torso.position.set(0, 3.3, 0);
+        parts.leftArm.position.set(2.8, 3.3, 0);
+        parts.rightArm.position.set(-2.8, 3.3, 0);
+        parts.leftLeg.position.set(0.95, -0.9, 0);
+        parts.rightLeg.position.set(-0.95, -0.9, 0);
+
+        Object.keys(parts).forEach(function (key) {
+          var mesh = parts[key];
+          mesh.castShadow = false;
+          mesh.receiveShadow = false;
+          group.add(mesh);
+        });
+
+        rigPreview3D.parts = parts;
+        rigPreview3D.rigKind = "fallback";
+        return group;
+      }
+
       function applyBaseRigMaterials() {
         if (!rigPreview3D.parts) return;
         replacePartMaterials(rigPreview3D.parts.head, cloneBaseMaterial(RIG_COLORS.head));
@@ -1664,6 +2197,12 @@
 
       function setupObjRigParts(root) {
         var meshCandidates = [];
+        function isAssignedPart(mesh) {
+          if (!mesh || !rigPreview3D.parts) return false;
+          return Object.keys(rigPreview3D.parts).some(function (key) {
+            return rigPreview3D.parts[key] === mesh;
+          });
+        }
         function findFirstMeshDescendant(node) {
           var found = null;
           if (!node) return null;
@@ -1698,6 +2237,12 @@
           meshCandidates.push(object);
           if (partKey) {
             rigPreview3D.parts[partKey] = object;
+            object.castShadow = false;
+            object.receiveShadow = false;
+            object.visible = true;
+            return;
+          }
+          if (isAssignedPart(object)) {
             object.castShadow = false;
             object.receiveShadow = false;
             object.visible = true;
@@ -1763,6 +2308,14 @@
         if (!rigPreview3D.parts.rightLeg) {
           rigPreview3D.parts.rightLeg = pick(function (item) { return item.centerY < 1.35 && item.centerX >= 0; });
         }
+
+        Object.keys(rigPreview3D.parts).forEach(function (key) {
+          var mesh = rigPreview3D.parts[key];
+          if (!mesh) return;
+          mesh.castShadow = false;
+          mesh.receiveShadow = false;
+          mesh.visible = true;
+        });
       }
 
       function fitRigModel(root, THREE) {
@@ -1814,14 +2367,14 @@
 
           var scene = new THREE.Scene();
           var camera = new THREE.PerspectiveCamera(24, 1, 0.1, 100);
-          camera.position.set(0, 2.36, 12.4);
+          camera.position.set(0, 7.4, 33.5);
 
           var controls = new THREE.OrbitControls(camera, renderer.domElement);
           controls.enableDamping = true;
           controls.enablePan = false;
-          controls.target.set(0, 2.38, 0);
-          controls.minDistance = 8.8;
-          controls.maxDistance = 16.4;
+          controls.target.set(0, 4.8, 0);
+          controls.minDistance = 22;
+          controls.maxDistance = 60;
           controls.minPolarAngle = 1.05;
           controls.maxPolarAngle = 1.66;
 
@@ -1863,6 +2416,7 @@
                   return;
                 }
                 fitRigModel(avatar, THREE);
+                avatar.position.y += 4.8;
                 scene.add(avatar);
                 rigPreview3D.root = avatar;
                 resolve(true);
@@ -1873,8 +2427,8 @@
               }
             );
           }).then(function () {
-            if (!rigPreview3D.root || rigPreview3D.rigKind !== "obj") {
-              showRigLoadFailure("PreviewRigNewer.obj did not initialize.");
+            if (!rigPreview3D.root) {
+              showRigLoadFailure("MappedRig.obj did not initialize.");
               rigPreview3D.failed = true;
               return false;
             }
@@ -1973,17 +2527,27 @@
       }
 
       function setGarment(value) {
-        var normalized = value === "pants" || value === "layered" ? value : "shirt";
+        var normalized = GARMENT_MODE_CONFIG[value] ? value : "shirt";
         garmentType.value = normalized;
         garmentCards.forEach(function (card) {
           card.classList.toggle("is-active", card.getAttribute("data-garment") === normalized);
         });
+        syncGarmentSpecificControls();
+        updateLiveTokenCost();
+      }
+
+      function getActiveGoalTexts() {
+        return goalChips.filter(function (chip) {
+          return !chip.hasAttribute("data-sleeve") && !chip.hasAttribute("data-skin-tone") && chip.classList.contains("is-active");
+        }).map(function (chip) {
+          return chip.getAttribute("data-goal") || "";
+        }).filter(Boolean);
       }
 
       function setSleeveLength(value) {
         var normalized = String(value || "").trim().toLowerCase();
-        if (normalized !== "short" && normalized !== "sleeveless") {
-          normalized = "long";
+        if (normalized !== "short" && normalized !== "long" && normalized !== "sleeveless") {
+          normalized = "auto";
         }
         if (sleeveLength) {
           sleeveLength.value = normalized;
@@ -1991,6 +2555,124 @@
         sleeveChips.forEach(function (chip) {
           chip.classList.toggle("is-active", chip.getAttribute("data-sleeve") === normalized);
         });
+      }
+
+      function setSkinTone(value) {
+        var normalized = String(value || "").trim().toLowerCase();
+        if (normalized !== "none" && normalized !== "white" && normalized !== "lightskin" && normalized !== "darkskin") {
+          normalized = "auto";
+        }
+        if (skinTone) {
+          skinTone.value = normalized;
+        }
+        skinToneChips.forEach(function (chip) {
+          chip.classList.toggle("is-active", chip.getAttribute("data-skin-tone") === normalized);
+        });
+      }
+
+      function setPantsLength(value) {
+        var normalized = String(value || "").trim().toLowerCase();
+        if (normalized !== "30" && normalized !== "80" && normalized !== "100") {
+          normalized = "auto";
+        }
+        if (pantsLength) {
+          pantsLength.value = normalized;
+        }
+        pantsLengthChips.forEach(function (chip) {
+          chip.classList.toggle("is-active", chip.getAttribute("data-pants-length") === normalized);
+        });
+      }
+
+      function syncGarmentSpecificControls() {
+        var config = GARMENT_MODE_CONFIG[garmentType.value] || GARMENT_MODE_CONFIG.shirt;
+        if (sleeveControlGroup) sleeveControlGroup.classList.toggle("is-hidden", !config.usesShirt);
+        if (pantsLengthControlGroup) pantsLengthControlGroup.classList.toggle("is-hidden", !config.usesPants);
+        if (sleeveLength && sleeveLength.parentElement) {
+          sleeveLength.parentElement.classList.toggle("is-hidden", !config.usesShirt);
+        }
+        if (pantsLengthField) {
+          pantsLengthField.classList.toggle("is-hidden", !config.usesPants);
+        }
+      }
+
+      function getGenerationCost(mode) {
+        var normalized = GARMENT_MODE_CONFIG[mode] ? mode : garmentType.value;
+        return GARMENT_MODE_CONFIG[normalized] ? GARMENT_MODE_CONFIG[normalized].cost : 1;
+      }
+
+      function updateLiveTokenCost() {
+        if (!liveTokenCost) return;
+        var cost = getGenerationCost(garmentType.value);
+        liveTokenCost.innerHTML = "This generation will cost <strong>" + cost + " token" + (cost === 1 ? "" : "s") + "</strong>";
+      }
+
+      function getPromptTextForInference() {
+        var heroValue = String(heroPrompt.value || "").trim();
+        var promptValue = String(prompt.value || "").trim();
+        var styleValue = String(styleDirection.value || "").trim();
+        return [heroValue, promptValue, styleValue].filter(Boolean).join(" ").toLowerCase();
+      }
+
+      function resolveSleeveLengthFromPrompt(promptText) {
+        var text = String(promptText || "").toLowerCase();
+        if (!text) return "long";
+        if (SLEEVE_KEYWORDS.sleeveless.some(function (keyword) { return text.indexOf(keyword) !== -1; })) {
+          return "sleeveless";
+        }
+        if (SLEEVE_KEYWORDS.short.some(function (keyword) { return text.indexOf(keyword) !== -1; })) {
+          return "short";
+        }
+        if (SLEEVE_KEYWORDS.long.some(function (keyword) { return text.indexOf(keyword) !== -1; })) {
+          return "long";
+        }
+        return "long";
+      }
+
+      function resolveSleeveLengthValue() {
+        var currentValue = sleeveLength ? String(sleeveLength.value || "auto").trim().toLowerCase() : "auto";
+        if (currentValue && currentValue !== "auto") {
+          return currentValue;
+        }
+        return resolveSleeveLengthFromPrompt(getPromptTextForInference());
+      }
+
+      function resolvePantsLengthFromPrompt(promptText) {
+        var text = String(promptText || "").toLowerCase();
+        if (!text) return "100";
+        if (PANTS_LENGTH_KEYWORDS["30"].some(function (keyword) { return text.indexOf(keyword) !== -1; })) {
+          return "30";
+        }
+        if (PANTS_LENGTH_KEYWORDS["80"].some(function (keyword) { return text.indexOf(keyword) !== -1; })) {
+          return "80";
+        }
+        if (PANTS_LENGTH_KEYWORDS["100"].some(function (keyword) { return text.indexOf(keyword) !== -1; })) {
+          return "100";
+        }
+        return "100";
+      }
+
+      function resolvePantsLengthValue() {
+        var currentValue = pantsLength ? String(pantsLength.value || "auto").trim().toLowerCase() : "auto";
+        if (currentValue && currentValue !== "auto") {
+          return currentValue;
+        }
+        return resolvePantsLengthFromPrompt(getPromptTextForInference());
+      }
+
+      function formatSkinToneInstruction(value) {
+        if (value === "none") {
+          return "Do not show visible skin. Keep exposed hand, arm, leg, neck, torso, and cutout zones covered or visually concealed by the garment design.";
+        }
+        if (value === "white") {
+          return "Every required visible skin zone should use a light white skin tone consistently anywhere the garment exposes skin, including hand openings, wrist exits, neck openings, arm openings, and any intentional cutout areas.";
+        }
+        if (value === "lightskin") {
+          return "Every required visible skin zone should use a light brown lightskin tone consistently anywhere the garment exposes skin, including hand openings, wrist exits, neck openings, arm openings, and any intentional cutout areas.";
+        }
+        if (value === "darkskin") {
+          return "Every required visible skin zone should use a rich dark skin tone consistently anywhere the garment exposes skin, including hand openings, wrist exits, neck openings, arm openings, and any intentional cutout areas.";
+        }
+        return "";
       }
 
       function syncVisiblePrompt() {
@@ -2018,11 +2700,93 @@
 
       function buildGeneratorPrompt() {
         syncVisiblePrompt();
+
+        var garment = garmentType.value;
+        var garmentConfig = GARMENT_MODE_CONFIG[garment] || GARMENT_MODE_CONFIG.shirt;
+        var sleeve = garmentConfig.usesShirt ? resolveSleeveLengthValue() : "";
+        var pantsFit = garmentConfig.usesPants ? resolvePantsLengthValue() : "";
+        var selectedSkinTone = skinTone ? String(skinTone.value || "auto").trim().toLowerCase() : "auto";
+        var style = activeStyle || String(styleDirection.value || "").trim();
+        var palette = String(colorPalette.value || "").trim();
+        var vibe = String(audience.value || "").trim();
         var userPrompt = String(prompt.value || "").trim();
-        status.textContent = userPrompt
-          ? "Prompt ready for generation."
-          : "Type a prompt in the main bar first, then generate the clothing.";
-        return userPrompt;
+        var avoidPrompt = String(negativePrompt.value || "").trim();
+        var goals = getActiveGoalTexts();
+        var templateInstruction = garment === "full_outfit"
+            ? "Create a coordinated outfit set that will be split into one shirt panel layout and one pants panel layout while keeping both pieces visually connected."
+          : garment === "matching_outfits"
+              ? "Create two coordinated full outfits for two people. Each person should get a matching shirt and pants set that clearly belongs to the same duo collection without looking identical."
+              : garment === "matching_shirts"
+                ? "Create two coordinated shirt panel layouts for two people. The pair should share motifs, palette, and energy without being identical clones."
+                : garment === "matching_pants"
+                  ? "Create two coordinated pants or shorts panel layouts for two people. The pair should share motifs, palette, and energy without being identical clones."
+                  : garment === "pants"
+                    ? "Use only the supplied pants panel map. Focus strictly on waist, thigh, knee, calf, cuff, and ankle zones. Do not generate shirt collars, chest panels, sleeves, shoulder seams, or upper-body outfit pieces."
+                    : "Use only the supplied shirt panel map. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate leg-only layouts or lower-body outfit pieces that do not belong on the shirt panel map.";
+        var sleeveInstruction = !garmentConfig.usesShirt
+          ? ""
+          : sleeve === "short"
+            ? "Use short sleeves and keep the visible hand and lower-arm opening zones clear. Sleeve fabric must stop before the exposed hand zone begins."
+            : sleeve === "sleeveless"
+              ? "Use true sleeveless arm treatment. Every bright hot pink sleeve-guide zone is mandatory exposed skin territory, not optional fabric. Leave those arm-opening and hand-opening zones uncovered and render them in the selected skin tone."
+              : "Use long sleeves but always leave a clear hand opening and cuff break at the wrist end of the supplied guide layout so the hands stay exposed. Every bright hot pink guide zone is mandatory visible skin territory and must not be covered by sleeve fabric.";
+        var sleeveReferenceInstruction = !garmentConfig.usesShirt
+          ? ""
+          : "On the supplied sleeve reference, bright hot pink is a strict skin marker. Any bright hot pink area must become exposed skin in the exact selected skin tone in the final clothing texture. Never print fabric, trim, chains, shading, or graphics over hot pink guide zones.";
+        var pantsLengthInstruction = !garmentConfig.usesPants
+          ? ""
+          : pantsFit === "30"
+            ? "Use a short pants length around the 30% guide. The hot pink guide zones on the pants length reference are exposed skin zones below the shorts cutoff and should render in the selected skin tone."
+            : pantsFit === "80"
+              ? "Use a cropped pants length around the 80% guide. The hot pink guide zones on the pants length reference are exposed skin zones below the fabric cutoff and should render in the selected skin tone."
+              : "Use a full pants length around the 100% guide. Any hot pink guide zones should stay as visible skin or open ankle territory rendered in the selected skin tone.";
+        var pantsReferenceInstruction = !garmentConfig.usesPants
+          ? ""
+          : "On the supplied pants length reference, bright hot pink is a strict skin marker. Any bright hot pink area must become exposed skin in the exact selected skin tone or remain a clean open cutoff where the pants stop. Never place fabric or graphics over hot pink guide zones.";
+        var landmarkInstruction = garmentConfig.usesPants && !garmentConfig.usesShirt
+          ? "The lowest exposed parts of the supplied pants guide represent ankle and shoe-entry territory, not random fabric panels. Keep those ankle openings readable and never treat them like sealed solid blocks."
+          : garmentConfig.usesShirt
+            ? "The very top-center opening on the supplied shirt guide is always the neck area and must stay clear for the avatar neck. The lower ends of the arm strips are always hand-opening territory and should render as exposed skin in the selected skin tone, with clean wrist exits that stay clearly separated from the sleeve fabric."
+            : "";
+
+        var lines = [
+          "Create a clean clothing texture for the supplied blank clothing panel layout.",
+          "Return only a wearable clothing texture at exactly 585 x 559 pixels.",
+          "The working image may be generated at 832 x 800, but the final design must map cleanly back into the supplied panel layout size.",
+          templateInstruction,
+          sleeveInstruction,
+          sleeveReferenceInstruction,
+          pantsLengthInstruction,
+          pantsReferenceInstruction,
+          landmarkInstruction,
+          "Use the supplied layout only as a placement guide. Do not redraw mannequin previews, helper diagrams, template labels, divider lines, border strokes, letters, logos, or background sheet elements.",
+          "Keep artwork inside the clothing zones, aligned across connected panels, and slightly overpaint fold edges so the worn result stays solid without visible gaps.",
+          "Make the result feel like a real catalog-ready clothing texture, not a poster, mockup, or random square graphic.",
+          "Design brief: " + (userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, and sleeve or leg zones.") + "."
+        ];
+
+        if (style) {
+          lines.push("Style direction: " + style + ".");
+        }
+        if (palette) {
+          lines.push("Color palette: " + palette + ".");
+        }
+        if (vibe) {
+          lines.push("Target vibe: " + vibe + ".");
+        }
+        if (goals.length) {
+          lines.push("Priority goals: " + goals.join(", ") + ".");
+        }
+        if (selectedSkinTone !== "auto") {
+          lines.push(formatSkinToneInstruction(selectedSkinTone));
+        }
+        if (avoidPrompt) {
+          lines.push("Avoid: " + avoidPrompt + ".");
+        }
+
+        builtPrompt.value = lines.join(" ");
+        status.textContent = "Visible user prompt translated. Advanced settings are only added when you actually fill them in.";
+        return builtPrompt.value;
       }
 
       function roundRectPath(ctx, x, y, width, height, radius) {
@@ -2107,11 +2871,8 @@
         }
       }
 
-      function drawRigPreview() {
-        if (!rigContext || !rigCanvas) return;
-        var ctx = rigContext;
-        var canvas = rigCanvas;
-        var image = resultImage;
+      function drawRigPreviewToCanvas(canvas, ctx, shirtImage, pantsImage, skinFill) {
+        if (!canvas || !ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawRigBackground(ctx, canvas.width, canvas.height);
 
@@ -2137,11 +2898,12 @@
           rightFoot: { x: 368, y: 504, w: 68, h: 26 }
         };
 
-        fillRoundedRect(ctx, rig.leftHand.x, rig.leftHand.y, rig.leftHand.w, rig.leftHand.h, 18, "#e4e4e4");
-        fillRoundedRect(ctx, rig.rightHand.x, rig.rightHand.y, rig.rightHand.w, rig.rightHand.h, 18, "#e4e4e4");
+        var visibleSkinColor = skinFill || "#e4d6ca";
+        fillRoundedRect(ctx, rig.leftHand.x, rig.leftHand.y, rig.leftHand.w, rig.leftHand.h, 18, visibleSkinColor);
+        fillRoundedRect(ctx, rig.rightHand.x, rig.rightHand.y, rig.rightHand.w, rig.rightHand.h, 18, visibleSkinColor);
         fillRoundedRect(ctx, rig.leftFoot.x, rig.leftFoot.y, rig.leftFoot.w, rig.leftFoot.h, 14, "#dcdcdc");
         fillRoundedRect(ctx, rig.rightFoot.x, rig.rightFoot.y, rig.rightFoot.w, rig.rightFoot.h, 14, "#dcdcdc");
-        fillRoundedRect(ctx, rig.neck.x, rig.neck.y, rig.neck.w, rig.neck.h, 12, "#d9d9d9");
+        fillRoundedRect(ctx, rig.neck.x, rig.neck.y, rig.neck.w, rig.neck.h, 12, visibleSkinColor);
         fillRoundedRect(ctx, rig.torso.x, rig.torso.y, rig.torso.w, rig.torso.h, 22, "#f8f8f8");
         fillRoundedRect(ctx, rig.leftLeg.x, rig.leftLeg.y, rig.leftLeg.w, rig.leftLeg.h, 18, "#191d24");
         fillRoundedRect(ctx, rig.rightLeg.x, rig.rightLeg.y, rig.rightLeg.w, rig.rightLeg.h, 18, "#191d24");
@@ -2155,16 +2917,14 @@
         ctx.fill();
         ctx.restore();
 
-        if (image && image.complete && image.naturalWidth && image.naturalHeight) {
-          if (previewTemplateType !== "pants") {
-            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.torsoFront, rig.torso, { radius: 22 });
-            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.rightArmFront, rig.leftArm, { radius: 18, rotation: rig.leftArm.rotation });
-            drawTexturedPart(ctx, image, TEMPLATE_PARTS.shirt.leftArmFront, rig.rightArm, { radius: 18, rotation: rig.rightArm.rotation });
-          }
-          if (previewTemplateType === "pants") {
-            drawTexturedPart(ctx, image, TEMPLATE_PARTS.pants.rightLegFront, rig.leftLeg, { radius: 16 });
-            drawTexturedPart(ctx, image, TEMPLATE_PARTS.pants.leftLegFront, rig.rightLeg, { radius: 16 });
-          }
+        if (shirtImage && shirtImage.complete && shirtImage.naturalWidth && shirtImage.naturalHeight) {
+          drawTexturedPart(ctx, shirtImage, TEMPLATE_PARTS.shirt.torsoFront, rig.torso, { radius: 22 });
+          drawTexturedPart(ctx, shirtImage, TEMPLATE_PARTS.shirt.rightArmFront, rig.leftArm, { radius: 18, rotation: rig.leftArm.rotation });
+          drawTexturedPart(ctx, shirtImage, TEMPLATE_PARTS.shirt.leftArmFront, rig.rightArm, { radius: 18, rotation: rig.rightArm.rotation });
+        }
+        if (pantsImage && pantsImage.complete && pantsImage.naturalWidth && pantsImage.naturalHeight) {
+          drawTexturedPart(ctx, pantsImage, TEMPLATE_PARTS.pants.rightLegFront, rig.leftLeg, { radius: 16 });
+          drawTexturedPart(ctx, pantsImage, TEMPLATE_PARTS.pants.leftLegFront, rig.rightLeg, { radius: 16 });
         }
 
         ctx.strokeStyle = "rgba(30, 35, 44, 0.08)";
@@ -2173,30 +2933,90 @@
         ctx.stroke();
       }
 
-      async function applyTextureToViewer(textureUrl, templateType) {
-        if (!textureUrl) return false;
+      function drawRigPreview() {
+        if (!rigContext || !rigCanvas) return;
+        var shirtImage = latestPreviewPayload && latestPreviewPayload.primary && latestPreviewPayload.primary.shirtImage
+          ? latestPreviewPayload.primary.shirtImage
+          : (previewTemplateType !== "pants" ? resultImage : null);
+        var pantsImage = latestPreviewPayload && latestPreviewPayload.primary && latestPreviewPayload.primary.pantsImage
+          ? latestPreviewPayload.primary.pantsImage
+          : null;
+        drawRigPreviewToCanvas(rigCanvas, rigContext, shirtImage, pantsImage, resolveSkinToneColor());
+      }
+
+      function resolveSkinToneColor() {
+        var value = skinTone ? String(skinTone.value || "auto").trim().toLowerCase() : "auto";
+        if (value === "white") return "#f0d5c6";
+        if (value === "lightskin") return "#d6a47f";
+        if (value === "darkskin") return "#7b4e35";
+        return "#e4d6ca";
+      }
+
+      function loadPreviewImage(url) {
+        return new Promise(function (resolve) {
+          if (!url) {
+            resolve(null);
+            return;
+          }
+          var image = new Image();
+          image.onload = function () { resolve(image); };
+          image.onerror = function () { resolve(null); };
+          image.src = url;
+        });
+      }
+
+      function clearMatchingPreviewGallery() {
+        if (!previewGallery) return;
+        previewGallery.innerHTML = "";
+        previewGallery.classList.remove("is-visible");
+      }
+
+      async function renderMatchingPreviewGallery(previews) {
+        if (!previewGallery) return;
+        clearMatchingPreviewGallery();
+        if (!previews || !previews.length) return;
+        previewGallery.classList.add("is-visible");
+        var skinColor = resolveSkinToneColor();
+        for (var index = 0; index < previews.length; index += 1) {
+          var preview = previews[index];
+          var card = document.createElement("div");
+          card.className = "ai-preview-gallery-card";
+          var label = document.createElement("div");
+          label.className = "ai-preview-gallery-label";
+          label.textContent = preview.label || ("Look " + (index + 1));
+          var canvas = document.createElement("canvas");
+          canvas.width = 720;
+          canvas.height = 720;
+          card.appendChild(label);
+          card.appendChild(canvas);
+          previewGallery.appendChild(card);
+          var ctx = canvas.getContext("2d");
+          var shirtImage = await loadPreviewImage(preview.shirtUrl);
+          var pantsImage = await loadPreviewImage(preview.pantsUrl);
+          drawRigPreviewToCanvas(canvas, ctx, shirtImage, pantsImage, skinColor);
+        }
+      }
+
+      async function applyTextureSetToViewer(previewSet) {
+        if (!previewSet || (!previewSet.shirtUrl && !previewSet.pantsUrl)) return false;
         var ready = await ensureThreeRigPreview();
         if (!ready || !rigPreview3D.parts || !window.THREE) {
           return false;
         }
 
         try {
-          var sourceImage = await new Promise(function (resolve, reject) {
-            var image = new Image();
-            image.onload = function () { resolve(image); };
-            image.onerror = function () { reject(new Error("Could not load preview texture.")); };
-            image.src = textureUrl;
-          });
-
           disposeOverlayTextures();
           applyBaseRigMaterials();
 
-          if (templateType === "pants") {
-            var pantsMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.pants);
+          if (previewSet.pantsUrl) {
+            var pantsImage = await loadPreviewImage(previewSet.pantsUrl);
+            var pantsMaterial = createTemplateMaterial(pantsImage, RIG_COLORS.pants);
             replacePartMaterials(rigPreview3D.parts.rightLeg, pantsMaterial.clone());
             replacePartMaterials(rigPreview3D.parts.leftLeg, pantsMaterial.clone());
-          } else {
-            var shirtMaterial = createTemplateMaterial(sourceImage, RIG_COLORS.shirt);
+          }
+          if (previewSet.shirtUrl) {
+            var shirtImage = await loadPreviewImage(previewSet.shirtUrl);
+            var shirtMaterial = createTemplateMaterial(shirtImage, RIG_COLORS.shirt);
             replacePartMaterials(rigPreview3D.parts.torso, shirtMaterial.clone());
             replacePartMaterials(rigPreview3D.parts.rightArm, shirtMaterial.clone());
             replacePartMaterials(rigPreview3D.parts.leftArm, shirtMaterial.clone());
@@ -2208,19 +3028,44 @@
       }
 
       async function refreshRigPreview() {
+        if (!latestPreviewPayload) {
+          clearMatchingPreviewGallery();
+          if (rigViewport) rigViewport.style.display = "";
+          if (rigCanvas) rigCanvas.classList.add("is-hidden");
+          var viewerReadyEmpty = await ensureThreeRigPreview();
+          if (viewerReadyEmpty) {
+            disposeOverlayTextures();
+            applyBaseRigMaterials();
+          }
+          return;
+        }
+
+        if (latestPreviewPayload.mode && GARMENT_MODE_CONFIG[latestPreviewPayload.mode] && GARMENT_MODE_CONFIG[latestPreviewPayload.mode].matching) {
+          if (rigViewport) rigViewport.style.display = "none";
+          if (rigCanvas) rigCanvas.classList.add("is-hidden");
+          await renderMatchingPreviewGallery(latestPreviewPayload.previews || []);
+          return;
+        }
+
+        clearMatchingPreviewGallery();
+        if (rigViewport) rigViewport.style.display = "";
         var viewerReady = await ensureThreeRigPreview();
-        if (viewerReady && !latestRigTextureUrl) {
+        if (viewerReady && !latestPreviewPayload.primary) {
           disposeOverlayTextures();
           applyBaseRigMaterials();
           return;
         }
-        if (viewerReady && latestRigTextureUrl) {
-          var usedViewer = await applyTextureToViewer(latestRigTextureUrl, previewTemplateType);
+        if (viewerReady && latestPreviewPayload.primary) {
+          var usedViewer = await applyTextureSetToViewer(latestPreviewPayload.primary);
           if (usedViewer) {
+            if (rigCanvas) rigCanvas.classList.add("is-hidden");
             return;
           }
         }
-        // Keep the canvas fallback disabled so it cannot visually override the 3D preview.
+        if (rigCanvas) {
+          rigCanvas.classList.remove("is-hidden");
+        }
+        drawRigPreview();
       }
 
       function resetRatingState() {
@@ -2277,16 +3122,169 @@
         generationResult.classList.add("is-visible");
       }
 
+      function shouldSkipTokenConfirm() {
+        try {
+          return localStorage.getItem(TOKEN_CONFIRM_SUPPRESS_KEY) === "1";
+        } catch (_error) {
+          return false;
+        }
+      }
+
+      function setSkipTokenConfirm(skip) {
+        try {
+          if (skip) {
+            localStorage.setItem(TOKEN_CONFIRM_SUPPRESS_KEY, "1");
+          } else {
+            localStorage.removeItem(TOKEN_CONFIRM_SUPPRESS_KEY);
+          }
+        } catch (_error) {
+          // Ignore storage failures.
+        }
+      }
+
+      function closeTokenConfirm() {
+        if (!tokenConfirmOverlay) return;
+        tokenConfirmOverlay.classList.remove("is-open");
+        tokenConfirmOverlay.setAttribute("aria-hidden", "true");
+      }
+
+      function openTokenConfirm(cost, modeLabel) {
+        if (!tokenConfirmOverlay) {
+          return Promise.resolve(true);
+        }
+        tokenConfirmDisable.checked = shouldSkipTokenConfirm();
+        tokenConfirmCopy.textContent = "This " + modeLabel.toLowerCase() + " generation will take tokens from the user's balance before the AI starts.";
+        tokenConfirmCost.textContent = "This generation will cost " + cost + " token" + (cost === 1 ? "" : "s");
+        tokenConfirmOverlay.classList.add("is-open");
+        tokenConfirmOverlay.setAttribute("aria-hidden", "false");
+        return new Promise(function (resolve) {
+          function cleanup(result) {
+            tokenConfirmButton.removeEventListener("click", handleConfirm);
+            tokenCancelButton.removeEventListener("click", handleCancel);
+            tokenConfirmOverlay.removeEventListener("click", handleOverlay);
+            setSkipTokenConfirm(Boolean(tokenConfirmDisable.checked));
+            closeTokenConfirm();
+            resolve(result);
+          }
+          function handleConfirm() { cleanup(true); }
+          function handleCancel() { cleanup(false); }
+          function handleOverlay(event) {
+            if (event.target === tokenConfirmOverlay) {
+              cleanup(false);
+            }
+          }
+          tokenConfirmButton.addEventListener("click", handleConfirm);
+          tokenCancelButton.addEventListener("click", handleCancel);
+          tokenConfirmOverlay.addEventListener("click", handleOverlay);
+        });
+      }
+
+      function getMatchingPreviewPairs(outputs, mode) {
+        if (!Array.isArray(outputs) || !outputs.length) return [];
+        if (mode === "matching_shirts") {
+          return outputs.slice(0, 2).map(function (item, index) {
+            return { label: item.label || ("Look " + (index + 1)), shirtUrl: item.imageDataUrl || "", pantsUrl: "" };
+          });
+        }
+        if (mode === "matching_pants") {
+          return outputs.slice(0, 2).map(function (item, index) {
+            return { label: item.label || ("Look " + (index + 1)), shirtUrl: "", pantsUrl: item.imageDataUrl || "" };
+          });
+        }
+        if (mode === "matching_outfits") {
+          return [
+            {
+              label: "Look One",
+              shirtUrl: outputs[0] && outputs[0].imageDataUrl || "",
+              pantsUrl: outputs[1] && outputs[1].imageDataUrl || ""
+            },
+            {
+              label: "Look Two",
+              shirtUrl: outputs[2] && outputs[2].imageDataUrl || "",
+              pantsUrl: outputs[3] && outputs[3].imageDataUrl || ""
+            }
+          ];
+        }
+        return [];
+      }
+
+      function buildPreviewPayloadFromResponse(payload) {
+        var outputs = Array.isArray(payload && payload.outputs) ? payload.outputs : [];
+        var mode = payload && payload.garmentType ? payload.garmentType : garmentType.value;
+        if (!outputs.length && payload && payload.imageDataUrl) {
+          outputs = [{
+            imageDataUrl: payload.imageDataUrl,
+            templateType: payload.templateType || "shirt",
+            label: payload.templateType === "pants" ? "Pants" : "Shirt",
+            downloadFileName: payload.downloadFileName || "rblxtools-ai-clothing.png"
+          }];
+        }
+
+        if (mode === "full_outfit") {
+          return {
+            mode: mode,
+            primary: {
+              shirtUrl: outputs[0] && outputs[0].imageDataUrl || "",
+              pantsUrl: outputs[1] && outputs[1].imageDataUrl || ""
+            },
+            previews: [],
+            downloads: outputs.map(function (item, index) {
+              return {
+                url: item.imageDataUrl || "",
+                fileName: item.downloadFileName || ("rblxtools-ai-clothing-" + (index + 1) + ".png")
+              };
+            })
+          };
+        }
+
+        if (GARMENT_MODE_CONFIG[mode] && GARMENT_MODE_CONFIG[mode].matching) {
+          return {
+            mode: mode,
+            primary: null,
+            previews: getMatchingPreviewPairs(outputs, mode),
+            downloads: outputs.map(function (item, index) {
+              return {
+                url: item.imageDataUrl || "",
+                fileName: item.downloadFileName || ("rblxtools-ai-clothing-" + (index + 1) + ".png")
+              };
+            })
+          };
+        }
+
+        var primaryOutput = outputs[0] || null;
+        return {
+          mode: mode,
+          primary: primaryOutput
+            ? {
+                shirtUrl: primaryOutput.templateType === "pants" ? "" : (primaryOutput.imageDataUrl || ""),
+                pantsUrl: primaryOutput.templateType === "pants" ? (primaryOutput.imageDataUrl || "") : ""
+              }
+            : null,
+          previews: [],
+          downloads: primaryOutput ? [{
+            url: primaryOutput.imageDataUrl || "",
+            fileName: primaryOutput.downloadFileName || "rblxtools-ai-clothing.png"
+          }] : []
+        };
+      }
+
       function getRequestPayload() {
         var styleValue = activeStyle || String(styleDirection.value || "").trim();
         return {
           garmentType: garmentType.value,
-          sleeveLength: sleeveLength ? sleeveLength.value : "long",
+          sleeveLength: sleeveLength ? sleeveLength.value : "auto",
+          resolvedSleeveLength: resolveSleeveLengthValue(),
+          pantsLength: pantsLength ? pantsLength.value : "auto",
+          resolvedPantsLength: resolvePantsLengthValue(),
+          skinTone: skinTone ? skinTone.value : "auto",
+          generationCost: getGenerationCost(garmentType.value),
           styleDirection: styleValue,
           colorPalette: colorPalette.value,
           audience: audience.value,
           userPrompt: prompt.value,
-          negativePrompt: negativePrompt.value
+          negativePrompt: negativePrompt.value,
+          styleName: styleValue,
+          templateGoals: getActiveGoalTexts()
         };
       }
 
@@ -2296,14 +3294,14 @@
         startButton.disabled = isLoading;
         resetButton.disabled = isLoading;
         if (isLoading) {
-          status.textContent = "Generating clothing now...";
+          status.textContent = "Generating clothing with the stronger hidden AI prompt now...";
           showGenerationLoading();
         }
       }
 
-      async function generateClothing() {
+      async function runGenerationRequest() {
         if (generationInFlight) return;
-        buildGeneratorPrompt();
+        var enhancedPrompt = buildGeneratorPrompt();
         syncVisiblePrompt();
         if (!String(prompt.value || "").trim()) {
           status.textContent = "Type what you want in the main prompt bar first, then generate the clothing.";
@@ -2323,29 +3321,45 @@
             body: JSON.stringify(getRequestPayload())
           });
           var payload = await response.json().catch(function () { return null; });
-          if (!response.ok || !payload || !payload.imageDataUrl) {
+          if (!response.ok || !payload || (!payload.imageDataUrl && !(payload.outputs && payload.outputs.length))) {
             throw new Error(payload && payload.error ? payload.error : "AI clothing generation failed.");
           }
 
+          builtPrompt.value = enhancedPrompt;
           previewTemplateType = payload.templateType === "pants" ? "pants" : "shirt";
-          latestGeneratedTextureUrl = payload.imageDataUrl || "";
-          latestRigTextureUrl = latestGeneratedTextureUrl;
-          resultImage.src = payload.imageDataUrl;
-          resultSummary.textContent = previewTemplateType === "pants"
-            ? "Your generated pants template is now previewed on the Roblox rig here. Download still gives you the real 585 x 559 pants template PNG."
-            : "Your generated shirt template is now previewed on the Roblox rig here. Download still gives you the real 585 x 559 shirt template PNG.";
-          resultSize.textContent = (payload.outputWidth || 585) + " x " + (payload.outputHeight || 559) + " PNG";
-          resultGarment.textContent = payload.templateType === "pants"
-            ? "Pants Template"
-            : payload.garmentType === "layered"
-                ? "Layered Concept"
-                : "Shirt Template";
-          resultModel.textContent = String(payload.model || "GPT Image").replace(/-/g, " ");
-          downloadButton.href = payload.imageDataUrl;
-          downloadButton.download = payload.downloadFileName || "rblxtools-ai-clothing.png";
+          latestPreviewPayload = buildPreviewPayloadFromResponse(payload);
+          if (payload.imageDataUrl) {
+            resultImage.src = payload.imageDataUrl;
+          }
+          await refreshRigPreview();
+          if (resultSummary) {
+            resultSummary.textContent = GARMENT_MODE_CONFIG[payload.garmentType] && GARMENT_MODE_CONFIG[payload.garmentType].matching
+              ? "Both matching looks are now previewed side by side so you can compare each person's result before downloading the templates."
+              : payload.garmentType === "full_outfit"
+                ? "Your full outfit set is now previewed with both the shirt and pants textures applied together on the same Roblox rig."
+                : previewTemplateType === "pants"
+                  ? "Your generated pants template is now previewed on the Roblox rig here. Download still gives you the real 585 x 559 pants template PNG."
+                  : "Your generated shirt template is now previewed on the Roblox rig here. Download still gives you the real 585 x 559 shirt template PNG.";
+          }
+          if (resultSize) {
+            resultSize.textContent = (payload.outputWidth || 585) + " x " + (payload.outputHeight || 559) + " PNG";
+          }
+          if (resultGarment) {
+            resultGarment.textContent = GARMENT_MODE_CONFIG[payload.garmentType]
+              ? GARMENT_MODE_CONFIG[payload.garmentType].label
+              : (payload.templateType === "pants" ? "Pants Template" : "Shirt Template");
+          }
+          if (resultModel) {
+            resultModel.textContent = String(payload.model || "GPT Image").replace(/-/g, " ");
+          }
+          downloadButton.href = payload.imageDataUrl || ((latestPreviewPayload.downloads[0] && latestPreviewPayload.downloads[0].url) || "#");
+          downloadButton.download = payload.downloadFileName || ((latestPreviewPayload.downloads[0] && latestPreviewPayload.downloads[0].fileName) || "rblxtools-ai-clothing.png");
+          downloadButton.textContent = latestPreviewPayload.downloads && latestPreviewPayload.downloads.length > 1
+            ? "↓ Download Templates"
+            : "↓ Download Template";
           resetRatingState();
           showGenerationResult();
-          status.textContent = "Clothing generated. The result was resized into Roblox's 585 x 559 format and pushed onto the 3D Roblox rig preview.";
+          status.textContent = "Clothing generated. The stronger hidden prompt was sent to the AI, the result was resized into Roblox's 585 x 559 format, and the template was pushed onto the 3D Roblox rig preview while download still keeps the original template file.";
         } catch (error) {
           var errorMessage = error && error.message
             ? error.message
@@ -2357,24 +3371,53 @@
         }
       }
 
+      async function generateClothing() {
+        if (generationInFlight) return;
+        syncVisiblePrompt();
+        if (!String(prompt.value || "").trim()) {
+          status.textContent = "Type what you want in the main prompt bar first, then generate the clothing.";
+          return;
+        }
+        var cost = getGenerationCost(garmentType.value);
+        var modeLabel = GARMENT_MODE_CONFIG[garmentType.value] ? GARMENT_MODE_CONFIG[garmentType.value].label : "AI clothing";
+        if (!shouldSkipTokenConfirm()) {
+          var confirmed = await openTokenConfirm(cost, modeLabel);
+          if (!confirmed) {
+            status.textContent = "Generation cancelled before any tokens were used.";
+            return;
+          }
+        }
+        return runGenerationRequest();
+      }
+
       function resetDraftForm() {
         heroPrompt.value = "";
         prompt.value = "";
+        builtPrompt.value = "";
         negativePrompt.value = "";
         styleDirection.value = "";
         colorPalette.value = "";
         audience.value = "";
         setActiveStyle("");
         setGarment("shirt");
-        setSleeveLength("long");
-        status.textContent = "Prompt form reset. Use the main prompt bar to start a new clothing idea.";
+        setSleeveLength("auto");
+        setPantsLength("auto");
+        setSkinTone("auto");
+        goalChips.forEach(function (chip, index) {
+          if (chip.hasAttribute("data-sleeve") || chip.hasAttribute("data-skin-tone") || chip.hasAttribute("data-pants-length")) return;
+          chip.classList.toggle("is-active", index === 0);
+        });
+        status.textContent = "Prompt form reset. Users can stay simple at the top bar, and power users can open Advanced Settings whenever they want more control.";
         resultImage.removeAttribute("src");
-        latestGeneratedTextureUrl = "";
-        latestRigTextureUrl = "";
+        latestPreviewPayload = null;
         disposeOverlayTextures();
         applyBaseRigMaterials();
+        clearMatchingPreviewGallery();
         resetRatingState();
         downloadButton.href = "#";
+        downloadButton.download = "rblxtools-ai-clothing.png";
+        downloadButton.textContent = "↓ Download Template";
+        updateLiveTokenCost();
         generationResult.classList.remove("is-visible");
         generationLoading.classList.remove("is-visible");
         generationError.classList.remove("is-visible");
@@ -2385,6 +3428,41 @@
         chip.addEventListener("click", function () {
           var nextStyle = chip.getAttribute("data-style") || "";
           setActiveStyle(nextStyle === activeStyle ? "" : nextStyle);
+          buildGeneratorPrompt();
+        });
+      });
+
+      goalChips.forEach(function (chip) {
+        if (chip.hasAttribute("data-sleeve")) {
+          chip.addEventListener("click", function () {
+            setSleeveLength(chip.getAttribute("data-sleeve"));
+            buildGeneratorPrompt();
+          });
+          return;
+        }
+        if (chip.hasAttribute("data-skin-tone")) {
+          chip.addEventListener("click", function () {
+            setSkinTone(chip.getAttribute("data-skin-tone"));
+            buildGeneratorPrompt();
+          });
+          return;
+        }
+        if (chip.hasAttribute("data-pants-length")) {
+          chip.addEventListener("click", function () {
+            setPantsLength(chip.getAttribute("data-pants-length"));
+            buildGeneratorPrompt();
+          });
+          return;
+        }
+        chip.addEventListener("click", function () {
+          chip.classList.toggle("is-active");
+          if (!getActiveGoalTexts().length) {
+            var firstGoalChip = goalChips.find(function (candidate) {
+              return candidate.hasAttribute("data-goal");
+            });
+            if (firstGoalChip) firstGoalChip.classList.add("is-active");
+          }
+          buildGeneratorPrompt();
         });
       });
 
@@ -2392,6 +3470,7 @@
         card.addEventListener("click", function () {
           var nextGarment = card.getAttribute("data-garment") || "shirt";
           setGarment(nextGarment);
+          buildGeneratorPrompt();
         });
       });
 
@@ -2402,6 +3481,18 @@
       if (sleeveLength) {
         sleeveLength.addEventListener("change", function () {
           setSleeveLength(sleeveLength.value);
+          buildGeneratorPrompt();
+        });
+      }
+      if (pantsLength) {
+        pantsLength.addEventListener("change", function () {
+          setPantsLength(pantsLength.value);
+          buildGeneratorPrompt();
+        });
+      }
+      if (skinTone) {
+        skinTone.addEventListener("change", function () {
+          setSkinTone(skinTone.value);
           buildGeneratorPrompt();
         });
       }
@@ -2420,6 +3511,24 @@
       if (uploadSoonButton) {
         uploadSoonButton.addEventListener("click", function () {
           status.textContent = "Upload to Roblox is coming soon. For now, download the real template PNG and upload it manually.";
+        });
+      }
+      if (downloadButton) {
+        downloadButton.addEventListener("click", function (event) {
+          if (!latestPreviewPayload || !Array.isArray(latestPreviewPayload.downloads) || latestPreviewPayload.downloads.length <= 1) {
+            return;
+          }
+          event.preventDefault();
+          latestPreviewPayload.downloads.forEach(function (item, index) {
+            window.setTimeout(function () {
+              var link = document.createElement("a");
+              link.href = item.url;
+              link.download = item.fileName || ("rblxtools-ai-clothing-" + (index + 1) + ".png");
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }, index * 180);
+          });
         });
       }
       ratingButtons.forEach(function (button) {
@@ -2457,7 +3566,11 @@
       });
 
       setGarment("shirt");
-      setSleeveLength("long");
+      setSleeveLength("auto");
+      setPantsLength("auto");
+      setSkinTone("auto");
+      updateLiveTokenCost();
+      buildGeneratorPrompt();
       resetRatingState();
       verifyAdminAccess();
     })();

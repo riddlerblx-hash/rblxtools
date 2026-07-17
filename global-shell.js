@@ -7,12 +7,16 @@
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
+  var AUTH_MODE_KEY = "rblxtools_auth_mode";
   var PLUS_STATUS_KEY = "rblxtools_plus_cache";
   var PROFILE_KEY = "rblxtools_profile_overview";
   var DEVICE_KEY = "rblxtools_device_id";
   var TOOL_ACTIVITY_CACHE_KEY = "rblxtools_tool_activity_cache";
   var LEFT_STATE_KEY = "rblxtools_shell_left_collapsed";
   var RIGHT_STATE_KEY = "rblxtools_shell_right_collapsed";
+  var GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
+  var AUTH_PENDING_OPEN_KEY = "rblxtools_auth_modal_pending";
+  var AUTH_PENDING_MODE_KEY = "rblxtools_auth_modal_pending_mode";
   var shellState = {
     chatMessages: [],
     chatList: null,
@@ -51,6 +55,8 @@
     supportModal: null,
     supportCategory: null,
     supportReporterId: null,
+    supportReporterDiscord: null,
+    supportReporterEmail: null,
     supportReportedIdWrap: null,
     supportReportedId: null,
     supportDetails: null,
@@ -59,6 +65,28 @@
     supportStatus: null,
     supportSubmit: null,
     supportCancel: null,
+    authOverlay: null,
+    authModal: null,
+    authClose: null,
+    authLoginTab: null,
+    authSignupTab: null,
+    authForm: null,
+    authTitle: null,
+    authCopy: null,
+    authSubmit: null,
+    authEmail: null,
+    authPassword: null,
+    authTogglePassword: null,
+    authStatus: null,
+    authGoogleWrap: null,
+    authGoogleSection: null,
+    authGoogleNote: null,
+    authDivider: null,
+    authSwitchPrompt: null,
+    authSwitchButton: null,
+    authReturnUrl: "",
+    authMode: "login",
+    authGoogleClientId: "",
     lastViewedProfileUserId: "",
     moderationCountdownTimer: null,
     chatSpecials: null,
@@ -320,6 +348,17 @@
     var text = String(value || "").trim();
     if (!text) return "";
     return text.split("@")[0].trim();
+  }
+
+  function maskEmailAddress(value) {
+    var text = String(value || "").trim();
+    if (!text || text.indexOf("@") === -1) return "";
+    var parts = text.split("@");
+    var local = parts[0] || "";
+    var domain = parts.slice(1).join("@");
+    if (!local || !domain) return "";
+    var keep = Math.min(3, Math.max(1, local.length));
+    return local.slice(0, keep) + "***@" + domain;
   }
 
   function getCurrentActivityActorName() {
@@ -969,28 +1008,42 @@
 
   function buildAuthMarkup() {
     var currentUser = shellState.currentUser || {};
+    var currentProfile = shellState.currentProfile || readSavedProfile(currentUser.userId);
+    var displayName = String(currentProfile && currentProfile.displayName || currentUser.displayName || "").trim();
+    var maskedEmail = maskEmailAddress(currentUser.email);
+    var title = displayName || maskedEmail || currentUser.username || "My Account";
+    var subtitle = displayName ? (maskedEmail || "Personal profile") : "Personal profile";
+    var avatarUrl = String(currentProfile && currentProfile.avatarUrl || "").trim();
+    var avatarFallback = getInitials(displayName || getEmailNamePart(currentUser.email) || currentUser.username || "R");
+    var isPlus = currentUser.plan === "plus";
+    var cardMarkup =
+      '<a class="rblx-shell-profile-card-link" href="./account-overview">' +
+        '<span class="rblx-shell-profile-card' + (isPlus ? ' is-plus' : '') + '">' +
+          (isPlus ? ('<span class="rblx-shell-profile-card-pluses" aria-hidden="true">' + buildHeaderProfilePlusMarkup() + '</span>') : '') +
+          '<span class="rblx-shell-profile-card-avatar' + (avatarUrl ? ' has-image' : '') + '">' +
+            (avatarUrl
+              ? ('<img src="' + escapeHtml(avatarUrl) + '" alt="" />')
+              : ('<span class="rblx-shell-profile-card-fallback">' + escapeHtml(avatarFallback) + '</span>')) +
+          '</span>' +
+          '<span class="rblx-shell-profile-card-copy">' +
+            '<span class="rblx-shell-profile-card-title">' + escapeHtml(title) + '</span>' +
+            '<span class="rblx-shell-profile-card-subtitle">' + escapeHtml(subtitle) + '</span>' +
+          '</span>' +
+          '<span class="rblx-shell-profile-card-arrow" aria-hidden="true">›</span>' +
+        '</span>' +
+      '</a>';
     if (currentUser.loggedIn) {
-      if (currentUser.plan === "plus") {
-        return (
-          '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-            '<a class="rblx-shell-btn" href="./account-overview">Account</a>' +
-            '<button class="rblx-shell-btn" type="button" id="rblxShellLogout">Log Out</button>' +
-          "</div>"
-        );
-      }
-
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-          '<a class="rblx-shell-btn" href="./account-overview">Account</a>' +
-          '<a class="rblx-shell-btn is-primary" href="./subscriptions">View Plans</a>' +
-          '<button class="rblx-shell-btn" type="button" id="rblxShellLogout">Log Out</button>' +
+          (currentUser.plan === "plus" ? "" : '<a class="rblx-shell-btn is-primary" href="./subscriptions">View Plans</a>') +
+          cardMarkup +
         "</div>"
       );
     }
 
     return (
       '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-        '<a class="rblx-shell-btn is-primary" href="./login">Login / Sign Up</a>' +
+        '<a class="rblx-shell-btn rblx-shell-login-button" href="./login">Login / Sign Up</a>' +
       "</div>"
     );
   }
@@ -1001,6 +1054,63 @@
       return '<a class="rblx-mobile-dock-link" href="./account-overview" id="rblxMobileAccountLink">Account</a>';
     }
     return '<a class="rblx-mobile-dock-link is-primary" href="./login" id="rblxMobileAccountLink">Login</a>';
+  }
+
+  function buildStatusPlusMarkup() {
+    var specs = [
+      ["12%", "56%", "11px", "-0.4s", "0.18"],
+      ["28%", "24%", "13px", "-1.5s", "0.26"],
+      ["44%", "66%", "10px", "-2.2s", "0.16"],
+      ["61%", "20%", "14px", "-3.0s", "0.22"],
+      ["76%", "62%", "12px", "-1.1s", "0.18"],
+      ["90%", "30%", "10px", "-2.7s", "0.15"]
+    ];
+
+    return specs.map(function (spec) {
+      return '<span class="rblx-shell-status-plus" style="--status-plus-left:' + spec[0] + ';--status-plus-top:' + spec[1] + ';--status-plus-size:' + spec[2] + ';--status-plus-delay:' + spec[3] + ';--status-plus-opacity:' + spec[4] + ';">+</span>';
+    }).join("");
+  }
+
+  function buildHeaderProfilePlusMarkup() {
+    var specs = [
+      ["16%", "62%", "10px", "-0.8s", "0.16"],
+      ["34%", "24%", "12px", "-2.0s", "0.24"],
+      ["57%", "68%", "9px", "-1.2s", "0.14"],
+      ["78%", "28%", "11px", "-2.8s", "0.18"]
+    ];
+
+    return specs.map(function (spec) {
+      return '<span class="rblx-shell-profile-card-plus" style="--profile-card-plus-left:' + spec[0] + ';--profile-card-plus-top:' + spec[1] + ';--profile-card-plus-size:' + spec[2] + ';--profile-card-plus-delay:' + spec[3] + ';--profile-card-plus-opacity:' + spec[4] + ';">+</span>';
+    }).join("");
+  }
+
+  function buildSitePlusBackdropMarkup() {
+    var specs = [
+      ["6%", "12%", "18px", "8.4s", "-1.2s", "0.12"],
+      ["15%", "34%", "14px", "7.1s", "-3.8s", "0.10"],
+      ["24%", "72%", "20px", "9.0s", "-2.4s", "0.14"],
+      ["38%", "18%", "16px", "7.8s", "-0.6s", "0.11"],
+      ["46%", "58%", "13px", "8.7s", "-3.4s", "0.10"],
+      ["59%", "26%", "21px", "9.3s", "-1.9s", "0.13"],
+      ["66%", "82%", "15px", "7.0s", "-4.1s", "0.10"],
+      ["78%", "12%", "19px", "8.8s", "-2.7s", "0.13"],
+      ["88%", "48%", "14px", "7.6s", "-1.3s", "0.11"],
+      ["92%", "80%", "17px", "8.2s", "-3.9s", "0.12"]
+    ];
+
+    return specs.map(function (spec) {
+      return '<span class="rblx-shell-plus-sigil" style="--bg-plus-left:' + spec[0] + ';--bg-plus-top:' + spec[1] + ';--bg-plus-size:' + spec[2] + ';--bg-plus-duration:' + spec[3] + ';--bg-plus-delay:' + spec[4] + ';--bg-plus-opacity:' + spec[5] + ';">+</span>';
+    }).join("");
+  }
+
+  function ensureSitePlusBackdrop() {
+    if (!document.body || document.getElementById("rblxShellPlusBackdrop")) return;
+    var layer = document.createElement("div");
+    layer.className = "rblx-shell-plus-backdrop";
+    layer.id = "rblxShellPlusBackdrop";
+    layer.setAttribute("aria-hidden", "true");
+    layer.innerHTML = buildSitePlusBackdropMarkup();
+    document.body.appendChild(layer);
   }
 
   function buildShellMarkup() {
@@ -1015,11 +1125,13 @@
             "</span>" +
           "</a>" +
           '<div class="rblx-shell-status" id="rblxShellStatus" data-plan="guest">' +
+            '<span class="rblx-shell-status-pluses" aria-hidden="true">' + buildStatusPlusMarkup() + '</span>' +
             '<span class="rblx-shell-status-dot"></span>' +
-            '<span id="rblxShellStatusText">You are browsing this website as a guest.</span>' +
+            '<span class="rblx-shell-status-text" id="rblxShellStatusText">You are browsing this website as a guest.</span>' +
           "</div>" +
           '<div class="rblx-shell-header-actions">' +
             '<div class="rblx-shell-support-wrap"><span class="rblx-shell-support-float one">$</span><span class="rblx-shell-support-float two">$</span><span class="rblx-shell-support-float three">$</span><span class="rblx-shell-support-float four">$</span><a class="rblx-shell-support-link" href="https://ko-fi.com/rblxtools" target="_blank" rel="noopener noreferrer">Support</a></div>' +
+            '<button class="rblx-shell-btn rblx-shell-contact-support" type="button" id="rblxShellContactSupport">Contact Support</button>' +
             buildAuthMarkup() +
           "</div>" +
         "</header>" +
@@ -1124,11 +1236,40 @@
             '<button class="rblx-shell-btn is-primary rblx-shell-checkout-button" type="button" id="rblxShellCheckoutClose" disabled>Back To Account (10)</button>' +
           '</div>' +
         '</div>' +
+        '<div class="rblx-shell-auth-overlay" id="rblxShellAuthOverlay" aria-hidden="true">' +
+          '<div class="rblx-shell-auth-modal" id="rblxShellAuthModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellAuthTitle">' +
+            '<button class="rblx-shell-auth-close" type="button" id="rblxShellAuthClose" aria-label="Close login">×</button>' +
+            '<div class="rblx-shell-auth-kicker">RBLXTools Account</div>' +
+            '<h3 class="rblx-shell-auth-title" id="rblxShellAuthTitle">Welcome back - sign in</h3>' +
+            '<p class="rblx-shell-auth-copy" id="rblxShellAuthCopy">Sign in to keep your tools, membership, and account access connected.</p>' +
+            '<div class="rblx-shell-auth-google hidden" id="rblxShellAuthGoogleSection">' +
+              '<div class="rblx-shell-auth-google-wrap" id="rblxShellAuthGoogleWrap"></div>' +
+              '<div class="rblx-shell-auth-google-note" id="rblxShellAuthGoogleNote"></div>' +
+            '</div>' +
+            '<div class="rblx-shell-auth-divider hidden" id="rblxShellAuthDivider"><span>or</span></div>' +
+            '<form class="rblx-shell-auth-form" id="rblxShellAuthForm">' +
+              '<label class="rblx-shell-auth-field">' +
+                '<span>Email</span>' +
+                '<input id="rblxShellAuthEmail" type="email" autocomplete="email" placeholder="you@example.com" />' +
+              '</label>' +
+              '<label class="rblx-shell-auth-field">' +
+                '<span>Password</span>' +
+                '<div class="rblx-shell-auth-password-wrap">' +
+                  '<input id="rblxShellAuthPassword" type="password" autocomplete="current-password" placeholder="Enter your password" />' +
+                  '<button class="rblx-shell-auth-password-toggle" type="button" id="rblxShellAuthTogglePassword">Show</button>' +
+                '</div>' +
+              '</label>' +
+              '<div class="rblx-shell-auth-status" id="rblxShellAuthStatus"></div>' +
+              '<button class="rblx-shell-btn is-primary rblx-shell-auth-submit" type="submit" id="rblxShellAuthSubmit">Sign In</button>' +
+            '</form>' +
+            '<div class="rblx-shell-auth-switch" id="rblxShellAuthSwitchPrompt">New to RBLXTools? <button type="button" id="rblxShellAuthSwitchButton">Start here</button></div>' +
+          '</div>' +
+        '</div>' +
         '<div class="rblx-shell-support-overlay" id="rblxShellSupportOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-support-modal" id="rblxShellSupportModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellSupportTitle">' +
             '<div class="rblx-shell-support-kicker">Website Support</div>' +
             '<h3 class="rblx-shell-support-title" id="rblxShellSupportTitle">Send a report</h3>' +
-            '<p class="rblx-shell-support-copy">Use this if something on the site, chat, or membership flow is off. If you are reporting a member, open their chat profile and copy the user ID shown there.</p>' +
+            '<p class="rblx-shell-support-copy">Use this if something on the site, chat, or membership flow is off. Add a Discord username or an email so we can contact you back. If you are reporting a member, open their chat profile and copy the user ID shown there.</p>' +
             '<div class="rblx-shell-support-grid">' +
               '<label class="rblx-shell-support-field">' +
                 '<span>Report reason</span>' +
@@ -1139,6 +1280,17 @@
                 '<input id="rblxShellSupportReporterId" type="text" placeholder="Your account user ID" maxlength="80" />' +
               '</label>' +
             '</div>' +
+            '<div class="rblx-shell-support-grid">' +
+              '<label class="rblx-shell-support-field">' +
+                '<span>Discord username</span>' +
+                '<input id="rblxShellSupportReporterDiscord" type="text" placeholder="Example: reese1234" maxlength="120" />' +
+              '</label>' +
+              '<label class="rblx-shell-support-field">' +
+                '<span>Reply email</span>' +
+                '<input id="rblxShellSupportReporterEmail" type="email" placeholder="name@example.com" maxlength="160" />' +
+              '</label>' +
+            '</div>' +
+            '<div class="rblx-shell-support-help">At least one contact method is required so we can follow up with you.</div>' +
             '<div class="rblx-shell-support-target-wrap" id="rblxShellSupportReportedWrap" hidden>' +
               '<label class="rblx-shell-support-field">' +
                 '<span>Reported user ID</span>' +
@@ -1398,12 +1550,378 @@
     shellState.supportStatus.className = "rblx-shell-support-status" + (tone ? " is-" + tone : "");
   }
 
+  function setAuthStatus(message, tone) {
+    if (!shellState.authStatus) return;
+    shellState.authStatus.textContent = message || "";
+    shellState.authStatus.className = "rblx-shell-auth-status" + (tone ? " is-" + tone : "");
+  }
+
+  function getCleanCurrentUrl() {
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.delete("auth");
+      return url.toString();
+    } catch (_error) {
+      return window.location.href;
+    }
+  }
+
+  function saveAuthMode(mode) {
+    try {
+      localStorage.setItem(AUTH_MODE_KEY, mode === "signup" ? "signup" : "login");
+    } catch (_error) {}
+  }
+
+  function loadGoogleScript() {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      return Promise.resolve();
+    }
+    if (window.__rblxGoogleScriptPromise) {
+      return window.__rblxGoogleScriptPromise;
+    }
+
+    window.__rblxGoogleScriptPromise = new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[src="' + GOOGLE_SCRIPT_SRC + '"]');
+      if (existing) {
+        existing.addEventListener("load", function () { resolve(); }, { once: true });
+        existing.addEventListener("error", function () { reject(new Error("Could not load Google Sign-In.")); }, { once: true });
+        return;
+      }
+
+      var script = document.createElement("script");
+      script.src = GOOGLE_SCRIPT_SRC;
+      script.async = true;
+      script.defer = true;
+      script.onload = function () { resolve(); };
+      script.onerror = function () { reject(new Error("Could not load Google Sign-In.")); };
+      document.head.appendChild(script);
+    });
+
+    return window.__rblxGoogleScriptPromise;
+  }
+
+  function setAuthMode(mode) {
+    shellState.authMode = mode === "signup" ? "signup" : "login";
+    saveAuthMode(shellState.authMode);
+    if (shellState.authLoginTab) {
+      shellState.authLoginTab.classList.toggle("is-active", shellState.authMode === "login");
+    }
+    if (shellState.authSignupTab) {
+      shellState.authSignupTab.classList.toggle("is-active", shellState.authMode === "signup");
+    }
+    if (shellState.authTitle) {
+      shellState.authTitle.textContent = shellState.authMode === "signup" ? "Create your account" : "Welcome back - sign in";
+    }
+    if (shellState.authCopy) {
+      shellState.authCopy.textContent = shellState.authMode === "signup"
+        ? "Create an account to connect your tools, membership, and future purchases to one profile."
+        : "Sign in to keep your tools, membership, and account access connected.";
+    }
+    if (shellState.authSubmit) {
+      shellState.authSubmit.textContent = shellState.authMode === "signup" ? "Create Account" : "Sign In";
+      shellState.authSubmit.disabled = false;
+    }
+    if (shellState.authPassword) {
+      shellState.authPassword.autocomplete = shellState.authMode === "signup" ? "new-password" : "current-password";
+    }
+    if (shellState.authSwitchPrompt && shellState.authSwitchButton) {
+      shellState.authSwitchPrompt.firstChild.textContent = shellState.authMode === "signup" ? "Already have an account? " : "New to RBLXTools? ";
+      shellState.authSwitchButton.textContent = shellState.authMode === "signup" ? "Sign in" : "Start here";
+    }
+    if (shellState.authGoogleNote) {
+      shellState.authGoogleNote.textContent = shellState.authMode === "signup"
+        ? "Use Google with the email you want tied to your RBLXTools account."
+        : "Use the same Google email tied to your existing RBLXTools account.";
+    }
+    renderAuthGoogleButton();
+    setAuthStatus("", "");
+  }
+
+  function closeAuthModal() {
+    if (!shellState.authOverlay || !shellState.authModal) return;
+    shellState.authOverlay.classList.remove("is-open");
+    shellState.authOverlay.setAttribute("aria-hidden", "true");
+    shellState.authModal.classList.remove("is-open");
+    document.body.classList.remove("rblx-shell-modal-open");
+    shellState.authReturnUrl = "";
+    setAuthStatus("", "");
+  }
+
+  function openAuthModal(options) {
+    options = options || {};
+    if (!shellState.authOverlay || !shellState.authModal) return;
+    var mode = options.mode || shellState.authMode || readRawStorage(AUTH_MODE_KEY) || "login";
+    shellState.authReturnUrl = String(options.returnTo || getCleanCurrentUrl() || "").trim();
+    setAuthMode(mode);
+    if (shellState.authPassword) {
+      shellState.authPassword.value = "";
+      shellState.authPassword.type = "password";
+    }
+    if (shellState.authTogglePassword) {
+      shellState.authTogglePassword.textContent = "Show";
+    }
+    setAuthStatus(options.message || "", "");
+    shellState.authOverlay.classList.add("is-open");
+    shellState.authOverlay.setAttribute("aria-hidden", "false");
+    shellState.authModal.classList.add("is-open");
+    document.body.classList.add("rblx-shell-modal-open");
+    if (shellState.authEmail && !shellState.authEmail.value) {
+      var cachedUser = getCachedAuthUser();
+      shellState.authEmail.value = String(cachedUser && cachedUser.email || "").trim();
+    }
+    window.setTimeout(function () {
+      if (shellState.authEmail) {
+        shellState.authEmail.focus();
+      }
+    }, 40);
+    loadAuthGoogleConfig();
+  }
+
+  function finishAuthSuccess(result, successMessage) {
+    var user = result && result.user ? result.user : null;
+    saveCachedAuthUser(user);
+    writeCachedPlusStatus(hasPlusFromPayload(result) || hasPlusFromPayload(user));
+    try {
+      localStorage.setItem(TOKEN_KEY, result && result.token ? String(result.token) : "");
+    } catch (_error) {}
+    setAuthStatus(successMessage, "success");
+    var nextState = buildUserStateFromPayload(result, shellState.moderation) || resolveUserState();
+    if (nextState && typeof nextState.then !== "function") {
+      updateAuthUi(nextState);
+    }
+    dispatchMembershipUpdate({
+      user: user || {},
+      plan: hasPlusFromPayload(result) || hasPlusFromPayload(user) ? "plus" : "free"
+    });
+    window.setTimeout(function () {
+      var destination = shellState.authReturnUrl || getCleanCurrentUrl();
+      closeAuthModal();
+      window.location.href = destination;
+    }, 350);
+  }
+
+  async function authApiRequest(path, options) {
+    var response = await fetch(API_BASE + path, options || {});
+    var contentType = response.headers.get("content-type") || "";
+    var payload = null;
+
+    if (contentType.indexOf("application/json") !== -1) {
+      payload = await response.json().catch(function () { return null; });
+    } else {
+      var text = await response.text().catch(function () { return ""; });
+      payload = text ? { error: text } : null;
+    }
+
+    if (!response.ok) {
+      throw new Error((payload && payload.error) || ("Request failed with status " + response.status));
+    }
+    return payload;
+  }
+
+  async function handleAuthSubmit(event) {
+    event.preventDefault();
+    if (!shellState.authEmail || !shellState.authPassword || !shellState.authSubmit) return;
+
+    var email = String(shellState.authEmail.value || "").trim();
+    var password = shellState.authPassword.value || "";
+    if (!email || !password) {
+      setAuthStatus("Enter your email and password first.", "error");
+      return;
+    }
+
+    shellState.authSubmit.disabled = true;
+    setAuthStatus(shellState.authMode === "signup" ? "Creating your account..." : "Signing you in...", "");
+
+    try {
+      var result = await authApiRequest(shellState.authMode === "signup" ? "/auth/signup" : "/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, password: password })
+      });
+      finishAuthSuccess(result, shellState.authMode === "signup" ? "Account created. Redirecting..." : "Login successful. Redirecting...");
+    } catch (error) {
+      setAuthStatus(error.message || "Request failed.", "error");
+      shellState.authSubmit.disabled = false;
+    }
+  }
+
+  function toggleAuthPasswordVisibility() {
+    if (!shellState.authPassword || !shellState.authTogglePassword) return;
+    var hidden = shellState.authPassword.type === "password";
+    shellState.authPassword.type = hidden ? "text" : "password";
+    shellState.authTogglePassword.textContent = hidden ? "Hide" : "Show";
+  }
+
+  async function handleGoogleCredential(response) {
+    if (!response || !response.credential) {
+      setAuthStatus("Google sign-in did not return a credential.", "error");
+      return;
+    }
+    if (shellState.authSubmit) {
+      shellState.authSubmit.disabled = true;
+    }
+    setAuthStatus("Signing you in with Google...", "");
+    try {
+      var result = await authApiRequest("/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken: response.credential })
+      });
+      finishAuthSuccess(result, "Google sign-in successful. Redirecting...");
+    } catch (error) {
+      setAuthStatus(error.message || "Google sign-in failed.", "error");
+      if (shellState.authSubmit) {
+        shellState.authSubmit.disabled = false;
+      }
+    }
+  }
+
+  function renderAuthGoogleButton() {
+    if (!shellState.authGoogleWrap || !shellState.authGoogleClientId || !window.google || !window.google.accounts || !window.google.accounts.id) {
+      return;
+    }
+    shellState.authGoogleWrap.innerHTML = "";
+    window.google.accounts.id.initialize({
+      client_id: shellState.authGoogleClientId,
+      callback: handleGoogleCredential
+    });
+    window.google.accounts.id.renderButton(shellState.authGoogleWrap, {
+      theme: "outline",
+      size: "large",
+      shape: "pill",
+      text: shellState.authMode === "signup" ? "signup_with" : "signin_with",
+      logo_alignment: "left",
+      width: Math.min(380, Math.max(240, Math.floor(window.innerWidth - 90)))
+    });
+  }
+
+  async function loadAuthGoogleConfig() {
+    if (shellState.authGoogleClientId) {
+      renderAuthGoogleButton();
+      return;
+    }
+    try {
+      var config = await authApiRequest("/auth/google/config", { method: "GET", cache: "no-store" });
+      if (!config || !config.enabled || !config.clientId) {
+        return;
+      }
+      shellState.authGoogleClientId = String(config.clientId || "");
+      if (shellState.authDivider) {
+        shellState.authDivider.classList.remove("hidden");
+      }
+      if (shellState.authGoogleSection) {
+        shellState.authGoogleSection.classList.remove("hidden");
+      }
+      await loadGoogleScript();
+      renderAuthGoogleButton();
+    } catch (_error) {}
+  }
+
+  function setupAuthModal() {
+    shellState.authOverlay = document.getElementById("rblxShellAuthOverlay");
+    shellState.authModal = document.getElementById("rblxShellAuthModal");
+    shellState.authClose = document.getElementById("rblxShellAuthClose");
+    shellState.authLoginTab = document.getElementById("rblxShellAuthLoginTab");
+    shellState.authSignupTab = document.getElementById("rblxShellAuthSignupTab");
+    shellState.authForm = document.getElementById("rblxShellAuthForm");
+    shellState.authTitle = document.getElementById("rblxShellAuthTitle");
+    shellState.authCopy = document.getElementById("rblxShellAuthCopy");
+    shellState.authSubmit = document.getElementById("rblxShellAuthSubmit");
+    shellState.authEmail = document.getElementById("rblxShellAuthEmail");
+    shellState.authPassword = document.getElementById("rblxShellAuthPassword");
+    shellState.authTogglePassword = document.getElementById("rblxShellAuthTogglePassword");
+    shellState.authStatus = document.getElementById("rblxShellAuthStatus");
+    shellState.authGoogleWrap = document.getElementById("rblxShellAuthGoogleWrap");
+    shellState.authGoogleSection = document.getElementById("rblxShellAuthGoogleSection");
+    shellState.authGoogleNote = document.getElementById("rblxShellAuthGoogleNote");
+    shellState.authDivider = document.getElementById("rblxShellAuthDivider");
+    shellState.authSwitchPrompt = document.getElementById("rblxShellAuthSwitchPrompt");
+    shellState.authSwitchButton = document.getElementById("rblxShellAuthSwitchButton");
+    shellState.authMode = readRawStorage(AUTH_MODE_KEY) === "signup" ? "signup" : "login";
+
+    if (shellState.authClose) {
+      shellState.authClose.addEventListener("click", closeAuthModal);
+    }
+    if (shellState.authOverlay) {
+      shellState.authOverlay.addEventListener("click", function (event) {
+        if (event.target === shellState.authOverlay) {
+          closeAuthModal();
+        }
+      });
+    }
+    if (shellState.authLoginTab) {
+      shellState.authLoginTab.addEventListener("click", function () { setAuthMode("login"); });
+    }
+    if (shellState.authSignupTab) {
+      shellState.authSignupTab.addEventListener("click", function () { setAuthMode("signup"); });
+    }
+    if (shellState.authSwitchButton) {
+      shellState.authSwitchButton.addEventListener("click", function () {
+        setAuthMode(shellState.authMode === "signup" ? "login" : "signup");
+      });
+    }
+    if (shellState.authTogglePassword) {
+      shellState.authTogglePassword.addEventListener("click", toggleAuthPasswordVisibility);
+    }
+    if (shellState.authForm) {
+      shellState.authForm.addEventListener("submit", handleAuthSubmit);
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && shellState.authOverlay && shellState.authOverlay.classList.contains("is-open")) {
+        closeAuthModal();
+      }
+    });
+
+    document.addEventListener("click", function (event) {
+      var trigger = event.target && event.target.closest && event.target.closest('a[href="./login"], a[href="./login.html"], a[href*="./login?"], a[href="/login"], a[href="/login.html"], a[href*="/login?"]');
+      if (!trigger) return;
+      event.preventDefault();
+      var href = trigger.getAttribute("href") || "";
+      var mode = href.indexOf("mode=signup") !== -1 ? "signup" : "login";
+      openAuthModal({ mode: mode, returnTo: getCleanCurrentUrl() });
+    });
+
+    window.RBLXToolsAuthModal = {
+      open: openAuthModal,
+      close: closeAuthModal
+    };
+
+    var queryMode = "";
+    try {
+      queryMode = new URLSearchParams(window.location.search || "").get("auth") || "";
+    } catch (_error) {}
+    var pendingOpen = "";
+    try {
+      pendingOpen = sessionStorage.getItem(AUTH_PENDING_OPEN_KEY) || "";
+    } catch (_error) {}
+    var pendingMode = "";
+    try {
+      pendingMode = sessionStorage.getItem(AUTH_PENDING_MODE_KEY) || "";
+      sessionStorage.removeItem(AUTH_PENDING_OPEN_KEY);
+      sessionStorage.removeItem(AUTH_PENDING_MODE_KEY);
+    } catch (_error) {}
+    if (queryMode === "login" || queryMode === "signup" || pendingOpen === "1") {
+      openAuthModal({ mode: pendingMode || queryMode || "login" });
+    } else {
+      setAuthMode(shellState.authMode);
+    }
+  }
+
   function getCurrentSupportReporterId() {
     if (shellState.currentUser && shellState.currentUser.userId) {
       return String(shellState.currentUser.userId);
     }
     var cachedUser = getCachedAuthUser();
     return cachedUser && cachedUser.id ? String(cachedUser.id) : "";
+  }
+
+  function getCurrentSupportReplyEmail() {
+    if (shellState.currentUser && shellState.currentUser.email) {
+      return String(shellState.currentUser.email);
+    }
+    var cachedUser = getCachedAuthUser();
+    return String(cachedUser && cachedUser.email || "");
   }
 
   function toggleSupportTargetField() {
@@ -1423,6 +1941,12 @@
     if (!shellState.supportOverlay) return;
     if (shellState.supportReporterId) {
       shellState.supportReporterId.value = getCurrentSupportReporterId();
+    }
+    if (shellState.supportReporterDiscord) {
+      shellState.supportReporterDiscord.value = "";
+    }
+    if (shellState.supportReporterEmail) {
+      shellState.supportReporterEmail.value = getCurrentSupportReplyEmail();
     }
     if (shellState.supportCategory) {
       shellState.supportCategory.value = shellState.supportCategory.value || "website_bug";
@@ -1490,6 +2014,8 @@
 
     var category = String(shellState.supportCategory.value || "").trim();
     var reporterUserId = String(shellState.supportReporterId.value || "").trim();
+    var reporterDiscordUsername = shellState.supportReporterDiscord ? String(shellState.supportReporterDiscord.value || "").trim() : "";
+    var reporterEmail = shellState.supportReporterEmail ? String(shellState.supportReporterEmail.value || "").trim() : "";
     var details = String(shellState.supportDetails.value || "").trim();
     var reportedUserId = shellState.supportReportedId ? String(shellState.supportReportedId.value || "").trim() : "";
 
@@ -1499,6 +2025,10 @@
     }
     if (!details) {
       setSupportStatus("Please explain what happened before sending the report.", "error");
+      return;
+    }
+    if (!reporterDiscordUsername && !reporterEmail) {
+      setSupportStatus("Add a Discord username or an email so we can contact you back.", "error");
       return;
     }
     if (category === "user_report" && !reportedUserId) {
@@ -1524,6 +2054,8 @@
         body: JSON.stringify({
           category: category,
           reporterUserId: reporterUserId,
+          reporterDiscordUsername: reporterDiscordUsername,
+          reporterEmail: reporterEmail,
           reportedUserId: reportedUserId,
           details: details,
           pageUrl: window.location.href,
@@ -2028,6 +2560,8 @@
     shellState.supportModal = document.getElementById("rblxShellSupportModal");
     shellState.supportCategory = document.getElementById("rblxShellSupportCategory");
     shellState.supportReporterId = document.getElementById("rblxShellSupportReporterId");
+    shellState.supportReporterDiscord = document.getElementById("rblxShellSupportReporterDiscord");
+    shellState.supportReporterEmail = document.getElementById("rblxShellSupportReporterEmail");
     shellState.supportReportedIdWrap = document.getElementById("rblxShellSupportReportedWrap");
     shellState.supportReportedId = document.getElementById("rblxShellSupportReportedId");
     shellState.supportDetails = document.getElementById("rblxShellSupportDetails");
@@ -2036,6 +2570,7 @@
     shellState.supportStatus = document.getElementById("rblxShellSupportStatus");
     shellState.supportSubmit = document.getElementById("rblxShellSupportSubmit");
     shellState.supportCancel = document.getElementById("rblxShellSupportCancel");
+    var contactSupportButton = document.getElementById("rblxShellContactSupport");
 
     if (shellState.supportCategory) {
       shellState.supportCategory.addEventListener("change", toggleSupportTargetField);
@@ -2051,6 +2586,9 @@
     }
     if (shellState.supportCancel) {
       shellState.supportCancel.addEventListener("click", closeSupportModal);
+    }
+    if (contactSupportButton) {
+      contactSupportButton.addEventListener("click", openSupportModal);
     }
     if (shellState.supportOverlay) {
       shellState.supportOverlay.addEventListener("click", function (event) {
@@ -2225,13 +2763,15 @@
 
     status.setAttribute("data-plan", state.plan);
     statusText.textContent = state.message;
+    document.body.classList.toggle("rblx-shell-plus-user", state.plan === "plus");
     shellState.currentUser = {
       loggedIn: Boolean(state.loggedIn),
       plan: state.plan || "guest",
       message: state.message || "",
       userId: state.userId || "",
       username: state.username || "",
-      displayName: state.displayName || ""
+      displayName: state.displayName || "",
+      email: state.email || ""
     };
     var navScroll = document.getElementById("rblxShellNavScroll");
     if (navScroll) navScroll.innerHTML = buildNavMarkup();
@@ -2254,24 +2794,7 @@
     }
 
     if (state.loggedIn) {
-      auth.innerHTML = state.plan === "plus"
-        ? '<a class="rblx-shell-btn" href="./account-overview">Account</a>' +
-          '<button class="rblx-shell-btn" type="button" id="rblxShellLogout">Log Out</button>'
-        : '<a class="rblx-shell-btn" href="./account-overview">Account</a>' +
-          '<a class="rblx-shell-btn is-primary" href="./subscriptions">View Plans</a>' +
-          '<button class="rblx-shell-btn" type="button" id="rblxShellLogout">Log Out</button>';
-
-      var logout = document.getElementById("rblxShellLogout");
-      if (logout) {
-        logout.addEventListener("click", function () {
-          try {
-            localStorage.removeItem(TOKEN_KEY);
-            localStorage.removeItem(USER_KEY);
-            localStorage.removeItem(PLUS_STATUS_KEY);
-          } catch (_error) {}
-          window.location.reload();
-        });
-      }
+      auth.innerHTML = buildAuthMarkup().replace('<div class="rblx-shell-auth" id="rblxShellAuth">', "").replace(/<\/div>$/, "");
       if (shellState.chatAdminButton) {
         shellState.chatAdminButton.hidden = !shellState.isAdmin;
         shellState.chatAdminButton.style.display = shellState.isAdmin ? "inline-flex" : "none";
@@ -2279,8 +2802,7 @@
       return;
     }
 
-    auth.innerHTML =
-      '<a class="rblx-shell-btn is-primary" href="./login">Login / Sign Up</a>';
+    auth.innerHTML = buildAuthMarkup().replace('<div class="rblx-shell-auth" id="rblxShellAuth">', "").replace(/<\/div>$/, "");
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.hidden = true;
       shellState.chatAdminButton.style.display = "none";
@@ -2318,6 +2840,7 @@
       userId: user && user.id ? String(user.id) : "",
       username: user && user.username ? String(user.username) : "",
       displayName: displayName,
+      email: user && user.email ? String(user.email) : "",
       isAdmin: Boolean(user && user.isAdmin),
       moderation: moderationOverride || (payload && payload.moderation ? payload.moderation : shellState.moderation)
     };
@@ -2363,6 +2886,7 @@
         userId: getGuestHash(),
         username: "",
         displayName: "Guest",
+        email: "",
         isAdmin: false,
         moderation: shellState.moderation
       };
@@ -2379,6 +2903,7 @@
       userId: cachedUser && cachedUser.id ? String(cachedUser.id) : "",
       username: cachedUser && cachedUser.username ? String(cachedUser.username) : "",
       displayName: displayName,
+      email: cachedUser && cachedUser.email ? String(cachedUser.email) : "",
       isAdmin: Boolean(cachedUser && cachedUser.isAdmin),
       moderation: shellState.moderation
     };
@@ -2397,6 +2922,7 @@
         userId: guestHash,
         username: "",
         displayName: "Guest",
+        email: "",
         isAdmin: false,
         moderation: shellState.moderation
       };
@@ -2439,6 +2965,7 @@
         userId: user && user.id ? String(user.id) : "",
         username: user && user.username ? String(user.username) : "",
         displayName: displayName,
+        email: user && user.email ? String(user.email) : "",
         isAdmin: Boolean(user && user.isAdmin),
         moderation: payload && payload.moderation ? payload.moderation : null
       };
@@ -2455,6 +2982,7 @@
           userId: cachedUser && cachedUser.id ? String(cachedUser.id) : "",
           username: cachedUser && cachedUser.username ? String(cachedUser.username) : "",
           displayName: displayName,
+          email: cachedUser && cachedUser.email ? String(cachedUser.email) : "",
           isAdmin: Boolean(cachedUser && cachedUser.isAdmin),
           moderation: shellState.moderation
         };
@@ -2467,6 +2995,7 @@
         userId: fallbackGuestHash,
         username: "",
         displayName: "Guest",
+        email: "",
         isAdmin: false,
         moderation: shellState.moderation
       };
@@ -2700,12 +3229,14 @@
       message: initialState.message || "",
       userId: initialState.userId || "",
       username: initialState.username || "",
-      displayName: initialState.displayName || ""
+      displayName: initialState.displayName || "",
+      email: initialState.email || ""
     };
     shellState.isAdmin = Boolean(initialState.isAdmin);
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
+    ensureSitePlusBackdrop();
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
     syncMobileShellState();
@@ -2718,6 +3249,7 @@
     initProfileOverlay();
     initCheckoutSuccessModal();
     initSupportModal();
+    setupAuthModal();
     initToggles();
     initChat();
     initAdminWindow();
@@ -2765,7 +3297,8 @@
         message: "You are browsing this website as a guest.",
         userId: "",
         username: "",
-        displayName: ""
+        displayName: "",
+        email: ""
       });
     }).finally(function () {
       connectChatSocket();

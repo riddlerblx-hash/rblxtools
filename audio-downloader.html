@@ -12,9 +12,10 @@
       overflow-y: auto;
       background:
         radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.26), transparent 28%),
-        radial-gradient(circle at 86% 14%, rgba(255, 0, 0, 0.12), transparent 24%),
+        radial-gradient(circle at 86% 14%, rgba(136, 101, 255, 0.18), transparent 24%),
         radial-gradient(circle at 82% 74%, rgba(255, 74, 74, 0.12), transparent 30%),
-        radial-gradient(circle at 22% 86%, rgba(255, 124, 124, 0.1), transparent 26%),
+        radial-gradient(circle at 22% 86%, rgba(145, 124, 255, 0.10), transparent 26%),
+        radial-gradient(circle at 58% 48%, rgba(87, 160, 255, 0.12), transparent 32%),
         linear-gradient(180deg, #151c28 0%, #0c1119 38%, #080b11 100%) !important;
       position: relative;
       isolation: isolate;
@@ -156,10 +157,10 @@
       width: 100%;
       background:
         radial-gradient(circle at top right, rgba(255, 70, 70, 0.12), transparent 34%),
-        linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
+        linear-gradient(180deg, rgba(20, 24, 35, 0.98), rgba(10, 13, 20, 0.98));
       border-radius: 18px;
       padding: 24px 20px 20px;
-      text-align: center;
+      text-align: left;
       border: 1px solid rgba(255, 255, 255, 0.05);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
       transform-style: preserve-3d;
@@ -174,8 +175,8 @@
     .rblx-title {
       margin: 0;
       color: #ffffff;
-      font-size: 28px;
-      line-height: 0.97;
+      font-size: 34px;
+      line-height: 0.95;
       font-weight: 900;
       letter-spacing: -1px;
     }
@@ -184,9 +185,7 @@
       display: block;
     }
 
-    .rblx-title span:first-child {
-      color: #ffd0d0;
-    }
+    .rblx-title span:first-child { color: #ffffff; }
 
     .rblx-title span:last-child {
       color: #ff2b2b;
@@ -195,7 +194,7 @@
 
     .rblx-subtitle {
       margin: 12px 0 12px;
-      color: #a8adb4;
+      color: #b8bec7;
       font-size: 12px;
       font-weight: 600;
       line-height: 1.55;
@@ -221,9 +220,9 @@
     .rblx-field {
       width: 100%;
       min-height: 74px;
-      border-radius: 8px;
+      border-radius: 10px;
       border: 1px solid rgba(255, 96, 96, 0.70);
-      background: #2f2f2f;
+      background: #2f2f33;
       color: #ffffff;
       padding: 12px 14px;
       outline: none;
@@ -240,7 +239,7 @@
     .rblx-field:focus {
       border-color: #ff8b8b;
       box-shadow: 0 0 0 3px rgba(255, 102, 102, 0.12);
-      background: #343434;
+      background: #35353a;
     }
 
     #plusNotice {
@@ -731,6 +730,21 @@
         </div>
       </div>
       <div class="showcase-progress"><span id="showcaseProgress"></span></div>
+    </section>
+
+    <section class="share-card">
+      <span class="share-kicker">Share This Tool</span>
+      <h3>Send this page to another creator</h3>
+      <p>Share the audio downloader on Facebook, X, LinkedIn, WhatsApp, Telegram, or copy the direct page link for later.</p>
+      <div class="share-row">
+        <button class="share-btn share-fb" type="button" data-share-page="facebook">f</button>
+        <button class="share-btn share-x" type="button" data-share-page="x">X</button>
+        <button class="share-btn share-in" type="button" data-share-page="linkedin">in</button>
+        <button class="share-btn share-wa" type="button" data-share-page="whatsapp">wa</button>
+        <button class="share-btn share-tg" type="button" data-share-page="telegram">tg</button>
+        <button class="share-btn share-mail" type="button" data-share-page="email">@</button>
+      </div>
+      <button class="mini-btn primary share-copy-btn" type="button" data-copy-page-link="true">Copy Page Link</button>
     </section>
 
     <section class="faq-wrap">
@@ -1353,6 +1367,56 @@
       if (mount && "MutationObserver" in window) {
         const observer = new MutationObserver(scheduleSync);
         observer.observe(mount, { childList: true, subtree: true });
+      }
+    })();
+  </script>
+  <script>
+    (function () {
+      function getShareUrl() {
+        return window.location.href;
+      }
+
+      function getShareText() {
+        return "Check out the Audio Downloader on RBLXTools";
+      }
+
+      function shareTo(type) {
+        var shareUrl = encodeURIComponent(getShareUrl());
+        var shareText = encodeURIComponent(getShareText());
+        var link = "";
+        if (type === "facebook") link = "https://www.facebook.com/sharer/sharer.php?u=" + shareUrl;
+        if (type === "x") link = "https://twitter.com/intent/tweet?url=" + shareUrl + "&text=" + shareText;
+        if (type === "linkedin") link = "https://www.linkedin.com/sharing/share-offsite/?url=" + shareUrl;
+        if (type === "whatsapp") link = "https://api.whatsapp.com/send?text=" + shareText + "%20" + shareUrl;
+        if (type === "telegram") link = "https://t.me/share/url?url=" + shareUrl + "&text=" + shareText;
+        if (type === "email") link = "mailto:?subject=" + encodeURIComponent("Audio Downloader - RBLXTools") + "&body=" + shareText + "%0A%0A" + shareUrl;
+        if (link) window.open(link, "_blank", "noopener,noreferrer");
+      }
+
+      async function copyPageLink(button) {
+        var original = button.textContent;
+        try {
+          await navigator.clipboard.writeText(getShareUrl());
+          button.textContent = "Copied Link";
+        } catch (_error) {
+          button.textContent = "Copy Failed";
+        }
+        setTimeout(function () {
+          button.textContent = original;
+        }, 1200);
+      }
+
+      document.querySelectorAll("[data-share-page]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          shareTo(button.getAttribute("data-share-page"));
+        });
+      });
+
+      var copyButton = document.querySelector("[data-copy-page-link]");
+      if (copyButton) {
+        copyButton.addEventListener("click", function () {
+          copyPageLink(copyButton);
+        });
       }
     })();
   </script>

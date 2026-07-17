@@ -2,3 +2,13 @@ node_modules/
 assets/tutorial-videos/
 .env
 npm-debug.log*
+node_modules/
+.env
+*.bak*
+*.log
+scp
+node_modules/
+.env
+*.bak*
+*.log
+scp

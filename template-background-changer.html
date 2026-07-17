@@ -12,9 +12,10 @@
       overflow-y: auto;
       background:
         radial-gradient(circle at 10% 16%, rgba(255, 34, 34, 0.26), transparent 28%),
-        radial-gradient(circle at 86% 14%, rgba(255, 0, 0, 0.12), transparent 24%),
+        radial-gradient(circle at 86% 14%, rgba(136, 101, 255, 0.18), transparent 24%),
         radial-gradient(circle at 82% 74%, rgba(255, 74, 74, 0.12), transparent 30%),
-        radial-gradient(circle at 22% 86%, rgba(255, 124, 124, 0.1), transparent 26%),
+        radial-gradient(circle at 22% 86%, rgba(145, 124, 255, 0.10), transparent 26%),
+        radial-gradient(circle at 58% 48%, rgba(87, 160, 255, 0.12), transparent 32%),
         linear-gradient(180deg, #151c28 0%, #0c1119 38%, #080b11 100%);
       position: relative;
       isolation: isolate;
@@ -117,10 +118,11 @@
       border: 1px solid rgba(255, 255, 255, 0.05);
       position: relative;
       overflow: hidden;
-      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
       background:
         radial-gradient(circle at top right, rgba(255, 70, 70, 0.12), transparent 34%),
-        linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 24, 0.98));
+        linear-gradient(180deg, rgba(20, 24, 35, 0.98), rgba(10, 13, 20, 0.98));
+      text-align: left;
     }
 .rblx-cleaner-inner {
       position: relative;
@@ -147,8 +149,8 @@
 
     .rblx-cleaner-title {
       margin: 0;
-      font-size: 28px;
-      line-height: 0.97;
+      font-size: 34px;
+      line-height: 0.95;
       font-weight: 900;
       letter-spacing: -1px;
     }
@@ -157,9 +159,7 @@
       display: block;
     }
 
-    .rblx-cleaner-title span:first-child {
-      color: #ffd0d0;
-    }
+    .rblx-cleaner-title span:first-child { color: #ffffff; }
 
     .rblx-cleaner-title span:last-child {
       color: #ff2b2b;
@@ -167,7 +167,7 @@
     }
 
     .rblx-cleaner-subtitle {
-      color: #a8adb4;
+      color: #b8bec7;
       font-size: 12px;
       line-height: 1.55;
       font-weight: 600;
@@ -239,9 +239,9 @@
     .rblx-cleaner-file {
       width: 100%;
       min-height: 44px;
-      border-radius: 8px;
+      border-radius: 10px;
       border: 1px solid rgba(255, 96, 96, 0.70);
-      background: #2f2f2f;
+      background: #2f2f33;
       color: #ffffff;
       padding: 0 14px;
       outline: none;
@@ -253,7 +253,7 @@
     .rblx-cleaner-file:focus {
       border-color: #ff8b8b;
       box-shadow: 0 0 0 3px rgba(255, 102, 102, 0.12);
-      background: #353535;
+      background: #35353a;
     }
 
     .rblx-cleaner-file {
@@ -262,7 +262,7 @@
 
     .rblx-cleaner-file::file-selector-button {
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 8px 12px;
       margin-right: 10px;
       background: linear-gradient(180deg, #ff2a2a 0%, #ff0000 100%);
@@ -295,11 +295,11 @@
     .rblx-cleaner-btn {
       width: 100%;
       min-height: 40px;
-      border-radius: 8px;
+      border-radius: 10px;
       background: linear-gradient(180deg, #ff3333 0%, #ff1111 100%);
       font-size: 13px;
       font-weight: 800;
-      box-shadow: none;
+      box-shadow: 0 12px 24px rgba(255, 20, 20, 0.18);
     }
 
     .rblx-cleaner-btn:hover:not(:disabled),
@@ -310,9 +310,10 @@
     }
 
     .rblx-cleaner-btn.secondary {
-      background: #303030;
+      background: #2f2f33;
       border: 1px solid rgba(255, 255, 255, 0.08);
       color: #dddddd;
+      box-shadow: none;
     }
 
     .rblx-cleaner-btn:disabled {
@@ -992,6 +993,21 @@
       <div class="showcase-progress"><span id="showcaseProgress"></span></div>
     </section>
 
+    <section class="share-card">
+      <span class="share-kicker">Share This Tool</span>
+      <h3>Send this page to another creator</h3>
+      <p>Share the template background changer on Facebook, X, LinkedIn, WhatsApp, Telegram, or copy the direct page link for later.</p>
+      <div class="share-row">
+        <button class="share-btn share-fb" type="button" data-share-page="facebook">f</button>
+        <button class="share-btn share-x" type="button" data-share-page="x">X</button>
+        <button class="share-btn share-in" type="button" data-share-page="linkedin">in</button>
+        <button class="share-btn share-wa" type="button" data-share-page="whatsapp">wa</button>
+        <button class="share-btn share-tg" type="button" data-share-page="telegram">tg</button>
+        <button class="share-btn share-mail" type="button" data-share-page="email">@</button>
+      </div>
+      <button class="mini-btn primary share-copy-btn" type="button" data-copy-page-link="true">Copy Page Link</button>
+    </section>
+
     <section class="faq-wrap">
       <div class="faq-item open">
         <button class="faq-q" type="button">What does this tool do?</button>
@@ -1664,6 +1680,56 @@
       });
 
       window.addEventListener("resize", scheduleHeightReport);
+    })();
+  </script>
+<script>
+    (function () {
+      function getShareUrl() {
+        return window.location.href;
+      }
+
+      function getShareText() {
+        return "Check out the Template Background Changer on RBLXTools";
+      }
+
+      function shareTo(type) {
+        var shareUrl = encodeURIComponent(getShareUrl());
+        var shareText = encodeURIComponent(getShareText());
+        var link = "";
+        if (type === "facebook") link = "https://www.facebook.com/sharer/sharer.php?u=" + shareUrl;
+        if (type === "x") link = "https://twitter.com/intent/tweet?url=" + shareUrl + "&text=" + shareText;
+        if (type === "linkedin") link = "https://www.linkedin.com/sharing/share-offsite/?url=" + shareUrl;
+        if (type === "whatsapp") link = "https://api.whatsapp.com/send?text=" + shareText + "%20" + shareUrl;
+        if (type === "telegram") link = "https://t.me/share/url?url=" + shareUrl + "&text=" + shareText;
+        if (type === "email") link = "mailto:?subject=" + encodeURIComponent("Template Background Changer - RBLXTools") + "&body=" + shareText + "%0A%0A" + shareUrl;
+        if (link) window.open(link, "_blank", "noopener,noreferrer");
+      }
+
+      async function copyPageLink(button) {
+        var original = button.textContent;
+        try {
+          await navigator.clipboard.writeText(getShareUrl());
+          button.textContent = "Copied Link";
+        } catch (_error) {
+          button.textContent = "Copy Failed";
+        }
+        setTimeout(function () {
+          button.textContent = original;
+        }, 1200);
+      }
+
+      document.querySelectorAll("[data-share-page]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          shareTo(button.getAttribute("data-share-page"));
+        });
+      });
+
+      var copyButton = document.querySelector("[data-copy-page-link]");
+      if (copyButton) {
+        copyButton.addEventListener("click", function () {
+          copyPageLink(copyButton);
+        });
+      }
     })();
   </script>
 <script src="./global-shell.js"></script>

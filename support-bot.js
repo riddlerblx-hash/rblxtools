@@ -20,8 +20,10 @@ const PORT = Number.parseInt(process.env.SUPPORT_BOT_PORT || "3051", 10) || 3051
 const DISCORD_BOT_TOKEN = String(process.env.DISCORD_BOT_TOKEN || "").trim();
 const DISCORD_GUILD_ID = String(process.env.DISCORD_GUILD_ID || "").trim();
 const DISCORD_STAFF_ROLE_ID = String(process.env.DISCORD_STAFF_ROLE_ID || "").trim();
-const DISCORD_TICKET_CATEGORY_ID = String(process.env.DISCORD_TICKET_CATEGORY_ID || "").trim();
+const DISCORD_TICKET_CATEGORY_ID = String(process.env.DISCORD_TICKET_CATEGORY_ID || "1513556168360988842").trim();
 const DISCORD_TICKET_LOG_CHANNEL_ID = String(process.env.DISCORD_TICKET_LOG_CHANNEL_ID || "").trim();
+const DISCORD_PAYMENTS_CHANNEL_ID = String(process.env.DISCORD_PAYMENTS_CHANNEL_ID || "1516011658055647323").trim();
+const DISCORD_PAYMENT_CATEGORY_ID = String(process.env.DISCORD_PAYMENT_CATEGORY_ID || "1513556168360988842").trim();
 const SUPPORT_BOT_SECRET = String(process.env.SUPPORT_BOT_SECRET || "").trim();
 const SUPPORT_STAFF_MENTION = String(
   process.env.SUPPORT_STAFF_MENTION || (DISCORD_STAFF_ROLE_ID ? `<@&${DISCORD_STAFF_ROLE_ID}>` : "")
@@ -32,7 +34,11 @@ const LOG_CHANNEL_FALLBACK_NAME = "ticket-logs";
 const CLOSE_BUTTON_ID = "ticket:close";
 const TRANSCRIPT_BUTTON_ID = "ticket:transcript";
 const DELETE_BUTTON_ID = "ticket:delete";
+const PURCHASE_BUTTON_ID = "payment:purchase";
 const CLOSED_NAME_PREFIX = "closed-";
+const PAYMENT_PANEL_CHANNEL_FALLBACK_NAMES = ["robux-payments", "payments", "payment-tickets"];
+const PAYMENT_PANEL_SIGNATURE = "RBLXTOOLS_PAYMENT_PANEL_V1";
+const PAYMENT_TICKET_NAME_PREFIX = "payment";
 
 const TICKET_REASON_LABELS = {
   website_bug: "🐞 Website Bug",
@@ -61,6 +67,9 @@ if (DISCORD_BOT_TOKEN) {
 
 client.once(Events.ClientReady, (readyClient) => {
   console.log(`[support-bot] Discord ready as ${readyClient.user.tag}`);
+  syncPaymentsPanel().catch((error) => {
+    console.error("[support-bot] payments panel sync failed:", error.message);
+  });
 });
 
 app.use(express.json({ limit: "6mb" }));
@@ -85,6 +94,13 @@ function makeTicketChannelName(category, reporterUserId) {
   const stamp = `${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
   const suffix = String(reporterUserId || "user").replace(/[^0-9a-z]/gi, "").slice(-6) || "report";
   return `${sanitizeTicketName(category)}-${stamp}-${suffix}`.slice(0, 95);
+}
+
+function makePaymentTicketName(userId) {
+  const date = new Date();
+  const stamp = `${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+  const suffix = String(userId || "buyer").replace(/[^0-9a-z]/gi, "").slice(-6) || "buyer";
+  return `${PAYMENT_TICKET_NAME_PREFIX}-${stamp}-${suffix}`.slice(0, 95);
 }
 
 function formatField(value, fallback = "Not provided") {
@@ -238,6 +254,103 @@ function buildDisabledClosedRow() {
   );
 }
 
+function buildPaymentsPanelEmbed() {
+  return new EmbedBuilder()
+    .setTitle("💸 Robux Payments")
+    .setColor(0xf1c40f)
+    .setDescription(
+      [
+        "✨ Make payments with **Robux** for website subscriptions and future purchases.",
+        "",
+        "📦 **Current subscription**",
+        "Plus Membership: **378 Robux / month**",
+        "",
+        "📌 **Why Robux prices can be higher**",
+        "DevEx rates, Roblox taxes, and payout loss mean Robux pricing may cost more than normal cash pricing.",
+        "",
+        "⚠️ **Payments only**",
+        "This ticket system is only for purchases and payment questions. Website support and reports are not handled here. Use the website support/report system instead.",
+      ].join("\n")
+    )
+    .addFields({
+      name: "🧾 What this is for",
+      value: "Use the button below if you want to buy a subscription with Robux or ask about a Robux payment before purchasing.",
+      inline: false,
+    })
+    .setFooter({ text: PAYMENT_PANEL_SIGNATURE });
+}
+
+function buildSupportEmbedsV2(report) {
+  const detailChunks = chunkText(report.details, 1000);
+  const fields = [
+    { name: "Reason", value: formatField(report.categoryLabel || TICKET_REASON_LABELS[report.category] || report.category), inline: true },
+    { name: "Reporter User ID", value: formatField(report.reporter?.userId), inline: true },
+    { name: "Reporter Email", value: formatField(report.reporter?.email), inline: true },
+    { name: "Discord Username", value: formatField(report.reporter?.discordUsername), inline: true },
+    { name: "Reporter Name", value: formatField(report.reporter?.displayName), inline: true },
+  ];
+
+  if (report.reportedUserId) {
+    fields.push({ name: "Reported User ID", value: formatField(report.reportedUserId), inline: true });
+  }
+  if (report.pageUrl) {
+    fields.push({ name: "Page URL", value: formatField(report.pageUrl), inline: false });
+  }
+  fields.push({ name: "Submitted At", value: formatField(report.submittedAt), inline: true });
+  if (report.userAgent) {
+    fields.push({ name: "User Agent", value: formatField(report.userAgent).slice(0, 1000), inline: false });
+  }
+
+  const embeds = [
+    new EmbedBuilder()
+      .setTitle(`New Support Ticket: ${report.categoryLabel || TICKET_REASON_LABELS[report.category] || "Support Report"}`)
+      .setColor(0x57f287)
+      .addFields(...fields, {
+        name: "Report Details",
+        value: detailChunks[0],
+        inline: false,
+      }),
+  ];
+
+  for (let index = 1; index < detailChunks.length; index += 1) {
+    embeds.push(
+      new EmbedBuilder()
+        .setTitle(`Report Details (${index + 1})`)
+        .setColor(0x57f287)
+        .setDescription(detailChunks[index])
+    );
+  }
+
+  return embeds;
+}
+
+function buildPaymentsPanelRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(PURCHASE_BUTTON_ID).setStyle(ButtonStyle.Success).setEmoji("🛒").setLabel("Make a Purchase")
+  );
+}
+
+function buildPaymentTicketEmbed(interaction) {
+  return new EmbedBuilder()
+    .setTitle("💸 New Robux Payment Request")
+    .setColor(0x2ecc71)
+    .setDescription(
+      [
+        "Thanks for opening a payment ticket.",
+        "",
+        "🛍️ **Available right now**",
+        "Plus Membership: **378 Robux / month**",
+        "",
+        "📨 Tell us what you want to buy and confirm that you are paying with Robux.",
+        "⚠️ Support reports are not handled here. If you need support, submit it on the website instead.",
+      ].join("\n")
+    )
+    .addFields(
+      { name: "Buyer", value: `${interaction.user.tag} (${interaction.user.id})`, inline: false },
+      { name: "Opened At", value: new Date().toISOString(), inline: false }
+    );
+}
+
 async function ensureDiscordClient() {
   requireEnv("DISCORD_BOT_TOKEN", DISCORD_BOT_TOKEN);
   requireEnv("DISCORD_GUILD_ID", DISCORD_GUILD_ID);
@@ -298,6 +411,40 @@ async function findLogChannel(guild) {
   throw new Error(`Could not find the "${LOG_CHANNEL_FALLBACK_NAME}" log channel. Add DISCORD_TICKET_LOG_CHANNEL_ID or create that channel.`);
 }
 
+async function findPaymentsChannel(guild) {
+  if (DISCORD_PAYMENTS_CHANNEL_ID) {
+    const byId =
+      guild.channels.cache.get(DISCORD_PAYMENTS_CHANNEL_ID) ||
+      (await guild.channels.fetch(DISCORD_PAYMENTS_CHANNEL_ID).catch(() => null));
+    if (byId && byId.isTextBased()) {
+      return byId;
+    }
+  }
+
+  const cached = guild.channels.cache.find(
+    (channel) =>
+      channel &&
+      channel.type === ChannelType.GuildText &&
+      PAYMENT_PANEL_CHANNEL_FALLBACK_NAMES.includes(String(channel.name || "").toLowerCase())
+  );
+  if (cached) {
+    return cached;
+  }
+
+  const channels = await guild.channels.fetch();
+  const fetched = channels.find(
+    (channel) =>
+      channel &&
+      channel.type === ChannelType.GuildText &&
+      PAYMENT_PANEL_CHANNEL_FALLBACK_NAMES.includes(String(channel.name || "").toLowerCase())
+  );
+  if (fetched) {
+    return fetched;
+  }
+
+  throw new Error("Could not find the Robux payments channel. Add DISCORD_PAYMENTS_CHANNEL_ID or create a robux-payments channel.");
+}
+
 async function createTicketChannel(report) {
   const guild = await getGuild();
   const everyoneRole = guild.roles.everyone;
@@ -326,11 +473,93 @@ async function createTicketChannel(report) {
   });
 }
 
+async function findExistingPaymentTicket(guild, userId) {
+  const channels = await guild.channels.fetch();
+  return (
+    channels.find((channel) => {
+      if (!channel || channel.type !== ChannelType.GuildText) {
+        return false;
+      }
+      const name = String(channel.name || "");
+      const topic = String(channel.topic || "");
+      return !name.startsWith(CLOSED_NAME_PREFIX) && name.startsWith(`${PAYMENT_TICKET_NAME_PREFIX}-`) && topic.includes(`Buyer ${userId}`);
+    }) || null
+  );
+}
+
+async function createPaymentTicketChannel(interaction) {
+  const guild = await getGuild();
+  const existing = await findExistingPaymentTicket(guild, interaction.user.id);
+  if (existing) {
+    return existing;
+  }
+
+  const everyoneRole = guild.roles.everyone;
+  return guild.channels.create({
+    name: makePaymentTicketName(interaction.user.id),
+    type: ChannelType.GuildText,
+    parent: DISCORD_PAYMENT_CATEGORY_ID,
+    topic: `Payment ticket | Buyer ${interaction.user.id}`,
+    permissionOverwrites: [
+      {
+        id: everyoneRole.id,
+        deny: [PermissionFlagsBits.ViewChannel],
+      },
+      {
+        id: DISCORD_STAFF_ROLE_ID,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ReadMessageHistory,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.EmbedLinks,
+        ],
+      },
+      {
+        id: interaction.user.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ReadMessageHistory,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.EmbedLinks,
+        ],
+      },
+    ],
+  });
+}
+
+async function syncPaymentsPanel() {
+  const guild = await getGuild();
+  const channel = await findPaymentsChannel(guild);
+  const recentMessages = await channel.messages.fetch({ limit: 25 }).catch(() => null);
+  const existingPanel = recentMessages
+    ? recentMessages.find(
+        (message) =>
+          message.author?.id === client.user?.id &&
+          message.components.some((row) => row.components.some((component) => component.customId === PURCHASE_BUTTON_ID))
+      )
+    : null;
+
+  const payload = {
+    content: "💸 Robux payments and subscription purchases only.",
+    embeds: [buildPaymentsPanelEmbed()],
+    components: [buildPaymentsPanelRow()],
+  };
+
+  if (existingPanel) {
+    await existingPanel.edit(payload);
+    return existingPanel;
+  }
+
+  return channel.send(payload);
+}
+
 async function postTicketMessage(channel, report) {
   const attachment = parseAttachment(report.attachment);
   const payload = {
     content: `${SUPPORT_STAFF_MENTION || ""} 🎉 New website support ticket created.`.trim(),
-    embeds: buildSupportEmbeds(report),
+    embeds: buildSupportEmbedsV2(report),
     components: [buildOpenTicketRow()],
   };
 
@@ -477,11 +706,41 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (![CLOSE_BUTTON_ID, TRANSCRIPT_BUTTON_ID, DELETE_BUTTON_ID].includes(interaction.customId)) {
+  if (![CLOSE_BUTTON_ID, TRANSCRIPT_BUTTON_ID, DELETE_BUTTON_ID, PURCHASE_BUTTON_ID].includes(interaction.customId)) {
     return;
   }
 
   try {
+    if (interaction.customId === PURCHASE_BUTTON_ID) {
+      if (!interaction.inGuild()) {
+        await interaction.reply({
+          content: "⚠️ This purchase button only works inside the Discord server.",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      const channel = await createPaymentTicketChannel(interaction);
+      const recentMessages = await channel.messages.fetch({ limit: 5 }).catch(() => null);
+      const alreadyInitialized = recentMessages
+        ? recentMessages.some((message) => message.author?.id === client.user?.id && message.embeds.some((embed) => embed.title === "💸 New Robux Payment Request"))
+        : false;
+
+      if (!alreadyInitialized) {
+        await channel.send({
+          content: `${SUPPORT_STAFF_MENTION} ${interaction.user}`.trim(),
+          embeds: [buildPaymentTicketEmbed(interaction)],
+          components: [buildOpenTicketRow()],
+        });
+      }
+
+      await interaction.reply({
+        content: `🛒 Your payment ticket is ready: <#${channel.id}>`,
+        ephemeral: true,
+      });
+      return;
+    }
+
     if (!isStaffInteraction(interaction)) {
       await interaction.reply({
         content: "⛔ Only staff can use ticket controls.",
@@ -580,6 +839,23 @@ app.post("/support-report", verifySecret, async (req, res) => {
     console.error("[support-bot] support-report failed:", error.message);
     return res.status(error.statusCode || 500).json({
       error: error.message || "Could not create Discord support ticket.",
+    });
+  }
+});
+
+app.post("/payments/panel", verifySecret, async (_req, res) => {
+  try {
+    const message = await syncPaymentsPanel();
+    return res.json({
+      ok: true,
+      destination: "discord-payments-panel",
+      channelId: message.channelId,
+      messageId: message.id,
+    });
+  } catch (error) {
+    console.error("[support-bot] payments panel failed:", error.message);
+    return res.status(error.statusCode || 500).json({
+      error: error.message || "Could not sync the Robux payments panel.",
     });
   }
 });
