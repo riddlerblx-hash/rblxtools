@@ -2054,24 +2054,12 @@
     }
 
     function hasPlusFromPayload(payload) {
-      if (!payload || typeof payload !== "object") return false;
-      return Boolean(
-        payload.plus === true ||
-        payload.isPlus === true ||
-        payload.hasPlus === true ||
-        payload.premiumActive === true ||
-        payload.plusActive === true ||
-        payload.subscription === "plus" ||
-        payload.plan === "plus" ||
-        payload.tier === "plus" ||
-        (payload.user && (
-          payload.user.premiumActive === true ||
-          payload.user.plus === true ||
-          payload.user.isPlus === true ||
-          payload.user.plan === "plus"
-        ))
-      );
-    }
+  if (!payload || typeof payload !== "object") return false;
+  const directPremium = payload.premiumActive === true || payload.plusActive === true || payload.plus === true || payload.isPlus === true || payload.hasPlus === true;
+  const user = payload.user && typeof payload.user === "object" ? payload.user : null;
+  const userPremium = user && (user.premiumActive === true || user.plusActive === true || user.plus === true || user.isPlus === true || user.hasPlus === true);
+  return Boolean(directPremium || userPremium);
+}
 
     const PLUS_STATUS_KEY = "rblxtools_plus_cache";
 
@@ -2080,18 +2068,10 @@
         const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed.isPlus === "boolean") {
-            return parsed.isPlus;
-          }
+          if (parsed && parsed.isPlus === false) return false;
         }
       } catch (_error) {}
-
-      try {
-        const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
-        return hasPlusFromPayload(cachedUser) ? true : null;
-      } catch (_error) {
-        return null;
-      }
+      return null;
     }
 
     function getCachedAuthUser() {
@@ -2379,9 +2359,17 @@
       if (bytes[0] === 0x42 && bytes[1] === 0x4d) return "image/bmp";
       return "";
     }
+    function getAuthHeaders(extraHeaders) {
+      const headers = Object.assign({}, extraHeaders || {});
+      try {
+        const token = localStorage.getItem(TOKEN_KEY) || "";
+        if (token) headers.Authorization = "Bearer " + token;
+      } catch (_error) {}
+      return headers;
+    }
 
     async function fetchBinary(url) {
-      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      const response = await fetch(url, { mode: "cors", credentials: "omit", headers: getAuthHeaders() });
       if (!response.ok) {
         const contentType = response.headers.get("content-type") || "";
         if (contentType.includes("application/json")) {
@@ -2691,9 +2679,9 @@
     async function createGlbBlob() {
       const response = await fetch(API_BASE + "/ugc-bake-glb", {
         method: "POST",
-        headers: {
+        headers: getAuthHeaders({
           "Content-Type": "application/json"
-        },
+        }),
         body: JSON.stringify({
           assetId: state.assetId,
           objText: state.modelText,

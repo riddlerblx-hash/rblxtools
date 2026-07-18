@@ -1205,6 +1205,21 @@
       <div class="showcase-progress"><span id="showcaseProgress"></span></div>
     </section>
 
+    <section class="share-card">
+      <span class="share-kicker">Share This Tool</span>
+      <h3>Send this page to another creator</h3>
+      <p>Share the template downloader on Facebook, X, LinkedIn, WhatsApp, Telegram, or copy the direct page link for later.</p>
+      <div class="share-row">
+        <button class="share-btn share-fb" type="button" data-share-page="facebook">f</button>
+        <button class="share-btn share-x" type="button" data-share-page="x">X</button>
+        <button class="share-btn share-in" type="button" data-share-page="linkedin">in</button>
+        <button class="share-btn share-wa" type="button" data-share-page="whatsapp">wa</button>
+        <button class="share-btn share-tg" type="button" data-share-page="telegram">tg</button>
+        <button class="share-btn share-mail" type="button" data-share-page="email">@</button>
+      </div>
+      <button class="mini-btn primary share-copy-btn" type="button" data-copy-page-link="true">Copy Page Link</button>
+    </section>
+
     <section class="faq-wrap">
       <div class="faq-item open">
         <button class="faq-q" type="button">What does this tool download?</button>
@@ -1268,12 +1283,12 @@
     function getStoredToken() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (_e) { return ""; } }
 
     function hasPlusFromPayload(payload) {
-      if (!payload || typeof payload !== "object") return false;
-      return Boolean(
-        payload.plus === true || payload.isPlus === true || payload.hasPlus === true ||
-        payload.plusActive === true || payload.subscription === "plus" || payload.plan === "plus" || payload.tier === "plus"
-      );
-    }
+  if (!payload || typeof payload !== "object") return false;
+  const directPremium = payload.premiumActive === true || payload.plusActive === true || payload.plus === true || payload.isPlus === true || payload.hasPlus === true;
+  const user = payload.user && typeof payload.user === "object" ? payload.user : null;
+  const userPremium = user && (user.premiumActive === true || user.plusActive === true || user.plus === true || user.isPlus === true || user.hasPlus === true);
+  return Boolean(directPremium || userPremium);
+}
 
     function normalizeFavoriteTools(value) {
       if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 5);
@@ -1507,18 +1522,10 @@
         const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed.isPlus === "boolean") {
-            return parsed.isPlus;
-          }
+          if (parsed && parsed.isPlus === false) return false;
         }
       } catch (_error) {}
-
-      try {
-        const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
-        return hasPlusFromPayload(cachedUser) ? true : null;
-      } catch (_error) {
-        return null;
-      }
+      return null;
     }
 
     function writeCachedPlusStatus(isPlus) {
@@ -1907,6 +1914,57 @@
       video.addEventListener("ended", showCover);
     })();
   </script>
+  <script>
+    (function () {
+      function getShareUrl() {
+        return window.location.href;
+      }
+
+      function getShareText() {
+        return "Check out the Template Downloader on RBLXTools";
+      }
+
+      function shareTo(type) {
+        var shareUrl = encodeURIComponent(getShareUrl());
+        var shareText = encodeURIComponent(getShareText());
+        var link = "";
+        if (type === "facebook") link = "https://www.facebook.com/sharer/sharer.php?u=" + shareUrl;
+        if (type === "x") link = "https://twitter.com/intent/tweet?url=" + shareUrl + "&text=" + shareText;
+        if (type === "linkedin") link = "https://www.linkedin.com/sharing/share-offsite/?url=" + shareUrl;
+        if (type === "whatsapp") link = "https://api.whatsapp.com/send?text=" + shareText + "%20" + shareUrl;
+        if (type === "telegram") link = "https://t.me/share/url?url=" + shareUrl + "&text=" + shareText;
+        if (type === "email") link = "mailto:?subject=" + encodeURIComponent("Template Downloader - RBLXTools") + "&body=" + shareText + "%0A%0A" + shareUrl;
+        if (link) window.open(link, "_blank", "noopener,noreferrer");
+      }
+
+      async function copyPageLink(button) {
+        var original = button.textContent;
+        try {
+          await navigator.clipboard.writeText(getShareUrl());
+          button.textContent = "Copied Link";
+        } catch (_error) {
+          button.textContent = "Copy Failed";
+        }
+        setTimeout(function () {
+          button.textContent = original;
+        }, 1200);
+      }
+
+      document.querySelectorAll("[data-share-page]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          shareTo(button.getAttribute("data-share-page"));
+        });
+      });
+
+      var copyButton = document.querySelector("[data-copy-page-link]");
+      if (copyButton) {
+        copyButton.addEventListener("click", function () {
+          copyPageLink(copyButton);
+        });
+      }
+    })();
+  </script>
+
   <script src="./global-shell.js"></script>
 </body>
 

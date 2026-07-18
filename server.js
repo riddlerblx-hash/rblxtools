@@ -1870,10 +1870,11 @@ function getStoredStripeMembership(row) {
   const normalizedStatus = rawStatus.toLowerCase();
   const currentPeriodStartAt = parseIsoDate(row.stripe_current_period_start_at)?.toISOString() || null;
   const currentPeriodEndAt = parseIsoDate(row.stripe_current_period_end_at)?.toISOString() || null;
+  const stripePeriodEnded = Boolean(currentPeriodEndAt && parseIsoDate(currentPeriodEndAt).getTime() <= Date.now());
   const stripeDaysTotalRaw = Number.parseInt(String(row.stripe_days_total ?? ""), 10);
   const stripeDaysTotal = Number.isFinite(stripeDaysTotalRaw) ? Math.max(0, stripeDaysTotalRaw) : null;
   return buildMembershipBreakdownEntry({
-    active: isPremiumStatus(normalizedStatus),
+    active: isPremiumStatus(normalizedStatus) && !stripePeriodEnded,
     totalDays: stripeDaysTotal,
     daysLeft: currentPeriodEndAt ? undefined : 0,
     expiresAt: currentPeriodEndAt,
@@ -1930,7 +1931,7 @@ function buildCombinedMembershipSnapshot(stripeMembership, complimentaryMembersh
     ? null
     : stripeTotal + complimentaryTotal;
   const plusDaysLeft = stripeLeft + complimentaryLeft;
-  const premiumActive = Boolean(stripe.active || complimentary.active || plusDaysLeft > 0 || row?.premium_active);
+  const premiumActive = Boolean(stripe.active || complimentary.active || plusDaysLeft > 0);
   const membershipSource = hasStripeData && hasComplimentaryData
     ? "stripe + complimentary"
     : hasStripeData
@@ -1944,7 +1945,7 @@ function buildCombinedMembershipSnapshot(stripeMembership, complimentaryMembersh
 
   return {
     premiumActive,
-    plan: premiumActive ? "plus" : (row?.plan || "free"),
+    plan: premiumActive ? "plus" : "free",
     stripeSubscriptionStatus: stripe.status || row?.stripe_subscription_status || null,
     complimentaryExpiresAt: complimentary.expiresAt || complimentary.currentPeriodEndAt || null,
     complimentaryActive: Boolean(complimentary.active),
@@ -2312,7 +2313,7 @@ async function getStripeMembershipFromSubscriptions(customerId) {
   const plusDaysLeft = getDaysLeftUntil(currentPeriodEndAt);
 
   return buildMembershipBreakdownEntry({
-    active: isPremiumStatus(status),
+    active: isPremiumStatus(status) && (!currentPeriodEndAt || plusDaysLeft > 0),
     totalDays: getDaysBetween(currentPeriodStartAt, currentPeriodEndAt),
     daysLeft: plusDaysLeft,
     expiresAt: currentPeriodEndAt,
@@ -3334,6 +3335,17 @@ async function requireAuthenticatedUser(req) {
     throw error;
   }
 
+  return user;
+}
+
+async function requireActivePlusUser(req) {
+  const user = await requireAuthenticatedUser(req);
+  const membership = await resolveMembershipSnapshot(user);
+  if (!membership.premiumActive) {
+    const error = new Error("This tool requires an active RBLXTools Plus subscription.");
+    error.statusCode = 403;
+    throw error;
+  }
   return user;
 }
 
@@ -6884,6 +6896,7 @@ app.get("/ugc-texture", async (req, res) => {
   }
 
   try {
+    await requireActivePlusUser(req);
     const textureAsset = await resolveImageAssetFromRobloxAsset(id, { maxDepth: 5 });
 
     if (!textureAsset) {
@@ -6902,6 +6915,9 @@ app.get("/ugc-texture", async (req, res) => {
     return res.send(textureAsset.buffer);
   } catch (error) {
     console.error("UGC texture fetch failed:", error);
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
     if (error?.code === 403) {
       return res.status(403).json({ error: error.message });
     }
@@ -6931,6 +6947,7 @@ app.post("/ugc-bake-glb", async (req, res) => {
   let tempDir = null;
 
   try {
+    await requireActivePlusUser(req);
     const textureAsset = await resolveImageAssetFromRobloxAsset(assetId, { maxDepth: 5 });
 
     if (!textureAsset) {

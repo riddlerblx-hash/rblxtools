@@ -2811,18 +2811,15 @@
 
   function hasPlusFromPayload(payload) {
     if (!payload || typeof payload !== "object") return false;
-    return Boolean(
-      payload.plus === true || payload.isPlus === true || payload.hasPlus === true ||
-      payload.premiumActive === true || payload.plusActive === true ||
-      payload.subscription === "plus" || payload.plan === "plus" ||
-      payload.tier === "plus" ||
-      (payload.user && (
-        payload.user.premiumActive === true ||
-        payload.user.plus === true ||
-        payload.user.isPlus === true ||
-        payload.user.plan === "plus"
-      ))
+    var premiumFlag = payload.premiumActive === true || payload.plusActive === true || payload.plus === true || payload.isPlus === true || payload.hasPlus === true;
+    var nestedPremiumFlag = payload.user && (
+      payload.user.premiumActive === true ||
+      payload.user.plusActive === true ||
+      payload.user.plus === true ||
+      payload.user.isPlus === true ||
+      payload.user.hasPlus === true
     );
+    return Boolean(premiumFlag || nestedPremiumFlag);
   }
 
   function buildUserStateFromPayload(payload, moderationOverride) {
@@ -2844,6 +2841,45 @@
       isAdmin: Boolean(user && user.isAdmin),
       moderation: moderationOverride || (payload && payload.moderation ? payload.moderation : shellState.moderation)
     };
+  }
+
+  async function refreshMembershipStateFromServer() {
+    if (shellState.membershipRefreshInFlight) return;
+    var token = getToken();
+    if (!token) return;
+    shellState.membershipRefreshInFlight = true;
+    try {
+      var response = await fetch(API_BASE + "/auth/me", {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + token,
+          "X-RBLX-Device-Id": shellState.deviceId || getDeviceId()
+        }
+      });
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          saveCachedAuthUser(null);
+          updateAuthUi(getImmediateUserState());
+        }
+        return;
+      }
+      var payload = await response.json().catch(function () { return null; });
+      if (payload && payload.user) {
+        applyMembershipPayload(payload);
+      }
+    } catch (_error) {
+    } finally {
+      shellState.membershipRefreshInFlight = false;
+    }
+  }
+
+  function initMembershipRefresh() {
+    if (shellState.membershipRefreshTimer) return;
+    shellState.membershipRefreshTimer = window.setInterval(refreshMembershipStateFromServer, 30000);
+    window.addEventListener("focus", refreshMembershipStateFromServer);
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) refreshMembershipStateFromServer();
+    });
   }
 
   function applyMembershipPayload(payload) {
@@ -3255,6 +3291,7 @@
     initAdminWindow();
     initRulesLink();
     loadPublicModerationState();
+    initMembershipRefresh();
     window.addEventListener("resize", renderChatRainOverlay);
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.addEventListener("click", openAdminWindow);
@@ -3290,7 +3327,10 @@
       }
     });
     updateAuthUi(initialState);
-    resolveUserState().then(updateAuthUi).catch(function () {
+    resolveUserState().then(function (state) {
+      updateAuthUi(state);
+      refreshMembershipStateFromServer();
+    }).catch(function () {
       updateAuthUi({
         loggedIn: false,
         plan: "guest",
