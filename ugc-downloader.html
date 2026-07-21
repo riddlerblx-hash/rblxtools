@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UGC Downloader - RBLXTools</title>
-  <meta name="description" content="Download supported Roblox UGC OBJ files and related assets with the RBLXTools UGC Downloader." />
+  <title>UGC - RBLXTools</title>
+  <meta name="description" content="Download supported Roblox UGC OBJ files and related assets with the RBLXTools UGC." />
   <style>
     html, body { margin: 0; min-height: 100%; color: #ffffff; background: transparent !important; }
     body {
@@ -863,8 +863,8 @@
 
   <main>
     <section class="hero">
-      <h1><span>Roblox UGC OBJ</span><span>Downloader</span></h1>
-      <p>Preview and download supported Roblox UGC accessories as OBJ files using the exact same overall page layout as template-downloader.</p>
+      <h1><span>Roblox</span><span>UGC</span></h1>
+      <p>Preview and access supported Roblox UGC accessories as OBJ files using the same overall page layout as the clothing tool.</p>
     </section>
 
     <section class="top-grid">
@@ -878,7 +878,7 @@
 
       <h2 id="roblox-ugc-title">
         <span>Roblox UGC</span>
-        <span>OBJ Downloader</span>
+        <span>UGC</span>
       </h2>
 
       <p id="roblox-ugc-subtitle">Preview and download supported UGC accessories as OBJ files.</p>
@@ -951,9 +951,9 @@
             <h3><span>RBLXTools</span><span><span class="plus-word">Plus</span> Plan</span></h3>
             <p>RBTools <span class="plus-word">Plus</span> unlocks the premium side of the website with bulk usage upgrades, premium creator tools, cleaner visuals, and extra account cosmetics built for heavy Roblox workflows.</p>
             <div class="perk-list">
-              <div class="perk"><strong>Animation Downloader</strong><span>Open Animation Downloader access as part of your premium tool set.</span></div>
+              <div class="perk"><strong>Animation Tools</strong><span>Open Animation Tools access as part of your premium tool set.</span></div>
               <div class="perk"><strong>UGC Texture Baking</strong><span>Unlock texture baking tools for cleaner UGC creator workflows.</span></div>
-              <div class="perk"><strong>Bulk downloads and bulk tool usage</strong><span>Use supported tools faster with 2-5 at a time workflows where available.</span></div>
+              <div class="perk"><strong>Bulk actions and faster tool usage</strong><span>Use supported tools faster with 2-5 at a time workflows where available.</span></div>
               <div class="perk"><strong>Cool chat tag cosmetic</strong><span>Show off a premium member cosmetic inside the live site chat experience.</span></div>
               <div class="perk"><strong>More premium website feel</strong><span>Get a more polished account-side experience across premium parts of the site.</span></div>
               <div class="perk"><strong>No site advertisements</strong><span>Use the website with a cleaner premium experience and no site ads.</span></div>
@@ -1604,7 +1604,7 @@
       status.innerText = ids.length > 1 ? "OBJ assets found ✓ Ready to download" : "OBJ found ✓ Ready to download";
 
       renderSlides(slides);
-      rememberToolActivity("UGC Downloader");
+      rememberToolActivity("UGC");
       scheduleEmbedHeightReport();
       setTimeout(scheduleEmbedHeightReport, 150);
       setTimeout(scheduleEmbedHeightReport, 500);
@@ -1700,7 +1700,7 @@
       }
 
       function getShareText() {
-        return "Check out the UGC Downloader on RBLXTools";
+        return "Check out the UGC on RBLXTools";
       }
 
       function shareTo(type) {
@@ -1712,7 +1712,7 @@
         if (type === "linkedin") link = "https://www.linkedin.com/sharing/share-offsite/?url=" + shareUrl;
         if (type === "whatsapp") link = "https://api.whatsapp.com/send?text=" + shareText + "%20" + shareUrl;
         if (type === "telegram") link = "https://t.me/share/url?url=" + shareUrl + "&text=" + shareText;
-        if (type === "email") link = "mailto:?subject=" + encodeURIComponent("UGC Downloader - RBLXTools") + "&body=" + shareText + "%0A%0A" + shareUrl;
+        if (type === "email") link = "mailto:?subject=" + encodeURIComponent("UGC - RBLXTools") + "&body=" + shareText + "%0A%0A" + shareUrl;
         if (link) window.open(link, "_blank", "noopener,noreferrer");
       }
 

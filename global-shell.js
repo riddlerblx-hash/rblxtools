@@ -111,14 +111,14 @@
       title: "Tools",
       items: [
         { href: "./index", label: "Home", icon: "home" },
-        { href: "./template-downloader", label: "Template Downloader", icon: "shirt" },
+        { href: "./template-downloader", label: "Clothing", icon: "shirt" },
         { href: "./template-background-changer", label: "Background Changer", icon: "spark" },
-        { href: "./ugc-downloader", label: "UGC Downloader", icon: "hat" },
-        { href: "./media-downloader", label: "Media Downloader", icon: "media" },
-        { href: "./audio-downloader", label: "Audio Downloader", icon: "audio" },
+        { href: "./ugc-downloader", label: "UGC", icon: "hat" },
+        { href: "./media-downloader", label: "Media", icon: "media" },
+        { href: "./audio-downloader", label: "Audio", icon: "audio" },
         { href: "./robux-calculator", label: "Robux Calculator", icon: "calc" },
         { href: "./texture-baker", label: "Texture Baker", icon: "texture" },
-        { href: "./animation-spoofer", label: "Animation Spoofer", icon: "rig" }
+        { href: "./animation-spoofer", label: "Animations", icon: "rig" }
       ]
     },
     {
@@ -1004,6 +1004,81 @@
         "</section>"
       );
     }).join("");
+  }
+
+
+  function buildFooterLinkGroupMarkup(title, items) {
+    if (!Array.isArray(items) || !items.length) return "";
+    var links = items.map(function (item) {
+      return '<a href="' + item.href + '">' + escapeHtml(item.label) + "</a>";
+    }).join("");
+    return (
+      '<section class="rblx-shell-footer-group">' +
+        '<h3 class="rblx-shell-footer-title">' + escapeHtml(title) + "</h3>" +
+        '<div class="rblx-shell-footer-links">' + links + "</div>" +
+      "</section>"
+    );
+  }
+
+  function buildFooterMarkup() {
+    var year = new Date().getFullYear();
+    return (
+      '<footer class="rblx-shell-footer">' +
+        '<div class="rblx-shell-footer-top">' +
+          '<section class="rblx-shell-footer-brand">' +
+            '<div class="rblx-shell-footer-kicker">RBLXTools</div>' +
+            '<h2>Creator tools, cleaner workflows, and community support.</h2>' +
+            '<p>Browse the full site faster, jump between creator pages, and support future free updates from one place.</p>' +
+            '<div class="rblx-shell-footer-actions">' +
+              '<a class="rblx-shell-footer-action is-primary" href="./subscriptions">View Plans</a>' +
+              '<a class="rblx-shell-footer-action" href="https://ko-fi.com/rblxtools" target="_blank" rel="noopener noreferrer">Support RBLXTools</a>' +
+            "</div>" +
+          "</section>" +
+          '<div class="rblx-shell-footer-grid">' +
+            buildFooterLinkGroupMarkup("Tools", [
+              { href: "./index", label: "Home" },
+              { href: "./template-downloader", label: "Clothing" },
+              { href: "./template-background-changer", label: "Background Changer" },
+              { href: "./ugc-downloader", label: "UGC" },
+              { href: "./media-downloader", label: "Media" },
+              { href: "./audio-downloader", label: "Audio" },
+              { href: "./robux-calculator", label: "Robux Calculator" },
+              { href: "./texture-baker", label: "Texture Baker" },
+              { href: "./animation-spoofer", label: "Animations" }
+            ]) +
+            buildFooterLinkGroupMarkup("Account", [
+              { href: "./subscriptions", label: "Subscriptions" },
+              { href: "./account-overview", label: "Account Overview" },
+              { href: "./login", label: "Login / Sign Up" }
+            ]) +
+            buildFooterLinkGroupMarkup("Info", [
+              { href: "./about-us", label: "About Us" },
+              { href: "./privacy-policy", label: "Privacy Policy" },
+              { href: "./terms-and-conditions", label: "Terms & Conditions" }
+            ]) +
+            '<section class="rblx-shell-footer-group">' +
+              '<h3 class="rblx-shell-footer-title">Community</h3>' +
+              '<div class="rblx-shell-footer-links">' +
+                '<a href="https://discord.gg/j5JbFdj47Q" target="_blank" rel="noopener noreferrer">Discord</a>' +
+                '<a href="https://x.com/Reese28575571" target="_blank" rel="noopener noreferrer">X</a>' +
+                '<a href="https://www.youtube.com/@ItzReeseRBLX" target="_blank" rel="noopener noreferrer">YouTube</a>' +
+                '<a href="https://www.twitch.tv/2muchreese" target="_blank" rel="noopener noreferrer">Twitch</a>' +
+              "</div>" +
+              '<div class="rblx-shell-footer-socials">' +
+                '<a href="https://discord.gg/j5JbFdj47Q" target="_blank" rel="noopener noreferrer" aria-label="Discord">' + getSocialIcon("discord") + "</a>" +
+                '<a href="https://x.com/Reese28575571" target="_blank" rel="noopener noreferrer" aria-label="X">' + getSocialIcon("x") + "</a>" +
+                '<a href="https://www.youtube.com/@ItzReeseRBLX" target="_blank" rel="noopener noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + "</a>" +
+                '<a href="https://www.twitch.tv/2muchreese" target="_blank" rel="noopener noreferrer" aria-label="Twitch">' + getSocialIcon("twitch") + "</a>" +
+              "</div>" +
+            "</section>" +
+          "</div>" +
+        "</div>" +
+        '<div class="rblx-shell-footer-bottom">' +
+          '<span>© ' + year + ' RBLXTools. All rights reserved.</span>' +
+          '<span>Built for Roblox creator workflows, cleaner access, and easier navigation.</span>' +
+        "</div>" +
+      "</footer>"
+    );
   }
 
   function buildAuthMarkup() {
@@ -3108,14 +3183,14 @@
     var showcaseProgressTimer = null;
     var activeToolIndex = 0;
     var toolsData = [
-      { name: "Template Downloader", desc: "Download supported Roblox clothing templates fast.", href: "./template-downloader", plus: false, icon: "spark", tag: "Template Tool", tone: "linear-gradient(180deg,#50395a,#2d2035)" },
+      { name: "Clothing", desc: "Access supported Roblox clothing templates fast.", href: "./template-downloader", plus: false, icon: "spark", tag: "Clothing Tool", tone: "linear-gradient(180deg,#50395a,#2d2035)" },
       { name: "Template Background Changer", desc: "Remove marks and restore a clean classic template background.", href: "./template-background-changer", plus: false, icon: "spark", tag: "Cleanup Tool", tone: "linear-gradient(180deg,#31506a,#1f2f42)" },
-      { name: "UGC Downloader", desc: "Download supported UGC accessory files for creator workflows.", href: "./ugc-downloader", plus: false, icon: "hat", tag: "UGC Tool", tone: "linear-gradient(180deg,#2a4a6c,#1e2f42)" },
+      { name: "UGC", desc: "Access supported UGC accessory files for creator workflows.", href: "./ugc-downloader", plus: false, icon: "hat", tag: "UGC Tool", tone: "linear-gradient(180deg,#2a4a6c,#1e2f42)" },
       { name: "Robux Calculator", desc: "Fast conversion math for Robux and pricing plans.", href: "./robux-calculator", plus: false, icon: "calc", tag: "Value Tool", tone: "linear-gradient(180deg,#3e5b35,#27391f)" },
-      { name: "Media Downloader", desc: "Pull supported media assets quickly.", href: "./media-downloader", plus: false, icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#5a3b61,#32213a)" },
-      { name: "Audio Downloader", desc: "Fetch audio asset files from supported IDs.", href: "./audio-downloader", plus: false, icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#6a3e3a,#3f2523)" },
+      { name: "Media", desc: "Access supported media assets quickly.", href: "./media-downloader", plus: false, icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#5a3b61,#32213a)" },
+      { name: "Audio", desc: "Fetch audio asset files from supported IDs.", href: "./audio-downloader", plus: false, icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#6a3e3a,#3f2523)" },
       { name: "Texture Baker", desc: "Premium texture workflow and cleaner UGC output.", href: "./texture-baker", plus: true, icon: "texture", tag: "Plus Tool", tone: "linear-gradient(180deg,#4a406b,#2a2441)" },
-      { name: "Animation Spoofer", desc: "Premium animation utility for advanced workflows.", href: "./animation-spoofer", plus: true, icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
+      { name: "Animations", desc: "Premium animation utility for advanced workflows.", href: "./animation-spoofer", plus: true, icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
     ].filter(function (tool) {
       if (tool.adminOnly && !shellState.isAdmin) return false;
       return String(tool.href || "").replace(/^\.\//, "").replace(/\.html$/, "") !== currentPath;

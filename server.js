@@ -7420,13 +7420,13 @@ function emitSpecialAnnouncement(room, text) {
 }
 
 const allowedToolActivityLabels = {
-  "template-downloader": "Template Downloader",
+  "template-downloader": "Clothing",
   "background-changer": "Background Changer",
-  "ugc-downloader": "UGC Downloader",
-  "media-downloader": "Media Downloader",
-  "audio-downloader": "Audio Downloader",
+  "ugc-downloader": "UGC",
+  "media-downloader": "Media",
+  "audio-downloader": "Audio",
   "texture-baker": "Texture Baker",
-  "animation-spoofer": "Animation Spoofer",
+  "animation-spoofer": "Animations",
   "game-launcher": "Game Joiner",
 };
 

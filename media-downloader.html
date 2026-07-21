@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Media Downloader - RBLXTools</title>
-  <meta name="description" content="Download supported Roblox media by ID or link with the RBLXTools Media Downloader, including previews and file access." />
+  <title>Media - RBLXTools</title>
+  <meta name="description" content="Download supported Roblox media by ID or link with the RBLXTools Media, including previews and file access." />
   <style>
     html, body { margin: 0; min-height: 100%; color: #ffffff; background: transparent !important; }
     body {
@@ -684,7 +684,7 @@
 
   <main>
     <section class="hero">
-      <h1><span>Roblox Media</span><span>Downloader</span></h1>
+      <h1><span>Roblox</span><span>Media</span></h1>
       <p>Fetch thumbnails, logos, icons, and other Roblox media types with the same clean template-downloader layout.</p>
     </section>
 
@@ -699,7 +699,7 @@
 
       <h2 class="rblx-title">
         <span>Media</span>
-        <span>Downloader</span>
+        <span>Media</span>
       </h2>
 
       <p class="rblx-subtitle">Download Roblox game thumbnails, logos, group icons, badge icons, game pass icons, and more.</p>
@@ -769,7 +769,7 @@
               <source src="./assets/tutorial-videos/Media%20Downloader%20How%20To.mp4" type="video/mp4" />
               Your browser does not support the tutorial video.
             </video>
-            <button id="mediaTutorialCover" class="tutorial-video-cover" type="button" aria-label="Play media downloader tutorial video">
+            <button id="mediaTutorialCover" class="tutorial-video-cover" type="button" aria-label="Play media tutorial video">
               <span class="tutorial-video-cover__icon">&#9654;</span>
               <span class="tutorial-video-cover__text">Click to watch tutorial</span>
             </button>
@@ -794,9 +794,9 @@
             <h3><span>RBLXTools</span><span><span class="plus-word">Plus</span> Plan</span></h3>
             <p>RBTools <span class="plus-word">Plus</span> unlocks the premium side of the website with bulk usage upgrades, premium creator tools, cleaner visuals, and extra account cosmetics built for heavy Roblox workflows.</p>
             <div class="perk-list">
-              <div class="perk"><strong>Animation Downloader</strong><span>Open Animation Downloader access as part of your premium tool set.</span></div>
+              <div class="perk"><strong>Animation Tools</strong><span>Open Animation Tools access as part of your premium tool set.</span></div>
               <div class="perk"><strong>UGC Texture Baking</strong><span>Unlock texture baking tools for cleaner UGC creator workflows.</span></div>
-              <div class="perk"><strong>Bulk downloads and bulk tool usage</strong><span>Use supported tools faster with 2-5 at a time workflows where available.</span></div>
+              <div class="perk"><strong>Bulk actions and faster tool usage</strong><span>Use supported tools faster with 2-5 at a time workflows where available.</span></div>
               <div class="perk"><strong>Cool chat tag cosmetic</strong><span>Show off a premium member cosmetic inside the live site chat experience.</span></div>
               <div class="perk"><strong>More premium website feel</strong><span>Get a more polished account-side experience across premium parts of the site.</span></div>
               <div class="perk"><strong>No site advertisements</strong><span>Use the website with a cleaner premium experience and no site ads.</span></div>
@@ -838,7 +838,7 @@
     <section class="share-card">
       <span class="share-kicker">Share This Tool</span>
       <h3>Send this page to another creator</h3>
-      <p>Share the media downloader on Facebook, X, LinkedIn, WhatsApp, Telegram, or copy the direct page link for later.</p>
+      <p>Share the media on Facebook, X, LinkedIn, WhatsApp, Telegram, or copy the direct page link for later.</p>
       <div class="share-row">
         <button class="share-btn share-fb" type="button" data-share-page="facebook">f</button>
         <button class="share-btn share-x" type="button" data-share-page="x">X</button>
@@ -1287,7 +1287,7 @@
         }
 
         renderPreview(firstGroup);
-        rememberToolActivity("Media Downloader");
+        rememberToolActivity("Media");
         setStatus("Media loaded. Download is ready.", "success");
       } catch (error) {
         resultBox.innerHTML = buildDefaultPreview();
@@ -1390,7 +1390,7 @@
       }
 
       function getShareText() {
-        return "Check out the Media Downloader on RBLXTools";
+        return "Check out the Media on RBLXTools";
       }
 
       function shareTo(type) {
@@ -1402,7 +1402,7 @@
         if (type === "linkedin") link = "https://www.linkedin.com/sharing/share-offsite/?url=" + shareUrl;
         if (type === "whatsapp") link = "https://api.whatsapp.com/send?text=" + shareText + "%20" + shareUrl;
         if (type === "telegram") link = "https://t.me/share/url?url=" + shareUrl + "&text=" + shareText;
-        if (type === "email") link = "mailto:?subject=" + encodeURIComponent("Media Downloader - RBLXTools") + "&body=" + shareText + "%0A%0A" + shareUrl;
+        if (type === "email") link = "mailto:?subject=" + encodeURIComponent("Media - RBLXTools") + "&body=" + shareText + "%0A%0A" + shareUrl;
         if (link) window.open(link, "_blank", "noopener,noreferrer");
       }
 
