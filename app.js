@@ -3915,6 +3915,23 @@ function collectCreatorStoreDetailIds(payload) {
   return Array.from(ids);
 }
 
+function extractMeshIds(text) {
+  const ids = new Set();
+  const patterns = [
+    /<Content name="MeshId">[\s\S]*?<url>([\s\S]*?)<\/url>[\s\S]*?<\/Content>/gi,
+    /<string name="MeshId">([\s\S]*?)<\/string>/gi,
+    /MeshId[\s\S]{0,500}?(?:rbxassetid:\/\/|asset\/\?id=)(\d+)/gi,
+  ];
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      const id = extractAssetIdFromUrl(match[1] || match[0]) || match[1];
+      if (id && /^[0-9]+$/.test(String(id))) ids.add(String(id));
+    }
+  }
+  return Array.from(ids);
+}
+
 function extractMeshId(text) {
   const contentMeshMatch = text.match(
     /<Content name="MeshId">[\s\S]*?<url>([\s\S]*?)<\/url>[\s\S]*?<\/Content>/i
@@ -4761,6 +4778,47 @@ async function resolveImageAssetFromRobloxAsset(startId, options = {}) {
   return null;
 }
 
+async function resolveAllMeshAssetsFromRobloxAsset(startId, options = {}) {
+  const maxDepth = Number.isFinite(options.maxDepth) ? options.maxDepth : 5;
+  const visited = new Set();
+  const queue = [{ id: startId, depth: 0 }];
+  const meshAssets = [];
+  const seenMeshIds = new Set();
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current?.id || visited.has(current.id) || current.depth > maxDepth) continue;
+    visited.add(current.id);
+
+    const assetFetch = await fetchBuffer(`https://assetdelivery.roblox.com/v1/asset/?id=${current.id}`);
+    const directVersion = assetFetch.buffer.subarray(0, 16).toString("ascii");
+    if (directVersion.startsWith("version ")) {
+      if (!seenMeshIds.has(String(current.id))) {
+        meshAssets.push({ assetId: String(current.id), buffer: assetFetch.buffer, response: assetFetch.response });
+        seenMeshIds.add(String(current.id));
+      }
+      continue;
+    }
+
+    const assetText = assetFetch.buffer.toString("utf8");
+    if (isAuthRequiredResponse(assetText)) {
+      const authError = new Error("Roblox blocked access. Add ROBLOSECURITY cookie.");
+      authError.code = 403;
+      throw authError;
+    }
+
+    for (const meshId of extractMeshIds(assetText)) {
+      if (!visited.has(meshId)) queue.unshift({ id: meshId, depth: current.depth + 1 });
+    }
+
+    for (const nextId of extractReferencedAssetIds(assetText)) {
+      if (!visited.has(nextId)) queue.push({ id: nextId, depth: current.depth + 1 });
+    }
+  }
+
+  return meshAssets;
+}
+
 async function resolveMeshAssetFromRobloxAsset(startId, options = {}) {
   const maxDepth = Number.isFinite(options.maxDepth) ? options.maxDepth : 5;
   const visited = new Set();
@@ -4857,6 +4915,50 @@ function buildBakedObjText(objText, mtlFileName) {
     cleaned,
     "",
   ].join("\n");
+}
+
+function remapObjFaceToken(token, vertexOffset, uvOffset, normalOffset) {
+  const parts = String(token || "").split("/");
+  const vertexIndex = parts[0] ? String(Number(parts[0]) + vertexOffset) : "";
+  const uvIndex = parts.length > 1 && parts[1] ? String(Number(parts[1]) + uvOffset) : "";
+  const normalIndex = parts.length > 2 && parts[2] ? String(Number(parts[2]) + normalOffset) : "";
+  if (parts.length === 1) return vertexIndex;
+  if (parts.length === 2) return `${vertexIndex}/${uvIndex}`;
+  return `${vertexIndex}/${uvIndex}/${normalIndex}`;
+}
+
+function mergeObjTexts(objEntries) {
+  let vertexOffset = 0;
+  let uvOffset = 0;
+  let normalOffset = 0;
+  const output = ["# Exported by RBLX Tools", "o rblxtools_multi_mesh"];
+
+  for (let index = 0; index < objEntries.length; index += 1) {
+    const entry = objEntries[index];
+    const lines = String(entry?.objText || "").split(/\r?\n/);
+    let entryVertices = 0;
+    let entryUvs = 0;
+    let entryNormals = 0;
+    output.push(`g mesh_${index + 1}_${entry?.meshId || "part"}`);
+    for (const rawLine of lines) {
+      const line = String(rawLine || "").trim();
+      if (!line || line.startsWith("#") || line.startsWith("mtllib ") || line.startsWith("usemtl ")) continue;
+      if (line.startsWith("o ") || line.startsWith("g ")) continue;
+      if (line.startsWith("v ")) { output.push(line); entryVertices += 1; continue; }
+      if (line.startsWith("vt ")) { output.push(line); entryUvs += 1; continue; }
+      if (line.startsWith("vn ")) { output.push(line); entryNormals += 1; continue; }
+      if (line.startsWith("f ")) {
+        const tokens = line.slice(2).trim().split(/\s+/).filter(Boolean);
+        output.push("f " + tokens.map((token) => remapObjFaceToken(token, vertexOffset, uvOffset, normalOffset)).join(" "));
+      }
+    }
+    vertexOffset += entryVertices;
+    uvOffset += entryUvs;
+    normalOffset += entryNormals;
+  }
+
+  output.push("");
+  return output.join("\n");
 }
 
 async function parseRobloxMeshToObj(buffer, sourceId) {
@@ -7149,15 +7251,15 @@ app.get("/ugc-obj", async (req, res) => {
     }
 
     const directVersion = assetFetch.buffer.subarray(0, 16).toString("ascii");
-    const meshAsset = directVersion.startsWith("version ")
-      ? {
+    const meshAssets = directVersion.startsWith("version ")
+      ? [{
           assetId: id,
           buffer: assetFetch.buffer,
           response: assetFetch.response,
-        }
-      : await resolveMeshAssetFromRobloxAsset(id, { maxDepth: 5 });
+        }]
+      : await resolveAllMeshAssetsFromRobloxAsset(id, { maxDepth: 5 });
 
-    if (!meshAsset?.assetId || !meshAsset?.buffer) {
+    if (!meshAssets?.length) {
       if (debug) {
         return res.status(404).json({
           error: "No mesh id found",
@@ -7170,12 +7272,24 @@ app.get("/ugc-obj", async (req, res) => {
       });
     }
 
-    const meshId = meshAsset.assetId;
+    const meshId = meshAssets[0].assetId;
+    const meshIds = meshAssets.map((entry) => entry.assetId);
 
     let meshObj;
 
     try {
-      meshObj = await parseRobloxMeshToObj(meshAsset.buffer, id);
+      if (meshAssets.length === 1) {
+        meshObj = await parseRobloxMeshToObj(meshAssets[0].buffer, meshAssets[0].assetId);
+      } else {
+        const objEntries = [];
+        for (const meshAsset of meshAssets) {
+          objEntries.push({
+            meshId: meshAsset.assetId,
+            objText: await parseRobloxMeshToObj(meshAsset.buffer, meshAsset.assetId),
+          });
+        }
+        meshObj = mergeObjTexts(objEntries);
+      }
     } catch (error) {
       if (debug) {
         return res.status(500).json({
@@ -7195,6 +7309,7 @@ app.get("/ugc-obj", async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Content-Disposition", `attachment; filename="rblxtools-ugc-${id}.obj"`);
     res.setHeader("X-Roblox-Mesh-Id", meshId);
+    res.setHeader("X-Roblox-Mesh-Ids", meshIds.join(","));
 
     return res.send(meshObj);
   } catch (error) {

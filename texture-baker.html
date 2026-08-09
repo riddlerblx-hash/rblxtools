@@ -1508,7 +1508,26 @@
           <div class="stack tool-controls">
             <div class="label">Roblox UGC Asset ID</div>
             <input id="assetIdInput" class="text-input" type="text" inputmode="numeric" placeholder="Enter one Roblox UGC asset ID to fetch its matching texture">
-            <button id="grabTextureButton" class="action action-primary" type="button">Grab Texture</button>
+            <div>
+  <div class="label">Item Type</div>
+  <div class="format-grid" style="margin-top:8px;">
+    <button id="modeUgc" class="format-option is-selected" type="button" data-item-mode="ugc">
+      <div class="format-topline">
+        <strong>UGC Item</strong>
+        <span class="format-chip">Default</span>
+      </div>
+      <span>Best for most modern Roblox accessory items and creator uploads.</span>
+    </button>
+    <button id="modeClassic" class="format-option" type="button" data-item-mode="classic">
+      <div class="format-topline">
+        <strong>Classic Item</strong>
+        <span class="format-chip">Legacy</span>
+      </div>
+      <span>Use this for older Roblox catalog accessories when the normal bake maps the texture incorrectly.</span>
+    </button>
+  </div>
+</div>
+<button id="grabTextureButton" class="action action-primary" type="button">Grab Texture</button>
 
             <div>
               <div class="label">Upload Matching 3D Model</div>
@@ -1760,6 +1779,7 @@
 
     const state = {
       assetId: "",
+      itemMode: "ugc",
       textureAssetId: "",
       textureBlob: null,
       textureBlobUrl: "",
@@ -1888,6 +1908,8 @@
       gateCouponCountdown: document.getElementById("gateCouponCountdown"),
       gateCouponUses: document.getElementById("gateCouponUses"),
       assetIdInput: document.getElementById("assetIdInput"),
+      modeUgc: document.getElementById("modeUgc"),
+      modeClassic: document.getElementById("modeClassic"),
       grabTextureButton: document.getElementById("grabTextureButton"),
       modelFileInput: document.getElementById("modelFileInput"),
       chooseFileButton: document.getElementById("chooseFileButton"),
@@ -2517,7 +2539,7 @@
         object = gltf.scene;
       } else {
         const loader = new THREE.OBJLoader();
-        object = loader.parse(state.modelText);
+        object = loader.parse(getPreparedModelText());
 
         let sharedTexture = null;
         if (options.textured) {
@@ -2682,7 +2704,8 @@
       els.formatObj.classList.toggle("is-selected", format === "obj");
       els.formatGlb.classList.toggle("is-selected", format === "glb");
       hideSuccessMessage();
-      updateSlidesForFormat();
+      updateModeButtons();
+    updateSlidesForFormat();
       updateActionState();
 
       if (format === "obj") {
@@ -2702,7 +2725,7 @@
       }
     }
 
-    async function createGlbBlob() {
+    async function createGlbBlob(objText) {
       const response = await fetch(API_BASE + "/ugc-bake-glb", {
         method: "POST",
         headers: getAuthHeaders({
@@ -2710,7 +2733,7 @@
         }),
         body: JSON.stringify({
           assetId: state.assetId,
-          objText: state.modelText,
+          objText: objText || getPreparedModelText(),
           fileName: state.modelFile ? state.modelFile.name : "baked-model.obj",
           displayName: getActivityNameFromCache()
         })
@@ -2743,6 +2766,47 @@
     function buildObjWithMaterial(objText, mtlFileName) {
       const cleaned = objText.replace(/^mtllib\s+.*$/gm, "").replace(/^usemtl\s+.*$/gm, "").trim();
       return ["mtllib " + mtlFileName, "usemtl BakedMaterial", cleaned].join("\n");
+    }
+
+    function flipObjUvVertical(objText) {
+      return String(objText || "").replace(/^vt\s+(-?\d*\.?\d+(?:e[-+]?\d+)?)\s+(-?\d*\.?\d+(?:e[-+]?\d+)?)(?:\s+(-?\d*\.?\d+(?:e[-+]?\d+)?))?\s*$/gim, function (_match, uRaw, vRaw, wRaw) {
+        const u = Number(uRaw);
+        const v = Number(vRaw);
+        const flipped = Number.isFinite(v) ? (1 - v) : vRaw;
+        const parts = ["vt", Number.isFinite(u) ? String(u) : uRaw, Number.isFinite(flipped) ? String(flipped) : String(flipped)];
+        if (typeof wRaw === "string" && wRaw.length) parts.push(wRaw);
+        return parts.join(" ");
+      });
+    }
+
+    function getPreparedModelText() {
+      if (!state.modelText) return "";
+      return state.itemMode === "classic" ? flipObjUvVertical(state.modelText) : state.modelText;
+    }
+
+    function updateModeButtons() {
+      if (els.modeUgc) els.modeUgc.classList.toggle("is-selected", state.itemMode === "ugc");
+      if (els.modeClassic) els.modeClassic.classList.toggle("is-selected", state.itemMode === "classic");
+    }
+
+    async function handleItemModeChange(mode) {
+      state.itemMode = mode === "classic" ? "classic" : "ugc";
+      state.bakedObjText = "";
+      state.bakedMtlText = "";
+      state.bakedGlbBlob = null;
+      revokeGlbUrl();
+      hideSuccessMessage();
+      updateModeButtons();
+      setStatus(els.bakeStatus, "Waiting", "waiting");
+      setHelper(state.itemMode === "classic"
+        ? "Classic Item mode is on. Use this for older Roblox catalog accessories."
+        : "UGC Item mode is on. Use this for most modern Roblox items.");
+      if (state.modelText) {
+        await syncLivePreviews(state.selectedFormat === "glb" && state.bakedGlbBlob ? "baked" : "model");
+      } else {
+        updateSlidesForFormat();
+      }
+      updateActionState();
     }
 
     async function syncLivePreviews(preferred) {
@@ -2892,14 +2956,15 @@
       setHelper("Applying the texture to the uploaded model...");
 
       try {
+        const preparedModelText = getPreparedModelText();
         const mtlFileName = "baked-material.mtl";
-        state.bakedObjText = buildObjWithMaterial(state.modelText, mtlFileName);
+        state.bakedObjText = buildObjWithMaterial(preparedModelText, mtlFileName);
         state.bakedMtlText = buildMaterialFile(state.textureFileName);
         state.bakedGlbBlob = null;
 
         if (state.selectedFormat === "glb") {
           revokeGlbUrl();
-          state.bakedGlbBlob = await createGlbBlob();
+          state.bakedGlbBlob = await createGlbBlob(preparedModelText);
           await syncLivePreviews("baked");
           setStatus(els.bakeStatus, "Ready", "live");
           setHelper("GLB baked successfully. Your one-file textured export is ready.");
@@ -2976,6 +3041,8 @@
 
     els.formatObj.addEventListener("click", () => selectFormat("obj"));
     els.formatGlb.addEventListener("click", () => selectFormat("glb"));
+    if (els.modeUgc) els.modeUgc.addEventListener("click", () => handleItemModeChange("ugc"));
+    if (els.modeClassic) els.modeClassic.addEventListener("click", () => handleItemModeChange("classic"));
     els.chooseFileButton.addEventListener("click", () => {
       if (state.accessState !== "ok") {
         showAccessGate(state.accessState === "login" ? "login" : "plus");
