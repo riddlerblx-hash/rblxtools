@@ -2054,12 +2054,30 @@
     }
 
     function hasPlusFromPayload(payload) {
-  if (!payload || typeof payload !== "object") return false;
-  const directPremium = payload.premiumActive === true || payload.plusActive === true || payload.plus === true || payload.isPlus === true || payload.hasPlus === true;
-  const user = payload.user && typeof payload.user === "object" ? payload.user : null;
-  const userPremium = user && (user.premiumActive === true || user.plusActive === true || user.plus === true || user.isPlus === true || user.hasPlus === true);
-  return Boolean(directPremium || userPremium);
-}
+      if (!payload || typeof payload !== "object") return false;
+      const user = payload.user && typeof payload.user === "object" ? payload.user : null;
+      const directPremium = (
+        payload.plus === true ||
+        payload.isPlus === true ||
+        payload.hasPlus === true ||
+        payload.premiumActive === true ||
+        payload.plusActive === true ||
+        payload.subscription === "plus" ||
+        payload.plan === "plus" ||
+        payload.tier === "plus"
+      );
+      const userPremium = Boolean(user && (
+        user.premiumActive === true ||
+        user.plusActive === true ||
+        user.plus === true ||
+        user.isPlus === true ||
+        user.hasPlus === true ||
+        user.subscription === "plus" ||
+        user.plan === "plus" ||
+        user.tier === "plus"
+      ));
+      return Boolean(directPremium || userPremium);
+    }
 
     const PLUS_STATUS_KEY = "rblxtools_plus_cache";
 
@@ -2068,10 +2086,18 @@
         const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed && parsed.isPlus === false) return false;
+          if (parsed && typeof parsed.isPlus === "boolean") {
+            return parsed.isPlus;
+          }
         }
       } catch (_error) {}
-      return null;
+
+      try {
+        const cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+        return hasPlusFromPayload(cachedUser) ? true : null;
+      } catch (_error) {
+        return null;
+      }
     }
 
     function getCachedAuthUser() {

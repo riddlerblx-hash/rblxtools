@@ -1937,7 +1937,12 @@ function buildCombinedMembershipSnapshot(stripeMembership, complimentaryMembersh
     ? null
     : stripeTotal + complimentaryTotal;
   const plusDaysLeft = stripeLeft + complimentaryLeft;
-  const premiumActive = Boolean(stripe.active || complimentary.active || plusDaysLeft > 0);
+  const manualPlusFallback = Boolean(
+    !hasStripeData &&
+    !hasComplimentaryData &&
+    (row?.premium_active === true || String(row?.plan || "").toLowerCase() === "plus")
+  );
+  const premiumActive = Boolean(stripe.active || complimentary.active || plusDaysLeft > 0 || manualPlusFallback);
   const membershipSource = hasStripeData && hasComplimentaryData
     ? "stripe + complimentary"
     : hasStripeData
@@ -1951,7 +1956,7 @@ function buildCombinedMembershipSnapshot(stripeMembership, complimentaryMembersh
 
   return {
     premiumActive,
-    plan: premiumActive ? "plus" : "free",
+    plan: premiumActive ? "plus" : (row?.plan || "free"),
     stripeSubscriptionStatus: stripe.status || row?.stripe_subscription_status || null,
     complimentaryExpiresAt: complimentary.expiresAt || complimentary.currentPeriodEndAt || null,
     complimentaryActive: Boolean(complimentary.active),
