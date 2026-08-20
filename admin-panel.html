@@ -646,18 +646,6 @@
   <link rel="stylesheet" href="./mobile-overrides.css">
 </head>
 <body>
-  <div class="admin-pin-lock" id="adminPinLock">
-    <div class="admin-pin-card">
-      <div class="admin-kicker">Extra Screen Lock</div>
-      <h2 class="admin-pin-title">Enter Admin Pin</h2>
-      <p class="admin-pin-copy">This panel is already backend-restricted, but this extra lock keeps the tools covered until the admin PIN is entered on this screen.</p>
-      <form class="admin-pin-form" id="adminPinForm">
-        <input class="admin-input admin-pin-input" id="adminPinInput" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••" />
-        <button class="admin-btn blue" id="adminPinSubmit" type="submit">Unlock Panel</button>
-        <div class="admin-result" id="adminPinStatus"></div>
-      </form>
-    </div>
-  </div>
 
   <div class="admin-panel">
     <section class="admin-topbar">
@@ -1048,14 +1036,10 @@
 
       var currentAdminUser = null;
       var loadedMember = null;
-      var panelUnlocked = false;
+      var panelUnlocked = true;
       var memberPollTimer = null;
 
       var refs = {
-        pinLock: document.getElementById("adminPinLock"),
-        pinForm: document.getElementById("adminPinForm"),
-        pinInput: document.getElementById("adminPinInput"),
-        pinStatus: document.getElementById("adminPinStatus"),
         currentName: document.getElementById("adminCurrentName"),
         currentEmail: document.getElementById("adminCurrentEmail"),
         currentPlan: document.getElementById("adminCurrentPlan"),
@@ -1202,15 +1186,7 @@
         refs.globalStatus.className = "admin-result" + (tone ? " " + tone : "");
       }
 
-      function setPinStatus(message, tone) {
-        refs.pinStatus.textContent = message || "";
-        refs.pinStatus.className = "admin-result" + (tone ? " " + tone : "");
-      }
-
-      function updatePinLock() {
-        if (!refs.pinLock) return;
-        refs.pinLock.hidden = panelUnlocked;
-      }
+      function updatePinLock() {}
 
       function getInitials(value) {
         var text = String(value || "U").trim();
@@ -1761,14 +1737,6 @@
           setGlobalStatus(error.message || "Could not verify the current account.", "error");
         }
       }
-
-      function handlePinSubmit(event) {
-        event.preventDefault();
-        var entered = String(refs.pinInput.value || "").trim();
-        if (!entered) {
-          setPinStatus("Enter the admin pin first.", "error");
-          return;
-        }
         if (entered !== ADMIN_PIN) {
           refs.pinInput.value = "";
           setPinStatus("That admin pin is not correct.", "error");
@@ -1798,7 +1766,6 @@
       document.getElementById("clearChatBanButton").addEventListener("click", clearChatBan);
       document.getElementById("createDropButton").addEventListener("click", createClaimDrop);
       document.getElementById("startRainButton").addEventListener("click", startChatRain);
-      refs.pinForm.addEventListener("submit", handlePinSubmit);
 
       bootstrap();
     })();
