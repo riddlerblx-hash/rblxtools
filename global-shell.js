@@ -563,9 +563,19 @@
   }
 
   function getSocketJoinPayload() {
+    var identity = getSocketChatIdentity();
     return {
       room: "rblxtools-main",
-      deviceId: shellState.deviceId || getDeviceId()
+      deviceId: shellState.deviceId || getDeviceId(),
+      userId: identity.userId,
+      displayName: identity.displayName,
+      username: identity.username,
+      avatarUrl: identity.avatarUrl,
+      bio: identity.bio,
+      isPlus: identity.isPlus,
+      isGuest: identity.isGuest,
+      plan: identity.plan,
+      favoriteTools: identity.favoriteTools || []
     };
   }
 
@@ -2383,7 +2393,8 @@
       }
 
       shellState.socket = window.io(API_BASE, {
-        transports: ["websocket", "polling"]
+        transports: ["websocket", "polling"],
+        withCredentials: true
       });
 
         window.__rblxShellSocket = shellState.socket;
@@ -2984,6 +2995,9 @@
     shellState.isAdmin = Boolean(state.isAdmin);
     refreshCurrentProfile();
     syncChatIdentity();
+    if (shellState.socket && shellState.socketReady) {
+      shellState.socket.emit("join-room", getSocketJoinPayload());
+    }
     applyModerationState(state.moderation || shellState.moderation);
     applyMaintenanceState(shellState.maintenanceState);
 
