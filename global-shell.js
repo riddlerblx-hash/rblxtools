@@ -128,18 +128,16 @@
       ]
     },
     {
-      title: "Account",
+      title: "Store",
       items: [
-        { href: "./subscriptions", label: "Subscriptions", icon: "plan" },
-        { href: "./account-overview", label: "Account Overview", icon: "account" },
-        { href: "./login", label: "Login / Sign Up", icon: "login" }
+        { href: "./subscriptions", label: "Subscriptions", icon: "plan" }
       ]
     },
     {
       title: "Info",
       items: [
         { href: "./community", label: "Community", icon: "community" },
-{ href: "./about-us", label: "About Us", icon: "about" },
+        { href: "./about-us", label: "About Us", icon: "about" },
         { href: "./privacy-policy", label: "Privacy Policy", icon: "privacy" },
         { href: "./terms-and-conditions", label: "Terms & Conditions", icon: "terms" }
       ]
@@ -1093,27 +1091,31 @@
     var avatarUrl = String(currentProfile && currentProfile.avatarUrl || "").trim();
     var avatarFallback = getInitials(displayName || getEmailNamePart(currentUser.email) || currentUser.username || "R");
     var isPlus = currentUser.plan === "plus";
-    var cardMarkup =
-      '<a class="rblx-shell-profile-card-link" href="./account-overview">' +
-        '<span class="rblx-shell-profile-card' + (isPlus ? ' is-plus' : '') + '">' +
-          (isPlus ? ('<span class="rblx-shell-profile-card-pluses" aria-hidden="true">' + buildHeaderProfilePlusMarkup() + '</span>') : '') +
-          '<span class="rblx-shell-profile-card-avatar' + (avatarUrl ? ' has-image' : '') + '">' +
-            (avatarUrl
-              ? ('<img src="' + escapeHtml(avatarUrl) + '" alt="" />')
-              : ('<span class="rblx-shell-profile-card-fallback">' + escapeHtml(avatarFallback) + '</span>')) +
-          '</span>' +
-          '<span class="rblx-shell-profile-card-copy">' +
-            '<span class="rblx-shell-profile-card-title">' + escapeHtml(title) + '</span>' +
-            '<span class="rblx-shell-profile-card-subtitle">' + escapeHtml(subtitle) + '</span>' +
-          '</span>' +
-          '<span class="rblx-shell-profile-card-arrow" aria-hidden="true">›</span>' +
-        '</span>' +
-      '</a>';
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-          (currentUser.plan === "plus" ? "" : '<a class="rblx-shell-btn is-primary" href="./subscriptions">View Plans</a>') +
-          cardMarkup +
+          '<details class="rblx-shell-profile-menu">' +
+            '<summary class="rblx-shell-profile-menu-summary" aria-label="Open account menu">' +
+              '<span class="rblx-shell-profile-card' + (isPlus ? ' is-plus' : '') + '">' +
+                (isPlus ? ('<span class="rblx-shell-profile-card-pluses" aria-hidden="true">' + buildHeaderProfilePlusMarkup() + '</span>') : '') +
+                '<span class="rblx-shell-profile-card-avatar' + (avatarUrl ? ' has-image' : '') + '">' +
+                  (avatarUrl
+                    ? ('<img src="' + escapeHtml(avatarUrl) + '" alt="" />')
+                    : ('<span class="rblx-shell-profile-card-fallback">' + escapeHtml(avatarFallback) + '</span>')) +
+                '</span>' +
+                '<span class="rblx-shell-profile-card-copy">' +
+                  '<span class="rblx-shell-profile-card-title">' + escapeHtml(title) + '</span>' +
+                  '<span class="rblx-shell-profile-card-subtitle">' + escapeHtml(subtitle) + '</span>' +
+                '</span>' +
+                '<span class="rblx-shell-profile-card-arrow" aria-hidden="true">›</span>' +
+              '</span>' +
+            '</summary>' +
+            '<div class="rblx-shell-profile-menu-panel">' +
+              '<a class="rblx-shell-profile-menu-item" href="./account-overview">Account Overview</a>' +
+              '<a class="rblx-shell-profile-menu-item" href="./subscriptions">Subscriptions</a>' +
+              '<button class="rblx-shell-profile-menu-item is-danger" type="button" data-shell-logout="true">Log Out</button>' +
+            "</div>" +
+          "</details>" +
         "</div>"
       );
     }
@@ -1123,6 +1125,18 @@
         '<a class="rblx-shell-btn rblx-shell-login-button" href="./login">Login / Sign Up</a>' +
       "</div>"
     );
+  }
+
+  function logoutCurrentUser() {
+    try { localStorage.removeItem(TOKEN_KEY); } catch (_error) {}
+    saveCachedAuthUser(null);
+    writeCachedPlusStatus(false);
+    updateAuthUi(getImmediateUserState());
+    refreshCurrentProfile();
+    if (shellState.socket && shellState.socketReady) {
+      shellState.socket.emit("join-room", getSocketChatIdentity());
+    }
+    window.location.href = "./index";
   }
 
   function buildMobileAccountMarkup() {
@@ -3363,6 +3377,12 @@
     initCheckoutSuccessModal();
     initSupportModal();
     setupAuthModal();
+    document.addEventListener("click", function (event) {
+      var logoutTrigger = event.target && event.target.closest ? event.target.closest("[data-shell-logout]") : null;
+      if (!logoutTrigger) return;
+      event.preventDefault();
+      logoutCurrentUser();
+    });
     initToggles();
     initChat();
     initAdminWindow();

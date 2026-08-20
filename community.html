@@ -4,16 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Community | RBLXTools</title>
-  <meta
-    name="description"
-    content="Official RBLXTools announcements, changelogs, bug fixes, and website updates."
-  />
+  <meta name="description" content="Official RBLXTools announcements, changelogs, bug fixes, and website updates." />
   <link rel="stylesheet" href="./global-shell.css" />
   <style>
-    :root {
-      color-scheme: dark;
-    }
-
+    :root { color-scheme: dark; }
     body {
       margin: 0;
       background:
@@ -22,29 +16,27 @@
       color: #f5f7fd;
       font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-
     .community-page {
       width: min(1180px, calc(100% - 28px));
       margin: 0 auto;
       padding: 34px 0 72px;
     }
-
     .community-shell,
     .community-card,
     .community-empty,
-    .community-post {
+    .community-post,
+    .community-admin-composer {
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: linear-gradient(180deg, rgba(23, 28, 42, 0.97), rgba(14, 18, 29, 0.99));
       box-shadow: 0 24px 60px rgba(4, 8, 16, 0.34);
+      border-radius: 24px;
     }
-
     .community-shell {
       border-radius: 30px;
       padding: 30px;
       position: relative;
       overflow: hidden;
     }
-
     .community-shell::after {
       content: "";
       position: absolute;
@@ -54,7 +46,6 @@
         linear-gradient(135deg, rgba(255, 86, 101, 0.09), transparent 36%),
         radial-gradient(circle at top right, rgba(86, 122, 255, 0.18), transparent 30%);
     }
-
     .community-kicker {
       display: inline-flex;
       align-items: center;
@@ -69,22 +60,23 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
     }
-
     .community-shell h1 {
       margin: 16px 0 10px;
       font-size: clamp(34px, 5vw, 54px);
       line-height: 0.94;
       letter-spacing: -0.045em;
     }
-
-    .community-shell p {
+    .community-shell p,
+    .community-empty p,
+    .community-post p,
+    .community-card p,
+    .community-card li,
+    .community-helper-copy {
       margin: 0;
-      max-width: 760px;
-      color: rgba(230, 235, 244, 0.82);
-      font-size: 16px;
-      line-height: 1.72;
+      color: rgba(228, 233, 243, 0.8);
+      font-size: 15px;
+      line-height: 1.75;
     }
-
     .community-toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -93,7 +85,6 @@
       position: relative;
       z-index: 1;
     }
-
     .community-pill {
       display: inline-flex;
       align-items: center;
@@ -108,13 +99,115 @@
       font-size: 13px;
       font-weight: 800;
     }
-
     .community-pill.is-active {
       border-color: rgba(255, 92, 106, 0.38);
       background: linear-gradient(180deg, rgba(255, 92, 106, 0.18), rgba(255, 92, 106, 0.08));
       color: #ffe2e6;
     }
-
+    .community-admin-composer {
+      margin-top: 22px;
+      padding: 24px;
+    }
+    .community-admin-composer[hidden] { display: none !important; }
+    .community-admin-composer h2,
+    .community-empty h2,
+    .community-post h2,
+    .community-card h3 {
+      margin: 0 0 12px;
+      letter-spacing: -0.035em;
+    }
+    .community-admin-composer h2,
+    .community-empty h2,
+    .community-post h2 {
+      font-size: clamp(25px, 3vw, 32px);
+      line-height: 1.08;
+    }
+    .community-form-grid { display: grid; gap: 14px; margin-top: 18px; }
+    .community-form-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .community-field label {
+      display: block;
+      margin-bottom: 8px;
+      color: #ffbec7;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .community-input,
+    .community-textarea,
+    .community-select {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: #f5f7fd;
+      border-radius: 14px;
+      padding: 13px 14px;
+      font: inherit;
+      outline: none;
+    }
+    .community-textarea { min-height: 150px; resize: vertical; }
+    .community-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 14px;
+      font-weight: 800;
+      color: #f4f7fd;
+    }
+    .community-form-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .community-button,
+    .community-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .community-button {
+      background: rgba(255, 255, 255, 0.05);
+      color: #f7f8fc;
+    }
+    .community-button.primary,
+    .community-action {
+      background: linear-gradient(180deg, #ff5866, #de3d4d);
+      color: #fff;
+      box-shadow: 0 16px 34px rgba(221, 62, 77, 0.24);
+    }
+    .community-status {
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 14px;
+      font-weight: 700;
+      color: #dce3f2;
+    }
+    .community-status[hidden] { display: none !important; }
+    .community-status.is-error {
+      border-color: rgba(255, 98, 88, 0.28);
+      background: rgba(255, 98, 88, 0.08);
+      color: #ffc5c0;
+    }
+    .community-status.is-success {
+      border-color: rgba(83, 223, 136, 0.28);
+      background: rgba(83, 223, 136, 0.08);
+      color: #c9ffd9;
+    }
     .community-layout {
       display: grid;
       grid-template-columns: minmax(0, 1.85fr) minmax(280px, 0.9fr);
@@ -122,53 +215,25 @@
       margin-top: 24px;
       align-items: start;
     }
-
     .community-feed,
-    .community-side {
-      display: grid;
-      gap: 18px;
-    }
-
+    .community-side { display: grid; gap: 18px; }
     .community-empty,
     .community-post,
-    .community-card {
-      border-radius: 24px;
-      padding: 24px;
-    }
-
-    .community-empty h2,
-    .community-post h2,
-    .community-card h3 {
-      margin: 0 0 12px;
-      letter-spacing: -0.035em;
-    }
-
-    .community-empty h2,
-    .community-post h2 {
-      font-size: clamp(25px, 3vw, 32px);
-      line-height: 1.08;
-    }
-
-    .community-empty p,
-    .community-post p,
-    .community-card p,
-    .community-card li,
-    .community-field-copy {
-      margin: 0;
-      color: rgba(228, 233, 243, 0.8);
-      font-size: 15px;
-      line-height: 1.75;
-    }
-
+    .community-card { padding: 24px; }
     .community-post-head {
       display: flex;
       flex-wrap: wrap;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 14px;
     }
-
+    .community-post-head-main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
     .community-type {
       display: inline-flex;
       align-items: center;
@@ -183,18 +248,12 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
     }
-
-    .community-type.is-pinned::before {
-      content: "★";
-      font-size: 10px;
-    }
-
+    .community-type.is-pinned::before { content: "★"; font-size: 10px; }
     .community-date {
       color: rgba(209, 216, 230, 0.58);
       font-size: 13px;
       font-weight: 700;
     }
-
     .community-meta {
       margin-top: 14px;
       display: flex;
@@ -204,185 +263,79 @@
       font-size: 13px;
       font-weight: 700;
     }
-
-    .community-action,
-    .community-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 44px;
-      padding: 0 18px;
+    .community-card ul { margin: 12px 0 0; padding-left: 18px; }
+    .community-card li + li { margin-top: 8px; }
+    .community-post-menu {
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .community-post-menu summary {
+      list-style: none;
+      width: 42px;
+      height: 42px;
       border-radius: 14px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 900;
-    }
-
-    .community-action,
-    .community-button.primary {
-      background: linear-gradient(180deg, #ff5866, #de3d4d);
-      color: #fff;
-      box-shadow: 0 16px 34px rgba(221, 62, 77, 0.24);
-    }
-
-    .community-button {
       background: rgba(255, 255, 255, 0.05);
-      color: #f7f8fc;
+      color: #eef3ff;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      font-size: 20px;
+      font-weight: 900;
+      user-select: none;
     }
-
-    .community-card ul {
-      margin: 12px 0 0;
-      padding-left: 18px;
-    }
-
-    .community-card li + li {
-      margin-top: 8px;
-    }
-
-    .community-admin-composer[hidden] {
-      display: none !important;
-    }
-
-    .community-admin-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-
-    .community-admin-head h2 {
-      margin: 0;
-      font-size: 26px;
-      letter-spacing: -0.03em;
-    }
-
-    .community-admin-badge {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      padding: 0 12px;
-      border-radius: 999px;
+    .community-post-menu summary::-webkit-details-marker { display: none; }
+    .community-post-menu-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      min-width: 170px;
+      padding: 8px;
+      border-radius: 16px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      background: linear-gradient(180deg, rgba(255, 214, 84, 0.2), rgba(255, 214, 84, 0.08));
-      color: #ffe48f;
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      background: linear-gradient(180deg, rgba(22, 28, 42, 0.98), rgba(13, 17, 27, 0.99));
+      box-shadow: 0 20px 40px rgba(3, 6, 12, 0.36);
+      z-index: 12;
     }
-
-    .community-form-grid {
-      display: grid;
-      gap: 14px;
-    }
-
-    .community-form-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .community-field label {
-      display: block;
-      margin-bottom: 8px;
-      color: #ffbec7;
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-
-    .community-input,
-    .community-textarea,
-    .community-select {
+    .community-post-menu-item {
       width: 100%;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.05);
-      color: #f5f7fd;
-      border-radius: 14px;
-      padding: 13px 14px;
+      border: 0;
+      background: transparent;
+      color: #eef4ff;
+      text-align: left;
+      padding: 11px 12px;
+      border-radius: 12px;
       font: inherit;
-      outline: none;
-    }
-
-    .community-textarea {
-      min-height: 150px;
-      resize: vertical;
-    }
-
-    .community-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      min-height: 44px;
-      padding: 0 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
       font-size: 14px;
       font-weight: 800;
-      color: #f4f7fd;
+      cursor: pointer;
     }
-
-    .community-form-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
+    .community-post-menu-item:hover {
+      background: rgba(255, 255, 255, 0.06);
     }
-
-    .community-status {
-      margin-top: 14px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
-      font-size: 14px;
-      font-weight: 700;
-      color: #dce3f2;
+    .community-post-menu-item.is-danger {
+      color: #ffb0aa;
     }
-
-    .community-status.is-error {
-      border-color: rgba(255, 98, 88, 0.28);
-      background: rgba(255, 98, 88, 0.08);
-      color: #ffc5c0;
-    }
-
-    .community-status.is-success {
-      border-color: rgba(83, 223, 136, 0.28);
-      background: rgba(83, 223, 136, 0.08);
-      color: #c9ffd9;
-    }
-
     @media (max-width: 960px) {
       .community-layout,
-      .community-form-row {
-        grid-template-columns: 1fr;
-      }
+      .community-form-row { grid-template-columns: 1fr; }
     }
-
     @media (max-width: 640px) {
       .community-page {
         width: min(100% - 18px, 1180px);
         padding-top: 24px;
       }
-
       .community-shell,
       .community-empty,
       .community-post,
-      .community-card {
+      .community-card,
+      .community-admin-composer {
         border-radius: 22px;
         padding: 22px;
       }
-
       .community-pill,
       .community-button,
-      .community-action {
-        width: 100%;
-      }
+      .community-action { width: 100%; }
     }
   </style>
 </head>
@@ -393,7 +346,7 @@
       <h1>Community</h1>
       <p>
         This is the official RBLXTools update hub for announcements, changelogs, bug fixes, and important site notices.
-        Admins can publish here directly, and everyone else sees the official update feed only.
+        Admins can publish here directly, and everyone else only sees the live update feed.
       </p>
       <div class="community-toolbar" id="communityFilters" aria-label="Community filters">
         <a class="community-pill is-active" data-filter="all" href="./community">All</a>
@@ -404,17 +357,9 @@
       </div>
     </section>
 
-    <section class="community-card community-admin-composer" id="communityAdminComposer" hidden>
-      <div class="community-admin-head">
-        <div>
-          <div class="community-kicker">Admin Only</div>
-          <h2>Create Community Post</h2>
-        </div>
-        <span class="community-admin-badge">Admin Access</span>
-      </div>
-      <p class="community-field-copy" style="margin-bottom: 16px;">
-        Only approved admin accounts can see this composer. Publish updates here and they will appear instantly on the live Community page.
-      </p>
+    <section class="community-admin-composer" id="communityAdminComposer" hidden>
+      <h2 id="communityComposerTitle">Create Community Post</h2>
+      <p class="community-helper-copy">Post official updates here. Only approved admin accounts can see this section.</p>
       <div class="community-form-grid">
         <div class="community-form-row">
           <div class="community-field">
@@ -451,7 +396,7 @@
             <span>Pin this post</span>
           </label>
           <button class="community-button primary" id="communityPublishButton" type="button">Publish Post</button>
-          <button class="community-button" id="communityReloadButton" type="button">Refresh Feed</button>
+          <button class="community-button" id="communityCancelEditButton" type="button" hidden>Cancel Edit</button>
         </div>
         <div class="community-status" id="communityPublishStatus" hidden></div>
       </div>

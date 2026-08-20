@@ -2,6 +2,10 @@
   var API_BASE = window.location.origin;
   var TOKEN_KEY = "rblxtools_auth_token";
   var VALID_FILTERS = ["announcement", "changelog", "bug-fix", "known-issue"];
+  var isAdminUser = false;
+  var editingPostId = "";
+  var pollTimer = null;
+  var lastFeedSignature = "";
 
   function escapeHtml(value) {
     return String(value == null ? "" : value)
@@ -13,11 +17,8 @@
   }
 
   function getToken() {
-    try {
-      return localStorage.getItem(TOKEN_KEY) || "";
-    } catch (_error) {
-      return "";
-    }
+    try { return localStorage.getItem(TOKEN_KEY) || ""; }
+    catch (_error) { return ""; }
   }
 
   function formatFilterLabel(filter) {
@@ -57,20 +58,20 @@
     return VALID_FILTERS.indexOf(raw) >= 0 ? raw : "all";
   }
 
-  function setPublishStatus(message, tone) {
-    var node = document.getElementById("communityPublishStatus");
-    if (!node) return;
-    node.hidden = !message;
-    node.textContent = message || "";
-    node.className = "community-status" + (tone ? " is-" + tone : "");
-  }
-
   function syncFilterUi(activeFilter) {
     var pills = document.querySelectorAll("[data-filter]");
     pills.forEach(function (pill) {
       var matches = (pill.getAttribute("data-filter") || "all") === activeFilter;
       pill.classList.toggle("is-active", matches);
     });
+  }
+
+  function setPublishStatus(message, tone) {
+    var node = document.getElementById("communityPublishStatus");
+    if (!node) return;
+    node.hidden = !message;
+    node.textContent = message || "";
+    node.className = "community-status" + (tone ? " is-" + tone : "");
   }
 
   function renderEmpty(feed, activeFilter) {
@@ -82,6 +83,25 @@
         "<h2>" + escapeHtml(title) + "</h2>" +
         "<p>Check back later for official RBLXTools updates from the admin team.</p>" +
       "</article>";
+  }
+
+  function getFeedSignature(posts) {
+    return JSON.stringify(posts || []);
+  }
+
+  function buildAdminPostMenu(post) {
+    if (!isAdminUser) return "";
+    var pinLabel = post.pinned ? "Unpin Post" : "Pin Post";
+    return (
+      '<details class="community-post-menu">' +
+        '<summary aria-label="Post settings">⋯</summary>' +
+        '<div class="community-post-menu-panel">' +
+          '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>' +
+          '<button class="community-post-menu-item" type="button" data-community-pin="' + escapeHtml(post.id) + '" data-next-pinned="' + (post.pinned ? "false" : "true") + '">' + pinLabel + "</button>" +
+          '<button class="community-post-menu-item is-danger" type="button" data-community-delete="' + escapeHtml(post.id) + '">Delete Post</button>' +
+        "</div>" +
+      "</details>"
+    );
   }
 
   function renderPosts(feed, posts) {
@@ -100,10 +120,13 @@
       if (post.pinned) authorBits.push("Pinned");
 
       return (
-        '<article class="community-post">' +
+        '<article class="community-post" data-community-post-id="' + escapeHtml(post.id) + '">' +
           '<div class="community-post-head">' +
-            '<span class="' + typeClasses + '">' + escapeHtml(formatPostType(post.category)) + "</span>" +
-            '<span class="community-date">' + escapeHtml(formatDate(post.publishedAt || post.createdAt)) + "</span>" +
+            '<div class="community-post-head-main">' +
+              '<span class="' + typeClasses + '">' + escapeHtml(formatPostType(post.category)) + "</span>" +
+              '<span class="community-date">' + escapeHtml(formatDate(post.publishedAt || post.createdAt)) + "</span>" +
+            "</div>" +
+            buildAdminPostMenu(post) +
           "</div>" +
           "<h2>" + escapeHtml(post.title || "Untitled update") + "</h2>" +
           "<p>" + escapeHtml(post.body || "").replace(/\n/g, "<br>") + "</p>" +
@@ -125,10 +148,9 @@
     return payload || {};
   }
 
-  async function loadCommunityPosts() {
+  async function loadCommunityPosts(forceRender) {
     var feed = document.getElementById("communityFeed");
     if (!feed) return;
-
     var activeFilter = getActiveFilter();
     syncFilterUi(activeFilter);
 
@@ -140,6 +162,9 @@
     try {
       var payload = await fetchJson(url, { cache: "no-store" });
       var posts = Array.isArray(payload.posts) ? payload.posts : [];
+      var signature = getFeedSignature(posts);
+      if (!forceRender && signature === lastFeedSignature) return;
+      lastFeedSignature = signature;
       if (!posts.length) {
         renderEmpty(feed, activeFilter);
         return;
@@ -162,19 +187,75 @@
 
     try {
       var payload = await fetchJson(API_BASE + "/auth/me", {
-        headers: {
-          Authorization: "Bearer " + token
-        }
+        headers: { Authorization: "Bearer " + token }
       });
       var user = payload && payload.user ? payload.user : null;
       if (user && user.isAdmin) {
+        isAdminUser = true;
         composer.hidden = false;
+        await loadCommunityPosts(true);
       }
     } catch (_error) {
     }
   }
 
-  async function publishCommunityPost() {
+  function resetComposer() {
+    editingPostId = "";
+    var title = document.getElementById("communityComposerTitle");
+    var button = document.getElementById("communityPublishButton");
+    var cancel = document.getElementById("communityCancelEditButton");
+    if (title) title.textContent = "Create Community Post";
+    if (button) button.textContent = "Publish Post";
+    if (cancel) cancel.hidden = true;
+    var titleNode = document.getElementById("communityPostTitle");
+    var bodyNode = document.getElementById("communityPostBody");
+    var categoryNode = document.getElementById("communityPostCategory");
+    var linkLabelNode = document.getElementById("communityPostLinkLabel");
+    var linkUrlNode = document.getElementById("communityPostLinkUrl");
+    var pinnedNode = document.getElementById("communityPostPinned");
+    if (titleNode) titleNode.value = "";
+    if (bodyNode) bodyNode.value = "";
+    if (categoryNode) categoryNode.value = "announcement";
+    if (linkLabelNode) linkLabelNode.value = "";
+    if (linkUrlNode) linkUrlNode.value = "";
+    if (pinnedNode) pinnedNode.checked = false;
+    setPublishStatus("", "");
+  }
+
+  async function getAllPosts() {
+    var payload = await fetchJson(API_BASE + "/api/community-posts", { cache: "no-store" });
+    return Array.isArray(payload.posts) ? payload.posts : [];
+  }
+
+  async function loadPostIntoComposer(postId) {
+    try {
+      var posts = await getAllPosts();
+      var match = posts.find(function (post) { return String(post.id) === String(postId); });
+      if (!match) {
+        setPublishStatus("That post could not be found.", "error");
+        return;
+      }
+      editingPostId = String(match.id);
+      var title = document.getElementById("communityComposerTitle");
+      var button = document.getElementById("communityPublishButton");
+      var cancel = document.getElementById("communityCancelEditButton");
+      if (title) title.textContent = "Edit Community Post";
+      if (button) button.textContent = "Save Post";
+      if (cancel) cancel.hidden = false;
+      document.getElementById("communityPostTitle").value = match.title || "";
+      document.getElementById("communityPostBody").value = match.body || "";
+      document.getElementById("communityPostCategory").value = match.category || "announcement";
+      document.getElementById("communityPostLinkLabel").value = match.linkLabel || "";
+      document.getElementById("communityPostLinkUrl").value = match.linkUrl || "";
+      document.getElementById("communityPostPinned").checked = Boolean(match.pinned);
+      document.getElementById("communityAdminComposer").scrollIntoView({ behavior: "smooth", block: "start" });
+      setPublishStatus("Editing selected post.", "success");
+    } catch (error) {
+      setPublishStatus(error && error.message ? error.message : "Could not load that post.", "error");
+    }
+  }
+
+  async function savePost() {
     var token = getToken();
     if (!token) {
       setPublishStatus("Log into an approved admin account first.", "error");
@@ -187,11 +268,10 @@
     var linkLabelNode = document.getElementById("communityPostLinkLabel");
     var linkUrlNode = document.getElementById("communityPostLinkUrl");
     var pinnedNode = document.getElementById("communityPostPinned");
-    var publishButton = document.getElementById("communityPublishButton");
+    var button = document.getElementById("communityPublishButton");
 
     var title = titleNode ? String(titleNode.value || "").trim() : "";
     var body = bodyNode ? String(bodyNode.value || "").trim() : "";
-
     if (!title) {
       setPublishStatus("Give the post a title first.", "error");
       return;
@@ -201,49 +281,117 @@
       return;
     }
 
-    if (publishButton) publishButton.disabled = true;
-    setPublishStatus("Publishing post...");
+    if (button) button.disabled = true;
+    setPublishStatus(editingPostId ? "Saving post..." : "Publishing post...");
 
     try {
-      var payload = await fetchJson(API_BASE + "/admin/community-posts", {
-        method: "POST",
+      var payload = await fetchJson(
+        editingPostId
+          ? (API_BASE + "/admin/community-posts/" + encodeURIComponent(editingPostId))
+          : (API_BASE + "/admin/community-posts"),
+        {
+          method: editingPostId ? "PATCH" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
+          },
+          body: JSON.stringify({
+            title: title,
+            body: body,
+            category: categoryNode ? categoryNode.value : "announcement",
+            pinned: Boolean(pinnedNode && pinnedNode.checked),
+            linkLabel: linkLabelNode ? String(linkLabelNode.value || "").trim() : "",
+            linkUrl: linkUrlNode ? String(linkUrlNode.value || "").trim() : ""
+          })
+        }
+      );
+
+      setPublishStatus(payload.message || (editingPostId ? "Post saved." : "Post published."), "success");
+      resetComposer();
+      await loadCommunityPosts(true);
+    } catch (error) {
+      setPublishStatus(error && error.message ? error.message : "Could not save the post.", "error");
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function deletePost(postId) {
+    var token = getToken();
+    if (!token) return;
+    if (!window.confirm("Delete this post?")) return;
+    try {
+      var payload = await fetchJson(API_BASE + "/admin/community-posts/" + encodeURIComponent(postId), {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + token }
+      });
+      if (editingPostId && String(editingPostId) === String(postId)) {
+        resetComposer();
+      }
+      setPublishStatus(payload.message || "Post deleted.", "success");
+      await loadCommunityPosts(true);
+    } catch (error) {
+      setPublishStatus(error && error.message ? error.message : "Could not delete the post.", "error");
+    }
+  }
+
+  async function pinPost(postId, nextPinned) {
+    var token = getToken();
+    if (!token) return;
+    try {
+      var payload = await fetchJson(API_BASE + "/admin/community-posts/" + encodeURIComponent(postId), {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: "Bearer " + token
         },
-        body: JSON.stringify({
-          title: title,
-          body: body,
-          category: categoryNode ? categoryNode.value : "announcement",
-          pinned: Boolean(pinnedNode && pinnedNode.checked),
-          linkLabel: linkLabelNode ? String(linkLabelNode.value || "").trim() : "",
-          linkUrl: linkUrlNode ? String(linkUrlNode.value || "").trim() : ""
-        })
+        body: JSON.stringify({ pinned: nextPinned === "true" })
       });
-
-      setPublishStatus(payload.message || "Community post published.", "success");
-      if (titleNode) titleNode.value = "";
-      if (bodyNode) bodyNode.value = "";
-      if (linkLabelNode) linkLabelNode.value = "";
-      if (linkUrlNode) linkUrlNode.value = "";
-      if (categoryNode) categoryNode.value = "announcement";
-      if (pinnedNode) pinnedNode.checked = false;
-      await loadCommunityPosts();
+      setPublishStatus(payload.message || "Post updated.", "success");
+      await loadCommunityPosts(true);
     } catch (error) {
-      setPublishStatus(error && error.message ? error.message : "Could not publish the post.", "error");
-    } finally {
-      if (publishButton) publishButton.disabled = false;
+      setPublishStatus(error && error.message ? error.message : "Could not update the post.", "error");
     }
   }
 
   function bindComposer() {
     var publishButton = document.getElementById("communityPublishButton");
-    var reloadButton = document.getElementById("communityReloadButton");
-    if (publishButton) publishButton.addEventListener("click", publishCommunityPost);
-    if (reloadButton) reloadButton.addEventListener("click", loadCommunityPosts);
+    var cancelButton = document.getElementById("communityCancelEditButton");
+    if (publishButton) publishButton.addEventListener("click", savePost);
+    if (cancelButton) cancelButton.addEventListener("click", resetComposer);
+    document.addEventListener("click", function (event) {
+      var editButton = event.target.closest("[data-community-edit]");
+      if (editButton) {
+        loadPostIntoComposer(editButton.getAttribute("data-community-edit"));
+        return;
+      }
+      var deleteButton = event.target.closest("[data-community-delete]");
+      if (deleteButton) {
+        deletePost(deleteButton.getAttribute("data-community-delete"));
+        return;
+      }
+      var pinButton = event.target.closest("[data-community-pin]");
+      if (pinButton) {
+        pinPost(pinButton.getAttribute("data-community-pin"), pinButton.getAttribute("data-next-pinned"));
+      }
+    });
+  }
+
+  function startFeedHeartbeat() {
+    if (pollTimer) return;
+    pollTimer = window.setInterval(function () {
+      loadCommunityPosts(false);
+    }, 5000);
+    window.addEventListener("focus", function () {
+      loadCommunityPosts(false);
+    });
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) loadCommunityPosts(false);
+    });
   }
 
   bindComposer();
   revealAdminComposerIfAllowed();
-  loadCommunityPosts();
+  loadCommunityPosts(true);
+  startFeedHeartbeat();
 })();

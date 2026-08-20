@@ -4,30 +4,6 @@ const { randomUUID } = require("crypto");
 
 const VALID_CATEGORIES = new Set(["announcement", "changelog", "bug-fix", "known-issue"]);
 
-function getCommunityPostsPath(baseDir) {
-  return path.join(baseDir, "community-posts.json");
-}
-
-function getSiteSettingsPath(baseDir) {
-  return path.join(baseDir, "site-settings.json");
-}
-
-function ensureCommunityPosts(baseDir) {
-  const filePath = getCommunityPostsPath(baseDir);
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, "[]\n", "utf8");
-  }
-  return filePath;
-}
-
-function ensureSiteSettings(baseDir) {
-  const filePath = getSiteSettingsPath(baseDir);
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify(getDefaultSiteSettings(), null, 2) + "\n", "utf8");
-  }
-  return filePath;
-}
-
 function getDefaultSiteSettings() {
   return {
     maintenanceEnabled: false,
@@ -36,6 +12,12 @@ function getDefaultSiteSettings() {
     updatedAt: null,
     updatedBy: "",
   };
+}
+
+function ensureJsonFile(filePath, fallbackValue) {
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, JSON.stringify(fallbackValue, null, 2) + "\n", "utf8");
+  }
 }
 
 function normalizeCategory(value) {
@@ -51,29 +33,20 @@ function cleanOptionalUrl(value) {
   return "";
 }
 
+function getCommunityPostsPath(baseDir) {
+  return path.join(baseDir, "community-posts.json");
+}
+
+function getSiteSettingsPath(baseDir) {
+  return path.join(baseDir, "site-settings.json");
+}
+
 function readCommunityPosts(baseDir) {
-  const filePath = ensureCommunityPosts(baseDir);
+  const filePath = getCommunityPostsPath(baseDir);
+  ensureJsonFile(filePath, []);
   try {
     const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((item) => item && typeof item === "object")
-      .map((item) => ({
-        id: String(item.id || "").trim(),
-        title: String(item.title || "").trim(),
-        body: String(item.body || "").trim(),
-        category: normalizeCategory(item.category),
-        pinned: Boolean(item.pinned),
-        createdAt: String(item.createdAt || ""),
-        updatedAt: String(item.updatedAt || item.createdAt || ""),
-        publishedAt: String(item.publishedAt || item.createdAt || ""),
-        authorId: String(item.authorId || "").trim(),
-        authorEmail: String(item.authorEmail || "").trim(),
-        authorName: String(item.authorName || "").trim(),
-        linkLabel: String(item.linkLabel || "").trim(),
-        linkUrl: cleanOptionalUrl(item.linkUrl),
-      }))
-      .filter((item) => item.id && item.title && item.body);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (_error) {
     return [];
   }
@@ -91,12 +64,16 @@ function sortCommunityPosts(posts) {
 }
 
 function writeCommunityPosts(baseDir, posts) {
-  const filePath = ensureCommunityPosts(baseDir);
-  fs.writeFileSync(filePath, JSON.stringify(sortCommunityPosts(posts), null, 2) + "\n", "utf8");
+  fs.writeFileSync(
+    getCommunityPostsPath(baseDir),
+    JSON.stringify(sortCommunityPosts(posts), null, 2) + "\n",
+    "utf8"
+  );
 }
 
 function readSiteSettings(baseDir) {
-  const filePath = ensureSiteSettings(baseDir);
+  const filePath = getSiteSettingsPath(baseDir);
+  ensureJsonFile(filePath, getDefaultSiteSettings());
   try {
     const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
     const defaults = getDefaultSiteSettings();
@@ -113,7 +90,6 @@ function readSiteSettings(baseDir) {
 }
 
 function writeSiteSettings(baseDir, settings) {
-  const filePath = ensureSiteSettings(baseDir);
   const defaults = getDefaultSiteSettings();
   const next = {
     maintenanceEnabled: Boolean(settings.maintenanceEnabled),
@@ -122,23 +98,23 @@ function writeSiteSettings(baseDir, settings) {
     updatedAt: settings.updatedAt ? String(settings.updatedAt) : null,
     updatedBy: settings.updatedBy ? String(settings.updatedBy) : "",
   };
-  fs.writeFileSync(filePath, JSON.stringify(next, null, 2) + "\n", "utf8");
+  fs.writeFileSync(getSiteSettingsPath(baseDir), JSON.stringify(next, null, 2) + "\n", "utf8");
   return next;
 }
 
 function buildPublicCommunityPost(post) {
   return {
-    id: post.id,
-    title: post.title,
-    body: post.body,
-    category: post.category,
+    id: String(post.id || ""),
+    title: String(post.title || ""),
+    body: String(post.body || ""),
+    category: normalizeCategory(post.category),
     pinned: Boolean(post.pinned),
-    createdAt: post.createdAt,
-    updatedAt: post.updatedAt,
-    publishedAt: post.publishedAt,
-    authorName: post.authorName || "",
-    linkLabel: post.linkLabel || "",
-    linkUrl: post.linkUrl || "",
+    createdAt: post.createdAt ? String(post.createdAt) : null,
+    updatedAt: post.updatedAt ? String(post.updatedAt) : null,
+    publishedAt: post.publishedAt ? String(post.publishedAt) : null,
+    authorName: post.authorName ? String(post.authorName) : "",
+    linkLabel: post.linkLabel ? String(post.linkLabel) : "",
+    linkUrl: post.linkUrl ? String(post.linkUrl) : "",
   };
 }
 
@@ -152,12 +128,8 @@ function buildPublicSiteStatus(settings) {
 }
 
 function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
-  if (!app || typeof app.get !== "function" || typeof app.post !== "function") {
-    throw new Error("A valid Express app is required for site ops routes.");
-  }
-
-  ensureCommunityPosts(baseDir);
-  ensureSiteSettings(baseDir);
+  ensureJsonFile(getCommunityPostsPath(baseDir), []);
+  ensureJsonFile(getSiteSettingsPath(baseDir), getDefaultSiteSettings());
 
   app.get("/api/community-posts", async (req, res) => {
     try {
@@ -165,17 +137,11 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
       const normalizedFilter = normalizeCategory(rawFilter);
       const posts = sortCommunityPosts(readCommunityPosts(baseDir)).filter((post) => {
         if (!rawFilter) return true;
-        return post.category === normalizedFilter;
+        return normalizeCategory(post.category) === normalizedFilter;
       });
-
-      return res.json({
-        ok: true,
-        posts: posts.map(buildPublicCommunityPost),
-      });
+      return res.json({ ok: true, posts: posts.map(buildPublicCommunityPost) });
     } catch (error) {
-      return res.status(500).json({
-        error: error.message || "Could not load community posts.",
-      });
+      return res.status(500).json({ error: error.message || "Could not load community posts." });
     }
   });
 
@@ -189,12 +155,8 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
       const linkLabel = cleanText(req.body?.linkLabel, 60);
       const linkUrl = cleanOptionalUrl(req.body?.linkUrl);
 
-      if (!title) {
-        return res.status(400).json({ error: "A title is required." });
-      }
-      if (!body) {
-        return res.status(400).json({ error: "A post body is required." });
-      }
+      if (!title) return res.status(400).json({ error: "A title is required." });
+      if (!body) return res.status(400).json({ error: "A post body is required." });
       if ((linkLabel && !linkUrl) || (!linkLabel && linkUrl)) {
         return res.status(400).json({ error: "Link label and link URL need to be filled together." });
       }
@@ -203,7 +165,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
       const adminName =
         cleanText(adminUser.display_name || adminUser.username || adminUser.email?.split("@")[0] || "Admin", 80) ||
         "Admin";
-      const post = {
+      const nextPost = {
         id: randomUUID(),
         title,
         body,
@@ -220,32 +182,87 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
       };
 
       const posts = readCommunityPosts(baseDir);
-      posts.push(post);
+      posts.push(nextPost);
       writeCommunityPosts(baseDir, posts);
-
-      return res.json({
-        ok: true,
-        message: "Community post published.",
-        post: buildPublicCommunityPost(post),
-      });
+      return res.json({ ok: true, message: "Community post published.", post: buildPublicCommunityPost(nextPost) });
     } catch (error) {
-      return res.status(error.statusCode || 500).json({
-        error: error.message || "Could not publish the community post.",
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not publish the community post." });
+    }
+  });
+
+  app.patch("/admin/community-posts/:postId", async (req, res) => {
+    try {
+      await requireAdminUser(req);
+      const postId = String(req.params?.postId || "").trim();
+      if (!postId) return res.status(400).json({ error: "A post ID is required." });
+
+      const posts = readCommunityPosts(baseDir);
+      const index = posts.findIndex((post) => String(post.id || "") === postId);
+      if (index < 0) return res.status(404).json({ error: "That post could not be found." });
+
+      const existing = posts[index];
+      const hasTitle = Object.prototype.hasOwnProperty.call(req.body || {}, "title");
+      const hasBody = Object.prototype.hasOwnProperty.call(req.body || {}, "body");
+      const hasCategory = Object.prototype.hasOwnProperty.call(req.body || {}, "category");
+      const hasPinned = Object.prototype.hasOwnProperty.call(req.body || {}, "pinned");
+      const hasLinkLabel = Object.prototype.hasOwnProperty.call(req.body || {}, "linkLabel");
+      const hasLinkUrl = Object.prototype.hasOwnProperty.call(req.body || {}, "linkUrl");
+
+      const title = hasTitle ? cleanText(req.body?.title, 140) : String(existing.title || "");
+      const body = hasBody ? cleanText(req.body?.body, 6000) : String(existing.body || "");
+      const category = hasCategory ? normalizeCategory(req.body?.category) : normalizeCategory(existing.category);
+      const pinned = hasPinned ? Boolean(req.body?.pinned) : Boolean(existing.pinned);
+      const linkLabel = hasLinkLabel ? cleanText(req.body?.linkLabel, 60) : String(existing.linkLabel || "");
+      const linkUrl = hasLinkUrl ? cleanOptionalUrl(req.body?.linkUrl) : cleanOptionalUrl(existing.linkUrl || "");
+
+      if (!title) return res.status(400).json({ error: "A title is required." });
+      if (!body) return res.status(400).json({ error: "A post body is required." });
+      if ((linkLabel && !linkUrl) || (!linkLabel && linkUrl)) {
+        return res.status(400).json({ error: "Link label and link URL need to be filled together." });
+      }
+
+      const updated = Object.assign({}, existing, {
+        title,
+        body,
+        category,
+        pinned,
+        linkLabel,
+        linkUrl,
+        updatedAt: new Date().toISOString(),
       });
+
+      posts[index] = updated;
+      writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, message: "Community post updated.", post: buildPublicCommunityPost(updated) });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not update the community post." });
+    }
+  });
+
+  app.delete("/admin/community-posts/:postId", async (req, res) => {
+    try {
+      await requireAdminUser(req);
+      const postId = String(req.params?.postId || "").trim();
+      if (!postId) return res.status(400).json({ error: "A post ID is required." });
+
+      const posts = readCommunityPosts(baseDir);
+      const nextPosts = posts.filter((post) => String(post.id || "") !== postId);
+      if (nextPosts.length === posts.length) {
+        return res.status(404).json({ error: "That post could not be found." });
+      }
+      writeCommunityPosts(baseDir, nextPosts);
+      return res.json({ ok: true, message: "Community post deleted." });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete the community post." });
     }
   });
 
   app.get("/admin/site-maintenance", async (req, res) => {
     try {
       await requireAdminUser(req);
-      return res.json({
-        ok: true,
-        settings: buildPublicSiteStatus(readSiteSettings(baseDir)),
-      });
+      return res.json({ ok: true, settings: buildPublicSiteStatus(readSiteSettings(baseDir)) });
     } catch (error) {
-      return res.status(error.statusCode || 500).json({
-        error: error.message || "Could not load maintenance settings.",
-      });
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not load maintenance settings." });
     }
   });
 
@@ -260,7 +277,6 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
         updatedAt: new Date().toISOString(),
         updatedBy: String(adminUser.email || adminUser.id || "admin"),
       });
-
       return res.json({
         ok: true,
         message: nextSettings.maintenanceEnabled
@@ -269,26 +285,17 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
         settings: buildPublicSiteStatus(nextSettings),
       });
     } catch (error) {
-      return res.status(error.statusCode || 500).json({
-        error: error.message || "Could not update maintenance mode.",
-      });
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not update maintenance mode." });
     }
   });
 
   app.get("/api/site-status", async (_req, res) => {
     try {
-      return res.json({
-        ok: true,
-        settings: buildPublicSiteStatus(readSiteSettings(baseDir)),
-      });
+      return res.json({ ok: true, settings: buildPublicSiteStatus(readSiteSettings(baseDir)) });
     } catch (error) {
-      return res.status(500).json({
-        error: error.message || "Could not load site status.",
-      });
+      return res.status(500).json({ error: error.message || "Could not load site status." });
     }
   });
 }
 
-module.exports = {
-  installSiteOpsFeature,
-};
+module.exports = { installSiteOpsFeature };

@@ -3,11 +3,8 @@
   var TOKEN_KEY = "rblxtools_auth_token";
 
   function getToken() {
-    try {
-      return localStorage.getItem(TOKEN_KEY) || "";
-    } catch (_error) {
-      return "";
-    }
+    try { return localStorage.getItem(TOKEN_KEY) || ""; }
+    catch (_error) { return ""; }
   }
 
   function setStatus(message, tone) {
@@ -35,9 +32,7 @@
 
     try {
       var payload = await fetchJson(API_BASE + "/admin/site-maintenance", {
-        headers: {
-          Authorization: "Bearer " + token
-        }
+        headers: { Authorization: "Bearer " + token }
       });
       var settings = payload && payload.settings ? payload.settings : {};
       var enabledNode = document.getElementById("maintenanceEnabled");
@@ -63,7 +58,6 @@
     var titleNode = document.getElementById("maintenanceTitle");
     var noticeNode = document.getElementById("maintenanceNotice");
     var saveButton = document.getElementById("saveMaintenanceButton");
-
     if (saveButton) saveButton.disabled = true;
     setStatus("Saving maintenance settings...");
 
