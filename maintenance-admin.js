@@ -1,11 +1,5 @@
 (function () {
   var API_BASE = window.location.origin;
-  var TOKEN_KEY = "rblxtools_auth_token";
-
-  function getToken() {
-    try { return localStorage.getItem(TOKEN_KEY) || ""; }
-    catch (_error) { return ""; }
-  }
 
   function setStatus(message, tone) {
     var node = document.getElementById("maintenanceStatus");
@@ -15,7 +9,7 @@
   }
 
   async function fetchJson(url, options) {
-    var response = await fetch(url, options);
+    var response = await fetch(url, Object.assign({ credentials: "include" }, options || {}));
     var payload = await response.json().catch(function () { return null; });
     if (!response.ok) {
       throw new Error(payload && payload.error ? payload.error : "Request failed.");
@@ -24,16 +18,8 @@
   }
 
   async function loadMaintenanceSettings() {
-    var token = getToken();
-    if (!token) {
-      setStatus("Log into an approved admin account first.", "error");
-      return;
-    }
-
     try {
-      var payload = await fetchJson(API_BASE + "/admin/site-maintenance", {
-        headers: { Authorization: "Bearer " + token }
-      });
+      var payload = await fetchJson(API_BASE + "/admin/site-maintenance", { method: "GET" });
       var settings = payload && payload.settings ? payload.settings : {};
       var enabledNode = document.getElementById("maintenanceEnabled");
       var titleNode = document.getElementById("maintenanceTitle");
@@ -48,12 +34,6 @@
   }
 
   async function saveMaintenanceSettings() {
-    var token = getToken();
-    if (!token) {
-      setStatus("Log into an approved admin account first.", "error");
-      return;
-    }
-
     var enabledNode = document.getElementById("maintenanceEnabled");
     var titleNode = document.getElementById("maintenanceTitle");
     var noticeNode = document.getElementById("maintenanceNotice");
@@ -64,10 +44,7 @@
     try {
       var payload = await fetchJson(API_BASE + "/admin/site-maintenance", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           maintenanceEnabled: Boolean(enabledNode && enabledNode.checked),
           maintenanceTitle: titleNode ? String(titleNode.value || "").trim() : "",
