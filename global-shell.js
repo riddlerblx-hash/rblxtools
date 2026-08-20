@@ -308,6 +308,10 @@
     catch (_error) { return ""; }
   }
 
+  function clearLegacyAuthTokenCache() {
+    try { localStorage.removeItem(TOKEN_KEY); } catch (_error) {}
+  }
+
   function readStorage(key, fallback) {
     try {
       var raw = localStorage.getItem(key);
@@ -544,7 +548,6 @@
     var guestId = isLoggedIn ? "" : getGuestHash();
 
     return {
-      authToken: getToken(),
       deviceId: shellState.deviceId || getDeviceId(),
       room: "rblxtools-main",
       userId: shellState.currentUser && shellState.currentUser.userId ? String(shellState.currentUser.userId) : guestId,
@@ -562,7 +565,6 @@
   function getSocketJoinPayload() {
     return {
       room: "rblxtools-main",
-      authToken: getToken(),
       deviceId: shellState.deviceId || getDeviceId()
     };
   }
@@ -1177,10 +1179,10 @@
 
   async function logoutCurrentUser() {
     try {
-      await fetch(API_BASE + "/auth/logout", { method: "POST" });
+      await fetch(API_BASE + "/auth/logout", { method: "POST", credentials: "include" });
     } catch (_error) {
     }
-    try { localStorage.removeItem(TOKEN_KEY); } catch (_error) {}
+    clearLegacyAuthTokenCache();
     saveCachedAuthUser(null);
     writeCachedPlusStatus(false);
     updateAuthUi(getImmediateUserState());
@@ -1865,9 +1867,7 @@
     var user = result && result.user ? result.user : null;
     saveCachedAuthUser(user);
     writeCachedPlusStatus(hasPlusFromPayload(result) || hasPlusFromPayload(user));
-    try {
-      localStorage.setItem(TOKEN_KEY, result && result.token ? String(result.token) : "");
-    } catch (_error) {}
+    clearLegacyAuthTokenCache();
     setAuthStatus(successMessage, "success");
     var nextState = buildUserStateFromPayload(result, shellState.moderation) || resolveUserState();
     if (nextState && typeof nextState.then !== "function") {
@@ -1885,7 +1885,7 @@
   }
 
   async function authApiRequest(path, options) {
-    var response = await fetch(API_BASE + path, options || {});
+    var response = await fetch(API_BASE + path, Object.assign({ credentials: "include" }, options || {}));
     var contentType = response.headers.get("content-type") || "";
     var payload = null;
 
@@ -2118,7 +2118,7 @@
   }
 
   function openSupportModal() {
-    if (!getToken()) {
+    if (!(shellState.currentUser && shellState.currentUser.loggedIn)) {
       window.alert("Please log in before sending a support report.");
       return;
     }
@@ -2187,8 +2187,7 @@
   }
 
   async function submitSupportReport() {
-    var token = getToken();
-    if (!token) {
+    if (!(shellState.currentUser && shellState.currentUser.loggedIn)) {
       window.alert("Please log in before sending a support report.");
       return;
     }
@@ -2231,9 +2230,9 @@
       var attachment = await readSupportAttachment(attachmentFile);
       var response = await fetch(API_BASE + "/support/report", {
         method: "POST",
+        credentials: "include",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           category: category,
@@ -3053,19 +3052,18 @@
 
   async function refreshMembershipStateFromServer() {
     if (shellState.membershipRefreshInFlight) return;
-    var token = getToken();
-    if (!token) return;
     shellState.membershipRefreshInFlight = true;
     try {
       var response = await fetch(API_BASE + "/auth/me", {
         method: "GET",
+        credentials: "include",
         headers: {
-          Authorization: "Bearer " + token,
           "X-RBLX-Device-Id": shellState.deviceId || getDeviceId()
         }
       });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
+          clearLegacyAuthTokenCache();
           saveCachedAuthUser(null);
           updateAuthUi(getImmediateUserState());
         }
@@ -3120,9 +3118,8 @@
   }
 
   function getImmediateUserState() {
-    var token = getToken();
     var cachedUser = getCachedAuthUser();
-    if (!token || !cachedUser) {
+    if (!cachedUser) {
       return {
         loggedIn: false,
         plan: "guest",
@@ -3154,31 +3151,14 @@
   }
 
   async function resolveUserState() {
-    var token = getToken();
     var cachedUser = getCachedAuthUser();
-    if (!token) {
-      var guestHash = getGuestHash();
-      saveCachedAuthUser(null);
-      return {
-        loggedIn: false,
-        plan: "guest",
-        message: "You are browsing this website as a guest.",
-        userId: guestHash,
-        username: "",
-        displayName: "Guest",
-        email: "",
-        isAdmin: false,
-        moderation: shellState.moderation
-      };
-    }
-
     var displayName = "";
     var plus = false;
 
     try {
       var premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
         method: "GET",
-        headers: { Authorization: "Bearer " + token }
+        credentials: "include"
       });
       if (premiumResponse.ok) {
         plus = hasPlusFromPayload(await premiumResponse.json().catch(function () { return null; }));
@@ -3188,8 +3168,8 @@
     try {
       var response = await fetch(API_BASE + "/auth/me", {
         method: "GET",
+        credentials: "include",
         headers: {
-          Authorization: "Bearer " + token,
           "X-RBLX-Device-Id": shellState.deviceId || getDeviceId()
         }
       });
@@ -3214,22 +3194,10 @@
         moderation: payload && payload.moderation ? payload.moderation : null
       };
     } catch (_error2) {
+      clearLegacyAuthTokenCache();
+      saveCachedAuthUser(null);
       if (cachedUser) {
-        displayName = getPreferredUserName(cachedUser, cachedUser);
-        plus = plus || hasPlusFromPayload(cachedUser);
-        return {
-          loggedIn: true,
-          plan: plus ? "plus" : "free",
-          message: plus
-            ? "You are browsing this website as a Plus subscriber. Thank you for your support" + (displayName ? ", " + displayName : "") + "."
-            : "You are browsing this website as a free plan user" + (displayName ? ", " + displayName : "") + ".",
-          userId: cachedUser && cachedUser.id ? String(cachedUser.id) : "",
-          username: cachedUser && cachedUser.username ? String(cachedUser.username) : "",
-          displayName: displayName,
-          email: cachedUser && cachedUser.email ? String(cachedUser.email) : "",
-          isAdmin: Boolean(cachedUser && cachedUser.isAdmin),
-          moderation: shellState.moderation
-        };
+        displayName = "";
       }
       var fallbackGuestHash = getGuestHash();
       return {

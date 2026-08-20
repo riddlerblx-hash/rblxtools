@@ -1691,6 +1691,45 @@ function getBearerToken(req) {
   return String(req.cookies?.[AUTH_COOKIE_NAME] || "").trim();
 }
 
+function parseCookieHeader(cookieHeader) {
+  const source = String(cookieHeader || "").trim();
+  if (!source) return {};
+  return source.split(";").reduce((acc, entry) => {
+    const separatorIndex = entry.indexOf("=");
+    if (separatorIndex < 0) return acc;
+    const key = entry.slice(0, separatorIndex).trim();
+    if (!key) return acc;
+    const value = entry.slice(separatorIndex + 1).trim();
+    acc[key] = decodeURIComponent(value);
+    return acc;
+  }, {});
+}
+
+function getSocketBearerToken(socket, payload) {
+  const payloadToken = cleanText(
+    payload?.authToken ||
+    payload?.token ||
+    payload?.bearerToken,
+    4096
+  );
+  if (payloadToken) return payloadToken;
+
+  const authToken = cleanText(
+    socket?.handshake?.auth?.authToken ||
+    socket?.handshake?.auth?.token ||
+    socket?.handshake?.auth?.bearerToken,
+    4096
+  );
+  if (authToken) return authToken;
+
+  const header = String(socket?.handshake?.headers?.authorization || "");
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  if (match) return cleanText(match[1], 4096);
+
+  const cookies = parseCookieHeader(socket?.handshake?.headers?.cookie);
+  return cleanText(cookies?.[AUTH_COOKIE_NAME], 4096);
+}
+
 function getRequestActivityHeader(req, headerName, maxLength) {
   const rawValue = req && req.headers ? req.headers[headerName] : "";
   return cleanText(rawValue, maxLength);
@@ -3471,15 +3510,10 @@ async function verifyGoogleIdToken(idToken) {
   };
 }
 
-async function getAuthenticatedSocketUser(payload) {
+async function getAuthenticatedSocketUser(socket, payload) {
   assertAuthStorageConfigured();
 
-  const token = cleanText(
-    payload?.authToken ||
-    payload?.token ||
-    payload?.bearerToken,
-    4096
-  );
+  const token = getSocketBearerToken(socket, payload);
 
   if (!token) {
     return null;
@@ -3497,9 +3531,9 @@ async function getAuthenticatedSocketUser(payload) {
   }
 }
 
-async function buildChatMemberProfile(payload) {
+async function buildChatMemberProfile(payload, authenticatedUserOverride = null) {
   const sanitizedProfile = sanitizeChatMemberProfile(payload);
-  const authenticatedUser = await getAuthenticatedSocketUser(payload);
+  const authenticatedUser = authenticatedUserOverride || await getAuthenticatedSocketUser(null, payload);
 
   if (!authenticatedUser) {
     return sanitizedProfile;
@@ -7866,7 +7900,7 @@ io.on("connection", (socket) => {
     const { room = "main" } = payload || {};
     const cleanRoom = cleanText(room, 40) || "main";
     currentDeviceId = getPayloadDeviceId(payload);
-    authenticatedUser = await getAuthenticatedSocketUser(payload);
+    authenticatedUser = await getAuthenticatedSocketUser(socket, payload);
     socket.data.currentDeviceId = currentDeviceId || "";
     socket.data.currentUserId = authenticatedUser?.id || "";
 
@@ -7885,7 +7919,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    memberProfile = await buildChatMemberProfile(payload);
+    memberProfile = await buildChatMemberProfile(payload, authenticatedUser);
     currentRoom = cleanRoom;
 
     socket.join(currentRoom);
