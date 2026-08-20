@@ -520,6 +520,31 @@
       padding-right: 3px;
     }
 
+    .admin-preview-compose {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      margin-top: 12px;
+      align-items: center;
+    }
+
+    .admin-preview-status {
+      margin-top: 8px;
+      color: var(--admin-muted);
+      font-size: 11px;
+      line-height: 1.45;
+      font-weight: 700;
+      min-height: 16px;
+    }
+
+    .admin-preview-status.error {
+      color: #ffb3ad;
+    }
+
+    .admin-preview-status.success {
+      color: #8ff0b3;
+    }
+
     .admin-preview-item,
     .admin-preview-system,
     .admin-preview-empty {
@@ -1058,6 +1083,11 @@
         <div class="admin-preview-feed" id="previewFeed">
           <div class="admin-preview-empty" id="previewEmpty">Connecting to live chat preview...</div>
         </div>
+        <form class="admin-preview-compose" id="previewForm">
+          <input class="admin-input" id="previewInput" type="text" maxlength="160" placeholder="Send a live admin chat message..." />
+          <button class="admin-btn green" id="previewSendButton" type="submit">Send Message</button>
+        </form>
+        <div class="admin-preview-status" id="previewStatus"></div>
       </div>
     </section>
   </div>
@@ -1107,7 +1137,11 @@
         memberComplimentaryDaysLeft: document.getElementById("memberComplimentaryDaysLeft"),
         memberModeration: document.getElementById("memberModeration"),
         previewFeed: document.getElementById("previewFeed"),
-        previewEmpty: document.getElementById("previewEmpty")
+        previewEmpty: document.getElementById("previewEmpty"),
+        previewForm: document.getElementById("previewForm"),
+        previewInput: document.getElementById("previewInput"),
+        previewSend: document.getElementById("previewSendButton"),
+        previewStatus: document.getElementById("previewStatus")
       };
 
       function getStoredToken() {
@@ -1363,7 +1397,8 @@
       }
 
       async function fetchJson(url, options) {
-        var response = await fetch(url, options);
+        var nextOptions = Object.assign({ credentials: "include" }, options || {});
+        var response = await fetch(url, nextOptions);
         var payload = await response.json().catch(function () { return null; });
 
         if (!response.ok) {
@@ -1374,19 +1409,14 @@
       }
 
       async function refreshLoadedMember(isBackgroundPoll) {
-        var token = getStoredToken();
         var query = loadedMember && (loadedMember.id || loadedMember.email);
 
-        if (!token || !query) {
+        if (!query) {
           return;
         }
 
         try {
-          var payload = await fetchJson(API_BASE + "/admin/member-lookup?q=" + encodeURIComponent(query), {
-            headers: {
-              Authorization: "Bearer " + token
-            }
-          });
+          var payload = await fetchJson(API_BASE + "/admin/member-lookup?q=" + encodeURIComponent(query));
 
           renderMember(normalizeLoadedMember(payload.member || null, payload));
           if (!isBackgroundPoll) {
@@ -1400,13 +1430,7 @@
       }
 
       async function lookupMember() {
-        var token = getStoredToken();
         var query = getFieldValue("lookupQuery");
-
-        if (!token) {
-          setResult("lookupStatus", "You need to log into an approved admin account first.", "error");
-          return;
-        }
 
         if (!query) {
           setResult("lookupStatus", "Enter a user ID or email first.", "error");
@@ -1418,11 +1442,7 @@
         clearMemberPolling();
 
         try {
-          var payload = await fetchJson(API_BASE + "/admin/member-lookup?q=" + encodeURIComponent(query), {
-            headers: {
-              Authorization: "Bearer " + token
-            }
-          });
+          var payload = await fetchJson(API_BASE + "/admin/member-lookup?q=" + encodeURIComponent(query));
 
           renderMember(normalizeLoadedMember(payload.member || null, payload));
           setResult("lookupStatus", "Member loaded.", "success");
@@ -1435,7 +1455,6 @@
       }
 
       async function resolveTargetMember(targetValue) {
-        var token = getStoredToken();
         var query = String(targetValue || "").trim();
 
         if (!query) {
@@ -1446,11 +1465,7 @@
           throw new Error("Guest chat IDs are not real member account IDs. Use the member's real account email or UUID.");
         }
 
-        var payload = await fetchJson(API_BASE + "/admin/member-lookup?q=" + encodeURIComponent(query), {
-          headers: {
-            Authorization: "Bearer " + token
-          }
-        });
+        var payload = await fetchJson(API_BASE + "/admin/member-lookup?q=" + encodeURIComponent(query));
 
         return payload.member || null;
       }
@@ -1467,7 +1482,6 @@
 
       async function grantPlus() {
         return withBusy(["grantPlusButton", "removePlusButton"], async function () {
-          var token = getStoredToken();
           var note = getFieldValue("plusNote");
           if (!note) {
             throw new Error("A note is required before complimentary Plus can be granted.");
@@ -1476,8 +1490,7 @@
           var payload = await fetchJson(API_BASE + "/admin/grant-plus", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               userId: target.id,
@@ -1495,13 +1508,11 @@
 
       async function removePlus() {
         return withBusy(["grantPlusButton", "removePlusButton"], async function () {
-          var token = getStoredToken();
           var target = await resolveTargetMember(getFieldValue("plusTarget"));
           var payload = await fetchJson(API_BASE + "/admin/remove-plus", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               userId: target.id,
@@ -1518,13 +1529,11 @@
 
       async function applyWebsiteLock() {
         return withBusy(["blacklistButton", "clearBlacklistButton"], async function () {
-          var token = getStoredToken();
           var target = await resolveTargetMember(getFieldValue("blacklistTarget"));
           var payload = await fetchJson(API_BASE + "/admin/site-blacklist", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               userId: target.id,
@@ -1542,13 +1551,11 @@
 
       async function clearWebsiteLock() {
         return withBusy(["blacklistButton", "clearBlacklistButton"], async function () {
-          var token = getStoredToken();
           var target = await resolveTargetMember(getFieldValue("blacklistTarget"));
           var payload = await fetchJson(API_BASE + "/admin/clear-site-blacklist", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               userId: target.id,
@@ -1580,13 +1587,11 @@
             throw new Error("Set at least one minute, hour, or day for the timeout.");
           }
 
-          var token = getStoredToken();
           var target = await resolveTargetMember(getFieldValue("timeoutTarget"));
           var payload = await fetchJson(API_BASE + "/admin/chat-timeout", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               userId: target.id,
@@ -1607,13 +1612,11 @@
 
       async function clearChatTimeout() {
         return withBusy(["timeoutButton", "clearTimeoutButton"], async function () {
-          var token = getStoredToken();
           var target = await resolveTargetMember(getFieldValue("timeoutTarget"));
           var payload = await fetchJson(API_BASE + "/admin/clear-chat-timeout", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               userId: target.id,
@@ -1630,13 +1633,11 @@
 
       async function applyChatBan() {
         return withBusy(["chatBanButton", "clearChatBanButton"], async function () {
-          var token = getStoredToken();
           var target = await resolveTargetMember(getFieldValue("chatBanTarget"));
           var payload = await fetchJson(API_BASE + "/admin/chat-ban", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               userId: target.id,
@@ -1654,13 +1655,11 @@
 
       async function clearChatBan() {
         return withBusy(["chatBanButton", "clearChatBanButton"], async function () {
-          var token = getStoredToken();
           var target = await resolveTargetMember(getFieldValue("chatBanTarget"));
           var payload = await fetchJson(API_BASE + "/admin/clear-chat-ban", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               userId: target.id,
@@ -1677,13 +1676,11 @@
 
       async function createClaimDrop() {
         return withBusy(["createDropButton"], async function () {
-          var token = getStoredToken();
           var adminIdentity = getAdminChatIdentityMeta();
           var payload = await fetchJson(API_BASE + "/admin/create-claim-drop", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               title: getFieldValue("dropTitle"),
@@ -1716,13 +1713,11 @@
             throw new Error("Set at least one second, minute, or hour for chat rain.");
           }
 
-          var token = getStoredToken();
           var adminIdentity = getAdminChatIdentityMeta();
           var payload = await fetchJson(API_BASE + "/admin/start-chat-rain", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               title: getFieldValue("rainTitle"),
@@ -1826,6 +1821,40 @@
         refs.previewFeed.scrollTop = refs.previewFeed.scrollHeight;
       }
 
+      function setPreviewStatus(message, tone) {
+        if (!refs.previewStatus) return;
+        refs.previewStatus.textContent = message || "";
+        refs.previewStatus.className = "admin-preview-status" + (tone ? " " + tone : "");
+      }
+
+      function sendPreviewMessage(event) {
+        if (event) event.preventDefault();
+        if (!refs.previewInput || !previewSocket || !previewSocket.connected || !currentAdminUser) {
+          setPreviewStatus("Live admin chat is not connected yet.", "error");
+          return;
+        }
+
+        var value = String(refs.previewInput.value || "").trim();
+        if (!value) {
+          setPreviewStatus("Type a message first.", "error");
+          return;
+        }
+
+        var adminIdentity = getAdminChatIdentityMeta();
+        previewSocket.emit("chat-message", {
+          text: value,
+          displayName: adminIdentity.displayName,
+          username: adminIdentity.username,
+          avatarUrl: adminIdentity.avatarUrl,
+          bio: "",
+          plan: currentAdminUser && currentAdminUser.plan ? String(currentAdminUser.plan).toLowerCase() : "free",
+          isPlus: String(currentAdminUser && currentAdminUser.plan || "").toLowerCase() === "plus",
+          isGuest: false
+        });
+        refs.previewInput.value = "";
+        setPreviewStatus("", "");
+      }
+
       function connectPreviewSocket() {
         if (!window.io || previewSocket || !currentAdminUser || !panelUnlocked) return;
 
@@ -1835,6 +1864,7 @@
         });
 
         previewSocket.on("connect", function () {
+          setPreviewStatus("Live admin chat connected.", "success");
           previewSocket.emit("join-room", {
             room: "rblxtools-main",
             userId: currentAdminUser.id || adminIdentity.username,
@@ -1846,6 +1876,14 @@
             plan: "plus",
             favoriteTools: []
           });
+        });
+
+        previewSocket.on("disconnect", function () {
+          setPreviewStatus("Live admin chat disconnected. Reconnecting...", "error");
+        });
+
+        previewSocket.on("connect_error", function (error) {
+          setPreviewStatus(error && error.message ? error.message : "Could not connect to live admin chat.", "error");
         });
 
         previewSocket.on("chat-history", function (history) {
@@ -1874,23 +1912,8 @@
       }
 
       async function bootstrap() {
-        var token = getStoredToken();
-        if (!token) {
-          refs.currentName.textContent = "Sign In First";
-          refs.currentEmail.textContent = "No admin session found.";
-          refs.currentPlan.textContent = "-";
-          refs.currentRole.textContent = "Open this panel from an approved account.";
-          refs.sessionState.textContent = "Blocked";
-          setGlobalStatus("Log into an approved admin account first.", "error");
-          return;
-        }
-
         try {
-          var payload = await fetchJson(API_BASE + "/auth/me", {
-            headers: {
-              Authorization: "Bearer " + token
-            }
-          });
+          var payload = await fetchJson(API_BASE + "/auth/me");
 
           var user = payload.user || payload;
           if (!user || !user.isAdmin) {
@@ -1950,6 +1973,7 @@
       document.getElementById("clearChatBanButton").addEventListener("click", clearChatBan);
       document.getElementById("createDropButton").addEventListener("click", createClaimDrop);
       document.getElementById("startRainButton").addEventListener("click", startChatRain);
+      if (refs.previewForm) refs.previewForm.addEventListener("submit", sendPreviewMessage);
       refs.pinForm.addEventListener("submit", handlePinSubmit);
 
       bootstrap();
