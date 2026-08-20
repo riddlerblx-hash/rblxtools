@@ -1013,6 +1013,43 @@
       <div class="admin-card-inner">
         <div class="admin-card-head">
           <div>
+            <h2 class="admin-card-title">Site Maintenance</h2>
+            <p class="admin-card-copy">Turn maintenance mode on or off for members. Admins still bypass the maintenance screen so they can keep working.</p>
+          </div>
+          <span class="admin-pill">Admins Bypass</span>
+        </div>
+
+        <div class="admin-buttons" style="margin-bottom:12px;">
+          <label class="admin-pill" style="display:inline-flex;align-items:center;gap:8px;">
+            <input id="maintenanceEnabled" type="checkbox" />
+            <span>Enable Maintenance Screen</span>
+          </label>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-label" for="maintenanceTitle">Headline</label>
+          <input class="admin-input" id="maintenanceTitle" type="text" placeholder="Sorry, the site is under maintenance right now." />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-label" for="maintenanceNotice">Notice</label>
+          <textarea class="admin-input" id="maintenanceNotice" placeholder="This does not mean the servers are down..." style="min-height: 120px; resize: vertical;"></textarea>
+        </div>
+
+        <div class="admin-buttons">
+          <button class="admin-btn green" id="saveMaintenanceButton" type="button">Save Maintenance Mode</button>
+          <button class="admin-btn ghost" id="refreshMaintenanceButton" type="button">Refresh Status</button>
+        </div>
+
+        <div class="admin-result" id="maintenanceStatus"></div>
+      </div>
+    </section>
+
+
+    <section class="admin-card">
+      <div class="admin-card-inner">
+        <div class="admin-card-head">
+          <div>
             <h2 class="admin-card-title">Live Chat Preview</h2>
             <p class="admin-card-copy">Compact live room feed for drops, rain, and moderation follow-up.</p>
           </div>
@@ -1918,6 +1955,6 @@
       bootstrap();
     })();
   </script>
+  <script src="./maintenance-admin.js"></script>
 </body>
 </html>
-

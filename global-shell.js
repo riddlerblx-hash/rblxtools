@@ -790,6 +790,41 @@
     setChatAlert("", "");
   }
 
+  function applyMaintenanceState(settings) {
+    shellState.maintenanceState = settings || null;
+    if (!shellState.maintenanceOverlay || !shellState.maintenanceTitle || !shellState.maintenanceNotice) return;
+    var enabled = Boolean(settings && settings.maintenanceEnabled);
+    var shouldShow = enabled && !shellState.isAdmin;
+    shellState.maintenanceOverlay.classList.toggle("is-open", shouldShow);
+    shellState.maintenanceOverlay.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+    shellState.maintenanceTitle.textContent = settings && settings.maintenanceTitle
+      ? settings.maintenanceTitle
+      : "Sorry, the site is under maintenance right now.";
+    shellState.maintenanceNotice.textContent = settings && settings.maintenanceNotice
+      ? settings.maintenanceNotice
+      : "This does not mean the servers are down. The RBLXTeam is currently updating the site. Please come back later.";
+  }
+
+  async function refreshSiteMaintenanceState() {
+    try {
+      var response = await fetch(API_BASE + "/api/site-status", { cache: "no-store" });
+      if (!response.ok) return;
+      var payload = await response.json().catch(function () { return null; });
+      applyMaintenanceState(payload && payload.settings ? payload.settings : null);
+    } catch (_error) {
+    }
+  }
+
+  function initSiteMaintenancePolling() {
+    if (shellState.maintenanceRefreshTimer) return;
+    refreshSiteMaintenanceState();
+    shellState.maintenanceRefreshTimer = window.setInterval(refreshSiteMaintenanceState, 8000);
+    window.addEventListener("focus", refreshSiteMaintenanceState);
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) refreshSiteMaintenanceState();
+    });
+  }
+
   function hashText(value) {
     var text = String(value || "");
     var hash = 2166136261;
@@ -1404,12 +1439,19 @@
               '<button class="rblx-shell-btn is-primary" type="button" id="rblxShellSupportSubmit">Submit Report</button>' +
             '</div>' +
           '</div>' +
-        '</div>' +
-        '<div class="rblx-shell-site-lock" id="rblxShellSiteLock" aria-hidden="true">' +
+        '</div>' +        '<div class="rblx-shell-site-lock" id="rblxShellSiteLock" aria-hidden="true">' +
           '<div class="rblx-shell-site-lock-card">' +
             '<div class="rblx-shell-site-lock-kicker">Website Locked</div>' +
             '<h3>Access Restricted</h3>' +
             '<p id="rblxShellSiteLockReason"></p>' +
+          "</div>" +
+        "</div>" +
+        '<div class="rblx-shell-site-lock" id="rblxShellMaintenanceLock" aria-hidden="true">' +
+          '<div class="rblx-shell-site-lock-card">' +
+            '<div class="rblx-shell-site-lock-kicker">Maintenance Notice</div>' +
+            '<h3 id="rblxShellMaintenanceTitle">Sorry, the site is under maintenance right now.</h3>' +
+            '<p>This page is temporarily unavailable.</p>' +
+            '<div class="rblx-shell-site-lock-note" id="rblxShellMaintenanceNote">This does not mean the servers are down. The RBLXTeam is currently updating the site. Please come back later.</div>' +
           "</div>" +
         "</div>" +
         '<div class="rblx-shell-admin-window" id="rblxShellAdminWindow" hidden>' +
@@ -2870,6 +2912,7 @@
     refreshCurrentProfile();
     syncChatIdentity();
     applyModerationState(state.moderation || shellState.moderation);
+    applyMaintenanceState(shellState.maintenanceState);
 
     var mobileAccountLink = document.getElementById("rblxMobileAccountLink");
     if (mobileAccountLink) {
@@ -3389,6 +3432,7 @@
     initRulesLink();
     loadPublicModerationState();
     initMembershipRefresh();
+    initSiteMaintenancePolling();
     window.addEventListener("resize", renderChatRainOverlay);
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.addEventListener("click", openAdminWindow);
@@ -3426,6 +3470,7 @@
     updateAuthUi(initialState);
     resolveUserState().then(function (state) {
       updateAuthUi(state);
+      refreshSiteMaintenanceState();
       refreshMembershipStateFromServer();
     }).catch(function () {
       updateAuthUi({
