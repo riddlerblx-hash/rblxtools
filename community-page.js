@@ -137,7 +137,7 @@
   function getInitials(name) {
     return String(name || "Member")
       .trim()
-      .split(/s+/)
+      .split(/\s+/)
       .filter(Boolean)
       .slice(0, 2)
       .map(function (part) { return part.charAt(0).toUpperCase(); })
@@ -188,23 +188,26 @@
 
   function buildCommunityCommentAuthor(profile) {
     var isPlus = String(profile.plan || "").toLowerCase() === "plus";
-    var badgeMarkup = '<span class="community-comment-badge' + (isPlus ? ' is-plus' : '') + '">' + (isPlus ? 'Plus' : 'Free Plan') + '</span>';
+    var badgeMarkup = isPlus ? "Plus" : escapeHtml(profile.badge || "Free Plan");
     var avatarMarkup = profile.avatarUrl
-      ? '<img class="community-comment-avatar-image" src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;grid&quot;;" />' +
-        '<span class="community-comment-avatar-fallback" style="display:none;">' + escapeHtml(profile.avatarText || getInitials(profile.displayName)) + '</span>'
-      : '<span class="community-comment-avatar-fallback">' + escapeHtml(profile.avatarText || getInitials(profile.displayName)) + '</span>';
+      ? '<img class="rblx-shell-chat-avatar-image" src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;grid&quot;;" />' +
+        '<span class="rblx-shell-chat-avatar-fallback" style="display:none;">' + escapeHtml(profile.avatarText || getInitials(profile.displayName)) + '</span>'
+      : '<span class="rblx-shell-chat-avatar-fallback">' + escapeHtml(profile.avatarText || getInitials(profile.displayName)) + '</span>';
     var attrs = buildCommunityProfileAttrs(profile);
+    var nameClass = isPlus ? ' class="rblx-shell-chat-name-text is-plus"' : ' class="rblx-shell-chat-name-text"';
     return (
       '<div class="community-comment-author">' +
-        '<button class="community-comment-avatar-button" type="button"' + attrs + ' aria-label="Open profile for ' + escapeHtml(profile.displayName || "Member") + '">' +
-          '<span class="community-comment-avatar' + (profile.avatarUrl ? ' has-image' : '') + '">' + avatarMarkup + '</span>' +
+        '<button class="rblx-shell-chat-avatar-button" type="button"' + attrs + ' aria-label="Open profile for ' + escapeHtml(profile.displayName || "Member") + '">' +
+          '<span class="rblx-shell-chat-avatar' + (profile.avatarUrl ? ' has-image' : '') + '">' + avatarMarkup + '</span>' +
         '</button>' +
         '<div class="community-comment-author-copy">' +
-          '<button class="community-comment-name-button" type="button"' + attrs + '>' +
-            badgeMarkup +
-            (isPlus ? '<span class="community-comment-plus-mark">+</span>' : '') +
-            '<span class="community-comment-name-text' + (isPlus ? ' is-plus' : '') + '">' + escapeHtml(profile.displayName || "Member") + '</span>' +
-          '</button>' +
+          '<div class="rblx-shell-chat-name">' +
+            '<button class="rblx-shell-chat-name-button" type="button"' + attrs + '>' +
+              '<span class="rblx-shell-chat-badge' + (isPlus ? ' is-plus' : '') + '">' + badgeMarkup + '</span>' +
+              (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : '') +
+              '<span' + nameClass + '>' + escapeHtml(profile.displayName || "Member") + '</span>' +
+            '</button>' +
+          '</div>' +
         '</div>' +
       '</div>'
     );

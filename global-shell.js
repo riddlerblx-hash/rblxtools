@@ -1688,7 +1688,19 @@
       if (!profile) return;
       openProfileModal(profile, anchorEl || null);
     },
-    close: closeProfileModal
+    close: closeProfileModal,
+    getCurrentIdentity: function () {
+      var identity = getSocketChatIdentity() || {};
+      return {
+        userId: shellState.currentUser && shellState.currentUser.userId ? String(shellState.currentUser.userId) : "",
+        displayName: identity.displayName || "",
+        username: identity.username || "",
+        avatarUrl: identity.avatarUrl || "",
+        bio: identity.bio || "",
+        plan: identity.plan || "free",
+        isPlus: Boolean(identity.isPlus)
+      };
+    }
   };
 
   function setSupportStatus(message, tone) {
