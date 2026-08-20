@@ -1142,7 +1142,9 @@
                   '<span class="rblx-shell-profile-card-title">' + escapeHtml(title) + '</span>' +
                   '<span class="rblx-shell-profile-card-subtitle">' + escapeHtml(subtitle) + '</span>' +
                 '</span>' +
-                '<span class="rblx-shell-profile-card-arrow" aria-hidden="true">›</span>' +
+                '<span class="rblx-shell-profile-card-arrow" aria-hidden="true">' +
+                  '<svg viewBox="0 0 20 20"><path d="M5.6 7.4a1 1 0 0 1 1.4 0L10 10.38l2.99-2.99a1 1 0 1 1 1.41 1.42l-3.7 3.69a1 1 0 0 1-1.4 0L5.6 8.82a1 1 0 0 1 0-1.42Z"/></svg>' +
+                '</span>' +
               '</span>' +
             '</summary>' +
             '<div class="rblx-shell-profile-menu-panel">' +

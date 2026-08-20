@@ -3,6 +3,7 @@
   var TOKEN_KEY = "rblxtools_auth_token";
   var VALID_FILTERS = ["announcement", "changelog", "bug-fix", "known-issue"];
   var isAdminUser = false;
+  var isLoggedIn = false;
   var editingPostId = "";
   var pollTimer = null;
   var lastFeedSignature = "";
@@ -52,6 +53,19 @@
     });
   }
 
+  function formatTime(value) {
+    if (!value) return "Recently";
+    var parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "Recently";
+    return parsed.toLocaleString([], {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  }
+
   function getActiveFilter() {
     var params = new URLSearchParams(window.location.search);
     var raw = String(params.get("filter") || "").trim().toLowerCase();
@@ -59,8 +73,7 @@
   }
 
   function syncFilterUi(activeFilter) {
-    var pills = document.querySelectorAll("[data-filter]");
-    pills.forEach(function (pill) {
+    document.querySelectorAll("[data-filter]").forEach(function (pill) {
       var matches = (pill.getAttribute("data-filter") || "all") === activeFilter;
       pill.classList.toggle("is-active", matches);
     });
@@ -94,13 +107,63 @@
     var pinLabel = post.pinned ? "Unpin Post" : "Pin Post";
     return (
       '<details class="community-post-menu">' +
-        '<summary aria-label="Post settings">⋯</summary>' +
+        '<summary aria-label="Post settings"><span>⋯</span></summary>' +
         '<div class="community-post-menu-panel">' +
           '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>' +
           '<button class="community-post-menu-item" type="button" data-community-pin="' + escapeHtml(post.id) + '" data-next-pinned="' + (post.pinned ? "false" : "true") + '">' + pinLabel + "</button>" +
           '<button class="community-post-menu-item is-danger" type="button" data-community-delete="' + escapeHtml(post.id) + '">Delete Post</button>' +
         "</div>" +
       "</details>"
+    );
+  }
+
+  function buildPostActions(post) {
+    var likeLabel = post.viewerLiked ? "Liked" : "Like";
+    return (
+      '<div class="community-post-actions">' +
+        '<button class="community-post-action' + (post.viewerLiked ? " is-active" : "") + '" type="button" data-community-like="' + escapeHtml(post.id) + '">' +
+          '<span>❤</span><span>' + escapeHtml(likeLabel) + " (" + Number(post.likeCount || 0) + ")</span>" +
+        "</button>" +
+        '<button class="community-post-action" type="button" data-community-focus-comment="' + escapeHtml(post.id) + '">' +
+          '<span>💬</span><span>Comment (' + Number(post.commentCount || 0) + ")</span>" +
+        "</button>" +
+        '<button class="community-post-action" type="button" data-community-share="' + escapeHtml(post.id) + '">' +
+          '<span>↗</span><span>Share</span>' +
+        "</button>" +
+      "</div>"
+    );
+  }
+
+  function buildComments(post) {
+    var comments = Array.isArray(post.comments) ? post.comments : [];
+    var commentsMarkup = comments.length
+      ? comments.map(function (comment) {
+          return (
+            '<article class="community-comment">' +
+              '<div class="community-comment-head">' +
+                '<strong>' + escapeHtml(comment.authorName || "Member") + '</strong>' +
+                '<span>' + escapeHtml(formatTime(comment.createdAt)) + "</span>" +
+              "</div>" +
+              '<p>' + escapeHtml(comment.body || "").replace(/\n/g, "<br>") + "</p>" +
+            "</article>"
+          );
+        }).join("")
+      : '<div class="community-comment-empty">No comments yet.</div>';
+
+    var composer = isLoggedIn
+      ? (
+        '<div class="community-comment-compose">' +
+          '<textarea class="community-comment-input" id="communityCommentInput-' + escapeHtml(post.id) + '" placeholder="Write a comment..."></textarea>' +
+          '<button class="community-comment-submit" type="button" data-community-submit-comment="' + escapeHtml(post.id) + '">Post Comment</button>' +
+        "</div>"
+      )
+      : '<div class="community-comment-empty">Log in to like or comment on community posts.</div>';
+
+    return (
+      '<div class="community-comments">' +
+        commentsMarkup +
+        composer +
+      "</div>"
     );
   }
 
@@ -114,13 +177,12 @@
             escapeHtml(post.linkLabel) +
           "</a>";
       }
-
       var authorBits = [];
       if (post.authorName) authorBits.push("Posted by " + escapeHtml(post.authorName));
       if (post.pinned) authorBits.push("Pinned");
 
       return (
-        '<article class="community-post" data-community-post-id="' + escapeHtml(post.id) + '">' +
+        '<article class="community-post" id="post-' + escapeHtml(post.id) + '" data-community-post-id="' + escapeHtml(post.id) + '">' +
           '<div class="community-post-head">' +
             '<div class="community-post-head-main">' +
               '<span class="' + typeClasses + '">' + escapeHtml(formatPostType(post.category)) + "</span>" +
@@ -133,14 +195,23 @@
           '<div class="community-meta">' + authorBits.map(function (bit) {
             return "<span>" + bit + "</span>";
           }).join("") + "</div>" +
+          buildPostActions(post) +
           action +
+          buildComments(post) +
         "</article>"
       );
     }).join("");
   }
 
   async function fetchJson(url, options) {
-    var response = await fetch(url, options);
+    var config = options ? Object.assign({}, options) : {};
+    var headers = Object.assign({}, config.headers || {});
+    var token = getToken();
+    if (token && !headers.Authorization) {
+      headers.Authorization = "Bearer " + token;
+    }
+    config.headers = headers;
+    var response = await fetch(url, config);
     var payload = await response.json().catch(function () { return null; });
     if (!response.ok) {
       throw new Error(payload && payload.error ? payload.error : "Request failed.");
@@ -179,9 +250,12 @@
     }
   }
 
-  async function revealAdminComposerIfAllowed() {
+  async function syncViewerState() {
     var composer = document.getElementById("communityAdminComposer");
-    if (!composer) return;
+    if (composer) composer.hidden = true;
+    isAdminUser = false;
+    isLoggedIn = false;
+
     var token = getToken();
     if (!token) return;
 
@@ -190,10 +264,11 @@
         headers: { Authorization: "Bearer " + token }
       });
       var user = payload && payload.user ? payload.user : null;
-      if (user && user.isAdmin) {
+      if (!user) return;
+      isLoggedIn = true;
+      if (user.isAdmin) {
         isAdminUser = true;
-        composer.hidden = false;
-        await loadCommunityPosts(true);
+        if (composer) composer.hidden = false;
       }
     } catch (_error) {
     }
@@ -203,22 +278,14 @@
     editingPostId = "";
     var title = document.getElementById("communityComposerTitle");
     var button = document.getElementById("communityPublishButton");
-    var cancel = document.getElementById("communityCancelEditButton");
     if (title) title.textContent = "Create Community Post";
     if (button) button.textContent = "Publish Post";
-    if (cancel) cancel.hidden = true;
-    var titleNode = document.getElementById("communityPostTitle");
-    var bodyNode = document.getElementById("communityPostBody");
+    ["communityPostTitle", "communityPostBody", "communityPostLinkLabel", "communityPostLinkUrl"].forEach(function (id) {
+      var node = document.getElementById(id);
+      if (node) node.value = "";
+    });
     var categoryNode = document.getElementById("communityPostCategory");
-    var linkLabelNode = document.getElementById("communityPostLinkLabel");
-    var linkUrlNode = document.getElementById("communityPostLinkUrl");
-    var pinnedNode = document.getElementById("communityPostPinned");
-    if (titleNode) titleNode.value = "";
-    if (bodyNode) bodyNode.value = "";
     if (categoryNode) categoryNode.value = "announcement";
-    if (linkLabelNode) linkLabelNode.value = "";
-    if (linkUrlNode) linkUrlNode.value = "";
-    if (pinnedNode) pinnedNode.checked = false;
     setPublishStatus("", "");
   }
 
@@ -238,16 +305,13 @@
       editingPostId = String(match.id);
       var title = document.getElementById("communityComposerTitle");
       var button = document.getElementById("communityPublishButton");
-      var cancel = document.getElementById("communityCancelEditButton");
       if (title) title.textContent = "Edit Community Post";
       if (button) button.textContent = "Save Post";
-      if (cancel) cancel.hidden = false;
       document.getElementById("communityPostTitle").value = match.title || "";
       document.getElementById("communityPostBody").value = match.body || "";
       document.getElementById("communityPostCategory").value = match.category || "announcement";
       document.getElementById("communityPostLinkLabel").value = match.linkLabel || "";
       document.getElementById("communityPostLinkUrl").value = match.linkUrl || "";
-      document.getElementById("communityPostPinned").checked = Boolean(match.pinned);
       document.getElementById("communityAdminComposer").scrollIntoView({ behavior: "smooth", block: "start" });
       setPublishStatus("Editing selected post.", "success");
     } catch (error) {
@@ -256,9 +320,8 @@
   }
 
   async function savePost() {
-    var token = getToken();
-    if (!token) {
-      setPublishStatus("Log into an approved admin account first.", "error");
+    if (!isAdminUser) {
+      setPublishStatus("Only admins can publish here.", "error");
       return;
     }
 
@@ -267,19 +330,12 @@
     var categoryNode = document.getElementById("communityPostCategory");
     var linkLabelNode = document.getElementById("communityPostLinkLabel");
     var linkUrlNode = document.getElementById("communityPostLinkUrl");
-    var pinnedNode = document.getElementById("communityPostPinned");
     var button = document.getElementById("communityPublishButton");
 
     var title = titleNode ? String(titleNode.value || "").trim() : "";
     var body = bodyNode ? String(bodyNode.value || "").trim() : "";
-    if (!title) {
-      setPublishStatus("Give the post a title first.", "error");
-      return;
-    }
-    if (!body) {
-      setPublishStatus("Write the post body first.", "error");
-      return;
-    }
+    if (!title) return setPublishStatus("Give the post a title first.", "error");
+    if (!body) return setPublishStatus("Write the post body first.", "error");
 
     if (button) button.disabled = true;
     setPublishStatus(editingPostId ? "Saving post..." : "Publishing post...");
@@ -291,21 +347,16 @@
           : (API_BASE + "/admin/community-posts"),
         {
           method: editingPostId ? "PATCH" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + token
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title: title,
             body: body,
             category: categoryNode ? categoryNode.value : "announcement",
-            pinned: Boolean(pinnedNode && pinnedNode.checked),
             linkLabel: linkLabelNode ? String(linkLabelNode.value || "").trim() : "",
             linkUrl: linkUrlNode ? String(linkUrlNode.value || "").trim() : ""
           })
         }
       );
-
       setPublishStatus(payload.message || (editingPostId ? "Post saved." : "Post published."), "success");
       resetComposer();
       await loadCommunityPosts(true);
@@ -317,13 +368,10 @@
   }
 
   async function deletePost(postId) {
-    var token = getToken();
-    if (!token) return;
     if (!window.confirm("Delete this post?")) return;
     try {
       var payload = await fetchJson(API_BASE + "/admin/community-posts/" + encodeURIComponent(postId), {
-        method: "DELETE",
-        headers: { Authorization: "Bearer " + token }
+        method: "DELETE"
       });
       if (editingPostId && String(editingPostId) === String(postId)) {
         resetComposer();
@@ -336,15 +384,10 @@
   }
 
   async function pinPost(postId, nextPinned) {
-    var token = getToken();
-    if (!token) return;
     try {
       var payload = await fetchJson(API_BASE + "/admin/community-posts/" + encodeURIComponent(postId), {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pinned: nextPinned === "true" })
       });
       setPublishStatus(payload.message || "Post updated.", "success");
@@ -354,25 +397,91 @@
     }
   }
 
+  async function toggleLike(postId) {
+    if (!isLoggedIn) {
+      setPublishStatus("Log in first so you can like posts.", "error");
+      return;
+    }
+    try {
+      await fetchJson(API_BASE + "/api/community-posts/" + encodeURIComponent(postId) + "/likes", {
+        method: "POST"
+      });
+      await loadCommunityPosts(true);
+    } catch (error) {
+      setPublishStatus(error && error.message ? error.message : "Could not update the like.", "error");
+    }
+  }
+
+  async function submitComment(postId) {
+    if (!isLoggedIn) {
+      setPublishStatus("Log in first so you can comment.", "error");
+      return;
+    }
+    var input = document.getElementById("communityCommentInput-" + postId);
+    var body = input ? String(input.value || "").trim() : "";
+    if (!body) {
+      setPublishStatus("Write a comment first.", "error");
+      return;
+    }
+    try {
+      await fetchJson(API_BASE + "/api/community-posts/" + encodeURIComponent(postId) + "/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: body })
+      });
+      if (input) input.value = "";
+      await loadCommunityPosts(true);
+    } catch (error) {
+      setPublishStatus(error && error.message ? error.message : "Could not post the comment.", "error");
+    }
+  }
+
+  async function sharePost(postId) {
+    var url = window.location.origin + "/community#post-" + encodeURIComponent(postId);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "RBLXTools Community", url: url });
+        return;
+      }
+    } catch (_error) {
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setPublishStatus("Post link copied.", "success");
+    } catch (_error) {
+      setPublishStatus("Could not copy the post link.", "error");
+    }
+  }
+
   function bindComposer() {
     var publishButton = document.getElementById("communityPublishButton");
-    var cancelButton = document.getElementById("communityCancelEditButton");
     if (publishButton) publishButton.addEventListener("click", savePost);
-    if (cancelButton) cancelButton.addEventListener("click", resetComposer);
     document.addEventListener("click", function (event) {
-      var editButton = event.target.closest("[data-community-edit]");
-      if (editButton) {
-        loadPostIntoComposer(editButton.getAttribute("data-community-edit"));
-        return;
-      }
-      var deleteButton = event.target.closest("[data-community-delete]");
-      if (deleteButton) {
-        deletePost(deleteButton.getAttribute("data-community-delete"));
-        return;
-      }
-      var pinButton = event.target.closest("[data-community-pin]");
-      if (pinButton) {
-        pinPost(pinButton.getAttribute("data-community-pin"), pinButton.getAttribute("data-next-pinned"));
+      var target = event.target;
+      if (!target || !target.closest) return;
+
+      var editButton = target.closest("[data-community-edit]");
+      if (editButton) return void loadPostIntoComposer(editButton.getAttribute("data-community-edit"));
+
+      var deleteButton = target.closest("[data-community-delete]");
+      if (deleteButton) return void deletePost(deleteButton.getAttribute("data-community-delete"));
+
+      var pinButton = target.closest("[data-community-pin]");
+      if (pinButton) return void pinPost(pinButton.getAttribute("data-community-pin"), pinButton.getAttribute("data-next-pinned"));
+
+      var likeButton = target.closest("[data-community-like]");
+      if (likeButton) return void toggleLike(likeButton.getAttribute("data-community-like"));
+
+      var shareButton = target.closest("[data-community-share]");
+      if (shareButton) return void sharePost(shareButton.getAttribute("data-community-share"));
+
+      var commentButton = target.closest("[data-community-submit-comment]");
+      if (commentButton) return void submitComment(commentButton.getAttribute("data-community-submit-comment"));
+
+      var focusComment = target.closest("[data-community-focus-comment]");
+      if (focusComment) {
+        var input = document.getElementById("communityCommentInput-" + focusComment.getAttribute("data-community-focus-comment"));
+        if (input) input.focus();
       }
     });
   }
@@ -390,8 +499,12 @@
     });
   }
 
-  bindComposer();
-  revealAdminComposerIfAllowed();
-  loadCommunityPosts(true);
-  startFeedHeartbeat();
+  async function init() {
+    bindComposer();
+    await syncViewerState();
+    await loadCommunityPosts(true);
+    startFeedHeartbeat();
+  }
+
+  init();
 })();

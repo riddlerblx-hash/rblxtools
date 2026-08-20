@@ -19,7 +19,7 @@
     .community-page {
       width: min(1180px, calc(100% - 28px));
       margin: 0 auto;
-      padding: 34px 0 72px;
+      padding: 34px 0 120px;
     }
     .community-shell,
     .community-card,
@@ -71,20 +71,14 @@
     .community-post p,
     .community-card p,
     .community-card li,
-    .community-helper-copy {
+    .community-helper-copy,
+    .community-comment p {
       margin: 0;
       color: rgba(228, 233, 243, 0.8);
       font-size: 15px;
       line-height: 1.75;
     }
-    .community-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 24px;
-      position: relative;
-      z-index: 1;
-    }
+    .community-toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; position: relative; z-index: 1; }
     .community-pill {
       display: inline-flex;
       align-items: center;
@@ -104,10 +98,7 @@
       background: linear-gradient(180deg, rgba(255, 92, 106, 0.18), rgba(255, 92, 106, 0.08));
       color: #ffe2e6;
     }
-    .community-admin-composer {
-      margin-top: 22px;
-      padding: 24px;
-    }
+    .community-admin-composer { margin-top: 22px; padding: 24px; }
     .community-admin-composer[hidden] { display: none !important; }
     .community-admin-composer h2,
     .community-empty h2,
@@ -118,16 +109,9 @@
     }
     .community-admin-composer h2,
     .community-empty h2,
-    .community-post h2 {
-      font-size: clamp(25px, 3vw, 32px);
-      line-height: 1.08;
-    }
+    .community-post h2 { font-size: clamp(25px, 3vw, 32px); line-height: 1.08; }
     .community-form-grid { display: grid; gap: 14px; margin-top: 18px; }
-    .community-form-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
+    .community-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .community-field label {
       display: block;
       margin-bottom: 8px;
@@ -139,7 +123,8 @@
     }
     .community-input,
     .community-textarea,
-    .community-select {
+    .community-select,
+    .community-comment-input {
       width: 100%;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(255, 255, 255, 0.05);
@@ -150,22 +135,12 @@
       outline: none;
     }
     .community-textarea { min-height: 150px; resize: vertical; }
-    .community-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      min-height: 44px;
-      padding: 0 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
-      font-size: 14px;
-      font-weight: 800;
-      color: #f4f7fd;
-    }
+    .community-comment-input { min-height: 92px; resize: vertical; }
     .community-form-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
     .community-button,
-    .community-action {
+    .community-action,
+    .community-post-action,
+    .community-comment-submit {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -178,15 +153,24 @@
       font-weight: 900;
       cursor: pointer;
     }
-    .community-button {
+    .community-button,
+    .community-post-action,
+    .community-comment-submit {
       background: rgba(255, 255, 255, 0.05);
       color: #f7f8fc;
     }
     .community-button.primary,
-    .community-action {
+    .community-action,
+    .community-comment-submit {
       background: linear-gradient(180deg, #ff5866, #de3d4d);
       color: #fff;
       box-shadow: 0 16px 34px rgba(221, 62, 77, 0.24);
+    }
+    .community-post-action { gap: 8px; }
+    .community-post-action.is-active {
+      border-color: rgba(255, 92, 106, 0.34);
+      background: rgba(255, 92, 106, 0.12);
+      color: #ffdfe5;
     }
     .community-status {
       padding: 12px 14px;
@@ -198,42 +182,16 @@
       color: #dce3f2;
     }
     .community-status[hidden] { display: none !important; }
-    .community-status.is-error {
-      border-color: rgba(255, 98, 88, 0.28);
-      background: rgba(255, 98, 88, 0.08);
-      color: #ffc5c0;
-    }
-    .community-status.is-success {
-      border-color: rgba(83, 223, 136, 0.28);
-      background: rgba(83, 223, 136, 0.08);
-      color: #c9ffd9;
-    }
-    .community-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1.85fr) minmax(280px, 0.9fr);
-      gap: 22px;
-      margin-top: 24px;
-      align-items: start;
-    }
+    .community-status.is-error { border-color: rgba(255, 98, 88, 0.28); background: rgba(255, 98, 88, 0.08); color: #ffc5c0; }
+    .community-status.is-success { border-color: rgba(83, 223, 136, 0.28); background: rgba(83, 223, 136, 0.08); color: #c9ffd9; }
+    .community-layout { display: grid; grid-template-columns: minmax(0, 1.85fr) minmax(280px, 0.9fr); gap: 22px; margin-top: 24px; align-items: start; }
     .community-feed,
     .community-side { display: grid; gap: 18px; }
     .community-empty,
     .community-post,
     .community-card { padding: 24px; }
-    .community-post-head {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-    .community-post-head-main {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-    }
+    .community-post-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .community-post-head-main { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
     .community-type {
       display: inline-flex;
       align-items: center;
@@ -249,26 +207,18 @@
       text-transform: uppercase;
     }
     .community-type.is-pinned::before { content: "★"; font-size: 10px; }
-    .community-date {
-      color: rgba(209, 216, 230, 0.58);
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .community-meta {
-      margin-top: 14px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px 16px;
-      color: rgba(199, 207, 223, 0.64);
-      font-size: 13px;
-      font-weight: 700;
-    }
+    .community-date { color: rgba(209, 216, 230, 0.58); font-size: 13px; font-weight: 700; }
+    .community-meta { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px 16px; color: rgba(199, 207, 223, 0.64); font-size: 13px; font-weight: 700; }
+    .community-post-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .community-comments { display: grid; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .community-comment,
+    .community-comment-empty { padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.035); }
+    .community-comment-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: rgba(210,218,234,.72); font-size: 12px; font-weight: 800; }
+    .community-comment-head strong { color: #ffffff; font-size: 13px; }
+    .community-comment-compose { display: grid; gap: 10px; }
     .community-card ul { margin: 12px 0 0; padding-left: 18px; }
     .community-card li + li { margin-top: 8px; }
-    .community-post-menu {
-      position: relative;
-      flex: 0 0 auto;
-    }
+    .community-post-menu { position: relative; flex: 0 0 auto; }
     .community-post-menu summary {
       list-style: none;
       width: 42px;
@@ -280,10 +230,9 @@
       display: grid;
       place-items: center;
       cursor: pointer;
-      font-size: 20px;
-      font-weight: 900;
       user-select: none;
     }
+    .community-post-menu summary span { font-size: 24px; line-height: 1; transform: translateY(-2px); }
     .community-post-menu summary::-webkit-details-marker { display: none; }
     .community-post-menu-panel {
       position: absolute;
@@ -310,12 +259,8 @@
       font-weight: 800;
       cursor: pointer;
     }
-    .community-post-menu-item:hover {
-      background: rgba(255, 255, 255, 0.06);
-    }
-    .community-post-menu-item.is-danger {
-      color: #ffb0aa;
-    }
+    .community-post-menu-item:hover { background: rgba(255, 255, 255, 0.06); }
+    .community-post-menu-item.is-danger { color: #ffb0aa; }
     @media (max-width: 960px) {
       .community-layout,
       .community-form-row { grid-template-columns: 1fr; }
@@ -324,6 +269,7 @@
       .community-page {
         width: min(100% - 18px, 1180px);
         padding-top: 24px;
+        padding-bottom: 132px;
       }
       .community-shell,
       .community-empty,
@@ -335,7 +281,9 @@
       }
       .community-pill,
       .community-button,
-      .community-action { width: 100%; }
+      .community-action,
+      .community-post-action,
+      .community-comment-submit { width: 100%; }
     }
   </style>
 </head>
@@ -346,7 +294,6 @@
       <h1>Community</h1>
       <p>
         This is the official RBLXTools update hub for announcements, changelogs, bug fixes, and important site notices.
-        Admins can publish here directly, and everyone else only sees the live update feed.
       </p>
       <div class="community-toolbar" id="communityFilters" aria-label="Community filters">
         <a class="community-pill is-active" data-filter="all" href="./community">All</a>
@@ -359,7 +306,7 @@
 
     <section class="community-admin-composer" id="communityAdminComposer" hidden>
       <h2 id="communityComposerTitle">Create Community Post</h2>
-      <p class="community-helper-copy">Post official updates here. Only approved admin accounts can see this section.</p>
+      <p class="community-helper-copy">Publish official updates for the community feed here.</p>
       <div class="community-form-grid">
         <div class="community-form-row">
           <div class="community-field">
@@ -391,12 +338,7 @@
           </div>
         </div>
         <div class="community-form-actions">
-          <label class="community-toggle">
-            <input id="communityPostPinned" type="checkbox" />
-            <span>Pin this post</span>
-          </label>
           <button class="community-button primary" id="communityPublishButton" type="button">Publish Post</button>
-          <button class="community-button" id="communityCancelEditButton" type="button" hidden>Cancel Edit</button>
         </div>
         <div class="community-status" id="communityPublishStatus" hidden></div>
       </div>

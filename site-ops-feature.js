@@ -3,6 +3,9 @@ const path = require("path");
 const { randomUUID } = require("crypto");
 
 const VALID_CATEGORIES = new Set(["announcement", "changelog", "bug-fix", "known-issue"]);
+const STATIC_FILE_EXTENSIONS = new Set([
+  ".css", ".js", ".mjs", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".woff", ".woff2", ".ttf", ".eot", ".map", ".txt", ".xml", ".json", ".obj", ".glb", ".gltf", ".bin", ".mp3", ".wav", ".ogg", ".mp4", ".webm"
+]);
 
 function getDefaultSiteSettings() {
   return {
@@ -102,19 +105,177 @@ function writeSiteSettings(baseDir, settings) {
   return next;
 }
 
-function buildPublicCommunityPost(post) {
+function getPathnameFromRequest(req) {
+  return String((req && (req.path || req.url || req.originalUrl)) || "").split("?")[0] || "/";
+}
+
+function isStaticAssetPath(pathname) {
+  const extension = path.extname(String(pathname || "").toLowerCase());
+  return STATIC_FILE_EXTENSIONS.has(extension);
+}
+
+function isHtmlPageRequest(req) {
+  const pathname = getPathnameFromRequest(req);
+  if (!["GET", "HEAD"].includes(String(req.method || "GET").toUpperCase())) return false;
+  if (pathname === "/" || pathname.endsWith(".html")) return true;
+  if (isStaticAssetPath(pathname)) return false;
+  if (pathname.startsWith("/api/") || pathname.startsWith("/auth/") || pathname.startsWith("/admin/") || pathname.startsWith("/socket.io")) return false;
+  const accept = String(req.headers?.accept || "").toLowerCase();
+  return accept.includes("text/html");
+}
+
+function isMaintenanceAllowedPath(pathname) {
+  const value = String(pathname || "");
+  return (
+    value.startsWith("/auth/") ||
+    value.startsWith("/admin/") ||
+    value.startsWith("/socket.io/") ||
+    value.startsWith("/assets/") ||
+    value === "/favicon.ico" ||
+    value === "/robots.txt" ||
+    value === "/sitemap.xml" ||
+    value === "/api/site-status"
+  );
+}
+
+function buildMaintenanceHtml(settings) {
+  const title = String(settings?.maintenanceTitle || "Sorry, the site is under maintenance right now.").replace(/[<>&"]/g, "");
+  const notice = String(settings?.maintenanceNotice || "This does not mean the servers are down. The RBLXTeam is currently updating the site. Please come back later.").replace(/[<>&"]/g, "");
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maintenance | RBLXTools</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(255,94,94,.14), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(110,179,255,.12), transparent 26%),
+        linear-gradient(180deg, #0d1118 0%, #090c12 100%);
+      color: #f4f7fb;
+    }
+    .lock-card {
+      width: min(560px, calc(100vw - 20px));
+      padding: 26px;
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,.08);
+      background:
+        radial-gradient(circle at top right, rgba(255,72,72,.18), transparent 30%),
+        linear-gradient(180deg, rgba(19,23,34,.98), rgba(11,14,22,.98));
+      box-shadow: 0 30px 70px rgba(0,0,0,.42);
+      text-align: center;
+    }
+    .kicker {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      color: #ffb9a9;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 16px 0 10px;
+      font-size: clamp(34px, 7vw, 54px);
+      line-height: .95;
+      letter-spacing: -.05em;
+    }
+    p {
+      margin: 0;
+      color: #d5deeb;
+      font-size: 15px;
+      line-height: 1.7;
+      font-weight: 700;
+    }
+    .notice {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,204,107,.26);
+      background: rgba(255,204,107,.08);
+      color: #ffe39b;
+      font-size: 13px;
+      line-height: 1.65;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+  <main class="lock-card">
+    <div class="kicker">Maintenance Notice</div>
+    <h1>${title}</h1>
+    <p>Sorry, this part of the site is temporarily unavailable.</p>
+    <div class="notice">${notice}</div>
+  </main>
+</body>
+</html>`;
+}
+
+async function getOptionalAuthenticatedUser(req, requireAuthenticatedUser) {
+  if (typeof requireAuthenticatedUser !== "function") return null;
+  try {
+    return await requireAuthenticatedUser(req);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function normalizePostForStorage(post) {
+  const likes = Array.isArray(post?.likes)
+    ? post.likes.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+  const comments = Array.isArray(post?.comments)
+    ? post.comments.map((comment) => ({
+        id: String(comment?.id || randomUUID()),
+        userId: String(comment?.userId || "").trim(),
+        authorName: String(comment?.authorName || "Member").trim().slice(0, 80) || "Member",
+        body: String(comment?.body || "").trim().slice(0, 800),
+        createdAt: comment?.createdAt ? String(comment.createdAt) : new Date().toISOString(),
+      })).filter((comment) => comment.body)
+    : [];
+  return Object.assign({}, post, { likes, comments });
+}
+
+function buildPublicCommunityPost(post, viewerId) {
+  const normalized = normalizePostForStorage(post);
+  const likedByViewer = Boolean(viewerId && normalized.likes.includes(String(viewerId).trim()));
   return {
-    id: String(post.id || ""),
-    title: String(post.title || ""),
-    body: String(post.body || ""),
-    category: normalizeCategory(post.category),
-    pinned: Boolean(post.pinned),
-    createdAt: post.createdAt ? String(post.createdAt) : null,
-    updatedAt: post.updatedAt ? String(post.updatedAt) : null,
-    publishedAt: post.publishedAt ? String(post.publishedAt) : null,
-    authorName: post.authorName ? String(post.authorName) : "",
-    linkLabel: post.linkLabel ? String(post.linkLabel) : "",
-    linkUrl: post.linkUrl ? String(post.linkUrl) : "",
+    id: String(normalized.id || ""),
+    title: String(normalized.title || ""),
+    body: String(normalized.body || ""),
+    category: normalizeCategory(normalized.category),
+    pinned: Boolean(normalized.pinned),
+    createdAt: normalized.createdAt ? String(normalized.createdAt) : null,
+    updatedAt: normalized.updatedAt ? String(normalized.updatedAt) : null,
+    publishedAt: normalized.publishedAt ? String(normalized.publishedAt) : null,
+    authorName: normalized.authorName ? String(normalized.authorName) : "",
+    linkLabel: normalized.linkLabel ? String(normalized.linkLabel) : "",
+    linkUrl: normalized.linkUrl ? String(normalized.linkUrl) : "",
+    likeCount: normalized.likes.length,
+    viewerLiked: likedByViewer,
+    commentCount: normalized.comments.length,
+    comments: normalized.comments.map((comment) => ({
+      id: comment.id,
+      authorName: comment.authorName,
+      body: comment.body,
+      createdAt: comment.createdAt,
+    })),
   };
 }
 
@@ -127,19 +288,50 @@ function buildPublicSiteStatus(settings) {
   };
 }
 
-function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
+function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenticatedUser, isAdminUser, cleanText }) {
   ensureJsonFile(getCommunityPostsPath(baseDir), []);
   ensureJsonFile(getSiteSettingsPath(baseDir), getDefaultSiteSettings());
 
+  app.use(async (req, res, next) => {
+    try {
+      const settings = readSiteSettings(baseDir);
+      if (!settings.maintenanceEnabled) return next();
+
+      const pathname = getPathnameFromRequest(req);
+      if (isMaintenanceAllowedPath(pathname) || isStaticAssetPath(pathname)) {
+        return next();
+      }
+
+      const user = await getOptionalAuthenticatedUser(req, requireAuthenticatedUser);
+      if (user && typeof isAdminUser === "function" && isAdminUser(user)) {
+        return next();
+      }
+
+      if (isHtmlPageRequest(req)) {
+        return res.status(503).type("html").send(buildMaintenanceHtml(settings));
+      }
+
+      return res.status(503).json({
+        error: settings.maintenanceTitle,
+        notice: settings.maintenanceNotice,
+        maintenance: true,
+      });
+    } catch (_error) {
+      return next();
+    }
+  });
+
   app.get("/api/community-posts", async (req, res) => {
     try {
+      const viewer = await getOptionalAuthenticatedUser(req, requireAuthenticatedUser);
+      const viewerId = viewer && viewer.id ? String(viewer.id).trim() : "";
       const rawFilter = String(req.query?.filter || "").trim().toLowerCase();
       const normalizedFilter = normalizeCategory(rawFilter);
       const posts = sortCommunityPosts(readCommunityPosts(baseDir)).filter((post) => {
         if (!rawFilter) return true;
         return normalizeCategory(post.category) === normalizedFilter;
       });
-      return res.json({ ok: true, posts: posts.map(buildPublicCommunityPost) });
+      return res.json({ ok: true, posts: posts.map((post) => buildPublicCommunityPost(post, viewerId)) });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Could not load community posts." });
     }
@@ -165,7 +357,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
       const adminName =
         cleanText(adminUser.display_name || adminUser.username || adminUser.email?.split("@")[0] || "Admin", 80) ||
         "Admin";
-      const nextPost = {
+      const nextPost = normalizePostForStorage({
         id: randomUUID(),
         title,
         body,
@@ -179,12 +371,12 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
         authorName: adminName,
         linkLabel,
         linkUrl,
-      };
+      });
 
       const posts = readCommunityPosts(baseDir);
       posts.push(nextPost);
       writeCommunityPosts(baseDir, posts);
-      return res.json({ ok: true, message: "Community post published.", post: buildPublicCommunityPost(nextPost) });
+      return res.json({ ok: true, message: "Community post published.", post: buildPublicCommunityPost(nextPost, String(adminUser.id || "")) });
     } catch (error) {
       return res.status(error.statusCode || 500).json({ error: error.message || "Could not publish the community post." });
     }
@@ -200,7 +392,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
       const index = posts.findIndex((post) => String(post.id || "") === postId);
       if (index < 0) return res.status(404).json({ error: "That post could not be found." });
 
-      const existing = posts[index];
+      const existing = normalizePostForStorage(posts[index]);
       const hasTitle = Object.prototype.hasOwnProperty.call(req.body || {}, "title");
       const hasBody = Object.prototype.hasOwnProperty.call(req.body || {}, "body");
       const hasCategory = Object.prototype.hasOwnProperty.call(req.body || {}, "category");
@@ -221,7 +413,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
         return res.status(400).json({ error: "Link label and link URL need to be filled together." });
       }
 
-      const updated = Object.assign({}, existing, {
+      const updated = normalizePostForStorage(Object.assign({}, existing, {
         title,
         body,
         category,
@@ -229,7 +421,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
         linkLabel,
         linkUrl,
         updatedAt: new Date().toISOString(),
-      });
+      }));
 
       posts[index] = updated;
       writeCommunityPosts(baseDir, posts);
@@ -254,6 +446,67 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, cleanText }) {
       return res.json({ ok: true, message: "Community post deleted." });
     } catch (error) {
       return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete the community post." });
+    }
+  });
+
+  app.post("/api/community-posts/:postId/likes", async (req, res) => {
+    try {
+      const user = await requireAuthenticatedUser(req);
+      const userId = String(user?.id || "").trim();
+      if (!userId) return res.status(401).json({ error: "Log in first." });
+
+      const postId = String(req.params?.postId || "").trim();
+      const posts = readCommunityPosts(baseDir);
+      const index = posts.findIndex((post) => String(post.id || "") === postId);
+      if (index < 0) return res.status(404).json({ error: "That post could not be found." });
+
+      const post = normalizePostForStorage(posts[index]);
+      if (post.likes.includes(userId)) {
+        post.likes = post.likes.filter((value) => value !== userId);
+      } else {
+        post.likes.push(userId);
+      }
+      post.updatedAt = new Date().toISOString();
+      posts[index] = post;
+      writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, post: buildPublicCommunityPost(post, userId) });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not update likes." });
+    }
+  });
+
+  app.post("/api/community-posts/:postId/comments", async (req, res) => {
+    try {
+      const user = await requireAuthenticatedUser(req);
+      const userId = String(user?.id || "").trim();
+      if (!userId) return res.status(401).json({ error: "Log in first." });
+
+      const body = cleanText(req.body?.body, 800);
+      if (!body) return res.status(400).json({ error: "Write a comment first." });
+
+      const postId = String(req.params?.postId || "").trim();
+      const posts = readCommunityPosts(baseDir);
+      const index = posts.findIndex((post) => String(post.id || "") === postId);
+      if (index < 0) return res.status(404).json({ error: "That post could not be found." });
+
+      const authorName = cleanText(
+        user.display_name || user.username || String(user.email || "").split("@")[0] || "Member",
+        80
+      ) || "Member";
+      const post = normalizePostForStorage(posts[index]);
+      post.comments.push({
+        id: randomUUID(),
+        userId,
+        authorName,
+        body,
+        createdAt: new Date().toISOString(),
+      });
+      post.updatedAt = new Date().toISOString();
+      posts[index] = post;
+      writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, post: buildPublicCommunityPost(post, userId) });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not post the comment." });
     }
   });
 
