@@ -1591,6 +1591,20 @@
     updateChatMessageRefresh();
   }
 
+  function renderChatMessagesFallback(target, messages) {
+    if (!target) return;
+    var safeMessages = Array.isArray(messages) ? messages : [];
+    target.innerHTML = safeMessages.map(function (message) {
+      var name = escapeHtml(String((message && (message.displayName || message.username || message.name)) || 'Guest'));
+      var textValue = escapeHtml(String((message && message.text) || ''));
+      var badge = String((message && message.plan) || '').toLowerCase() === 'plus' || Boolean(message && message.isPlus) ? 'PLUS' : 'MEMBER';
+      return '<article class="rblx-shell-chat-message">' +
+        '<div class="rblx-shell-chat-avatar-button"><span class="rblx-shell-chat-avatar"><span class="rblx-shell-chat-avatar-fallback">' + name.charAt(0).toUpperCase() + '</span></span></div>' +
+        '<div><div class="rblx-shell-chat-name"><span class="rblx-shell-chat-badge' + (badge === 'PLUS' ? ' is-plus' : '') + '">' + badge + '</span><span class="rblx-shell-chat-name-text' + (badge === 'PLUS' ? ' is-plus' : '') + '">' + name + '</span></div><div class="rblx-shell-chat-text">' + textValue + '</div></div>' +
+      '</article>';
+    }).join('');
+  }
+
   function buildProfilePlusFloats() {
     var specs = [
       ["6%", "12%", "14px", "7.2s", "-1.4s", "0.22"],
@@ -2395,7 +2409,11 @@
         var messages = Array.isArray(history) ? history.filter(function (message) {
           return !(message && message.specialType === "toolActivity");
         }) : [];
+        shellState.chatMessages = messages;
         renderChatMessages(shellState.chatList, messages, { forceBottom: true });
+        if (shellState.chatList && messages.length && !String(shellState.chatList.innerHTML || '').trim()) {
+          renderChatMessagesFallback(shellState.chatList, messages);
+        }
       });
 
       shellState.socket.on("chat-message", function (message) {
@@ -2406,7 +2424,11 @@
         var nextMessages = shellState.chatMessages.slice();
         nextMessages.push(message);
         nextMessages = nextMessages.slice(-80);
+        shellState.chatMessages = nextMessages;
         renderChatMessages(shellState.chatList, nextMessages, { forceBottom: true });
+        if (shellState.chatList && nextMessages.length && !String(shellState.chatList.innerHTML || '').trim()) {
+          renderChatMessagesFallback(shellState.chatList, nextMessages);
+        }
       });
 
       shellState.socket.on("room-users", function (users) {
