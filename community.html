@@ -123,7 +123,8 @@
       align-items: start;
     }
 
-    .community-feed {
+    .community-feed,
+    .community-side {
       display: grid;
       gap: 18px;
     }
@@ -151,7 +152,8 @@
     .community-empty p,
     .community-post p,
     .community-card p,
-    .community-card li {
+    .community-card li,
+    .community-field-copy {
       margin: 0;
       color: rgba(228, 233, 243, 0.8);
       font-size: 15px;
@@ -203,26 +205,30 @@
       font-weight: 700;
     }
 
-    .community-action {
+    .community-action,
+    .community-button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-top: 18px;
       min-height: 44px;
       padding: 0 18px;
       border-radius: 14px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      background: linear-gradient(180deg, #ff5866, #de3d4d);
-      color: #fff;
       text-decoration: none;
       font-size: 14px;
       font-weight: 900;
+    }
+
+    .community-action,
+    .community-button.primary {
+      background: linear-gradient(180deg, #ff5866, #de3d4d);
+      color: #fff;
       box-shadow: 0 16px 34px rgba(221, 62, 77, 0.24);
     }
 
-    .community-side {
-      display: grid;
-      gap: 18px;
+    .community-button {
+      background: rgba(255, 255, 255, 0.05);
+      color: #f7f8fc;
     }
 
     .community-card ul {
@@ -234,8 +240,126 @@
       margin-top: 8px;
     }
 
+    .community-admin-composer[hidden] {
+      display: none !important;
+    }
+
+    .community-admin-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .community-admin-head h2 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: -0.03em;
+    }
+
+    .community-admin-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(180deg, rgba(255, 214, 84, 0.2), rgba(255, 214, 84, 0.08));
+      color: #ffe48f;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .community-form-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .community-form-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .community-field label {
+      display: block;
+      margin-bottom: 8px;
+      color: #ffbec7;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .community-input,
+    .community-textarea,
+    .community-select {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: #f5f7fd;
+      border-radius: 14px;
+      padding: 13px 14px;
+      font: inherit;
+      outline: none;
+    }
+
+    .community-textarea {
+      min-height: 150px;
+      resize: vertical;
+    }
+
+    .community-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 14px;
+      font-weight: 800;
+      color: #f4f7fd;
+    }
+
+    .community-form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .community-status {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 14px;
+      font-weight: 700;
+      color: #dce3f2;
+    }
+
+    .community-status.is-error {
+      border-color: rgba(255, 98, 88, 0.28);
+      background: rgba(255, 98, 88, 0.08);
+      color: #ffc5c0;
+    }
+
+    .community-status.is-success {
+      border-color: rgba(83, 223, 136, 0.28);
+      background: rgba(83, 223, 136, 0.08);
+      color: #c9ffd9;
+    }
+
     @media (max-width: 960px) {
-      .community-layout {
+      .community-layout,
+      .community-form-row {
         grid-template-columns: 1fr;
       }
     }
@@ -254,7 +378,9 @@
         padding: 22px;
       }
 
-      .community-pill {
+      .community-pill,
+      .community-button,
+      .community-action {
         width: 100%;
       }
     }
@@ -267,7 +393,7 @@
       <h1>Community</h1>
       <p>
         This is the official RBLXTools update hub for announcements, changelogs, bug fixes, and important site notices.
-        Admins can publish here directly from the admin panel, and members can check one clean page for everything important.
+        Admins can publish here directly, and everyone else sees the official update feed only.
       </p>
       <div class="community-toolbar" id="communityFilters" aria-label="Community filters">
         <a class="community-pill is-active" data-filter="all" href="./community">All</a>
@@ -275,6 +401,59 @@
         <a class="community-pill" data-filter="changelog" href="./community?filter=changelog">Changelog</a>
         <a class="community-pill" data-filter="bug-fix" href="./community?filter=bug-fix">Bug Fixes</a>
         <a class="community-pill" data-filter="known-issue" href="./community?filter=known-issue">Known Issues</a>
+      </div>
+    </section>
+
+    <section class="community-card community-admin-composer" id="communityAdminComposer" hidden>
+      <div class="community-admin-head">
+        <div>
+          <div class="community-kicker">Admin Only</div>
+          <h2>Create Community Post</h2>
+        </div>
+        <span class="community-admin-badge">Admin Access</span>
+      </div>
+      <p class="community-field-copy" style="margin-bottom: 16px;">
+        Only approved admin accounts can see this composer. Publish updates here and they will appear instantly on the live Community page.
+      </p>
+      <div class="community-form-grid">
+        <div class="community-form-row">
+          <div class="community-field">
+            <label for="communityPostCategory">Category</label>
+            <select class="community-select" id="communityPostCategory">
+              <option value="announcement">Announcement</option>
+              <option value="changelog">Changelog</option>
+              <option value="bug-fix">Bug Fix</option>
+              <option value="known-issue">Known Issue</option>
+            </select>
+          </div>
+          <div class="community-field">
+            <label for="communityPostTitle">Post Title</label>
+            <input class="community-input" id="communityPostTitle" type="text" placeholder="Short title for the update" />
+          </div>
+        </div>
+        <div class="community-field">
+          <label for="communityPostBody">Post Body</label>
+          <textarea class="community-textarea" id="communityPostBody" placeholder="Write the update here..."></textarea>
+        </div>
+        <div class="community-form-row">
+          <div class="community-field">
+            <label for="communityPostLinkLabel">Optional Button Label</label>
+            <input class="community-input" id="communityPostLinkLabel" type="text" placeholder="ex: View Plans" />
+          </div>
+          <div class="community-field">
+            <label for="communityPostLinkUrl">Optional Button Link</label>
+            <input class="community-input" id="communityPostLinkUrl" type="text" placeholder="ex: ./subscriptions" />
+          </div>
+        </div>
+        <div class="community-form-actions">
+          <label class="community-toggle">
+            <input id="communityPostPinned" type="checkbox" />
+            <span>Pin this post</span>
+          </label>
+          <button class="community-button primary" id="communityPublishButton" type="button">Publish Post</button>
+          <button class="community-button" id="communityReloadButton" type="button">Refresh Feed</button>
+        </div>
+        <div class="community-status" id="communityPublishStatus" hidden></div>
       </div>
     </section>
 
@@ -302,7 +481,7 @@
           <h3>Need support?</h3>
           <p>
             For account help, membership questions, or website issues, use the normal support systems on the site.
-            This page is for update posts, not personal tickets.
+            This page is for official updates, not personal tickets.
           </p>
         </section>
       </aside>

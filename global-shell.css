@@ -2526,6 +2526,18 @@ body.rblx-shell-modal-open {
   font-weight: 700;
 }
 
+.rblx-shell-site-lock-note {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 204, 107, 0.24);
+  background: rgba(255, 204, 107, 0.08);
+  color: #ffe39b;
+  font-size: 12px;
+  line-height: 1.65;
+  font-weight: 800;
+}
+
 .rblx-shell-admin-window {
   position: fixed;
   inset: 0;
