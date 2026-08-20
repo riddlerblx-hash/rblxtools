@@ -1164,7 +1164,11 @@
     );
   }
 
-  function logoutCurrentUser() {
+  async function logoutCurrentUser() {
+    try {
+      await fetch(API_BASE + "/auth/logout", { method: "POST" });
+    } catch (_error) {
+    }
     try { localStorage.removeItem(TOKEN_KEY); } catch (_error) {}
     saveCachedAuthUser(null);
     writeCachedPlusStatus(false);

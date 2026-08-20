@@ -1,6 +1,7 @@
 require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const { createServer } = require("http");
 const {
   randomUUID,
@@ -28,6 +29,7 @@ const { installSiteOpsFeature } = require("./site-ops-feature");
 
 const app = express();
 const httpServer = createServer(app);
+const AUTH_COOKIE_NAME = "rblxtools_auth_token";
 const ROBLOSECURITY = process.env.ROBLOSECURITY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
@@ -1411,6 +1413,7 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
     return res.status(error.statusCode || 400).send(`Webhook Error: ${error.message}`);
   }
 });
+app.use(cookieParser());
 app.use(express.json({ limit: "12mb" }));
 
 const io = new Server(httpServer, {
@@ -1655,10 +1658,37 @@ function verifyAuthToken(token) {
   return payload;
 }
 
+function getAuthCookieSecureFlag(req) {
+  if (process.env.NODE_ENV === "production") return true;
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").toLowerCase();
+  if (forwardedProto.includes("https")) return true;
+  return Boolean(req.secure);
+}
+
+function setAuthCookie(req, res, token) {
+  res.cookie(AUTH_COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: getAuthCookieSecureFlag(req),
+    path: "/",
+    maxAge: 1000 * 60 * 60 * 24 * 30,
+  });
+}
+
+function clearAuthCookie(req, res) {
+  res.clearCookie(AUTH_COOKIE_NAME, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: getAuthCookieSecureFlag(req),
+    path: "/",
+  });
+}
+
 function getBearerToken(req) {
   const header = String(req.headers.authorization || "");
   const match = header.match(/^Bearer\s+(.+)$/i);
-  return match ? match[1].trim() : "";
+  if (match) return match[1].trim();
+  return String(req.cookies?.[AUTH_COOKIE_NAME] || "").trim();
 }
 
 function getRequestActivityHeader(req, headerName, maxLength) {
@@ -5553,6 +5583,7 @@ app.post("/auth/signup", async (req, res) => {
 
     const createdUser = await createAuthUser(email, password);
     const token = createAuthToken(createdUser);
+    setAuthCookie(req, res, token);
 
     return res.status(201).json({
       ok: true,
@@ -5586,6 +5617,7 @@ app.post("/auth/login", async (req, res) => {
     await updateAuthUserLoginStamp(user.id);
     const freshUser = (await getAuthUserById(user.id)) || user;
     const token = createAuthToken(freshUser);
+    setAuthCookie(req, res, token);
 
     return res.json({
       ok: true,
@@ -5620,6 +5652,7 @@ app.post("/auth/google", async (req, res) => {
     await updateAuthUserLoginStamp(user.id);
     const freshUser = (await getAuthUserById(user.id)) || user;
     const token = createAuthToken(freshUser);
+    setAuthCookie(req, res, token);
 
     return res.json({
       ok: true,
@@ -5633,6 +5666,11 @@ app.post("/auth/google", async (req, res) => {
       error: error.message || "Could not sign in with Google.",
     });
   }
+});
+
+app.post("/auth/logout", async (req, res) => {
+  clearAuthCookie(req, res);
+  return res.json({ ok: true });
 });
 
 app.get("/auth/me", async (req, res) => {
