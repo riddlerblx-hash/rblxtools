@@ -103,7 +103,8 @@
     roomSpecials: null,
     roomSpecialsTimer: null,
     serverTimeOffset: 0,
-    chatMessageRefreshTimer: null
+    chatMessageRefreshTimer: null,
+    chatSocketBooting: false
   };
 
   var navGroups = [
@@ -1316,7 +1317,7 @@
                 '<div class="rblx-shell-chat-foot">' +
                   '<button class="rblx-shell-chat-report" type="button" id="rblxShellReportButton">🛟 Report Issue</button>' +
                   '<a class="rblx-shell-chat-rules" href="#" id="rblxShellRulesLink">Chat Rules</a>' +
-                  '<span class="rblx-shell-chat-online"><span class="rblx-shell-chat-online-dot"></span><span id="rblxShellOnlineCount">17</span></span>' +
+                  '<span class="rblx-shell-chat-online"><span class="rblx-shell-chat-online-dot"></span><span id="rblxShellOnlineCount">0</span></span>' +
                 "</div>" +
               "</div>" +
             "</div>" +
@@ -2349,6 +2350,8 @@
   }
 
   function connectChatSocket() {
+    if (shellState.chatSocketBooting) return;
+    shellState.chatSocketBooting = true;
     loadSocketScript().then(function () {
       if (!window.io) return;
 
@@ -2367,6 +2370,11 @@
 
       shellState.socket.on("disconnect", function () {
         shellState.socketReady = false;
+      });
+
+      shellState.socket.on("connect_error", function (error) {
+        shellState.socketReady = false;
+        setChatComposeState(true, "Live chat unavailable", error && error.message ? error.message : "Live chat unavailable");
       });
 
       shellState.socket.on("chat-history", function (history) {
@@ -2450,6 +2458,8 @@
     }).catch(function () {
       renderChatMessages(shellState.chatList, starterMessages, { forceBottom: true });
       setChatComposeState(true, "Live chat unavailable", "Live chat unavailable");
+    }).finally(function () {
+      shellState.chatSocketBooting = false;
     });
   }
 
@@ -3454,6 +3464,7 @@
     });
     initToggles();
     initChat();
+    connectChatSocket();
     initAdminWindow();
     initRulesLink();
     loadPublicModerationState();
@@ -3508,9 +3519,7 @@
         displayName: "",
         email: ""
       });
-    }).finally(function () {
-      connectChatSocket();
-    });
+    }).finally(function () {});
   }
 
   if (document.readyState === "loading") {
