@@ -220,7 +220,7 @@ function buildMaintenanceHtml(settings) {
   <main class="lock-card">
     <div class="kicker">Maintenance Notice</div>
     <h1>${title}</h1>
-    <p>Sorry, this part of the site is temporarily unavailable.</p>
+
     <div class="notice">${notice}</div>
   </main>
 </body>
