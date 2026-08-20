@@ -559,6 +559,14 @@
     };
   }
 
+  function getSocketJoinPayload() {
+    return {
+      room: "rblxtools-main",
+      authToken: getToken(),
+      deviceId: shellState.deviceId || getDeviceId()
+    };
+  }
+
   function setChatComposeState(disabled, placeholder, statusMessage) {
     if (shellState.chatInput) {
       shellState.chatInput.disabled = Boolean(disabled);
@@ -1178,7 +1186,7 @@
     updateAuthUi(getImmediateUserState());
     refreshCurrentProfile();
     if (shellState.socket && shellState.socketReady) {
-      shellState.socket.emit("join-room", getSocketChatIdentity());
+      shellState.socket.emit("join-room", getSocketJoinPayload());
     }
     window.location.href = "./index";
   }
@@ -2370,7 +2378,7 @@
       shellState.socket.on("connect", function () {
           console.log("[RBLX chat] connect fired");
         shellState.socketReady = true;
-        shellState.socket.emit("join-room", getSocketChatIdentity());
+        shellState.socket.emit("join-room", getSocketJoinPayload());
       });
 
       shellState.socket.on("disconnect", function () {
@@ -3074,7 +3082,7 @@
     writeCachedPlusStatus(nextState.plan === "plus");
     updateAuthUi(nextState);
     if (shellState.socket && shellState.socketReady) {
-      shellState.socket.emit("join-room", getSocketChatIdentity());
+      shellState.socket.emit("join-room", getSocketJoinPayload());
     }
     dispatchMembershipUpdate({
       user: mergedUser,
@@ -3489,7 +3497,7 @@
       refreshCurrentProfile();
       syncChatIdentity();
       if (shellState.socket && shellState.socketReady) {
-        shellState.socket.emit("join-room", getSocketChatIdentity());
+        shellState.socket.emit("join-room", getSocketJoinPayload());
       }
     });
     window.addEventListener("storage", function (event) {
@@ -3498,7 +3506,7 @@
         refreshCurrentProfile();
         syncChatIdentity();
         if (shellState.socket && shellState.socketReady) {
-          shellState.socket.emit("join-room", getSocketChatIdentity());
+          shellState.socket.emit("join-room", getSocketJoinPayload());
         }
         return;
       }
