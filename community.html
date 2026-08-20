@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="./global-shell.css" />
   <style>
     :root { color-scheme: dark; }
+    *,
+    *::before,
+    *::after { box-sizing: border-box; }
     body {
       margin: 0;
       background:
@@ -115,6 +118,9 @@
     .community-post h2 { font-size: clamp(25px, 3vw, 32px); line-height: 1.08; }
     .community-form-grid { display: grid; gap: 14px; margin-top: 18px; }
     .community-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+    .community-layout > *,
+    .community-feed > *,
+    .community-side > * { min-width: 0; }
     .community-field { min-width: 0; position: relative; z-index: 1; }
     .community-field label {
       display: block;
@@ -130,6 +136,8 @@
     .community-select,
     .community-comment-input {
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(255, 255, 255, 0.05);
       color: #f5f7fd;
@@ -214,12 +222,12 @@
     .community-date { color: rgba(209, 216, 230, 0.58); font-size: 13px; font-weight: 700; }
     .community-meta { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px 16px; color: rgba(199, 207, 223, 0.64); font-size: 13px; font-weight: 700; }
     .community-post-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-    .community-post-link { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
-    .community-comments { display: grid; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .community-post-link { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+    .community-comments { display: grid; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.07); min-width: 0; }
     .community-comment,
     .community-comment-empty { padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.035); }
     .community-comment { display: grid; gap: 12px; }
-    .community-comment-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 14px; }
+    .community-comment-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 14px; min-width: 0; }
     .community-comment-author { display: flex; align-items: flex-start; gap: 12px; min-width: 0; flex: 1 1 260px; }
     .community-comment-author-copy { display: grid; gap: 5px; min-width: 0; }
     .community-comment-author .rblx-shell-chat-name { margin: 0; }
@@ -239,7 +247,7 @@
     .community-comment-name-text { min-width: 0; color: #ffffff; font-size: 14px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .community-comment-name-text.is-plus { color: #d7e6ff; }
     .community-comment-date { color: rgba(210,218,234,.72); font-size: 12px; font-weight: 800; }
-    .community-comment-compose { display: grid; gap: 10px; }
+    .community-comment-compose { display: grid; gap: 10px; min-width: 0; }
     .community-card ul { margin: 12px 0 0; padding-left: 18px; }
     .community-card li + li { margin-top: 8px; }
     .community-post-menu { position: relative; flex: 0 0 auto; }

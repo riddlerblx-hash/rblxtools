@@ -1532,7 +1532,7 @@
         var relativeTime = formatRelativeTimeSince(message.createdAt);
         return (
           '<article class="rblx-shell-chat-activity-pill-row" data-chat-index="' + index + '">' +
-            '<span class="rblx-shell-chat-activity-pill">' + escapeHtml(actorName) + " used " + escapeHtml(toolName) + " â€¢ " + escapeHtml(relativeTime) + "</span>" +
+            '<span class="rblx-shell-chat-activity-pill">' + escapeHtml(actorName) + " used " + escapeHtml(toolName) + " &bull; " + escapeHtml(relativeTime) + "</span>" +
           "</article>"
         );
       }

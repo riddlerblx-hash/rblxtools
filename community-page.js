@@ -145,15 +145,26 @@
   }
 
   function buildCommentProfile(comment) {
-    var displayName = String(comment.authorName || comment.displayName || "Member").trim() || "Member";
-    var plan = String(comment.plan || "").trim().toLowerCase();
+    var currentIdentity = window.RBLXToolsProfile && typeof window.RBLXToolsProfile.getCurrentIdentity === "function"
+      ? window.RBLXToolsProfile.getCurrentIdentity()
+      : null;
+    var commentUserId = String(comment.userId || "").trim();
+    var currentUserId = currentIdentity && currentIdentity.userId ? String(currentIdentity.userId).trim() : "";
+    var useCurrentIdentity = Boolean(commentUserId && currentUserId && commentUserId === currentUserId);
+    var displayName = String(
+      (useCurrentIdentity && (currentIdentity.displayName || currentIdentity.username)) ||
+      comment.authorName ||
+      comment.displayName ||
+      "Member"
+    ).trim() || "Member";
+    var plan = String((useCurrentIdentity && currentIdentity.plan) || comment.plan || "").trim().toLowerCase();
     var isPlus = plan === "plus" || String(comment.badge || "").trim().toLowerCase() === "plus";
     return {
       displayName: displayName,
-      userId: String(comment.userId || "").trim(),
-      avatarUrl: String(comment.avatarUrl || "").trim(),
+      userId: commentUserId,
+      avatarUrl: String((useCurrentIdentity && currentIdentity.avatarUrl) || comment.avatarUrl || "").trim(),
       avatarText: getInitials(displayName),
-      bio: String(comment.bio || "").trim(),
+      bio: String((useCurrentIdentity && currentIdentity.bio) || comment.bio || "").trim(),
       plan: isPlus ? "plus" : "free",
       badge: isPlus ? "Plus" : "Free Plan"
     };
@@ -161,15 +172,28 @@
 
   function getCurrentCommentProfile() {
     var authUser = readAuthUser();
+    var shellIdentity = window.RBLXToolsProfile && typeof window.RBLXToolsProfile.getCurrentIdentity === "function"
+      ? window.RBLXToolsProfile.getCurrentIdentity()
+      : null;
     var savedProfile = authUser.userId ? readSavedProfile(authUser.userId) : {};
-    var displayName = String(savedProfile.displayName || authUser.displayName || "").trim() || "Member";
-    var plan = String(savedProfile.plan || authUser.plan || "free").trim().toLowerCase() || "free";
+    var displayName = String(
+      (shellIdentity && (shellIdentity.displayName || shellIdentity.username)) ||
+      savedProfile.displayName ||
+      authUser.displayName ||
+      ""
+    ).trim() || "Member";
+    var plan = String(
+      (shellIdentity && shellIdentity.plan) ||
+      savedProfile.plan ||
+      authUser.plan ||
+      "free"
+    ).trim().toLowerCase() || "free";
     var isPlus = plan === "plus";
     return {
       displayName: displayName,
-      userId: String(authUser.userId || "").trim(),
-      avatarUrl: String(savedProfile.avatarUrl || "").trim(),
-      bio: String(savedProfile.bio || "").trim(),
+      userId: String((shellIdentity && shellIdentity.userId) || authUser.userId || "").trim(),
+      avatarUrl: String((shellIdentity && shellIdentity.avatarUrl) || savedProfile.avatarUrl || "").trim(),
+      bio: String((shellIdentity && shellIdentity.bio) || savedProfile.bio || "").trim(),
       plan: isPlus ? "plus" : "free",
       badge: isPlus ? "Plus" : "Free Plan"
     };
@@ -229,7 +253,7 @@
     var pinLabel = post.pinned ? "Unpin Post" : "Pin Post";
     return (
       '<details class="community-post-menu">' +
-        '<summary aria-label="Post settings"><span>Ã¢â€¹Â¯</span></summary>' +
+        '<summary aria-label="Post settings"><span>&#8942;</span></summary>' +
         '<div class="community-post-menu-panel">' +
           '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>' +
           '<button class="community-post-menu-item" type="button" data-community-pin="' + escapeHtml(post.id) + '" data-next-pinned="' + (post.pinned ? "false" : "true") + '">' + pinLabel + "</button>" +
@@ -244,13 +268,13 @@
     return (
       '<div class="community-post-actions">' +
         '<button class="community-post-action' + (post.viewerLiked ? " is-active" : "") + '" type="button" data-community-like="' + escapeHtml(post.id) + '">' +
-          '<span>Ã¢ÂÂ¤</span><span>' + escapeHtml(likeLabel) + " (" + Number(post.likeCount || 0) + ")</span>" +
+          '<span>&#10084;</span><span>' + escapeHtml(likeLabel) + " (" + Number(post.likeCount || 0) + ")</span>" +
         "</button>" +
         '<button class="community-post-action" type="button" data-community-focus-comment="' + escapeHtml(post.id) + '">' +
-          '<span>Ã°Å¸â€™Â¬</span><span>Comment (' + Number(post.commentCount || 0) + ")</span>" +
+          '<span>&#128172;</span><span>Comment (' + Number(post.commentCount || 0) + ")</span>" +
         "</button>" +
         '<button class="community-post-action" type="button" data-community-share="' + escapeHtml(post.id) + '">' +
-          '<span>Ã¢â€ â€”</span><span>Share</span>' +
+          '<span>&#10150;</span><span>Share</span>' +
         "</button>" +
       "</div>"
     );
@@ -548,16 +572,17 @@
       setPublishStatus("Write a comment first.", "error");
       return;
     }
+    var profile = getCurrentCommentProfile();
     try {
       await fetchJson(API_BASE + "/api/community-posts/" + encodeURIComponent(postId) + "/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           body: body,
-          displayName: getCurrentCommentProfile().displayName,
-          avatarUrl: getCurrentCommentProfile().avatarUrl,
-          bio: getCurrentCommentProfile().bio,
-          plan: getCurrentCommentProfile().plan
+          displayName: profile.displayName,
+          avatarUrl: profile.avatarUrl,
+          bio: profile.bio,
+          plan: profile.plan
         })
       });
       if (input) input.value = "";
