@@ -138,7 +138,8 @@
     {
       title: "Info",
       items: [
-        { href: "./about-us", label: "About Us", icon: "about" },
+        { href: "./community", label: "Community" },
+{ href: "./about-us", label: "About Us", icon: "about" },
         { href: "./privacy-policy", label: "Privacy Policy", icon: "privacy" },
         { href: "./terms-and-conditions", label: "Terms & Conditions", icon: "terms" }
       ]

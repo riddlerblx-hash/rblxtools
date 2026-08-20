@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Community | RBLXTools</title>
+  <meta
+    name="description"
+    content="News, changelogs, bug fixes, and important website notices from the RBLXTools team."
+  />
+  <link rel="stylesheet" href="./global-shell.css" />
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top, rgba(255, 78, 95, 0.16), transparent 28%),
+        linear-gradient(180deg, #111522 0%, #0c1019 100%);
+      color: #f4f6fb;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .community-page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 72px;
+    }
+
+    .community-hero,
+    .community-card,
+    .community-sidebar-card,
+    .community-post {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(180deg, rgba(24, 29, 44, 0.96), rgba(15, 19, 30, 0.98));
+      box-shadow: 0 24px 60px rgba(5, 8, 15, 0.34);
+    }
+
+    .community-hero {
+      border-radius: 30px;
+      padding: 32px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .community-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(255, 87, 103, 0.12), transparent 35%),
+        radial-gradient(circle at top right, rgba(87, 126, 255, 0.18), transparent 30%);
+      pointer-events: none;
+    }
+
+    .community-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      background: rgba(255, 255, 255, 0.04);
+      color: #ffb4be;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .community-hero h1 {
+      margin: 16px 0 10px;
+      font-size: clamp(34px, 5vw, 56px);
+      line-height: 0.94;
+      letter-spacing: -0.04em;
+    }
+
+    .community-hero p {
+      max-width: 720px;
+      margin: 0;
+      color: rgba(232, 236, 245, 0.82);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .community-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .community-pill {
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: #f5f7fd;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      text-decoration: none;
+    }
+
+    .community-pill.is-active {
+      border-color: rgba(255, 94, 109, 0.42);
+      background: linear-gradient(180deg, rgba(255, 86, 101, 0.16), rgba(255, 86, 101, 0.08));
+      color: #ffd8dd;
+    }
+
+    .community-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.9fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .community-feed {
+      display: grid;
+      gap: 18px;
+    }
+
+    .community-post {
+      border-radius: 24px;
+      padding: 26px;
+    }
+
+    .community-post-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .community-post-type {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: #ffd3da;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .community-post-date {
+      color: rgba(210, 217, 231, 0.58);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .community-post h2 {
+      margin: 0 0 12px;
+      font-size: clamp(24px, 3vw, 32px);
+      line-height: 1.08;
+      letter-spacing: -0.035em;
+    }
+
+    .community-post p {
+      margin: 0;
+      color: rgba(227, 233, 244, 0.82);
+      font-size: 15px;
+      line-height: 1.78;
+    }
+
+    .community-post-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .community-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: #f7f8fc;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .community-button.primary {
+      border-color: rgba(255, 89, 103, 0.28);
+      background: linear-gradient(180deg, #ff5967, #e23e4e);
+      box-shadow: 0 16px 32px rgba(226, 62, 78, 0.26);
+    }
+
+    .community-sidebar {
+      display: grid;
+      gap: 18px;
+    }
+
+    .community-sidebar-card {
+      border-radius: 24px;
+      padding: 24px;
+    }
+
+    .community-sidebar-card h3 {
+      margin: 0 0 14px;
+      font-size: 20px;
+      letter-spacing: -0.03em;
+    }
+
+    .community-sidebar-card p,
+    .community-sidebar-card li {
+      color: rgba(226, 232, 244, 0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .community-sidebar-card ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .community-sidebar-card li + li {
+      margin-top: 8px;
+    }
+
+    .community-card {
+      margin-top: 24px;
+      border-radius: 26px;
+      padding: 28px;
+    }
+
+    .community-card h3 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    .community-card p {
+      margin: 0;
+      color: rgba(229, 235, 245, 0.76);
+      line-height: 1.75;
+    }
+
+    @media (max-width: 960px) {
+      .community-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .community-page {
+        width: min(100% - 20px, 1180px);
+        padding-top: 24px;
+      }
+
+      .community-hero,
+      .community-card,
+      .community-sidebar-card,
+      .community-post {
+        border-radius: 22px;
+        padding: 22px;
+      }
+
+      .community-post-actions,
+      .community-toolbar {
+        gap: 10px;
+      }
+
+      .community-button,
+      .community-pill {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="community-page">
+    <section class="community-hero">
+      <div class="community-kicker">Community Updates</div>
+      <h1>Community</h1>
+      <p>
+        Follow official RBLXTools updates, changelog notes, bug fixes, and important platform notices in one clean place.
+        This page is ready for admin-published posts later, but it already gives you the full layout and category structure.
+      </p>
+      <div class="community-toolbar" aria-label="Community post filters">
+        <a class="community-pill is-active" href="./community">All</a>
+        <a class="community-pill" href="./community?filter=announcements">Announcements</a>
+        <a class="community-pill" href="./community?filter=changelog">Changelog</a>
+        <a class="community-pill" href="./community?filter=bug-fixes">Bug Fixes</a>
+        <a class="community-pill" href="./community?filter=known-issues">Known Issues</a>
+      </div>
+    </section>
+
+    <section class="community-grid">
+      <div class="community-feed">
+        <article class="community-post">
+          <div class="community-post-header">
+            <span class="community-post-type">Announcement</span>
+            <span class="community-post-date">August 20, 2026</span>
+          </div>
+          <h2>Welcome to the new RBLXTools Community page</h2>
+          <p>
+            This is where the website team can post official updates, publish change logs, explain bug fixes,
+            and keep members in the loop about important platform changes. We can wire this into the admin panel next,
+            but the public-facing page and category structure are ready right now.
+          </p>
+          <div class="community-post-actions">
+            <a class="community-button primary" href="./account-overview">Open Account</a>
+            <a class="community-button" href="./about-us">About RBLXTools</a>
+          </div>
+        </article>
+
+        <article class="community-post">
+          <div class="community-post-header">
+            <span class="community-post-type">Changelog</span>
+            <span class="community-post-date">Placeholder Post</span>
+          </div>
+          <h2>Future update entries can live right here</h2>
+          <p>
+            Once we connect this page to the admin panel, you will be able to publish release notes here for new tools,
+            layout improvements, account changes, premium updates, and anything else the site needs to communicate.
+          </p>
+        </article>
+
+        <article class="community-post">
+          <div class="community-post-header">
+            <span class="community-post-type">Bug Fixes</span>
+            <span class="community-post-date">Placeholder Post</span>
+          </div>
+          <h2>Bug fix posts can stay separated from major announcements</h2>
+          <p>
+            Keeping categories separate makes this page easier to scan. Members can jump straight to bug fixes,
+            changelog entries, or important notices instead of digging through one long mixed feed.
+          </p>
+        </article>
+      </div>
+
+      <aside class="community-sidebar">
+        <section class="community-sidebar-card">
+          <h3>What this page is for</h3>
+          <p>
+            Use this section for official staff posts only. It works best as a clean site news center rather than
+            a public comment wall.
+          </p>
+        </section>
+
+        <section class="community-sidebar-card">
+          <h3>Suggested categories</h3>
+          <ul>
+            <li>Announcements</li>
+            <li>Changelog</li>
+            <li>Bug Fixes</li>
+            <li>Known Issues</li>
+          </ul>
+        </section>
+
+        <section class="community-sidebar-card">
+          <h3>Next admin step</h3>
+          <p>
+            After this page goes live, the next build step is adding a post publisher inside the admin panel so staff can
+            create, edit, pin, and remove community posts without touching raw files.
+          </p>
+        </section>
+      </aside>
+    </section>
+
+    <section class="community-card">
+      <h3>Ready for admin publishing later</h3>
+      <p>
+        This first version is intentionally simple. It gives us a strong public layout, a clean section name in the nav,
+        and room to plug in database-backed posts later without rebuilding the whole page from scratch.
+      </p>
+    </section>
+  </main>
+
+  <script src="./global-shell.js"></script>
+</body>
+</html>
