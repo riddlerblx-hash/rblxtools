@@ -1,6 +1,8 @@
 (function () {
   var API_BASE = window.location.origin;
   var TOKEN_KEY = "rblxtools_auth_token";
+  var USER_KEY = "rblxtools_auth_user";
+  var PROFILE_KEY = "rblxtools_profile_overview";
   var VALID_FILTERS = ["announcement", "changelog", "bug-fix", "known-issue"];
   var isAdminUser = false;
   var isLoggedIn = false;
@@ -102,12 +104,129 @@
     return JSON.stringify(posts || []);
   }
 
+  function readJsonStorage(key) {
+    try {
+      var raw = localStorage.getItem(key) || "";
+      return raw ? JSON.parse(raw) : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function readAuthUser() {
+    var user = readJsonStorage(USER_KEY) || {};
+    return {
+      userId: String(user.userId || user.id || "").trim(),
+      displayName: String(user.displayName || user.username || "").trim(),
+      plan: String(user.plan || "free").trim().toLowerCase() || "free"
+    };
+  }
+
+  function readSavedProfile(userId) {
+    try {
+      var scopedKey = PROFILE_KEY + ":" + String(userId || "").trim();
+      var scopedRaw = localStorage.getItem(scopedKey) || "";
+      if (scopedRaw) return JSON.parse(scopedRaw) || {};
+      var fallbackRaw = localStorage.getItem(PROFILE_KEY) || "";
+      return fallbackRaw ? JSON.parse(fallbackRaw) || {} : {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  function getInitials(name) {
+    return String(name || "Member")
+      .trim()
+      .split(/s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(function (part) { return part.charAt(0).toUpperCase(); })
+      .join("") || "MB";
+  }
+
+  function buildCommentProfile(comment) {
+    var displayName = String(comment.authorName || comment.displayName || "Member").trim() || "Member";
+    var plan = String(comment.plan || "").trim().toLowerCase();
+    var isPlus = plan === "plus" || String(comment.badge || "").trim().toLowerCase() === "plus";
+    return {
+      displayName: displayName,
+      userId: String(comment.userId || "").trim(),
+      avatarUrl: String(comment.avatarUrl || "").trim(),
+      avatarText: getInitials(displayName),
+      bio: String(comment.bio || "").trim(),
+      plan: isPlus ? "plus" : "free",
+      badge: isPlus ? "Plus" : "Free Plan"
+    };
+  }
+
+  function getCurrentCommentProfile() {
+    var authUser = readAuthUser();
+    var savedProfile = authUser.userId ? readSavedProfile(authUser.userId) : {};
+    var displayName = String(savedProfile.displayName || authUser.displayName || "").trim() || "Member";
+    var plan = String(savedProfile.plan || authUser.plan || "free").trim().toLowerCase() || "free";
+    var isPlus = plan === "plus";
+    return {
+      displayName: displayName,
+      userId: String(authUser.userId || "").trim(),
+      avatarUrl: String(savedProfile.avatarUrl || "").trim(),
+      bio: String(savedProfile.bio || "").trim(),
+      plan: isPlus ? "plus" : "free",
+      badge: isPlus ? "Plus" : "Free Plan"
+    };
+  }
+
+  function buildCommunityProfileAttrs(profile) {
+    return (
+      ' data-community-profile="1"' +
+      ' data-community-profile-name="' + escapeHtml(profile.displayName || "Member") + '"' +
+      ' data-community-profile-user-id="' + escapeHtml(profile.userId || "") + '"' +
+      ' data-community-profile-avatar="' + escapeHtml(profile.avatarUrl || "") + '"' +
+      ' data-community-profile-bio="' + escapeHtml(profile.bio || "") + '"' +
+      ' data-community-profile-plan="' + escapeHtml(profile.plan || "free") + '"'
+    );
+  }
+
+  function buildCommunityCommentAuthor(profile) {
+    var isPlus = String(profile.plan || "").toLowerCase() === "plus";
+    var badgeMarkup = '<span class="community-comment-badge' + (isPlus ? ' is-plus' : '') + '">' + (isPlus ? 'Plus' : 'Free Plan') + '</span>';
+    var avatarMarkup = profile.avatarUrl
+      ? '<img class="community-comment-avatar-image" src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;grid&quot;;" />' +
+        '<span class="community-comment-avatar-fallback" style="display:none;">' + escapeHtml(profile.avatarText || getInitials(profile.displayName)) + '</span>'
+      : '<span class="community-comment-avatar-fallback">' + escapeHtml(profile.avatarText || getInitials(profile.displayName)) + '</span>';
+    var attrs = buildCommunityProfileAttrs(profile);
+    return (
+      '<div class="community-comment-author">' +
+        '<button class="community-comment-avatar-button" type="button"' + attrs + ' aria-label="Open profile for ' + escapeHtml(profile.displayName || "Member") + '">' +
+          '<span class="community-comment-avatar' + (profile.avatarUrl ? ' has-image' : '') + '">' + avatarMarkup + '</span>' +
+        '</button>' +
+        '<div class="community-comment-author-copy">' +
+          '<button class="community-comment-name-button" type="button"' + attrs + '>' +
+            badgeMarkup +
+            (isPlus ? '<span class="community-comment-plus-mark">+</span>' : '') +
+            '<span class="community-comment-name-text' + (isPlus ? ' is-plus' : '') + '">' + escapeHtml(profile.displayName || "Member") + '</span>' +
+          '</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function openCommunityProfileFromButton(button) {
+    if (!button || !window.RBLXToolsProfile || typeof window.RBLXToolsProfile.open !== "function") return;
+    window.RBLXToolsProfile.open({
+      displayName: button.getAttribute("data-community-profile-name") || "Member",
+      userId: button.getAttribute("data-community-profile-user-id") || "",
+      avatarUrl: button.getAttribute("data-community-profile-avatar") || "",
+      bio: button.getAttribute("data-community-profile-bio") || "",
+      plan: button.getAttribute("data-community-profile-plan") || "free"
+    }, button);
+  }
+
   function buildAdminPostMenu(post) {
     if (!isAdminUser) return "";
     var pinLabel = post.pinned ? "Unpin Post" : "Pin Post";
     return (
       '<details class="community-post-menu">' +
-        '<summary aria-label="Post settings"><span>⋯</span></summary>' +
+        '<summary aria-label="Post settings"><span>Ã¢â€¹Â¯</span></summary>' +
         '<div class="community-post-menu-panel">' +
           '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>' +
           '<button class="community-post-menu-item" type="button" data-community-pin="' + escapeHtml(post.id) + '" data-next-pinned="' + (post.pinned ? "false" : "true") + '">' + pinLabel + "</button>" +
@@ -122,13 +241,13 @@
     return (
       '<div class="community-post-actions">' +
         '<button class="community-post-action' + (post.viewerLiked ? " is-active" : "") + '" type="button" data-community-like="' + escapeHtml(post.id) + '">' +
-          '<span>❤</span><span>' + escapeHtml(likeLabel) + " (" + Number(post.likeCount || 0) + ")</span>" +
+          '<span>Ã¢ÂÂ¤</span><span>' + escapeHtml(likeLabel) + " (" + Number(post.likeCount || 0) + ")</span>" +
         "</button>" +
         '<button class="community-post-action" type="button" data-community-focus-comment="' + escapeHtml(post.id) + '">' +
-          '<span>💬</span><span>Comment (' + Number(post.commentCount || 0) + ")</span>" +
+          '<span>Ã°Å¸â€™Â¬</span><span>Comment (' + Number(post.commentCount || 0) + ")</span>" +
         "</button>" +
         '<button class="community-post-action" type="button" data-community-share="' + escapeHtml(post.id) + '">' +
-          '<span>↗</span><span>Share</span>' +
+          '<span>Ã¢â€ â€”</span><span>Share</span>' +
         "</button>" +
       "</div>"
     );
@@ -138,14 +257,15 @@
     var comments = Array.isArray(post.comments) ? post.comments : [];
     var commentsMarkup = comments.length
       ? comments.map(function (comment) {
+          var profile = buildCommentProfile(comment);
           return (
             '<article class="community-comment">' +
-              '<div class="community-comment-head">' +
-                '<strong>' + escapeHtml(comment.authorName || "Member") + '</strong>' +
-                '<span>' + escapeHtml(formatTime(comment.createdAt)) + "</span>" +
-              "</div>" +
-              '<p>' + escapeHtml(comment.body || "").replace(/\n/g, "<br>") + "</p>" +
-            "</article>"
+              '<div class="community-comment-top">' +
+                buildCommunityCommentAuthor(profile) +
+                '<span class="community-comment-date">' + escapeHtml(formatTime(comment.createdAt)) + '</span>' +
+              '</div>' +
+              '<p>' + escapeHtml(comment.body || '').replace(/\\n/g, '<br>') + '</p>' +
+            '</article>'
           );
         }).join("")
       : '<div class="community-comment-empty">No comments yet.</div>';
@@ -173,9 +293,11 @@
       var action = "";
       if (post.linkUrl && post.linkLabel) {
         action =
-          '<a class="community-action" href="' + escapeHtml(post.linkUrl) + '">' +
-            escapeHtml(post.linkLabel) +
-          "</a>";
+          '<div class="community-post-link">' +
+            '<a class="community-action" href="' + escapeHtml(post.linkUrl) + '">' +
+              escapeHtml(post.linkLabel) +
+            '</a>' +
+          '</div>';
       }
       var authorBits = [];
       if (post.authorName) authorBits.push("Posted by " + escapeHtml(post.authorName));
@@ -427,7 +549,13 @@
       await fetchJson(API_BASE + "/api/community-posts/" + encodeURIComponent(postId) + "/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: body })
+        body: JSON.stringify({
+          body: body,
+          displayName: getCurrentCommentProfile().displayName,
+          avatarUrl: getCurrentCommentProfile().avatarUrl,
+          bio: getCurrentCommentProfile().bio,
+          plan: getCurrentCommentProfile().plan
+        })
       });
       if (input) input.value = "";
       await loadCommunityPosts(true);
@@ -459,6 +587,9 @@
     document.addEventListener("click", function (event) {
       var target = event.target;
       if (!target || !target.closest) return;
+
+      var profileButton = target.closest("[data-community-profile]");
+      if (profileButton) return void openCommunityProfileFromButton(profileButton);
 
       var editButton = target.closest("[data-community-edit]");
       if (editButton) return void loadPostIntoComposer(editButton.getAttribute("data-community-edit"));

@@ -245,6 +245,9 @@ function normalizePostForStorage(post) {
         id: String(comment?.id || randomUUID()),
         userId: String(comment?.userId || "").trim(),
         authorName: String(comment?.authorName || "Member").trim().slice(0, 80) || "Member",
+        avatarUrl: String(comment?.avatarUrl || "").trim().slice(0, 500),
+        bio: String(comment?.bio || "").trim().slice(0, 280),
+        plan: String(comment?.plan || "free").trim().toLowerCase() === "plus" ? "plus" : "free",
         body: String(comment?.body || "").trim().slice(0, 800),
         createdAt: comment?.createdAt ? String(comment.createdAt) : new Date().toISOString(),
       })).filter((comment) => comment.body)
@@ -272,7 +275,11 @@ function buildPublicCommunityPost(post, viewerId) {
     commentCount: normalized.comments.length,
     comments: normalized.comments.map((comment) => ({
       id: comment.id,
+      userId: comment.userId,
       authorName: comment.authorName,
+      avatarUrl: comment.avatarUrl,
+      bio: comment.bio,
+      plan: comment.plan,
       body: comment.body,
       createdAt: comment.createdAt,
     })),
@@ -490,14 +497,20 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       if (index < 0) return res.status(404).json({ error: "That post could not be found." });
 
       const authorName = cleanText(
-        user.display_name || user.username || String(user.email || "").split("@")[0] || "Member",
+        req.body?.displayName || user.display_name || user.username || String(user.email || "").split("@")[0] || "Member",
         80
       ) || "Member";
+      const avatarUrl = cleanText(req.body?.avatarUrl, 500);
+      const bio = cleanText(req.body?.bio, 280);
+      const plan = cleanText(req.body?.plan, 24).toLowerCase() === "plus" ? "plus" : "free";
       const post = normalizePostForStorage(posts[index]);
       post.comments.push({
         id: randomUUID(),
         userId,
         authorName,
+        avatarUrl,
+        bio,
+        plan,
         body,
         createdAt: new Date().toISOString(),
       });

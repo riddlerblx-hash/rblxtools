@@ -1683,6 +1683,14 @@
     shellState.profileOverlay.setAttribute("aria-hidden", "true");
   }
 
+  window.RBLXToolsProfile = {
+    open: function (profile, anchorEl) {
+      if (!profile) return;
+      openProfileModal(profile, anchorEl || null);
+    },
+    close: closeProfileModal
+  };
+
   function setSupportStatus(message, tone) {
     if (!shellState.supportStatus) return;
     shellState.supportStatus.textContent = message || "";
