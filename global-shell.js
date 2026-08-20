@@ -966,15 +966,10 @@
       )
     );
 
-    if (message && (message.badge === "Local" || (currentUser.userId && profile.userId && String(profile.userId) === String(currentUser.userId)))) {
-      if (currentProfile) {
-        profile.displayName = currentProfile.displayName || profile.displayName;
-        profile.avatarUrl = currentProfile.avatarUrl || profile.avatarUrl;
-        profile.bio = currentProfile.bio || profile.bio;
-      }
-      profile.badge = currentUser.loggedIn && currentUser.plan === "plus" ? "Plus" : (currentUser.loggedIn ? "Free Plan" : "Guest");
-      profile.plan = currentUser.plan ? currentUser.plan : "guest";
-      profile.userId = currentUser.userId ? String(currentUser.userId) : profile.userId;
+        if (currentProfile && profile.userId && currentUser.userId && String(profile.userId) === String(currentUser.userId)) {
+      profile.displayName = currentProfile.displayName || profile.displayName;
+      profile.avatarUrl = currentProfile.avatarUrl || profile.avatarUrl;
+      profile.bio = currentProfile.bio || profile.bio;
     }
 
     if (!profile.userId) {
@@ -3548,5 +3543,6 @@
     initShell();
   }
 }());
+
 
 
