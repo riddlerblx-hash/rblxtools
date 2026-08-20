@@ -138,7 +138,7 @@
     {
       title: "Info",
       items: [
-        { href: "./community", label: "Community" },
+        { href: "./community", label: "Community", icon: "community" },
 { href: "./about-us", label: "About Us", icon: "about" },
         { href: "./privacy-policy", label: "Privacy Policy", icon: "privacy" },
         { href: "./terms-and-conditions", label: "Terms & Conditions", icon: "terms" }
@@ -256,6 +256,7 @@
       account: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5a3.7 3.7 0 1 1 0 7.4 3.7 3.7 0 0 1 0-7.4ZM5 19c.6-3 3.4-5 7-5s6.4 2 7 5H5Z"/></svg>',
       login: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5h6v14h-6M4 12h10m-3.5-3.5L14 12l-3.5 3.5"/></svg>',
       shield: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 19 6v5.5c0 4.2-2.9 7.5-7 9-4.1-1.5-7-4.8-7-9V6l7-2.5Zm0 4.2v8.2"/></svg>',
+      community: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v8A1.5 1.5 0 0 1 18.5 16H9l-4.2 3.1c-.3.2-.8 0-.8-.4V16H5.5A1.5 1.5 0 0 1 4 14.5v-8Zm4 2.2h8v1.6H8V8.7Zm0 3.5h6.2v1.6H8v-1.6Z"/></svg>',
       about: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-.8 5.2a1.1 1.1 0 1 0 1.6 0 1.1 1.1 0 0 0-1.6 0ZM11 11h2v5h-2v-5Z"/></svg>',
       privacy: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 19 6v5.5c0 4.2-2.9 7.5-7 9-4.1-1.5-7-4.8-7-9V6l7-2.5Zm0 5a2.5 2.5 0 0 0-2.5 2.5v1.2H9v4.8h6v-4.8h-.5V11A2.5 2.5 0 0 0 12 8.5Z"/></svg>',
       terms: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h8l4 4v12H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm7 1.5V9h3.5M9 12h6m-6 3h6"/></svg>'

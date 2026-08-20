@@ -24,6 +24,7 @@ let openaiUploadHelpers = null;
 
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
+const { installCommunityFeature } = require("./community-feature");
 
 const app = express();
 const httpServer = createServer(app);
@@ -5925,6 +5926,8 @@ app.post("/auth/delete-account", async (req, res) => {
     });
   }
 });
+
+installCommunityFeature({ app, baseDir: __dirname, requireAdminUser, cleanText });
 
 app.get("/admin/member-lookup", async (req, res) => {
   try {
