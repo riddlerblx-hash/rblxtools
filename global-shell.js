@@ -107,6 +107,8 @@
     chatSocketBooting: false
   };
 
+  window.__rblxShellState = shellState;
+
   var navGroups = [
     {
       title: "Tools",
@@ -2363,7 +2365,10 @@
         transports: ["websocket", "polling"]
       });
 
+        window.__rblxShellSocket = shellState.socket;
+
       shellState.socket.on("connect", function () {
+          console.log("[RBLX chat] connect fired");
         shellState.socketReady = true;
         shellState.socket.emit("join-room", getSocketChatIdentity());
       });
@@ -2378,6 +2383,7 @@
       });
 
       shellState.socket.on("chat-history", function (history) {
+          console.log("[RBLX chat] history", Array.isArray(history) ? history.length : history);
         var messages = Array.isArray(history) ? history.filter(function (message) {
           return !(message && message.specialType === "toolActivity");
         }) : [];
@@ -2385,6 +2391,7 @@
       });
 
       shellState.socket.on("chat-message", function (message) {
+          console.log("[RBLX chat] message", message);
         if (message && message.specialType === "toolActivity") {
           return;
         }
@@ -2395,6 +2402,7 @@
       });
 
       shellState.socket.on("room-users", function (users) {
+          console.log("[RBLX chat] users", Array.isArray(users) ? users.length : users);
         shellState.onlineCount = Array.isArray(users) ? users.length : 0;
         var onlineEl = document.getElementById("rblxShellOnlineCount");
         if (onlineEl) onlineEl.textContent = String(shellState.onlineCount || 0);
