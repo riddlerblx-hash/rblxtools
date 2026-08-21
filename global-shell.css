@@ -3147,3 +3147,13 @@ body.rblx-shell-left-collapsed #rblxShellLeftToggle { right: -20px; }
   body.rblx-mobile-shell .rblx-mobile-dock-btn{cursor:pointer}
   body.rblx-mobile-shell .rblx-mobile-dock-link.is-primary{background:linear-gradient(180deg,#74acff 0%,#407def 100%);color:#fff;border-color:rgba(110,169,255,.22)}
 }
+
+/* rblx-community-background-unification */
+html, body {
+  background: radial-gradient(circle at top, rgba(255, 86, 101, .14), transparent 28%), linear-gradient(180deg, #101420 0%, #0b0f18 100%) !important;
+  background-attachment: fixed !important;
+}
+.rblx-shell-page { background: transparent; }
+.rblx-shell-chat-actions { display:flex; gap:6px; margin-top:7px; }
+.rblx-shell-chat-action { border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); color:#cbd6e7; border-radius:999px; padding:4px 8px; font:700 10px/1 inherit; cursor:pointer; }
+.rblx-shell-chat-action:hover, .rblx-shell-chat-action.is-active { border-color:rgba(255,102,127,.75); color:#ffd7df; background:rgba(255,71,97,.16); }

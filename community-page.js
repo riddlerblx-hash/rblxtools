@@ -325,6 +325,8 @@
                 buildAdminCommentMenu(post.id, comment) +
               '</div>' +
               '<p>' + escapeHtml(comment.body || '').replace(/\\n/g, '<br>') + '</p>' +
+              '<div class="community-comment-actions"><button type="button" data-community-comment-like-post="' + escapeHtml(post.id) + '" data-community-comment-like="' + escapeHtml(comment.id) + '" class="community-comment-like' + (comment.viewerLiked ? ' is-active' : '') + '">&#10084; ' + Number(comment.likeCount || 0) + '</button><button type="button" data-community-comment-reply-post="' + escapeHtml(post.id) + '" data-community-comment-reply="' + escapeHtml(comment.id) + '">Reply</button></div>' +
+              (Array.isArray(comment.replies) && comment.replies.length ? '<div class="community-comment-replies">' + comment.replies.map(function (reply) { var replyProfile = buildCommentProfile(reply); return '<article class="community-comment-reply">' + buildCommunityCommentAuthor(replyProfile) + '<p>' + escapeHtml(reply.body || '').replace(/\\n/g, '<br>') + '</p></article>'; }).join('') + '</div>' : '') +
             '</article>'
           );
         }).join("")
@@ -652,6 +654,20 @@
     }
   }
 
+  async function toggleCommentLike(postId, commentId) {
+    if (!isLoggedIn) return void openLoginPrompt("Log in or sign up to like comments.");
+    try { await fetchJson(API_BASE + "/api/community-posts/" + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId) + "/likes", { method: "POST" }); await loadCommunityPosts(true); }
+    catch (error) { setPublishStatus(error && error.message ? error.message : "Could not update the comment like.", "error"); }
+  }
+
+  async function replyToComment(postId, commentId) {
+    if (!isLoggedIn) return void openLoginPrompt("Log in or sign up to reply to comments.");
+    var body = window.prompt("Write a reply:"); if (!body || !String(body).trim()) return;
+    var profile = getCurrentCommentProfile();
+    try { await fetchJson(API_BASE + "/api/community-posts/" + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId) + "/replies", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body: body, displayName: profile.displayName, avatarUrl: profile.avatarUrl, bio: profile.bio, plan: profile.plan }) }); await loadCommunityPosts(true); }
+    catch (error) { setPublishStatus(error && error.message ? error.message : "Could not post the reply.", "error"); }
+  }
+
   async function updateComment(postId, commentId, body) {
     try {
       await fetchJson(API_BASE + "/admin/community-posts/" + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId), {
@@ -735,6 +751,12 @@
       var commentPinButton = target.closest("[data-community-comment-pin]");
       if (commentPinButton) return void updateComment(commentPinButton.getAttribute("data-community-comment-pin-post"), commentPinButton.getAttribute("data-community-comment-pin"), { pinned: commentPinButton.getAttribute("data-next-pinned") === "true" });
 
+      var commentLikeButton = target.closest("[data-community-comment-like]");
+      if (commentLikeButton) return void toggleCommentLike(commentLikeButton.getAttribute("data-community-comment-like-post"), commentLikeButton.getAttribute("data-community-comment-like"));
+
+      var commentReplyButton = target.closest("[data-community-comment-reply]");
+      if (commentReplyButton) return void replyToComment(commentReplyButton.getAttribute("data-community-comment-reply-post"), commentReplyButton.getAttribute("data-community-comment-reply"));
+
       var likeButton = target.closest("[data-community-like]");
       if (likeButton) return void toggleLike(likeButton.getAttribute("data-community-like"), likeButton);
 
@@ -763,15 +785,14 @@
 
   function startFeedHeartbeat() {
     if (pollTimer) return;
-    pollTimer = window.setInterval(function () {
-      syncViewerState().then(function () { return loadCommunityPosts(false); });
-    }, 5000);
-    window.addEventListener("focus", function () {
-      loadCommunityPosts(false);
+    // Poll post data silently. Membership state changes come from the shell event,
+    // not from rebuilding the community UI every few seconds.
+    pollTimer = window.setInterval(function () { loadCommunityPosts(false); }, 12000);
+    window.addEventListener("rblxtools-membership-updated", function () {
+      syncViewerState().then(function () { lastFeedSignature = ""; return loadCommunityPosts(true); });
     });
-    document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) loadCommunityPosts(false);
-    });
+    window.addEventListener("focus", function () { syncViewerState().then(function () { return loadCommunityPosts(false); }); });
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) loadCommunityPosts(false); });
   }
 
   async function init() {

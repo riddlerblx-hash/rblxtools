@@ -104,7 +104,9 @@
     roomSpecialsTimer: null,
     serverTimeOffset: 0,
     chatMessageRefreshTimer: null,
-    chatSocketBooting: false
+    chatSocketBooting: false,
+    chatReplyTo: null,
+    authUiSignature: ""
   };
 
   window.__rblxShellState = shellState;
@@ -1565,6 +1567,12 @@
       var messageBody = message && message.specialType === "claimDrop" && message.claimDrop
         ? buildClaimDropMessage(message, message.claimDrop)
         : '<div class="rblx-shell-chat-text">' + escapeHtml(message.text) + "</div>";
+      var heartUserIds = Array.isArray(message && message.heartUserIds) ? message.heartUserIds.map(String) : [];
+      var viewerId = String((shellState.currentUser && shellState.currentUser.userId) || "");
+      var hearted = Boolean(viewerId && heartUserIds.includes(viewerId));
+      var chatActions = !isSystem
+        ? '<div class="rblx-shell-chat-actions"><button type="button" class="rblx-shell-chat-action' + (hearted ? ' is-active' : '') + '" data-chat-action="heart" data-chat-index="' + index + '">&#10084; ' + heartUserIds.length + '</button><button type="button" class="rblx-shell-chat-action" data-chat-action="reply" data-chat-index="' + index + '">&#8618; Reply</button></div>'
+        : "";
 
         return (
         '<article class="rblx-shell-chat-message' + (isSystem ? ' is-system' : '') + '" data-chat-index="' + index + '">' +
@@ -1582,7 +1590,7 @@
                 '<span' + nameClass + '>' + escapeHtml(profile.displayName) + "</span>" +
               "</button>" +
             "</div>" +
-            messageBody +
+            messageBody + chatActions +
           "</div>" +
         "</article>"
         );
@@ -2340,6 +2348,17 @@
       }
 
       var target = event.target;
+      var actionButton = target && target.closest ? target.closest("[data-chat-action]") : null;
+      if (actionButton && actionButton.getAttribute("data-chat-action") === "heart") {
+        if (!shellState.currentUser || !shellState.currentUser.loggedIn) return void openAuthModal({ mode: "login", message: "Log in or sign up to react in live chat." });
+        if (shellState.socket && shellState.socketReady) shellState.socket.emit("chat-react", { messageId: shellState.chatMessages[Number(actionButton.getAttribute("data-chat-index"))]?.id });
+        return;
+      }
+      if (actionButton && actionButton.getAttribute("data-chat-action") === "reply") {
+        var replyMessage = shellState.chatMessages[Number(actionButton.getAttribute("data-chat-index"))];
+        if (replyMessage) { shellState.chatReplyTo = { id: replyMessage.id, displayName: replyMessage.displayName || replyMessage.name, username: replyMessage.username || replyMessage.displayName || replyMessage.name, text: replyMessage.text }; input.placeholder = "Replying to " + shellState.chatReplyTo.displayName + " — type a message"; input.focus(); }
+        return;
+      }
       var button = target && target.closest ? target.closest("[data-chat-action='profile']") : null;
       if (!button) return;
 
@@ -2371,8 +2390,11 @@
         bio: getSocketChatIdentity().bio,
         plan: getSocketChatIdentity().plan,
         isPlus: getSocketChatIdentity().isPlus,
-        isGuest: getSocketChatIdentity().isGuest
+        isGuest: getSocketChatIdentity().isGuest,
+        replyTo: shellState.chatReplyTo
       });
+      shellState.chatReplyTo = null;
+      input.placeholder = "Enter a message...";
       input.value = "";
     });
   }
@@ -2995,55 +3017,33 @@
     var statusText = document.getElementById("rblxShellStatusText");
     if (!auth || !status || !statusText) return;
 
+    var nextSignature = [Boolean(state.loggedIn), state.userId || "", state.plan || "guest", Boolean(state.isAdmin), state.displayName || "", state.username || ""].join("|");
+    var identityChanged = nextSignature !== shellState.authUiSignature;
     status.setAttribute("data-plan", state.plan);
     statusText.textContent = state.message;
     document.body.classList.toggle("rblx-shell-plus-user", state.plan === "plus");
-    shellState.currentUser = {
-      loggedIn: Boolean(state.loggedIn),
-      plan: state.plan || "guest",
-      message: state.message || "",
-      userId: state.userId || "",
-      username: state.username || "",
-      displayName: state.displayName || "",
-      email: state.email || ""
-    };
-    var navScroll = document.getElementById("rblxShellNavScroll");
-    if (navScroll) navScroll.innerHTML = buildNavMarkup();
+    shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "" };
     shellState.isAdmin = Boolean(state.isAdmin);
-    refreshCurrentProfile();
-    syncChatIdentity();
-    if (shellState.socket && shellState.socketReady) {
-      shellState.socket.emit("join-room", getSocketJoinPayload());
-    }
+    shellState.authUiSignature = nextSignature;
     applyModerationState(state.moderation || shellState.moderation);
     applyMaintenanceState(shellState.maintenanceState);
 
+    if (!identityChanged) return;
+    var navScroll = document.getElementById("rblxShellNavScroll");
+    if (navScroll) navScroll.innerHTML = buildNavMarkup();
+    refreshCurrentProfile();
+    syncChatIdentity();
+    if (shellState.socket && shellState.socketReady) shellState.socket.emit("join-room", getSocketJoinPayload());
     var mobileAccountLink = document.getElementById("rblxMobileAccountLink");
     if (mobileAccountLink) {
-      if (state.loggedIn) {
-        mobileAccountLink.textContent = "Account";
-        mobileAccountLink.setAttribute("href", "./account-overview");
-        mobileAccountLink.classList.remove("is-primary");
-      } else {
-        mobileAccountLink.textContent = "Login";
-        mobileAccountLink.setAttribute("href", "./login");
-        mobileAccountLink.classList.add("is-primary");
-      }
+      mobileAccountLink.textContent = state.loggedIn ? "Account" : "Login";
+      mobileAccountLink.setAttribute("href", state.loggedIn ? "./account-overview" : "./login");
+      mobileAccountLink.classList.toggle("is-primary", !state.loggedIn);
     }
-
-    if (state.loggedIn) {
-      auth.innerHTML = buildAuthMarkup().replace('<div class="rblx-shell-auth" id="rblxShellAuth">', "").replace(/<\/div>$/, "");
-      if (shellState.chatAdminButton) {
-        shellState.chatAdminButton.hidden = !shellState.isAdmin;
-        shellState.chatAdminButton.style.display = shellState.isAdmin ? "inline-flex" : "none";
-      }
-      return;
-    }
-
     auth.innerHTML = buildAuthMarkup().replace('<div class="rblx-shell-auth" id="rblxShellAuth">', "").replace(/<\/div>$/, "");
     if (shellState.chatAdminButton) {
-      shellState.chatAdminButton.hidden = true;
-      shellState.chatAdminButton.style.display = "none";
+      shellState.chatAdminButton.hidden = !shellState.isAdmin;
+      shellState.chatAdminButton.style.display = shellState.isAdmin ? "inline-flex" : "none";
     }
   }
 
@@ -3132,9 +3132,6 @@
     saveCachedAuthUser(mergedUser);
     writeCachedPlusStatus(nextState.plan === "plus");
     updateAuthUi(nextState);
-    if (shellState.socket && shellState.socketReady) {
-      shellState.socket.emit("join-room", getSocketJoinPayload());
-    }
     dispatchMembershipUpdate({
       user: mergedUser,
       plan: nextState.plan,

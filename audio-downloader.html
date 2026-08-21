@@ -1013,10 +1013,7 @@
 
       try {
         const premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
-          method: "GET",
-          headers: {
-            Authorization: "Bearer " + token
-          }
+          method: "GET", credentials: "include"
         });
 
         if (premiumResponse.ok) {
@@ -1032,10 +1029,7 @@
         }
 
         const response = await fetch(API_BASE + "/auth/me", {
-          method: "GET",
-          headers: {
-            Authorization: "Bearer " + token
-          }
+          method: "GET", credentials: "include"
         });
 
         if (!response.ok) return readCachedPlusStatus() === true;

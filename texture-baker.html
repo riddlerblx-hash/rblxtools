@@ -2154,10 +2154,6 @@
 
     async function fetchPlusStatus(options) {
       const token = getStoredToken();
-      if (!token) {
-        clearCachedPlusStatus();
-        return { ok: false, reason: "login" };
-      }
 
       const settings = options && typeof options === "object" ? options : {};
       if (!settings.force) {
@@ -2172,10 +2168,7 @@
 
       try {
         const premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
-          method: "GET",
-          headers: {
-            Authorization: "Bearer " + token
-          }
+          method: "GET", credentials: "include"
         });
 
         if (premiumResponse.ok) {
@@ -2191,10 +2184,7 @@
         }
 
         const response = await fetch(API_BASE + "/auth/me", {
-          method: "GET",
-          headers: {
-            Authorization: "Bearer " + token
-          }
+          method: "GET", credentials: "include"
         });
 
         if (!response.ok) {

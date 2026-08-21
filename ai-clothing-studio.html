@@ -2485,19 +2485,10 @@
       }
 
       async function verifyAdminAccess() {
-        var token = getToken();
-        if (!token) {
-          showGate("No signed-in admin account was found. Redirecting to login...");
-          setTimeout(function () { redirectTop("./login"); }, 800);
-          return;
-        }
-
         try {
           var response = await fetch(API_BASE + "/auth/me", {
             method: "GET",
-            headers: {
-              Authorization: "Bearer " + token
-            }
+            credentials: "include"
           });
           if (!response.ok) {
             throw new Error("Could not verify your admin session.");

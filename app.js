@@ -1685,10 +1685,13 @@ function clearAuthCookie(req, res) {
 }
 
 function getBearerToken(req) {
-  const header = String(req.headers.authorization || "");
-  const match = header.match(/^Bearer\s+(.+)$/i);
-  if (match) return match[1].trim();
-  return String(req.cookies?.[AUTH_COOKIE_NAME] || "").trim();
+  // Prefer the signed HttpOnly session cookie. This keeps legacy localStorage
++  // tokens from overriding a newer browser session after an account switch.
++  const cookieToken = String(req.cookies?.[AUTH_COOKIE_NAME] || "").trim();
++  if (cookieToken) return cookieToken;
++  const header = String(req.headers.authorization || "");
++  const match = header.match(/^Bearer\s+(.+)$/i);
++  return match ? match[1].trim() : "";
 }
 
 function parseCookieHeader(cookieHeader) {
@@ -7629,6 +7632,9 @@ function createChatRoomMessage(profile, payload = {}) {
     isGuest: profile.isGuest,
     plan: profile.plan,
     favoriteTools: profile.favoriteTools,
+    heartUserIds: Array.isArray(payload.heartUserIds)
+      ? payload.heartUserIds.map((value) => cleanText(value, 120)).filter(Boolean).slice(0, 500)
+      : [],
     replyTo: sanitizeReplyPayload(payload.replyTo),
     system: Boolean(payload.system),
     moderationChatBanned: Boolean(payload.moderationChatBanned || profile.moderationChatBanned),
@@ -8072,6 +8078,23 @@ io.on("connection", (socket) => {
     });
 
     pushRoomMessage(currentRoom, message);
+  });
+
+  socket.on("chat-react", async (payload = {}) => {
+    if (!currentRoom || !authenticatedUser) {
+      socket.emit("special-action-result", { type: "authentication", ok: false, error: "Log in or sign up to react in live chat." });
+      return;
+    }
+    const messageId = cleanText(payload.messageId, 120);
+    if (!messageId) return;
+    const history = recentMessages.get(currentRoom) || [];
+    const message = history.find((entry) => String(entry?.id || "") === messageId);
+    if (!message || message.system) return;
+    const userId = String(authenticatedUser.id || "").trim();
+    const hearts = Array.isArray(message.heartUserIds) ? message.heartUserIds.map(String) : [];
+    message.heartUserIds = hearts.includes(userId) ? hearts.filter((value) => value !== userId) : hearts.concat(userId).slice(-500);
+    persistRoomHistory(currentRoom);
+    io.to(currentRoom).emit("chat-history", recentMessages.get(currentRoom) || []);
   });
 
   socket.on("claim-plus-drop", async () => {

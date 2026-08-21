@@ -1487,7 +1487,7 @@
 
       let isPlus = false;
       try {
-        const premiumResponse = await fetch(API_BASE + "/auth/premium-status", { method: "GET", headers: { Authorization: "Bearer " + token } });
+        const premiumResponse = await fetch(API_BASE + "/auth/premium-status", { method: "GET", credentials: "include" });
         if (premiumResponse.ok) {
           const premiumPayload = await premiumResponse.json().catch(() => null);
           isPlus = hasPlusFromPayload(premiumPayload);
@@ -1495,7 +1495,7 @@
       } catch (_error) {}
 
       try {
-        const response = await fetch(API_BASE + "/auth/me", { method: "GET", headers: { Authorization: "Bearer " + token } });
+        const response = await fetch(API_BASE + "/auth/me", { method: "GET", credentials: "include" });
         if (!response.ok) throw new Error("Could not load account.");
         const payload = await response.json().catch(() => null);
         const userId = firstString(payload, ["id","userId","user.id","user.userId","profile.id","account.id"]);
@@ -1640,7 +1640,7 @@
       }
 
       try {
-        const response = await fetch(API_BASE + "/auth/me", { method: "GET", headers: { Authorization: "Bearer " + token } });
+        const response = await fetch(API_BASE + "/auth/me", { method: "GET", credentials: "include" });
         if (!response.ok) {
           if (response.status === 401 || response.status === 403) saveCachedToolUser(null);
           redirectUnauthorized();
@@ -1713,7 +1713,7 @@
       }
 
       try {
-        const premiumResponse = await fetch(API_BASE + "/auth/premium-status", { method: "GET", headers: { Authorization: "Bearer " + token } });
+        const premiumResponse = await fetch(API_BASE + "/auth/premium-status", { method: "GET", credentials: "include" });
         if (premiumResponse.ok) {
           const premiumPayload = await premiumResponse.json().catch(() => null);
           const hasPlus = hasPlusFromPayload(premiumPayload);
@@ -1724,7 +1724,7 @@
           clearCachedPlusStatus();
           return false;
         }
-        const response = await fetch(API_BASE + "/auth/me", { method: "GET", headers: { Authorization: "Bearer " + token } });
+        const response = await fetch(API_BASE + "/auth/me", { method: "GET", credentials: "include" });
         if (!response.ok) return readCachedPlusStatus() === true;
         const payload = await response.json().catch(() => null);
         const hasPlus = hasPlusFromPayload(payload);

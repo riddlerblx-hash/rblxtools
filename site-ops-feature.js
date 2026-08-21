@@ -236,55 +236,47 @@ async function getOptionalAuthenticatedUser(req, requireAuthenticatedUser) {
   }
 }
 
+function normalizeCommunityComment(comment) {
+  const likes = Array.isArray(comment?.likes) ? comment.likes.map((value) => String(value || "").trim()).filter(Boolean) : [];
+  const replies = Array.isArray(comment?.replies) ? comment.replies.map((reply) => ({
+    id: String(reply?.id || randomUUID()),
+    userId: String(reply?.userId || "").trim(),
+    authorName: String(reply?.authorName || "Member").trim().slice(0, 80) || "Member",
+    avatarUrl: String(reply?.avatarUrl || "").trim().slice(0, 500),
+    bio: String(reply?.bio || "").trim().slice(0, 280),
+    plan: String(reply?.plan || "free").trim().toLowerCase() === "plus" ? "plus" : "free",
+    body: String(reply?.body || "").trim().slice(0, 800),
+    createdAt: reply?.createdAt ? String(reply.createdAt) : new Date().toISOString(),
+  })).filter((reply) => reply.body) : [];
+  return {
+    id: String(comment?.id || randomUUID()), userId: String(comment?.userId || "").trim(),
+    authorName: String(comment?.authorName || "Member").trim().slice(0, 80) || "Member",
+    avatarUrl: String(comment?.avatarUrl || "").trim().slice(0, 500), bio: String(comment?.bio || "").trim().slice(0, 280),
+    plan: String(comment?.plan || "free").trim().toLowerCase() === "plus" ? "plus" : "free", pinned: Boolean(comment?.pinned),
+    body: String(comment?.body || "").trim().slice(0, 800), createdAt: comment?.createdAt ? String(comment.createdAt) : new Date().toISOString(), likes, replies,
+  };
+}
+
 function normalizePostForStorage(post) {
-  const likes = Array.isArray(post?.likes)
-    ? post.likes.map((value) => String(value || "").trim()).filter(Boolean)
-    : [];
-  const comments = Array.isArray(post?.comments)
-    ? post.comments.map((comment) => ({
-        id: String(comment?.id || randomUUID()),
-        userId: String(comment?.userId || "").trim(),
-        authorName: String(comment?.authorName || "Member").trim().slice(0, 80) || "Member",
-        avatarUrl: String(comment?.avatarUrl || "").trim().slice(0, 500),
-        bio: String(comment?.bio || "").trim().slice(0, 280),
-        plan: String(comment?.plan || "free").trim().toLowerCase() === "plus" ? "plus" : "free",
-        pinned: Boolean(comment?.pinned),
-        body: String(comment?.body || "").trim().slice(0, 800),
-        createdAt: comment?.createdAt ? String(comment.createdAt) : new Date().toISOString(),
-      })).filter((comment) => comment.body)
-    : [];
+  const likes = Array.isArray(post?.likes) ? post.likes.map((value) => String(value || "").trim()).filter(Boolean) : [];
+  const comments = Array.isArray(post?.comments) ? post.comments.map(normalizeCommunityComment).filter((comment) => comment.body) : [];
   return Object.assign({}, post, { likes, comments });
 }
 
 function buildPublicCommunityPost(post, viewerId) {
   const normalized = normalizePostForStorage(post);
-  const likedByViewer = Boolean(viewerId && normalized.likes.includes(String(viewerId).trim()));
+  const viewer = String(viewerId || "").trim();
+  const commentPublic = (comment) => ({
+    id: comment.id, userId: comment.userId, authorName: comment.authorName, avatarUrl: comment.avatarUrl, bio: comment.bio, plan: comment.plan,
+    pinned: Boolean(comment.pinned), body: comment.body, createdAt: comment.createdAt, likeCount: comment.likes.length, viewerLiked: Boolean(viewer && comment.likes.includes(viewer)),
+    replies: comment.replies.map((reply) => ({ id: reply.id, userId: reply.userId, authorName: reply.authorName, avatarUrl: reply.avatarUrl, bio: reply.bio, plan: reply.plan, body: reply.body, createdAt: reply.createdAt }))
+  });
   return {
-    id: String(normalized.id || ""),
-    title: String(normalized.title || ""),
-    body: String(normalized.body || ""),
-    category: normalizeCategory(normalized.category),
-    pinned: Boolean(normalized.pinned),
-    createdAt: normalized.createdAt ? String(normalized.createdAt) : null,
-    updatedAt: normalized.updatedAt ? String(normalized.updatedAt) : null,
-    publishedAt: normalized.publishedAt ? String(normalized.publishedAt) : null,
-    authorName: normalized.authorName ? String(normalized.authorName) : "",
-    linkLabel: normalized.linkLabel ? String(normalized.linkLabel) : "",
-    linkUrl: normalized.linkUrl ? String(normalized.linkUrl) : "",
-    likeCount: normalized.likes.length,
-    viewerLiked: likedByViewer,
-    commentCount: normalized.comments.length,
-    comments: normalized.comments.map((comment) => ({
-      id: comment.id,
-      userId: comment.userId,
-      authorName: comment.authorName,
-      avatarUrl: comment.avatarUrl,
-      bio: comment.bio,
-      plan: comment.plan,
-      pinned: Boolean(comment.pinned),
-      body: comment.body,
-      createdAt: comment.createdAt,
-    })),
+    id: String(normalized.id || ""), title: String(normalized.title || ""), body: String(normalized.body || ""), category: normalizeCategory(normalized.category),
+    pinned: Boolean(normalized.pinned), createdAt: normalized.createdAt ? String(normalized.createdAt) : null, updatedAt: normalized.updatedAt ? String(normalized.updatedAt) : null,
+    publishedAt: normalized.publishedAt ? String(normalized.publishedAt) : null, authorName: normalized.authorName ? String(normalized.authorName) : "",
+    linkLabel: normalized.linkLabel ? String(normalized.linkLabel) : "", linkUrl: normalized.linkUrl ? String(normalized.linkUrl) : "",
+    likeCount: normalized.likes.length, viewerLiked: Boolean(viewer && normalized.likes.includes(viewer)), commentCount: normalized.comments.length, comments: normalized.comments.map(commentPublic),
   };
 }
 
@@ -565,6 +557,38 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
     } catch (error) {
       return res.status(error.statusCode || 500).json({ error: error.message || "Could not post the comment." });
     }
+  });
+
+  app.post("/api/community-posts/:postId/comments/:commentId/likes", async (req, res) => {
+    try {
+      const user = await requireAuthenticatedUser(req);
+      const userId = String(user?.id || "").trim();
+      const posts = readCommunityPosts(baseDir);
+      const post = posts.find((entry) => String(entry.id || "") === String(req.params?.postId || ""));
+      if (!post) return res.status(404).json({ error: "That post could not be found." });
+      const normalized = normalizePostForStorage(post);
+      const comment = normalized.comments.find((entry) => String(entry.id || "") === String(req.params?.commentId || ""));
+      if (!comment) return res.status(404).json({ error: "That comment could not be found." });
+      comment.likes = comment.likes.includes(userId) ? comment.likes.filter((value) => value !== userId) : comment.likes.concat(userId);
+      normalized.updatedAt = new Date().toISOString();
+      posts[posts.indexOf(post)] = normalized; writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, post: buildPublicCommunityPost(normalized, userId) });
+    } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update the comment like." }); }
+  });
+
+  app.post("/api/community-posts/:postId/comments/:commentId/replies", async (req, res) => {
+    try {
+      const user = await requireAuthenticatedUser(req);
+      const body = cleanText(req.body?.body, 800);
+      if (!body) return res.status(400).json({ error: "Write a reply first." });
+      const posts = readCommunityPosts(baseDir); const post = posts.find((entry) => String(entry.id || "") === String(req.params?.postId || ""));
+      if (!post) return res.status(404).json({ error: "That post could not be found." });
+      const normalized = normalizePostForStorage(post); const comment = normalized.comments.find((entry) => String(entry.id || "") === String(req.params?.commentId || ""));
+      if (!comment) return res.status(404).json({ error: "That comment could not be found." });
+      comment.replies.push(normalizeCommunityComment({ id: randomUUID(), userId: String(user.id || ""), authorName: cleanText(req.body?.displayName || user.display_name || user.username || "Member", 80), avatarUrl: cleanText(req.body?.avatarUrl, 500), bio: cleanText(req.body?.bio, 280), plan: cleanText(req.body?.plan, 24), body, createdAt: new Date().toISOString() }));
+      normalized.updatedAt = new Date().toISOString(); posts[posts.indexOf(post)] = normalized; writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, post: buildPublicCommunityPost(normalized, String(user.id || "")) });
+    } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not post the reply." }); }
   });
 
   app.get("/admin/site-maintenance", async (req, res) => {
