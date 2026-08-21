@@ -1324,17 +1324,6 @@
     currentObjUrls = [];
   }
 
-  function flipObjUvVertical(objText) {
-    return String(objText || "").replace(/^vt\s+(-?\d*\.?\d+(?:e[-+]?\d+)?)\s+(-?\d*\.?\d+(?:e[-+]?\d+)?)(?:\s+(-?\d*\.?\d+(?:e[-+]?\d+)?))?\s*$/gim, function (_match, uRaw, vRaw, wRaw) {
-      const u = Number(uRaw);
-      const v = Number(vRaw);
-      const flipped = Number.isFinite(v) ? 1 - v : vRaw;
-      const parts = ["vt", Number.isFinite(u) ? String(u) : uRaw, Number.isFinite(flipped) ? String(flipped) : String(flipped)];
-      if (typeof wRaw === "string" && wRaw.length) parts.push(wRaw);
-      return parts.join(" ");
-    });
-  }
-
   function createObjViewer(container, objText, textureUrl, itemMode) {
     if (currentViewerCleanup) {
       currentViewerCleanup();
@@ -1378,8 +1367,7 @@
     }
 
     const loader = new THREE.OBJLoader();
-    const previewObjText = itemMode === "classic" ? flipObjUvVertical(objText) : objText;
-    const object = loader.parse(previewObjText);
+    const object = loader.parse(objText);
 
     object.traverse((child) => {
       if (child.isMesh) {
