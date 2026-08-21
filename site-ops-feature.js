@@ -248,6 +248,7 @@ function normalizePostForStorage(post) {
         avatarUrl: String(comment?.avatarUrl || "").trim().slice(0, 500),
         bio: String(comment?.bio || "").trim().slice(0, 280),
         plan: String(comment?.plan || "free").trim().toLowerCase() === "plus" ? "plus" : "free",
+        pinned: Boolean(comment?.pinned),
         body: String(comment?.body || "").trim().slice(0, 800),
         createdAt: comment?.createdAt ? String(comment.createdAt) : new Date().toISOString(),
       })).filter((comment) => comment.body)
@@ -280,6 +281,7 @@ function buildPublicCommunityPost(post, viewerId) {
       avatarUrl: comment.avatarUrl,
       bio: comment.bio,
       plan: comment.plan,
+      pinned: Boolean(comment.pinned),
       body: comment.body,
       createdAt: comment.createdAt,
     })),
@@ -453,6 +455,48 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       return res.json({ ok: true, message: "Community post deleted." });
     } catch (error) {
       return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete the community post." });
+    }
+  });
+
+  app.patch("/admin/community-posts/:postId/comments/:commentId", async (req, res) => {
+    try {
+      await requireAdminUser(req);
+      const postId = String(req.params?.postId || "").trim();
+      const commentId = String(req.params?.commentId || "").trim();
+      const posts = readCommunityPosts(baseDir);
+      const postIndex = posts.findIndex((post) => String(post.id || "") === postId);
+      if (postIndex < 0) return res.status(404).json({ error: "That post could not be found." });
+      const post = normalizePostForStorage(posts[postIndex]);
+      const comment = post.comments.find((entry) => String(entry.id || "") === commentId);
+      if (!comment) return res.status(404).json({ error: "That comment could not be found." });
+      if (Object.prototype.hasOwnProperty.call(req.body || {}, "pinned")) comment.pinned = Boolean(req.body.pinned);
+      post.updatedAt = new Date().toISOString();
+      posts[postIndex] = post;
+      writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, message: "Comment updated." });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not update the comment." });
+    }
+  });
+
+  app.delete("/admin/community-posts/:postId/comments/:commentId", async (req, res) => {
+    try {
+      await requireAdminUser(req);
+      const postId = String(req.params?.postId || "").trim();
+      const commentId = String(req.params?.commentId || "").trim();
+      const posts = readCommunityPosts(baseDir);
+      const postIndex = posts.findIndex((post) => String(post.id || "") === postId);
+      if (postIndex < 0) return res.status(404).json({ error: "That post could not be found." });
+      const post = normalizePostForStorage(posts[postIndex]);
+      const nextComments = post.comments.filter((entry) => String(entry.id || "") !== commentId);
+      if (nextComments.length === post.comments.length) return res.status(404).json({ error: "That comment could not be found." });
+      post.comments = nextComments;
+      post.updatedAt = new Date().toISOString();
+      posts[postIndex] = post;
+      writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, message: "Comment deleted." });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete the comment." });
     }
   });
 

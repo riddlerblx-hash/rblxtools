@@ -8021,6 +8021,14 @@ io.on("connection", (socket) => {
 
   socket.on("chat-message", async (payload = {}) => {
     if (!currentRoom) return;
+    if (!authenticatedUser) {
+      socket.emit("special-action-result", {
+        type: "authentication",
+        ok: false,
+        error: "Log in or sign up to use live chat.",
+      });
+      return;
+    }
 
     const moderation = await summarizeModerationForTarget(authenticatedUser, currentDeviceId);
     socket.emit("moderation-state", moderation);

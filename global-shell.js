@@ -1167,7 +1167,6 @@
             '</summary>' +
             '<div class="rblx-shell-profile-menu-panel">' +
               '<a class="rblx-shell-profile-menu-item" href="./account-overview">Account Overview</a>' +
-              '<a class="rblx-shell-profile-menu-item" href="./subscriptions">Subscriptions</a>' +
               '<button class="rblx-shell-profile-menu-item is-danger" type="button" data-shell-logout="true">Log Out</button>' +
             "</div>" +
           "</details>" +
@@ -1561,7 +1560,7 @@
         ? '<img class="rblx-shell-chat-avatar-image" src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\';" />' +
           '<span class="rblx-shell-chat-avatar-fallback" style="display:none;">' + escapeHtml(profile.avatarText) + "</span>"
         : '<span class="rblx-shell-chat-avatar-fallback">' + escapeHtml(profile.avatarText) + "</span>";
-      var badgeMarkup = isPlus ? "Plus" : escapeHtml(profile.badge);
+      var badgeMarkup = isPlus ? "" : '<span class="rblx-shell-chat-badge">' + escapeHtml(profile.badge) + "</span>";
       var nameClass = isPlus ? ' class="rblx-shell-chat-name-text is-plus"' : ' class="rblx-shell-chat-name-text"';
       var messageBody = message && message.specialType === "claimDrop" && message.claimDrop
         ? buildClaimDropMessage(message, message.claimDrop)
@@ -1578,7 +1577,7 @@
           '<div>' +
             '<div class="rblx-shell-chat-name">' +
               '<button class="rblx-shell-chat-name-button" type="button" data-chat-action="profile" data-chat-index="' + index + '">' +
-                '<span class="rblx-shell-chat-badge' + (isPlus ? ' is-plus' : '') + '">' + badgeMarkup + '</span>' +
+                badgeMarkup +
                 (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "") +
                 '<span' + nameClass + '>' + escapeHtml(profile.displayName) + "</span>" +
               "</button>" +
@@ -1604,10 +1603,11 @@
     target.innerHTML = safeMessages.map(function (message) {
       var name = escapeHtml(String((message && (message.displayName || message.username || message.name)) || 'Guest'));
       var textValue = escapeHtml(String((message && message.text) || ''));
-      var badge = String((message && message.plan) || '').toLowerCase() === 'plus' || Boolean(message && message.isPlus) ? 'PLUS' : 'MEMBER';
+      var isPlus = String((message && message.plan) || '').toLowerCase() === 'plus' || Boolean(message && message.isPlus);
+      var badgeMarkup = isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : '<span class="rblx-shell-chat-badge">MEMBER</span>';
       return '<article class="rblx-shell-chat-message">' +
         '<div class="rblx-shell-chat-avatar-button"><span class="rblx-shell-chat-avatar"><span class="rblx-shell-chat-avatar-fallback">' + name.charAt(0).toUpperCase() + '</span></span></div>' +
-        '<div><div class="rblx-shell-chat-name"><span class="rblx-shell-chat-badge' + (badge === 'PLUS' ? ' is-plus' : '') + '">' + badge + '</span><span class="rblx-shell-chat-name-text' + (badge === 'PLUS' ? ' is-plus' : '') + '">' + name + '</span></div><div class="rblx-shell-chat-text">' + textValue + '</div></div>' +
+        '<div><div class="rblx-shell-chat-name">' + badgeMarkup + '<span class="rblx-shell-chat-name-text' + (isPlus ? ' is-plus' : '') + '">' + name + '</span></div><div class="rblx-shell-chat-text">' + textValue + '</div></div>' +
       '</article>';
     }).join('');
   }
@@ -1867,6 +1867,14 @@
     }, 40);
     loadAuthGoogleConfig();
   }
+
+  window.RBLXToolsAuth = window.RBLXToolsAuth || {};
+  window.RBLXToolsAuth.open = function (options) {
+    openAuthModal(options || { mode: "login" });
+  };
+  window.addEventListener("rblxtools-open-auth", function (event) {
+    openAuthModal(event && event.detail ? event.detail : { mode: "login" });
+  });
 
   function finishAuthSuccess(result, successMessage) {
     var user = result && result.user ? result.user : null;
@@ -2344,6 +2352,14 @@
 
     form.addEventListener("submit", function (event) {
       event.preventDefault();
+      if (!shellState.currentUser || !shellState.currentUser.loggedIn) {
+        if (window.RBLXToolsAuth && typeof window.RBLXToolsAuth.open === "function") {
+          window.RBLXToolsAuth.open({ mode: "login", message: "Log in or sign up to use live chat." });
+        } else {
+          window.dispatchEvent(new CustomEvent("rblxtools-open-auth", { detail: { mode: "login", message: "Log in or sign up to use live chat." } }));
+        }
+        return;
+      }
       var value = input.value.trim();
       if (!value) return;
       if (!shellState.socket || !shellState.socketReady) return;
@@ -2476,6 +2492,12 @@
           return;
         }
         if (result.ok !== false) return;
+        if (result.type === "authentication") {
+          if (window.RBLXToolsAuth && typeof window.RBLXToolsAuth.open === "function") {
+            window.RBLXToolsAuth.open({ mode: "login", message: result.error || "Log in or sign up to use live chat." });
+          }
+          return;
+        }
         if (result.type === "site-blacklist" || result.type === "chat-ban" || result.type === "chat-timeout") {
           setChatComposeState(true, result.error || "Chat unavailable", result.error || "Chat unavailable");
           if (result.type === "chat-timeout" && result.expiresAt) {

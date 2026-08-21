@@ -336,6 +336,25 @@
       .community-post-action,
       .community-comment-submit { width: 100%; }
     }
+    /* Interaction fixes: keep the category menu above the composer and make guest login obvious. */
+    .community-admin-composer,
+    .community-form-grid,
+    .community-form-row,
+    .community-field { overflow: visible; }
+    .community-admin-composer { isolation: isolate; }
+    .community-field.is-category-open { z-index: 200; }
+    .community-category-select[open] { z-index: 300; }
+    .community-category-select-panel { z-index: 1000; background: #171c2b !important; opacity: 1 !important; pointer-events: auto; }
+    .community-category-select-panel * { pointer-events: auto; }
+    .community-category-option { position: relative; z-index: 1; }
+    .community-login-link { display: inline; padding: 0; border: 0; background: transparent; color: #b38bff; font: inherit; font-weight: 900; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; cursor: pointer; }
+    .community-login-link:hover { color: #d2bdff; }
+    .community-post-action.is-hearting > span:first-child { color: #ff667e; animation: communityHeartPulse .5s ease; }
+    @keyframes communityHeartPulse { 0%,100% { transform: scale(1); } 45% { transform: scale(1.55); } }
+    .community-comment-menu { margin-left: auto; }
+    .community-comment-date { margin-left: auto; }
+    .community-comment-menu + .community-comment-date { margin-left: 0; }
+    .community-comment.is-pinned { border-color: rgba(255, 185, 99, .26); }
   </style>
 </head>
 <body>

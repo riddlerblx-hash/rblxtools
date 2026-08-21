@@ -8,6 +8,8 @@
   var editingPostId = "";
   var pollTimer = null;
   var lastFeedSignature = "";
+  var currentViewer = null;
+  var viewerMembershipSignature = "";
 
   function escapeHtml(value) {
     return String(value == null ? "" : value)
@@ -151,7 +153,11 @@
       ? window.RBLXToolsProfile.getCurrentIdentity()
       : null;
     var commentUserId = String(comment.userId || "").trim();
-    var currentUserId = currentIdentity && currentIdentity.userId ? String(currentIdentity.userId).trim() : "";
+    var currentUserId = String(
+      (currentViewer && currentViewer.userId) ||
+      (currentIdentity && currentIdentity.userId) ||
+      ""
+    ).trim();
     var useCurrentIdentity = Boolean(commentUserId && currentUserId && commentUserId === currentUserId);
     var displayName = String(
       (useCurrentIdentity && (currentIdentity.displayName || currentIdentity.username)) ||
@@ -159,7 +165,12 @@
       comment.displayName ||
       "Member"
     ).trim() || "Member";
-    var plan = String((useCurrentIdentity && currentIdentity.plan) || comment.plan || "").trim().toLowerCase();
+    var plan = String(
+      (useCurrentIdentity && currentViewer && currentViewer.plan) ||
+      (useCurrentIdentity && currentIdentity && currentIdentity.plan) ||
+      comment.plan ||
+      ""
+    ).trim().toLowerCase();
     var isPlus = plan === "plus" || String(comment.badge || "").trim().toLowerCase() === "plus";
     return {
       displayName: displayName,
@@ -185,6 +196,7 @@
       ""
     ).trim() || "Member";
     var plan = String(
+      (currentViewer && currentViewer.plan) ||
       (shellIdentity && shellIdentity.plan) ||
       savedProfile.plan ||
       authUser.plan ||
@@ -193,7 +205,7 @@
     var isPlus = plan === "plus";
     return {
       displayName: displayName,
-      userId: String((shellIdentity && shellIdentity.userId) || authUser.userId || "").trim(),
+      userId: String((currentViewer && currentViewer.userId) || (shellIdentity && shellIdentity.userId) || authUser.userId || "").trim(),
       avatarUrl: String((shellIdentity && shellIdentity.avatarUrl) || savedProfile.avatarUrl || "").trim(),
       bio: String((shellIdentity && shellIdentity.bio) || savedProfile.bio || "").trim(),
       plan: isPlus ? "plus" : "free",
@@ -214,7 +226,9 @@
 
   function buildCommunityCommentAuthor(profile) {
     var isPlus = String(profile.plan || "").toLowerCase() === "plus";
-    var badgeMarkup = isPlus ? "Plus" : escapeHtml(profile.badge || "Free Plan");
+    var badgeMarkup = isPlus
+      ? ""
+      : '<span class="rblx-shell-chat-badge">' + escapeHtml(profile.badge || "Free Plan") + "</span>";
     var avatarMarkup = profile.avatarUrl
       ? '<img class="rblx-shell-chat-avatar-image" src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;grid&quot;;" />' +
         '<span class="rblx-shell-chat-avatar-fallback" style="display:none;">' + escapeHtml(profile.avatarText || getInitials(profile.displayName)) + '</span>'
@@ -229,7 +243,7 @@
         '<div class="community-comment-author-copy">' +
           '<div class="rblx-shell-chat-name">' +
             '<button class="rblx-shell-chat-name-button" type="button"' + attrs + '>' +
-              '<span class="rblx-shell-chat-badge' + (isPlus ? ' is-plus' : '') + '">' + badgeMarkup + '</span>' +
+              badgeMarkup +
               (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : '') +
               '<span' + nameClass + '>' + escapeHtml(profile.displayName || "Member") + '</span>' +
             '</button>' +
@@ -265,6 +279,20 @@
     );
   }
 
+  function buildAdminCommentMenu(postId, comment) {
+    if (!isAdminUser) return "";
+    var isPinned = Boolean(comment && comment.pinned);
+    return (
+      '<details class="community-post-menu community-comment-menu">' +
+        '<summary aria-label="Comment settings"><span>&#8942;</span></summary>' +
+        '<div class="community-post-menu-panel">' +
+          '<button class="community-post-menu-item" type="button" data-community-comment-pin-post="' + escapeHtml(postId) + '" data-community-comment-pin="' + escapeHtml(comment.id) + '" data-next-pinned="' + (isPinned ? "false" : "true") + '">' + (isPinned ? "Unpin Comment" : "Pin Comment") + '</button>' +
+          '<button class="community-post-menu-item is-danger" type="button" data-community-comment-delete-post="' + escapeHtml(postId) + '" data-community-comment-delete="' + escapeHtml(comment.id) + '">Delete Comment</button>' +
+        "</div>" +
+      "</details>"
+    );
+  }
+
   function buildPostActions(post) {
     var likeLabel = post.viewerLiked ? "Liked" : "Like";
     return (
@@ -283,15 +311,18 @@
   }
 
   function buildComments(post) {
-    var comments = Array.isArray(post.comments) ? post.comments : [];
+    var comments = (Array.isArray(post.comments) ? post.comments : []).slice().sort(function (left, right) {
+      return Number(Boolean(right.pinned)) - Number(Boolean(left.pinned));
+    });
     var commentsMarkup = comments.length
       ? comments.map(function (comment) {
           var profile = buildCommentProfile(comment);
           return (
-            '<article class="community-comment">' +
+            '<article class="community-comment' + (comment.pinned ? ' is-pinned' : '') + '">' +
               '<div class="community-comment-top">' +
                 buildCommunityCommentAuthor(profile) +
-                '<span class="community-comment-date">' + escapeHtml(formatTime(comment.createdAt)) + '</span>' +
+                '<span class="community-comment-date">' + (comment.pinned ? 'Pinned · ' : '') + escapeHtml(formatTime(comment.createdAt)) + '</span>' +
+                buildAdminCommentMenu(post.id, comment) +
               '</div>' +
               '<p>' + escapeHtml(comment.body || '').replace(/\\n/g, '<br>') + '</p>' +
             '</article>'
@@ -306,7 +337,7 @@
           '<button class="community-comment-submit" type="button" data-community-submit-comment="' + escapeHtml(post.id) + '">Post Comment</button>' +
         "</div>"
       )
-      : '<div class="community-comment-empty">Log in to like or comment on community posts.</div>';
+      : '<div class="community-comment-empty">Want to join the conversation? <button class="community-login-link" type="button" data-community-open-login="true">Log in or sign up</button> to like or comment.</div>';
 
     return (
       '<div class="community-comments">' +
@@ -403,12 +434,22 @@
     if (composer) composer.hidden = true;
     isAdminUser = false;
     isLoggedIn = false;
+    currentViewer = null;
 
     try {
-      var payload = await fetchJson(API_BASE + "/auth/me", { method: "GET" });
+      var payload = await fetchJson(API_BASE + "/auth/me", { method: "GET", cache: "no-store" });
       var user = payload && payload.user ? payload.user : null;
       if (!user) return;
       isLoggedIn = true;
+      currentViewer = {
+        userId: String(user.id || user.userId || "").trim(),
+        plan: (user.premiumActive === true || user.plusActive === true || user.isPlus === true || String(user.plan || "").toLowerCase() === "plus") ? "plus" : "free"
+      };
+      var nextMembershipSignature = currentViewer.userId + "|" + currentViewer.plan;
+      if (viewerMembershipSignature && viewerMembershipSignature !== nextMembershipSignature) {
+        lastFeedSignature = "";
+      }
+      viewerMembershipSignature = nextMembershipSignature;
       if (isApprovedAdminUser(user)) {
         isAdminUser = true;
         if (composer) composer.hidden = false;
@@ -540,15 +581,40 @@
     }
   }
 
-  async function toggleLike(postId) {
-    if (!isLoggedIn) {
-      setPublishStatus("Log in first so you can like posts.", "error");
+  function openLoginPrompt(message) {
+    if (window.RBLXToolsAuth && typeof window.RBLXToolsAuth.open === "function") {
+      window.RBLXToolsAuth.open({ mode: "login", message: message || "Log in or sign up to continue." });
       return;
     }
+    window.dispatchEvent(new CustomEvent("rblxtools-open-auth", { detail: { mode: "login", message: message || "Log in or sign up to continue." } }));
+  }
+
+  function createHeartBurst(button) {
+    if (!button) return;
+    var rect = button.getBoundingClientRect();
+    var heart = document.createElement("span");
+    heart.className = "community-heart-burst";
+    heart.setAttribute("aria-hidden", "true");
+    heart.innerHTML = "&#10084;";
+    heart.style.left = (rect.left + rect.width / 2) + "px";
+    heart.style.top = (rect.top + rect.height / 2) + "px";
+    document.body.appendChild(heart);
+    button.classList.add("is-hearting");
+    window.setTimeout(function () { button.classList.remove("is-hearting"); }, 520);
+    window.setTimeout(function () { heart.remove(); }, 900);
+  }
+
+  async function toggleLike(postId, button) {
+    if (!isLoggedIn) {
+      openLoginPrompt("Log in or sign up to like community posts.");
+      return;
+    }
+    var isNewLike = !button || !button.classList.contains("is-active");
     try {
       await fetchJson(API_BASE + "/api/community-posts/" + encodeURIComponent(postId) + "/likes", {
         method: "POST"
       });
+      if (isNewLike) createHeartBurst(button);
       await loadCommunityPosts(true);
     } catch (error) {
       setPublishStatus(error && error.message ? error.message : "Could not update the like.", "error");
@@ -583,6 +649,29 @@
       await loadCommunityPosts(true);
     } catch (error) {
       setPublishStatus(error && error.message ? error.message : "Could not post the comment.", "error");
+    }
+  }
+
+  async function updateComment(postId, commentId, body) {
+    try {
+      await fetchJson(API_BASE + "/admin/community-posts/" + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      await loadCommunityPosts(true);
+    } catch (error) {
+      setPublishStatus(error && error.message ? error.message : "Could not update the comment.", "error");
+    }
+  }
+
+  async function deleteComment(postId, commentId) {
+    if (!window.confirm("Delete this comment?")) return;
+    try {
+      await fetchJson(API_BASE + "/admin/community-posts/" + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId), { method: "DELETE" });
+      await loadCommunityPosts(true);
+    } catch (error) {
+      setPublishStatus(error && error.message ? error.message : "Could not delete the comment.", "error");
     }
   }
 
@@ -622,8 +711,32 @@
       var pinButton = target.closest("[data-community-pin]");
       if (pinButton) return void pinPost(pinButton.getAttribute("data-community-pin"), pinButton.getAttribute("data-next-pinned"));
 
+      var guestLogin = target.closest("[data-community-open-login]");
+      if (guestLogin) return void openLoginPrompt("Log in or sign up to join the conversation.");
+
+      var categoryOption = target.closest("[data-community-category]");
+      if (categoryOption) {
+        var category = categoryOption.getAttribute("data-community-category") || "announcement";
+        var categoryInput = document.getElementById("communityPostCategory");
+        var categoryLabel = document.getElementById("communityCategorySelectLabel");
+        var categoryDetails = document.getElementById("communityCategorySelect");
+        if (categoryInput) categoryInput.value = category;
+        if (categoryLabel) categoryLabel.textContent = formatPostType(category);
+        document.querySelectorAll("[data-community-category]").forEach(function (node) {
+          node.classList.toggle("is-selected", node === categoryOption);
+        });
+        if (categoryDetails) categoryDetails.open = false;
+        return;
+      }
+
+      var commentDeleteButton = target.closest("[data-community-comment-delete]");
+      if (commentDeleteButton) return void deleteComment(commentDeleteButton.getAttribute("data-community-comment-delete-post"), commentDeleteButton.getAttribute("data-community-comment-delete"));
+
+      var commentPinButton = target.closest("[data-community-comment-pin]");
+      if (commentPinButton) return void updateComment(commentPinButton.getAttribute("data-community-comment-pin-post"), commentPinButton.getAttribute("data-community-comment-pin"), { pinned: commentPinButton.getAttribute("data-next-pinned") === "true" });
+
       var likeButton = target.closest("[data-community-like]");
-      if (likeButton) return void toggleLike(likeButton.getAttribute("data-community-like"));
+      if (likeButton) return void toggleLike(likeButton.getAttribute("data-community-like"), likeButton);
 
       var shareButton = target.closest("[data-community-share]");
       if (shareButton) return void sharePost(shareButton.getAttribute("data-community-share"));
@@ -633,16 +746,25 @@
 
       var focusComment = target.closest("[data-community-focus-comment]");
       if (focusComment) {
+        if (!isLoggedIn) return void openLoginPrompt("Log in or sign up to comment on community posts.");
         var input = document.getElementById("communityCommentInput-" + focusComment.getAttribute("data-community-focus-comment"));
         if (input) input.focus();
       }
     });
+
+    var categoryDetails = document.getElementById("communityCategorySelect");
+    if (categoryDetails) {
+      categoryDetails.addEventListener("toggle", function () {
+        var field = categoryDetails.closest(".community-field");
+        if (field) field.classList.toggle("is-category-open", categoryDetails.open);
+      });
+    }
   }
 
   function startFeedHeartbeat() {
     if (pollTimer) return;
     pollTimer = window.setInterval(function () {
-      loadCommunityPosts(false);
+      syncViewerState().then(function () { return loadCommunityPosts(false); });
     }, 5000);
     window.addEventListener("focus", function () {
       loadCommunityPosts(false);
