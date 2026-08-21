@@ -1361,8 +1361,9 @@
     let modelTexture = null;
     if (textureUrl) {
       modelTexture = new THREE.TextureLoader().load(textureUrl);
-      modelTexture.flipY = false;
+      modelTexture.flipY = true;
       modelTexture.encoding = THREE.sRGBEncoding;
+      modelTexture.needsUpdate = true;
     }
 
     const loader = new THREE.OBJLoader();
