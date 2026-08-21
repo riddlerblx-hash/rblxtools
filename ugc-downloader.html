@@ -569,6 +569,17 @@
       border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
+    .metaPill.texture-id-pill { color: #9fceff; border-color: rgba(104, 177, 255, .25); background: rgba(71, 133, 232, .12); }
+    #statsForNerdsBtn { min-height: 24px; padding: 4px 10px; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; background: rgba(255,255,255,.045); color: #dfe8f8; font: inherit; font-size: 10px; font-weight: 900; cursor: pointer; transition: .16s ease; }
+    #statsForNerdsBtn:hover, #statsForNerdsBtn[aria-expanded="true"] { border-color: rgba(102,165,255,.55); background: rgba(76,132,235,.2); color: #fff; }
+    #assetStatsPanel { display: none; margin-top: 10px; padding: 12px; border: 1px solid rgba(112,163,255,.22); border-radius: 12px; background: linear-gradient(135deg,rgba(65,111,196,.14),rgba(255,255,255,.025)); }
+    #assetStatsPanel.is-open { display: block; }
+    .asset-stats-title { margin: 0 0 8px; color: #fff; font-size: 12px; font-weight: 900; }
+    .asset-stats-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+    .asset-stat { min-width: 0; padding: 9px; border-radius: 9px; background: rgba(7,12,24,.36); }
+    .asset-stat span { display: block; color: #9aa9bf; font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .asset-stat strong { display: block; overflow-wrap: anywhere; margin-top: 3px; color: #edf5ff; font-size: 11px; }
+
     #actionRow {
       display: flex;
       justify-content: center;
@@ -1441,6 +1452,10 @@
 
     activeId.innerText = `ID ${activeSlide.id}`;
     slideCounter.innerText = `${currentSlideIndex + 1} of ${currentSlides.length}`;
+    const textureId = document.getElementById("activeTextureId");
+    if (textureId) textureId.innerText = `Texture ${activeSlide.textureId || "Unavailable"}`;
+    const statsPanel = document.getElementById("assetStatsPanel");
+    if (statsPanel) statsPanel.innerHTML = getAssetStatsMarkup(activeSlide);
     const downloadBtn = document.getElementById("downloadBtn");
     if (downloadBtn) {
       downloadBtn.textContent = currentSlides.length > 1 ? `Download ${currentSlides.length} OBJ Packages` : "Download OBJ Package";
@@ -1465,6 +1480,50 @@
     updateCarouselView();
   }
 
+  function getObjStats(objText) {
+    const lines = String(objText || "").split(/\r?\n/);
+    let vertices = 0;
+    let textureCoordinates = 0;
+    let normals = 0;
+    let faces = 0;
+    let objects = 0;
+    lines.forEach(function (line) {
+      if (line.startsWith("v ")) vertices += 1;
+      else if (line.startsWith("vt ")) textureCoordinates += 1;
+      else if (line.startsWith("vn ")) normals += 1;
+      else if (line.startsWith("f ")) faces += 1;
+      else if (line.startsWith("o ") || line.startsWith("g ")) objects += 1;
+    });
+    return { vertices: vertices, textureCoordinates: textureCoordinates, normals: normals, faces: faces, objects: objects };
+  }
+
+  function formatByteSize(byteSize) {
+    const size = Number(byteSize || 0);
+    if (!size) return "Unknown";
+    if (size < 1024) return size + " B";
+    if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+    return (size / (1024 * 1024)).toFixed(2) + " MB";
+  }
+
+  function getAssetStatsMarkup(slide) {
+    const objStats = getObjStats(slide.objText);
+    const rows = [
+      ["Catalog asset", slide.id],
+      ["Texture asset", slide.textureId || "Unavailable"],
+      ["Item type", slide.itemMode === "classic" ? "Classic item" : "UGC item"],
+      ["Texture file", slide.textureFileName || "Unavailable"],
+      ["Texture size", formatByteSize(slide.textureBlob && slide.textureBlob.size)],
+      ["Mesh objects", objStats.objects],
+      ["Vertices", objStats.vertices],
+      ["Faces", objStats.faces],
+      ["UV coordinates", objStats.textureCoordinates],
+      ["Normals", objStats.normals]
+    ];
+    return '<p class="asset-stats-title">Asset stats for nerds</p><div class="asset-stats-grid">' + rows.map(function (row) {
+      return '<div class="asset-stat"><span>' + row[0] + '</span><strong>' + row[1] + '</strong></div>';
+    }).join("") + "</div>";
+  }
+
   function renderSlides(slides) {
     currentSlides = slides.slice();
     currentSlideIndex = 0;
@@ -1482,20 +1541,31 @@
       <div id="metaRow">
         <div class="metaPill">Textured 3D Preview</div>
         <div class="metaPill" id="activeAssetId"></div>
+        <div class="metaPill texture-id-pill" id="activeTextureId"></div>
         <div class="metaPill">${selectedItemMode === "classic" ? "Classic Item" : "UGC Item"}</div>
         <div class="metaPill" id="slideCounter">${isMulti ? `1 of ${slides.length}` : "Single Asset"}</div>
+        <button id="statsForNerdsBtn" type="button" aria-expanded="false" aria-controls="assetStatsPanel">Stats for Nerds</button>
       </div>
       <div id="actionRow">
         <button id="downloadBtn" type="button">Download OBJ Package</button>
         <button id="downloadGlbBtn" type="button"><span aria-hidden="true">&#128274;</span><span id="downloadGlbLabel">Download Textured GLB</span><span class="glb-plus-badge">Plus</span></button>
       </div>
       <div class="ugc-export-note"><strong>Choose the right export:</strong> the preview shows the available texture already applied. <strong>OBJ Package (Free)</strong> downloads an OBJ, MTL, and texture image together in a ZIP; keep those files together and, in programs like Blender, manually assign the included texture if it does not load automatically. <strong>Textured GLB (<span class="plusWord">Plus</span>)</strong> keeps the texture and material embedded in one file.</div>
+      <div id="assetStatsPanel" aria-live="polite"></div>
     `;
 
     const previousButton = document.getElementById("previewPreviousButton");
     const nextButton = document.getElementById("previewNextButton");
     if (previousButton) previousButton.addEventListener("click", function () { showSlide(-1); });
     if (nextButton) nextButton.addEventListener("click", function () { showSlide(1); });
+    const statsButton = document.getElementById("statsForNerdsBtn");
+    const statsPanel = document.getElementById("assetStatsPanel");
+    if (statsButton && statsPanel) {
+      statsButton.addEventListener("click", function () {
+        const isOpen = statsPanel.classList.toggle("is-open");
+        statsButton.setAttribute("aria-expanded", String(isOpen));
+      });
+    }
     updateCarouselView();
   }
   function getAuthHeaders(extraHeaders) {
@@ -1545,6 +1615,7 @@
       objText: objText,
       textureBlob: textureBlob,
       textureUrl: textureUrl,
+      textureId: textureId,
       textureFileName: "texture-" + textureId + "." + textureExtension
     };
   }
