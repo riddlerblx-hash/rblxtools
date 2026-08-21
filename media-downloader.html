@@ -1351,15 +1351,7 @@
       }
 
       function syncMediaToolHeight() {
-        const sideStack = document.querySelector(".side-stack");
-        const mediaCard = document.querySelector("#toolMount #rblxMediaCard");
-        if (!sideStack || !mediaCard) return;
-
-        const targetHeight = Math.ceil(sideStack.getBoundingClientRect().height);
-        if (targetHeight > 0) {
-          mediaCard.style.minHeight = targetHeight + "px";
-          writeStoredHeight(targetHeight);
-        }
+        return;
       }
 
       const scheduleSync = () => {
@@ -1377,7 +1369,6 @@
       window.addEventListener("resize", scheduleSync);
 
       const mount = document.getElementById("toolMount");
-      applyStoredHeight();
       if (mount && "MutationObserver" in window) {
         const observer = new MutationObserver(scheduleSync);
         observer.observe(mount, { childList: true, subtree: true });

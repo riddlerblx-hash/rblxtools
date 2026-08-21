@@ -1300,7 +1300,6 @@
           "</div>" +
           '<div class="rblx-shell-header-actions">' +
             '<div class="rblx-shell-support-wrap"><span class="rblx-shell-support-float one">$</span><span class="rblx-shell-support-float two">$</span><span class="rblx-shell-support-float three">$</span><span class="rblx-shell-support-float four">$</span><a class="rblx-shell-support-link" href="https://ko-fi.com/rblxtools" target="_blank" rel="noopener noreferrer">Support</a></div>' +
-            '<button class="rblx-shell-btn rblx-shell-contact-support" type="button" id="rblxShellContactSupport">Contact Support</button>' +
             buildAuthMarkup() +
           "</div>" +
         "</header>" +
@@ -1352,7 +1351,6 @@
                   "</div>" +
                 "</form>" +
                 '<div class="rblx-shell-chat-foot">' +
-                  '<button class="rblx-shell-chat-report" type="button" id="rblxShellReportButton">🛟 Report Issue</button>' +
                   '<a class="rblx-shell-chat-rules" href="#" id="rblxShellRulesLink">Chat Rules</a>' +
                   '<span class="rblx-shell-chat-online"><span class="rblx-shell-chat-online-dot"></span><span id="rblxShellOnlineCount">0</span></span>' +
                 "</div>" +

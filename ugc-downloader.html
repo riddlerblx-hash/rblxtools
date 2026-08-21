@@ -1862,15 +1862,7 @@
       }
 
       function syncUgcToolHeight() {
-        const sideStack = document.querySelector(".side-stack");
-        const ugcCard = document.querySelector("#toolMount #roblox-ugc-card");
-        if (!sideStack || !ugcCard) return;
-
-        const targetHeight = Math.ceil(sideStack.getBoundingClientRect().height);
-        if (targetHeight > 0) {
-          ugcCard.style.minHeight = targetHeight + "px";
-          writeStoredHeight(targetHeight);
-        }
+        return;
       }
 
       const scheduleSync = () => {
@@ -1888,7 +1880,6 @@
       window.addEventListener("resize", scheduleSync);
 
       const mount = document.getElementById("toolMount");
-      applyStoredHeight();
       if (mount && "MutationObserver" in window) {
         const observer = new MutationObserver(scheduleSync);
         observer.observe(mount, { childList: true, subtree: true });

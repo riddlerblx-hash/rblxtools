@@ -1351,7 +1351,7 @@
             </p>
 
             <div id="plusNotice">
-              Free users can download unlimited animations 1 by 1. <span class="plus-word">Plus</span> users can download 2-5 at a time with comma-separated asset IDs.
+              <strong>TIP:</strong> <a class="plus-word" href="./subscriptions">Plus</a> users can download 2-5 at a time with comma-separated IDs.
               <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
             </div>
 
@@ -2429,15 +2429,7 @@
       }
 
       function syncAnimationToolHeight() {
-        const sideStack = document.querySelector(".side-stack");
-        const animationCard = document.querySelector("#toolMount #animation-spoofer-card");
-        if (!sideStack || !animationCard) return;
-
-        const targetHeight = Math.ceil(sideStack.getBoundingClientRect().height);
-        if (targetHeight > 0) {
-          animationCard.style.minHeight = targetHeight + "px";
-          writeStoredHeight(targetHeight);
-        }
+        return;
       }
 
       const scheduleSync = () => {
@@ -2455,7 +2447,6 @@
       window.addEventListener("resize", scheduleSync);
 
       const mount = document.getElementById("toolMount");
-      applyStoredHeight();
       if (mount && "MutationObserver" in window) {
         const observer = new MutationObserver(scheduleSync);
         observer.observe(mount, { childList: true, subtree: true });
@@ -2538,7 +2529,6 @@
   </script>
 </body>
 </html>
-
 
 
 

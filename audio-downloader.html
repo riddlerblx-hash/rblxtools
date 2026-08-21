@@ -619,7 +619,7 @@
       <p class="rblx-subtitle">Download Roblox audio assets using the raw Roblox audio asset ID.</p>
 
       <div id="plusNotice">
-        Users on the free plan can download unlimited audios 1 by 1. <span class="plusWord">Plus</span> users can download 2-5 at a time with comma-separated audio asset IDs.
+        <strong>TIP:</strong> <a class="plusWord" href="./subscriptions">Plus</a> users can download 2-5 at a time with comma-separated IDs.
         <code>Ex: 1843529606, 142376088, 9048375034</code>
       </div>
 
@@ -1332,15 +1332,7 @@
       }
 
       function syncAudioToolHeight() {
-        const sideStack = document.querySelector(".side-stack");
-        const audioCard = document.querySelector("#toolMount #rblxAudioCard");
-        if (!sideStack || !audioCard) return;
-
-        const targetHeight = Math.ceil(sideStack.getBoundingClientRect().height);
-        if (targetHeight > 0) {
-          audioCard.style.minHeight = targetHeight + "px";
-          writeStoredHeight(targetHeight);
-        }
+        return;
       }
 
       const scheduleSync = () => {
@@ -1358,7 +1350,6 @@
       window.addEventListener("resize", scheduleSync);
 
       const mount = document.getElementById("toolMount");
-      applyStoredHeight();
       if (mount && "MutationObserver" in window) {
         const observer = new MutationObserver(scheduleSync);
         observer.observe(mount, { childList: true, subtree: true });
