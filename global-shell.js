@@ -1325,8 +1325,8 @@
               '<div class="rblx-shell-chat-scroll" id="rblxShellChatScroll"></div>' +
               '<div class="rblx-shell-chat-bottom" id="rblxShellChatBottom">' +
                 '<div class="rblx-shell-chat-alert" id="rblxShellChatAlert" hidden><span id="rblxShellChatAlertText"></span></div>' +
+                '<div class="rblx-shell-chat-reply-banner" id="rblxShellChatReplyBanner" hidden><span id="rblxShellChatReplyText"></span><button type="button" data-chat-action="clear-reply" aria-label="Cancel reply">&times;</button></div>' +
                 '<form class="rblx-shell-chat-compose" id="rblxShellChatForm">' +
-                  '<div class="rblx-shell-chat-reply-banner" id="rblxShellChatReplyBanner" hidden><span id="rblxShellChatReplyText"></span><button type="button" data-chat-action="clear-reply" aria-label="Cancel reply">&times;</button></div>' +
                   '<input id="rblxShellChatInput" type="text" maxlength="160" placeholder="Enter a message..." />' +
                   '<div class="rblx-shell-chat-compose-actions">' +
                     '<button class="rblx-shell-chat-admin-button" type="button" id="rblxShellAdminButton" aria-label="Open admin panel" hidden>' + getNavIcon("shield") + '</button>' +
@@ -3608,6 +3608,5 @@
     initShell();
   }
 }());
-
 
 

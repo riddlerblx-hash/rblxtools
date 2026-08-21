@@ -3148,12 +3148,14 @@ body.rblx-shell-left-collapsed #rblxShellLeftToggle { right: -20px; }
   body.rblx-mobile-shell .rblx-mobile-dock-link.is-primary{background:linear-gradient(180deg,#74acff 0%,#407def 100%);color:#fff;border-color:rgba(110,169,255,.22)}
 }
 
-/* rblx-flat-site-background */
+/* Unified site backdrop: based on the Privacy Policy page, without grid layers. */
 html, body, body.rblx-shell-ready {
-  background: #0d111c !important;
-  background-image: none !important;
+  background-color: #0d111c !important;
+  background-image: radial-gradient(900px 680px at -8% -14%, rgba(121, 44, 63, .50), transparent 67%), radial-gradient(860px 660px at 107% -18%, rgba(46, 66, 139, .32), transparent 67%), radial-gradient(700px 760px at 52% 116%, rgba(87, 28, 51, .22), transparent 73%) !important;
   background-attachment: fixed !important;
 }
+body.rblx-shell-ready::before,
+body.rblx-shell-ready::after { display:none !important; background-image:none !important; }
 body.rblx-shell-ready .rblx-shell,
 body.rblx-shell-ready .rblx-shell-body,
 body.rblx-shell-ready .rblx-shell-center,
@@ -3162,7 +3164,7 @@ body.rblx-shell-ready .rblx-shell-page {
   background-image: none !important;
 }
 /* Remove only each page's full-bleed grid/gradient layer; cards keep their own styling. */
-body.rblx-shell-ready #rblxShellPage > :first-child {
+body.rblx-shell-ready #rblxShellPage > * {
   background-color: transparent !important;
   background-image: none !important;
 }
@@ -3175,13 +3177,17 @@ body.rblx-shell-ready #rblxShellPage > :first-child {
 
 
 /* rblx-community-flat-background-and-chat-reply */
-body.rblx-shell-ready #rblxShellPage { background:#0d111c !important; }
-body.rblx-shell-ready #rblxShellPage > :first-child,
-body.rblx-shell-ready #rblxShellPage > :first-child::before,
-body.rblx-shell-ready #rblxShellPage > :first-child::after { background-image:none !important; }
-body.rblx-shell-ready #rblxShellPage > :first-child::before,
-body.rblx-shell-ready #rblxShellPage > :first-child::after { display:none !important; }
-.rblx-shell-chat-reply-banner { display:flex; align-items:center; gap:8px; margin:0 0 8px; padding:8px 9px 8px 10px; border:1px solid rgba(139,112,255,.34); border-radius:11px; background:linear-gradient(135deg,rgba(115,82,231,.18),rgba(64,85,159,.16)); color:#e8e0ff; font-size:11px; font-weight:800; line-height:1.35; }
+body.rblx-shell-ready #rblxShellPage { background:transparent !important; }
+body.rblx-shell-ready #rblxShellPage > *,
+body.rblx-shell-ready #rblxShellPage > *::before,
+body.rblx-shell-ready #rblxShellPage > *::after { background-image:none !important; }
+body.rblx-shell-ready #rblxShellPage > *::before,
+body.rblx-shell-ready #rblxShellPage > *::after { display:none !important; }
+.rblx-shell-chat-bottom { position:relative; overflow:visible; z-index:3; }
+.rblx-shell-chat-bottom > .rblx-shell-chat-alert,
+.rblx-shell-chat-bottom > .rblx-shell-chat-compose,
+.rblx-shell-chat-bottom > .rblx-shell-chat-foot { position:relative; z-index:2; }
+.rblx-shell-chat-reply-banner { position:absolute; left:10px; right:10px; bottom:calc(100% - 24px); z-index:1; display:flex; align-items:center; gap:8px; min-height:46px; padding:8px 9px 28px 10px; border:1px solid rgba(139,112,255,.34); border-radius:13px 13px 0 0; background:linear-gradient(135deg,rgba(115,82,231,.30),rgba(64,85,159,.28)); color:#e8e0ff; font-size:11px; font-weight:800; line-height:1.35; box-shadow:0 -10px 22px rgba(19,15,42,.22); }
 .rblx-shell-chat-reply-banner[hidden] { display:none !important; }
 .rblx-shell-chat-reply-banner span { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .rblx-shell-chat-reply-banner button { width:22px; height:22px; flex:0 0 22px; padding:0; border:1px solid rgba(255,255,255,.12); border-radius:8px; background:rgba(255,255,255,.08); color:#fff; font:900 17px/1 sans-serif; cursor:pointer; }

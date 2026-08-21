@@ -84,7 +84,13 @@
       font-size: 15px;
       line-height: 1.75;
     }
-    .community-toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; position: relative; z-index: 1; }
+    .community-filter-groups { display:grid; gap:14px; margin-top:24px; position:relative; z-index:1; }
+    .community-filter-row { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+    .community-filter-row.is-member-lane { padding:12px 14px; border:1px solid rgba(155,124,255,.2); border-radius:16px; background:linear-gradient(135deg,rgba(111,75,206,.12),rgba(255,92,106,.06)); }
+    .community-filter-copy { display:grid; gap:3px; margin-right:4px; }
+    .community-filter-copy strong { color:#f0e9ff; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+    .community-filter-copy span { color:#aebbd1; font-size:12px; }
+    .community-toolbar { display: flex; flex-wrap: wrap; gap: 12px; position: relative; z-index: 1; }
     .community-pill {
       display: inline-flex;
       align-items: center;
@@ -368,6 +374,12 @@
     .community-admin-composer.is-member-report .community-category-field,
     .community-admin-composer.is-member-report .community-link-fields { display:none; }
     .community-admin-composer.is-member-report .community-helper-copy { color:#c8d6ed; }
+    .community-rating-field { max-width:360px; }
+    .community-rating-field[hidden] { display:none !important; }
+    .community-rating-select { cursor:pointer; }
+    .community-feedback-rating { display:inline-flex; align-items:center; gap:3px; margin-left:8px; color:#ffd77d; font-size:14px; letter-spacing:1px; vertical-align:middle; }
+    .community-feedback-rating span { margin-left:4px; color:#d7dfed; font-size:11px; font-weight:800; letter-spacing:0; }
+    @media (max-width: 700px) { .community-filter-row.is-member-lane { align-items:flex-start; } }
   </style>
 </head>
 <body>
@@ -378,12 +390,23 @@
       <p>
         This is the official RBLXTools update hub for announcements, changelogs, bug reports, and important site notices.
       </p>
-      <div class="community-toolbar" id="communityFilters" aria-label="Community filters">
-        <a class="community-pill is-active" data-filter="all" href="./community">All</a>
-        <a class="community-pill" data-filter="announcement" href="./community?filter=announcement">Announcements</a>
-        <a class="community-pill" data-filter="changelog" href="./community?filter=changelog">Changelog</a>
-        <a class="community-pill" data-filter="bug-report" href="./community?filter=bug-report">Bug Reports</a>
-        <a class="community-pill" data-filter="known-issue" href="./community?filter=known-issue">Known Issues</a>
+      <div class="community-filter-groups" id="communityFilters" aria-label="Community filters">
+        <div class="community-filter-row">
+          <div class="community-filter-copy"><strong>Official Updates</strong><span>Posts published by the RBLXTools team.</span></div>
+          <div class="community-toolbar">
+            <a class="community-pill is-active" data-filter="all" href="./community">All</a>
+            <a class="community-pill" data-filter="announcement" href="./community?filter=announcement">Announcements</a>
+            <a class="community-pill" data-filter="changelog" href="./community?filter=changelog">Changelog</a>
+            <a class="community-pill" data-filter="known-issue" href="./community?filter=known-issue">Known Issues</a>
+          </div>
+        </div>
+        <div class="community-filter-row is-member-lane">
+          <div class="community-filter-copy"><strong>Member Contributions</strong><span>Logged-in members can post in these categories.</span></div>
+          <div class="community-toolbar">
+            <a class="community-pill" data-filter="bug-report" href="./community?filter=bug-report">Report a Bug</a>
+            <a class="community-pill" data-filter="feedback" href="./community?filter=feedback">Feedback</a>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -401,6 +424,7 @@
                 <button class="community-category-option is-selected" type="button" data-community-category="announcement">Announcement</button>
                 <button class="community-category-option" type="button" data-community-category="changelog">Changelog</button>
                 <button class="community-category-option" type="button" data-community-category="bug-report">Bug Report</button>
+                <button class="community-category-option" type="button" data-community-category="feedback">Feedback</button>
                 <button class="community-category-option" type="button" data-community-category="known-issue">Known Issue</button>
               </div>
             </details>
@@ -413,6 +437,16 @@
         <div class="community-field">
           <label for="communityPostBody">Post Body</label>
           <textarea class="community-textarea" id="communityPostBody" placeholder="Write the update here..."></textarea>
+        </div>
+        <div class="community-field community-rating-field" id="communityFeedbackRatingField" hidden>
+          <label for="communityFeedbackRating">Your Rating</label>
+          <select class="community-input community-rating-select" id="communityFeedbackRating">
+            <option value="5">&#9733;&#9733;&#9733;&#9733;&#9733; &mdash; Excellent</option>
+            <option value="4">&#9733;&#9733;&#9733;&#9733;&#9734; &mdash; Good</option>
+            <option value="3">&#9733;&#9733;&#9733;&#9734;&#9734; &mdash; Okay</option>
+            <option value="2">&#9733;&#9733;&#9734;&#9734;&#9734; &mdash; Needs work</option>
+            <option value="1">&#9733;&#9734;&#9734;&#9734;&#9734; &mdash; Poor</option>
+          </select>
         </div>
         <div class="community-form-row community-link-fields">
           <div class="community-field">
@@ -442,11 +476,11 @@
       <aside class="community-side">
         <section class="community-card">
           <h3>What gets posted here</h3>
-          <p>Only official RBLXTools staff updates belong here.</p>
+          <p>Official updates live here, with dedicated areas for member bug reports and feedback.</p>
           <ul>
             <li>Announcements about the website or tools</li>
             <li>Changelog notes for releases and upgrades</li>
-            <li>Bug fix reports when things get corrected</li>
+            <li>Member bug reports and website feedback</li>
             <li>Known issue notices when something needs attention</li>
           </ul>
         </section>

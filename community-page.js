@@ -2,7 +2,7 @@
   var API_BASE = window.location.origin;
   var USER_KEY = "rblxtools_auth_user";
   var PROFILE_KEY = "rblxtools_profile_overview";
-  var VALID_FILTERS = ["announcement", "changelog", "bug-report", "known-issue"];
+  var VALID_FILTERS = ["announcement", "changelog", "bug-report", "feedback", "known-issue"];
   var isAdminUser = false;
   var isLoggedIn = false;
   var editingPostId = "";
@@ -33,6 +33,7 @@
       announcement: "Announcements",
       changelog: "Changelog",
       "bug-report": "Bug Reports",
+      feedback: "Feedback",
       "known-issue": "Known Issues"
     };
     return map[filter] || "All";
@@ -43,6 +44,7 @@
       announcement: "Announcement",
       changelog: "Changelog",
       "bug-report": "Bug Report",
+      feedback: "Feedback",
       "known-issue": "Known Issue"
     };
     return map[type] || "Update";
@@ -272,20 +274,33 @@
     return '<span class="community-bug-status ' + (resolved ? 'is-resolved' : 'is-unresolved') + '">' + escapeHtml(label) + "</span>";
   }
 
+  function buildFeedbackRating(post) {
+    if (String(post && post.category || "") !== "feedback") return "";
+    var rating = Math.max(1, Math.min(5, Number(post.rating || 0) || 1));
+    var stars = "";
+    for (var index = 1; index <= 5; index += 1) stars += index <= rating ? "&#9733;" : "&#9734;";
+    return '<span class="community-feedback-rating" aria-label="' + rating + ' out of 5 stars">' + stars + '<span>' + rating + '/5</span></span>';
+  }
+
   function isMemberBugReport(post) {
     return String(post && post.category || "") === "bug-report" && !post.authorIsAdmin;
   }
 
+  function isMemberContribution(post) {
+    var category = String(post && post.category || "");
+    return (category === "bug-report" || category === "feedback") && !post.authorIsAdmin;
+  }
+
   function buildAdminPostMenu(post) {
     if (!isAdminUser) return "";
-    var memberReport = isMemberBugReport(post);
+    var memberContribution = isMemberContribution(post);
     var pinLabel = post.pinned ? "Unpin Post" : "Pin Post";
     var resolved = String(post.bugStatus || "").toLowerCase() === "resolved";
     return (
       '<details class="community-post-menu">' +
         '<summary aria-label="Post settings"><span>&#8942;</span></summary>' +
         '<div class="community-post-menu-panel">' +
-          (memberReport ? "" : '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>') +
+          (memberContribution ? "" : '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>') +
           '<button class="community-post-menu-item" type="button" data-community-pin="' + escapeHtml(post.id) + '" data-next-pinned="' + (post.pinned ? "false" : "true") + '">' + pinLabel + "</button>" +
           (String(post.category || "") === "bug-report" ? '<button class="community-post-menu-item" type="button" data-community-bug-status="' + escapeHtml(post.id) + '" data-next-bug-status="' + (resolved ? "unresolved" : "resolved") + '">' + (resolved ? "Mark as unresolved" : "Mark as resolved") + '</button><button class="community-post-menu-item" type="button" data-community-known-issue="' + escapeHtml(post.id) + '" data-next-known-issue="' + (post.knownIssue ? "false" : "true") + '">' + (post.knownIssue ? "Remove from Known Issues" : "Mark as known issue") + '</button>' : "") +
           '<button class="community-post-menu-item is-danger" type="button" data-community-delete="' + escapeHtml(post.id) + '">Delete Post</button>' +
@@ -385,7 +400,7 @@
           '<div class="community-post-head">' +
             '<div class="community-post-head-main">' +
               '<span class="' + typeClasses + '">' + escapeHtml(formatPostType(post.category)) + "</span>" +
-              buildBugStatus(post) +
+              buildBugStatus(post) + buildFeedbackRating(post) +
               '<span class="community-date">' + escapeHtml(formatDate(post.publishedAt || post.createdAt)) + "</span>" +
             "</div>" +
             buildAdminPostMenu(post) +
@@ -421,6 +436,7 @@
     if (!feed) return;
     var activeFilter = getActiveFilter();
     syncFilterUi(activeFilter);
+    updateComposerMode();
 
     var url = API_BASE + "/api/community-posts";
     if (activeFilter !== "all") {
@@ -466,9 +482,15 @@
     var category = document.getElementById("communityPostCategory");
     var categoryLabel = document.getElementById("communityCategorySelectLabel");
     var button = document.getElementById("communityPublishButton");
+    var ratingField = document.getElementById("communityFeedbackRatingField");
     if (!composer) return;
-    composer.hidden = !isLoggedIn;
-    composer.classList.toggle("is-member-report", isLoggedIn && !isAdminUser);
+    var activeFilter = getActiveFilter();
+    var memberCategory = activeFilter === "feedback" ? "feedback" : "bug-report";
+    var memberCanPost = isLoggedIn && !isAdminUser && (activeFilter === "bug-report" || activeFilter === "feedback");
+    composer.hidden = !(isAdminUser || memberCanPost);
+    composer.classList.toggle("is-member-report", memberCanPost);
+    composer.classList.toggle("is-member-feedback", memberCanPost && memberCategory === "feedback");
+    if (ratingField) ratingField.hidden = !(memberCanPost && memberCategory === "feedback");
     if (!isLoggedIn) return;
     if (isAdminUser) {
       if (title && !editingPostId) title.textContent = "Create Community Post";
@@ -477,11 +499,19 @@
       return;
     }
     editingPostId = "";
-    if (title) title.textContent = "Report a Bug";
-    if (helper) helper.textContent = "Tell the RBLXTools team what happened. Your report will start as unresolved until it is verified.";
-    if (category) category.value = "bug-report";
-    if (categoryLabel) categoryLabel.textContent = "Bug Report";
-    if (button) button.textContent = "Submit Bug Report";
+    if (memberCategory === "feedback") {
+      if (title) title.textContent = "Leave Website Feedback";
+      if (helper) helper.textContent = "Tell the RBLXTools team what you think and rate your experience from 1 to 5 stars.";
+      if (category) category.value = "feedback";
+      if (categoryLabel) categoryLabel.textContent = "Feedback";
+      if (button) button.textContent = "Submit Feedback";
+    } else {
+      if (title) title.textContent = "Report a Bug";
+      if (helper) helper.textContent = "Tell the RBLXTools team what happened. Your report will start as unresolved until it is verified.";
+      if (category) category.value = "bug-report";
+      if (categoryLabel) categoryLabel.textContent = "Bug Report";
+      if (button) button.textContent = "Submit Bug Report";
+    }
   }
 
   function applyViewerState(user) {
@@ -533,7 +563,7 @@
       if (node) node.value = "";
     });
     var categoryNode = document.getElementById("communityPostCategory");
-    if (categoryNode) categoryNode.value = isAdminUser ? "announcement" : "bug-report";
+    if (categoryNode) categoryNode.value = isAdminUser ? "announcement" : (getActiveFilter() === "feedback" ? "feedback" : "bug-report");
     updateComposerMode();
     setPublishStatus("", "");
   }
@@ -570,7 +600,7 @@
 
   async function savePost() {
     if (!isLoggedIn) {
-      openLoginPrompt("Log in or sign up to publish a bug report.");
+      openLoginPrompt("Log in or sign up to publish a community post.");
       return;
     }
 
@@ -579,6 +609,7 @@
     var categoryNode = document.getElementById("communityPostCategory");
     var linkLabelNode = document.getElementById("communityPostLinkLabel");
     var linkUrlNode = document.getElementById("communityPostLinkUrl");
+    var ratingNode = document.getElementById("communityFeedbackRating");
     var button = document.getElementById("communityPublishButton");
 
     var title = titleNode ? String(titleNode.value || "").trim() : "";
@@ -586,6 +617,13 @@
     if (!title) return setPublishStatus("Give the post a title first.", "error");
     if (!body) return setPublishStatus("Write the post body first.", "error");
 
+    var memberCategory = getActiveFilter();
+    if (!isAdminUser && memberCategory !== "bug-report" && memberCategory !== "feedback") {
+      return setPublishStatus("Choose Bug Reports or Feedback before submitting a community post.", "error");
+    }
+    if (!isAdminUser && memberCategory === "feedback" && (!ratingNode || Number(ratingNode.value) < 1 || Number(ratingNode.value) > 5)) {
+      return setPublishStatus("Choose a rating from 1 to 5 stars.", "error");
+    }
     if (button) button.disabled = true;
     setPublishStatus(editingPostId ? "Saving post..." : "Publishing post...");
 
@@ -593,14 +631,15 @@
       var payload = await fetchJson(
         editingPostId
           ? (API_BASE + "/admin/community-posts/" + encodeURIComponent(editingPostId))
-          : (isAdminUser ? (API_BASE + "/admin/community-posts") : (API_BASE + "/api/community-posts/bug-reports")),
+          : (isAdminUser ? (API_BASE + "/admin/community-posts") : (API_BASE + "/api/community-posts/member-posts")),
         {
           method: editingPostId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title: title,
             body: body,
-            category: isAdminUser && categoryNode ? categoryNode.value : "bug-report",
+            category: isAdminUser && categoryNode ? categoryNode.value : memberCategory,
+            rating: !isAdminUser && memberCategory === "feedback" && ratingNode ? Number(ratingNode.value) : 0,
             linkLabel: isAdminUser && linkLabelNode ? String(linkLabelNode.value || "").trim() : "",
             linkUrl: isAdminUser && linkUrlNode ? String(linkUrlNode.value || "").trim() : "",
             avatarUrl: getCurrentCommentProfile().avatarUrl,

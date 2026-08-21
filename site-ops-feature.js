@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { randomUUID } = require("crypto");
 
-const VALID_CATEGORIES = new Set(["announcement", "changelog", "bug-report", "known-issue"]);
+const VALID_CATEGORIES = new Set(["announcement", "changelog", "bug-report", "feedback", "known-issue"]);
 const STATIC_FILE_EXTENSIONS = new Set([
   ".css", ".js", ".mjs", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".woff", ".woff2", ".ttf", ".eot", ".map", ".txt", ".xml", ".json", ".obj", ".glb", ".gltf", ".bin", ".mp3", ".wav", ".ogg", ".mp4", ".webm"
 ]);
@@ -26,6 +26,7 @@ function ensureJsonFile(filePath, fallbackValue) {
 function normalizeCategory(value) {
   const normalized = String(value || "").trim().toLowerCase();
   if (normalized === "bug-fix") return "bug-report";
+  if (normalized === "review") return "feedback";
   return VALID_CATEGORIES.has(normalized) ? normalized : "announcement";
 }
 
@@ -263,7 +264,10 @@ function normalizePostForStorage(post) {
   const comments = Array.isArray(post?.comments) ? post.comments.map(normalizeCommunityComment).filter((comment) => comment.body) : [];
   const category = normalizeCategory(post?.category);
   const isBugReport = category === "bug-report";
+  const isFeedback = category === "feedback";
   const bugStatus = String(post?.bugStatus || "").trim().toLowerCase() === "resolved" ? "resolved" : "unresolved";
+  const rawRating = Number.parseInt(post?.rating, 10);
+  const rating = isFeedback && Number.isInteger(rawRating) ? Math.max(1, Math.min(5, rawRating)) : 0;
   const authorIsAdmin = post?.authorIsAdmin === true || (!Object.prototype.hasOwnProperty.call(post || {}, "authorIsAdmin") && Boolean(post?.authorEmail));
   return Object.assign({}, post, {
     category,
@@ -272,6 +276,7 @@ function normalizePostForStorage(post) {
     authorIsAdmin,
     bugStatus: isBugReport ? bugStatus : "",
     knownIssue: isBugReport && Boolean(post?.knownIssue),
+    rating,
   });
 }
 
@@ -288,7 +293,7 @@ function buildPublicCommunityPost(post, viewerId) {
     pinned: Boolean(normalized.pinned), createdAt: normalized.createdAt ? String(normalized.createdAt) : null, updatedAt: normalized.updatedAt ? String(normalized.updatedAt) : null,
     publishedAt: normalized.publishedAt ? String(normalized.publishedAt) : null, authorId: String(normalized.authorId || ""), authorName: normalized.authorName ? String(normalized.authorName) : "",
     authorIsAdmin: Boolean(normalized.authorIsAdmin), authorAvatarUrl: String(normalized.authorAvatarUrl || ""), authorBio: String(normalized.authorBio || ""), authorPlan: String(normalized.authorPlan || "free"),
-    bugStatus: normalized.category === "bug-report" ? normalized.bugStatus : "", knownIssue: Boolean(normalized.knownIssue),
+    bugStatus: normalized.category === "bug-report" ? normalized.bugStatus : "", knownIssue: Boolean(normalized.knownIssue), rating: normalized.rating,
     linkLabel: normalized.linkLabel ? String(normalized.linkLabel) : "", linkUrl: normalized.linkUrl ? String(normalized.linkUrl) : "",
     likeCount: normalized.likes.length, viewerLiked: Boolean(viewer && normalized.likes.includes(viewer)), commentCount: normalized.comments.length, comments: normalized.comments.map(commentPublic),
   };
@@ -356,16 +361,25 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
     }
   });
 
-  app.post("/api/community-posts/bug-reports", async (req, res) => {
+  app.post(["/api/community-posts/bug-reports", "/api/community-posts/member-posts"], async (req, res) => {
     try {
       const user = await requireAuthenticatedUser(req);
       const userId = String(user?.id || "").trim();
       if (!userId) return res.status(401).json({ error: "Log in first." });
 
+      const requestedCategory = req.path.endsWith("/bug-reports") ? "bug-report" : normalizeCategory(req.body?.category);
+      if (requestedCategory !== "bug-report" && requestedCategory !== "feedback") {
+        return res.status(400).json({ error: "Members can submit bug reports or feedback only." });
+      }
+      const isFeedback = requestedCategory === "feedback";
       const title = cleanText(req.body?.title, 140);
       const body = cleanText(req.body?.body, 6000);
-      if (!title) return res.status(400).json({ error: "A bug-report title is required." });
-      if (!body) return res.status(400).json({ error: "Describe the bug before submitting it." });
+      const rating = Number.parseInt(req.body?.rating, 10);
+      if (!title) return res.status(400).json({ error: isFeedback ? "A feedback title is required." : "A bug-report title is required." });
+      if (!body) return res.status(400).json({ error: isFeedback ? "Write your feedback before submitting it." : "Describe the bug before submitting it." });
+      if (isFeedback && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
+        return res.status(400).json({ error: "Choose a rating from 1 to 5 stars." });
+      }
 
       const now = new Date().toISOString();
       const authorName = cleanText(user.display_name || user.username || String(user.email || "").split("@")[0] || "Member", 80) || "Member";
@@ -373,9 +387,10 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
         id: randomUUID(),
         title,
         body,
-        category: "bug-report",
-        bugStatus: "unresolved",
+        category: requestedCategory,
+        bugStatus: requestedCategory === "bug-report" ? "unresolved" : "",
         knownIssue: false,
+        rating: isFeedback ? rating : 0,
         pinned: false,
         createdAt: now,
         updatedAt: now,
@@ -393,7 +408,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const posts = readCommunityPosts(baseDir);
       posts.push(nextPost);
       writeCommunityPosts(baseDir, posts);
-      return res.json({ ok: true, message: "Bug report submitted. Thanks for helping improve RBLXTools.", post: buildPublicCommunityPost(nextPost, userId) });
+      return res.json({ ok: true, message: isFeedback ? "Feedback submitted. Thanks for helping improve RBLXTools." : "Bug report submitted. Thanks for helping improve RBLXTools.", post: buildPublicCommunityPost(nextPost, userId) });
     } catch (error) {
       return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit the bug report." });
     }
@@ -466,9 +481,9 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const hasLinkUrl = Object.prototype.hasOwnProperty.call(req.body || {}, "linkUrl");
       const hasBugStatus = Object.prototype.hasOwnProperty.call(req.body || {}, "bugStatus");
       const hasKnownIssue = Object.prototype.hasOwnProperty.call(req.body || {}, "knownIssue");
-      const isMemberBugReport = existing.category === "bug-report" && !existing.authorIsAdmin;
-      if (isMemberBugReport && (hasTitle || hasBody || hasCategory || hasLinkLabel || hasLinkUrl)) {
-        return res.status(403).json({ error: "Member bug reports cannot be edited. You can update their status, pin them, or remove them." });
+      const isMemberContribution = (existing.category === "bug-report" || existing.category === "feedback") && !existing.authorIsAdmin;
+      if (isMemberContribution && (hasTitle || hasBody || hasCategory || hasLinkLabel || hasLinkUrl)) {
+        return res.status(403).json({ error: "Member submissions cannot be edited. You can pin or remove them, and update bug status when applicable." });
       }
 
       const title = hasTitle ? cleanText(req.body?.title, 140) : String(existing.title || "");
