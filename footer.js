@@ -75,7 +75,6 @@ if (!shellJs.includes("function buildFooterMarkup() {")) {
               { href: "./media-downloader", label: "Media" },
               { href: "./audio-downloader", label: "Audio" },
               { href: "./robux-calculator", label: "Robux Calculator" },
-              { href: "./texture-baker", label: "Texture Baker" },
               { href: "./animation-spoofer", label: "Animations" }
             ]) +
             buildFooterLinkGroupMarkup("Account", [
@@ -181,7 +180,6 @@ const files = [
   "template-background-changer.html",
   "template-downloader.html",
   "terms-and-conditions.html",
-  "texture-baker.html",
   "ugc-downloader.html",
   "app.js",
   "server.js"

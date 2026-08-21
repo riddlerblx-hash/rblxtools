@@ -6947,7 +6947,7 @@ app.get("/ugc-texture", async (req, res) => {
     }
 
     await safeIncrementDailyUsage();
-    await emitToolActivityForRequest(req, "texture-baker", getRequestActivityParam(req, "displayName", displayNameLength));
+    await emitToolActivityForRequest(req, "ugc-downloader", getRequestActivityParam(req, "displayName", displayNameLength));
 
     res.setHeader("Content-Type", textureAsset.mime);
     res.setHeader("Cache-Control", "no-store");
@@ -7020,7 +7020,7 @@ app.post("/ugc-bake-glb", async (req, res) => {
     });
 
     await safeIncrementDailyUsage();
-    await emitToolActivityForRequest(req, "texture-baker", cleanText(req.body?.displayName || req.body?.username || "", displayNameLength));
+    await emitToolActivityForRequest(req, "ugc-downloader", cleanText(req.body?.displayName || req.body?.username || "", displayNameLength));
 
     res.setHeader("Content-Type", "model/gltf-binary");
     res.setHeader("Cache-Control", "no-store");
@@ -7537,7 +7537,6 @@ const allowedToolActivityLabels = {
   "ugc-downloader": "UGC",
   "media-downloader": "Media",
   "audio-downloader": "Audio",
-  "texture-baker": "Texture Baker",
   "animation-spoofer": "Animations",
   "game-launcher": "Game Joiner",
 };
@@ -8278,6 +8277,10 @@ app.use((error, req, res, next) => {
 });
 
 app.use(express.static(STATIC_ROOT, { extensions: ["html"] }));
+
+app.get(["/texture-baker", "/texture-baker.html"], (_req, res) => {
+  res.redirect(302, "/ugc-downloader");
+});
 
 app.get("/", (_req, res) => {
   res.sendFile(path.join(STATIC_ROOT, "index.html"));

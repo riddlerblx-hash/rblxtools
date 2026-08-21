@@ -122,7 +122,6 @@
         { href: "./media-downloader", label: "Media", icon: "media" },
         { href: "./audio-downloader", label: "Audio", icon: "audio" },
         { href: "./robux-calculator", label: "Robux Calculator", icon: "calc" },
-        { href: "./texture-baker", label: "Texture Baker", icon: "texture" },
         { href: "./animation-spoofer", label: "Animations", icon: "rig" }
       ]
     },
@@ -1098,7 +1097,6 @@
               { href: "./media-downloader", label: "Media" },
               { href: "./audio-downloader", label: "Audio" },
               { href: "./robux-calculator", label: "Robux Calculator" },
-              { href: "./texture-baker", label: "Texture Baker" },
               { href: "./animation-spoofer", label: "Animations" }
             ]) +
             buildFooterLinkGroupMarkup("Account", [
@@ -3364,7 +3362,6 @@
       { name: "Robux Calculator", desc: "Fast conversion math for Robux and pricing plans.", href: "./robux-calculator", plus: false, icon: "calc", tag: "Value Tool", tone: "linear-gradient(180deg,#3e5b35,#27391f)" },
       { name: "Media", desc: "Access supported media assets quickly.", href: "./media-downloader", plus: false, icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#5a3b61,#32213a)" },
       { name: "Audio", desc: "Fetch audio asset files from supported IDs.", href: "./audio-downloader", plus: false, icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#6a3e3a,#3f2523)" },
-      { name: "Texture Baker", desc: "Premium texture workflow and cleaner UGC output.", href: "./texture-baker", plus: true, icon: "texture", tag: "Plus Tool", tone: "linear-gradient(180deg,#4a406b,#2a2441)" },
       { name: "Animations", desc: "Premium animation utility for advanced workflows.", href: "./animation-spoofer", plus: true, icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
     ].filter(function (tool) {
       if (tool.adminOnly && !shellState.isAdmin) return false;
@@ -3608,5 +3605,3 @@
     initShell();
   }
 }());
-
-
