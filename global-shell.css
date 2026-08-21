@@ -3299,3 +3299,64 @@ body.rblx-shell-ready .rblx-shell-page .rblx-tool-stat strong { display: block; 
   body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo { padding: 19px !important; }
   body.rblx-shell-ready .rblx-shell-page .plus-card .perk { min-height: 0; }
 }
+
+body.rblx-shell-ready .rblx-shell-page .top-grid { align-items: stretch !important; }
+body.rblx-shell-ready .rblx-shell-page .top-grid > .side-stack {
+  align-self: stretch !important;
+  min-height: 0 !important;
+  height: auto !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+}
+body.rblx-shell-ready .rblx-shell-page .top-grid > .side-stack > .plus-card {
+  display: flex !important;
+  min-height: 0 !important;
+  height: auto !important;
+}
+body.rblx-shell-ready .rblx-shell-page .top-grid > .side-stack > .plus-card > .plus-promo {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  width: 100% !important;
+}
+body.rblx-shell-ready .rblx-shell-page .top-grid > .side-stack > .plus-card .plus-actions {
+  margin-top: auto !important;
+  padding-top: 18px;
+}
+
+body.rblx-shell-ready .rblx-shell-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+body.rblx-shell-ready .rblx-shell-page select,
+body.rblx-shell-ready .rblx-shell-page textarea {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  border: 1px solid rgba(112, 154, 255, 0.3) !important;
+  border-radius: 14px !important;
+  background: linear-gradient(145deg, rgba(31, 39, 57, 0.98), rgba(17, 23, 36, 0.98)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 24px rgba(3, 7, 18, 0.16) !important;
+  color: #f5f7ff !important;
+  font: inherit !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease !important;
+}
+body.rblx-shell-ready .rblx-shell-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+body.rblx-shell-ready .rblx-shell-page select { padding: 0 15px !important; }
+body.rblx-shell-ready .rblx-shell-page textarea { min-height: 118px !important; padding: 14px 15px !important; resize: vertical; }
+body.rblx-shell-ready .rblx-shell-page select {
+  appearance: none !important;
+  padding-right: 46px !important;
+  background-image: linear-gradient(45deg, transparent 50%, #dfe8ff 50%), linear-gradient(135deg, #dfe8ff 50%, transparent 50%), linear-gradient(145deg, rgba(31, 39, 57, 0.98), rgba(17, 23, 36, 0.98)) !important;
+  background-position: calc(100% - 21px) 20px, calc(100% - 15px) 20px, 0 0 !important;
+  background-size: 6px 6px, 6px 6px, 100% 100% !important;
+  background-repeat: no-repeat !important;
+}
+body.rblx-shell-ready .rblx-shell-page input::placeholder,
+body.rblx-shell-ready .rblx-shell-page textarea::placeholder { color: rgba(206, 217, 241, 0.52) !important; }
+body.rblx-shell-ready .rblx-shell-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):focus,
+body.rblx-shell-ready .rblx-shell-page select:focus,
+body.rblx-shell-ready .rblx-shell-page textarea:focus {
+  border-color: rgba(94, 139, 255, 0.86) !important;
+  box-shadow: 0 0 0 4px rgba(80, 123, 255, 0.14), 0 14px 30px rgba(3, 7, 18, 0.22) !important;
+  outline: none !important;
+}
+body.rblx-shell-ready .rblx-shell-page select option { background: #141b2a; color: #f5f7ff; }

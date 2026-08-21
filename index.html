@@ -1086,6 +1086,43 @@
         padding: 18px;
       }
     }
+
+    .home-grid-top > .plus-card {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      padding: clamp(20px, 2.25vw, 30px);
+    }
+
+    .plus-title {
+      max-width: none;
+      font-size: clamp(34px, 3.25vw, 52px);
+      letter-spacing: -2px;
+      overflow-wrap: anywhere;
+    }
+
+    .plus-copy { max-width: 52ch; }
+
+    .plus-price-wrap {
+      border: 1px solid rgba(147, 176, 255, 0.18);
+      border-radius: 18px;
+      background: rgba(8, 14, 28, 0.34);
+    }
+
+    .plus-benefit {
+      min-height: 58px;
+      padding: 11px 13px;
+      border: 1px solid rgba(193, 210, 255, 0.12);
+      border-radius: 15px;
+      background: rgba(10, 16, 30, 0.38);
+    }
+
+    .plus-actions { margin-top: auto; padding-top: 18px; }
+
+    @media (max-width: 820px) {
+      .home-grid-top > .plus-card { padding: 20px; }
+      .plus-title { font-size: clamp(34px, 11vw, 46px); letter-spacing: -1.6px; }
+    }
   </style>
   <link rel="stylesheet" href="./mobile-overrides.css" />
 </head>

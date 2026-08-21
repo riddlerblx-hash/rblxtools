@@ -1200,6 +1200,24 @@
         opacity: 0.36;
       }
     }
+    .plans-grid { gap: 14px; }
+    .side-plan { padding-block: 12px; }
+    .plus-focus { transform: none; }
+    .card-inner { padding: 17px; }
+    .pill-row:empty { display: none; }
+    .plan-title { margin-top: 7px; font-size: clamp(28px, 2.55vw, 38px); line-height: .95; }
+    .plan-subtitle { margin-top: 8px; line-height: 1.5; }
+    .price-box { padding: 12px; }
+    .plan-grid { gap: 7px; }
+    .perk-card { min-height: 0; padding: 9px; }
+    .perk-title { font-size: 10px; }
+    .perk-desc { font-size: 8.5px; line-height: 1.35; }
+    .plus-cta-group { margin-top: 12px; }
+
+    @media (max-width: 900px) {
+      .plans-grid { grid-template-columns: 1fr; }
+      .side-plan, .plus-focus { padding-block: 0; }
+    }
   </style>
   <link rel="stylesheet" href="./global-shell.css" />
   <link rel="stylesheet" href="./mobile-overrides.css" />
@@ -1250,7 +1268,6 @@
           <div class="card-inner">
             <div class="pill-row">
               <div class="pill active" id="freeOwnedPill" style="display:none;">Current Plan</div>
-              <div class="pill free">Free Access</div>
             </div>
 
             <div class="plan-top">
@@ -1315,9 +1332,7 @@
           </div>
           <div class="card-inner">
             <div class="pill-row">
-              <div class="pill plus">Recommended</div>
               <div class="pill active" id="plusOwnedPill" style="display:none;">Plan Active</div>
-              <div class="pill soft">Premium Access</div>
             </div>
 
             <div class="plan-top">
@@ -1409,9 +1424,6 @@
         <article class="plan-card pro-card">
           <div class="card-inner">
             <div class="pill-row">
-              <div class="pill pro">Future Plan</div>
-              <div class="pill soft">Next Tier</div>
-              <div class="pill soft">Planned</div>
             </div>
 
             <div class="plan-top">
