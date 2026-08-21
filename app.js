@@ -7309,6 +7309,7 @@ app.get("/audio", handleAudioRequest);
 
 app.get("/ugc-obj", async (req, res) => {
   const id = String(req.query.id || "").trim();
+  const itemMode = String(req.query.mode || "ugc").trim().toLowerCase() === "classic" ? "classic" : "ugc";
 
   if (!/^[0-9]+$/.test(id)) {
     return res.status(400).json({ error: "Invalid or missing UGC asset id" });
@@ -7327,13 +7328,20 @@ app.get("/ugc-obj", async (req, res) => {
     }
 
     const directVersion = assetFetch.buffer.subarray(0, 16).toString("ascii");
-    const meshAssets = directVersion.startsWith("version ")
-      ? [{
-          assetId: id,
-          buffer: assetFetch.buffer,
-          response: assetFetch.response,
-        }]
-      : await resolveAllMeshAssetsFromRobloxAsset(id, { maxDepth: 5 });
+    let meshAssets;
+
+    if (directVersion.startsWith("version ")) {
+      meshAssets = [{
+        assetId: id,
+        buffer: assetFetch.buffer,
+        response: assetFetch.response,
+      }];
+    } else if (itemMode === "classic") {
+      const primaryMesh = await resolveMeshAssetFromRobloxAsset(id, { maxDepth: 5 });
+      meshAssets = primaryMesh ? [primaryMesh] : [];
+    } else {
+      meshAssets = await resolveAllMeshAssetsFromRobloxAsset(id, { maxDepth: 5 });
+    }
 
     if (!meshAssets?.length) {
       if (debug) {
