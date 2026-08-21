@@ -1686,14 +1686,13 @@ function clearAuthCookie(req, res) {
 
 function getBearerToken(req) {
   // Prefer the signed HttpOnly session cookie. This keeps legacy localStorage
-+  // tokens from overriding a newer browser session after an account switch.
-+  const cookieToken = String(req.cookies?.[AUTH_COOKIE_NAME] || "").trim();
-+  if (cookieToken) return cookieToken;
-+  const header = String(req.headers.authorization || "");
-+  const match = header.match(/^Bearer\s+(.+)$/i);
-+  return match ? match[1].trim() : "";
+  // tokens from overriding a newer browser session after an account switch.
+  const cookieToken = String(req.cookies?.[AUTH_COOKIE_NAME] || "").trim();
+  if (cookieToken) return cookieToken;
+  const header = String(req.headers.authorization || "");
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
 }
-
 function parseCookieHeader(cookieHeader) {
   const source = String(cookieHeader || "").trim();
   if (!source) return {};
