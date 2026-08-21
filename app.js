@@ -7409,6 +7409,75 @@ const favoriteToolLength = 32;
 const chatBioLength = 150;
 const defaultChatRoom = "rblxtools-main";
 
+const chatHistoryPath = path.join(__dirname, "chat-history.json");
+const chatHistoryRetentionMs = 24 * 60 * 60 * 1000;
+const chatHistoryPruneIntervalMs = 5 * 60 * 1000;
+
+function getChatMessageTimestamp(message) {
+  const parsed = Date.parse(String(message?.createdAt || ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function pruneRecentMessages(messages, now = Date.now()) {
+  const cutoff = now - chatHistoryRetentionMs;
+  return (Array.isArray(messages) ? messages : [])
+    .filter((message) => getChatMessageTimestamp(message) >= cutoff)
+    .slice(-maxRecentMessages);
+}
+
+function persistRecentMessages() {
+  try {
+    const payload = {
+      updatedAt: new Date().toISOString(),
+      rooms: Object.fromEntries(
+        Array.from(recentMessages.entries())
+          .map(([room, messages]) => [room, pruneRecentMessages(messages)])
+          .filter(([, messages]) => messages.length)
+      ),
+    };
+    fs.writeFileSync(chatHistoryPath, JSON.stringify(payload, null, 2) + "\n", "utf8");
+  } catch (error) {
+    console.error("[CHAT HISTORY] Could not persist chat history.", error);
+  }
+}
+
+function persistRoomHistory(room) {
+  const nextHistory = pruneRecentMessages(recentMessages.get(room) || []);
+  if (nextHistory.length) {
+    recentMessages.set(room, nextHistory);
+  } else {
+    recentMessages.delete(room);
+  }
+  persistRecentMessages();
+}
+
+function loadPersistedRecentMessages() {
+  try {
+    if (!fs.existsSync(chatHistoryPath)) {
+      fs.writeFileSync(chatHistoryPath, JSON.stringify({ updatedAt: null, rooms: {} }, null, 2) + "\n", "utf8");
+      return;
+    }
+
+    const parsed = JSON.parse(fs.readFileSync(chatHistoryPath, "utf8"));
+    const roomEntries = parsed && typeof parsed === "object" && parsed.rooms && typeof parsed.rooms === "object"
+      ? Object.entries(parsed.rooms)
+      : [];
+
+    roomEntries.forEach(([room, messages]) => {
+      const nextHistory = pruneRecentMessages(messages);
+      if (nextHistory.length) {
+        recentMessages.set(room, nextHistory);
+      }
+    });
+
+    persistRecentMessages();
+  } catch (error) {
+    console.error("[CHAT HISTORY] Could not load chat history.", error);
+    recentMessages.clear();
+  }
+}
+
+
 function getRoomSpecialState(room) {
   if (!roomSpecials.has(room)) {
     roomSpecials.set(room, {
@@ -7472,6 +7541,7 @@ function updateRecentClaimDropMessages(room, drop) {
   });
 
   recentMessages.set(room, nextHistory.slice(-maxRecentMessages));
+  persistRoomHistory(room);
   io.to(room).emit("chat-history", recentMessages.get(room) || []);
 }
 
@@ -7574,6 +7644,7 @@ function pushRoomMessage(room, message) {
   const history = recentMessages.get(room) || [];
   history.push(message);
   recentMessages.set(room, history.slice(-maxRecentMessages));
+  persistRoomHistory(room);
   io.to(room).emit("chat-message", message);
 }
 
@@ -7728,6 +7799,24 @@ async function refreshModerationStateForConnectedUser(targetUser) {
   });
 
   await Promise.all(refreshes);
+}
+
+loadPersistedRecentMessages();
+
+const chatHistoryPruneTimer = setInterval(() => {
+  recentMessages.forEach((messages, room) => {
+    const nextHistory = pruneRecentMessages(messages);
+    if (nextHistory.length) {
+      recentMessages.set(room, nextHistory);
+    } else {
+      recentMessages.delete(room);
+    }
+  });
+  persistRecentMessages();
+}, chatHistoryPruneIntervalMs);
+
+if (typeof chatHistoryPruneTimer.unref === "function") {
+  chatHistoryPruneTimer.unref();
 }
 
 function emitModerationLog(room, text) {
