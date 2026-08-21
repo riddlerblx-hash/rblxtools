@@ -2359,7 +2359,14 @@
       }
 
       function initializeAnimationPage() {
-        showAccessGate("checking");
+        // rblx-silent-plus-gate: paint cached access first; verify in the background.
+        var cachedPlus = readCachedPlusStatus();
+        if (cachedPlus !== null) {
+          showAccessGate(cachedPlus ? "ok" : "plus");
+          if (!cachedPlus) lockPlusPage("plus");
+        } else {
+          showAccessGate("checking");
+        }
         renderActionButtons();
         renderCouponStatus();
         pollCouponStatus();

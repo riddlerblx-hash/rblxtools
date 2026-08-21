@@ -3097,7 +3097,14 @@
     setInterval(renderCouponStatus, 1000);
     setInterval(pollCouponStatus, 30000);
 
-    showAccessGate("checking");
+    // rblx-silent-plus-gate: paint cached access first; verify in the background.
+    const cachedPlusAtStart = readCachedPlusStatus();
+    if (cachedPlusAtStart !== null) {
+      showAccessGate(cachedPlusAtStart ? "ok" : "plus");
+      if (!cachedPlusAtStart) lockPlusPage("plus");
+    } else {
+      showAccessGate("checking");
+    }
     window.addEventListener("rblxtools-membership-updated", function (event) {
       const detail = event && event.detail ? event.detail : {};
       if (detail && detail.user === null) return;

@@ -431,36 +431,59 @@
     }
   }
 
-  async function syncViewerState() {
-    var composer = document.getElementById("communityAdminComposer");
-    if (composer) composer.hidden = true;
-    isAdminUser = false;
-    isLoggedIn = false;
-    currentViewer = null;
+  // rblx-silent-community-viewer
+  function toViewer(user) {
+    if (!user || typeof user !== "object") return null;
+    var userId = String(user.id || user.userId || "").trim();
+    if (!userId) return null;
+    return {
+      userId: userId,
+      plan: (user.premiumActive === true || user.plusActive === true || user.isPlus === true || String(user.plan || "").toLowerCase() === "plus") ? "plus" : "free",
+      isAdmin: isApprovedAdminUser(user)
+    };
+  }
 
+  function applyViewerState(user) {
+    var viewer = toViewer(user);
+    var composer = document.getElementById("communityAdminComposer");
+    if (!viewer) {
+      var wasLoggedIn = isLoggedIn;
+      isLoggedIn = false;
+      isAdminUser = false;
+      currentViewer = null;
+      viewerMembershipSignature = "guest";
+      if (composer) composer.hidden = true;
+      if (wasLoggedIn) lastFeedSignature = "";
+      return;
+    }
+
+    var signature = viewer.userId + "|" + viewer.plan + "|" + viewer.isAdmin;
+    var changed = signature !== viewerMembershipSignature;
+    isLoggedIn = true;
+    isAdminUser = viewer.isAdmin;
+    currentViewer = { userId: viewer.userId, plan: viewer.plan };
+    viewerMembershipSignature = signature;
+    if (composer) composer.hidden = !viewer.isAdmin;
+    if (changed) lastFeedSignature = "";
+  }
+
+  function primeViewerState() {
+    var cached = readJsonStorage(USER_KEY);
+    if (cached && (cached.id || cached.userId)) applyViewerState(cached);
+  }
+
+  async function syncViewerState() {
+    // Never clear the existing page while a background auth request is in flight.
+    // The cached identity paints immediately; only a real server response changes it.
     try {
       var payload = await fetchJson(API_BASE + "/auth/me", { method: "GET", cache: "no-store" });
-      var user = payload && payload.user ? payload.user : null;
-      if (!user) return;
-      isLoggedIn = true;
-      currentViewer = {
-        userId: String(user.id || user.userId || "").trim(),
-        plan: (user.premiumActive === true || user.plusActive === true || user.isPlus === true || String(user.plan || "").toLowerCase() === "plus") ? "plus" : "free"
-      };
-      var nextMembershipSignature = currentViewer.userId + "|" + currentViewer.plan;
-      if (viewerMembershipSignature && viewerMembershipSignature !== nextMembershipSignature) {
-        lastFeedSignature = "";
-      }
-      viewerMembershipSignature = nextMembershipSignature;
-      if (isApprovedAdminUser(user)) {
-        isAdminUser = true;
-        if (composer) composer.hidden = false;
-      }
+      applyViewerState(payload && payload.user ? payload.user : null);
     } catch (_error) {
+      // Keep the last known state during a transient network failure.
     }
   }
 
-  function resetComposer() {
+    function resetComposer() {
     editingPostId = "";
     var title = document.getElementById("communityComposerTitle");
     var button = document.getElementById("communityPublishButton");
@@ -752,7 +775,7 @@
       if (commentPinButton) return void updateComment(commentPinButton.getAttribute("data-community-comment-pin-post"), commentPinButton.getAttribute("data-community-comment-pin"), { pinned: commentPinButton.getAttribute("data-next-pinned") === "true" });
 
       var commentLikeButton = target.closest("[data-community-comment-like]");
-      if (commentLikeButton) return void toggleCommentLike(commentLikeButton.getAttribute("data-community-comment-like-post"), commentLikeButton.getAttribute("data-community-comment-like"));
+      if (commentLikeButton) return void toggleCommentLike(commentLikeButton.getAttribute("data-community-comment-like-post"), commentLikeButton.getAttribute("data-community-comment-like"), commentLikeButton);
 
       var commentReplyButton = target.closest("[data-community-comment-reply]");
       if (commentReplyButton) return void replyToComment(commentReplyButton.getAttribute("data-community-comment-reply-post"), commentReplyButton.getAttribute("data-community-comment-reply"));

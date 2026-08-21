@@ -3148,12 +3148,27 @@ body.rblx-shell-left-collapsed #rblxShellLeftToggle { right: -20px; }
   body.rblx-mobile-shell .rblx-mobile-dock-link.is-primary{background:linear-gradient(180deg,#74acff 0%,#407def 100%);color:#fff;border-color:rgba(110,169,255,.22)}
 }
 
-/* rblx-community-background-unification */
-html, body {
-  background: radial-gradient(circle at top, rgba(255, 86, 101, .14), transparent 28%), linear-gradient(180deg, #101420 0%, #0b0f18 100%) !important;
+/* rblx-flat-site-background */
+html, body, body.rblx-shell-ready {
+  background: #0d111c !important;
+  background-image: none !important;
   background-attachment: fixed !important;
 }
-.rblx-shell-page { background: transparent; }
+body.rblx-shell-ready .rblx-shell,
+body.rblx-shell-ready .rblx-shell-body,
+body.rblx-shell-ready .rblx-shell-center,
+body.rblx-shell-ready .rblx-shell-page {
+  background: transparent !important;
+  background-image: none !important;
+}
+/* Remove only each page's full-bleed grid/gradient layer; cards keep their own styling. */
+body.rblx-shell-ready #rblxShellPage > :first-child {
+  background-color: transparent !important;
+  background-image: none !important;
+}
 .rblx-shell-chat-actions { display:flex; gap:6px; margin-top:7px; }
 .rblx-shell-chat-action { border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); color:#cbd6e7; border-radius:999px; padding:4px 8px; font:700 10px/1 inherit; cursor:pointer; }
 .rblx-shell-chat-action:hover, .rblx-shell-chat-action.is-active { border-color:rgba(255,102,127,.75); color:#ffd7df; background:rgba(255,71,97,.16); }
+.rblx-shell-heart-burst { position:fixed; z-index:9999; pointer-events:none; color:#ff6680; font-size:24px; filter:drop-shadow(0 8px 12px rgba(255,73,103,.45)); animation:rblxShellHeartFloat .82s cubic-bezier(.2,.75,.3,1) forwards; }
+.rblx-shell-chat-action.is-hearting { transform:scale(1.12); }
+@keyframes rblxShellHeartFloat { from { transform:translate(-50%,-50%) scale(.35) rotate(-12deg); opacity:0; } 18% { opacity:1; transform:translate(-50%,-75%) scale(1.15) rotate(8deg); } to { transform:translate(-50%,-210%) scale(.82) rotate(-8deg); opacity:0; } }

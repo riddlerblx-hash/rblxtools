@@ -1532,6 +1532,22 @@
     );
   }
 
+  // rblx-shell-heart-burst
+  function createShellHeartBurst(button) {
+    if (!button) return;
+    var rect = button.getBoundingClientRect();
+    var heart = document.createElement("span");
+    heart.className = "rblx-shell-heart-burst";
+    heart.setAttribute("aria-hidden", "true");
+    heart.innerHTML = "&#10084;";
+    heart.style.left = (rect.left + rect.width / 2) + "px";
+    heart.style.top = (rect.top + rect.height / 2) + "px";
+    document.body.appendChild(heart);
+    button.classList.add("is-hearting");
+    window.setTimeout(function () { button.classList.remove("is-hearting"); }, 520);
+    window.setTimeout(function () { heart.remove(); }, 900);
+  }
+
   function renderChatMessages(target, messages, options) {
     var settings = options || {};
     var previousScrollTop = target.scrollTop;
@@ -2351,6 +2367,7 @@
       var actionButton = target && target.closest ? target.closest("[data-chat-action]") : null;
       if (actionButton && actionButton.getAttribute("data-chat-action") === "heart") {
         if (!shellState.currentUser || !shellState.currentUser.loggedIn) return void openAuthModal({ mode: "login", message: "Log in or sign up to react in live chat." });
+        if (!actionButton.classList.contains("is-active")) createShellHeartBurst(actionButton);
         if (shellState.socket && shellState.socketReady) shellState.socket.emit("chat-react", { messageId: shellState.chatMessages[Number(actionButton.getAttribute("data-chat-index"))]?.id });
         return;
       }
@@ -3112,7 +3129,7 @@
 
   function initMembershipRefresh() {
     if (shellState.membershipRefreshTimer) return;
-    shellState.membershipRefreshTimer = window.setInterval(refreshMembershipStateFromServer, 30000);
+    shellState.membershipRefreshTimer = window.setInterval(refreshMembershipStateFromServer, 5000);
     window.addEventListener("focus", refreshMembershipStateFromServer);
     document.addEventListener("visibilitychange", function () {
       if (!document.hidden) refreshMembershipStateFromServer();
