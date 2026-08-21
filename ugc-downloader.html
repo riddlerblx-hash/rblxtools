@@ -1324,7 +1324,18 @@
     currentObjUrls = [];
   }
 
-  function createObjViewer(container, objText, textureUrl) {
+  function flipObjUvVertical(objText) {
+    return String(objText || "").replace(/^vt\s+(-?\d*\.?\d+(?:e[-+]?\d+)?)\s+(-?\d*\.?\d+(?:e[-+]?\d+)?)(?:\s+(-?\d*\.?\d+(?:e[-+]?\d+)?))?\s*$/gim, function (_match, uRaw, vRaw, wRaw) {
+      const u = Number(uRaw);
+      const v = Number(vRaw);
+      const flipped = Number.isFinite(v) ? 1 - v : vRaw;
+      const parts = ["vt", Number.isFinite(u) ? String(u) : uRaw, Number.isFinite(flipped) ? String(flipped) : String(flipped)];
+      if (typeof wRaw === "string" && wRaw.length) parts.push(wRaw);
+      return parts.join(" ");
+    });
+  }
+
+  function createObjViewer(container, objText, textureUrl, itemMode) {
     if (currentViewerCleanup) {
       currentViewerCleanup();
       currentViewerCleanup = null;
@@ -1361,13 +1372,14 @@
     let modelTexture = null;
     if (textureUrl) {
       modelTexture = new THREE.TextureLoader().load(textureUrl);
-      modelTexture.flipY = true;
+      modelTexture.flipY = itemMode !== "classic";
       modelTexture.encoding = THREE.sRGBEncoding;
       modelTexture.needsUpdate = true;
     }
 
     const loader = new THREE.OBJLoader();
-    const object = loader.parse(objText);
+    const previewObjText = itemMode === "classic" ? flipObjUvVertical(objText) : objText;
+    const object = loader.parse(previewObjText);
 
     object.traverse((child) => {
       if (child.isMesh) {
@@ -1451,7 +1463,7 @@
     const glbButton = document.getElementById("downloadGlbBtn");
     if (glbButton) glbButton.onclick = function () { downloadTexturedGlb(activeSlide); };
 
-    createObjViewer(viewer, activeSlide.objText, activeSlide.textureUrl);
+    createObjViewer(viewer, activeSlide.objText, activeSlide.textureUrl, activeSlide.itemMode);
     scheduleEmbedHeightReport();
   }
 
@@ -1545,6 +1557,7 @@
 
     return {
       id: id,
+      itemMode: selectedItemMode,
       objText: objText,
       textureBlob: textureBlob,
       textureUrl: textureUrl,
