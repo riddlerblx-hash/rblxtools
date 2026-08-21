@@ -3527,6 +3527,98 @@
     });
   }
 
+  function getToolStatsLabel(element, index) {
+    var labels = {
+      activeAssetId: "Asset ID",
+      activeTemplateId: "Template ID",
+      idPill: "Animation ID",
+      playablePill: "Playable ID",
+      typePill: "Asset type",
+      countPill: "Selection",
+      audioPreviewTitle: "Audio title",
+      audioPreviewFile: "Audio file",
+      audioPreviewCounter: "Selection",
+      previewModePill: "Preview type",
+      activeItemTitle: "Media title",
+      previewCounter: "Selection"
+    };
+    return labels[element.id] || element.getAttribute("data-stat-label") || "Property " + (index + 1);
+  }
+
+  function appendToolStat(grid, label, value) {
+    if (!value) return;
+    var stat = document.createElement("div");
+    stat.className = "rblx-tool-stat";
+    var statLabel = document.createElement("span");
+    statLabel.textContent = label;
+    var statValue = document.createElement("strong");
+    statValue.textContent = value;
+    stat.appendChild(statLabel);
+    stat.appendChild(statValue);
+    grid.appendChild(stat);
+  }
+
+  function renderToolStats(panel, row) {
+    panel.replaceChildren();
+    var heading = document.createElement("h4");
+    heading.textContent = "Asset stats for nerds";
+    var grid = document.createElement("div");
+    grid.className = "rblx-tool-stats-grid";
+    Array.prototype.slice.call(row.querySelectorAll(".metaPill, .rblx-meta-pill")).forEach(function (pill, index) {
+      appendToolStat(grid, getToolStatsLabel(pill, index), String(pill.textContent || "").trim());
+    });
+    var image = document.querySelector("#activeTemplateImage, #activePreviewImage, #thumbnailImage");
+    if (image && image.src) {
+      appendToolStat(grid, "Preview image", image.currentSrc || image.src);
+      if (image.naturalWidth && image.naturalHeight) appendToolStat(grid, "Image resolution", image.naturalWidth + " × " + image.naturalHeight);
+    }
+    var audio = document.getElementById("audioPreviewPlayer");
+    if (audio && audio.src) {
+      appendToolStat(grid, "Audio source", audio.currentSrc || audio.src);
+      if (Number.isFinite(audio.duration)) appendToolStat(grid, "Duration", audio.duration.toFixed(1) + " seconds");
+    }
+    appendToolStat(grid, "Tool page", document.title || window.location.pathname);
+    panel.appendChild(heading);
+    panel.appendChild(grid);
+  }
+
+  function initSharedToolStats() {
+    var pageHost = document.getElementById("rblxShellPage");
+    if (!pageHost) return;
+    function installStatsControls() {
+      Array.prototype.slice.call(pageHost.querySelectorAll("#metaRow, .rblx-meta-row")).forEach(function (row) {
+        if (row.querySelector("#statsForNerdsBtn") || row.querySelector(".rblx-tool-stats-toggle")) return;
+        if (!row.querySelector(".metaPill, .rblx-meta-pill")) return;
+        var toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "rblx-tool-stats-toggle";
+        toggle.textContent = "Stats for Nerds";
+        toggle.setAttribute("aria-expanded", "false");
+        var panel = document.createElement("section");
+        panel.className = "rblx-tool-stats-panel";
+        panel.setAttribute("aria-live", "polite");
+        toggle.addEventListener("click", function () {
+          var isOpen = panel.classList.toggle("is-open");
+          toggle.setAttribute("aria-expanded", String(isOpen));
+          if (isOpen) renderToolStats(panel, row);
+        });
+        row.appendChild(toggle);
+        row.insertAdjacentElement("afterend", panel);
+      });
+    }
+    installStatsControls();
+    var queued = false;
+    var observer = new MutationObserver(function () {
+      if (queued) return;
+      queued = true;
+      window.setTimeout(function () {
+        queued = false;
+        installStatsControls();
+      }, 0);
+    });
+    observer.observe(pageHost, { childList: true, subtree: true });
+  }
+
   function initShell() {
     var initialState = getImmediateUserState();
     shellState.currentUser = {
@@ -3549,6 +3641,7 @@
     closeMobilePanels();
     initFaqAccordions();
     initSharedToolShowcase();
+    initSharedToolStats();
     document.body.classList.add("rblx-shell-ready");
     shellState.deviceId = getDeviceId();
     applyCollapsedState(document.body);
