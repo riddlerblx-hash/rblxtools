@@ -1326,6 +1326,7 @@
               '<div class="rblx-shell-chat-bottom" id="rblxShellChatBottom">' +
                 '<div class="rblx-shell-chat-alert" id="rblxShellChatAlert" hidden><span id="rblxShellChatAlertText"></span></div>' +
                 '<form class="rblx-shell-chat-compose" id="rblxShellChatForm">' +
+                  '<div class="rblx-shell-chat-reply-banner" id="rblxShellChatReplyBanner" hidden><span id="rblxShellChatReplyText"></span><button type="button" data-chat-action="clear-reply" aria-label="Cancel reply">&times;</button></div>' +
                   '<input id="rblxShellChatInput" type="text" maxlength="160" placeholder="Enter a message..." />' +
                   '<div class="rblx-shell-chat-compose-actions">' +
                     '<button class="rblx-shell-chat-admin-button" type="button" id="rblxShellAdminButton" aria-label="Open admin panel" hidden>' + getNavIcon("shield") + '</button>' +
@@ -2306,6 +2307,22 @@
           renderChatMessages(shellState.chatList, shellState.chatMessages);
   }
 
+  function updateChatReplyBanner() {
+    var banner = document.getElementById("rblxShellChatReplyBanner");
+    var text = document.getElementById("rblxShellChatReplyText");
+    if (!banner || !text) return;
+    var reply = shellState.chatReplyTo;
+    if (!reply) {
+      banner.hidden = true;
+      text.textContent = "";
+      return;
+    }
+    var name = String(reply.displayName || reply.username || "Member").trim() || "Member";
+    var preview = String(reply.text || "").trim().replace(/\s+/g, " ").slice(0, 72);
+    text.textContent = "Replying to " + name + (preview ? ": " + preview : "");
+    banner.hidden = false;
+  }
+
   function initChat() {
     var list = document.getElementById("rblxShellChatScroll");
     var form = document.getElementById("rblxShellChatForm");
@@ -2318,6 +2335,7 @@
     var chatSpecials = document.getElementById("rblxShellChatSpecials");
     var chatBottom = document.getElementById("rblxShellChatBottom");
     var chatRainOverlay = document.getElementById("rblxShellChatRainOverlay");
+    var replyBanner = document.getElementById("rblxShellChatReplyBanner");
     if (!list || !form || !input || !sendButton) return;
 
     shellState.chatList = list;
@@ -2336,6 +2354,16 @@
     }
     if (shellState.chatReportButton) {
       shellState.chatReportButton.addEventListener("click", openSupportModal);
+    }
+    updateChatReplyBanner();
+    if (replyBanner) {
+      replyBanner.addEventListener("click", function (event) {
+        var clearButton = event.target && event.target.closest ? event.target.closest("[data-chat-action=\"clear-reply\"]") : null;
+        if (!clearButton) return;
+        shellState.chatReplyTo = null;
+        input.placeholder = "Enter a message...";
+        updateChatReplyBanner();
+      });
     }
     renderChatMessages(list, starterMessages, { forceBottom: true });
 
@@ -2373,7 +2401,7 @@
       }
       if (actionButton && actionButton.getAttribute("data-chat-action") === "reply") {
         var replyMessage = shellState.chatMessages[Number(actionButton.getAttribute("data-chat-index"))];
-        if (replyMessage) { shellState.chatReplyTo = { id: replyMessage.id, displayName: replyMessage.displayName || replyMessage.name, username: replyMessage.username || replyMessage.displayName || replyMessage.name, text: replyMessage.text }; input.placeholder = "Replying to " + shellState.chatReplyTo.displayName + " — type a message"; input.focus(); }
+        if (replyMessage) { shellState.chatReplyTo = { id: replyMessage.id, displayName: replyMessage.displayName || replyMessage.name, username: replyMessage.username || replyMessage.displayName || replyMessage.name, text: replyMessage.text }; input.placeholder = "Enter a message..."; updateChatReplyBanner(); input.focus(); }
         return;
       }
       var button = target && target.closest ? target.closest("[data-chat-action='profile']") : null;
@@ -2412,6 +2440,7 @@
       });
       shellState.chatReplyTo = null;
       input.placeholder = "Enter a message...";
+      updateChatReplyBanner();
       input.value = "";
     });
   }

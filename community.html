@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Community | RBLXTools</title>
-  <meta name="description" content="Official RBLXTools announcements, changelogs, bug fixes, and website updates." />
+  <meta name="description" content="Official RBLXTools announcements, changelogs, bug reports, and website updates." />
   <link rel="stylesheet" href="./global-shell.css" />
   <style>
     :root { color-scheme: dark; }
@@ -355,6 +355,19 @@
     .community-comment-date { margin-left: auto; }
     .community-comment-menu + .community-comment-date { margin-left: 0; }
     .community-comment.is-pinned { border-color: rgba(255, 185, 99, .26); }
+
+    /* Bug report workflow and stable interaction styling. */
+    .community-bug-status { display:inline-flex; align-items:center; min-height:28px; padding:0 10px; border-radius:999px; border:1px solid rgba(255,178,102,.28); background:rgba(255,178,102,.10); color:#ffe0b6; font-size:11px; font-weight:900; letter-spacing:.07em; text-transform:uppercase; }
+    .community-bug-status.is-resolved { border-color:rgba(85,230,147,.38); background:rgba(61,192,114,.14); color:#bfffd6; }
+    .community-post:has(.community-bug-status.is-resolved) { border-color:rgba(75,204,125,.24); box-shadow:0 20px 45px rgba(25,130,76,.08); }
+    .community-comment-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .community-comment-action { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:34px; padding:0 12px; border:1px solid rgba(255,255,255,.10); border-radius:999px; background:rgba(255,255,255,.05); color:#eaf0fb; font:800 12px/1 inherit; cursor:pointer; transition:transform .18s ease,border-color .18s ease,background .18s ease; }
+    .community-comment-action:hover { transform:translateY(-1px); border-color:rgba(255,160,179,.42); background:rgba(255,255,255,.08); }
+    .community-comment-action.is-active { border-color:rgba(255,104,128,.62); background:rgba(255,81,109,.14); color:#ffd6df; }
+    .community-comment-action.is-hearting > span:first-child { color:#ff6680; animation:communityHeartPulse .5s ease; }
+    .community-admin-composer.is-member-report .community-category-field,
+    .community-admin-composer.is-member-report .community-link-fields { display:none; }
+    .community-admin-composer.is-member-report .community-helper-copy { color:#c8d6ed; }
   </style>
 </head>
 <body>
@@ -363,13 +376,13 @@
       <div class="community-kicker">Official Updates</div>
       <h1>Community</h1>
       <p>
-        This is the official RBLXTools update hub for announcements, changelogs, bug fixes, and important site notices.
+        This is the official RBLXTools update hub for announcements, changelogs, bug reports, and important site notices.
       </p>
       <div class="community-toolbar" id="communityFilters" aria-label="Community filters">
         <a class="community-pill is-active" data-filter="all" href="./community">All</a>
         <a class="community-pill" data-filter="announcement" href="./community?filter=announcement">Announcements</a>
         <a class="community-pill" data-filter="changelog" href="./community?filter=changelog">Changelog</a>
-        <a class="community-pill" data-filter="bug-fix" href="./community?filter=bug-fix">Bug Fixes</a>
+        <a class="community-pill" data-filter="bug-report" href="./community?filter=bug-report">Bug Reports</a>
         <a class="community-pill" data-filter="known-issue" href="./community?filter=known-issue">Known Issues</a>
       </div>
     </section>
@@ -379,7 +392,7 @@
       <p class="community-helper-copy">Publish official updates for the community feed here.</p>
       <div class="community-form-grid">
         <div class="community-form-row">
-          <div class="community-field">
+          <div class="community-field community-category-field">
             <label for="communityPostCategory">Category</label>
             <input id="communityPostCategory" type="hidden" value="announcement" />
             <details class="community-category-select" id="communityCategorySelect">
@@ -387,7 +400,7 @@
               <div class="community-category-select-panel">
                 <button class="community-category-option is-selected" type="button" data-community-category="announcement">Announcement</button>
                 <button class="community-category-option" type="button" data-community-category="changelog">Changelog</button>
-                <button class="community-category-option" type="button" data-community-category="bug-fix">Bug Fix</button>
+                <button class="community-category-option" type="button" data-community-category="bug-report">Bug Report</button>
                 <button class="community-category-option" type="button" data-community-category="known-issue">Known Issue</button>
               </div>
             </details>
@@ -401,7 +414,7 @@
           <label for="communityPostBody">Post Body</label>
           <textarea class="community-textarea" id="communityPostBody" placeholder="Write the update here..."></textarea>
         </div>
-        <div class="community-form-row">
+        <div class="community-form-row community-link-fields">
           <div class="community-field">
             <label for="communityPostLinkLabel">Optional Button Label</label>
             <input class="community-input" id="communityPostLinkLabel" type="text" placeholder="ex: View Plans" />

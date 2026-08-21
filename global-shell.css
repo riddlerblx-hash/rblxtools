@@ -3172,3 +3172,17 @@ body.rblx-shell-ready #rblxShellPage > :first-child {
 .rblx-shell-heart-burst { position:fixed; z-index:9999; pointer-events:none; color:#ff6680; font-size:24px; filter:drop-shadow(0 8px 12px rgba(255,73,103,.45)); animation:rblxShellHeartFloat .82s cubic-bezier(.2,.75,.3,1) forwards; }
 .rblx-shell-chat-action.is-hearting { transform:scale(1.12); }
 @keyframes rblxShellHeartFloat { from { transform:translate(-50%,-50%) scale(.35) rotate(-12deg); opacity:0; } 18% { opacity:1; transform:translate(-50%,-75%) scale(1.15) rotate(8deg); } to { transform:translate(-50%,-210%) scale(.82) rotate(-8deg); opacity:0; } }
+
+
+/* rblx-community-flat-background-and-chat-reply */
+body.rblx-shell-ready #rblxShellPage { background:#0d111c !important; }
+body.rblx-shell-ready #rblxShellPage > :first-child,
+body.rblx-shell-ready #rblxShellPage > :first-child::before,
+body.rblx-shell-ready #rblxShellPage > :first-child::after { background-image:none !important; }
+body.rblx-shell-ready #rblxShellPage > :first-child::before,
+body.rblx-shell-ready #rblxShellPage > :first-child::after { display:none !important; }
+.rblx-shell-chat-reply-banner { display:flex; align-items:center; gap:8px; margin:0 0 8px; padding:8px 9px 8px 10px; border:1px solid rgba(139,112,255,.34); border-radius:11px; background:linear-gradient(135deg,rgba(115,82,231,.18),rgba(64,85,159,.16)); color:#e8e0ff; font-size:11px; font-weight:800; line-height:1.35; }
+.rblx-shell-chat-reply-banner[hidden] { display:none !important; }
+.rblx-shell-chat-reply-banner span { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rblx-shell-chat-reply-banner button { width:22px; height:22px; flex:0 0 22px; padding:0; border:1px solid rgba(255,255,255,.12); border-radius:8px; background:rgba(255,255,255,.08); color:#fff; font:900 17px/1 sans-serif; cursor:pointer; }
+.rblx-shell-chat-reply-banner button:hover { background:rgba(255,113,138,.2); border-color:rgba(255,140,160,.42); }

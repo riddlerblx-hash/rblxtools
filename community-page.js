@@ -2,7 +2,7 @@
   var API_BASE = window.location.origin;
   var USER_KEY = "rblxtools_auth_user";
   var PROFILE_KEY = "rblxtools_profile_overview";
-  var VALID_FILTERS = ["announcement", "changelog", "bug-fix", "known-issue"];
+  var VALID_FILTERS = ["announcement", "changelog", "bug-report", "known-issue"];
   var isAdminUser = false;
   var isLoggedIn = false;
   var editingPostId = "";
@@ -32,7 +32,7 @@
     var map = {
       announcement: "Announcements",
       changelog: "Changelog",
-      "bug-fix": "Bug Fixes",
+      "bug-report": "Bug Reports",
       "known-issue": "Known Issues"
     };
     return map[filter] || "All";
@@ -42,7 +42,7 @@
     var map = {
       announcement: "Announcement",
       changelog: "Changelog",
-      "bug-fix": "Bug Fix",
+      "bug-report": "Bug Report",
       "known-issue": "Known Issue"
     };
     return map[type] || "Update";
@@ -264,15 +264,30 @@
     }, button);
   }
 
+  function buildBugStatus(post) {
+    if (String(post.category || "") !== "bug-report") return "";
+    var resolved = String(post.bugStatus || "").toLowerCase() === "resolved";
+    var label = resolved ? "Resolved" : "Unresolved";
+    if (post.knownIssue) label = resolved ? "Known issue · resolved" : "Known issue";
+    return '<span class="community-bug-status ' + (resolved ? 'is-resolved' : 'is-unresolved') + '">' + escapeHtml(label) + "</span>";
+  }
+
+  function isMemberBugReport(post) {
+    return String(post && post.category || "") === "bug-report" && !post.authorIsAdmin;
+  }
+
   function buildAdminPostMenu(post) {
     if (!isAdminUser) return "";
+    var memberReport = isMemberBugReport(post);
     var pinLabel = post.pinned ? "Unpin Post" : "Pin Post";
+    var resolved = String(post.bugStatus || "").toLowerCase() === "resolved";
     return (
       '<details class="community-post-menu">' +
         '<summary aria-label="Post settings"><span>&#8942;</span></summary>' +
         '<div class="community-post-menu-panel">' +
-          '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>' +
+          (memberReport ? "" : '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>') +
           '<button class="community-post-menu-item" type="button" data-community-pin="' + escapeHtml(post.id) + '" data-next-pinned="' + (post.pinned ? "false" : "true") + '">' + pinLabel + "</button>" +
+          (String(post.category || "") === "bug-report" ? '<button class="community-post-menu-item" type="button" data-community-bug-status="' + escapeHtml(post.id) + '" data-next-bug-status="' + (resolved ? "unresolved" : "resolved") + '">' + (resolved ? "Mark as unresolved" : "Mark as resolved") + '</button><button class="community-post-menu-item" type="button" data-community-known-issue="' + escapeHtml(post.id) + '" data-next-known-issue="' + (post.knownIssue ? "false" : "true") + '">' + (post.knownIssue ? "Remove from Known Issues" : "Mark as known issue") + '</button>' : "") +
           '<button class="community-post-menu-item is-danger" type="button" data-community-delete="' + escapeHtml(post.id) + '">Delete Post</button>' +
         "</div>" +
       "</details>"
@@ -325,7 +340,7 @@
                 buildAdminCommentMenu(post.id, comment) +
               '</div>' +
               '<p>' + escapeHtml(comment.body || '').replace(/\\n/g, '<br>') + '</p>' +
-              '<div class="community-comment-actions"><button type="button" data-community-comment-like-post="' + escapeHtml(post.id) + '" data-community-comment-like="' + escapeHtml(comment.id) + '" class="community-comment-like' + (comment.viewerLiked ? ' is-active' : '') + '">&#10084; ' + Number(comment.likeCount || 0) + '</button><button type="button" data-community-comment-reply-post="' + escapeHtml(post.id) + '" data-community-comment-reply="' + escapeHtml(comment.id) + '">Reply</button></div>' +
+              '<div class="community-comment-actions"><button type="button" data-community-comment-like-post="' + escapeHtml(post.id) + '" data-community-comment-like="' + escapeHtml(comment.id) + '" class="community-comment-action community-comment-like' + (comment.viewerLiked ? ' is-active' : '') + '"><span>&#10084;</span><span>' + (comment.viewerLiked ? 'Liked' : 'Like') + ' (' + Number(comment.likeCount || 0) + ')</span></button><button type="button" class="community-comment-action" data-community-comment-reply-post="' + escapeHtml(post.id) + '" data-community-comment-reply="' + escapeHtml(comment.id) + '"><span>&#8618;</span><span>Reply</span></button></div>' +
               (Array.isArray(comment.replies) && comment.replies.length ? '<div class="community-comment-replies">' + comment.replies.map(function (reply) { var replyProfile = buildCommentProfile(reply); return '<article class="community-comment-reply">' + buildCommunityCommentAuthor(replyProfile) + '<p>' + escapeHtml(reply.body || '').replace(/\\n/g, '<br>') + '</p></article>'; }).join('') + '</div>' : '') +
             '</article>'
           );
@@ -370,6 +385,7 @@
           '<div class="community-post-head">' +
             '<div class="community-post-head-main">' +
               '<span class="' + typeClasses + '">' + escapeHtml(formatPostType(post.category)) + "</span>" +
+              buildBugStatus(post) +
               '<span class="community-date">' + escapeHtml(formatDate(post.publishedAt || post.createdAt)) + "</span>" +
             "</div>" +
             buildAdminPostMenu(post) +
@@ -443,27 +459,50 @@
     };
   }
 
+  function updateComposerMode() {
+    var composer = document.getElementById("communityAdminComposer");
+    var title = document.getElementById("communityComposerTitle");
+    var helper = composer && composer.querySelector(".community-helper-copy");
+    var category = document.getElementById("communityPostCategory");
+    var categoryLabel = document.getElementById("communityCategorySelectLabel");
+    var button = document.getElementById("communityPublishButton");
+    if (!composer) return;
+    composer.hidden = !isLoggedIn;
+    composer.classList.toggle("is-member-report", isLoggedIn && !isAdminUser);
+    if (!isLoggedIn) return;
+    if (isAdminUser) {
+      if (title && !editingPostId) title.textContent = "Create Community Post";
+      if (helper) helper.textContent = "Publish official updates for the community feed here.";
+      if (button && !editingPostId) button.textContent = "Publish Post";
+      return;
+    }
+    editingPostId = "";
+    if (title) title.textContent = "Report a Bug";
+    if (helper) helper.textContent = "Tell the RBLXTools team what happened. Your report will start as unresolved until it is verified.";
+    if (category) category.value = "bug-report";
+    if (categoryLabel) categoryLabel.textContent = "Bug Report";
+    if (button) button.textContent = "Submit Bug Report";
+  }
+
   function applyViewerState(user) {
     var viewer = toViewer(user);
-    var composer = document.getElementById("communityAdminComposer");
     if (!viewer) {
       var wasLoggedIn = isLoggedIn;
       isLoggedIn = false;
       isAdminUser = false;
       currentViewer = null;
       viewerMembershipSignature = "guest";
-      if (composer) composer.hidden = true;
+      updateComposerMode();
       if (wasLoggedIn) lastFeedSignature = "";
       return;
     }
-
     var signature = viewer.userId + "|" + viewer.plan + "|" + viewer.isAdmin;
     var changed = signature !== viewerMembershipSignature;
     isLoggedIn = true;
     isAdminUser = viewer.isAdmin;
     currentViewer = { userId: viewer.userId, plan: viewer.plan };
     viewerMembershipSignature = signature;
-    if (composer) composer.hidden = !viewer.isAdmin;
+    updateComposerMode();
     if (changed) lastFeedSignature = "";
   }
 
@@ -494,7 +533,8 @@
       if (node) node.value = "";
     });
     var categoryNode = document.getElementById("communityPostCategory");
-    if (categoryNode) categoryNode.value = "announcement";
+    if (categoryNode) categoryNode.value = isAdminUser ? "announcement" : "bug-report";
+    updateComposerMode();
     setPublishStatus("", "");
   }
 
@@ -529,8 +569,8 @@
   }
 
   async function savePost() {
-    if (!isAdminUser) {
-      setPublishStatus("Only admins can publish here.", "error");
+    if (!isLoggedIn) {
+      openLoginPrompt("Log in or sign up to publish a bug report.");
       return;
     }
 
@@ -553,16 +593,19 @@
       var payload = await fetchJson(
         editingPostId
           ? (API_BASE + "/admin/community-posts/" + encodeURIComponent(editingPostId))
-          : (API_BASE + "/admin/community-posts"),
+          : (isAdminUser ? (API_BASE + "/admin/community-posts") : (API_BASE + "/api/community-posts/bug-reports")),
         {
           method: editingPostId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title: title,
             body: body,
-            category: categoryNode ? categoryNode.value : "announcement",
-            linkLabel: linkLabelNode ? String(linkLabelNode.value || "").trim() : "",
-            linkUrl: linkUrlNode ? String(linkUrlNode.value || "").trim() : ""
+            category: isAdminUser && categoryNode ? categoryNode.value : "bug-report",
+            linkLabel: isAdminUser && linkLabelNode ? String(linkLabelNode.value || "").trim() : "",
+            linkUrl: isAdminUser && linkUrlNode ? String(linkUrlNode.value || "").trim() : "",
+            avatarUrl: getCurrentCommentProfile().avatarUrl,
+            bio: getCurrentCommentProfile().bio,
+            plan: getCurrentCommentProfile().plan
           })
         }
       );
@@ -677,10 +720,14 @@
     }
   }
 
-  async function toggleCommentLike(postId, commentId) {
+  async function toggleCommentLike(postId, commentId, button) {
     if (!isLoggedIn) return void openLoginPrompt("Log in or sign up to like comments.");
-    try { await fetchJson(API_BASE + "/api/community-posts/" + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId) + "/likes", { method: "POST" }); await loadCommunityPosts(true); }
-    catch (error) { setPublishStatus(error && error.message ? error.message : "Could not update the comment like.", "error"); }
+    var isNewLike = !button || !button.classList.contains("is-active");
+    try {
+      await fetchJson(API_BASE + "/api/community-posts/" + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId) + "/likes", { method: "POST" });
+      if (isNewLike) createHeartBurst(button);
+      await loadCommunityPosts(true);
+    } catch (error) { setPublishStatus(error && error.message ? error.message : "Could not update the comment like.", "error"); }
   }
 
   async function replyToComment(postId, commentId) {
@@ -731,6 +778,20 @@
     }
   }
 
+  async function updateBugReport(postId, patch, successMessage) {
+    try {
+      var payload = await fetchJson(API_BASE + "/admin/community-posts/" + encodeURIComponent(postId), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch)
+      });
+      setPublishStatus(payload.message || successMessage || "Bug report updated.", "success");
+      await loadCommunityPosts(true);
+    } catch (error) {
+      setPublishStatus(error && error.message ? error.message : "Could not update the bug report.", "error");
+    }
+  }
+
   function bindComposer() {
     var publishButton = document.getElementById("communityPublishButton");
     if (publishButton) publishButton.addEventListener("click", savePost);
@@ -749,6 +810,12 @@
 
       var pinButton = target.closest("[data-community-pin]");
       if (pinButton) return void pinPost(pinButton.getAttribute("data-community-pin"), pinButton.getAttribute("data-next-pinned"));
+
+      var bugStatusButton = target.closest("[data-community-bug-status]");
+      if (bugStatusButton) return void updateBugReport(bugStatusButton.getAttribute("data-community-bug-status"), { bugStatus: bugStatusButton.getAttribute("data-next-bug-status") }, "Bug report status updated.");
+
+      var knownIssueButton = target.closest("[data-community-known-issue]");
+      if (knownIssueButton) return void updateBugReport(knownIssueButton.getAttribute("data-community-known-issue"), { knownIssue: knownIssueButton.getAttribute("data-next-known-issue") === "true" }, "Known issue status updated.");
 
       var guestLogin = target.closest("[data-community-open-login]");
       if (guestLogin) return void openLoginPrompt("Log in or sign up to join the conversation.");

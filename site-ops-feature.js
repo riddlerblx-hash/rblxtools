@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { randomUUID } = require("crypto");
 
-const VALID_CATEGORIES = new Set(["announcement", "changelog", "bug-fix", "known-issue"]);
+const VALID_CATEGORIES = new Set(["announcement", "changelog", "bug-report", "known-issue"]);
 const STATIC_FILE_EXTENSIONS = new Set([
   ".css", ".js", ".mjs", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".woff", ".woff2", ".ttf", ".eot", ".map", ".txt", ".xml", ".json", ".obj", ".glb", ".gltf", ".bin", ".mp3", ".wav", ".ogg", ".mp4", ".webm"
 ]);
@@ -25,6 +25,7 @@ function ensureJsonFile(filePath, fallbackValue) {
 
 function normalizeCategory(value) {
   const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "bug-fix") return "bug-report";
   return VALID_CATEGORIES.has(normalized) ? normalized : "announcement";
 }
 
@@ -260,7 +261,18 @@ function normalizeCommunityComment(comment) {
 function normalizePostForStorage(post) {
   const likes = Array.isArray(post?.likes) ? post.likes.map((value) => String(value || "").trim()).filter(Boolean) : [];
   const comments = Array.isArray(post?.comments) ? post.comments.map(normalizeCommunityComment).filter((comment) => comment.body) : [];
-  return Object.assign({}, post, { likes, comments });
+  const category = normalizeCategory(post?.category);
+  const isBugReport = category === "bug-report";
+  const bugStatus = String(post?.bugStatus || "").trim().toLowerCase() === "resolved" ? "resolved" : "unresolved";
+  const authorIsAdmin = post?.authorIsAdmin === true || (!Object.prototype.hasOwnProperty.call(post || {}, "authorIsAdmin") && Boolean(post?.authorEmail));
+  return Object.assign({}, post, {
+    category,
+    likes,
+    comments,
+    authorIsAdmin,
+    bugStatus: isBugReport ? bugStatus : "",
+    knownIssue: isBugReport && Boolean(post?.knownIssue),
+  });
 }
 
 function buildPublicCommunityPost(post, viewerId) {
@@ -274,7 +286,9 @@ function buildPublicCommunityPost(post, viewerId) {
   return {
     id: String(normalized.id || ""), title: String(normalized.title || ""), body: String(normalized.body || ""), category: normalizeCategory(normalized.category),
     pinned: Boolean(normalized.pinned), createdAt: normalized.createdAt ? String(normalized.createdAt) : null, updatedAt: normalized.updatedAt ? String(normalized.updatedAt) : null,
-    publishedAt: normalized.publishedAt ? String(normalized.publishedAt) : null, authorName: normalized.authorName ? String(normalized.authorName) : "",
+    publishedAt: normalized.publishedAt ? String(normalized.publishedAt) : null, authorId: String(normalized.authorId || ""), authorName: normalized.authorName ? String(normalized.authorName) : "",
+    authorIsAdmin: Boolean(normalized.authorIsAdmin), authorAvatarUrl: String(normalized.authorAvatarUrl || ""), authorBio: String(normalized.authorBio || ""), authorPlan: String(normalized.authorPlan || "free"),
+    bugStatus: normalized.category === "bug-report" ? normalized.bugStatus : "", knownIssue: Boolean(normalized.knownIssue),
     linkLabel: normalized.linkLabel ? String(normalized.linkLabel) : "", linkUrl: normalized.linkUrl ? String(normalized.linkUrl) : "",
     likeCount: normalized.likes.length, viewerLiked: Boolean(viewer && normalized.likes.includes(viewer)), commentCount: normalized.comments.length, comments: normalized.comments.map(commentPublic),
   };
@@ -329,12 +343,59 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const rawFilter = String(req.query?.filter || "").trim().toLowerCase();
       const normalizedFilter = normalizeCategory(rawFilter);
       const posts = sortCommunityPosts(readCommunityPosts(baseDir)).filter((post) => {
+        const normalizedPost = normalizePostForStorage(post);
         if (!rawFilter) return true;
-        return normalizeCategory(post.category) === normalizedFilter;
+        if (normalizedFilter === "known-issue") {
+          return normalizedPost.category === "known-issue" || (normalizedPost.category === "bug-report" && normalizedPost.knownIssue);
+        }
+        return normalizedPost.category === normalizedFilter;
       });
       return res.json({ ok: true, posts: posts.map((post) => buildPublicCommunityPost(post, viewerId)) });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Could not load community posts." });
+    }
+  });
+
+  app.post("/api/community-posts/bug-reports", async (req, res) => {
+    try {
+      const user = await requireAuthenticatedUser(req);
+      const userId = String(user?.id || "").trim();
+      if (!userId) return res.status(401).json({ error: "Log in first." });
+
+      const title = cleanText(req.body?.title, 140);
+      const body = cleanText(req.body?.body, 6000);
+      if (!title) return res.status(400).json({ error: "A bug-report title is required." });
+      if (!body) return res.status(400).json({ error: "Describe the bug before submitting it." });
+
+      const now = new Date().toISOString();
+      const authorName = cleanText(user.display_name || user.username || String(user.email || "").split("@")[0] || "Member", 80) || "Member";
+      const nextPost = normalizePostForStorage({
+        id: randomUUID(),
+        title,
+        body,
+        category: "bug-report",
+        bugStatus: "unresolved",
+        knownIssue: false,
+        pinned: false,
+        createdAt: now,
+        updatedAt: now,
+        publishedAt: now,
+        authorId: userId,
+        authorName,
+        authorAvatarUrl: cleanText(req.body?.avatarUrl, 500),
+        authorBio: cleanText(req.body?.bio, 280),
+        authorPlan: cleanText(req.body?.plan, 24).toLowerCase() === "plus" ? "plus" : "free",
+        authorIsAdmin: false,
+        linkLabel: "",
+        linkUrl: "",
+      });
+
+      const posts = readCommunityPosts(baseDir);
+      posts.push(nextPost);
+      writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, message: "Bug report submitted. Thanks for helping improve RBLXTools.", post: buildPublicCommunityPost(nextPost, userId) });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit the bug report." });
     }
   });
 
@@ -370,6 +431,9 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
         authorId: String(adminUser.id || "").trim(),
         authorEmail: String(adminUser.email || "").trim(),
         authorName: adminName,
+        authorIsAdmin: true,
+        bugStatus: category === "bug-report" ? "unresolved" : "",
+        knownIssue: category === "bug-report" && Boolean(req.body?.knownIssue),
         linkLabel,
         linkUrl,
       });
@@ -400,6 +464,12 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const hasPinned = Object.prototype.hasOwnProperty.call(req.body || {}, "pinned");
       const hasLinkLabel = Object.prototype.hasOwnProperty.call(req.body || {}, "linkLabel");
       const hasLinkUrl = Object.prototype.hasOwnProperty.call(req.body || {}, "linkUrl");
+      const hasBugStatus = Object.prototype.hasOwnProperty.call(req.body || {}, "bugStatus");
+      const hasKnownIssue = Object.prototype.hasOwnProperty.call(req.body || {}, "knownIssue");
+      const isMemberBugReport = existing.category === "bug-report" && !existing.authorIsAdmin;
+      if (isMemberBugReport && (hasTitle || hasBody || hasCategory || hasLinkLabel || hasLinkUrl)) {
+        return res.status(403).json({ error: "Member bug reports cannot be edited. You can update their status, pin them, or remove them." });
+      }
 
       const title = hasTitle ? cleanText(req.body?.title, 140) : String(existing.title || "");
       const body = hasBody ? cleanText(req.body?.body, 6000) : String(existing.body || "");
@@ -407,6 +477,8 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const pinned = hasPinned ? Boolean(req.body?.pinned) : Boolean(existing.pinned);
       const linkLabel = hasLinkLabel ? cleanText(req.body?.linkLabel, 60) : String(existing.linkLabel || "");
       const linkUrl = hasLinkUrl ? cleanOptionalUrl(req.body?.linkUrl) : cleanOptionalUrl(existing.linkUrl || "");
+      const bugStatus = hasBugStatus && String(req.body?.bugStatus || "").trim().toLowerCase() === "resolved" ? "resolved" : (existing.bugStatus === "resolved" ? "resolved" : "unresolved");
+      const knownIssue = hasKnownIssue ? Boolean(req.body?.knownIssue) : Boolean(existing.knownIssue);
 
       if (!title) return res.status(400).json({ error: "A title is required." });
       if (!body) return res.status(400).json({ error: "A post body is required." });
@@ -421,6 +493,8 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
         pinned,
         linkLabel,
         linkUrl,
+        bugStatus: category === "bug-report" ? bugStatus : "",
+        knownIssue: category === "bug-report" && knownIssue,
         updatedAt: new Date().toISOString(),
       }));
 
