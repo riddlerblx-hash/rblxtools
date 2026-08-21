@@ -3334,7 +3334,11 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-topline { justify-conten
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo { padding: clamp(20px, 2vw, 28px) !important; }
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo > * { min-width: 0; }
 
-body.rblx-shell-ready .rblx-shell-page #toolMount > *,
+body.rblx-shell-ready .rblx-shell-page #toolMount #rblxAudioCard,
+body.rblx-shell-ready .rblx-shell-page #toolMount #rblxMediaCard,
+body.rblx-shell-ready .rblx-shell-page #toolMount #roblox-ugc-card,
+body.rblx-shell-ready .rblx-shell-page #toolMount #animation-spoofer-card,
+body.rblx-shell-ready .rblx-shell-page #toolMount .rblx-cleaner-card,
 body.rblx-shell-ready .rblx-shell-page .tool-card,
 body.rblx-shell-ready .rblx-shell-page .tool-shell,
 body.rblx-shell-ready .rblx-shell-page .tool-panel {
@@ -3412,9 +3416,7 @@ body.rblx-shell-ready .rblx-shell-page .plans-grid .perk-card { min-height: 0 !i
 body.rblx-shell-ready .rblx-shell-page .plans-grid .perk-title { font-size: 12px !important; line-height: 1.15 !important; }
 body.rblx-shell-ready .rblx-shell-page .plans-grid .perk-desc { font-size: 10px !important; line-height: 1.36 !important; }
 body.rblx-shell-ready .rblx-shell-page .plans-grid .pill-row { display: none !important; }
-body.rblx-shell-ready .rblx-shell-page .hero,
 body.rblx-shell-ready .rblx-shell-page .plan-banner,
-body.rblx-shell-ready .rblx-shell-page .hero-strip,
 body.rblx-shell-ready .rblx-shell-page .compare-card,
 body.rblx-shell-ready .rblx-shell-page .faq-card {
   border-color: rgba(123, 151, 246, 0.23) !important;
@@ -3422,6 +3424,12 @@ body.rblx-shell-ready .rblx-shell-page .faq-card {
     radial-gradient(circle at 90% 8%, rgba(111, 145, 255, 0.15), transparent 35%),
     linear-gradient(145deg, rgba(29, 35, 52, 0.94), rgba(14, 18, 29, 0.96)) !important;
   box-shadow: 0 20px 44px rgba(2, 5, 16, 0.22), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+}
+body.rblx-shell-ready .rblx-shell-page .hero,
+body.rblx-shell-ready .rblx-shell-page .hero-strip {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 body.rblx-shell-ready .rblx-shell-page .hero h1 span:last-child { color: #ff596d !important; }
 
