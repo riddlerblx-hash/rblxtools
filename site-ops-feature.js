@@ -462,6 +462,63 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
     }
   });
 
+  app.patch("/api/community-posts/:postId", async (req, res) => {
+    try {
+      const user = await requireAuthenticatedUser(req);
+      const userId = String(user?.id || "").trim();
+      const postId = String(req.params?.postId || "").trim();
+      if (!userId) return res.status(401).json({ error: "Log in first." });
+      if (!postId) return res.status(400).json({ error: "A post ID is required." });
+
+      const posts = readCommunityPosts(baseDir);
+      const index = posts.findIndex((post) => String(post.id || "") === postId);
+      if (index < 0) return res.status(404).json({ error: "That post could not be found." });
+
+      const existing = normalizePostForStorage(posts[index]);
+      const isOwnMemberPost = String(existing.authorId || "") === userId && !existing.authorIsAdmin && (existing.category === "bug-report" || existing.category === "feedback");
+      if (!isOwnMemberPost) return res.status(403).json({ error: "You can only edit your own bug reports or feedback." });
+
+      const title = cleanText(req.body?.title, 140);
+      const body = cleanText(req.body?.body, 6000);
+      if (!title) return res.status(400).json({ error: "A title is required." });
+      if (!body) return res.status(400).json({ error: "A post body is required." });
+
+      const updated = normalizePostForStorage(Object.assign({}, existing, {
+        title,
+        body,
+        updatedAt: new Date().toISOString(),
+      }));
+      posts[index] = updated;
+      writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, message: "Your post was updated.", post: buildPublicCommunityPost(updated, userId) });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not update the community post." });
+    }
+  });
+
+  app.delete("/api/community-posts/:postId", async (req, res) => {
+    try {
+      const user = await requireAuthenticatedUser(req);
+      const userId = String(user?.id || "").trim();
+      const postId = String(req.params?.postId || "").trim();
+      if (!userId) return res.status(401).json({ error: "Log in first." });
+      if (!postId) return res.status(400).json({ error: "A post ID is required." });
+
+      const posts = readCommunityPosts(baseDir);
+      const index = posts.findIndex((post) => String(post.id || "") === postId);
+      if (index < 0) return res.status(404).json({ error: "That post could not be found." });
+      const existing = normalizePostForStorage(posts[index]);
+      const isOwnMemberPost = String(existing.authorId || "") === userId && !existing.authorIsAdmin && (existing.category === "bug-report" || existing.category === "feedback");
+      if (!isOwnMemberPost) return res.status(403).json({ error: "You can only delete your own bug reports or feedback." });
+
+      posts.splice(index, 1);
+      writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, message: "Your post was deleted." });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete the community post." });
+    }
+  });
+
   app.patch("/admin/community-posts/:postId", async (req, res) => {
     try {
       await requireAdminUser(req);
@@ -481,11 +538,6 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const hasLinkUrl = Object.prototype.hasOwnProperty.call(req.body || {}, "linkUrl");
       const hasBugStatus = Object.prototype.hasOwnProperty.call(req.body || {}, "bugStatus");
       const hasKnownIssue = Object.prototype.hasOwnProperty.call(req.body || {}, "knownIssue");
-      const isMemberContribution = (existing.category === "bug-report" || existing.category === "feedback") && !existing.authorIsAdmin;
-      if (isMemberContribution && (hasTitle || hasBody || hasCategory || hasLinkLabel || hasLinkUrl)) {
-        return res.status(403).json({ error: "Member submissions cannot be edited. You can pin or remove them, and update bug status when applicable." });
-      }
-
       const title = hasTitle ? cleanText(req.body?.title, 140) : String(existing.title || "");
       const body = hasBody ? cleanText(req.body?.body, 6000) : String(existing.body || "");
       const category = hasCategory ? normalizeCategory(req.body?.category) : normalizeCategory(existing.category);

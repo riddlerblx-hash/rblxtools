@@ -319,15 +319,27 @@
   }
 
   function buildAdminPostMenu(post) {
-    if (!isAdminUser) return "";
-    var memberContribution = isMemberContribution(post);
+    var viewerId = String(currentViewer && currentViewer.userId || "").trim();
+    var ownsPost = Boolean(!isAdminUser && viewerId && String(post && post.authorId || "").trim() === viewerId);
+    if (!isAdminUser && !ownsPost) return "";
     var pinLabel = post.pinned ? "Unpin Post" : "Pin Post";
     var resolved = String(post.bugStatus || "").toLowerCase() === "resolved";
+    var ownerMenu =
+      '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>' +
+      '<button class="community-post-menu-item is-danger" type="button" data-community-delete="' + escapeHtml(post.id) + '">Delete Post</button>';
+    if (!isAdminUser) {
+      return (
+        '<details class="community-post-menu">' +
+          '<summary aria-label="Post settings"><span>&#8942;</span></summary>' +
+          '<div class="community-post-menu-panel">' + ownerMenu + '</div>' +
+        '</details>'
+      );
+    }
     return (
       '<details class="community-post-menu">' +
         '<summary aria-label="Post settings"><span>&#8942;</span></summary>' +
         '<div class="community-post-menu-panel">' +
-          (memberContribution ? "" : '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>') +
+          '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>' +
           '<button class="community-post-menu-item" type="button" data-community-pin="' + escapeHtml(post.id) + '" data-next-pinned="' + (post.pinned ? "false" : "true") + '">' + pinLabel + "</button>" +
           (String(post.category || "") === "bug-report" ? '<button class="community-post-menu-item" type="button" data-community-bug-status="' + escapeHtml(post.id) + '" data-next-bug-status="' + (resolved ? "unresolved" : "resolved") + '">' + (resolved ? "Mark as unresolved" : "Mark as resolved") + '</button><button class="community-post-menu-item" type="button" data-community-known-issue="' + escapeHtml(post.id) + '" data-next-known-issue="' + (post.knownIssue ? "false" : "true") + '">' + (post.knownIssue ? "Remove from Known Issues" : "Mark as known issue") + '</button>' : "") +
           '<button class="community-post-menu-item is-danger" type="button" data-community-delete="' + escapeHtml(post.id) + '">Delete Post</button>' +
@@ -513,7 +525,12 @@
       if (button && !editingPostId) button.textContent = "Publish Post";
       return;
     }
-    editingPostId = "";
+    if (editingPostId) {
+      if (title) title.textContent = memberCategory === "feedback" ? "Edit Website Feedback" : "Edit Bug Report";
+      if (helper) helper.textContent = "Update your submission, then save your changes.";
+      if (button) button.textContent = "Save Changes";
+      return;
+    }
     if (memberCategory === "feedback") {
       if (title) title.textContent = "Leave Website Feedback";
       if (helper) helper.textContent = "Tell the RBLXTools team what you think and rate your experience from 1 to 5 stars.";
@@ -521,10 +538,10 @@
       if (categoryLabel) categoryLabel.textContent = "Feedback";
       if (button) button.textContent = "Submit Feedback";
     } else {
-      if (title) title.textContent = "Report a Bug";
+      if (title) title.textContent = "Create Bug Report";
       if (helper) helper.textContent = "Tell the RBLXTools team what happened. Your report will start as unresolved until it is verified.";
       if (category) category.value = "bug-report";
-      if (categoryLabel) categoryLabel.textContent = "Bug Report";
+      if (categoryLabel) categoryLabel.textContent = "Bug Reports";
       if (button) button.textContent = "Submit Bug Report";
     }
   }
@@ -682,7 +699,7 @@
     try {
       var payload = await fetchJson(
         editingPostId
-          ? (API_BASE + "/admin/community-posts/" + encodeURIComponent(editingPostId))
+          ? (API_BASE + (isAdminUser ? "/admin/community-posts/" : "/api/community-posts/") + encodeURIComponent(editingPostId))
           : (isAdminUser ? (API_BASE + "/admin/community-posts") : (API_BASE + "/api/community-posts/member-posts")),
         {
           method: editingPostId ? "PATCH" : "POST",
@@ -713,7 +730,7 @@
   async function deletePost(postId) {
     if (!window.confirm("Delete this post?")) return;
     try {
-      var payload = await fetchJson(API_BASE + "/admin/community-posts/" + encodeURIComponent(postId), {
+      var payload = await fetchJson(API_BASE + (isAdminUser ? "/admin/community-posts/" : "/api/community-posts/") + encodeURIComponent(postId), {
         method: "DELETE"
       });
       if (editingPostId && String(editingPostId) === String(postId)) {
