@@ -907,33 +907,53 @@
       display: none;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.62);
-      backdrop-filter: blur(7px);
-      -webkit-backdrop-filter: blur(7px);
+      background: rgba(5, 8, 15, 0.76);
+      backdrop-filter: blur(14px) saturate(1.12);
+      -webkit-backdrop-filter: blur(14px) saturate(1.12);
       padding: 14px;
     }
 
     .gate-overlay.open { display: flex; }
 
     .gate-modal {
+      position: relative;
+      overflow: hidden;
       width: min(100%, 500px);
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
       background:
-        radial-gradient(circle at top right, rgba(255, 60, 60, 0.14), transparent 32%),
-        linear-gradient(180deg, #252528, #171719);
-      padding: 18px;
+        radial-gradient(circle at 94% 4%, rgba(89, 138, 255, 0.28), transparent 38%),
+        radial-gradient(circle at 4% 102%, rgba(255, 61, 92, 0.28), transparent 42%),
+        linear-gradient(145deg, rgba(30, 37, 57, 0.98), rgba(13, 17, 27, 0.98));
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255, 255, 255, 0.08);
+      padding: 26px;
     }
 
-    .gate-modal h3 { margin: 0; font-size: 30px; line-height: 0.95; letter-spacing: -1px; font-weight: 900; }
-    .gate-modal h3 span { display: block; }
-    .gate-modal h3 span:last-child { color: #ff2929; margin-top: 4px; }
-    .gate-modal p { margin: 11px 0 0; color: #c7ced8; font-size: 12px; line-height: 1.55; }
+    .gate-modal::before {
+      content: "RBLXTOOLS PLUS";
+      display: inline-flex;
+      align-items: center;
+      min-height: 25px;
+      margin-bottom: 16px;
+      padding: 0 10px;
+      border: 1px solid rgba(185, 207, 255, 0.24);
+      border-radius: 999px;
+      background: rgba(133, 162, 255, 0.12);
+      color: #dbe7ff;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+    }
 
-    .gate-actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .gate-modal h3 { margin: 0; max-width: 360px; font-size: clamp(31px, 7vw, 43px); line-height: 0.94; letter-spacing: -1.6px; font-weight: 900; }
+    .gate-modal h3 span { display: block; }
+    .gate-modal h3 span:last-child { margin-top: 5px; background: linear-gradient(100deg, #ffb8c2, #ff455e 46%, #9cb8ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .gate-modal p { margin: 14px 0 0; max-width: 420px; color: #c7ced8; font-size: 13px; line-height: 1.6; }
+
+    .gate-actions { margin-top: 21px; display: flex; gap: 10px; flex-wrap: wrap; }
     .gate-actions a, .gate-actions button {
-      min-height: 38px;
-      border-radius: 10px;
+      min-height: 42px;
+      border-radius: 12px;
       font-size: 12px;
       font-weight: 900;
       padding: 0 12px;
@@ -946,11 +966,14 @@
 
     .plans-btn {
       border: 0;
-      color: #08130c;
-      background: linear-gradient(180deg, #6cf69c 0%, #37d26f 100%);
-      box-shadow: 0 14px 26px rgba(55, 210, 111, 0.24);
-      animation: pulseGreenCta 1.85s ease-in-out infinite;
+      color: #ffffff;
+      background: linear-gradient(135deg, #ff6377, #ec2648 54%, #c81f43);
+      box-shadow: 0 14px 30px rgba(236, 38, 72, 0.32);
+      transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
+      animation: none;
     }
+
+    .plans-btn:hover { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 18px 36px rgba(236, 38, 72, 0.42); }
 
     @keyframes pulseGreenCta {
       0%, 100% {
@@ -965,9 +988,12 @@
 
     .close-btn {
       color: #fff;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(191, 210, 255, 0.16);
+      background: rgba(255,255,255,0.07);
+      transition: background 160ms ease, transform 160ms ease;
     }
+
+    .close-btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
 
     @media (max-width: 940px) {
       .top-grid { grid-template-columns: 1fr; }

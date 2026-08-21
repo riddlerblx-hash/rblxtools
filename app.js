@@ -7061,7 +7061,6 @@ app.get("/ugc-texture", async (req, res) => {
   }
 
   try {
-    await requireActivePlusUser(req);
     const textureAsset = await resolveImageAssetFromRobloxAsset(id, { maxDepth: 5 });
 
     if (!textureAsset) {
@@ -7071,7 +7070,7 @@ app.get("/ugc-texture", async (req, res) => {
     }
 
     await safeIncrementDailyUsage();
-    await emitToolActivityForRequest(req, "texture-baker", getRequestActivityParam(req, "displayName", displayNameLength));
+    await emitToolActivityForRequest(req, "ugc-downloader", getRequestActivityParam(req, "displayName", displayNameLength));
 
     res.setHeader("Content-Type", textureAsset.mime);
     res.setHeader("Cache-Control", "no-store");

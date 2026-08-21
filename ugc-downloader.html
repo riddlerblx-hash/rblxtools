@@ -225,8 +225,8 @@
     #roblox-ugc-title span:first-child { color: #ffffff; }
 
     #roblox-ugc-title span:last-child {
-      color: #ff2b2b;
-      text-shadow: 0 8px 22px rgba(255, 34, 34, 0.18);
+      color: #ffffff;
+      text-shadow: none;
     }
 
     #roblox-ugc-subtitle,
@@ -290,6 +290,12 @@
       overflow-x: auto;
     }
 
+    .ugc-mode-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
+    .ugc-mode-option { min-height: 38px; border: 1px solid rgba(255,255,255,.10); border-radius: 10px; background: rgba(255,255,255,.035); color: #bec5d0; font: inherit; font-size: 11px; font-weight: 900; cursor: pointer; transition: .16s ease; }
+    .ugc-mode-option:hover, .ugc-mode-option.is-active { border-color: rgba(115,161,255,.68); background: linear-gradient(135deg,rgba(74,125,235,.26),rgba(255,61,89,.12)); color: #fff; }
+    .ugc-export-note { margin: 12px 0 0; padding: 11px 12px; border: 1px solid rgba(119,164,255,.20); border-radius: 10px; background: linear-gradient(135deg,rgba(75,120,216,.13),rgba(255,255,255,.025)); color: #bcc6d5; font-size: 10.5px; font-weight: 700; line-height: 1.55; }
+    .ugc-export-note strong { color: #fff; }
+
     #ugcId {
       width: 100%;
       min-height: 74px;
@@ -329,6 +335,7 @@
     #ugcButton,
     .ugc-promo-button,
     #downloadBtn,
+    #downloadGlbBtn,
     #downloadAllBtn,
     .previewArrow {
       border: none;
@@ -364,6 +371,7 @@
     }
 
     #downloadBtn,
+    #downloadGlbBtn,
     #downloadAllBtn {
       min-height: 40px;
       padding: 0 16px;
@@ -378,9 +386,15 @@
       background: linear-gradient(180deg, #ff5656 0%, #ff2424 100%);
     }
 
+    #downloadGlbBtn {
+      background: linear-gradient(180deg, #5e9cff 0%, #3575e5 100%);
+      box-shadow: 0 10px 20px rgba(53, 117, 229, 0.18);
+    }
+
     #ugcButton:hover,
     .ugc-promo-button:hover,
     #downloadBtn:hover,
+    #downloadGlbBtn:hover,
     #downloadAllBtn:hover,
     .previewArrow:hover {
       filter: brightness(1.05);
@@ -863,8 +877,8 @@
 
   <main>
     <section class="hero">
-      <h1><span>UGC</span></h1>
-      <p>Preview and access supported Roblox UGC accessories as OBJ files using the same overall page layout as the clothing tool.</p>
+      <h1><span>Roblox</span><span>UGC</span></h1>
+      <p>Preview supported Roblox UGC and classic catalog models with their available texture applied.</p>
     </section>
 
     <section class="top-grid">
@@ -880,17 +894,21 @@
         <span>UGC</span>
       </h2>
 
-      <p id="roblox-ugc-subtitle">Preview and download supported UGC accessories as OBJ files.</p>
+      <p id="roblox-ugc-subtitle">Preview a textured Roblox model, then choose the export format that fits your workflow.</p>
 
       <div id="plusNotice">
-        Free users can download unlimited OBJ assets 1 by 1. <span class="plusWord">Plus</span> users can download 2-5 at a time with comma-separated asset IDs.
+        Free users can download textured OBJ packages 1 by 1. <span class="plusWord">Plus</span> users can export embedded-texture GLB files and download 2-5 items at a time.
         <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
       </div>
 
-      <label class="field-label" for="ugcId">Roblox UGC Asset ID</label>
-      <textarea id="ugcId" placeholder="Enter one Roblox UGC asset ID, or comma-separated IDs for Plus"></textarea>
+      <div class="ugc-mode-picker" role="group" aria-label="Roblox catalog item type">
+        <button class="ugc-mode-option is-active" type="button" data-ugc-mode="ugc">UGC Item</button>
+        <button class="ugc-mode-option" type="button" data-ugc-mode="classic">Classic Item</button>
+      </div>
+      <label class="field-label" for="ugcId">Roblox Catalog Asset ID</label>
+      <textarea id="ugcId" placeholder="Enter one Roblox catalog asset ID, or comma-separated IDs for Plus"></textarea>
 
-      <button id="ugcButton" onclick="generateUgc()">Download OBJ</button>
+      <button id="ugcButton" onclick="generateUgc()">Create Textured Preview</button>
 
       <div id="status"></div>
 
@@ -1009,11 +1027,11 @@
     <section class="faq-wrap">
       <div class="faq-item open">
         <button class="faq-q" type="button">What does this tool download?</button>
-        <div class="faq-a">It downloads supported Roblox UGC accessory OBJ files and lets you preview the 3D model before saving it.</div>
+        <div class="faq-a">It resolves supported UGC and classic catalog models, then previews the model with its available Roblox texture.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q" type="button">Do I paste full Roblox URLs?</button>
-        <div class="faq-a">No. Paste only the numeric Roblox UGC asset IDs for this downloader.</div>
+        <div class="faq-a">No. Paste only the numeric Roblox catalog asset ID. Choose UGC Item or Classic Item first so the tool can describe the item correctly.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q" type="button">Why is my item not loading?</button>
@@ -1041,6 +1059,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
 <script>
   const API_BASE = window.location.origin;
@@ -1054,6 +1073,7 @@
   let currentSlideIndex = 0;
   let currentObjUrls = [];
   let currentViewerCleanup = null;
+  let selectedItemMode = "ugc";
 
   function getActivityNameFromCache() {
     function readNameFrom(value) {
@@ -1227,10 +1247,6 @@
 
   async function fetchPlusStatus(options) {
     const token = getStoredToken();
-    if (!token) {
-      clearCachedPlusStatus();
-      return false;
-    }
 
     const settings = options && typeof options === "object" ? options : {};
     if (!settings.force) {
@@ -1308,7 +1324,7 @@
     currentObjUrls = [];
   }
 
-  function createObjViewer(container, objText) {
+  function createObjViewer(container, objText, textureUrl) {
     if (currentViewerCleanup) {
       currentViewerCleanup();
       currentViewerCleanup = null;
@@ -1342,13 +1358,21 @@
     fillLight.position.set(-4, 1, -3);
     scene.add(fillLight);
 
+    let modelTexture = null;
+    if (textureUrl) {
+      modelTexture = new THREE.TextureLoader().load(textureUrl);
+      modelTexture.flipY = false;
+      modelTexture.encoding = THREE.sRGBEncoding;
+    }
+
     const loader = new THREE.OBJLoader();
     const object = loader.parse(objText);
 
     object.traverse((child) => {
       if (child.isMesh) {
         child.material = new THREE.MeshStandardMaterial({
-          color: 0xd8d8d8,
+          color: 0xffffff,
+          map: modelTexture,
           roughness: 0.58,
           metalness: 0.08
         });
@@ -1417,15 +1441,16 @@
     const activeSlide = currentSlides[currentSlideIndex];
     const activeId = document.getElementById("activeAssetId");
     const slideCounter = document.getElementById("slideCounter");
-    const downloadBtn = document.getElementById("downloadBtn");
     const viewer = document.getElementById("ugcViewer");
 
     activeId.innerText = `ID ${activeSlide.id}`;
     slideCounter.innerText = `${currentSlideIndex + 1} of ${currentSlides.length}`;
-    downloadBtn.href = activeSlide.url;
-    downloadBtn.download = `roblox-ugc-${activeSlide.id}.obj`;
+    const downloadBtn = document.getElementById("downloadBtn");
+    downloadBtn.onclick = function () { downloadObjPackage(activeSlide); };
+    const glbButton = document.getElementById("downloadGlbBtn");
+    if (glbButton) glbButton.onclick = function () { downloadTexturedGlb(activeSlide); };
 
-    createObjViewer(viewer, activeSlide.objText);
+    createObjViewer(viewer, activeSlide.objText, activeSlide.textureUrl);
     scheduleEmbedHeightReport();
   }
 
@@ -1438,12 +1463,7 @@
   function downloadAllSlides() {
     currentSlides.forEach((slide, index) => {
       setTimeout(() => {
-        const link = document.createElement("a");
-        link.href = slide.url;
-        link.download = `roblox-ugc-${slide.id}.obj`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        downloadObjPackage(slide);
       }, index * 140);
     });
   }
@@ -1466,15 +1486,17 @@
         </div>
       </div>
       <div id="metaRow">
-        <div class="metaPill">3D Preview Ready</div>
+        <div class="metaPill">Textured 3D Preview</div>
         <div class="metaPill" id="activeAssetId"></div>
-        <div class="metaPill">OBJ</div>
+        <div class="metaPill">${selectedItemMode === "classic" ? "Classic Item" : "UGC Item"}</div>
         <div class="metaPill" id="slideCounter">${isMulti ? `1 of ${slides.length}` : "Single Asset"}</div>
       </div>
       <div id="actionRow">
-        <a id="downloadBtn" href="#">${isMulti ? "Save Current OBJ" : "Save OBJ"}</a>
+        <button id="downloadBtn" type="button">Download OBJ Package</button>
+        <button id="downloadGlbBtn" type="button">Download Textured GLB <span class="plusWord">Plus</span></button>
         ${isMulti ? '<button id="downloadAllBtn" type="button" onclick="downloadAllSlides()">Download All</button>' : ""}
       </div>
+      <div class="ugc-export-note"><strong>Choose the right export:</strong> the preview shows the available texture already applied. <strong>OBJ Package (Free)</strong> downloads an OBJ, MTL, and texture image together in a ZIP; keep those files together and, in programs like Blender, manually assign the included texture if it does not load automatically. <strong>Textured GLB (<span class="plusWord">Plus</span>)</strong> keeps the texture and material embedded in one file.</div>
     `;
 
     updateCarouselView();
@@ -1489,7 +1511,7 @@
   }
 
   async function fetchObjAsset(id) {
-    const url = API_BASE + "/ugc-obj?id=" + encodeURIComponent(id) + "&displayName=" + encodeURIComponent(getActivityNameFromCache());
+    const url = API_BASE + "/ugc-obj?id=" + encodeURIComponent(id) + "&mode=" + encodeURIComponent(selectedItemMode) + "&displayName=" + encodeURIComponent(getActivityNameFromCache());
     const res = await fetch(url, { headers: getAuthHeaders() });
 
     if (!res.ok) {
@@ -1505,14 +1527,96 @@
 
     const blob = await res.blob();
     const objText = await blob.text();
-    const objUrl = URL.createObjectURL(new Blob([objText], { type: "text/plain" }));
-    currentObjUrls.push(objUrl);
+    const textureResponse = await fetch(API_BASE + "/ugc-texture?id=" + encodeURIComponent(id) + "&displayName=" + encodeURIComponent(getActivityNameFromCache()), {
+      headers: getAuthHeaders(),
+      credentials: "include"
+    });
+    if (!textureResponse.ok) {
+      const payload = await textureResponse.json().catch(function () { return null; });
+      throw new Error(payload && payload.error || "No texture image was found for this item.");
+    }
+    const textureBlob = await textureResponse.blob();
+    const textureType = String(textureBlob.type || textureResponse.headers.get("content-type") || "image/png").toLowerCase();
+    const textureId = String(textureResponse.headers.get("X-Roblox-Texture-Id") || id).trim();
+    const textureExtension = textureType.includes("jpeg") || textureType.includes("jpg") ? "jpg" : textureType.includes("webp") ? "webp" : "png";
+    const textureUrl = URL.createObjectURL(textureBlob);
+    currentObjUrls.push(textureUrl);
 
     return {
       id: id,
       objText: objText,
-      url: objUrl
+      textureBlob: textureBlob,
+      textureUrl: textureUrl,
+      textureFileName: "texture-" + textureId + "." + textureExtension
     };
+  }
+
+  function buildBakedMtl(textureFileName) {
+    return ["newmtl BakedMaterial", "Ka 1.000000 1.000000 1.000000", "Kd 1.000000 1.000000 1.000000", "Ks 0.000000 0.000000 0.000000", "d 1.0", "illum 2", "map_Kd " + textureFileName].join("\n");
+  }
+
+  function buildBakedObj(objText, mtlFileName) {
+    const cleaned = String(objText || "").replace(/^mtllib\s+.*$/gm, "").replace(/^usemtl\s+.*$/gm, "").trim();
+    return ["mtllib " + mtlFileName, "usemtl BakedMaterial", cleaned, ""].join("\n");
+  }
+
+  function downloadBlob(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  async function downloadObjPackage(slide) {
+    const status = document.getElementById("status");
+    if (!slide || !slide.textureBlob || !window.JSZip) {
+      status.className = "error";
+      status.textContent = "The textured OBJ package is not ready yet. Create the preview again.";
+      return;
+    }
+    const baseName = "rblxtools-" + selectedItemMode + "-" + slide.id;
+    const mtlFileName = "baked-material.mtl";
+    const zip = new JSZip();
+    zip.file(baseName + ".obj", buildBakedObj(slide.objText, mtlFileName));
+    zip.file(mtlFileName, buildBakedMtl(slide.textureFileName));
+    zip.file(slide.textureFileName, slide.textureBlob);
+    const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+    downloadBlob(blob, baseName + "-textured-obj.zip");
+  }
+
+  async function downloadTexturedGlb(slide) {
+    const status = document.getElementById("status");
+    const hasPlus = await fetchPlusStatus({ force: true });
+    if (!hasPlus) {
+      document.getElementById("plusGate").classList.add("open");
+      status.className = "error";
+      status.innerHTML = 'Textured GLB keeps the material embedded and needs <span class="plusWord">Plus</span>.';
+      return;
+    }
+    status.className = "";
+    status.textContent = "Creating your textured GLB...";
+    try {
+      const response = await fetch(API_BASE + "/ugc-bake-glb", {
+        method: "POST",
+        credentials: "include",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ assetId: slide.id, objText: slide.objText, fileName: "rblxtools-" + selectedItemMode + "-" + slide.id, displayName: getActivityNameFromCache() })
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(function () { return null; });
+        throw new Error(payload && payload.error || "Could not create the textured GLB.");
+      }
+      downloadBlob(await response.blob(), "rblxtools-" + selectedItemMode + "-" + slide.id + ".glb");
+      status.className = "success";
+      status.textContent = "Textured GLB ready.";
+    } catch (error) {
+      status.className = "error";
+      status.textContent = error && error.message || "Could not create the textured GLB.";
+    }
   }
 
   ugcIdInput.addEventListener("keydown", function (event) {
@@ -1549,7 +1653,7 @@
 
     if (!ids.length) {
       status.className = "error";
-      status.innerText = "Enter at least one Roblox UGC asset ID.";
+      status.innerText = "Enter at least one Roblox catalog asset ID.";
       scheduleEmbedHeightReport();
       return;
     }
@@ -1579,7 +1683,7 @@
     }
 
     status.className = "";
-    status.innerText = ids.length > 1 ? "Fetching UGC OBJ assets..." : "Fetching UGC OBJ...";
+    status.innerText = ids.length > 1 ? "Fetching textured Roblox models..." : "Fetching textured Roblox model...";
     releaseObjUrls();
     if (currentViewerCleanup) {
       currentViewerCleanup();
@@ -1587,7 +1691,7 @@
     }
     resultBox.innerHTML = buildDefaultPreview();
     button.disabled = true;
-    button.innerText = ids.length > 1 ? "Loading OBJs..." : "Loading...";
+    button.innerText = ids.length > 1 ? "Loading models..." : "Loading model...";
     scheduleEmbedHeightReport();
 
     try {
@@ -1603,7 +1707,7 @@
       setTimeout(scheduleEmbedHeightReport, 500);
     } catch (err) {
       status.className = "error";
-      status.innerText = err.message || "Failed to fetch UGC OBJ";
+      status.innerText = err.message || "Failed to fetch the Roblox model";
       if (currentViewerCleanup) {
         currentViewerCleanup();
         currentViewerCleanup = null;
@@ -1612,7 +1716,7 @@
       scheduleEmbedHeightReport();
     } finally {
       button.disabled = false;
-      button.innerText = "Download OBJ";
+      button.innerText = "Create Textured Preview";
       scheduleEmbedHeightReport();
     }
   }
@@ -1625,6 +1729,18 @@
       generateUgc();
     });
   }
+
+  document.querySelectorAll("[data-ugc-mode]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      selectedItemMode = button.getAttribute("data-ugc-mode") === "classic" ? "classic" : "ugc";
+      document.querySelectorAll("[data-ugc-mode]").forEach(function (option) {
+        option.classList.toggle("is-active", option === button);
+      });
+      ugcIdInput.placeholder = selectedItemMode === "classic"
+        ? "Enter a classic Roblox catalog asset ID, or comma-separated IDs for Plus"
+        : "Enter a Roblox UGC catalog asset ID, or comma-separated IDs for Plus";
+    });
+  });
 </script>
 <script>
     (function () {

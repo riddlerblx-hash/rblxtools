@@ -112,7 +112,12 @@
   }
 
   function filterPosts(posts, activeFilter) {
-    if (activeFilter === "all") return posts.slice();
+    if (activeFilter === "all") {
+      return posts.filter(function (post) {
+        const category = String(post.category || "");
+        return category === "announcement" || category === "changelog" || category === "known-issue";
+      });
+    }
     return posts.filter(function (post) {
       if (activeFilter === "known-issue") return String(post.category || "") === "known-issue" || Boolean(post.knownIssue);
       return String(post.category || "") === activeFilter;
