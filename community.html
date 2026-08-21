@@ -273,6 +273,12 @@
     .community-card ul { margin: 12px 0 0; padding-left: 18px; }
     .community-card li + li { margin-top: 8px; }
     .community-post-menu { position: relative; flex: 0 0 auto; }
+    /* Post action menus must be allowed to extend beyond a rounded card. */
+    .community-post,
+    .community-comment { overflow: visible; }
+    .community-post-head { position: relative; z-index: 20; }
+    .community-post-menu { z-index: 30; }
+    .community-post-menu[open] { z-index: 200; }
     .community-post-menu summary {
       list-style: none;
       width: 42px;
@@ -296,9 +302,11 @@
       padding: 8px;
       border-radius: 16px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      background: linear-gradient(180deg, rgba(22, 28, 42, 0.98), rgba(13, 17, 27, 0.99));
+      background: #111723;
       box-shadow: 0 20px 40px rgba(3, 6, 12, 0.36);
-      z-index: 12;
+      z-index: 1000;
+      opacity: 1;
+      pointer-events: auto;
     }
     .community-post-menu-item {
       width: 100%;
@@ -312,6 +320,8 @@
       font-size: 14px;
       font-weight: 800;
       cursor: pointer;
+      position: relative;
+      z-index: 1;
     }
     .community-post-menu-item:hover { background: rgba(255, 255, 255, 0.06); }
     .community-post-menu-item.is-danger { color: #ffb0aa; }
