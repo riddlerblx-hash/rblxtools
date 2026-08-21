@@ -8,6 +8,7 @@
   var editingPostId = "";
   var pollTimer = null;
   var lastFeedSignature = "";
+  var cachedPosts = [];
   var currentViewer = null;
   var viewerMembershipSignature = "";
 
@@ -108,6 +109,27 @@
 
   function getFeedSignature(posts) {
     return JSON.stringify(posts || []);
+  }
+
+  function filterPosts(posts, activeFilter) {
+    if (activeFilter === "all") return posts.slice();
+    return posts.filter(function (post) {
+      if (activeFilter === "known-issue") return String(post.category || "") === "known-issue" || Boolean(post.knownIssue);
+      return String(post.category || "") === activeFilter;
+    });
+  }
+
+  function renderCachedPosts(forceRender) {
+    var feed = document.getElementById("communityFeed");
+    if (!feed) return false;
+    var activeFilter = getActiveFilter();
+    var posts = filterPosts(cachedPosts, activeFilter);
+    var signature = activeFilter + "|" + getFeedSignature(posts);
+    if (!forceRender && signature === lastFeedSignature) return true;
+    lastFeedSignature = signature;
+    if (!posts.length) renderEmpty(feed, activeFilter);
+    else renderPosts(feed, posts);
+    return true;
   }
 
   function readJsonStorage(key) {
@@ -438,22 +460,10 @@
     syncFilterUi(activeFilter);
     updateComposerMode();
 
-    var url = API_BASE + "/api/community-posts";
-    if (activeFilter !== "all") {
-      url += "?filter=" + encodeURIComponent(activeFilter);
-    }
-
     try {
-      var payload = await fetchJson(url, { cache: "no-store" });
-      var posts = Array.isArray(payload.posts) ? payload.posts : [];
-      var signature = getFeedSignature(posts);
-      if (!forceRender && signature === lastFeedSignature) return;
-      lastFeedSignature = signature;
-      if (!posts.length) {
-        renderEmpty(feed, activeFilter);
-        return;
-      }
-      renderPosts(feed, posts);
+      var payload = await fetchJson(API_BASE + "/api/community-posts", { cache: "no-store" });
+      cachedPosts = Array.isArray(payload.posts) ? payload.posts : [];
+      renderCachedPosts(forceRender);
     } catch (error) {
       feed.innerHTML =
         '<article class="community-empty">' +
@@ -514,6 +524,40 @@
     }
   }
 
+  function updateRatingPicker(value, previewValue) {
+    var selected = Math.max(0, Math.min(5, Number(value) || 0));
+    var preview = Math.max(0, Math.min(5, Number(previewValue) || selected));
+    document.querySelectorAll("[data-community-rating]").forEach(function (star) {
+      var score = Number(star.getAttribute("data-community-rating")) || 0;
+      star.classList.toggle("is-selected", score <= selected);
+      star.classList.toggle("is-preview", score <= preview);
+      star.setAttribute("aria-checked", String(score === selected));
+    });
+  }
+
+  function bindFilters() {
+    document.querySelectorAll("[data-filter]").forEach(function (pill) {
+      pill.addEventListener("click", function (event) {
+        event.preventDefault();
+        var nextFilter = pill.getAttribute("data-filter") || "all";
+        var url = new URL(window.location.href);
+        if (nextFilter === "all") url.searchParams.delete("filter");
+        else url.searchParams.set("filter", nextFilter);
+        window.history.pushState({}, "", url.pathname + (url.search || ""));
+        syncFilterUi(nextFilter);
+        updateComposerMode();
+        renderCachedPosts(true);
+        loadCommunityPosts(false);
+      });
+    });
+    window.addEventListener("popstate", function () {
+      syncFilterUi(getActiveFilter());
+      updateComposerMode();
+      renderCachedPosts(true);
+      loadCommunityPosts(false);
+    });
+  }
+
   function applyViewerState(user) {
     var viewer = toViewer(user);
     if (!viewer) {
@@ -564,6 +608,9 @@
     });
     var categoryNode = document.getElementById("communityPostCategory");
     if (categoryNode) categoryNode.value = isAdminUser ? "announcement" : (getActiveFilter() === "feedback" ? "feedback" : "bug-report");
+    var ratingNode = document.getElementById("communityFeedbackRating");
+    if (ratingNode) ratingNode.value = "0";
+    updateRatingPicker(0);
     updateComposerMode();
     setPublishStatus("", "");
   }
@@ -834,6 +881,26 @@
   function bindComposer() {
     var publishButton = document.getElementById("communityPublishButton");
     if (publishButton) publishButton.addEventListener("click", savePost);
+    document.querySelectorAll("[data-community-rating]").forEach(function (star) {
+      star.addEventListener("mouseenter", function () {
+        var ratingNode = document.getElementById("communityFeedbackRating");
+        updateRatingPicker(ratingNode ? ratingNode.value : 0, star.getAttribute("data-community-rating"));
+      });
+      star.addEventListener("focus", function () {
+        var ratingNode = document.getElementById("communityFeedbackRating");
+        updateRatingPicker(ratingNode ? ratingNode.value : 0, star.getAttribute("data-community-rating"));
+      });
+      star.addEventListener("click", function () {
+        var ratingNode = document.getElementById("communityFeedbackRating");
+        if (ratingNode) ratingNode.value = star.getAttribute("data-community-rating") || "0";
+        updateRatingPicker(ratingNode ? ratingNode.value : 0);
+      });
+    });
+    var ratingPicker = document.querySelector(".community-rating-picker");
+    if (ratingPicker) ratingPicker.addEventListener("mouseleave", function () {
+      var ratingNode = document.getElementById("communityFeedbackRating");
+      updateRatingPicker(ratingNode ? ratingNode.value : 0);
+    });
     document.addEventListener("click", function (event) {
       var target = event.target;
       if (!target || !target.closest) return;
@@ -925,6 +992,7 @@
   }
 
   async function init() {
+    bindFilters();
     bindComposer();
     await syncViewerState();
     await loadCommunityPosts(true);

@@ -3154,8 +3154,15 @@ html, body, body.rblx-shell-ready {
   background-image: radial-gradient(900px 680px at -8% -14%, rgba(121, 44, 63, .50), transparent 67%), radial-gradient(860px 660px at 107% -18%, rgba(46, 66, 139, .32), transparent 67%), radial-gradient(700px 760px at 52% 116%, rgba(87, 28, 51, .22), transparent 73%) !important;
   background-attachment: fixed !important;
 }
+body::before,
+body::after,
 body.rblx-shell-ready::before,
 body.rblx-shell-ready::after { display:none !important; background-image:none !important; }
+body > main,
+body > .page-root,
+body > .home-shell,
+body > .tool-page,
+body > .app-shell { background-color:transparent !important; background-image:none !important; }
 body.rblx-shell-ready .rblx-shell,
 body.rblx-shell-ready .rblx-shell-body,
 body.rblx-shell-ready .rblx-shell-center,
@@ -3187,7 +3194,7 @@ body.rblx-shell-ready #rblxShellPage > *::after { display:none !important; }
 .rblx-shell-chat-bottom > .rblx-shell-chat-alert,
 .rblx-shell-chat-bottom > .rblx-shell-chat-compose,
 .rblx-shell-chat-bottom > .rblx-shell-chat-foot { position:relative; z-index:2; }
-.rblx-shell-chat-reply-banner { position:absolute; left:10px; right:10px; bottom:calc(100% - 24px); z-index:1; display:flex; align-items:center; gap:8px; min-height:46px; padding:8px 9px 28px 10px; border:1px solid rgba(139,112,255,.34); border-radius:13px 13px 0 0; background:linear-gradient(135deg,rgba(115,82,231,.30),rgba(64,85,159,.28)); color:#e8e0ff; font-size:11px; font-weight:800; line-height:1.35; box-shadow:0 -10px 22px rgba(19,15,42,.22); }
+.rblx-shell-chat-reply-banner { position:absolute; left:10px; right:10px; bottom:calc(100% + 7px); z-index:1; display:flex; align-items:center; gap:8px; min-height:42px; padding:8px 9px 8px 10px; border:1px solid rgba(139,112,255,.34); border-radius:13px; background:linear-gradient(135deg,rgba(115,82,231,.30),rgba(64,85,159,.28)); color:#e8e0ff; font-size:11px; font-weight:800; line-height:1.35; box-shadow:0 8px 22px rgba(19,15,42,.22); }
 .rblx-shell-chat-reply-banner[hidden] { display:none !important; }
 .rblx-shell-chat-reply-banner span { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .rblx-shell-chat-reply-banner button { width:22px; height:22px; flex:0 0 22px; padding:0; border:1px solid rgba(255,255,255,.12); border-radius:8px; background:rgba(255,255,255,.08); color:#fff; font:900 17px/1 sans-serif; cursor:pointer; }

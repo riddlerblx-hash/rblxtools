@@ -376,7 +376,11 @@
     .community-admin-composer.is-member-report .community-helper-copy { color:#c8d6ed; }
     .community-rating-field { max-width:360px; }
     .community-rating-field[hidden] { display:none !important; }
-    .community-rating-select { cursor:pointer; }
+    .community-rating-picker { display:flex; align-items:center; gap:7px; min-height:48px; }
+    .community-rating-star { width:42px; height:42px; padding:0; border:0; background:transparent; color:rgba(255,205,80,.42); font-size:32px; line-height:1; cursor:pointer; transition:transform .16s ease,color .16s ease,filter .16s ease; -webkit-text-stroke:1px #ffd95a; text-shadow:none; }
+    .community-rating-star:hover, .community-rating-star.is-preview, .community-rating-star.is-selected { color:#ffd95a; filter:drop-shadow(0 6px 10px rgba(255,205,80,.22)); transform:translateY(-2px) scale(1.08); }
+    .community-rating-star:focus-visible { outline:2px solid #b38bff; outline-offset:3px; border-radius:8px; }
+    .community-rating-help { margin:2px 0 0; color:#aebbd1; font-size:12px; line-height:1.45; }
     .community-feedback-rating { display:inline-flex; align-items:center; gap:3px; margin-left:8px; color:#ffd77d; font-size:14px; letter-spacing:1px; vertical-align:middle; }
     .community-feedback-rating span { margin-left:4px; color:#d7dfed; font-size:11px; font-weight:800; letter-spacing:0; }
     @media (max-width: 700px) { .community-filter-row.is-member-lane { align-items:flex-start; } }
@@ -439,14 +443,16 @@
           <textarea class="community-textarea" id="communityPostBody" placeholder="Write the update here..."></textarea>
         </div>
         <div class="community-field community-rating-field" id="communityFeedbackRatingField" hidden>
-          <label for="communityFeedbackRating">Your Rating</label>
-          <select class="community-input community-rating-select" id="communityFeedbackRating">
-            <option value="5">&#9733;&#9733;&#9733;&#9733;&#9733; &mdash; Excellent</option>
-            <option value="4">&#9733;&#9733;&#9733;&#9733;&#9734; &mdash; Good</option>
-            <option value="3">&#9733;&#9733;&#9733;&#9734;&#9734; &mdash; Okay</option>
-            <option value="2">&#9733;&#9733;&#9734;&#9734;&#9734; &mdash; Needs work</option>
-            <option value="1">&#9733;&#9734;&#9734;&#9734;&#9734; &mdash; Poor</option>
-          </select>
+          <label id="communityFeedbackRatingLabel">Your Rating</label>
+          <input id="communityFeedbackRating" type="hidden" value="0" />
+          <div class="community-rating-picker" role="radiogroup" aria-labelledby="communityFeedbackRatingLabel" aria-describedby="communityFeedbackRatingHelp">
+            <button class="community-rating-star" type="button" data-community-rating="1" role="radio" aria-checked="false" aria-label="1 star out of 5">&#9733;</button>
+            <button class="community-rating-star" type="button" data-community-rating="2" role="radio" aria-checked="false" aria-label="2 stars out of 5">&#9733;</button>
+            <button class="community-rating-star" type="button" data-community-rating="3" role="radio" aria-checked="false" aria-label="3 stars out of 5">&#9733;</button>
+            <button class="community-rating-star" type="button" data-community-rating="4" role="radio" aria-checked="false" aria-label="4 stars out of 5">&#9733;</button>
+            <button class="community-rating-star" type="button" data-community-rating="5" role="radio" aria-checked="false" aria-label="5 stars out of 5">&#9733;</button>
+          </div>
+          <p class="community-rating-help" id="communityFeedbackRatingHelp">Choose a rating from 1 to 5 stars. Thank you for your feedback.</p>
         </div>
         <div class="community-form-row community-link-fields">
           <div class="community-field">
