@@ -1,6 +1,5 @@
 (function () {
   var API_BASE = window.location.origin;
-  var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
   var PROFILE_KEY = "rblxtools_profile_overview";
   var VALID_FILTERS = ["announcement", "changelog", "bug-fix", "known-issue"];
@@ -19,9 +18,12 @@
       .replace(/'/g, "&#39;");
   }
 
-  function getToken() {
-    try { return localStorage.getItem(TOKEN_KEY) || ""; }
-    catch (_error) { return ""; }
+  function isApprovedAdminUser(user) {
+    if (!user || typeof user !== "object") return false;
+    return user.isAdmin === true ||
+      user.admin === true ||
+      user.is_admin === true ||
+      String(user.role || "").trim().toLowerCase() === "admin";
   }
 
   function formatFilterLabel(filter) {
@@ -355,11 +357,8 @@
   async function fetchJson(url, options) {
     var config = options ? Object.assign({}, options) : {};
     var headers = Object.assign({}, config.headers || {});
-    var token = getToken();
-    if (token && !headers.Authorization) {
-      headers.Authorization = "Bearer " + token;
-    }
     config.headers = headers;
+    config.credentials = "include";
     var response = await fetch(url, config);
     var payload = await response.json().catch(function () { return null; });
     if (!response.ok) {
@@ -405,17 +404,12 @@
     isAdminUser = false;
     isLoggedIn = false;
 
-    var token = getToken();
-    if (!token) return;
-
     try {
-      var payload = await fetchJson(API_BASE + "/auth/me", {
-        headers: { Authorization: "Bearer " + token }
-      });
+      var payload = await fetchJson(API_BASE + "/auth/me", { method: "GET" });
       var user = payload && payload.user ? payload.user : null;
       if (!user) return;
       isLoggedIn = true;
-      if (user.isAdmin) {
+      if (isApprovedAdminUser(user)) {
         isAdminUser = true;
         if (composer) composer.hidden = false;
       }
