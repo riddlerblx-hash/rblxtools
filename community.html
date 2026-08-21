@@ -98,7 +98,10 @@
       text-decoration: none;
       font-size: 13px;
       font-weight: 800;
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
     }
+    .community-pill:hover { transform: translateY(-2px); border-color: rgba(255,170,182,.42); background: rgba(255,255,255,.09); box-shadow: 0 12px 26px rgba(0,0,0,.18); }
     .community-pill.is-active {
       border-color: rgba(255, 92, 106, 0.38);
       background: linear-gradient(180deg, rgba(255, 92, 106, 0.18), rgba(255, 92, 106, 0.08));
@@ -148,6 +151,19 @@
     }
     .community-textarea { min-height: 150px; resize: vertical; }
     .community-comment-input { min-height: 92px; resize: vertical; }
+    .community-category-select { position: relative; }
+    .community-category-select summary { width: 100%; min-height: 48px; padding: 13px 44px 13px 14px; list-style: none; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: rgba(255,255,255,.05); color: #f5f7fd; font: inherit; cursor: pointer; position: relative; }
+    .community-category-select summary::-webkit-details-marker { display: none; }
+    .community-category-select summary::after { content: ""; position: absolute; right: 17px; top: 50%; width: 8px; height: 8px; border-right: 2px solid #dfe7f7; border-bottom: 2px solid #dfe7f7; transform: translateY(-70%) rotate(45deg); transition: transform .18s ease; }
+    .community-category-select[open] summary { border-color: rgba(255,145,158,.44); background: rgba(255,255,255,.08); }
+    .community-category-select[open] summary::after { transform: translateY(-30%) rotate(225deg); }
+    .community-category-select-panel { position: absolute; z-index: 20; top: calc(100% + 8px); left: 0; right: 0; padding: 8px; border: 1px solid rgba(255,255,255,.09); border-radius: 16px; background: linear-gradient(180deg,rgba(27,33,49,.99),rgba(14,18,29,.99)); box-shadow: 0 20px 44px rgba(0,0,0,.32); }
+    .community-category-option { width: 100%; min-height: 42px; padding: 0 12px; border: 0; border-radius: 11px; background: transparent; color: #eef4ff; font: inherit; font-size: 14px; font-weight: 800; text-align: left; cursor: pointer; }
+    .community-category-option:hover, .community-category-option.is-selected { background: rgba(255,255,255,.08); color: #fff; }
+    .community-button, .community-action, .community-post-action, .community-comment-submit { transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease; }
+    .community-button:hover, .community-action:hover, .community-post-action:hover, .community-comment-submit:hover, .community-post-menu summary:hover { transform: translateY(-2px); border-color: rgba(255,170,182,.38); box-shadow: 0 12px 25px rgba(0,0,0,.18); }
+    .community-heart-burst { position: fixed; z-index: 9999; pointer-events: none; color: #ff6680; font-size: 24px; filter: drop-shadow(0 8px 12px rgba(255,73,103,.45)); animation: communityHeartFloat .82s cubic-bezier(.2,.75,.3,1) forwards; }
+    @keyframes communityHeartFloat { from { transform: translate(-50%,-50%) scale(.35) rotate(-12deg); opacity: 0; } 18% { opacity: 1; transform: translate(-50%,-75%) scale(1.15) rotate(8deg); } to { transform: translate(-50%,-210%) scale(.82) rotate(-8deg); opacity: 0; } }
     .community-form-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
     .community-button,
     .community-action,
@@ -343,12 +359,16 @@
         <div class="community-form-row">
           <div class="community-field">
             <label for="communityPostCategory">Category</label>
-            <select class="community-select" id="communityPostCategory">
-              <option value="announcement">Announcement</option>
-              <option value="changelog">Changelog</option>
-              <option value="bug-fix">Bug Fix</option>
-              <option value="known-issue">Known Issue</option>
-            </select>
+            <input id="communityPostCategory" type="hidden" value="announcement" />
+            <details class="community-category-select" id="communityCategorySelect">
+              <summary id="communityCategorySelectLabel">Announcement</summary>
+              <div class="community-category-select-panel">
+                <button class="community-category-option is-selected" type="button" data-community-category="announcement">Announcement</button>
+                <button class="community-category-option" type="button" data-community-category="changelog">Changelog</button>
+                <button class="community-category-option" type="button" data-community-category="bug-fix">Bug Fix</button>
+                <button class="community-category-option" type="button" data-community-category="known-issue">Known Issue</button>
+              </div>
+            </details>
           </div>
           <div class="community-field">
             <label for="communityPostTitle">Post Title</label>
