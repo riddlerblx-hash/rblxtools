@@ -336,7 +336,6 @@
     .ugc-promo-button,
     #downloadBtn,
     #downloadGlbBtn,
-    #downloadAllBtn,
     .previewArrow {
       border: none;
       color: #ffffff;
@@ -371,8 +370,7 @@
     }
 
     #downloadBtn,
-    #downloadGlbBtn,
-    #downloadAllBtn {
+    #downloadGlbBtn {
       min-height: 40px;
       padding: 0 16px;
       border-radius: 8px;
@@ -380,10 +378,6 @@
       font-size: 13px;
       font-weight: 800;
       box-shadow: 0 10px 20px rgba(255, 20, 20, 0.16);
-    }
-
-    #downloadAllBtn {
-      background: linear-gradient(180deg, #ff5656 0%, #ff2424 100%);
     }
 
     #downloadGlbBtn {
@@ -407,7 +401,6 @@
     .ugc-promo-button:hover,
     #downloadBtn:hover,
     #downloadGlbBtn:hover,
-    #downloadAllBtn:hover,
     .previewArrow:hover {
       filter: brightness(1.05);
       transform: translateY(-1px);
@@ -1444,13 +1437,24 @@
     const slideCounter = document.getElementById("slideCounter");
     const viewer = document.getElementById("ugcViewer");
 
+    if (!activeSlide || !activeId || !slideCounter || !viewer) return;
+
     activeId.innerText = `ID ${activeSlide.id}`;
     slideCounter.innerText = `${currentSlideIndex + 1} of ${currentSlides.length}`;
     const downloadBtn = document.getElementById("downloadBtn");
-    downloadBtn.onclick = function () { downloadObjPackage(activeSlide); };
+    if (downloadBtn) {
+      downloadBtn.textContent = currentSlides.length > 1 ? `Download ${currentSlides.length} OBJ Packages` : "Download OBJ Package";
+      downloadBtn.onclick = function () { downloadObjPackages(currentSlides); };
+    }
     const glbButton = document.getElementById("downloadGlbBtn");
-    if (glbButton) glbButton.onclick = function () { downloadTexturedGlb(activeSlide); };
+    if (glbButton) {
+      const glbLabel = document.getElementById("downloadGlbLabel");
+      if (glbLabel) glbLabel.textContent = currentSlides.length > 1 ? `Download ${currentSlides.length} Textured GLBs` : "Download Textured GLB";
+      glbButton.onclick = function () { downloadTexturedGlbs(currentSlides); };
+    }
 
+    viewer.replaceChildren();
+    viewer.dataset.assetId = String(activeSlide.id);
     createObjViewer(viewer, activeSlide.objText, activeSlide.textureUrl, activeSlide.itemMode);
     scheduleEmbedHeightReport();
   }
@@ -1461,17 +1465,6 @@
     updateCarouselView();
   }
 
-  function downloadAllSlides() {
-    currentSlides.forEach((slide, index) => {
-      setTimeout(() => {
-        downloadObjPackage(slide);
-      }, index * 140);
-    });
-  }
-
-  window.showSlide = showSlide;
-  window.downloadAllSlides = downloadAllSlides;
-
   function renderSlides(slides) {
     currentSlides = slides.slice();
     currentSlideIndex = 0;
@@ -1481,9 +1474,9 @@
     resultBox.innerHTML = `
       <div id="previewShell">
         <div class="previewCarousel">
-          <button class="previewArrow left ${isMulti ? "" : "hidden"}" type="button" onclick="showSlide(-1)">&lsaquo;</button>
+          <button class="previewArrow left ${isMulti ? "" : "hidden"}" id="previewPreviousButton" type="button" aria-label="Show previous preview">&lsaquo;</button>
           <div id="ugcViewer"></div>
-          <button class="previewArrow right ${isMulti ? "" : "hidden"}" type="button" onclick="showSlide(1)">&rsaquo;</button>
+          <button class="previewArrow right ${isMulti ? "" : "hidden"}" id="previewNextButton" type="button" aria-label="Show next preview">&rsaquo;</button>
         </div>
       </div>
       <div id="metaRow">
@@ -1494,12 +1487,15 @@
       </div>
       <div id="actionRow">
         <button id="downloadBtn" type="button">Download OBJ Package</button>
-        <button id="downloadGlbBtn" type="button"><span aria-hidden="true">&#128274;</span><span>Download Textured GLB</span><span class="glb-plus-badge">Plus</span></button>
-        ${isMulti ? '<button id="downloadAllBtn" type="button" onclick="downloadAllSlides()">Download All</button>' : ""}
+        <button id="downloadGlbBtn" type="button"><span aria-hidden="true">&#128274;</span><span id="downloadGlbLabel">Download Textured GLB</span><span class="glb-plus-badge">Plus</span></button>
       </div>
       <div class="ugc-export-note"><strong>Choose the right export:</strong> the preview shows the available texture already applied. <strong>OBJ Package (Free)</strong> downloads an OBJ, MTL, and texture image together in a ZIP; keep those files together and, in programs like Blender, manually assign the included texture if it does not load automatically. <strong>Textured GLB (<span class="plusWord">Plus</span>)</strong> keeps the texture and material embedded in one file.</div>
     `;
 
+    const previousButton = document.getElementById("previewPreviousButton");
+    const nextButton = document.getElementById("previewNextButton");
+    if (previousButton) previousButton.addEventListener("click", function () { showSlide(-1); });
+    if (nextButton) nextButton.addEventListener("click", function () { showSlide(1); });
     updateCarouselView();
   }
   function getAuthHeaders(extraHeaders) {
@@ -1590,9 +1586,17 @@
     downloadBlob(blob, baseName + "-textured-obj.zip");
   }
 
-  async function downloadTexturedGlb(slide) {
+  function downloadObjPackages(slides) {
+    const readySlides = Array.isArray(slides) ? slides.slice() : [];
+    readySlides.forEach(function (slide, index) {
+      window.setTimeout(function () { downloadObjPackage(slide); }, index * 180);
+    });
+  }
+
+  async function downloadTexturedGlb(slide, options) {
     const status = document.getElementById("status");
-    const hasPlus = await fetchPlusStatus({ force: true });
+    const settings = options || {};
+    const hasPlus = settings.hasPlus === true || await fetchPlusStatus({ force: true });
     if (!hasPlus) {
       document.getElementById("plusGate").classList.add("open");
       status.className = "error";
@@ -1619,6 +1623,22 @@
       status.className = "error";
       status.textContent = error && error.message || "Could not create the textured GLB.";
     }
+  }
+
+  async function downloadTexturedGlbs(slides) {
+    const readySlides = Array.isArray(slides) ? slides.slice() : [];
+    if (!readySlides.length) return;
+    const status = document.getElementById("status");
+    const hasPlus = await fetchPlusStatus({ force: true });
+    if (!hasPlus) {
+      document.getElementById("plusGate").classList.add("open");
+      status.className = "error";
+      status.innerHTML = 'Textured GLB keeps the material embedded and needs <span class="plusWord">Plus</span>.';
+      return;
+    }
+    readySlides.forEach(function (slide, index) {
+      window.setTimeout(function () { downloadTexturedGlb(slide, { hasPlus: true }); }, index * 320);
+    });
   }
 
   ugcIdInput.addEventListener("keydown", function (event) {

@@ -12,6 +12,7 @@
   var PROFILE_KEY = "rblxtools_profile_overview";
   var DEVICE_KEY = "rblxtools_device_id";
   var TOOL_ACTIVITY_CACHE_KEY = "rblxtools_tool_activity_cache";
+  var CHAT_CACHE_KEY = "rblxtools_shell_chat_cache_v1";
   var LEFT_STATE_KEY = "rblxtools_shell_left_collapsed";
   var RIGHT_STATE_KEY = "rblxtools_shell_right_collapsed";
   var GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
@@ -149,6 +150,25 @@
   ];
 
   var starterMessages = [];
+
+  function getCachedChatMessages() {
+    try {
+      var cached = JSON.parse(sessionStorage.getItem(CHAT_CACHE_KEY) || "null");
+      if (!cached || !Array.isArray(cached.messages) || Date.now() - Number(cached.savedAt || 0) > 10 * 60 * 1000) return [];
+      return cached.messages.filter(function (message) { return message && !message.specialType; }).slice(-80);
+    } catch (_error) {
+      return [];
+    }
+  }
+
+  function cacheChatMessages(messages) {
+    try {
+      sessionStorage.setItem(CHAT_CACHE_KEY, JSON.stringify({
+        savedAt: Date.now(),
+        messages: (Array.isArray(messages) ? messages : []).filter(function (message) { return message && !message.specialType; }).slice(-80)
+      }));
+    } catch (_error) {}
+  }
 
   function isMobileShellViewport() {
     return window.matchMedia("(max-width: 820px)").matches;
@@ -2363,7 +2383,8 @@
         updateChatReplyBanner();
       });
     }
-    renderChatMessages(list, starterMessages, { forceBottom: true });
+    var cachedMessages = getCachedChatMessages();
+    renderChatMessages(list, cachedMessages.length ? cachedMessages : starterMessages, { forceBottom: true });
 
     if (shellState.chatSpecials) {
       shellState.chatSpecials.addEventListener("click", function (event) {
@@ -2497,6 +2518,7 @@
           return !(message && message.specialType === "toolActivity");
         }) : [];
         shellState.chatMessages = messages;
+        cacheChatMessages(messages);
         renderChatMessages(shellState.chatList, messages, { forceBottom: true });
         if (shellState.chatList && messages.length && !String(shellState.chatList.innerHTML || '').trim()) {
           renderChatMessagesFallback(shellState.chatList, messages);
@@ -2512,6 +2534,7 @@
         nextMessages.push(message);
         nextMessages = nextMessages.slice(-80);
         shellState.chatMessages = nextMessages;
+        cacheChatMessages(nextMessages);
         renderChatMessages(shellState.chatList, nextMessages, { forceBottom: true });
         if (shellState.chatList && nextMessages.length && !String(shellState.chatList.innerHTML || '').trim()) {
           renderChatMessagesFallback(shellState.chatList, nextMessages);
