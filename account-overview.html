@@ -1789,7 +1789,8 @@
       }
 
       async function apiRequest(path, options) {
-        var response = await fetch(API_BASE + path, options || {});
+        var requestOptions = Object.assign({ credentials: "include" }, options || {});
+        var response = await fetch(API_BASE + path, requestOptions);
         var contentType = response.headers.get("content-type") || "";
         var payload = null;
 
@@ -1814,14 +1815,13 @@
           return null;
         }
 
-        if (!state.token || !state.checkoutSessionId) {
+        if (!state.checkoutSessionId) {
           return null;
         }
 
         try {
           return await apiRequest("/auth/checkout-session-summary?session_id=" + encodeURIComponent(state.checkoutSessionId), {
-            method: "GET",
-            headers: { Authorization: "Bearer " + state.token }
+            method: "GET"
           });
         } catch (_error) {
           return null;
@@ -1965,40 +1965,19 @@
 
       function startMembershipPolling() {
         clearMembershipPolling();
-        if (!state.token) return;
+        if (!state.user || !state.user.id) return;
         state.membershipPollTimer = setInterval(function () {
           refreshPremiumStatus(true);
         }, 15000);
       }
 
       async function loadCurrentUser() {
-        loadToken();
-        if (!state.token) {
-          clearMembershipPolling();
-          setGateVisible(false);
-          renderUser({
-            id: "",
-            email: "No account loaded yet",
-            plan: "free",
-            premiumActive: false,
-            stripeSubscriptionStatus: "not connected",
-            stripeCustomerId: "",
-            membershipSource: "none",
-            plusDaysTotal: null,
-            plusDaysLeft: 0,
-            plusExpiresAt: null
-          });
-            setStatus(els.acctMembershipStatus, "No account is loaded yet. You can still preview the overview layout for now.", "");
-            return;
-          }
-
         setGateVisible(false);
         setStatus(els.acctMembershipStatus, "Loading account overview...", "");
 
           try {
             var result = await apiRequest("/auth/me", {
-              method: "GET",
-              headers: { Authorization: "Bearer " + state.token }
+              method: "GET"
             });
 
             var loadedUser = result.user || null;
@@ -2021,7 +2000,7 @@
       }
 
       async function refreshPremiumStatus(isBackgroundPoll) {
-        if (!state.token) {
+        if (!state.user || !state.user.id) {
           redirectTop(LOGIN_PAGE_URL);
           return;
         }
@@ -2032,8 +2011,7 @@
 
         try {
           var result = await apiRequest("/auth/premium-status", {
-            method: "GET",
-            headers: { Authorization: "Bearer " + state.token }
+            method: "GET"
           });
 
           if (state.user) {
@@ -2055,7 +2033,7 @@
       }
 
       async function openPortal(button, statusElement) {
-        if (!state.token) {
+        if (!state.user || !state.user.id) {
           redirectTop(LOGIN_PAGE_URL);
           return;
         }
@@ -2065,8 +2043,7 @@
 
         try {
           var result = await apiRequest("/auth/create-portal-session", {
-            method: "POST",
-            headers: { Authorization: "Bearer " + state.token }
+            method: "POST"
           });
 
           if (!result || !result.url) {
@@ -2239,7 +2216,7 @@
       }
 
       async function submitChangePassword() {
-        if (!state.token) {
+        if (!state.user || !state.user.id) {
           redirectTop(LOGIN_PAGE_URL);
           return;
         }
@@ -2276,8 +2253,7 @@
           await apiRequest("/auth/change-password", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + state.token
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               currentPassword: currentPassword,
@@ -2302,7 +2278,7 @@
       }
 
       async function confirmDeleteAccount() {
-        if (!state.token) {
+        if (!state.user || !state.user.id) {
           redirectTop(LOGIN_PAGE_URL);
           return;
         }
@@ -2314,8 +2290,7 @@
 
         try {
           await apiRequest("/auth/delete-account", {
-            method: "POST",
-            headers: { Authorization: "Bearer " + state.token }
+            method: "POST"
           });
 
           clearStoredProfile();
@@ -2342,8 +2317,12 @@
         }
       }
 
-      function logout() {
+      async function logout() {
         clearMembershipPolling();
+        try {
+          await apiRequest("/auth/logout", { method: "POST" });
+        } catch (_error) {
+        }
         saveToken("");
         redirectTop(LOGIN_PAGE_URL);
       }

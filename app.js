@@ -28,6 +28,7 @@ const fetch = (...args) =>
 const { installSiteOpsFeature } = require("./site-ops-feature");
 
 const app = express();
+app.set("trust proxy", 1);
 const httpServer = createServer(app);
 const AUTH_COOKIE_NAME = "rblxtools_auth_token";
 const ROBLOSECURITY = process.env.ROBLOSECURITY;
@@ -1665,28 +1666,44 @@ function getAuthCookieSecureFlag(req) {
   return Boolean(req.secure);
 }
 
-function setAuthCookie(req, res, token) {
-  res.cookie(AUTH_COOKIE_NAME, token, {
+function getAuthCookieDomain(req) {
+  const host = String(req.headers?.host || "").split(":")[0].trim().toLowerCase();
+  if (host === "rblxtools.net" || host.endsWith(".rblxtools.net")) {
+    return ".rblxtools.net";
+  }
+  return undefined;
+}
+
+function getAuthCookieBaseOptions(req) {
+  return {
     httpOnly: true,
     sameSite: "lax",
     secure: getAuthCookieSecureFlag(req),
     path: "/",
+  };
+}
+
+function getAuthCookieOptions(req) {
+  const domain = getAuthCookieDomain(req);
+  const options = getAuthCookieBaseOptions(req);
+  if (domain) options.domain = domain;
+  return options;
+}
+
+function setAuthCookie(req, res, token) {
+  res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieBaseOptions(req));
+  res.cookie(AUTH_COOKIE_NAME, token, {
+    ...getAuthCookieOptions(req),
     maxAge: 1000 * 60 * 60 * 24 * 30,
   });
 }
 
 function clearAuthCookie(req, res) {
-  res.clearCookie(AUTH_COOKIE_NAME, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: getAuthCookieSecureFlag(req),
-    path: "/",
-  });
+  res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieBaseOptions(req));
+  res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions(req));
 }
 
 function getBearerToken(req) {
-  // Prefer the signed HttpOnly session cookie. This keeps legacy localStorage
-  // tokens from overriding a newer browser session after an account switch.
   const cookieToken = String(req.cookies?.[AUTH_COOKIE_NAME] || "").trim();
   if (cookieToken) return cookieToken;
   const header = String(req.headers.authorization || "");
