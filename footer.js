@@ -181,8 +181,7 @@ const files = [
   "template-downloader.html",
   "terms-and-conditions.html",
   "ugc-downloader.html",
-  "app.js",
-  "server.js"
+  "app.js"
 ];
 
 for (const file of files) {
