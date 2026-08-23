@@ -888,7 +888,7 @@
   </style>
   <link rel="stylesheet" href="./mobile-overrides.css" />
 </head>
-<body>
+<body data-tool-report="UGC Downloader">
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -931,7 +931,6 @@
       <textarea id="ugcId" placeholder="Enter one Roblox catalog asset ID, or comma-separated IDs for Plus"></textarea>
 
       <button id="ugcButton" onclick="generateUgc()">Create Textured Preview</button>
-      <button id="ugcReportButton" class="ugc-report-button" type="button">Report an item problem</button>
 
       <div id="status"></div>
 
@@ -1842,7 +1841,8 @@
     });
   });
 
-  document.getElementById("ugcReportButton").addEventListener("click", async function () {
+  /* Temporary inline reporting was replaced by the shared report modal. */
+  /*document.getElementById("ugcReportButton").addEventListener("click", async function () {
     const assetId = String(ugcIdInput.value || "").trim().split(/[,\s]+/)[0];
     const details = window.prompt("What went wrong with this item? Include any texture or preview issue.");
     if (!details || !String(details).trim()) return;
@@ -1873,7 +1873,7 @@
     } finally {
       button.disabled = false;
     }
-  });
+  });*/
 </script>
 <script>
     (function () {
@@ -1998,6 +1998,7 @@
       video.addEventListener("ended", showCover);
     })();
   </script>
+<script src="./tool-report.js"></script>
 </body>
 </html>
 
