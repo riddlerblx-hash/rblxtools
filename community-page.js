@@ -12,7 +12,7 @@
   var currentViewer = null;
   var viewerMembershipSignature = "";
   var publishStatusTimer = null;
-  var composerOpen = false;
+  var composerOpen = true;
   var composerAttachment = null;
 
   function escapeHtml(value) {
@@ -545,7 +545,7 @@
     var activeFilter = getActiveFilter();
     var memberCategory = activeFilter === "feedback" ? "feedback" : "bug-report";
     var memberCanPost = isLoggedIn && !isAdminUser && (activeFilter === "bug-report" || activeFilter === "feedback");
-    composer.hidden = !composerOpen || !(isAdminUser || memberCanPost);
+    composer.hidden = !(isAdminUser || memberCanPost);
     composer.classList.toggle("is-member-report", memberCanPost);
     composer.classList.toggle("is-member-feedback", memberCanPost && memberCategory === "feedback");
     if (ratingField) ratingField.hidden = !(memberCanPost && memberCategory === "feedback");
@@ -635,7 +635,6 @@
 
   function setComposerOpen(open) {
     composerOpen = Boolean(open);
-    document.body.classList.toggle("rblx-shell-modal-open", composerOpen);
     updateComposerMode();
     if (composerOpen) {
       window.setTimeout(function () {
@@ -984,11 +983,6 @@
 
   function bindComposer() {
     var composer = document.getElementById("communityAdminComposer");
-    // Match the login overlay: it lives in the shell root at the shell modal layer.
-    window.setTimeout(function () {
-      var shellRoot = document.getElementById("rblxShellRoot");
-      if (composer && shellRoot && composer.parentElement !== shellRoot) shellRoot.appendChild(composer);
-    }, 0);
     var publishButton = document.getElementById("communityPublishButton");
     if (publishButton) publishButton.addEventListener("click", savePost);
     var openButton = document.getElementById("communityOpenComposer");

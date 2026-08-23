@@ -115,29 +115,14 @@
     }
     .community-admin-composer { margin-top: 22px; padding: 24px; }
     .community-admin-composer[hidden] { display: none !important; }
-    .community-admin-composer {
-      position: fixed;
-      inset: 0;
-      z-index: 78;
-      display: grid;
-      place-items: center;
-      overflow-y: auto;
-      padding: 24px 16px;
-      background: rgba(3, 7, 14, 0.76);
-      backdrop-filter: blur(9px);
-      -webkit-backdrop-filter: blur(9px);
-    }
+    .community-admin-composer { position: relative; z-index: auto; display: block; overflow: visible; padding: 24px; margin-top: 22px; background: rgba(17, 23, 35, 0.88); }
     .community-composer-dialog {
-      width: min(680px, 100%);
-      padding: 24px;
-      border: 1px solid rgba(255, 155, 171, 0.24);
-      border-radius: 24px;
-      background: linear-gradient(155deg, #171d2d, #0d121d);
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+      width: 100%;
+      padding: 0;
     }
     .community-composer-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-    .community-composer-close { width: 38px; height: 38px; border: 0; border-radius: 12px; background: rgba(255,255,255,.07); color: #f7f9ff; font-size: 26px; cursor: pointer; }
-    .community-open-composer { margin-top: 20px; }
+    .community-composer-close,
+    .community-open-composer { display: none; }
     .community-attachment-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
     .community-attachment-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
     .community-field .community-attachment-label { display: inline-flex; width: auto; align-items: center; min-height: 40px; margin: 0; padding: 0 13px; border: 1px solid rgba(162, 187, 255, .38); border-radius: 12px; background: rgba(100, 132, 197, .12); color: #d9e6ff; font-size: 13px; font-weight: 800; cursor: pointer; }
@@ -464,7 +449,6 @@
           </div>
         </div>
       </div>
-      <button class="community-button primary community-open-composer" id="communityOpenComposer" type="button">Create a Post</button>
     </section>
 
     <section class="community-admin-composer" id="communityAdminComposer" hidden>
