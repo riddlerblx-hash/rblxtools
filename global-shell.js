@@ -3732,6 +3732,54 @@
     observer.observe(pageHost, { childList: true, subtree: true });
   }
 
+  function decoratePlusText(root) {
+    if (!root || !document.createTreeWalker) return;
+    var matcher = /\bplus\b/gi;
+    var ignoredSelector = ".rblx-plus-word, script, style, textarea, select, option, input, pre, code";
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (node) {
+        if (!matcher.test(node.nodeValue || "")) return NodeFilter.FILTER_REJECT;
+        matcher.lastIndex = 0;
+        var parent = node.parentElement;
+        return parent && !parent.closest(ignoredSelector)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      }
+    });
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function (node) {
+      var value = node.nodeValue;
+      matcher.lastIndex = 0;
+      var match;
+      var cursor = 0;
+      var fragment = document.createDocumentFragment();
+      while ((match = matcher.exec(value))) {
+        if (match.index > cursor) fragment.appendChild(document.createTextNode(value.slice(cursor, match.index)));
+        var word = document.createElement("span");
+        word.className = "rblx-plus-word";
+        word.textContent = match[0];
+        fragment.appendChild(word);
+        cursor = match.index + match[0].length;
+      }
+      if (cursor < value.length) fragment.appendChild(document.createTextNode(value.slice(cursor)));
+      if (node.parentNode) node.parentNode.replaceChild(fragment, node);
+    });
+  }
+
+  function initPlusTextTreatment() {
+    decoratePlusText(document.body);
+    var observer = new MutationObserver(function (records) {
+      records.forEach(function (record) {
+        Array.prototype.forEach.call(record.addedNodes, function (node) {
+          if (node.nodeType === 3) decoratePlusText(node.parentNode);
+          else if (node.nodeType === 1 && !node.classList.contains("rblx-plus-word")) decoratePlusText(node);
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
   function initShell() {
     var initialState = getImmediateUserState();
     shellState.currentUser = {
@@ -3758,6 +3806,7 @@
     initSharedToolShowcase();
     initSharedToolStats();
     document.body.classList.add("rblx-shell-ready");
+    initPlusTextTreatment();
     shellState.deviceId = getDeviceId();
     applyCollapsedState(document.body);
     initProfileOverlay();

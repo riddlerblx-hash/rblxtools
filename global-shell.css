@@ -3301,6 +3301,29 @@ body.rblx-shell-ready .rblx-shell-page .rblx-tool-stat strong { display: block; 
   body.rblx-shell-ready .rblx-shell-page .plus-card .perk { min-height: 0; }
 }
 
+/* Shared RBTools Plus wordmark used everywhere the membership is mentioned. */
+.rblx-plus-word {
+  display: inline-block;
+  color: #eef3fa;
+  font-weight: 900;
+  background: linear-gradient(110deg, #7f8b99 0%, #ffffff 24%, #bac5d0 47%, #ffffff 68%, #788594 100%);
+  background-size: 230% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 12px rgba(228, 237, 247, .28);
+  animation: rblxPlusTextShine 3.8s linear infinite;
+}
+
+@keyframes rblxPlusTextShine {
+  from { background-position: 0% 50%; }
+  to { background-position: 230% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rblx-plus-word { animation: none; }
+}
+
 /* Site-wide visual system: one quiet midnight surface, with red reserved for actions. */
 :root {
   --shell-bg: #0d1422;
