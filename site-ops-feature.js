@@ -633,6 +633,54 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
     }
   });
 
+  app.patch("/api/community-posts/:postId/comments/:commentId", async (req, res) => {
+    try {
+      const user = await requireAuthenticatedUser(req);
+      const userId = String(user?.id || "").trim();
+      const postId = String(req.params?.postId || "").trim();
+      const commentId = String(req.params?.commentId || "").trim();
+      const posts = readCommunityPosts(baseDir);
+      const postIndex = posts.findIndex((post) => String(post.id || "") === postId);
+      if (postIndex < 0) return res.status(404).json({ error: "That post could not be found." });
+      const post = normalizePostForStorage(posts[postIndex]);
+      const comment = post.comments.find((entry) => String(entry.id || "") === commentId);
+      if (!comment) return res.status(404).json({ error: "That comment could not be found." });
+      if (String(comment.userId || "") !== userId) return res.status(403).json({ error: "You can only edit your own comments." });
+      const body = cleanText(req.body?.body, 800);
+      if (!body) return res.status(400).json({ error: "A comment cannot be empty." });
+      comment.body = body;
+      post.updatedAt = new Date().toISOString();
+      posts[postIndex] = post;
+      writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, message: "Comment updated." });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not update the comment." });
+    }
+  });
+
+  app.delete("/api/community-posts/:postId/comments/:commentId", async (req, res) => {
+    try {
+      const user = await requireAuthenticatedUser(req);
+      const userId = String(user?.id || "").trim();
+      const postId = String(req.params?.postId || "").trim();
+      const commentId = String(req.params?.commentId || "").trim();
+      const posts = readCommunityPosts(baseDir);
+      const postIndex = posts.findIndex((post) => String(post.id || "") === postId);
+      if (postIndex < 0) return res.status(404).json({ error: "That post could not be found." });
+      const post = normalizePostForStorage(posts[postIndex]);
+      const comment = post.comments.find((entry) => String(entry.id || "") === commentId);
+      if (!comment) return res.status(404).json({ error: "That comment could not be found." });
+      if (String(comment.userId || "") !== userId) return res.status(403).json({ error: "You can only delete your own comments." });
+      post.comments = post.comments.filter((entry) => String(entry.id || "") !== commentId);
+      post.updatedAt = new Date().toISOString();
+      posts[postIndex] = post;
+      writeCommunityPosts(baseDir, posts);
+      return res.json({ ok: true, message: "Comment deleted." });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete the comment." });
+    }
+  });
+
   app.post("/api/community-posts/:postId/likes", async (req, res) => {
     try {
       const user = await requireAuthenticatedUser(req);

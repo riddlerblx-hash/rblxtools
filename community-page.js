@@ -329,36 +329,40 @@
       '<button class="community-post-menu-item is-danger" type="button" data-community-delete="' + escapeHtml(post.id) + '">Delete Post</button>';
     if (!isAdminUser) {
       return (
-        '<details class="community-post-menu">' +
-          '<summary aria-label="Post settings"><span>&#8942;</span></summary>' +
+        '<div class="community-post-menu">' +
+          '<button class="community-menu-toggle" type="button" aria-label="Post settings" data-community-menu-toggle="true"><span>&#8942;</span></button>' +
           '<div class="community-post-menu-panel">' + ownerMenu + '</div>' +
-        '</details>'
+        '</div>'
       );
     }
     return (
-      '<details class="community-post-menu">' +
-        '<summary aria-label="Post settings"><span>&#8942;</span></summary>' +
+      '<div class="community-post-menu">' +
+        '<button class="community-menu-toggle" type="button" aria-label="Post settings" data-community-menu-toggle="true"><span>&#8942;</span></button>' +
         '<div class="community-post-menu-panel">' +
           '<button class="community-post-menu-item" type="button" data-community-edit="' + escapeHtml(post.id) + '">Edit Post</button>' +
           '<button class="community-post-menu-item" type="button" data-community-pin="' + escapeHtml(post.id) + '" data-next-pinned="' + (post.pinned ? "false" : "true") + '">' + pinLabel + "</button>" +
           (String(post.category || "") === "bug-report" ? '<button class="community-post-menu-item" type="button" data-community-bug-status="' + escapeHtml(post.id) + '" data-next-bug-status="' + (resolved ? "unresolved" : "resolved") + '">' + (resolved ? "Mark as unresolved" : "Mark as resolved") + '</button><button class="community-post-menu-item" type="button" data-community-known-issue="' + escapeHtml(post.id) + '" data-next-known-issue="' + (post.knownIssue ? "false" : "true") + '">' + (post.knownIssue ? "Remove from Known Issues" : "Mark as known issue") + '</button>' : "") +
           '<button class="community-post-menu-item is-danger" type="button" data-community-delete="' + escapeHtml(post.id) + '">Delete Post</button>' +
         "</div>" +
-      "</details>"
+      "</div>"
     );
   }
 
   function buildAdminCommentMenu(postId, comment) {
-    if (!isAdminUser) return "";
+    var viewerId = String(currentViewer && currentViewer.userId || "").trim();
+    var ownsComment = Boolean(!isAdminUser && viewerId && String(comment && comment.userId || "").trim() === viewerId);
+    if (!isAdminUser && !ownsComment) return "";
     var isPinned = Boolean(comment && comment.pinned);
+    var actions = isAdminUser
+      ? '<button class="community-post-menu-item" type="button" data-community-comment-pin-post="' + escapeHtml(postId) + '" data-community-comment-pin="' + escapeHtml(comment.id) + '" data-next-pinned="' + (isPinned ? "false" : "true") + '">' + (isPinned ? "Unpin Comment" : "Pin Comment") + '</button>' +
+        '<button class="community-post-menu-item is-danger" type="button" data-community-comment-delete-post="' + escapeHtml(postId) + '" data-community-comment-delete="' + escapeHtml(comment.id) + '">Delete Comment</button>'
+      : '<button class="community-post-menu-item" type="button" data-community-comment-edit-post="' + escapeHtml(postId) + '" data-community-comment-edit="' + escapeHtml(comment.id) + '" data-community-comment-body="' + escapeHtml(comment.body || "") + '">Edit Comment</button>' +
+        '<button class="community-post-menu-item is-danger" type="button" data-community-comment-delete-post="' + escapeHtml(postId) + '" data-community-comment-delete="' + escapeHtml(comment.id) + '">Delete Comment</button>';
     return (
-      '<details class="community-post-menu community-comment-menu">' +
-        '<summary aria-label="Comment settings"><span>&#8942;</span></summary>' +
-        '<div class="community-post-menu-panel">' +
-          '<button class="community-post-menu-item" type="button" data-community-comment-pin-post="' + escapeHtml(postId) + '" data-community-comment-pin="' + escapeHtml(comment.id) + '" data-next-pinned="' + (isPinned ? "false" : "true") + '">' + (isPinned ? "Unpin Comment" : "Pin Comment") + '</button>' +
-          '<button class="community-post-menu-item is-danger" type="button" data-community-comment-delete-post="' + escapeHtml(postId) + '" data-community-comment-delete="' + escapeHtml(comment.id) + '">Delete Comment</button>' +
-        "</div>" +
-      "</details>"
+      '<div class="community-post-menu community-comment-menu">' +
+        '<button class="community-menu-toggle" type="button" aria-label="Comment settings" data-community-menu-toggle="true"><span>&#8942;</span></button>' +
+        '<div class="community-post-menu-panel">' + actions + '</div>' +
+      "</div>"
     );
   }
 
@@ -848,7 +852,7 @@
 
   async function updateComment(postId, commentId, body) {
     try {
-      await fetchJson(API_BASE + "/admin/community-posts/" + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId), {
+      await fetchJson(API_BASE + (isAdminUser ? "/admin/community-posts/" : "/api/community-posts/") + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
@@ -862,11 +866,19 @@
   async function deleteComment(postId, commentId) {
     if (!window.confirm("Delete this comment?")) return;
     try {
-      await fetchJson(API_BASE + "/admin/community-posts/" + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId), { method: "DELETE" });
+      await fetchJson(API_BASE + (isAdminUser ? "/admin/community-posts/" : "/api/community-posts/") + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId), { method: "DELETE" });
       await loadCommunityPosts(true);
     } catch (error) {
       setPublishStatus(error && error.message ? error.message : "Could not delete the comment.", "error");
     }
+  }
+
+  async function editComment(postId, commentId, currentBody) {
+    var body = window.prompt("Edit your comment:", currentBody || "");
+    if (body === null) return;
+    body = String(body).trim();
+    if (!body) return void setPublishStatus("A comment cannot be empty.", "error");
+    await updateComment(postId, commentId, { body: body });
   }
 
   async function sharePost(postId) {
@@ -927,13 +939,12 @@
       var target = event.target;
       if (!target || !target.closest) return;
 
-      // Keep native details menus open; the page-level handler otherwise consumes the click.
-      var menuSummary = target.closest(".community-post-menu > summary");
-      if (menuSummary) {
-        event.preventDefault();
+      var menuToggle = target.closest("[data-community-menu-toggle]");
+      if (menuToggle) {
         event.stopPropagation();
-        var menu = menuSummary.parentElement;
-        menu.open = !menu.open;
+        var menu = menuToggle.closest(".community-post-menu");
+        document.querySelectorAll(".community-post-menu.is-open").forEach(function (node) { if (node !== menu) node.classList.remove("is-open"); });
+        menu.classList.toggle("is-open");
         return;
       }
 
@@ -975,6 +986,9 @@
 
       var commentDeleteButton = target.closest("[data-community-comment-delete]");
       if (commentDeleteButton) return void deleteComment(commentDeleteButton.getAttribute("data-community-comment-delete-post"), commentDeleteButton.getAttribute("data-community-comment-delete"));
+
+      var commentEditButton = target.closest("[data-community-comment-edit]");
+      if (commentEditButton) return void editComment(commentEditButton.getAttribute("data-community-comment-edit-post"), commentEditButton.getAttribute("data-community-comment-edit"), commentEditButton.getAttribute("data-community-comment-body"));
 
       var commentPinButton = target.closest("[data-community-comment-pin]");
       if (commentPinButton) return void updateComment(commentPinButton.getAttribute("data-community-comment-pin-post"), commentPinButton.getAttribute("data-community-comment-pin"), { pinned: commentPinButton.getAttribute("data-next-pinned") === "true" });
