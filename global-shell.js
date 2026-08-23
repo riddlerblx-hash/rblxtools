@@ -3370,6 +3370,33 @@
     });
   }
 
+  function captureStreamingPageContent(pageHost) {
+    if (document.readyState !== "loading") return;
+
+    var moveNode = function (node) {
+      if (node === document.getElementById("rblxShellRoot")) return;
+      var footer = pageHost.querySelector(".rblx-shell-footer");
+      if (footer) pageHost.insertBefore(node, footer);
+      else pageHost.appendChild(node);
+    };
+    var observer = new MutationObserver(function (records) {
+      records.forEach(function (record) {
+        Array.prototype.slice.call(record.addedNodes).forEach(function (node) {
+          // Parser-inserted scripts must remain in body until they execute.
+          if (node.nodeType === 1 && node.tagName === "SCRIPT") return;
+          moveNode(node);
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true });
+    document.addEventListener("DOMContentLoaded", function () {
+      observer.disconnect();
+      Array.prototype.slice.call(document.body.childNodes).forEach(function (node) {
+        if (node !== document.getElementById("rblxShellRoot")) moveNode(node);
+      });
+    }, { once: true });
+  }
+
   function prefetchShellPage(href) {
     if (!href) return;
     var destination;
@@ -3724,6 +3751,7 @@
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
     pageHost.insertAdjacentHTML("beforeend", buildFooterMarkup());
+    captureStreamingPageContent(pageHost);
     syncMobileShellState();
     closeMobilePanels();
     initFaqAccordions();
@@ -3804,9 +3832,6 @@
   }
 
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initShell, { once: true });
-  } else {
-    initShell();
-  }
+  if (document.body) initShell();
+  else document.addEventListener("DOMContentLoaded", initShell, { once: true });
 }());
