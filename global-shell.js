@@ -3628,6 +3628,8 @@
     var modal = null;
     var status = null;
     var actionButton = null;
+    var sponsorStage = null;
+    var meterRefreshTimer = null;
 
     function request(path, options) {
       return fetch(API_BASE + path, Object.assign({ credentials: "include" }, options || {})).then(function (response) {
@@ -3639,16 +3641,18 @@
 
     function updateMeter(payload) {
       var meter = document.getElementById("rblxFreeUseMeter");
-      if (!meter) return;
       var user = shellState.currentUser || {};
       var canShow = Boolean(user.loggedIn && payload && !payload.unlimited && Number.isFinite(Number(payload.usedCount)));
-      if (!canShow) {
-        meter.hidden = true;
-        meter.textContent = "";
-        return;
+      if (meter) {
+        if (!canShow) {
+          meter.hidden = true;
+          meter.textContent = "";
+        } else {
+          meter.hidden = false;
+          meter.textContent = "Free actions: " + Number(payload.usedCount) + "/" + Number(payload.limit || 5);
+        }
       }
-      meter.hidden = false;
-      meter.textContent = "Free actions: " + Number(payload.usedCount) + "/" + Number(payload.limit || 5);
+      window.dispatchEvent(new CustomEvent("rblxtools:free-use-updated", { detail: payload || null }));
     }
 
     function refreshMeter() {
@@ -3662,6 +3666,38 @@
       });
     }
 
+    function scheduleMeterRefresh() {
+      if (meterRefreshTimer) window.clearTimeout(meterRefreshTimer);
+      meterRefreshTimer = window.setTimeout(function () {
+        meterRefreshTimer = null;
+        refreshMeter();
+      }, 80);
+    }
+
+    function installToolUsageRefresh() {
+      if (window.__rblxtoolsToolUsageRefreshInstalled || typeof window.fetch !== "function") return;
+      window.__rblxtoolsToolUsageRefreshInstalled = true;
+      var originalFetch = window.fetch;
+      var usagePaths = {
+        "/template": true,
+        "/media": true,
+        "/audio": true,
+        "/animation": true,
+        "/api/animation": true,
+        "/ugc-obj": true
+      };
+      window.fetch = function (input) {
+        var requestUrl = typeof input === "string" ? input : (input && input.url ? input.url : "");
+        return originalFetch.apply(this, arguments).then(function (response) {
+          try {
+            var pathname = new URL(requestUrl, window.location.href).pathname;
+            if (response && response.ok && usagePaths[pathname]) scheduleMeterRefresh();
+          } catch (error) {}
+          return response;
+        });
+      };
+    }
+
     function ensureModal() {
       if (modal) return;
       document.body.insertAdjacentHTML("beforeend", [
@@ -3670,11 +3706,16 @@
         '    <button class="rblx-free-use-close" type="button" aria-label="Close">×</button>',
         '    <span class="rblx-free-use-kicker">Free tool access</span>',
         '    <h2 id="rblxFreeUseTitle">You used your 5 free actions.</h2>',
-        '    <p id="rblxFreeUseMessage">Open sponsored content to restore five more tool actions, or upgrade for unlimited access.</p>',
+        '    <p id="rblxFreeUseMessage">View sponsored content to restore five more tool actions, or upgrade for unlimited access.</p>',
         '    <div class="rblx-free-use-actions">',
-        '      <button class="rblx-shell-btn is-primary" type="button" data-free-use-watch>Open Sponsored Content</button>',
+        '      <button class="rblx-shell-btn is-primary" type="button" data-free-use-watch>View Sponsored Content</button>',
         '      <a class="rblx-shell-btn" href="./subscriptions">View Plus Plans</a>',
         '    </div>',
+        '    <section class="rblx-free-use-sponsor-stage" id="rblxFreeUseSponsorStage" hidden>',
+        '      <span class="rblx-free-use-stage-label">Sponsored content</span>',
+        '      <strong>Your next five actions will be restored when sponsored content is ready.</strong>',
+        '      <div class="rblx-free-use-sponsor-slot" id="rblxFreeUseSponsorSlot"></div>',
+        '    </section>',
         '    <p class="rblx-free-use-status" id="rblxFreeUseStatus" aria-live="polite"></p>',
         '  </section>',
         '</div>'
@@ -3682,6 +3723,7 @@
       modal = document.getElementById("rblxFreeUseOverlay");
       status = document.getElementById("rblxFreeUseStatus");
       actionButton = modal.querySelector("[data-free-use-watch]");
+      sponsorStage = document.getElementById("rblxFreeUseSponsorStage");
       modal.querySelector(".rblx-free-use-close").addEventListener("click", closeModal);
       modal.addEventListener("click", function (event) { if (event.target === modal) closeModal(); });
       actionButton.addEventListener("click", unlockWithSponsoredVideo);
@@ -3689,10 +3731,15 @@
 
     function openModal(message) {
       ensureModal();
-      document.getElementById("rblxFreeUseMessage").textContent = message || "Open sponsored content to restore five more tool actions, or upgrade for unlimited access.";
+      document.getElementById("rblxFreeUseMessage").textContent = message || "View sponsored content to restore five more tool actions, or upgrade for unlimited access.";
       status.textContent = "";
       actionButton.disabled = false;
-      actionButton.textContent = "Open Sponsored Content";
+      actionButton.hidden = false;
+      actionButton.textContent = "View Sponsored Content";
+      if (sponsorStage) {
+        sponsorStage.hidden = true;
+        sponsorStage.querySelector("#rblxFreeUseSponsorSlot").innerHTML = "";
+      }
       modal.classList.add("is-open");
       modal.setAttribute("aria-hidden", "false");
     }
@@ -3706,7 +3753,7 @@
     function unlockWithSponsoredVideo() {
       if (!actionButton || actionButton.disabled) return;
       actionButton.disabled = true;
-      actionButton.textContent = "Opening sponsored content…";
+      actionButton.textContent = "Loading sponsored content…";
       status.textContent = "Loading sponsored content…";
       request("/api/free-tool-usage").then(function (access) {
         if (!access.response.ok) throw new Error(access.payload.error || "Could not verify tool access.");
@@ -3715,6 +3762,9 @@
           closeModal();
           return;
         }
+
+        if (sponsorStage) sponsorStage.hidden = false;
+        actionButton.hidden = true;
 
         var script = document.createElement("script");
         script.async = true;
@@ -3730,18 +3780,23 @@
           }).catch(function (error) {
             status.textContent = error.message || "Could not restore free tool access.";
             actionButton.disabled = false;
+            actionButton.hidden = false;
             actionButton.textContent = "Try Again";
           });
         };
         script.onerror = function () {
           status.textContent = "Sponsored content could not be loaded. Please try again.";
           actionButton.disabled = false;
+          actionButton.hidden = false;
           actionButton.textContent = "Try Again";
         };
-        document.head.appendChild(script);
+        var sponsorSlot = document.getElementById("rblxFreeUseSponsorSlot");
+        if (sponsorSlot) sponsorSlot.appendChild(script);
+        else document.head.appendChild(script);
       }).catch(function (error) {
         status.textContent = error.message || "Could not verify tool access.";
         actionButton.disabled = false;
+        actionButton.hidden = false;
         actionButton.textContent = "Try Again";
       });
     }
@@ -3776,7 +3831,12 @@
       refresh: refreshMeter
     };
 
+    installToolUsageRefresh();
     refreshMeter();
+    window.setInterval(refreshMeter, 30000);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") refreshMeter();
+    });
   }
 
   function initShell() {

@@ -3343,6 +3343,11 @@ body.rblx-shell-ready .rblx-shell-page .rblx-tool-stat strong { display: block; 
 .rblx-free-use-actions .rblx-shell-btn { text-decoration: none; }
 .rblx-free-use-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; background: rgba(255,255,255,.06); color: #fff; font-size: 24px; cursor: pointer; }
 .rblx-free-use-status { min-height: 22px; margin-top: 16px !important; color: #8cf5ba !important; font-weight: 800; }
+.rblx-free-use-sponsor-stage { margin-top: 18px; padding: 16px; border: 1px solid rgba(92, 145, 255, .42); border-radius: 16px; background: linear-gradient(145deg, rgba(46, 85, 156, .34), rgba(14, 20, 42, .92)); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+.rblx-free-use-sponsor-stage[hidden] { display: none; }
+.rblx-free-use-sponsor-stage strong { display: block; margin-top: 6px; color: #f5f8ff; font-size: 15px; line-height: 1.4; }
+.rblx-free-use-stage-label { color: #8eb8ff; font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.rblx-free-use-sponsor-slot { min-height: 42px; margin-top: 14px; overflow: hidden; border-radius: 12px; }
 
 /* Shared tool and plan polish. */
 body.rblx-shell-ready::before { display: none !important; }
