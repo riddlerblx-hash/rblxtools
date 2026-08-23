@@ -293,6 +293,11 @@
     .ugc-mode-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
     .ugc-mode-option { min-height: 38px; border: 1px solid rgba(255,255,255,.10); border-radius: 10px; background: rgba(255,255,255,.035); color: #bec5d0; font: inherit; font-size: 11px; font-weight: 900; cursor: pointer; transition: .16s ease; }
     .ugc-mode-option:hover, .ugc-mode-option.is-active { border-color: rgba(115,161,255,.68); background: linear-gradient(135deg,rgba(74,125,235,.26),rgba(255,61,89,.12)); color: #fff; }
+    .ugc-mode-help { margin: -2px 0 14px; color: #aebbd1; font-size: 11px; line-height: 1.5; }
+    .ugc-mode-help strong { color: #f4f7ff; }
+    .ugc-report-button { width: 100%; margin-top: 10px; min-height: 38px; border: 1px solid rgba(255,134,150,.36); border-radius: 11px; background: rgba(255,93,119,.08); color: #ffdce2; font: inherit; font-size: 12px; font-weight: 900; cursor: pointer; }
+    .ugc-report-button:hover { background: rgba(255,93,119,.16); border-color: rgba(255,150,164,.62); }
+    .ugc-report-button:disabled { cursor: wait; opacity: .7; }
     .ugc-export-note { margin: 12px 0 0; padding: 11px 12px; border: 1px solid rgba(119,164,255,.20); border-radius: 10px; background: linear-gradient(135deg,rgba(75,120,216,.13),rgba(255,255,255,.025)); color: #bcc6d5; font-size: 10.5px; font-weight: 700; line-height: 1.55; }
     .ugc-export-note strong { color: #fff; }
 
@@ -918,13 +923,15 @@
       </div>
 
       <div class="ugc-mode-picker" role="group" aria-label="Roblox catalog item type">
-        <button class="ugc-mode-option is-active" type="button" data-ugc-mode="ugc">UGC Item</button>
-        <button class="ugc-mode-option" type="button" data-ugc-mode="classic">Classic Item</button>
+        <button class="ugc-mode-option is-active" type="button" data-ugc-mode="ugc">Modern / UGC / Multi-mesh</button>
+        <button class="ugc-mode-option" type="button" data-ugc-mode="classic">Legacy Classic / Single-mesh</button>
       </div>
+      <p class="ugc-mode-help"><strong>Not sure?</strong> Start with Modern mode for UGC, multi-mesh items, and newer Roblox-made items. Use Legacy Classic only for older single-mesh catalog items.</p>
       <label class="field-label" for="ugcId">Roblox Catalog Asset ID</label>
       <textarea id="ugcId" placeholder="Enter one Roblox catalog asset ID, or comma-separated IDs for Plus"></textarea>
 
       <button id="ugcButton" onclick="generateUgc()">Create Textured Preview</button>
+      <button id="ugcReportButton" class="ugc-report-button" type="button">Report an item problem</button>
 
       <div id="status"></div>
 
@@ -1830,9 +1837,42 @@
         option.classList.toggle("is-active", option === button);
       });
       ugcIdInput.placeholder = selectedItemMode === "classic"
-        ? "Enter a classic Roblox catalog asset ID, or comma-separated IDs for Plus"
-        : "Enter a Roblox UGC catalog asset ID, or comma-separated IDs for Plus";
+        ? "Enter an older single-mesh catalog asset ID, or comma-separated IDs for Plus"
+        : "Enter a modern, UGC, or multi-mesh catalog asset ID, or comma-separated IDs for Plus";
     });
+  });
+
+  document.getElementById("ugcReportButton").addEventListener("click", async function () {
+    const assetId = String(ugcIdInput.value || "").trim().split(/[,\s]+/)[0];
+    const details = window.prompt("What went wrong with this item? Include any texture or preview issue.");
+    if (!details || !String(details).trim()) return;
+    const title = assetId ? "UGC tool issue: asset " + assetId : "UGC tool issue";
+    const body = [
+      "Tool: UGC Downloader",
+      "Asset ID: " + (assetId || "Not provided"),
+      "Selected mode: " + (selectedItemMode === "classic" ? "Legacy Classic / Single-mesh" : "Modern / UGC / Multi-mesh"),
+      "Issue: " + String(details).trim()
+    ].join("\n");
+    const button = this;
+    button.disabled = true;
+    try {
+      const response = await fetch(API_BASE + "/api/community-posts/bug-reports", {
+        method: "POST",
+        credentials: "include",
+        headers: Object.assign({ "Content-Type": "application/json" }, getAuthHeaders()),
+        body: JSON.stringify({ title: title, body: body })
+      });
+      const payload = await response.json().catch(function () { return {}; });
+      if (response.status === 401) throw new Error("Log in to submit a tool report.");
+      if (!response.ok) throw new Error(payload.error || "Could not submit the report.");
+      status.className = "success";
+      status.textContent = "Report sent to Community Bug Reports. Thank you.";
+    } catch (error) {
+      status.className = "error";
+      status.textContent = error.message || "Could not submit the report.";
+    } finally {
+      button.disabled = false;
+    }
   });
 </script>
 <script>
