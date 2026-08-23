@@ -720,32 +720,6 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   min-width: 0;
 }
 
-.rblx-shell-tool-frame-stage {
-  position: relative;
-  min-width: 0;
-  min-height: calc(100vh - 48px);
-  transition: opacity 160ms ease;
-}
-
-.rblx-shell-tool-frame-stage.is-loading { opacity: .55; }
-
-.rblx-shell-tool-frame-view {
-  display: block;
-  width: 100%;
-  min-height: calc(100vh - 48px);
-  border: 0;
-  background: transparent;
-}
-
-/* Framed pages inherit the one continuous site backdrop from the parent shell. */
-html:has(body.rblx-shell-tool-frame),
-body.rblx-shell-tool-frame,
-body.rblx-shell-tool-frame #rblxShellPage,
-body.rblx-shell-tool-frame #rblxShellPage > * {
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
 .rblx-shell-chat-card {
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,0.06);
