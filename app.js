@@ -5775,6 +5775,54 @@ app.get("/auth/me", async (req, res) => {
   }
 });
 
+app.post("/chat/message", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const deviceId = getRequestDeviceId(req);
+    const moderation = await summarizeModerationForTarget(user, deviceId);
+    if (moderation.websiteBlacklisted || moderation.chatBanned || moderation.chatTimeoutUntil) {
+      return res.status(403).json({ error: moderation.chatBanReason || moderation.chatTimeoutReason || moderation.websiteBlacklistReason || "Chat is unavailable for this account.", moderation });
+    }
+
+    const text = cleanText(req.body?.text, maxMessageLength);
+    if (!text) return res.status(400).json({ error: "Enter a message first." });
+
+    const room = cleanText(req.body?.room || defaultChatRoom, 40) || defaultChatRoom;
+    const profile = await buildChatMemberProfile(req.body || {}, user);
+    const message = createChatRoomMessage(profile, { text, replyTo: req.body?.replyTo });
+    pushRoomMessage(room, message);
+    return res.json({ ok: true, message });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not send the chat message." });
+  }
+});
+
+app.post("/chat/react", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const deviceId = getRequestDeviceId(req);
+    const moderation = await summarizeModerationForTarget(user, deviceId);
+    if (moderation.websiteBlacklisted || moderation.chatBanned || moderation.chatTimeoutUntil) {
+      return res.status(403).json({ error: moderation.chatBanReason || moderation.chatTimeoutReason || moderation.websiteBlacklistReason || "Chat is unavailable for this account." });
+    }
+
+    const room = cleanText(req.body?.room || defaultChatRoom, 40) || defaultChatRoom;
+    const messageId = cleanText(req.body?.messageId, 120);
+    const history = recentMessages.get(room) || [];
+    const message = history.find((entry) => String(entry?.id || "") === messageId);
+    if (!message || message.system) return res.status(404).json({ error: "That message is no longer available." });
+
+    const userId = String(user.id || "").trim();
+    const hearts = Array.isArray(message.heartUserIds) ? message.heartUserIds.map(String) : [];
+    message.heartUserIds = hearts.includes(userId) ? hearts.filter((value) => value !== userId) : hearts.concat(userId).slice(-500);
+    persistRoomHistory(room);
+    io.to(room).emit("chat-history", recentMessages.get(room) || []);
+    return res.json({ ok: true, history: recentMessages.get(room) || [] });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not update the reaction." });
+  }
+});
+
 app.get("/auth/device-status", async (req, res) => {
   try {
     const deviceId = getRequestDeviceId(req);

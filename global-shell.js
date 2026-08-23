@@ -2352,6 +2352,18 @@
     banner.hidden = false;
   }
 
+  async function postChatAction(path, body) {
+    var response = await fetch(API_BASE + path, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-RBLX-Device-Id": shellState.deviceId || getDeviceId() },
+      body: JSON.stringify(body)
+    });
+    var payload = await response.json().catch(function () { return null; });
+    if (!response.ok) throw new Error((payload && payload.error) || "Live chat action failed.");
+    return payload || {};
+  }
+
   function initChat() {
     var list = document.getElementById("rblxShellChatScroll");
     var form = document.getElementById("rblxShellChatForm");
@@ -2426,10 +2438,14 @@
       if (actionButton && actionButton.getAttribute("data-chat-action") === "heart") {
         if (!shellState.currentUser || !shellState.currentUser.loggedIn) return void openAuthModal({ mode: "login", message: "Log in or sign up to react in live chat." });
         if (!actionButton.classList.contains("is-active")) createShellHeartBurst(actionButton);
-        if (shellState.socket && shellState.socketReady) shellState.socket.emit("chat-react", {
-          messageId: shellState.chatMessages[Number(actionButton.getAttribute("data-chat-index"))]?.id,
-          authToken: shellState.chatAuthToken || ""
-        });
+        var messageId = shellState.chatMessages[Number(actionButton.getAttribute("data-chat-index"))]?.id;
+        if (messageId) postChatAction("/chat/react", { room: "rblxtools-main", messageId: messageId }).then(function (payload) {
+          if (Array.isArray(payload.history)) {
+            shellState.chatMessages = payload.history;
+            cacheChatMessages(payload.history);
+            renderChatMessages(shellState.chatList, payload.history);
+          }
+        }).catch(function (error) { setChatAlert(error.message || "Could not update that reaction.", "ban"); });
         return;
       }
       if (actionButton && actionButton.getAttribute("data-chat-action") === "reply") {
@@ -2447,7 +2463,7 @@
       openProfileModal(message, button);
     });
 
-    form.addEventListener("submit", function (event) {
+    form.addEventListener("submit", async function (event) {
       event.preventDefault();
       if (!shellState.currentUser || !shellState.currentUser.loggedIn) {
         if (window.RBLXToolsAuth && typeof window.RBLXToolsAuth.open === "function") {
@@ -2459,8 +2475,9 @@
       }
       var value = input.value.trim();
       if (!value) return;
-      if (!shellState.socket || !shellState.socketReady) return;
-      shellState.socket.emit("chat-message", {
+      try {
+        await postChatAction("/chat/message", {
+        room: "rblxtools-main",
         text: value,
         displayName: getSocketChatIdentity().displayName,
         username: getSocketChatIdentity().username,
@@ -2469,9 +2486,12 @@
         plan: getSocketChatIdentity().plan,
         isPlus: getSocketChatIdentity().isPlus,
         isGuest: getSocketChatIdentity().isGuest,
-        authToken: shellState.chatAuthToken || "",
         replyTo: shellState.chatReplyTo
-      });
+        });
+      } catch (error) {
+        setChatAlert(error.message || "Could not send your message.", "ban");
+        return;
+      }
       shellState.chatReplyTo = null;
       input.placeholder = "Enter a message...";
       updateChatReplyBanner();
@@ -2546,6 +2566,7 @@
           return;
         }
         var nextMessages = shellState.chatMessages.slice();
+        if (message && message.id && nextMessages.some(function (entry) { return entry && entry.id === message.id; })) return;
         nextMessages.push(message);
         nextMessages = nextMessages.slice(-80);
         shellState.chatMessages = nextMessages;
