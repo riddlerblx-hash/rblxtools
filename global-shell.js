@@ -2476,7 +2476,7 @@
       var value = input.value.trim();
       if (!value) return;
       try {
-        await postChatAction("/chat/message", {
+        var result = await postChatAction("/chat/message", {
         room: "rblxtools-main",
         text: value,
         displayName: getSocketChatIdentity().displayName,
@@ -2488,6 +2488,12 @@
         isGuest: getSocketChatIdentity().isGuest,
         replyTo: shellState.chatReplyTo
         });
+        if (result.message && !shellState.chatMessages.some(function (entry) { return entry && entry.id === result.message.id; })) {
+          var nextMessages = shellState.chatMessages.concat(result.message).slice(-80);
+          shellState.chatMessages = nextMessages;
+          cacheChatMessages(nextMessages);
+          renderChatMessages(shellState.chatList, nextMessages, { forceBottom: true });
+        }
       } catch (error) {
         setChatAlert(error.message || "Could not send your message.", "ban");
         return;
