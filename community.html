@@ -207,17 +207,29 @@
       color: #ffdfe5;
     }
     .community-status {
-      padding: 12px 14px;
+      position: fixed;
+      z-index: 4000;
+      left: 50%;
+      bottom: 24px;
+      width: min(440px, calc(100vw - 32px));
+      padding: 13px 16px;
       border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(116, 229, 165, 0.34);
+      background: rgba(13, 31, 29, 0.96);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
       font-size: 14px;
       font-weight: 700;
-      color: #dce3f2;
+      color: #cbffe0;
+      text-align: center;
+      pointer-events: none;
+      transform: translate(-50%, 18px);
+      opacity: 0;
     }
     .community-status[hidden] { display: none !important; }
-    .community-status.is-error { border-color: rgba(255, 98, 88, 0.28); background: rgba(255, 98, 88, 0.08); color: #ffc5c0; }
-    .community-status.is-success { border-color: rgba(83, 223, 136, 0.28); background: rgba(83, 223, 136, 0.08); color: #c9ffd9; }
+    .community-status.is-visible { animation: communityToast 3.2s ease forwards; }
+    .community-status.is-error { border-color: rgba(255, 112, 103, 0.42); background: rgba(50, 20, 25, 0.97); color: #ffd1cc; }
+    .community-status.is-success { border-color: rgba(83, 223, 136, 0.34); background: rgba(13, 31, 29, 0.96); color: #cbffe0; }
+    @keyframes communityToast { 0% { opacity: 0; transform: translate(-50%, 18px); } 12%, 78% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 10px); } }
     .community-layout { display: grid; grid-template-columns: minmax(0, 1.85fr) minmax(280px, 0.9fr); gap: 22px; margin-top: 24px; align-items: start; }
     .community-feed,
     .community-side { display: grid; gap: 18px; min-width: 0; }

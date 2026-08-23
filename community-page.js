@@ -11,6 +11,7 @@
   var cachedPosts = [];
   var currentViewer = null;
   var viewerMembershipSignature = "";
+  var publishStatusTimer = null;
 
   function escapeHtml(value) {
     return String(value == null ? "" : value)
@@ -91,9 +92,23 @@
   function setPublishStatus(message, tone) {
     var node = document.getElementById("communityPublishStatus");
     if (!node) return;
+    if (publishStatusTimer) {
+      window.clearTimeout(publishStatusTimer);
+      publishStatusTimer = null;
+    }
     node.hidden = !message;
     node.textContent = message || "";
     node.className = "community-status" + (tone ? " is-" + tone : "");
+    if (!message) return;
+
+    // Restart the animation for back-to-back actions, then remove the toast.
+    void node.offsetWidth;
+    node.classList.add("is-visible");
+    publishStatusTimer = window.setTimeout(function () {
+      node.hidden = true;
+      node.classList.remove("is-visible");
+      publishStatusTimer = null;
+    }, tone === "error" ? 4600 : 3300);
   }
 
   function renderEmpty(feed, activeFilter) {
