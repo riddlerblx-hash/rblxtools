@@ -982,6 +982,10 @@
   }
 
   function bindComposer() {
+    var composer = document.getElementById("communityAdminComposer");
+    // The shell has its own stacking context; mounting the modal at body level
+    // guarantees the dimmer covers the header, sidebars, and page content.
+    if (composer && composer.parentElement !== document.body) document.body.appendChild(composer);
     var publishButton = document.getElementById("communityPublishButton");
     if (publishButton) publishButton.addEventListener("click", savePost);
     var openButton = document.getElementById("communityOpenComposer");

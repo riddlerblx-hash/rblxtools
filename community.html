@@ -137,8 +137,10 @@
     .community-composer-close { width: 38px; height: 38px; border: 0; border-radius: 12px; background: rgba(255,255,255,.07); color: #f7f9ff; font-size: 26px; cursor: pointer; }
     .community-open-composer { margin-top: 20px; }
     .community-attachment-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
-    .community-attachment-label { display: inline-flex; align-items: center; min-height: 42px; padding: 0 14px; border: 1px dashed rgba(162, 187, 255, .38); border-radius: 13px; color: #d9e6ff; font-size: 13px; font-weight: 800; cursor: pointer; }
-    .community-attachment-name { margin: 8px 0 0; color: rgba(211, 222, 241, .72); font-size: 12px; font-weight: 700; }
+    .community-attachment-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .community-field .community-attachment-label { display: inline-flex; width: auto; align-items: center; min-height: 40px; margin: 0; padding: 0 13px; border: 1px solid rgba(162, 187, 255, .38); border-radius: 12px; background: rgba(100, 132, 197, .12); color: #d9e6ff; font-size: 13px; font-weight: 800; cursor: pointer; }
+    .community-field .community-attachment-label:hover { border-color: rgba(255, 162, 177, .54); background: rgba(255, 113, 133, .12); }
+    .community-attachment-name { margin: 0; color: rgba(211, 222, 241, .72); font-size: 12px; font-weight: 700; }
     .community-post-attachment { margin-top: 16px; }
     .community-post-attachment img { display: block; width: min(100%, 560px); max-height: 420px; object-fit: contain; border-radius: 15px; border: 1px solid rgba(255,255,255,.09); background: rgba(0,0,0,.18); }
     .community-post-attachment a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid rgba(151,181,255,.34); border-radius: 12px; color: #dce9ff; background: rgba(86,122,190,.12); font-size: 13px; font-weight: 800; text-decoration: none; }
@@ -519,8 +521,10 @@
         <div class="community-field">
           <label for="communityPostAttachment">Optional attachment</label>
           <input class="community-attachment-input" id="communityPostAttachment" type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain" />
-          <label class="community-attachment-label" for="communityPostAttachment">Add image, PDF, or text file</label>
-          <p class="community-attachment-name" id="communityAttachmentName">Up to 2 MB.</p>
+          <div class="community-attachment-row">
+            <label class="community-attachment-label" for="communityPostAttachment">Choose attachment</label>
+            <p class="community-attachment-name" id="communityAttachmentName">Image, PDF, or text file. Up to 2 MB.</p>
+          </div>
         </div>
         <div class="community-form-actions">
           <button class="community-button primary" id="communityPublishButton" type="button">Publish Post</button>
