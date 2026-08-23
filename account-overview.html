@@ -1090,7 +1090,60 @@
       }
     }
   </style>
-<link rel="stylesheet" href="./global-shell.css?v=20260823-9" />
+<link rel="stylesheet" href="./global-shell.css?v=20260823-10" />
+  <style>
+    /* Bring the account workspace into the same restrained system as the tool pages. */
+    body {
+      background:
+        radial-gradient(circle at 12% 92%, rgba(181, 49, 68, .14), transparent 28%),
+        radial-gradient(circle at 86% 10%, rgba(68, 108, 177, .14), transparent 28%),
+        #0b111d;
+    }
+    body::before, .bg-wrap { display: none; }
+    main { max-width: 1240px; padding: 38px 18px 52px; }
+    .hero { text-align: left; margin: 0 0 22px; }
+    .hero h1 { font-size: clamp(38px, 5vw, 62px); }
+    .hero h1 span:last-child { background: linear-gradient(180deg, #ff9aa6, #ff3d55 88%); -webkit-background-clip: text; background-clip: text; }
+    .hero p { margin-left: 0; max-width: 720px; color: #afbdd1; }
+    .hero-strip { max-width: none; margin: 0 0 18px; gap: 12px; }
+    .hero-chip, .faq-card, #rbtools-account-overview .acct-card {
+      border-color: rgba(94, 139, 224, .28);
+      background:
+        radial-gradient(circle at top right, rgba(65, 103, 174, .13), transparent 34%),
+        linear-gradient(180deg, rgba(21, 34, 57, .97), rgba(10, 17, 30, .98));
+      box-shadow: 0 18px 40px rgba(3, 8, 18, .28);
+    }
+    .hero-chip { padding: 16px; border-radius: 18px; }
+    .hero-chip span, .faq-item span { color: #aebbd0; }
+    .faq-card { border-radius: 22px; }
+    .faq-item { border-color: rgba(94, 139, 224, .20); background: rgba(115, 150, 207, .06); }
+    #rbtools-account-overview {
+      --muted: #afbdd1; --muted-2: #8494ad; --panel: #152239; --panel-2: #0a111e;
+      --card: rgba(118, 152, 211, .06); --border: rgba(94, 139, 224, .26); --shadow: 0 18px 40px rgba(3, 8, 18, .28);
+    }
+    #rbtools-account-overview .acct-card { border-radius: 22px; padding: 20px; }
+    #rbtools-account-overview .acct-card::before,
+    #rbtools-account-overview .acct-float-plus { display: none; }
+    #rbtools-account-overview .acct-card:hover { border-color: rgba(116, 160, 244, .42); box-shadow: 0 20px 46px rgba(3, 8, 18, .36); }
+    #rbtools-account-overview .acct-panel,
+    #rbtools-account-overview .acct-block,
+    #rbtools-account-overview .acct-pill-card {
+      border-color: rgba(111, 146, 205, .20);
+      background: linear-gradient(180deg, rgba(115, 150, 207, .08), rgba(11, 19, 33, .38));
+    }
+    #rbtools-account-overview .acct-panel, #rbtools-account-overview .acct-block { border-radius: 17px; }
+    #rbtools-account-overview .acct-pill-card { border-radius: 14px; }
+    #rbtools-account-overview .acct-badge, #rbtools-account-overview .acct-pill {
+      border-color: rgba(116, 160, 244, .32); background: rgba(78, 117, 184, .14); color: #dbe8ff;
+    }
+    #rbtools-account-overview .acct-name span:last-child { color: #dce8ff; }
+    #rbtools-account-overview .acct-input, #rbtools-account-overview .acct-textarea {
+      border-color: rgba(94, 139, 224, .35); background: #101a2c;
+    }
+    #rbtools-account-overview .acct-button.secondary { border-color: rgba(112, 153, 230, .34); background: rgba(70, 107, 170, .16); }
+    #rbtools-account-overview .acct-section-kicker, #rbtools-account-overview .acct-pill-label { color: #ffabb5; }
+    @media (max-width: 700px) { main { padding: 26px 12px 38px; } .hero { text-align: center; } .hero p { margin-left: auto; } }
+  </style>
   <link rel="stylesheet" href="./mobile-overrides.css">
 </head>
 <body>
