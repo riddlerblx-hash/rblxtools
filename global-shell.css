@@ -734,7 +734,16 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   width: 100%;
   min-height: calc(100vh - 48px);
   border: 0;
-  background: #0d111c;
+  background: transparent;
+}
+
+/* Framed pages inherit the one continuous site backdrop from the parent shell. */
+html:has(body.rblx-shell-tool-frame),
+body.rblx-shell-tool-frame,
+body.rblx-shell-tool-frame #rblxShellPage,
+body.rblx-shell-tool-frame #rblxShellPage > * {
+  background-color: transparent !important;
+  background-image: none !important;
 }
 
 .rblx-shell-chat-card {
