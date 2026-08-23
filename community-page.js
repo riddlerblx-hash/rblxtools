@@ -927,6 +927,16 @@
       var target = event.target;
       if (!target || !target.closest) return;
 
+      // Keep native details menus open; the page-level handler otherwise consumes the click.
+      var menuSummary = target.closest(".community-post-menu > summary");
+      if (menuSummary) {
+        event.preventDefault();
+        event.stopPropagation();
+        var menu = menuSummary.parentElement;
+        menu.open = !menu.open;
+        return;
+      }
+
       var profileButton = target.closest("[data-community-profile]");
       if (profileButton) return void openCommunityProfileFromButton(profileButton);
 
