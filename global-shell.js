@@ -6,7 +6,6 @@
   var ADSENSE_CLIENT = "ca-pub-1298532626039613";
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
-  var CHAT_TOKEN_KEY = "rblxtools_chat_token";
   var USER_KEY = "rblxtools_auth_user";
   var AUTH_MODE_KEY = "rblxtools_auth_mode";
   var PLUS_STATUS_KEY = "rblxtools_plus_cache";
@@ -330,20 +329,6 @@
     catch (_error) { return ""; }
   }
 
-  // OpenLiteSpeed can omit HttpOnly cookies during a WebSocket upgrade. Keep a
-  // short-lived, tab-only copy of the login token for the authenticated chat socket.
-  function getChatToken() {
-    try { return sessionStorage.getItem(CHAT_TOKEN_KEY) || ""; }
-    catch (_error) { return ""; }
-  }
-
-  function saveChatToken(token) {
-    try {
-      if (token) sessionStorage.setItem(CHAT_TOKEN_KEY, String(token));
-      else sessionStorage.removeItem(CHAT_TOKEN_KEY);
-    } catch (_error) {}
-  }
-
   function clearLegacyAuthTokenCache() {
     try { localStorage.removeItem(TOKEN_KEY); } catch (_error) {}
   }
@@ -611,8 +596,7 @@
       isPlus: identity.isPlus,
       isGuest: identity.isGuest,
       plan: identity.plan,
-      favoriteTools: identity.favoriteTools || [],
-      authToken: getChatToken()
+      favoriteTools: identity.favoriteTools || []
     };
   }
 
@@ -1223,7 +1207,6 @@
     } catch (_error) {
     }
     clearLegacyAuthTokenCache();
-    saveChatToken("");
     saveCachedAuthUser(null);
     writeCachedPlusStatus(false);
     updateAuthUi(getImmediateUserState());
@@ -1936,7 +1919,6 @@
 
   function finishAuthSuccess(result, successMessage) {
     var user = result && result.user ? result.user : null;
-    saveChatToken(result && result.token ? result.token : "");
     saveCachedAuthUser(user);
     writeCachedPlusStatus(hasPlusFromPayload(result) || hasPlusFromPayload(user));
     clearLegacyAuthTokenCache();
@@ -2508,8 +2490,7 @@
 
       shellState.socket = window.io(API_BASE, {
         transports: ["websocket", "polling"],
-        withCredentials: true,
-        auth: { authToken: getChatToken() }
+        withCredentials: true
       });
 
         window.__rblxShellSocket = shellState.socket;
@@ -3185,7 +3166,6 @@
       }
       var payload = await response.json().catch(function () { return null; });
       if (payload && payload.user) {
-        saveChatToken(payload.token || getChatToken());
         applyMembershipPayload(payload);
       }
     } catch (_error) {
@@ -3289,7 +3269,6 @@
       if (!response.ok) throw new Error("Not signed in");
       var payload = await response.json().catch(function () { return null; });
       var user = payload && payload.user ? payload.user : payload;
-      saveChatToken(payload && payload.token ? payload.token : getChatToken());
       saveCachedAuthUser(user);
       displayName = getPreferredUserName(user, payload);
       plus = plus || hasPlusFromPayload(payload) || hasPlusFromPayload(user);
