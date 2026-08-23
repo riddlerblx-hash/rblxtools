@@ -1141,7 +1141,7 @@
   </style>
 </head>
   <body data-tool-report="Clothing">
-  <script src="./global-shell.js?v=20260823-9"></script>
+  <script src="./global-shell.js?v=20260823-10"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1839,7 +1839,6 @@
       }
     }
 
-    if (!window.__rblxSharedShowcasePreferred) {
     function updateShowcaseProgress() {
       if (!showcaseProgress) return;
       showcaseProgress.style.width = "0%";
@@ -1917,15 +1916,14 @@
       if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
     });
     showcaseViewport.addEventListener("mouseleave", restartShowcaseTimer);
-    renderToolSlide();
-    restartShowcaseTimer();
-    }
 
     document.getElementById("robloxId").addEventListener("keydown", function (event) {
       if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); generate(); }
     });
 
     document.getElementById("result").innerHTML = buildDefaultPreview();
+    renderToolSlide();
+    restartShowcaseTimer();
     bootstrapPlusStatus();
   </script>
   <script>

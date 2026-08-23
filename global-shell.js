@@ -18,7 +18,6 @@
   var GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
   var AUTH_PENDING_OPEN_KEY = "rblxtools_auth_modal_pending";
   var AUTH_PENDING_MODE_KEY = "rblxtools_auth_modal_pending_mode";
-  window.__rblxSharedShowcasePreferred = true;
   var shellState = {
     chatMessages: [],
     chatList: null,
@@ -3465,8 +3464,7 @@
 
   function initSharedToolShowcase() {
     var currentPath = String(window.location.pathname || "/").replace(/\/+$|^\/+|\.html$/g, "");
-    // Clothing used to carry a separate carousel; it now uses this shared version.
-    if (currentPath !== "template-downloader") return;
+    if (currentPath === "" || currentPath === "template-downloader") return;
     if (document.readyState === "loading") {
       if (!window.__rblxSharedShowcaseQueued) {
         window.__rblxSharedShowcaseQueued = true;
