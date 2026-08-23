@@ -1243,8 +1243,6 @@
         }
       }
 
-      if (!window.RBLXToolsFreeUsage || !(await window.RBLXToolsFreeUsage.consume())) return;
-
       audioButton.disabled = true;
       audioButton.textContent = ids.length > 1 ? "Loading Audios..." : "Loading...";
       setStatus(ids.length > 1 ? "Fetching audios..." : "Fetching audio...");

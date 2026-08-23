@@ -1297,7 +1297,6 @@
             '<span class="rblx-shell-status-pluses" aria-hidden="true">' + buildStatusPlusMarkup() + '</span>' +
             '<span class="rblx-shell-status-dot"></span>' +
             '<span class="rblx-shell-status-text" id="rblxShellStatusText">You are browsing this website as a guest.</span>' +
-            '<span class="rblx-free-use-meter" id="rblxFreeUseMeter" hidden></span>' +
           "</div>" +
           '<div class="rblx-shell-header-actions">' +
             '<div class="rblx-shell-support-wrap"><span class="rblx-shell-support-float one">$</span><span class="rblx-shell-support-float two">$</span><span class="rblx-shell-support-float three">$</span><span class="rblx-shell-support-float four">$</span><a class="rblx-shell-support-link" href="https://ko-fi.com/rblxtools" target="_blank" rel="noopener noreferrer">Support</a></div>' +
@@ -3093,10 +3092,6 @@
     shellState.authUiSignature = nextSignature;
     applyModerationState(state.moderation || shellState.moderation);
     applyMaintenanceState(shellState.maintenanceState);
-    if (window.RBLXToolsFreeUsage && typeof window.RBLXToolsFreeUsage.refresh === "function") {
-      window.RBLXToolsFreeUsage.refresh();
-    }
-
     if (!identityChanged) return;
     var navScroll = document.getElementById("rblxShellNavScroll");
     if (navScroll) navScroll.innerHTML = buildNavMarkup();
@@ -3621,224 +3616,6 @@
     observer.observe(pageHost, { childList: true, subtree: true });
   }
 
-  function initFreeToolUsageGate() {
-    if (window.RBLXToolsFreeUsage) return;
-
-    var videoScriptUrl = "https://quarrelsomebitter.com/bFX/V/s.dkGLlr0AYHWmcn/ReHmd9pu-ZVU/lpk/PrT/cSz/NKD/Q/3aN/jmURteNWzjMh0/NlDxcV2/OPQD";
-    var modal = null;
-    var status = null;
-    var actionButton = null;
-    var sponsorStage = null;
-    var meterRefreshTimer = null;
-
-    function request(path, options) {
-      return fetch(API_BASE + path, Object.assign({ credentials: "include" }, options || {})).then(function (response) {
-        return response.json().catch(function () { return {}; }).then(function (payload) {
-          return { response: response, payload: payload || {} };
-        });
-      });
-    }
-
-    function updateMeter(payload) {
-      var meter = document.getElementById("rblxFreeUseMeter");
-      var user = shellState.currentUser || {};
-      var canShow = Boolean(user.loggedIn && payload && !payload.unlimited && Number.isFinite(Number(payload.usedCount)));
-      if (meter) {
-        if (!canShow) {
-          meter.hidden = true;
-          meter.textContent = "";
-        } else {
-          meter.hidden = false;
-          meter.textContent = "Free actions: " + Number(payload.usedCount) + "/" + Number(payload.limit || 5);
-        }
-      }
-      window.dispatchEvent(new CustomEvent("rblxtools:free-use-updated", { detail: payload || null }));
-    }
-
-    function refreshMeter() {
-      return request("/api/free-tool-usage").then(function (result) {
-        if (result.response.ok) updateMeter(result.payload);
-        else updateMeter(null);
-        return result;
-      }).catch(function () {
-        updateMeter(null);
-        return null;
-      });
-    }
-
-    function scheduleMeterRefresh() {
-      if (meterRefreshTimer) window.clearTimeout(meterRefreshTimer);
-      meterRefreshTimer = window.setTimeout(function () {
-        meterRefreshTimer = null;
-        refreshMeter();
-      }, 80);
-    }
-
-    function installToolUsageRefresh() {
-      if (window.__rblxtoolsToolUsageRefreshInstalled || typeof window.fetch !== "function") return;
-      window.__rblxtoolsToolUsageRefreshInstalled = true;
-      var originalFetch = window.fetch;
-      var usagePaths = {
-        "/template": true,
-        "/media": true,
-        "/audio": true,
-        "/animation": true,
-        "/api/animation": true,
-        "/ugc-obj": true
-      };
-      window.fetch = function (input) {
-        var requestUrl = typeof input === "string" ? input : (input && input.url ? input.url : "");
-        return originalFetch.apply(this, arguments).then(function (response) {
-          try {
-            var pathname = new URL(requestUrl, window.location.href).pathname;
-            if (response && response.ok && usagePaths[pathname]) scheduleMeterRefresh();
-          } catch (error) {}
-          return response;
-        });
-      };
-    }
-
-    function ensureModal() {
-      if (modal) return;
-      document.body.insertAdjacentHTML("beforeend", [
-        '<div class="rblx-free-use-overlay" id="rblxFreeUseOverlay" aria-hidden="true">',
-        '  <section class="rblx-free-use-modal" role="dialog" aria-modal="true" aria-labelledby="rblxFreeUseTitle">',
-        '    <button class="rblx-free-use-close" type="button" aria-label="Close">×</button>',
-        '    <span class="rblx-free-use-kicker">Free tool access</span>',
-        '    <h2 id="rblxFreeUseTitle">You used your 5 free actions.</h2>',
-        '    <p id="rblxFreeUseMessage">View sponsored content to restore five more tool actions, or upgrade for unlimited access.</p>',
-        '    <div class="rblx-free-use-actions">',
-        '      <button class="rblx-shell-btn is-primary" type="button" data-free-use-watch>View Sponsored Content</button>',
-        '      <a class="rblx-shell-btn" href="./subscriptions">View Plus Plans</a>',
-        '    </div>',
-        '    <section class="rblx-free-use-sponsor-stage" id="rblxFreeUseSponsorStage" hidden>',
-        '      <span class="rblx-free-use-stage-label">Sponsored content</span>',
-        '      <strong>Your next five actions will be restored when sponsored content is ready.</strong>',
-        '      <div class="rblx-free-use-sponsor-slot" id="rblxFreeUseSponsorSlot"></div>',
-        '    </section>',
-        '    <p class="rblx-free-use-status" id="rblxFreeUseStatus" aria-live="polite"></p>',
-        '  </section>',
-        '</div>'
-      ].join(""));
-      modal = document.getElementById("rblxFreeUseOverlay");
-      status = document.getElementById("rblxFreeUseStatus");
-      actionButton = modal.querySelector("[data-free-use-watch]");
-      sponsorStage = document.getElementById("rblxFreeUseSponsorStage");
-      modal.querySelector(".rblx-free-use-close").addEventListener("click", closeModal);
-      modal.addEventListener("click", function (event) { if (event.target === modal) closeModal(); });
-      actionButton.addEventListener("click", unlockWithSponsoredVideo);
-    }
-
-    function openModal(message) {
-      ensureModal();
-      document.getElementById("rblxFreeUseMessage").textContent = message || "View sponsored content to restore five more tool actions, or upgrade for unlimited access.";
-      status.textContent = "";
-      actionButton.disabled = false;
-      actionButton.hidden = false;
-      actionButton.textContent = "View Sponsored Content";
-      if (sponsorStage) {
-        sponsorStage.hidden = true;
-        sponsorStage.querySelector("#rblxFreeUseSponsorSlot").innerHTML = "";
-      }
-      modal.classList.add("is-open");
-      modal.setAttribute("aria-hidden", "false");
-    }
-
-    function closeModal() {
-      if (!modal) return;
-      modal.classList.remove("is-open");
-      modal.setAttribute("aria-hidden", "true");
-    }
-
-    function unlockWithSponsoredVideo() {
-      if (!actionButton || actionButton.disabled) return;
-      actionButton.disabled = true;
-      actionButton.textContent = "Loading sponsored content…";
-      status.textContent = "Loading sponsored content…";
-      request("/api/free-tool-usage").then(function (access) {
-        if (!access.response.ok) throw new Error(access.payload.error || "Could not verify tool access.");
-        if (access.payload.unlimited === true) {
-          updateMeter(access.payload);
-          closeModal();
-          return;
-        }
-
-        if (sponsorStage) sponsorStage.hidden = false;
-        actionButton.hidden = true;
-
-        var script = document.createElement("script");
-        script.async = true;
-        script.referrerPolicy = "no-referrer-when-downgrade";
-        script.src = videoScriptUrl;
-        script.onload = function () {
-          request("/api/free-tool-usage/reward", { method: "POST" }).then(function (result) {
-            if (!result.response.ok) throw new Error(result.payload.error || "Could not restore free tool access.");
-            updateMeter(result.payload);
-            status.textContent = "Five free actions restored. You can use a tool again now.";
-            actionButton.textContent = "Access Restored";
-            window.setTimeout(closeModal, 1200);
-          }).catch(function (error) {
-            status.textContent = error.message || "Could not restore free tool access.";
-            actionButton.disabled = false;
-            actionButton.hidden = false;
-            actionButton.textContent = "Try Again";
-          });
-        };
-        script.onerror = function () {
-          status.textContent = "Sponsored content could not be loaded. Please try again.";
-          actionButton.disabled = false;
-          actionButton.hidden = false;
-          actionButton.textContent = "Try Again";
-        };
-        var sponsorSlot = document.getElementById("rblxFreeUseSponsorSlot");
-        if (sponsorSlot) sponsorSlot.appendChild(script);
-        else document.head.appendChild(script);
-      }).catch(function (error) {
-        status.textContent = error.message || "Could not verify tool access.";
-        actionButton.disabled = false;
-        actionButton.hidden = false;
-        actionButton.textContent = "Try Again";
-      });
-    }
-
-    function handleUsageResult(result) {
-          if (result.response.ok) updateMeter(result.payload);
-          if (result.response.status === 401) {
-            openAuthModal({ mode: "login", message: "Log in or sign up to use RBLXTools tools." });
-            return false;
-          }
-          if (result.response.status === 429 || (!result.payload.unlimited && Number(result.payload.remaining) <= 0)) {
-            openModal(result.payload.error);
-            return false;
-          }
-          if (!result.response.ok) throw new Error(result.payload.error || "Could not verify tool access.");
-          return true;
-    }
-
-    function handleUsageError(error) {
-          openModal(error.message || "Could not verify tool access.");
-          return false;
-    }
-
-    window.RBLXToolsFreeUsage = {
-      check: function () {
-        return request("/api/free-tool-usage").then(handleUsageResult).catch(handleUsageError);
-      },
-      consume: function () {
-        return request("/api/free-tool-usage/consume", { method: "POST" }).then(handleUsageResult).catch(handleUsageError);
-      },
-      status: function () { return request("/api/free-tool-usage"); },
-      refresh: refreshMeter
-    };
-
-    installToolUsageRefresh();
-    refreshMeter();
-    window.setInterval(refreshMeter, 5000);
-    document.addEventListener("visibilitychange", function () {
-      if (document.visibilityState === "visible") refreshMeter();
-    });
-  }
-
   function initShell() {
     var initialState = getImmediateUserState();
     shellState.currentUser = {
@@ -3869,7 +3646,6 @@
     initCheckoutSuccessModal();
     initSupportModal();
     setupAuthModal();
-    initFreeToolUsageGate();
     document.addEventListener("click", function (event) {
       var logoutTrigger = event.target && event.target.closest ? event.target.closest("[data-shell-logout]") : null;
       if (!logoutTrigger) return;
@@ -3923,7 +3699,6 @@
       updateAuthUi(state);
       refreshSiteMaintenanceState();
       refreshMembershipStateFromServer();
-      refreshHilltopPopunderEligibility();
     }).catch(function () {
       updateAuthUi({
         loggedIn: false,
@@ -3934,39 +3709,9 @@
         displayName: "",
         email: ""
       });
-      refreshHilltopPopunderEligibility();
     }).finally(function () {});
   }
 
-  function refreshHilltopPopunderEligibility() {
-    if (window.__rblxtoolsHilltopPopunderLoaded) return;
-    if (!window.RBLXToolsFreeUsage || typeof window.RBLXToolsFreeUsage.status !== "function") return;
-
-    window.RBLXToolsFreeUsage.status().then(function (result) {
-      if (!result || !result.response) return;
-      if (result.response.status === 401) {
-        initHilltopPopunder();
-        return;
-      }
-      if (result.response.ok && result.payload && result.payload.unlimited !== true) {
-        initHilltopPopunder();
-      }
-    }).catch(function () {});
-  }
-
-  function initHilltopPopunder() {
-    if (window.__rblxtoolsHilltopPopunderLoaded) return;
-    if (document.querySelector('script[data-rblxtools-hilltop-popunder="true"]')) return;
-    window.__rblxtoolsHilltopPopunderLoaded = true;
-
-    var script = document.createElement("script");
-    script.async = true;
-    script.settings = {};
-    script.src = "https://faithfuloccasion.com/c/Dw9f6/b.2V5UlzSWWBQq9/N/zXMH0QNOD/Y/wuMOSY0P3/Mgz_Qx0BNhjhAn1W";
-    script.referrerPolicy = "no-referrer-when-downgrade";
-    script.dataset.rblxtoolsHilltopPopunder = "true";
-    document.head.appendChild(script);
-  }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initShell, { once: true });

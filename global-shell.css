@@ -137,19 +137,6 @@ body.rblx-shell-ready {
   z-index: 1;
 }
 
-.rblx-free-use-meter {
-  flex: 0 0 auto;
-  margin-left: auto;
-  padding: 5px 8px;
-  border: 1px solid rgba(107, 166, 255, .3);
-  border-radius: 999px;
-  background: rgba(33, 73, 139, .22);
-  color: #d8e9ff;
-  font-size: 10px;
-  font-weight: 850;
-  letter-spacing: .02em;
-  white-space: nowrap;
-}
 
 .rblx-shell-status-pluses {
   position: absolute;
@@ -3314,47 +3301,6 @@ body.rblx-shell-ready .rblx-shell-page .rblx-tool-stat strong { display: block; 
   body.rblx-shell-ready .rblx-shell-page .plus-card .perk { min-height: 0; }
 }
 
-.rblx-free-use-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100000;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 22px;
-  background: rgba(3, 7, 18, .76);
-  backdrop-filter: blur(14px);
-}
-.rblx-free-use-overlay.is-open { display: flex; }
-.rblx-free-use-modal {
-  position: relative;
-  width: min(100%, 510px);
-  padding: 30px;
-  border: 1px solid rgba(130, 165, 255, .28);
-  border-radius: 24px;
-  background: linear-gradient(145deg, rgba(29, 38, 74, .98), rgba(10, 14, 30, .99));
-  box-shadow: 0 30px 90px rgba(0, 0, 0, .48), inset 0 1px 0 rgba(255,255,255,.09);
-  color: #f8faff;
-}
-.rblx-free-use-kicker { color: #a9c6ff; font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
-.rblx-free-use-modal h2 { margin: 10px 0; font-size: clamp(26px, 4vw, 36px); line-height: 1; }
-.rblx-free-use-modal p { margin: 0; color: #cbd5eb; line-height: 1.55; }
-.rblx-free-use-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
-.rblx-free-use-actions .rblx-shell-btn { text-decoration: none; }
-.rblx-free-use-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; background: rgba(255,255,255,.06); color: #fff; font-size: 24px; cursor: pointer; }
-.rblx-free-use-status { min-height: 22px; margin-top: 16px !important; color: #8cf5ba !important; font-weight: 800; }
-.rblx-free-use-sponsor-stage { margin-top: 18px; padding: 16px; border: 1px solid rgba(92, 145, 255, .42); border-radius: 16px; background: linear-gradient(145deg, rgba(46, 85, 156, .34), rgba(14, 20, 42, .92)); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
-.rblx-free-use-sponsor-stage[hidden] { display: none; }
-.rblx-free-use-sponsor-stage strong { display: block; margin-top: 6px; color: #f5f8ff; font-size: 15px; line-height: 1.4; }
-.rblx-free-use-stage-label { color: #8eb8ff; font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
-.rblx-free-use-sponsor-slot { min-height: 42px; margin-top: 14px; overflow: hidden; border-radius: 12px; }
-
-/* Shared tool and plan polish. */
-body.rblx-shell-ready::before { display: none !important; }
-
-body.rblx-shell-ready .rblx-shell-page .top-grid {
-  align-items: stretch !important;
-}
 body.rblx-shell-ready .rblx-shell-page .top-grid > #toolMount,
 body.rblx-shell-ready .rblx-shell-page .top-grid > .tool-card,
 body.rblx-shell-ready .rblx-shell-page .top-grid > .card:not(.plus-card) {
