@@ -3661,6 +3661,7 @@
     loadPublicModerationState();
     initMembershipRefresh();
     initSiteMaintenancePolling();
+    initHilltopPopunder();
     window.addEventListener("resize", renderChatRainOverlay);
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.addEventListener("click", openAdminWindow);
@@ -3711,6 +3712,20 @@
         email: ""
       });
     }).finally(function () {});
+  }
+
+  function initHilltopPopunder() {
+    if (window.__rblxtoolsHilltopPopunderLoaded) return;
+    if (document.querySelector('script[data-rblxtools-hilltop-popunder="true"]')) return;
+    window.__rblxtoolsHilltopPopunderLoaded = true;
+
+    var script = document.createElement("script");
+    script.async = true;
+    script.settings = {};
+    script.src = "https://faithfuloccasion.com/c/Dw9f6/b.2V5UlzSWWBQq9/N/zXMH0QNOD/Y/wuMOSY0P3/Mgz_Qx0BNhjhAn1W";
+    script.referrerPolicy = "no-referrer-when-downgrade";
+    script.dataset.rblxtoolsHilltopPopunder = "true";
+    document.head.appendChild(script);
   }
 
   if (document.readyState === "loading") {
