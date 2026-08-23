@@ -1036,7 +1036,11 @@
       var categoryToggle = target.closest("[data-community-category-toggle]");
       if (categoryToggle) {
         var categoryMenu = categoryToggle.closest(".community-category-select");
-        if (categoryMenu) categoryMenu.classList.toggle("is-open");
+        if (categoryMenu) {
+          var isOpen = categoryMenu.classList.toggle("is-open");
+          var categoryField = categoryMenu.closest(".community-field");
+          if (categoryField) categoryField.classList.toggle("is-category-open", isOpen);
+        }
         return;
       }
 
@@ -1072,7 +1076,11 @@
         document.querySelectorAll("[data-community-category]").forEach(function (node) {
           node.classList.toggle("is-selected", node === categoryOption);
         });
-        if (categoryDetails) categoryDetails.classList.remove("is-open");
+        if (categoryDetails) {
+          categoryDetails.classList.remove("is-open");
+          var categoryField = categoryDetails.closest(".community-field");
+          if (categoryField) categoryField.classList.remove("is-category-open");
+        }
         return;
       }
 
