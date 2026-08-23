@@ -7523,7 +7523,7 @@ function getChatMessageTimestamp(message) {
 function pruneRecentMessages(messages, now = Date.now()) {
   const cutoff = now - chatHistoryRetentionMs;
   return (Array.isArray(messages) ? messages : [])
-    .filter((message) => getChatMessageTimestamp(message) >= cutoff)
+    .filter((message) => message?.specialType !== "toolActivity" && getChatMessageTimestamp(message) >= cutoff)
     .slice(-maxRecentMessages);
 }
 
@@ -7814,30 +7814,9 @@ async function emitToolActivityForRequest(req, toolKey, fallbackDisplayName) {
   return emitToolActivity(defaultChatRoom, toolKey, actorDisplayName);
 }
 
-function emitToolActivity(room, toolKey, actorDisplayName) {
-  const normalizedToolKey = normalizeToolActivityKey(toolKey);
-  const toolLabel = allowedToolActivityLabels[normalizedToolKey];
-  if (!toolLabel) {
-    return null;
-  }
-
-  const message = createChatRoomMessage({
-    userId: "tool-activity",
-    displayName: actorDisplayName || "Guest",
-    username: actorDisplayName || "Guest",
-    avatarUrl: "",
-    isPlus: false,
-    isGuest: false,
-    plan: "free",
-    favoriteTools: [],
-  }, {
-    text: toolLabel,
-    system: false,
-    specialType: "toolActivity",
-  });
-
-  pushRoomMessage(room || defaultChatRoom, message);
-  return message;
+function emitToolActivity() {
+  // Tool usage is no longer posted into Community Chat.
+  return null;
 }
 
 function getActionTargetLabel(user) {

@@ -1585,21 +1585,13 @@
     var distanceFromBottom = previousScrollHeight - (previousScrollTop + previousClientHeight);
     var shouldStickToBottom = Boolean(settings.forceBottom || distanceFromBottom <= 24);
 
-    shellState.chatMessages = Array.isArray(messages) ? messages : [];
+    shellState.chatMessages = (Array.isArray(messages) ? messages : []).filter(function (message) {
+      return !(message && message.specialType === "toolActivity");
+    });
     shellState.profileCache = [];
     target.innerHTML = shellState.chatMessages.map(function (message, index) {
       var profile = getMessageProfile(message);
       shellState.profileCache[index] = profile;
-      if (message && message.specialType === "toolActivity") {
-        var actorName = resolveToolActivityActor(message, profile.displayName || "Guest");
-        var toolName = message.text || "Tool";
-        var relativeTime = formatRelativeTimeSince(message.createdAt);
-        return (
-          '<article class="rblx-shell-chat-activity-pill-row" data-chat-index="' + index + '">' +
-            '<span class="rblx-shell-chat-activity-pill">' + escapeHtml(actorName) + " used " + escapeHtml(toolName) + " &bull; " + escapeHtml(relativeTime) + "</span>" +
-          "</article>"
-        );
-      }
       var isPlus = profile.plan === "plus" || String(profile.badge || "").toLowerCase() === "plus";
       var isSystem = Boolean(profile.system);
       var isTimedOut = Boolean(profile.moderationTimeoutUntil && new Date(profile.moderationTimeoutUntil).getTime() > Date.now());
