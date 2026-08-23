@@ -29,6 +29,7 @@
     profileCache: [],
     socket: null,
     socketReady: false,
+    chatAuthToken: "",
     onlineCount: 0,
     isAdmin: false,
     deviceId: "",
@@ -596,8 +597,18 @@
       isPlus: identity.isPlus,
       isGuest: identity.isGuest,
       plan: identity.plan,
-      favoriteTools: identity.favoriteTools || []
+      favoriteTools: identity.favoriteTools || [],
+      authToken: shellState.chatAuthToken || ""
     };
+  }
+
+  function setChatAuthToken(token) {
+    var nextToken = String(token || "").trim();
+    if (shellState.chatAuthToken === nextToken) return;
+    shellState.chatAuthToken = nextToken;
+    if (shellState.socket && shellState.socketReady) {
+      shellState.socket.emit("join-room", getSocketJoinPayload());
+    }
   }
 
   function setChatComposeState(disabled, placeholder, statusMessage) {
@@ -1207,6 +1218,7 @@
     } catch (_error) {
     }
     clearLegacyAuthTokenCache();
+    setChatAuthToken("");
     saveCachedAuthUser(null);
     writeCachedPlusStatus(false);
     updateAuthUi(getImmediateUserState());
@@ -1919,6 +1931,7 @@
 
   function finishAuthSuccess(result, successMessage) {
     var user = result && result.user ? result.user : null;
+    setChatAuthToken(result && result.token ? result.token : "");
     saveCachedAuthUser(user);
     writeCachedPlusStatus(hasPlusFromPayload(result) || hasPlusFromPayload(user));
     clearLegacyAuthTokenCache();
@@ -3166,6 +3179,7 @@
       }
       var payload = await response.json().catch(function () { return null; });
       if (payload && payload.user) {
+        setChatAuthToken(payload.chatToken || "");
         applyMembershipPayload(payload);
       }
     } catch (_error) {
@@ -3269,6 +3283,7 @@
       if (!response.ok) throw new Error("Not signed in");
       var payload = await response.json().catch(function () { return null; });
       var user = payload && payload.user ? payload.user : payload;
+      setChatAuthToken(payload && payload.chatToken ? payload.chatToken : "");
       saveCachedAuthUser(user);
       displayName = getPreferredUserName(user, payload);
       plus = plus || hasPlusFromPayload(payload) || hasPlusFromPayload(user);

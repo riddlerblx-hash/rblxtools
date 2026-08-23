@@ -5750,6 +5750,7 @@ app.get("/auth/me", async (req, res) => {
     const moderation = await summarizeModerationForTarget(freshUser || user, deviceId);
     return res.json({
       ok: true,
+      chatToken: createAuthToken(freshUser || user),
       user: await buildResolvedPublicUser(freshUser || user),
       moderation,
     });
