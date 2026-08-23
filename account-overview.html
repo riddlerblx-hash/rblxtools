@@ -1124,6 +1124,7 @@
     #rbtools-account-overview .acct-card { border-radius: 22px; padding: 20px; }
     #rbtools-account-overview .acct-card::before,
     #rbtools-account-overview .acct-float-plus { display: none; }
+    #rbtools-account-overview #acctGate .acct-badges { display: none; }
     #rbtools-account-overview .acct-card:hover { border-color: rgba(116, 160, 244, .42); box-shadow: 0 20px 46px rgba(3, 8, 18, .36); }
     #rbtools-account-overview .acct-panel,
     #rbtools-account-overview .acct-block,
@@ -1142,7 +1143,29 @@
     }
     #rbtools-account-overview .acct-button.secondary { border-color: rgba(112, 153, 230, .34); background: rgba(70, 107, 170, .16); }
     #rbtools-account-overview .acct-section-kicker, #rbtools-account-overview .acct-pill-label { color: #ffabb5; }
+    #rbtools-account-overview .acct-profile-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 18px;
+      padding: 20px; margin-bottom: 16px; border: 1px solid rgba(111, 146, 205, .22);
+      border-radius: 18px; background: linear-gradient(135deg, rgba(111, 146, 205, .13), rgba(12, 20, 35, .72));
+    }
+    #rbtools-account-overview .acct-avatar-button { border: 0; padding: 0; cursor: pointer; }
+    #rbtools-account-overview .acct-avatar-button:hover { outline: 2px solid rgba(127, 171, 255, .75); outline-offset: 3px; }
+    #rbtools-account-overview .acct-profile-edit { margin-left: auto; white-space: nowrap; }
+    #rbtools-account-overview .acct-tabs { display: flex; gap: 8px; padding: 6px; margin: 0 0 16px; border: 1px solid rgba(111, 146, 205, .22); border-radius: 15px; background: rgba(9, 16, 29, .72); }
+    #rbtools-account-overview .acct-tab { flex: 1; border: 1px solid transparent; border-radius: 10px; padding: 11px 14px; background: transparent; color: #afbdd1; font: inherit; font-weight: 800; cursor: pointer; }
+    #rbtools-account-overview .acct-tab:hover { color: #edf4ff; background: rgba(95, 133, 198, .12); }
+    #rbtools-account-overview .acct-tab.is-active { color: #fff; border-color: rgba(119, 161, 241, .45); background: linear-gradient(135deg, rgba(69, 110, 184, .38), rgba(73, 36, 69, .36)); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+    #rbtools-account-overview .acct-tab-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    #rbtools-account-overview .acct-tab-panel[hidden] { display: none; }
+    #rbtools-account-overview .acct-tab-panel .acct-block { margin: 0; }
+    #rbtools-account-overview .acct-account-details { margin: 14px 0; }
     @media (max-width: 700px) { main { padding: 26px 12px 38px; } .hero { text-align: center; } .hero p { margin-left: auto; } }
+    @media (max-width: 760px) {
+      #rbtools-account-overview .acct-profile-header { align-items: flex-start; flex-wrap: wrap; }
+      #rbtools-account-overview .acct-profile-edit { width: 100%; margin-left: 0; }
+      #rbtools-account-overview .acct-tab-panel { grid-template-columns: 1fr; }
+      #rbtools-account-overview .acct-tabs { flex-direction: column; }
+    }
   </style>
   <link rel="stylesheet" href="./mobile-overrides.css">
 </head>
@@ -1156,26 +1179,6 @@
   </div>
 
   <main>
-    <section class="hero">
-      <h1><span>Account</span><span>Overview Center</span></h1>
-      <p>Manage your membership, billing tools, public profile presentation, and account controls in one place so RBLXTools feels more like a real creator account center.</p>
-    </section>
-
-    <section class="hero-strip" aria-label="Account highlights">
-      <div class="hero-chip">
-        <strong>Membership Status</strong>
-        <span>See whether your account is on Free or Plus and refresh access without leaving the dashboard.</span>
-      </div>
-      <div class="hero-chip">
-        <strong>Billing Access</strong>
-        <span>Open Stripe portal actions for payment methods, invoices, cancellation, and renewal management.</span>
-      </div>
-      <div class="hero-chip">
-        <strong>Profile Identity</strong>
-        <span>Set the display name and profile picture the shell and chat should show for your account in this browser.</span>
-      </div>
-    </section>
-
     <section class="overview-frame">
       <div id="rbtools-account-overview">
         <div class="acct-shell">
@@ -1240,34 +1243,17 @@
             <div class="acct-float-plus thirteen">+</div>
             <div class="acct-float-plus fourteen">+</div>
             <div class="acct-inner">
-              <div class="acct-hero">
-                <section class="acct-panel">
-                  <div class="acct-badges">
-                    <div class="acct-badge">Member Area</div>
-                    <div class="acct-pill">RBTools Plus</div>
-                  </div>
-
-                  <h1 class="acct-title">
-                    <span>Account</span>
-                    <span>Overview</span>
-                  </h1>
-
-                  <p class="acct-copy">
-                    Manage your member profile, check your plan, and open Stripe tools for billing updates, invoices, payment methods, and subscription changes.
-                  </p>
-                </section>
-
-                <section class="acct-panel">
-                  <div class="acct-profile">
-                    <div class="acct-avatar">
+              <div class="acct-profile-header">
+                <div class="acct-profile">
+                    <button id="acctAvatarButton" class="acct-avatar acct-avatar-button" type="button" aria-label="Choose a profile picture">
                       <img id="acctAvatarImage" alt="Profile picture">
                       <div id="acctAvatarFallback" class="acct-avatar-fallback">R</div>
-                    </div>
+                    </button>
 
                     <div>
                       <h2 class="acct-name">
                         <span id="acctDisplayName">Your</span>
-                        <span id="acctDisplaySubname">Account Overview</span>
+                        <span id="acctDisplaySubname">Account</span>
                       </h2>
                       <div id="acctEmailTop" class="acct-email">Sign in to load your member account.</div>
                       <div id="acctBioTop" class="acct-bio-preview is-empty">Add a short bio to tell people a little about this account.</div>
@@ -1276,13 +1262,18 @@
                         <div class="acct-plus-name">Plus Member</div>
                       </div>
                     </div>
-                  </div>
-                </section>
+                </div>
+                <button id="acctEditProfileButton" class="acct-button secondary acct-profile-edit" type="button">Edit Profile</button>
+              </div>
+
+              <div class="acct-tabs" role="tablist" aria-label="Account sections">
+                <button class="acct-tab is-active" type="button" role="tab" aria-selected="true" data-account-tab="settings">Account Settings</button>
+                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="billing">Payments &amp; Billing</button>
               </div>
 
               <div class="acct-grid">
                 <div class="acct-stack">
-                  <section class="acct-block">
+                  <section class="acct-block" data-account-section="billing">
                     <div class="acct-section-kicker">Membership</div>
                     <h3 class="acct-section-title">Membership & Access</h3>
                     <p class="acct-section-copy">
@@ -1290,11 +1281,6 @@
                     </p>
 
                     <div class="acct-info-grid">
-                      <div class="acct-pill-card">
-                        <div class="acct-pill-label">Email</div>
-                        <div id="acctEmail" class="acct-pill-value">-</div>
-                      </div>
-
                       <div class="acct-pill-card">
                         <div class="acct-pill-label">Plan</div>
                         <div id="acctPlan" class="acct-pill-value">free</div>
@@ -1326,11 +1312,6 @@
                       </div>
 
                       <div class="acct-pill-card">
-                        <div class="acct-pill-label">User ID</div>
-                        <div id="acctUserId" class="acct-pill-value">-</div>
-                      </div>
-
-                      <div class="acct-pill-card">
                         <div class="acct-pill-label">Customer ID</div>
                         <div id="acctCustomerId" class="acct-pill-value">-</div>
                       </div>
@@ -1354,12 +1335,27 @@
                     <div id="acctMembershipStatus" class="acct-status"></div>
                   </section>
 
-                  <section class="acct-block">
+                  <section class="acct-block" data-account-section="settings">
                     <div class="acct-section-kicker">Profile</div>
-                    <h3 class="acct-section-title">Public Profile & Chat Identity</h3>
+                    <h3 class="acct-section-title">Profile & Account Info</h3>
                     <p class="acct-section-copy">
-                      These profile settings are saved in this browser and now feed into your shell status text and live chat identity so your account feels consistent across the site.
+                      Your display name, bio, and profile picture are used across your account, navigation shell, and live chat.
                     </p>
+
+                    <div class="acct-info-grid acct-account-details">
+                      <div class="acct-pill-card">
+                        <div class="acct-pill-label">Email address</div>
+                        <div id="acctSettingsEmail" class="acct-pill-value">-</div>
+                      </div>
+                      <div class="acct-pill-card">
+                        <div class="acct-pill-label">User ID</div>
+                        <div id="acctUserId" class="acct-pill-value">-</div>
+                      </div>
+                    </div>
+
+                    <div class="acct-actions">
+                      <button id="acctChangeEmailButton" class="acct-button secondary" type="button">Change Email</button>
+                    </div>
 
                     <div class="acct-form">
                       <div>
@@ -1407,7 +1403,7 @@
                 </div>
 
                 <div class="acct-stack">
-                  <section class="acct-block">
+                  <section class="acct-block" data-account-section="billing">
                     <div class="acct-section-kicker">Billing Tools</div>
                     <h3 class="acct-section-title">Billing & Plan Management</h3>
                     <p class="acct-section-copy">
@@ -1439,7 +1435,7 @@
                     <div id="acctBillingStatus" class="acct-status"></div>
                   </section>
 
-                  <section class="acct-block">
+                  <section class="acct-block" data-account-section="settings">
                     <div class="acct-section-kicker">Account</div>
                     <h3 class="acct-section-title">Account Controls</h3>
                     <p class="acct-section-copy">
@@ -1508,6 +1504,34 @@
             <div class="acct-modal-actions">
               <button id="acctChangePasswordCancelButton" class="acct-button secondary" type="button">Cancel</button>
               <button id="acctChangePasswordSubmitButton" class="acct-button plans" type="button">Save Password</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="acctChangeEmailModal" class="acct-modal">
+          <div class="acct-modal-card">
+            <div class="acct-modal-head">
+              <h4 class="acct-modal-title">Change email address</h4>
+            </div>
+            <div class="acct-modal-body">
+              <div class="acct-section-copy" style="margin-top:0;">
+                Confirm your password before changing the email used to sign in to this account.
+              </div>
+              <div class="acct-form">
+                <div>
+                  <div class="acct-field-label">New Email Address</div>
+                  <input id="acctNewEmailInput" class="acct-input" type="email" autocomplete="email" placeholder="Enter your new email address">
+                </div>
+                <div>
+                  <div class="acct-field-label">Current Password</div>
+                  <input id="acctEmailPasswordInput" class="acct-input" type="password" autocomplete="current-password" placeholder="Enter your current password">
+                </div>
+              </div>
+              <div id="acctChangeEmailStatus" class="acct-status"></div>
+            </div>
+            <div class="acct-modal-actions">
+              <button id="acctChangeEmailCancelButton" class="acct-button secondary" type="button">Cancel</button>
+              <button id="acctChangeEmailSubmitButton" class="acct-button plans" type="button">Save Email</button>
             </div>
           </div>
         </div>
@@ -1609,6 +1633,7 @@
         acctPlusCosmetic: document.getElementById("acctPlusCosmetic"),
         acctEmailTop: document.getElementById("acctEmailTop"),
         acctEmail: document.getElementById("acctEmail"),
+        acctSettingsEmail: document.getElementById("acctSettingsEmail"),
         acctPlan: document.getElementById("acctPlan"),
         acctPremium: document.getElementById("acctPremium"),
         acctStripeStatus: document.getElementById("acctStripeStatus"),
@@ -1631,6 +1656,8 @@
         acctBioTop: document.getElementById("acctBioTop"),
         acctDropzone: document.getElementById("acctDropzone"),
         acctAvatarFileInput: document.getElementById("acctAvatarFileInput"),
+        acctAvatarButton: document.getElementById("acctAvatarButton"),
+        acctEditProfileButton: document.getElementById("acctEditProfileButton"),
         acctDropzonePreviewImage: document.getElementById("acctDropzonePreviewImage"),
         acctChangePictureButton: document.getElementById("acctChangePictureButton"),
         acctCropToggleButton: document.getElementById("acctCropToggleButton"),
@@ -1647,6 +1674,7 @@
         acctOpenPortalButton: document.getElementById("acctOpenPortalButton"),
         acctOpenPlansButton: document.getElementById("acctOpenPlansButton"),
         acctChangePasswordButton: document.getElementById("acctChangePasswordButton"),
+        acctChangeEmailButton: document.getElementById("acctChangeEmailButton"),
         acctSessionLogoutButton: document.getElementById("acctSessionLogoutButton"),
         acctDeleteAccountButton: document.getElementById("acctDeleteAccountButton"),
         acctChangePasswordModal: document.getElementById("acctChangePasswordModal"),
@@ -1656,6 +1684,12 @@
         acctChangePasswordStatus: document.getElementById("acctChangePasswordStatus"),
         acctChangePasswordCancelButton: document.getElementById("acctChangePasswordCancelButton"),
         acctChangePasswordSubmitButton: document.getElementById("acctChangePasswordSubmitButton"),
+        acctChangeEmailModal: document.getElementById("acctChangeEmailModal"),
+        acctNewEmailInput: document.getElementById("acctNewEmailInput"),
+        acctEmailPasswordInput: document.getElementById("acctEmailPasswordInput"),
+        acctChangeEmailStatus: document.getElementById("acctChangeEmailStatus"),
+        acctChangeEmailCancelButton: document.getElementById("acctChangeEmailCancelButton"),
+        acctChangeEmailSubmitButton: document.getElementById("acctChangeEmailSubmitButton"),
         acctDeleteModal: document.getElementById("acctDeleteModal"),
         acctDeleteTimer: document.getElementById("acctDeleteTimer"),
         acctDeleteCancelButton: document.getElementById("acctDeleteCancelButton"),
@@ -1988,6 +2022,7 @@
 
         els.acctEmailTop.textContent = state.user.email || "-";
         els.acctEmail.textContent = state.user.email || "-";
+        if (els.acctSettingsEmail) els.acctSettingsEmail.textContent = state.user.email || "-";
         els.acctPlan.classList.toggle("is-plus", displayPlan === "plus");
         if (displayPlan === "plus") {
           els.acctPlan.innerHTML = '<span class="acct-pill-plus-mark">+</span><span class="acct-pill-plus-text">plus</span>';
@@ -2250,6 +2285,58 @@
         if (els.acctChangePasswordCancelButton) els.acctChangePasswordCancelButton.disabled = false;
       }
 
+      function resetChangeEmailForm() {
+        if (els.acctNewEmailInput) els.acctNewEmailInput.value = "";
+        if (els.acctEmailPasswordInput) els.acctEmailPasswordInput.value = "";
+        setStatus(els.acctChangeEmailStatus, "", "");
+        if (els.acctChangeEmailSubmitButton) els.acctChangeEmailSubmitButton.disabled = false;
+        if (els.acctChangeEmailCancelButton) els.acctChangeEmailCancelButton.disabled = false;
+      }
+
+      function openChangeEmailModal() {
+        resetChangeEmailForm();
+        if (els.acctChangeEmailModal) els.acctChangeEmailModal.classList.add("is-open");
+        setTimeout(function () { if (els.acctNewEmailInput) els.acctNewEmailInput.focus(); }, 0);
+      }
+
+      function closeChangeEmailModal() {
+        if (els.acctChangeEmailModal) els.acctChangeEmailModal.classList.remove("is-open");
+      }
+
+      async function submitChangeEmail() {
+        var newEmail = String((els.acctNewEmailInput && els.acctNewEmailInput.value) || "").trim();
+        var currentPassword = String((els.acctEmailPasswordInput && els.acctEmailPasswordInput.value) || "");
+        if (!newEmail || !currentPassword) {
+          setStatus(els.acctChangeEmailStatus, "Enter your new email address and current password.", "error");
+          return;
+        }
+        if (!/^\S+@\S+\.\S+$/.test(newEmail)) {
+          setStatus(els.acctChangeEmailStatus, "Enter a valid email address.", "error");
+          return;
+        }
+        els.acctChangeEmailSubmitButton.disabled = true;
+        els.acctChangeEmailCancelButton.disabled = true;
+        setStatus(els.acctChangeEmailStatus, "Saving your new email address...", "");
+        try {
+          var response = await apiRequest("/auth/change-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ newEmail: newEmail, currentPassword: currentPassword })
+          });
+          if (response && response.token) saveToken(response.token);
+          if (response && response.user) {
+            state.user = response.user;
+            renderUser(state.user);
+          }
+          setStatus(els.acctProfileStatus, "Email address updated.", "success");
+          closeChangeEmailModal();
+        } catch (error) {
+          setStatus(els.acctChangeEmailStatus, error.message || "Could not change your email address.", "error");
+          els.acctChangeEmailSubmitButton.disabled = false;
+          els.acctChangeEmailCancelButton.disabled = false;
+        }
+      }
+
       function openChangePasswordModal() {
         resetChangePasswordForm();
         if (els.acctChangePasswordModal) {
@@ -2380,6 +2467,45 @@
         redirectTop(LOGIN_PAGE_URL);
       }
 
+      function setupAccountTabs() {
+        var grid = els.acctCard && els.acctCard.querySelector(".acct-grid");
+        var tabs = Array.prototype.slice.call(document.querySelectorAll("[data-account-tab]"));
+        if (!grid || !tabs.length || grid.dataset.tabsReady === "true") return;
+
+        var panels = {};
+        ["settings", "billing"].forEach(function (name) {
+          var panel = document.createElement("div");
+          panel.className = "acct-tab-panel";
+          panel.dataset.accountPanel = name;
+          panel.hidden = name !== "settings";
+          grid.appendChild(panel);
+          panels[name] = panel;
+        });
+
+        Array.prototype.slice.call(grid.querySelectorAll("[data-account-section]")).forEach(function (section) {
+          var target = panels[section.dataset.accountSection];
+          if (target) target.appendChild(section);
+        });
+        Array.prototype.slice.call(grid.querySelectorAll(".acct-stack")).forEach(function (stack) { stack.remove(); });
+        grid.dataset.tabsReady = "true";
+
+        function selectTab(name) {
+          tabs.forEach(function (tab) {
+            var active = tab.dataset.accountTab === name;
+            tab.classList.toggle("is-active", active);
+            tab.setAttribute("aria-selected", String(active));
+          });
+          Object.keys(panels).forEach(function (panelName) {
+            panels[panelName].hidden = panelName !== name;
+          });
+        }
+
+        tabs.forEach(function (tab) {
+          tab.addEventListener("click", function () { selectTab(tab.dataset.accountTab); });
+        });
+      }
+
+      setupAccountTabs();
       loadProfile();
       syncBioCount();
       renderUser(null);
@@ -2399,6 +2525,18 @@
       }
       if (els.acctChangePasswordButton) {
         els.acctChangePasswordButton.addEventListener("click", openChangePasswordModal);
+      }
+      if (els.acctChangeEmailButton) {
+        els.acctChangeEmailButton.addEventListener("click", openChangeEmailModal);
+      }
+      if (els.acctChangeEmailCancelButton) {
+        els.acctChangeEmailCancelButton.addEventListener("click", function () {
+          closeChangeEmailModal();
+          resetChangeEmailForm();
+        });
+      }
+      if (els.acctChangeEmailSubmitButton) {
+        els.acctChangeEmailSubmitButton.addEventListener("click", submitChangeEmail);
       }
       els.acctSessionLogoutButton.addEventListener("click", logout);
       if (els.acctChangePasswordCancelButton) {
@@ -2455,6 +2593,24 @@
         });
       }
       els.acctDropzone.addEventListener("click", function () { els.acctAvatarFileInput.click(); });
+      if (els.acctAvatarButton) {
+        els.acctAvatarButton.addEventListener("click", function () { els.acctAvatarFileInput.click(); });
+      }
+      if (els.acctChangeEmailModal) {
+        els.acctChangeEmailModal.addEventListener("click", function (event) {
+          if (event.target === els.acctChangeEmailModal) {
+            closeChangeEmailModal();
+            resetChangeEmailForm();
+          }
+        });
+      }
+      if (els.acctEditProfileButton) {
+        els.acctEditProfileButton.addEventListener("click", function () {
+          var profilePanel = document.querySelector('[data-account-panel="settings"]');
+          if (profilePanel) profilePanel.scrollIntoView({ behavior: "smooth", block: "start" });
+          setTimeout(function () { if (els.acctDisplayNameInput) els.acctDisplayNameInput.focus(); }, 260);
+        });
+      }
       els.acctDropzone.addEventListener("keydown", function (event) {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();

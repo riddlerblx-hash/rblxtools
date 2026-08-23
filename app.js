@@ -6073,6 +6073,45 @@ app.post("/auth/change-password", async (req, res) => {
   }
 });
 
+app.post("/auth/change-email", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const newEmail = normalizeEmail(req.body?.newEmail);
+    const currentPassword = String(req.body?.currentPassword || "");
+
+    if (!validateAuthEmail(newEmail)) {
+      return res.status(400).json({ error: "Enter a valid email address." });
+    }
+    if (!currentPassword || !verifyPassword(currentPassword, user.password_hash)) {
+      return res.status(401).json({ error: "Current password is incorrect." });
+    }
+    if (newEmail === normalizeEmail(user.email)) {
+      return res.status(400).json({ error: "Choose a different email address." });
+    }
+
+    const existingUser = await getAuthUserByEmail(newEmail);
+    if (existingUser && existingUser.id !== user.id) {
+      return res.status(409).json({ error: "An account already exists for that email." });
+    }
+
+    const updatedUser = await updateAuthUserFields(user.id, { email: newEmail });
+    const freshUser = updatedUser || ((await getAuthUserById(user.id)) || user);
+    const token = createAuthToken(freshUser);
+    setAuthCookie(req, res, token);
+
+    return res.json({
+      ok: true,
+      token,
+      user: await buildResolvedPublicUser(freshUser),
+    });
+  } catch (error) {
+    console.error("POST /auth/change-email failed:", error.message);
+    return res.status(error.statusCode || 500).json({
+      error: error.message || "Could not change email address.",
+    });
+  }
+});
+
 app.post("/auth/delete-account", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
