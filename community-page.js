@@ -635,6 +635,7 @@
 
   function setComposerOpen(open) {
     composerOpen = Boolean(open);
+    document.body.classList.toggle("rblx-shell-modal-open", composerOpen);
     updateComposerMode();
     if (composerOpen) {
       window.setTimeout(function () {
@@ -983,9 +984,10 @@
 
   function bindComposer() {
     var composer = document.getElementById("communityAdminComposer");
-    // global-shell moves page content during DOM ready, so mount after it finishes.
+    // Match the login overlay: it lives in the shell root at the shell modal layer.
     window.setTimeout(function () {
-      if (composer && composer.parentElement !== document.body) document.body.appendChild(composer);
+      var shellRoot = document.getElementById("rblxShellRoot");
+      if (composer && shellRoot && composer.parentElement !== shellRoot) shellRoot.appendChild(composer);
     }, 0);
     var publishButton = document.getElementById("communityPublishButton");
     if (publishButton) publishButton.addEventListener("click", savePost);
