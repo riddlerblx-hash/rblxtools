@@ -46,7 +46,7 @@
     .community-shell::after {
       content: "";
       position: absolute;
-      inset: 0;
+      inset: var(--shell-header-height, 88px) 0 0;
       pointer-events: none;
       background:
         linear-gradient(135deg, rgba(255, 86, 101, 0.09), transparent 36%),
