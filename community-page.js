@@ -12,6 +12,8 @@
   var currentViewer = null;
   var viewerMembershipSignature = "";
   var publishStatusTimer = null;
+  var composerOpen = false;
+  var composerAttachment = null;
 
   function escapeHtml(value) {
     return String(value == null ? "" : value)
@@ -452,6 +454,15 @@
       var authorBits = [];
       if (post.authorName) authorBits.push("Posted by " + escapeHtml(post.authorName));
       if (post.pinned) authorBits.push("Pinned");
+      var attachment = post.attachment && post.attachment.dataUrl ? post.attachment : null;
+      var attachmentMarkup = "";
+      if (attachment) {
+        if (/^image\//i.test(attachment.type || "")) {
+          attachmentMarkup = '<div class="community-post-attachment"><img src="' + escapeHtml(attachment.dataUrl) + '" alt="Attachment: ' + escapeHtml(attachment.name || "image") + '"></div>';
+        } else {
+          attachmentMarkup = '<div class="community-post-attachment"><a href="' + escapeHtml(attachment.dataUrl) + '" download="' + escapeHtml(attachment.name || "attachment") + '">Download attachment: ' + escapeHtml(attachment.name || "file") + '</a></div>';
+        }
+      }
 
       return (
         '<article class="community-post" id="post-' + escapeHtml(post.id) + '" data-community-post-id="' + escapeHtml(post.id) + '">' +
@@ -465,6 +476,7 @@
           "</div>" +
           "<h2>" + escapeHtml(post.title || "Untitled update") + "</h2>" +
           "<p>" + escapeHtml(post.body || "").replace(/\n/g, "<br>") + "</p>" +
+          attachmentMarkup +
           '<div class="community-meta">' + authorBits.map(function (bit) {
             return "<span>" + bit + "</span>";
           }).join("") + "</div>" +
@@ -533,7 +545,7 @@
     var activeFilter = getActiveFilter();
     var memberCategory = activeFilter === "feedback" ? "feedback" : "bug-report";
     var memberCanPost = isLoggedIn && !isAdminUser && (activeFilter === "bug-report" || activeFilter === "feedback");
-    composer.hidden = !(isAdminUser || memberCanPost);
+    composer.hidden = !composerOpen || !(isAdminUser || memberCanPost);
     composer.classList.toggle("is-member-report", memberCanPost);
     composer.classList.toggle("is-member-feedback", memberCanPost && memberCategory === "feedback");
     if (ratingField) ratingField.hidden = !(memberCanPost && memberCategory === "feedback");
@@ -621,6 +633,40 @@
     if (changed) lastFeedSignature = "";
   }
 
+  function setComposerOpen(open) {
+    composerOpen = Boolean(open);
+    updateComposerMode();
+    if (composerOpen) {
+      window.setTimeout(function () {
+        var title = document.getElementById("communityPostTitle");
+        if (title) title.focus();
+      }, 0);
+    }
+  }
+
+  function updateAttachmentFromInput() {
+    var input = document.getElementById("communityPostAttachment");
+    var label = document.getElementById("communityAttachmentName");
+    var file = input && input.files ? input.files[0] : null;
+    composerAttachment = null;
+    if (!file) {
+      if (label) label.textContent = "Up to 2 MB.";
+      return;
+    }
+    var allowedTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf", "text/plain"];
+    if (allowedTypes.indexOf(file.type) === -1 || file.size > 2 * 1024 * 1024) {
+      if (input) input.value = "";
+      if (label) label.textContent = "Choose an image, PDF, or text file smaller than 2 MB.";
+      return;
+    }
+    if (label) label.textContent = file.name + " ready to attach";
+    var reader = new FileReader();
+    reader.onload = function () {
+      composerAttachment = { name: file.name, type: file.type, dataUrl: String(reader.result || "") };
+    };
+    reader.readAsDataURL(file);
+  }
+
   function primeViewerState() {
     var cached = readJsonStorage(USER_KEY);
     if (cached && (cached.id || cached.userId)) applyViewerState(cached);
@@ -647,6 +693,11 @@
       var node = document.getElementById(id);
       if (node) node.value = "";
     });
+    var attachmentInput = document.getElementById("communityPostAttachment");
+    if (attachmentInput) attachmentInput.value = "";
+    composerAttachment = null;
+    var attachmentName = document.getElementById("communityAttachmentName");
+    if (attachmentName) attachmentName.textContent = "Up to 2 MB.";
     var categoryNode = document.getElementById("communityPostCategory");
     if (categoryNode) categoryNode.value = isAdminUser ? "announcement" : (getActiveFilter() === "feedback" ? "feedback" : "bug-report");
     var ratingNode = document.getElementById("communityFeedbackRating");
@@ -679,7 +730,7 @@
       document.getElementById("communityPostCategory").value = match.category || "announcement";
       document.getElementById("communityPostLinkLabel").value = match.linkLabel || "";
       document.getElementById("communityPostLinkUrl").value = match.linkUrl || "";
-      document.getElementById("communityAdminComposer").scrollIntoView({ behavior: "smooth", block: "start" });
+      setComposerOpen(true);
       setPublishStatus("Editing selected post.", "success");
     } catch (error) {
       setPublishStatus(error && error.message ? error.message : "Could not load that post.", "error");
@@ -730,15 +781,18 @@
             rating: !isAdminUser && memberCategory === "feedback" && ratingNode ? Number(ratingNode.value) : 0,
             linkLabel: isAdminUser && linkLabelNode ? String(linkLabelNode.value || "").trim() : "",
             linkUrl: isAdminUser && linkUrlNode ? String(linkUrlNode.value || "").trim() : "",
+            attachment: composerAttachment,
             avatarUrl: getCurrentCommentProfile().avatarUrl,
             bio: getCurrentCommentProfile().bio,
             plan: getCurrentCommentProfile().plan
           })
         }
       );
-      setPublishStatus(payload.message || (editingPostId ? "Post saved." : "Post published."), "success");
+      var successMessage = payload.message || (editingPostId ? "Post saved." : "Post published.");
       resetComposer();
+      setComposerOpen(false);
       await loadCommunityPosts(true);
+      setPublishStatus(successMessage, "success");
     } catch (error) {
       setPublishStatus(error && error.message ? error.message : "Could not save the post.", "error");
     } finally {
@@ -930,6 +984,21 @@
   function bindComposer() {
     var publishButton = document.getElementById("communityPublishButton");
     if (publishButton) publishButton.addEventListener("click", savePost);
+    var openButton = document.getElementById("communityOpenComposer");
+    if (openButton) openButton.addEventListener("click", function () {
+      if (!isLoggedIn) return void openLoginPrompt("Log in or sign up to create a community post.");
+      if (!isAdminUser && getActiveFilter() !== "bug-report" && getActiveFilter() !== "feedback") {
+        var url = new URL(window.location.href);
+        url.searchParams.set("filter", "bug-report");
+        window.history.pushState({}, "", url.pathname + url.search);
+        syncFilterUi("bug-report");
+      }
+      setComposerOpen(true);
+    });
+    var closeButton = document.getElementById("communityCloseComposer");
+    if (closeButton) closeButton.addEventListener("click", function () { setComposerOpen(false); });
+    var attachmentInput = document.getElementById("communityPostAttachment");
+    if (attachmentInput) attachmentInput.addEventListener("change", updateAttachmentFromInput);
     document.querySelectorAll("[data-community-rating]").forEach(function (star) {
       star.addEventListener("mouseenter", function () {
         var ratingNode = document.getElementById("communityFeedbackRating");

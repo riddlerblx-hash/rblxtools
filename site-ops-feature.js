@@ -259,6 +259,15 @@ function normalizeCommunityComment(comment) {
   };
 }
 
+function normalizeCommunityAttachment(attachment) {
+  const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf", "text/plain"]);
+  const type = String(attachment?.type || "").trim().toLowerCase();
+  const name = String(attachment?.name || "attachment").trim().replace(/[\\/:*?"<>|]+/g, "-").slice(0, 120);
+  const dataUrl = String(attachment?.dataUrl || "").trim();
+  if (!allowedTypes.has(type) || !dataUrl.startsWith("data:" + type + ";base64,") || dataUrl.length > 2800000) return null;
+  return { name: name || "attachment", type, dataUrl };
+}
+
 function normalizePostForStorage(post) {
   const likes = Array.isArray(post?.likes) ? post.likes.map((value) => String(value || "").trim()).filter(Boolean) : [];
   const comments = Array.isArray(post?.comments) ? post.comments.map(normalizeCommunityComment).filter((comment) => comment.body) : [];
@@ -277,6 +286,7 @@ function normalizePostForStorage(post) {
     bugStatus: isBugReport ? bugStatus : "",
     knownIssue: isBugReport && Boolean(post?.knownIssue),
     rating,
+    attachment: normalizeCommunityAttachment(post?.attachment),
   });
 }
 
@@ -294,7 +304,7 @@ function buildPublicCommunityPost(post, viewerId) {
     publishedAt: normalized.publishedAt ? String(normalized.publishedAt) : null, authorId: String(normalized.authorId || ""), authorName: normalized.authorName ? String(normalized.authorName) : "",
     authorIsAdmin: Boolean(normalized.authorIsAdmin), authorAvatarUrl: String(normalized.authorAvatarUrl || ""), authorBio: String(normalized.authorBio || ""), authorPlan: String(normalized.authorPlan || "free"),
     bugStatus: normalized.category === "bug-report" ? normalized.bugStatus : "", knownIssue: Boolean(normalized.knownIssue), rating: normalized.rating,
-    linkLabel: normalized.linkLabel ? String(normalized.linkLabel) : "", linkUrl: normalized.linkUrl ? String(normalized.linkUrl) : "",
+    linkLabel: normalized.linkLabel ? String(normalized.linkLabel) : "", linkUrl: normalized.linkUrl ? String(normalized.linkUrl) : "", attachment: normalized.attachment,
     likeCount: normalized.likes.length, viewerLiked: Boolean(viewer && normalized.likes.includes(viewer)), commentCount: normalized.comments.length, comments: normalized.comments.map(commentPublic),
   };
 }
@@ -403,6 +413,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
         authorIsAdmin: false,
         linkLabel: "",
         linkUrl: "",
+        attachment: normalizeCommunityAttachment(req.body?.attachment),
       });
 
       const posts = readCommunityPosts(baseDir);
@@ -451,6 +462,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
         knownIssue: category === "bug-report" && Boolean(req.body?.knownIssue),
         linkLabel,
         linkUrl,
+        attachment: normalizeCommunityAttachment(req.body?.attachment),
       });
 
       const posts = readCommunityPosts(baseDir);
