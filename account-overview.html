@@ -1144,22 +1144,48 @@
     #rbtools-account-overview .acct-button.secondary { border-color: rgba(112, 153, 230, .34); background: rgba(70, 107, 170, .16); }
     #rbtools-account-overview .acct-section-kicker, #rbtools-account-overview .acct-pill-label { color: #ffabb5; }
     #rbtools-account-overview .acct-profile-header {
+      position: relative; isolation: isolate; overflow: hidden;
       display: flex; align-items: center; justify-content: space-between; gap: 18px;
       padding: 20px; margin-bottom: 16px; border: 1px solid rgba(111, 146, 205, .22);
       border-radius: 18px; background: linear-gradient(135deg, rgba(111, 146, 205, .13), rgba(12, 20, 35, .72));
     }
+    #rbtools-account-overview .acct-profile-header::after { content: none; }
+    #rbtools-account-overview .acct-card.is-plus .acct-profile-header {
+      border-color: rgba(224, 230, 240, .58);
+      background: linear-gradient(130deg, rgba(18, 25, 37, .96), rgba(76, 85, 99, .54) 47%, rgba(15, 24, 37, .96));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.26), 0 18px 36px rgba(4, 8, 18, .3);
+    }
+    #rbtools-account-overview .acct-card.is-plus .acct-profile-header::after {
+      content: ""; position: absolute; inset: -70% -32%; z-index: 0; pointer-events: none;
+      background: linear-gradient(112deg, transparent 42%, rgba(255,255,255,.42) 50%, transparent 58%);
+      animation: acctProfileGlare 5.8s ease-in-out infinite;
+    }
+    #rbtools-account-overview .acct-profile-header .acct-profile,
+    #rbtools-account-overview .acct-profile-header .acct-profile-edit { position: relative; z-index: 2; }
+    #rbtools-account-overview .acct-profile-plus { display: none; position: absolute; z-index: 1; color: rgba(242, 246, 255, .44); font-weight: 900; text-shadow: 0 0 14px rgba(255,255,255,.26); animation: acctFloatPlus 5.5s ease-in-out infinite; }
+    #rbtools-account-overview .acct-card.is-plus .acct-profile-plus { display: block; }
+    #rbtools-account-overview .acct-profile-plus.one { top: 18%; left: 31%; font-size: 16px; }
+    #rbtools-account-overview .acct-profile-plus.two { top: 26%; right: 27%; font-size: 20px; animation-delay: 1.1s; }
+    #rbtools-account-overview .acct-profile-plus.three { bottom: 16%; left: 58%; font-size: 14px; animation-delay: 2.2s; }
+    #rbtools-account-overview .acct-profile-plus.four { bottom: 25%; right: 10%; font-size: 17px; animation-delay: .6s; }
     #rbtools-account-overview .acct-avatar-button { border: 0; padding: 0; cursor: pointer; }
     #rbtools-account-overview .acct-avatar-button:hover { outline: 2px solid rgba(127, 171, 255, .75); outline-offset: 3px; }
     #rbtools-account-overview .acct-profile-edit { margin-left: auto; white-space: nowrap; }
+    #rbtools-account-overview .acct-name-line { display: flex; align-items: center; gap: 9px; }
+    #rbtools-account-overview .acct-name-line .acct-plus-mark { flex: 0 0 auto; }
     #rbtools-account-overview .acct-tabs { display: flex; gap: 8px; padding: 6px; margin: 0 0 16px; border: 1px solid rgba(111, 146, 205, .22); border-radius: 15px; background: rgba(9, 16, 29, .72); }
     #rbtools-account-overview .acct-tab { flex: 1; border: 1px solid transparent; border-radius: 10px; padding: 11px 14px; background: transparent; color: #afbdd1; font: inherit; font-weight: 800; cursor: pointer; }
     #rbtools-account-overview .acct-tab:hover { color: #edf4ff; background: rgba(95, 133, 198, .12); }
     #rbtools-account-overview .acct-tab.is-active { color: #fff; border-color: rgba(119, 161, 241, .45); background: linear-gradient(135deg, rgba(69, 110, 184, .38), rgba(73, 36, 69, .36)); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
-    #rbtools-account-overview .acct-tab-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    #rbtools-account-overview .acct-tab-panel { display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(300px, .72fr); gap: 14px; }
     #rbtools-account-overview .acct-tab-panel[hidden] { display: none; }
     #rbtools-account-overview .acct-tab-panel .acct-block { margin: 0; }
     #rbtools-account-overview .acct-account-details { margin: 14px 0; }
     @media (max-width: 700px) { main { padding: 26px 12px 38px; } .hero { text-align: center; } .hero p { margin-left: auto; } }
+    @keyframes acctProfileGlare { 0%, 38% { transform: translateX(-42%); opacity: 0; } 48% { opacity: 1; } 62%, 100% { transform: translateX(42%); opacity: 0; } }
+    @media (max-width: 1040px) {
+      #rbtools-account-overview .acct-tab-panel { grid-template-columns: 1fr; }
+    }
     @media (max-width: 760px) {
       #rbtools-account-overview .acct-profile-header { align-items: flex-start; flex-wrap: wrap; }
       #rbtools-account-overview .acct-profile-edit { width: 100%; margin-left: 0; }
@@ -1244,6 +1270,10 @@
             <div class="acct-float-plus fourteen">+</div>
             <div class="acct-inner">
               <div class="acct-profile-header">
+                <span class="acct-profile-plus one">+</span>
+                <span class="acct-profile-plus two">+</span>
+                <span class="acct-profile-plus three">+</span>
+                <span class="acct-profile-plus four">+</span>
                 <div class="acct-profile">
                     <button id="acctAvatarButton" class="acct-avatar acct-avatar-button" type="button" aria-label="Choose a profile picture">
                       <img id="acctAvatarImage" alt="Profile picture">
@@ -1251,10 +1281,13 @@
                     </button>
 
                     <div>
-                      <h2 class="acct-name">
-                        <span id="acctDisplayName">Your</span>
-                        <span id="acctDisplaySubname">Account</span>
-                      </h2>
+                      <div class="acct-name-line">
+                        <span id="acctProfilePlusMark" class="acct-plus-mark hidden" aria-label="Plus member">+</span>
+                        <h2 class="acct-name">
+                          <span id="acctDisplayName">Your</span>
+                          <span id="acctDisplaySubname">Account</span>
+                        </h2>
+                      </div>
                       <div id="acctEmailTop" class="acct-email">Sign in to load your member account.</div>
                       <div id="acctBioTop" class="acct-bio-preview is-empty">Add a short bio to tell people a little about this account.</div>
                       <div id="acctPlusCosmetic" class="acct-plus-tag hidden">
@@ -1630,6 +1663,7 @@
         acctAvatarFallback: document.getElementById("acctAvatarFallback"),
         acctDisplayName: document.getElementById("acctDisplayName"),
         acctDisplaySubname: document.getElementById("acctDisplaySubname"),
+        acctProfilePlusMark: document.getElementById("acctProfilePlusMark"),
         acctPlusCosmetic: document.getElementById("acctPlusCosmetic"),
         acctEmailTop: document.getElementById("acctEmailTop"),
         acctEmail: document.getElementById("acctEmail"),
@@ -1974,6 +2008,7 @@
         syncBioCount();
         els.acctAvatarFallback.textContent = getInitials(displayName);
         els.acctPlusCosmetic.classList.toggle("hidden", !(state.user && state.user.premiumActive));
+        if (els.acctProfilePlusMark) els.acctProfilePlusMark.classList.toggle("hidden", !(state.user && state.user.premiumActive));
         els.acctCard.classList.toggle("is-plus", Boolean(state.user && state.user.premiumActive));
         els.acctDropzone.style.setProperty("--acct-avatar-scale", String(avatarScale));
         els.acctDropzone.style.setProperty("--acct-avatar-x", avatarX + "%");
@@ -2021,7 +2056,7 @@
         var displayPlan = planValue === "premium" ? "plus" : planValue;
 
         els.acctEmailTop.textContent = state.user.email || "-";
-        els.acctEmail.textContent = state.user.email || "-";
+        if (els.acctEmail) els.acctEmail.textContent = state.user.email || "-";
         if (els.acctSettingsEmail) els.acctSettingsEmail.textContent = state.user.email || "-";
         els.acctPlan.classList.toggle("is-plus", displayPlan === "plus");
         if (displayPlan === "plus") {
