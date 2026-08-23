@@ -8478,7 +8478,13 @@ app.use((error, req, res, next) => {
   return next(error);
 });
 
-app.use(express.static(STATIC_ROOT, { extensions: ["html"] }));
+app.use(express.static(STATIC_ROOT, {
+  extensions: ["html"],
+  setHeaders(res, filePath) {
+    // Tool pages and shared shell assets must not retain stale client-side behavior.
+    if (/\.(?:html|css|js)$/i.test(filePath)) res.setHeader("Cache-Control", "no-store");
+  },
+}));
 
 app.get(["/texture-baker", "/texture-baker.html"], (_req, res) => {
   res.redirect(302, "/ugc-downloader");
