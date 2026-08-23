@@ -8078,6 +8078,9 @@ io.on("connection", (socket) => {
   socket.on("chat-message", async (payload = {}) => {
     if (!currentRoom) return;
     if (!authenticatedUser) {
+      authenticatedUser = await getAuthenticatedSocketUser(socket, payload);
+    }
+    if (!authenticatedUser) {
       socket.emit("special-action-result", {
         type: "authentication",
         ok: false,
@@ -8085,6 +8088,9 @@ io.on("connection", (socket) => {
       });
       return;
     }
+
+    memberProfile = await buildChatMemberProfile(payload, authenticatedUser);
+    addUser(currentRoom, socket.id, memberProfile);
 
     const moderation = await summarizeModerationForTarget(authenticatedUser, currentDeviceId);
     socket.emit("moderation-state", moderation);
@@ -8131,7 +8137,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("chat-react", async (payload = {}) => {
-    if (!currentRoom || !authenticatedUser) {
+    if (!currentRoom) return;
+    if (!authenticatedUser) {
+      authenticatedUser = await getAuthenticatedSocketUser(socket, payload);
+    }
+    if (!authenticatedUser) {
       socket.emit("special-action-result", { type: "authentication", ok: false, error: "Log in or sign up to react in live chat." });
       return;
     }

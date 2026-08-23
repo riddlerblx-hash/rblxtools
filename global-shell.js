@@ -2426,7 +2426,10 @@
       if (actionButton && actionButton.getAttribute("data-chat-action") === "heart") {
         if (!shellState.currentUser || !shellState.currentUser.loggedIn) return void openAuthModal({ mode: "login", message: "Log in or sign up to react in live chat." });
         if (!actionButton.classList.contains("is-active")) createShellHeartBurst(actionButton);
-        if (shellState.socket && shellState.socketReady) shellState.socket.emit("chat-react", { messageId: shellState.chatMessages[Number(actionButton.getAttribute("data-chat-index"))]?.id });
+        if (shellState.socket && shellState.socketReady) shellState.socket.emit("chat-react", {
+          messageId: shellState.chatMessages[Number(actionButton.getAttribute("data-chat-index"))]?.id,
+          authToken: shellState.chatAuthToken || ""
+        });
         return;
       }
       if (actionButton && actionButton.getAttribute("data-chat-action") === "reply") {
@@ -2466,6 +2469,7 @@
         plan: getSocketChatIdentity().plan,
         isPlus: getSocketChatIdentity().isPlus,
         isGuest: getSocketChatIdentity().isGuest,
+        authToken: shellState.chatAuthToken || "",
         replyTo: shellState.chatReplyTo
       });
       shellState.chatReplyTo = null;
