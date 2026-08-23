@@ -1243,7 +1243,7 @@
         }
       }
 
-      if (!window.RBLXToolsFreeUsage || !(await window.RBLXToolsFreeUsage.check())) return;
+      if (!window.RBLXToolsFreeUsage || !(await window.RBLXToolsFreeUsage.consume())) return;
 
       audioButton.disabled = true;
       audioButton.textContent = ids.length > 1 ? "Loading Audios..." : "Loading...";

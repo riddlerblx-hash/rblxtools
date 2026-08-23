@@ -3833,7 +3833,7 @@
 
     installToolUsageRefresh();
     refreshMeter();
-    window.setInterval(refreshMeter, 30000);
+    window.setInterval(refreshMeter, 5000);
     document.addEventListener("visibilitychange", function () {
       if (document.visibilityState === "visible") refreshMeter();
     });

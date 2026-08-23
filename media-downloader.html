@@ -1260,7 +1260,7 @@
         return;
       }
 
-      if (!window.RBLXToolsFreeUsage || !(await window.RBLXToolsFreeUsage.check())) return;
+      if (!window.RBLXToolsFreeUsage || !(await window.RBLXToolsFreeUsage.consume())) return;
 
       fetchButton.disabled = true;
       fetchButton.textContent = "Loading...";

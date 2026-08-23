@@ -1779,7 +1779,7 @@
         }
       }
 
-      if (!window.RBLXToolsFreeUsage || !(await window.RBLXToolsFreeUsage.check())) return;
+      if (!window.RBLXToolsFreeUsage || !(await window.RBLXToolsFreeUsage.consume())) return;
 
       status.className = "";
       status.innerText = ids.length > 1 ? "Fetching templates..." : "Fetching template...";
