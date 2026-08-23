@@ -3179,7 +3179,7 @@
       }
       var payload = await response.json().catch(function () { return null; });
       if (payload && payload.user) {
-        setChatAuthToken(payload.chatToken || "");
+        if (!shellState.chatAuthToken && payload.chatToken) setChatAuthToken(payload.chatToken);
         applyMembershipPayload(payload);
       }
     } catch (_error) {
@@ -3283,7 +3283,7 @@
       if (!response.ok) throw new Error("Not signed in");
       var payload = await response.json().catch(function () { return null; });
       var user = payload && payload.user ? payload.user : payload;
-      setChatAuthToken(payload && payload.chatToken ? payload.chatToken : "");
+      if (!shellState.chatAuthToken && payload && payload.chatToken) setChatAuthToken(payload.chatToken);
       saveCachedAuthUser(user);
       displayName = getPreferredUserName(user, payload);
       plus = plus || hasPlusFromPayload(payload) || hasPlusFromPayload(user);

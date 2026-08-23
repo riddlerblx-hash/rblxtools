@@ -2887,6 +2887,20 @@ async function deactivateModerationAction(actionId) {
 }
 
 async function summarizeModerationForTarget(user, deviceId = "") {
+  // Admins must always retain access to the control surface, including chat.
+  // This prevents a stale account-level action from locking the site owner out.
+  if (isAdminUser(user)) {
+    return {
+      websiteBlacklisted: false,
+      websiteBlacklistReason: "",
+      chatBanned: false,
+      chatBanReason: "",
+      chatTimeoutUntil: null,
+      chatTimeoutReason: "",
+      activeActions: [],
+    };
+  }
+
   const userActions = user ? await getModerationActionsByUser(user) : [];
   const deviceActions = deviceId ? await getModerationActionsByDevice(deviceId) : [];
   const actions = userActions.concat(deviceActions);
