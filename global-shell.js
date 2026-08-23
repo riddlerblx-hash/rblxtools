@@ -3370,6 +3370,58 @@
     });
   }
 
+  function prefetchShellPage(href) {
+    if (!href) return;
+    var destination;
+    try {
+      destination = new URL(href, window.location.href);
+    } catch (_error) {
+      return;
+    }
+
+    if (destination.origin !== window.location.origin || destination.pathname === window.location.pathname) return;
+    var key = destination.pathname + destination.search;
+    if (document.querySelector('link[data-rblx-page-prefetch="' + key.replace(/"/g, "\\\"") + '"]')) return;
+
+    var link = document.createElement("link");
+    link.rel = "prefetch";
+    link.as = "document";
+    link.href = destination.href;
+    link.setAttribute("data-rblx-page-prefetch", key);
+    document.head.appendChild(link);
+  }
+
+  function initFastShellNavigation() {
+    function getInternalLink(event) {
+      var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
+      if (!link || link.target || link.hasAttribute("download")) return null;
+      return link;
+    }
+
+    document.addEventListener("pointerover", function (event) {
+      var link = getInternalLink(event);
+      if (link) prefetchShellPage(link.href);
+    }, { passive: true });
+    document.addEventListener("focusin", function (event) {
+      var link = getInternalLink(event);
+      if (link) prefetchShellPage(link.href);
+    });
+
+    // Warm the primary shell destinations after the page settles. Prefetch is
+    // deliberately low-priority, so it never blocks the current tool page.
+    var primaryLinks = Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-nav-link[href]"));
+    var index = 0;
+    function warmNext() {
+      if (index >= primaryLinks.length) return;
+      prefetchShellPage(primaryLinks[index].href);
+      index += 1;
+      window.setTimeout(warmNext, 180);
+    }
+    var startWarmup = function () { window.setTimeout(warmNext, 700); };
+    if ("requestIdleCallback" in window) window.requestIdleCallback(startWarmup, { timeout: 1800 });
+    else startWarmup();
+  }
+
 
   function getSharedToolShowcaseIcon(kind) {
     var icons = {
@@ -3691,6 +3743,7 @@
       logoutCurrentUser();
     });
     initToggles();
+    initFastShellNavigation();
     initChat();
     connectChatSocket();
     initAdminWindow();
