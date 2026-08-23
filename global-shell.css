@@ -3315,6 +3315,13 @@ body.rblx-shell-ready .rblx-shell-page .rblx-tool-stat strong { display: block; 
   animation: rblxPlusTextShine 3.8s linear infinite;
 }
 
+/* Older pages wrap Plus in a span without surrounding whitespace. */
+.plus-word:not(.rblx-plus-word) {
+  display: inline-block;
+  margin-inline: .16em;
+}
+.plus-word .rblx-plus-word { margin-inline: 0; }
+
 @keyframes rblxPlusTextShine {
   from { background-position: 0% 50%; }
   to { background-position: 230% 50%; }

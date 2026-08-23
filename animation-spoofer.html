@@ -93,10 +93,6 @@
 
 
 
-    #plusGate.page-plus-lock .close-btn {
-      display: none !important;
-    }
-
     #plusGate.page-plus-lock {
       position: fixed;
       inset: 0;
@@ -104,28 +100,18 @@
     }
 
     #plusGate.page-plus-lock .gate-actions {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(180px, 260px);
+      justify-content: center;
     }
-
-    .gate-redirect-note {
-      color: #b8bec7;
-      font-size: 12px;
-      line-height: 1.45;
-      font-weight: 700;
-      text-align: center;
+    #plusGate.page-plus-lock .gate-modal {
+      border-color: rgba(194, 210, 230, .44);
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.16), transparent 28%, rgba(255,255,255,.05) 52%, transparent 72%),
+        radial-gradient(circle at 88% 8%, rgba(244,248,255,.22), transparent 32%),
+        linear-gradient(145deg, #263244, #111b2d 62%, #667486);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.52), 0 30px 78px rgba(3,8,18,.58);
     }
-
-      .gate-redirect-countdown {
-      margin-top: 2px;
-      color: #7fff9f;
-      font-size: 15px;
-      line-height: 1.3;
-      font-weight: 1000;
-      text-align: center;
-      text-transform: uppercase;
-      letter-spacing: 0.45px;
-      text-shadow: 0 0 18px rgba(109, 255, 154, 0.24);
-      }
+    #plusGate.page-plus-lock .gate-modal h3 span:last-child { color: #eef3fa; }
       .tutorial-video-box {
       position: relative;
       overflow: hidden;
@@ -190,7 +176,7 @@
       height: 100%;
     }
 </style>
-<link rel="stylesheet" href="./global-shell.css?v=20260823-11" />
+<link rel="stylesheet" href="./global-shell.css?v=20260823-12" />
   <link rel="stylesheet" href="./template-tool-layout.css" />
 <style>
       .tool-stack,
@@ -1573,14 +1559,8 @@
       let couponUsesLeft = COUPON_DEFAULT_USES;
       let couponExpiryIso = COUPON_EXPIRY_ISO;
 
-      let pageLockRedirectTimer = null;
-
       function clearPageLockOverlay() {
         if (!plusGate) return;
-        if (pageLockRedirectTimer) {
-          window.clearInterval(pageLockRedirectTimer);
-          pageLockRedirectTimer = null;
-        }
         plusGate.classList.remove("open", "page-plus-lock");
       }
 
@@ -1594,7 +1574,7 @@
         plusGate.classList.add("open", "page-plus-lock");
         if (plusGate.dataset.lockBound !== "true") {
           plusGate.addEventListener("click", function (event) {
-            if (plusGate && plusGate.classList.contains("page-plus-lock")) {
+            if (plusGate && plusGate.classList.contains("page-plus-lock") && event.target === plusGate) {
               event.preventDefault();
               event.stopImmediatePropagation();
             }
@@ -1620,23 +1600,8 @@
 
         if (actions) {
           actions.innerHTML =
-            '<div class="gate-redirect-countdown" id="pagePlusRedirectCountdown">Redirecting in 5 seconds...</div>' +
-            '<div class="gate-redirect-note">Taking you to the Plus plans page so you can unlock this page and its full utility.</div>';
+            '<a class="plans-btn" href="./subscriptions">View Plans</a>';
         }
-
-        const countdownEl = document.getElementById("pagePlusRedirectCountdown");
-        let secondsLeft = 5;
-        pageLockRedirectTimer = window.setInterval(function () {
-          secondsLeft -= 1;
-          if (countdownEl && secondsLeft > 0) {
-            countdownEl.textContent = "Redirecting in " + secondsLeft + " seconds...";
-          }
-          if (secondsLeft <= 0) {
-            window.clearInterval(pageLockRedirectTimer);
-            pageLockRedirectTimer = null;
-            window.location.href = "./subscriptions";
-          }
-        }, 1000);
       }
 
       function getApiBaseUrl() {
