@@ -983,9 +983,10 @@
 
   function bindComposer() {
     var composer = document.getElementById("communityAdminComposer");
-    // The shell has its own stacking context; mounting the modal at body level
-    // guarantees the dimmer covers the header, sidebars, and page content.
-    if (composer && composer.parentElement !== document.body) document.body.appendChild(composer);
+    // global-shell moves page content during DOM ready, so mount after it finishes.
+    window.setTimeout(function () {
+      if (composer && composer.parentElement !== document.body) document.body.appendChild(composer);
+    }, 0);
     var publishButton = document.getElementById("communityPublishButton");
     if (publishButton) publishButton.addEventListener("click", savePost);
     var openButton = document.getElementById("communityOpenComposer");
@@ -1036,6 +1037,13 @@
         return;
       }
 
+      var categoryToggle = target.closest("[data-community-category-toggle]");
+      if (categoryToggle) {
+        var categoryMenu = categoryToggle.closest(".community-category-select");
+        if (categoryMenu) categoryMenu.classList.toggle("is-open");
+        return;
+      }
+
       var profileButton = target.closest("[data-community-profile]");
       if (profileButton) return void openCommunityProfileFromButton(profileButton);
 
@@ -1068,7 +1076,7 @@
         document.querySelectorAll("[data-community-category]").forEach(function (node) {
           node.classList.toggle("is-selected", node === categoryOption);
         });
-        if (categoryDetails) categoryDetails.open = false;
+        if (categoryDetails) categoryDetails.classList.remove("is-open");
         return;
       }
 
@@ -1104,13 +1112,6 @@
       }
     });
 
-    var categoryDetails = document.getElementById("communityCategorySelect");
-    if (categoryDetails) {
-      categoryDetails.addEventListener("toggle", function () {
-        var field = categoryDetails.closest(".community-field");
-        if (field) field.classList.toggle("is-category-open", categoryDetails.open);
-      });
-    }
   }
 
   function startFeedHeartbeat() {
