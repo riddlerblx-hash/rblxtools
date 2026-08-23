@@ -1170,9 +1170,6 @@
     #rbtools-account-overview .acct-profile-plus.four { bottom: 25%; right: 10%; font-size: 17px; animation-delay: .6s; }
     #rbtools-account-overview .acct-avatar-button { border: 0; padding: 0; cursor: pointer; }
     #rbtools-account-overview .acct-avatar-button:hover { outline: 2px solid rgba(127, 171, 255, .75); outline-offset: 3px; }
-    #rbtools-account-overview .acct-profile-edit { margin-left: auto; white-space: nowrap; }
-    #rbtools-account-overview .acct-name-line { display: flex; align-items: center; gap: 9px; }
-    #rbtools-account-overview .acct-name-line .acct-plus-mark { flex: 0 0 auto; }
     #rbtools-account-overview .acct-tabs { display: flex; gap: 8px; padding: 6px; margin: 0 0 16px; border: 1px solid rgba(111, 146, 205, .22); border-radius: 15px; background: rgba(9, 16, 29, .72); }
     #rbtools-account-overview .acct-tab { flex: 1; border: 1px solid transparent; border-radius: 10px; padding: 11px 14px; background: transparent; color: #afbdd1; font: inherit; font-weight: 800; cursor: pointer; }
     #rbtools-account-overview .acct-tab:hover { color: #edf4ff; background: rgba(95, 133, 198, .12); }
@@ -1188,7 +1185,6 @@
     }
     @media (max-width: 760px) {
       #rbtools-account-overview .acct-profile-header { align-items: flex-start; flex-wrap: wrap; }
-      #rbtools-account-overview .acct-profile-edit { width: 100%; margin-left: 0; }
       #rbtools-account-overview .acct-tab-panel { grid-template-columns: 1fr; }
       #rbtools-account-overview .acct-tabs { flex-direction: column; }
     }
@@ -1281,13 +1277,10 @@
                     </button>
 
                     <div>
-                      <div class="acct-name-line">
-                        <span id="acctProfilePlusMark" class="acct-plus-mark hidden" aria-label="Plus member">+</span>
-                        <h2 class="acct-name">
-                          <span id="acctDisplayName">Your</span>
-                          <span id="acctDisplaySubname">Account</span>
-                        </h2>
-                      </div>
+                      <h2 class="acct-name">
+                        <span id="acctDisplayName">Your</span>
+                        <span id="acctDisplaySubname">Account</span>
+                      </h2>
                       <div id="acctEmailTop" class="acct-email">Sign in to load your member account.</div>
                       <div id="acctBioTop" class="acct-bio-preview is-empty">Add a short bio to tell people a little about this account.</div>
                       <div id="acctPlusCosmetic" class="acct-plus-tag hidden">
@@ -1296,7 +1289,6 @@
                       </div>
                     </div>
                 </div>
-                <button id="acctEditProfileButton" class="acct-button secondary acct-profile-edit" type="button">Edit Profile</button>
               </div>
 
               <div class="acct-tabs" role="tablist" aria-label="Account sections">
@@ -1663,7 +1655,6 @@
         acctAvatarFallback: document.getElementById("acctAvatarFallback"),
         acctDisplayName: document.getElementById("acctDisplayName"),
         acctDisplaySubname: document.getElementById("acctDisplaySubname"),
-        acctProfilePlusMark: document.getElementById("acctProfilePlusMark"),
         acctPlusCosmetic: document.getElementById("acctPlusCosmetic"),
         acctEmailTop: document.getElementById("acctEmailTop"),
         acctEmail: document.getElementById("acctEmail"),
@@ -1691,7 +1682,6 @@
         acctDropzone: document.getElementById("acctDropzone"),
         acctAvatarFileInput: document.getElementById("acctAvatarFileInput"),
         acctAvatarButton: document.getElementById("acctAvatarButton"),
-        acctEditProfileButton: document.getElementById("acctEditProfileButton"),
         acctDropzonePreviewImage: document.getElementById("acctDropzonePreviewImage"),
         acctChangePictureButton: document.getElementById("acctChangePictureButton"),
         acctCropToggleButton: document.getElementById("acctCropToggleButton"),
@@ -2008,7 +1998,6 @@
         syncBioCount();
         els.acctAvatarFallback.textContent = getInitials(displayName);
         els.acctPlusCosmetic.classList.toggle("hidden", !(state.user && state.user.premiumActive));
-        if (els.acctProfilePlusMark) els.acctProfilePlusMark.classList.toggle("hidden", !(state.user && state.user.premiumActive));
         els.acctCard.classList.toggle("is-plus", Boolean(state.user && state.user.premiumActive));
         els.acctDropzone.style.setProperty("--acct-avatar-scale", String(avatarScale));
         els.acctDropzone.style.setProperty("--acct-avatar-x", avatarX + "%");
@@ -2637,13 +2626,6 @@
             closeChangeEmailModal();
             resetChangeEmailForm();
           }
-        });
-      }
-      if (els.acctEditProfileButton) {
-        els.acctEditProfileButton.addEventListener("click", function () {
-          var profilePanel = document.querySelector('[data-account-panel="settings"]');
-          if (profilePanel) profilePanel.scrollIntoView({ behavior: "smooth", block: "start" });
-          setTimeout(function () { if (els.acctDisplayNameInput) els.acctDisplayNameInput.focus(); }, 260);
         });
       }
       els.acctDropzone.addEventListener("keydown", function (event) {
