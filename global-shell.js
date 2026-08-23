@@ -1,4 +1,22 @@
 (function () {
+  // Tool pages loaded inside the persistent shell frame keep their own scripts
+  // and styles, but must not build a second header, navigation, or chat shell.
+  if (window.self !== window.top) {
+    var markFrameReady = function () {
+      if (!document.body) return;
+      if (!document.getElementById("rblxShellPage")) {
+        var pageHost = document.createElement("div");
+        pageHost.id = "rblxShellPage";
+        pageHost.className = "rblx-shell-page";
+        while (document.body.firstChild) pageHost.appendChild(document.body.firstChild);
+        document.body.appendChild(pageHost);
+      }
+      document.body.classList.add("rblx-shell-ready", "rblx-shell-tool-frame");
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", markFrameReady, { once: true });
+    else markFrameReady();
+    return;
+  }
   if (window.__rblxShellReady) return;
   window.__rblxShellReady = true;
 
@@ -3392,6 +3410,78 @@
   }
 
   function initFastShellNavigation() {
+    var shellPaths = [
+      "index", "template-downloader", "template-background-changer", "ugc-downloader",
+      "media-downloader", "audio-downloader", "robux-calculator", "animation-spoofer",
+      "ai-clothing-studio", "subscriptions", "community", "about-us", "privacy-policy",
+      "terms-and-conditions", "account-overview"
+    ];
+    var activeFrame = null;
+    var activeFrameObserver = null;
+
+    function isShellDestination(destination) {
+      var path = String(destination.pathname || "").replace(/^\/+|\/+$/g, "").replace(/\.html$/i, "");
+      return shellPaths.indexOf(path || "index") !== -1;
+    }
+
+    function updateFrameHeight(frame) {
+      try {
+        var frameDocument = frame.contentDocument;
+        if (!frameDocument) return;
+        var height = Math.max(window.innerHeight - 40, frameDocument.documentElement.scrollHeight || 0, frameDocument.body ? frameDocument.body.scrollHeight : 0);
+        frame.style.height = height + "px";
+      } catch (_error) {}
+    }
+
+    function removePreviousPageContent(pageHost, stage, footer) {
+      Array.prototype.slice.call(pageHost.children).forEach(function (child) {
+        if (child !== stage && child !== footer) child.remove();
+      });
+    }
+
+    function openToolInShell(destination, options) {
+      options = options || {};
+      var pageHost = document.getElementById("rblxShellPage");
+      if (!pageHost) return;
+      if (activeFrameObserver) {
+        activeFrameObserver.disconnect();
+        activeFrameObserver = null;
+      }
+      if (activeFrame) activeFrame.remove();
+
+      var footer = pageHost.querySelector(".rblx-shell-footer");
+      var stage = document.createElement("div");
+      stage.className = "rblx-shell-tool-frame-stage is-loading";
+      var frame = document.createElement("iframe");
+      frame.className = "rblx-shell-tool-frame-view";
+      frame.title = "RBLXTools page";
+      frame.setAttribute("loading", "eager");
+      frame.setAttribute("referrerpolicy", "same-origin");
+      var frameUrl = new URL(destination.href);
+      frameUrl.searchParams.set("rblxShellFrame", "1");
+      frame.src = frameUrl.href;
+      stage.appendChild(frame);
+      if (footer) pageHost.insertBefore(stage, footer);
+      else pageHost.appendChild(stage);
+      activeFrame = frame;
+
+      frame.addEventListener("load", function () {
+        if (frame !== activeFrame) return;
+        removePreviousPageContent(pageHost, stage, footer);
+        updateFrameHeight(frame);
+        try {
+          if ("ResizeObserver" in window && frame.contentDocument && frame.contentDocument.body) {
+            activeFrameObserver = new ResizeObserver(function () { updateFrameHeight(frame); });
+            activeFrameObserver.observe(frame.contentDocument.body);
+          }
+          if (frame.contentDocument) document.title = frame.contentDocument.title || document.title;
+        } catch (_error) {}
+        stage.classList.remove("is-loading");
+      }, { once: true });
+      if (options.push !== false) window.history.pushState({ rblxShellTool: true }, "", destination.pathname + destination.search + destination.hash);
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+
     function getInternalLink(event) {
       var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
       if (!link || link.target || link.hasAttribute("download")) return null;
@@ -3405,6 +3495,20 @@
     document.addEventListener("focusin", function (event) {
       var link = getInternalLink(event);
       if (link) prefetchShellPage(link.href);
+    });
+    document.addEventListener("click", function (event) {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      var link = getInternalLink(event);
+      if (!link) return;
+      var destination;
+      try { destination = new URL(link.href, window.location.href); } catch (_error) { return; }
+      if (destination.origin !== window.location.origin || !isShellDestination(destination)) return;
+      event.preventDefault();
+      openToolInShell(destination);
+    });
+    window.addEventListener("popstate", function () {
+      var destination = new URL(window.location.href);
+      if (isShellDestination(destination)) openToolInShell(destination, { push: false });
     });
 
     // Warm the primary shell destinations after the page settles. Prefetch is
