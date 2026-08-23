@@ -35,6 +35,8 @@ const ROBLOSECURITY = process.env.ROBLOSECURITY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const AUTH_USERS_TABLE = process.env.AUTH_USERS_TABLE || "member_accounts";
+const FREE_TOOL_USAGE_TABLE = process.env.FREE_TOOL_USAGE_TABLE || "free_tool_usage";
+const FREE_TOOL_USAGE_LIMIT = 5;
 const MODERATION_ACTIONS_TABLE = process.env.MODERATION_ACTIONS_TABLE || "member_moderation_actions";
 const DEVICE_LINKS_TABLE = process.env.DEVICE_LINKS_TABLE || "member_device_links";
 const AUTH_JWT_SECRET = String(process.env.AUTH_JWT_SECRET || "");
@@ -2610,6 +2612,31 @@ function buildTablePath(tableName, query = "") {
   return `/rest/v1/${tableName}${query}`;
 }
 
+function buildFreeToolUsageTablePath(query = "") {
+  return buildTablePath(FREE_TOOL_USAGE_TABLE, query);
+}
+
+function normalizeFreeToolUsageCount(value) {
+  return Math.min(FREE_TOOL_USAGE_LIMIT, Math.max(0, Number.parseInt(value, 10) || 0));
+}
+
+async function getFreeToolUsageRecord(userId) {
+  const rows = await supabaseRequest(
+    buildFreeToolUsageTablePath(
+      `?user_id=eq.${encodeURIComponent(userId)}&select=used_count,last_ad_unlock_at,updated_at`
+    )
+  );
+  return Array.isArray(rows) && rows.length ? rows[0] : null;
+}
+
+async function callFreeToolUsageRpc(name, userId) {
+  const result = await supabaseRequest(`/rest/v1/rpc/${name}`, {
+    method: "POST",
+    body: JSON.stringify({ p_user_id: userId }),
+  });
+  return Array.isArray(result) ? result[0] || null : result;
+}
+
 async function getAuthUserByEmail(email) {
   const normalizedEmail = normalizeEmail(email);
   const rows = await supabaseRequest(
@@ -3435,6 +3462,68 @@ async function requireActivePlusUser(req) {
     throw error;
   }
   return user;
+}
+
+async function resolveFreeToolUsageAccess(req) {
+  const user = await requireAuthenticatedUser(req);
+  const membership = await resolveMembershipSnapshot(user);
+  return {
+    user,
+    membership,
+    unlimited: Boolean(isAdminUser(user) || membership.premiumActive),
+  };
+}
+
+function buildFreeToolUsagePayload(access, usedCount, extra = {}) {
+  const normalizedCount = access.unlimited ? 0 : normalizeFreeToolUsageCount(usedCount);
+  return {
+    ok: true,
+    limit: FREE_TOOL_USAGE_LIMIT,
+    usedCount: normalizedCount,
+    remaining: access.unlimited ? FREE_TOOL_USAGE_LIMIT : Math.max(0, FREE_TOOL_USAGE_LIMIT - normalizedCount),
+    unlimited: access.unlimited,
+    plan: access.membership.plan,
+    premiumActive: access.membership.premiumActive,
+    isAdmin: isAdminUser(access.user),
+    ...extra,
+  };
+}
+
+async function requireFreeToolUse(req, res, next) {
+  try {
+    const access = await resolveFreeToolUsageAccess(req);
+    if (!access.unlimited) {
+      const result = await callFreeToolUsageRpc("consume_free_tool_use", access.user.id);
+      if (!result?.allowed) {
+        return res.status(429).json({
+          ...buildFreeToolUsagePayload(access, result?.used_count, { allowed: false }),
+          code: "FREE_TOOL_AD_REQUIRED",
+          error: "Your 5 free tool actions are used. Open sponsored content to restore access.",
+        });
+      }
+    }
+    req.freeToolAccess = access;
+    return next();
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      error: error.statusCode === 401
+        ? "Log in or sign up to use RBLXTools tools."
+        : error.message || "Could not verify tool access.",
+    });
+  }
+}
+
+async function requireToolAccount(req, res, next) {
+  try {
+    req.toolAccount = await requireAuthenticatedUser(req);
+    return next();
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      error: error.statusCode === 401
+        ? "Log in or sign up to use RBLXTools tools."
+        : error.message || "Could not verify your account.",
+    });
+  }
 }
 
 async function tryGetAuthenticatedUser(req) {
@@ -6916,7 +7005,7 @@ app.post("/tool-activity", async (req, res) => {
   }
 });
 
-app.get("/media", async (req, res) => {
+app.get("/media", requireFreeToolUse, async (req, res) => {
   const rawInput = String(req.query.input || req.query.url || req.query.id || "").trim();
   const rawKind = String(req.query.kind || "").trim();
   const mediaKey = cleanText(req.query.mediaKey, 120)
@@ -6996,7 +7085,7 @@ app.get("/media", async (req, res) => {
 });
 
 
-app.get("/template", async (req, res) => {
+app.get("/template", requireFreeToolUse, async (req, res) => {
   const id = String(req.query.id || "").trim();
 
   if (!/^[0-9]+$/.test(id)) {
@@ -7070,7 +7159,7 @@ app.get("/developer-asset", async (_req, res) => {
   });
 });
 
-app.get("/ugc-texture", async (req, res) => {
+app.get("/ugc-texture", requireToolAccount, async (req, res) => {
   const id = String(req.query.id || "").trim();
 
   if (!/^[0-9]+$/.test(id)) {
@@ -7250,8 +7339,8 @@ async function handleAnimationRequest(req, res) {
   }
 }
 
-app.get("/api/animation", handleAnimationRequest);
-app.get("/animation", handleAnimationRequest);
+app.get("/api/animation", requireFreeToolUse, handleAnimationRequest);
+app.get("/animation", requireFreeToolUse, handleAnimationRequest);
 
 async function handleAudioRequest(req, res) {
   const rawInput = String(req.query.input || req.query.url || req.query.id || "").trim();
@@ -7321,10 +7410,10 @@ async function handleAudioRequest(req, res) {
   }
 }
 
-app.get("/api/audio", handleAudioRequest);
-app.get("/audio", handleAudioRequest);
+app.get("/api/audio", requireFreeToolUse, handleAudioRequest);
+app.get("/audio", requireFreeToolUse, handleAudioRequest);
 
-app.get("/ugc-obj", async (req, res) => {
+app.get("/ugc-obj", requireFreeToolUse, async (req, res) => {
   const id = String(req.query.id || "").trim();
   const itemMode = String(req.query.mode || "ugc").trim().toLowerCase() === "classic" ? "classic" : "ugc";
 
@@ -8469,6 +8558,44 @@ app.use(express.static(STATIC_ROOT, { extensions: ["html"] }));
 
 app.get(["/texture-baker", "/texture-baker.html"], (_req, res) => {
   res.redirect(302, "/ugc-downloader");
+});
+
+app.get("/api/free-tool-usage", async (req, res) => {
+  try {
+    const access = await resolveFreeToolUsageAccess(req);
+    if (access.unlimited) return res.json(buildFreeToolUsagePayload(access, 0));
+    const record = await getFreeToolUsageRecord(access.user.id);
+    return res.json(buildFreeToolUsagePayload(access, record?.used_count));
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load free tool usage." });
+  }
+});
+
+app.post("/api/free-tool-usage/consume", async (req, res) => {
+  try {
+    const access = await resolveFreeToolUsageAccess(req);
+    if (access.unlimited) return res.json(buildFreeToolUsagePayload(access, 0, { allowed: true }));
+    const result = await callFreeToolUsageRpc("consume_free_tool_use", access.user.id);
+    const allowed = Boolean(result?.allowed);
+    const payload = buildFreeToolUsagePayload(access, result?.used_count, { allowed });
+    if (!allowed) {
+      return res.status(429).json({ ...payload, code: "FREE_TOOL_AD_REQUIRED", error: "Your 5 free tool actions are used. Open sponsored content to restore access." });
+    }
+    return res.json(payload);
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not update free tool usage." });
+  }
+});
+
+app.post("/api/free-tool-usage/reward", async (req, res) => {
+  try {
+    const access = await resolveFreeToolUsageAccess(req);
+    if (access.unlimited) return res.json(buildFreeToolUsagePayload(access, 0, { unlocked: true }));
+    const result = await callFreeToolUsageRpc("reset_free_tool_usage", access.user.id);
+    return res.json(buildFreeToolUsagePayload(access, result?.used_count, { unlocked: true }));
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not restore free tool usage." });
+  }
 });
   
   app.get("/", (_req, res) => {

@@ -1561,6 +1561,8 @@
           return;
         }
 
+        if (!window.RBLXToolsFreeUsage || !(await window.RBLXToolsFreeUsage.consume())) return;
+
         processBtn.disabled = true;
         downloadBtn.disabled = true;
         restoredEntries = [];

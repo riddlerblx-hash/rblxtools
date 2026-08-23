@@ -1779,6 +1779,8 @@
         }
       }
 
+      if (!window.RBLXToolsFreeUsage || !(await window.RBLXToolsFreeUsage.check())) return;
+
       status.className = "";
       status.innerText = ids.length > 1 ? "Fetching templates..." : "Fetching template...";
       result.innerHTML = buildDefaultPreview();

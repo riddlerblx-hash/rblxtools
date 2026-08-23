@@ -1260,6 +1260,8 @@
         return;
       }
 
+      if (!window.RBLXToolsFreeUsage || !(await window.RBLXToolsFreeUsage.check())) return;
+
       fetchButton.disabled = true;
       fetchButton.textContent = "Loading...";
       setStatus("Fetching media...");
