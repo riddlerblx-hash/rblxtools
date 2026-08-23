@@ -3724,6 +3724,7 @@
     ensureSitePlusBackdrop();
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
+    pageHost.insertAdjacentHTML("beforeend", buildFooterMarkup());
     syncMobileShellState();
     closeMobilePanels();
     initFaqAccordions();
