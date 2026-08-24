@@ -764,10 +764,16 @@
     }
 
     .plus-card-tool .tool-action-btn.is-locked {
-      background: linear-gradient(180deg, #6cf69c 0%, #37d26f 100%);
-      color: #08130c;
-      box-shadow: 0 18px 30px rgba(55, 210, 111, 0.22);
-      animation: pulseGreen 1.85s ease-in-out infinite;
+      background: linear-gradient(135deg, #a65cff 0%, #7b2fe8 54%, #5b1bb8 100%);
+      color: #ffffff;
+      box-shadow: 0 18px 30px rgba(117, 47, 232, 0.32), inset 0 1px 0 rgba(255,255,255,0.22);
+      animation: none;
+    }
+
+    .plus-card-tool .tool-action-btn .rblx-plus-word {
+      margin-left: .28em;
+      color: #ffffff;
+      text-shadow: 0 0 12px rgba(255,255,255,.42);
     }
 
     .plus-card-tool {
@@ -1428,7 +1434,7 @@
               </ul>
               <div class="tool-footer">
                 <div class="tool-footer-label">Animations</div>
-                <span class="tool-action-btn" data-plus-button="true">Requires Plus</span>
+                <span class="tool-action-btn" data-plus-button="true">Requires <span class="rblx-plus-word">Plus</span></span>
               </div>
             </a>
           </div>
@@ -1607,7 +1613,9 @@
         }
 
         plusButtons.forEach(function (button) {
-          button.textContent = ownsPlus ? "Open Animations" : "Requires Plus";
+          button.innerHTML = ownsPlus
+            ? "Open Animations"
+            : 'Requires <span class="rblx-plus-word">Plus</span>';
           button.classList.toggle("is-locked", !ownsPlus);
         });
       }
@@ -1627,8 +1635,10 @@
         link.addEventListener("click", (event) => {
           if (ownsPlus) return;
           event.preventDefault();
+          event.stopImmediatePropagation();
+          event.stopPropagation();
           openPlusModal(link.getAttribute("data-tool-name") || "This tool");
-        });
+        }, true);
       });
 
       closeBtn.addEventListener("click", closePlusModal);
