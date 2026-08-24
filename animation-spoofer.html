@@ -100,7 +100,7 @@
     }
 
     #plusGate.page-plus-lock .gate-actions {
-      grid-template-columns: minmax(180px, 260px);
+      grid-template-columns: minmax(108px, 1fr) minmax(150px, 1.35fr);
       justify-content: center;
     }
     #plusGate.page-plus-lock .gate-modal {
@@ -1510,8 +1510,8 @@
 
   <div class="gate-overlay" id="plusGate">
     <div class="gate-modal">
-      <h3><span><span class="plus-word">Plus</span> Required</span><span>You Don't Own <span class="plus-word">Plus</span></span></h3>
-      <p>This tool is locked to <span class="plus-word">Plus</span>. Upgrade your plan to unlock it, then come right back.</p>
+      <h3><span><span class="plus-word">Plus</span> Required</span><span>Uh Oh... This Requires <span class="plus-word">Plus</span></span></h3>
+      <p>Animations needs an active RBLXTools <span class="plus-word">Plus</span> plan before you can use it. Upgrade to unlock premium tools, bulk workflows, cool cosmetics, and a cleaner site experience.</p>
       <div class="gate-actions">
         <a class="plans-btn" href="./subscriptions">View Plans</a>
         <button class="close-btn" type="button" id="closeGate">Close</button>
@@ -1587,7 +1587,7 @@
         const actions = plusGate.querySelector(".gate-actions");
 
         if (heading) {
-          heading.innerHTML = "<span>Uh oh...</span><span>You Need <span class=\"plus-word\">Plus</span></span>";
+          heading.innerHTML = "<span><span class=\"plus-word\">Plus</span> Required</span><span>Uh Oh... This Requires <span class=\"plus-word\">Plus</span></span>";
         }
 
         if (copy) {
@@ -1600,7 +1600,11 @@
 
         if (actions) {
           actions.innerHTML =
-            '<a class="plans-btn" href="./subscriptions">View Plans</a>';
+            '<button class="close-btn" type="button" id="closeGate">Close</button><a class="plans-btn" href="./subscriptions">View Plans</a>';
+          const closeGate = document.getElementById("closeGate");
+          if (closeGate) {
+            closeGate.addEventListener("click", clearPageLockOverlay, { once: true });
+          }
         }
       }
 
@@ -1809,7 +1813,7 @@
           const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
           if (raw) {
             const parsed = JSON.parse(raw);
-            if (parsed && parsed.isPlus === false) return false;
+            if (parsed && typeof parsed.isPlus === "boolean") return parsed.isPlus;
           }
         } catch (_error) {}
         return null;
@@ -2328,9 +2332,8 @@
       function initializeAnimationPage() {
         // rblx-silent-plus-gate: paint cached access first; verify in the background.
         var cachedPlus = readCachedPlusStatus();
-        if (cachedPlus !== null) {
-          showAccessGate(cachedPlus ? "ok" : "plus");
-          if (!cachedPlus) lockPlusPage("plus");
+        if (cachedPlus === true) {
+          showAccessGate("ok");
         } else {
           showAccessGate("checking");
         }

@@ -1559,7 +1559,6 @@
   <script>
     (function () {
       const API_BASE = window.location.origin;
-      const TOKEN_KEY = "rblxtools_auth_token";
       const modal = document.getElementById("plusModal");
       const modalCopy = document.getElementById("plusModalCopy");
       const closeBtn = document.getElementById("plusModalClose");
@@ -1569,42 +1568,34 @@
       const spotlightButton = document.getElementById("plusSpotlightButton");
       let ownsPlus = false;
 
-      function getToken() {
-        try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (_error) { return ""; }
-      }
-
       function hasPlusFromPayload(payload) {
         if (!payload || typeof payload !== "object") return false;
-        return payload.plus === true ||
+        return payload.premiumActive === true ||
+          payload.plus === true ||
           payload.isPlus === true ||
           payload.hasPlus === true ||
           payload.plusActive === true ||
           payload.subscription === "plus" ||
           payload.plan === "plus" ||
           payload.tier === "plus" ||
-          (payload.user && payload.user.premiumActive === true);
+          (payload.user && hasPlusFromPayload(payload.user));
       }
 
       async function resolvePlusOwnership() {
-        const token = getToken();
-        if (!token) return false;
-
         try {
-          const premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
-            method: "GET", credentials: "include"
-          });
-
-          if (premiumResponse.ok) {
-            return hasPlusFromPayload(await premiumResponse.json().catch(function () { return null; }));
-          }
-
           const meResponse = await fetch(API_BASE + "/auth/me", {
             method: "GET", credentials: "include"
           });
 
-          if (!meResponse.ok) return false;
-          const payload = await meResponse.json().catch(function () { return null; });
-          return hasPlusFromPayload(payload) || hasPlusFromPayload(payload && payload.user ? payload.user : null);
+          if (meResponse.ok) {
+            const payload = await meResponse.json().catch(function () { return null; });
+            if (hasPlusFromPayload(payload)) return true;
+          }
+
+          const premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
+            method: "GET", credentials: "include"
+          });
+          return premiumResponse.ok && hasPlusFromPayload(await premiumResponse.json().catch(function () { return null; }));
         } catch (_error) {
           return false;
         }
@@ -1616,7 +1607,7 @@
         }
 
         plusButtons.forEach(function (button) {
-          button.textContent = ownsPlus ? "Try Now" : "Requires Plus";
+          button.textContent = ownsPlus ? "Open Animations" : "Requires Plus";
           button.classList.toggle("is-locked", !ownsPlus);
         });
       }
