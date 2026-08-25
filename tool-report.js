@@ -6,7 +6,7 @@
   document.head.insertAdjacentHTML('beforeend','<style>'+css+'</style>');
   var trigger = document.createElement('button');
   trigger.className = 'tool-report-trigger'; trigger.type = 'button'; trigger.textContent = 'Report a problem';
-  var primary = document.querySelector('#ugcButton,#templateButton,#downloadButton,#fetchButton,#audioButton,#processBtn,#generateButton');
+  var primary = document.querySelector('#ugcButton,#templateButton,#downloadButton,#fetchButton,#audioButton,#processBtn,#generateButton,#animationButton');
   var backgroundActions = document.querySelector('.rblx-cleaner-actions');
   if (backgroundActions) backgroundActions.insertAdjacentElement('afterend', trigger); else if (primary) primary.insertAdjacentElement('afterend', trigger); else document.querySelector('main').appendChild(trigger);
   trigger.onclick = async function () {

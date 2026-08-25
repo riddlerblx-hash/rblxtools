@@ -3048,7 +3048,7 @@ body.rblx-shell-left-collapsed #rblxShellLeftToggle { right: -20px; }
 }
 
 
-.rblx-shell-footer{border-radius:28px;border:1px solid rgba(255,255,255,.06);background:radial-gradient(circle at top right,rgba(137,92,255,.12),transparent 26%),linear-gradient(180deg,rgba(17,21,34,.98),rgba(12,15,26,.98));box-shadow:0 24px 60px rgba(5,8,14,.32);overflow:hidden}
+.rblx-shell-footer{width:100%;max-width:none;box-sizing:border-box;border-radius:28px;border:1px solid rgba(255,255,255,.06);background:radial-gradient(circle at top right,rgba(137,92,255,.12),transparent 26%),linear-gradient(180deg,rgba(17,21,34,.98),rgba(12,15,26,.98));box-shadow:0 24px 60px rgba(5,8,14,.32);overflow:hidden}
 .rblx-shell-footer-top{display:grid;grid-template-columns:minmax(260px,1.1fr) minmax(0,1.4fr);gap:24px;padding:28px}
 .rblx-shell-footer-brand{display:grid;align-content:start;gap:14px}
 .rblx-shell-footer-kicker{display:inline-flex;align-items:center;width:fit-content;min-height:28px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#ffd2df;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}

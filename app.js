@@ -5775,6 +5775,18 @@ app.get("/auth/me", async (req, res) => {
   }
 });
 
+app.get("/chat/sync", (req, res) => {
+  const room = cleanText(req.query?.room || defaultChatRoom, 40) || defaultChatRoom;
+  const history = recentMessages.get(room) || [];
+  const onlineCount = getUsers(room).length;
+  return res.json({
+    ok: true,
+    history,
+    onlineCount,
+    serverNow: new Date().toISOString(),
+  });
+});
+
 app.post("/chat/message", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);

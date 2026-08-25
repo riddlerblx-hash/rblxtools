@@ -29,6 +29,8 @@
     profileCache: [],
     socket: null,
     socketReady: false,
+    chatSyncTimer: null,
+    chatSyncInFlight: false,
     chatAuthToken: "",
     onlineCount: 0,
     isAdmin: false,
@@ -2356,6 +2358,51 @@
     return payload || {};
   }
 
+  function applyChatSyncSnapshot(payload) {
+    if (!payload || typeof payload !== "object") return;
+    var history = Array.isArray(payload.history) ? payload.history.filter(function (message) {
+      return !(message && message.specialType === "toolActivity");
+    }) : null;
+    if (history) {
+      shellState.chatMessages = history;
+      cacheChatMessages(history);
+      if (shellState.chatList) renderChatMessages(shellState.chatList, history);
+    }
+    if (typeof payload.onlineCount === "number") {
+      shellState.onlineCount = payload.onlineCount;
+      var onlineEl = document.getElementById("rblxShellOnlineCount");
+      if (onlineEl) onlineEl.textContent = String(Math.max(0, payload.onlineCount));
+    }
+  }
+
+  async function syncChatFromServer() {
+    if (shellState.chatSyncInFlight || document.hidden) return;
+    shellState.chatSyncInFlight = true;
+    try {
+      var response = await fetch(API_BASE + "/chat/sync?room=rblxtools-main", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store"
+      });
+      if (!response.ok) return;
+      applyChatSyncSnapshot(await response.json().catch(function () { return null; }));
+    } catch (_error) {
+      // Socket.IO remains the primary live transport; polling is its OpenLiteSpeed-safe fallback.
+    } finally {
+      shellState.chatSyncInFlight = false;
+    }
+  }
+
+  function initChatSyncPolling() {
+    if (shellState.chatSyncTimer) return;
+    syncChatFromServer();
+    shellState.chatSyncTimer = window.setInterval(syncChatFromServer, 2500);
+    window.addEventListener("focus", syncChatFromServer);
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) syncChatFromServer();
+    });
+  }
+
   function initChat() {
     var list = document.getElementById("rblxShellChatScroll");
     var form = document.getElementById("rblxShellChatForm");
@@ -2400,6 +2447,7 @@
     }
     var cachedMessages = getCachedChatMessages();
     renderChatMessages(list, cachedMessages.length ? cachedMessages : starterMessages, { forceBottom: true });
+    initChatSyncPolling();
 
     if (shellState.chatSpecials) {
       shellState.chatSpecials.addEventListener("click", function (event) {
