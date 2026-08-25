@@ -3463,9 +3463,7 @@
 
     var moveNode = function (node) {
       if (node === document.getElementById("rblxShellRoot")) return;
-      var footer = pageHost.querySelector(".rblx-shell-footer");
-      if (footer) pageHost.insertBefore(node, footer);
-      else pageHost.appendChild(node);
+      pageHost.appendChild(node);
     };
     var observer = new MutationObserver(function (records) {
       records.forEach(function (record) {
@@ -3896,7 +3894,8 @@
     ensureSitePlusBackdrop();
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
-    pageHost.insertAdjacentHTML("beforeend", buildFooterMarkup());
+    // Keep the shared footer outside individual page layouts so it always spans the shell center.
+    pageHost.parentElement.insertAdjacentHTML("beforeend", buildFooterMarkup());
     captureStreamingPageContent(pageHost);
     syncMobileShellState();
     closeMobilePanels();

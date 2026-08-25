@@ -3394,7 +3394,7 @@ body.rblx-shell-ready .rblx-shell-page .rblx-tool-stat strong { display: block; 
   min-width: 0 !important;
   max-width: none !important;
 }
-body.rblx-shell-ready #rblxShellPage > .rblx-shell-footer {
+body.rblx-shell-ready .rblx-shell-center > .rblx-shell-footer {
   display: block !important;
   width: 100% !important;
   min-width: 0 !important;
