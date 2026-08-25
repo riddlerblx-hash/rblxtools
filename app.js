@@ -939,6 +939,65 @@ async function applyAIClothingSkinGuide(
     .toBuffer();
 }
 
+async function repairAIClothingSleevelessVestTorso(panelBuffer) {
+  const sharp = getSharp();
+  const panelRaw = await sharp(panelBuffer)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { data, info } = panelRaw;
+  const torsoPanels = [
+    { x: 231, y: 74, w: 128, h: 128 },
+    { x: 231, y: 204, w: 128, h: 64 },
+  ];
+
+  for (const panel of torsoPanels) {
+    const right = Math.min(info.width, panel.x + panel.w);
+    const bottom = Math.min(info.height, panel.y + panel.h);
+    for (let y = panel.y; y < bottom; y += 1) {
+      for (let x = panel.x; x < right; x += 1) {
+        const offset = ((y * info.width) + x) * 4;
+        if (data[offset + 3] > 16) continue;
+
+        // Image models sometimes create an armhole-shaped transparent cutout
+        // inside the torso-front panel. That panel is fabric for a vest, so
+        // borrow the nearest real fabric pixel from the same row instead.
+        let sourceX = -1;
+        for (let distance = 1; distance < panel.w; distance += 1) {
+          const leftX = x - distance;
+          const rightX = x + distance;
+          if (leftX >= panel.x) {
+            const leftOffset = ((y * info.width) + leftX) * 4;
+            if (data[leftOffset + 3] > 16) {
+              sourceX = leftX;
+              break;
+            }
+          }
+          if (rightX < right) {
+            const rightOffset = ((y * info.width) + rightX) * 4;
+            if (data[rightOffset + 3] > 16) {
+              sourceX = rightX;
+              break;
+            }
+          }
+        }
+        if (sourceX < 0) continue;
+        const sourceOffset = ((y * info.width) + sourceX) * 4;
+        data[offset] = data[sourceOffset];
+        data[offset + 1] = data[sourceOffset + 1];
+        data[offset + 2] = data[sourceOffset + 2];
+        data[offset + 3] = data[sourceOffset + 3];
+      }
+    }
+  }
+
+  return sharp(data, {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  })
+    .png()
+    .toBuffer();
+}
+
 function buildAIClothingPrompt(input = {}) {
   const garment = normalizeAIClothingGarmentType(input.garmentType);
   const style = cleanAIClothingText(input.styleDirection, 160);
@@ -1042,7 +1101,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
   const garmentInstruction = templateType === "pants"
     ? "Use only the supplied pants panel map. Focus strictly on waist, thigh, knee, calf, cuff, and ankle zones. Do not generate shirt collars, chest panels, sleeves, shoulder seams, or upper-body outfit pieces."
     : isSleevelessVest
-      ? "Use only the supplied shirt panel map. This is a sleeveless vest: create garment artwork only on the torso-front, torso-back, and side-torso garment panels. Do not create sleeves, shoulder fabric, cuffs, arm fabric, wrist fabric, or a full-shirt silhouette."
+      ? "Use only the supplied shirt panel map. This is a sleeveless vest: create garment artwork only on the torso-front, torso-back, and side-torso garment panels. Keep every torso garment panel fully covered by continuous vest fabric; do not create transparent gaps, cutouts, or skin areas inside a torso panel. Do not create sleeves, shoulder fabric, cuffs, arm fabric, wrist fabric, or a full-shirt silhouette."
       : "Use only the supplied shirt panel map. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate leg-only layouts or lower-body outfit pieces that do not belong on the shirt panel map.";
   const landmarkInstruction = templateType === "pants"
     ? "The lowest exposed parts of the supplied pants guide represent ankle and shoe-entry territory, not random fabric panels. Keep those ankle openings readable and never treat them like sealed solid blocks."
@@ -1168,7 +1227,7 @@ function buildAIClothingGenerationPlan(basePrompt) {
   return [{ key: "shirt", label: "Shirt Template", templateType: "shirt" }];
 }
 
-async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, skinTone }) {
+async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, skinTone, isSleevelessVest }) {
   assertAIClothingConfigured();
   const promptText = cleanAIClothingText(enhancedPrompt, 6000);
   if (!promptText) {
@@ -1217,7 +1276,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: templateUpload,
-    prompt: `${promptText} Build directly on the supplied blank ${normalizedTemplateType} clothing panel layout. The transparent panel zones are the only clothing zones. Keep all artwork strictly inside those transparent panel zones. Leave the surrounding gray canvas completely empty. Do not add any mannequin previews, template labels, helper diagrams, letters, logos, background sheet elements, or explanatory text. Return only mapped clothing artwork on that blank panel layout.`,
+    prompt: `${promptText} Build directly on the supplied blank ${normalizedTemplateType} clothing panel layout. The visible white panel map is the only place for garment artwork; the surrounding gray canvas and transparent guide areas must remain empty. Do not add any mannequin previews, template labels, helper diagrams, letters, logos, background sheet elements, or explanatory text. Return only mapped clothing artwork on that blank panel layout.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -1252,6 +1311,9 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     resolvedSleeveReferenceKey,
     resolvedPantsReferenceKey
   );
+  const repairedArtBuffer = normalizedTemplateType === "shirt" && isSleevelessVest
+    ? await repairAIClothingSleevelessVestTorso(skinMappedBuffer)
+    : skinMappedBuffer;
   const templateRaw = await sharp(cleanedApplyTemplateBuffer)
     .ensureAlpha()
     .raw()
@@ -1291,7 +1353,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   })
     .png()
     .toBuffer();
-  const maskedOutput = await sharp(skinMappedBuffer)
+  const maskedOutput = await sharp(repairedArtBuffer)
     .ensureAlpha()
     .composite([{ input: maskImageBuffer, blend: "dest-in" }])
     .raw()
@@ -5999,6 +6061,7 @@ app.post("/ai/generate-clothing", async (req, res) => {
         sleeveLength: built.sleeveLength,
         pantsLength: built.pantsLength,
         skinTone: built.skinTone,
+        isSleevelessVest: built.isSleevelessVest,
       });
       outputs.push({
         key: variant.key,

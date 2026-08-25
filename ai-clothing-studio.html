@@ -2874,7 +2874,7 @@
                   : garment === "pants"
                     ? "Use only the supplied pants panel map. Focus strictly on waist, thigh, knee, calf, cuff, and ankle zones. Do not generate shirt collars, chest panels, sleeves, shoulder seams, or upper-body outfit pieces."
                     : isSleevelessVest
-                      ? "Use only the supplied shirt panel map. This is a sleeveless vest: create garment artwork only on the torso-front, torso-back, and side-torso garment panels. Do not create sleeves, shoulder fabric, cuffs, arm fabric, wrist fabric, or a full-shirt silhouette."
+                      ? "Use only the supplied shirt panel map. This is a sleeveless vest: create garment artwork only on the torso-front, torso-back, and side-torso garment panels. Keep every torso garment panel fully covered by continuous vest fabric; do not create transparent gaps, cutouts, or skin areas inside a torso panel. Do not create sleeves, shoulder fabric, cuffs, arm fabric, wrist fabric, or a full-shirt silhouette."
                       : "Use only the supplied shirt panel map. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate leg-only layouts or lower-body outfit pieces that do not belong on the shirt panel map.";
         var sleeveInstruction = !garmentConfig.usesShirt
           ? ""
