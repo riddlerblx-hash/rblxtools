@@ -216,6 +216,12 @@ function cleanAIClothingText(value, maxLength = 1200) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
+function isAIClothingSleevelessVestRequest(value) {
+  return /\b(?:vest|waistcoat|sleeveless\s+(?:outerwear|jacket)|cut[\s-]?off)\b/i.test(
+    String(value || "")
+  );
+}
+
 function normalizeAIClothingSleeveLength(value) {
   const normalized = String(value || "").trim().toLowerCase();
   if (normalized === "short" || normalized === "long" || normalized === "sleeveless") {
@@ -969,6 +975,10 @@ function buildAIClothingPrompt(input = {}) {
     garment === "full_outfit" ||
     garment === "matching_pants" ||
     garment === "matching_outfits";
+  const isSleevelessVest =
+    usesShirt &&
+    resolvedSleeveLength === "sleeveless" &&
+    isAIClothingSleevelessVestRequest([userPrompt, style, vibe].filter(Boolean).join(" "));
 
   // A sleeveless template cannot also request sleeve artwork. Resolve this once
   // on the server so a crafted request cannot reintroduce the UI conflict.
@@ -982,6 +992,7 @@ function buildAIClothingPrompt(input = {}) {
     pantsLength: resolvedPantsLength,
     skinTone,
     skinToneHex: getAIClothingSkinToneHex(skinTone),
+    isSleevelessVest,
     style,
     palette,
     vibe,
@@ -1007,6 +1018,7 @@ function buildAIClothingPrompt(input = {}) {
 
 function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
   const templateType = variant.templateType === "pants" ? "pants" : "shirt";
+  const isSleevelessVest = templateType === "shirt" && basePrompt.isSleevelessVest;
   const sleeveInstruction = templateType === "shirt"
       ? basePrompt.sleeveLength === "short"
       ? "Use short sleeves and keep the visible hand and lower-arm opening zones clear. Sleeve fabric must stop before the exposed hand zone begins."
@@ -1015,7 +1027,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
         : "Use long sleeves but always leave a clear hand opening and cuff break at the wrist end of the supplied guide layout so the hands stay exposed. Any fully transparent cutout zone on the supplied sleeve reference is mandatory visible skin territory and must not be covered by sleeve fabric."
     : "";
   const sleeveReferenceInstruction = templateType === "shirt"
-    ? "On the supplied sleeve reference, fully transparent cutout areas are strict skin markers. Any transparent cutout area must stay open and become exposed skin in the exact selected skin tone in the final clothing texture. Never print fabric, trim, chains, shading, or graphics over transparent cutout guide zones."
+    ? "On the supplied sleeve reference, fully transparent cutout areas are strict skin markers. They are not garment panels. Never print fabric, trim, chains, shading, graphics, text, or a garment silhouette over those transparent guide zones."
     : "";
   const pantsLengthInstruction = templateType === "pants"
     ? basePrompt.pantsLength === "30"
@@ -1029,10 +1041,14 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     : "";
   const garmentInstruction = templateType === "pants"
     ? "Use only the supplied pants panel map. Focus strictly on waist, thigh, knee, calf, cuff, and ankle zones. Do not generate shirt collars, chest panels, sleeves, shoulder seams, or upper-body outfit pieces."
-    : "Use only the supplied shirt panel map. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate leg-only layouts or lower-body outfit pieces that do not belong on the shirt panel map.";
+    : isSleevelessVest
+      ? "Use only the supplied shirt panel map. This is a sleeveless vest: create garment artwork only on the torso-front, torso-back, and side-torso garment panels. Do not create sleeves, shoulder fabric, cuffs, arm fabric, wrist fabric, or a full-shirt silhouette."
+      : "Use only the supplied shirt panel map. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate leg-only layouts or lower-body outfit pieces that do not belong on the shirt panel map.";
   const landmarkInstruction = templateType === "pants"
     ? "The lowest exposed parts of the supplied pants guide represent ankle and shoe-entry territory, not random fabric panels. Keep those ankle openings readable and never treat them like sealed solid blocks."
-    : "The very top-center opening on the supplied shirt guide is always the neck area and must stay clear for the avatar neck. The lower ends of the arm strips are always hand-opening territory and should render as exposed skin in the selected skin tone, with clean wrist exits that stay clearly separated from the sleeve fabric.";
+    : isSleevelessVest
+      ? "Keep the top-center neck opening completely clear. The vest must end cleanly at both armholes: do not bridge from the torso into either arm panel, and do not extend fabric beyond the torso panel edges."
+      : "The very top-center opening on the supplied shirt guide is always the neck area and must stay clear for the avatar neck. The lower ends of the arm strips are always hand-opening territory and should render as exposed skin in the selected skin tone, with clean wrist exits that stay clearly separated from the sleeve fabric.";
   return [
     "Create a clean clothing texture on the supplied blank clothing panel layout.",
     `Return only a wearable clothing texture at exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
@@ -1044,7 +1060,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     pantsReferenceInstruction,
     landmarkInstruction,
     "Use the supplied layout only as a placement guide. Do not redraw mannequin previews, helper diagrams, template labels, divider lines, border strokes, letters, logos, or background sheet elements.",
-    "Keep artwork inside the clothing zones, aligned across connected panels, and slightly overpaint fold edges so the worn result stays solid without visible gaps.",
+    "Keep artwork strictly inside its intended garment panels and aligned across connected torso panels. Never bleed, extend, or overpaint across a panel boundary into a transparent skin-guide zone.",
     "Make the result feel like a real catalog-ready clothing texture, not a poster, mockup, or random square graphic.",
     variant.modeInstruction || "",
     variant.lookInstruction || "",

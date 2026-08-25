@@ -2828,6 +2828,10 @@
         }
       }
 
+      function isSleevelessVestRequest(value) {
+        return /\b(?:vest|waistcoat|sleeveless\s+(?:outerwear|jacket)|cut[\s-]?off)\b/i.test(String(value || ""));
+      }
+
       function openAdvancedSettings() {
         bottomGrid.classList.add("is-open");
         if (advancedToggleButton) {
@@ -2858,6 +2862,7 @@
         var userPrompt = String(prompt.value || "").trim();
         var avoidPrompt = String(negativePrompt.value || "").trim();
         var goals = getActiveGoalTexts();
+        var isSleevelessVest = garmentConfig.usesShirt && sleeve === "sleeveless" && isSleevelessVestRequest([userPrompt, style, vibe].join(" "));
         var templateInstruction = garment === "full_outfit"
             ? "Create a coordinated outfit set that will be split into one shirt panel layout and one pants panel layout while keeping both pieces visually connected."
           : garment === "matching_outfits"
@@ -2868,17 +2873,19 @@
                   ? "Create two coordinated pants or shorts panel layouts for two people. The pair should share motifs, palette, and energy without being identical clones."
                   : garment === "pants"
                     ? "Use only the supplied pants panel map. Focus strictly on waist, thigh, knee, calf, cuff, and ankle zones. Do not generate shirt collars, chest panels, sleeves, shoulder seams, or upper-body outfit pieces."
-                    : "Use only the supplied shirt panel map. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate leg-only layouts or lower-body outfit pieces that do not belong on the shirt panel map.";
+                    : isSleevelessVest
+                      ? "Use only the supplied shirt panel map. This is a sleeveless vest: create garment artwork only on the torso-front, torso-back, and side-torso garment panels. Do not create sleeves, shoulder fabric, cuffs, arm fabric, wrist fabric, or a full-shirt silhouette."
+                      : "Use only the supplied shirt panel map. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate leg-only layouts or lower-body outfit pieces that do not belong on the shirt panel map.";
         var sleeveInstruction = !garmentConfig.usesShirt
           ? ""
           : sleeve === "short"
             ? "Use short sleeves and keep the visible hand and lower-arm opening zones clear. Sleeve fabric must stop before the exposed hand zone begins."
             : sleeve === "sleeveless"
-              ? "Use true sleeveless arm treatment. Treat every arm-opening and hand-opening guide zone as protected empty space: no fabric, stitching, studs, graphics, text, shadows, gradients, or skin anatomy. Those zones are filled programmatically after generation."
+              ? "Use true sleeveless arm treatment. Treat every transparent arm-opening and hand-opening guide zone as protected empty space: no fabric, stitching, studs, graphics, text, shadows, gradients, or skin anatomy. Those zones are filled programmatically after generation."
               : "Use long sleeves but always leave a clear hand opening and cuff break at the wrist end of the supplied guide layout so the hands stay exposed. Every bright hot pink guide zone is mandatory visible skin territory and must not be covered by sleeve fabric.";
         var sleeveReferenceInstruction = !garmentConfig.usesShirt
           ? ""
-          : "On the supplied sleeve reference, bright hot pink is a strict skin marker. Any bright hot pink area must become exposed skin in the exact selected skin tone in the final clothing texture. Never print fabric, trim, chains, shading, or graphics over hot pink guide zones.";
+          : "On the supplied sleeve reference, fully transparent cutout areas are strict skin markers. They are not garment panels. Never print fabric, trim, chains, shading, graphics, text, or a garment silhouette over transparent guide zones.";
         var pantsLengthInstruction = !garmentConfig.usesPants
           ? ""
           : pantsFit === "30"
@@ -2892,7 +2899,9 @@
         var landmarkInstruction = garmentConfig.usesPants && !garmentConfig.usesShirt
           ? "The lowest exposed parts of the supplied pants guide represent ankle and shoe-entry territory, not random fabric panels. Keep those ankle openings readable and never treat them like sealed solid blocks."
           : garmentConfig.usesShirt
-            ? "The very top-center opening on the supplied shirt guide is always the neck area and must stay clear for the avatar neck. The lower ends of the arm strips are always hand-opening territory and should render as exposed skin in the selected skin tone, with clean wrist exits that stay clearly separated from the sleeve fabric."
+            ? isSleevelessVest
+              ? "Keep the top-center neck opening completely clear. The vest must end cleanly at both armholes: do not bridge from the torso into either arm panel, and do not extend fabric beyond the torso panel edges."
+              : "The very top-center opening on the supplied shirt guide is always the neck area and must stay clear for the avatar neck. The lower ends of the arm strips are always hand-opening territory and should render as exposed skin in the selected skin tone, with clean wrist exits that stay clearly separated from the sleeve fabric."
             : "";
 
         var lines = [
@@ -2906,7 +2915,7 @@
           pantsReferenceInstruction,
           landmarkInstruction,
           "Use the supplied layout only as a placement guide. Do not redraw mannequin previews, helper diagrams, template labels, divider lines, border strokes, letters, logos, or background sheet elements.",
-          "Keep artwork inside the clothing zones, aligned across connected panels, and slightly overpaint fold edges so the worn result stays solid without visible gaps.",
+          "Keep artwork strictly inside its intended garment panels and aligned across connected torso panels. Never bleed, extend, or overpaint across a panel boundary into a transparent skin-guide zone.",
           "Make the result feel like a real catalog-ready clothing texture, not a poster, mockup, or random square graphic.",
           "Design brief: " + (userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, and sleeve or leg zones.") + "."
         ];
