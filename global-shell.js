@@ -2396,11 +2396,32 @@
   function initChatSyncPolling() {
     if (shellState.chatSyncTimer) return;
     syncChatFromServer();
-    shellState.chatSyncTimer = window.setInterval(syncChatFromServer, 2500);
-    window.addEventListener("focus", syncChatFromServer);
-    document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) syncChatFromServer();
+    shellState.chatSyncTimer = window.setInterval(function () {
+      // Keep every page on the same room even if its initial Socket.IO handshake was delayed.
+      ensureChatSocketConnection();
+      syncChatFromServer();
+    }, 2500);
+    window.addEventListener("focus", function () {
+      ensureChatSocketConnection();
+      syncChatFromServer();
     });
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) {
+        ensureChatSocketConnection();
+        syncChatFromServer();
+      }
+    });
+  }
+
+  function ensureChatSocketConnection() {
+    if (shellState.socketReady || shellState.chatSocketBooting) return;
+    if (shellState.socket && typeof shellState.socket.connect === "function") {
+      try {
+        shellState.socket.connect();
+        return;
+      } catch (_error) {}
+    }
+    connectChatSocket();
   }
 
   function initChat() {
@@ -2586,11 +2607,14 @@
 
       shellState.socket.on("disconnect", function () {
         shellState.socketReady = false;
+        syncChatFromServer();
       });
 
       shellState.socket.on("connect_error", function (error) {
         shellState.socketReady = false;
-        setChatComposeState(true, "Live chat unavailable", error && error.message ? error.message : "Live chat unavailable");
+        // The HTTP sync/post routes remain usable while Socket.IO retries.
+        setChatComposeState(false);
+        syncChatFromServer();
       });
 
       shellState.socket.on("chat-history", function (history) {
