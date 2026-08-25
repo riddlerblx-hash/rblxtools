@@ -31,6 +31,7 @@
     socketReady: false,
     chatSyncTimer: null,
     chatSyncInFlight: false,
+    chatHistoryHydrated: false,
     chatAuthToken: "",
     // The active visitor is part of the room even before Socket.IO confirms its join.
     onlineCount: 1,
@@ -2371,8 +2372,11 @@
       });
       shellState.chatMessages = history;
       cacheChatMessages(history);
-      // Do not repaint identical history on every background sync.
-      if (historyChanged && shellState.chatList) renderChatMessages(shellState.chatList, history);
+      // Always paint the first server response. Later background syncs only repaint changes.
+      if ((!shellState.chatHistoryHydrated || historyChanged) && shellState.chatList) {
+        renderChatMessages(shellState.chatList, history, { forceBottom: !shellState.chatHistoryHydrated });
+      }
+      shellState.chatHistoryHydrated = true;
     }
     if (typeof payload.onlineCount === "number") {
       // OpenLiteSpeed can briefly report an empty room during a socket reconnect.
