@@ -65,6 +65,12 @@ const AI_CLOTHING_OUTPUT_WIDTH = 585;
 const AI_CLOTHING_OUTPUT_HEIGHT = 559;
 const AI_CLOTHING_MODEL = "gpt-image-2";
 const AI_CLOTHING_GENERATION_SIZE = "832x800";
+const AI_CLOTHING_SKIN_TONES = {
+  white: { hex: "#EFD2BF", r: 239, g: 210, b: 191, a: 255 },
+  lightskin: { hex: "#C99876", r: 201, g: 152, b: 118, a: 255 },
+  darkskin: { hex: "#5C4030", r: 92, g: 64, b: 48, a: 255 },
+  auto: { hex: "#DBB8A0", r: 219, g: 184, b: 160, a: 255 },
+};
 const AI_SLEEVE_REFERENCE_PATHS = {
   long: path.join(__dirname, "assets", "ai-rig", "Long Sleeve Reference.png"),
   short: path.join(__dirname, "assets", "ai-rig", "Short Sleeve Reference.png"),
@@ -227,11 +233,12 @@ function normalizeAIClothingSkinTone(value) {
 }
 
 function getAIClothingSkinToneColor(skinTone) {
-  if (skinTone === "white") return { r: 239, g: 210, b: 191, a: 255 };
-  if (skinTone === "lightskin") return { r: 201, g: 152, b: 118, a: 255 };
-  if (skinTone === "darkskin") return { r: 92, g: 64, b: 48, a: 255 };
-  if (skinTone === "auto") return { r: 219, g: 184, b: 160, a: 255 };
-  return null;
+  return AI_CLOTHING_SKIN_TONES[skinTone] || null;
+}
+
+function getAIClothingSkinToneHex(skinTone) {
+  const tone = getAIClothingSkinToneColor(skinTone);
+  return tone ? tone.hex : "";
 }
 
 function expandAIClothingGuideMask(maskBuffer, width, height, radius = 0) {
@@ -417,13 +424,13 @@ function getAIClothingSkinToneInstruction(skinTone) {
     return "Do not show visible skin. Keep exposed hand, arm, leg, neck, torso, and cutout zones covered or visually concealed by the garment design.";
   }
   if (skinTone === "white") {
-    return "Every required visible skin zone should use a light white skin tone consistently anywhere the garment exposes skin, including hand openings, wrist exits, neck openings, arm openings, and any intentional cutout areas.";
+    return `Visible skin must use one flat, exact color only: ${getAIClothingSkinToneHex(skinTone)}. Never shade, texture, write on, or vary that color in exposed-skin zones.`;
   }
   if (skinTone === "lightskin") {
-    return "Every required visible skin zone should use a light brown lightskin tone consistently anywhere the garment exposes skin, including hand openings, wrist exits, neck openings, arm openings, and any intentional cutout areas.";
+    return `Visible skin must use one flat, exact color only: ${getAIClothingSkinToneHex(skinTone)}. Never shade, texture, write on, or vary that color in exposed-skin zones.`;
   }
   if (skinTone === "darkskin") {
-    return "Every required visible skin zone should use a rich dark skin tone consistently anywhere the garment exposes skin, including hand openings, wrist exits, neck openings, arm openings, and any intentional cutout areas.";
+    return `Visible skin must use one flat, exact color only: ${getAIClothingSkinToneHex(skinTone)}. Never shade, texture, write on, or vary that color in exposed-skin zones.`;
   }
   return "";
 }
@@ -885,13 +892,9 @@ async function applyAIClothingSkinGuide(
       const multipliedRed = Math.round((tone.r * red) / 255);
       const multipliedGreen = Math.round((tone.g * green) / 255);
       const multipliedBlue = Math.round((tone.b * blue) / 255);
-      const detailStrength = Math.max(
-        0,
-        Math.min(
-          1,
-          ((contrast - 10) / 34) + (saturation / 180)
-        )
-      );
+      // Protected skin-guide pixels must remain a single clean color. Keeping
+      // model details here is what created stray seams and spots on bare arms.
+      const detailStrength = 0;
 
       panelRaw.data[offset] = Math.round((tone.r * (1 - detailStrength)) + (multipliedRed * detailStrength));
       panelRaw.data[offset + 1] = Math.round((tone.g * (1 - detailStrength)) + (multipliedGreen * detailStrength));
@@ -953,7 +956,7 @@ function buildAIClothingPrompt(input = {}) {
         ? normalizeAIClothingPantsLength(input.resolvedPantsLength)
         : inferAIClothingPantsLength([userPrompt, style, vibe].filter(Boolean).join(" "))
       : pantsLength;
-  const goalTexts = Array.isArray(input.templateGoals)
+  let goalTexts = Array.isArray(input.templateGoals)
     ? input.templateGoals.map((goal) => cleanAIClothingText(goal, 80)).filter(Boolean).slice(0, 8)
     : [];
   const usesShirt =
@@ -967,11 +970,18 @@ function buildAIClothingPrompt(input = {}) {
     garment === "matching_pants" ||
     garment === "matching_outfits";
 
+  // A sleeveless template cannot also request sleeve artwork. Resolve this once
+  // on the server so a crafted request cannot reintroduce the UI conflict.
+  if (usesShirt && resolvedSleeveLength === "sleeveless") {
+    goalTexts = goalTexts.filter((goal) => !/sleeve/i.test(goal));
+  }
+
   return {
     garmentType: garment,
     sleeveLength: resolvedSleeveLength,
     pantsLength: resolvedPantsLength,
     skinTone,
+    skinToneHex: getAIClothingSkinToneHex(skinTone),
     style,
     palette,
     vibe,
@@ -984,6 +994,7 @@ function buildAIClothingPrompt(input = {}) {
       usesShirt ? `Resolved sleeve guide: ${resolvedSleeveLength}.` : "",
       usesPants ? `Resolved pants length guide: ${resolvedPantsLength}%.` : "",
       skinTone !== "auto" ? `Visible skin tone: ${skinTone}.` : "",
+      skinTone !== "auto" ? `Exact visible skin color: ${getAIClothingSkinToneHex(skinTone)}.` : "",
       `Design brief: ${userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
       style ? `Art direction: ${style}.` : "",
       palette ? `Color palette: ${palette}.` : "",
@@ -997,10 +1008,10 @@ function buildAIClothingPrompt(input = {}) {
 function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
   const templateType = variant.templateType === "pants" ? "pants" : "shirt";
   const sleeveInstruction = templateType === "shirt"
-    ? basePrompt.sleeveLength === "short"
+      ? basePrompt.sleeveLength === "short"
       ? "Use short sleeves and keep the visible hand and lower-arm opening zones clear. Sleeve fabric must stop before the exposed hand zone begins."
       : basePrompt.sleeveLength === "sleeveless"
-        ? "Use true sleeveless arm treatment. Every fully transparent cutout area on the supplied sleeve reference is mandatory exposed skin territory, not optional fabric. Leave those arm-opening and hand-opening zones uncovered and render them in the selected skin tone."
+        ? "Use true sleeveless arm treatment. Treat every transparent arm-opening and hand-opening guide zone as protected empty space: do not draw fabric, stitching, studs, text, graphics, shadows, gradients, or skin anatomy there. Those zones are filled programmatically after generation."
         : "Use long sleeves but always leave a clear hand opening and cuff break at the wrist end of the supplied guide layout so the hands stay exposed. Any fully transparent cutout zone on the supplied sleeve reference is mandatory visible skin territory and must not be covered by sleeve fabric."
     : "";
   const sleeveReferenceInstruction = templateType === "shirt"

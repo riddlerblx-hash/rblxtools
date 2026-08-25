@@ -380,6 +380,13 @@
       box-shadow: 0 12px 22px rgba(123, 70, 255, 0.16);
     }
 
+    .ai-goal-chip.is-disabled,
+    .ai-goal-chip:disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+      transform: none !important;
+    }
+
     .ai-hero-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2659,8 +2666,13 @@
       }
 
       function getActiveGoalTexts() {
+        var sleeve = resolveSleeveLengthValue();
         return goalChips.filter(function (chip) {
-          return !chip.hasAttribute("data-sleeve") && !chip.hasAttribute("data-skin-tone") && chip.classList.contains("is-active");
+          var goal = String(chip.getAttribute("data-goal") || "").toLowerCase();
+          return !chip.hasAttribute("data-sleeve") &&
+            !chip.hasAttribute("data-skin-tone") &&
+            chip.classList.contains("is-active") &&
+            !(sleeve === "sleeveless" && goal.indexOf("sleeve") !== -1);
         }).map(function (chip) {
           return chip.getAttribute("data-goal") || "";
         }).filter(Boolean);
@@ -2676,6 +2688,13 @@
         }
         sleeveChips.forEach(function (chip) {
           chip.classList.toggle("is-active", chip.getAttribute("data-sleeve") === normalized);
+        });
+        goalChips.forEach(function (chip) {
+          var isSleeveDetailGoal = String(chip.getAttribute("data-goal") || "").toLowerCase().indexOf("sleeve") !== -1;
+          if (!isSleeveDetailGoal) return;
+          chip.disabled = normalized === "sleeveless";
+          chip.classList.toggle("is-disabled", normalized === "sleeveless");
+          if (normalized === "sleeveless") chip.classList.remove("is-active");
         });
       }
 
@@ -2782,17 +2801,22 @@
       }
 
       function formatSkinToneInstruction(value) {
+        var hexByTone = {
+          white: "#EFD2BF",
+          lightskin: "#C99876",
+          darkskin: "#5C4030"
+        };
         if (value === "none") {
           return "Do not show visible skin. Keep exposed hand, arm, leg, neck, torso, and cutout zones covered or visually concealed by the garment design.";
         }
         if (value === "white") {
-          return "Every required visible skin zone should use a light white skin tone consistently anywhere the garment exposes skin, including hand openings, wrist exits, neck openings, arm openings, and any intentional cutout areas.";
+          return "Visible skin must use one flat, exact color only: " + hexByTone.white + ". Never shade, texture, write on, or vary that color in exposed-skin zones.";
         }
         if (value === "lightskin") {
-          return "Every required visible skin zone should use a light brown lightskin tone consistently anywhere the garment exposes skin, including hand openings, wrist exits, neck openings, arm openings, and any intentional cutout areas.";
+          return "Visible skin must use one flat, exact color only: " + hexByTone.lightskin + ". Never shade, texture, write on, or vary that color in exposed-skin zones.";
         }
         if (value === "darkskin") {
-          return "Every required visible skin zone should use a rich dark skin tone consistently anywhere the garment exposes skin, including hand openings, wrist exits, neck openings, arm openings, and any intentional cutout areas.";
+          return "Visible skin must use one flat, exact color only: " + hexByTone.darkskin + ". Never shade, texture, write on, or vary that color in exposed-skin zones.";
         }
         return "";
       }
@@ -2850,7 +2874,7 @@
           : sleeve === "short"
             ? "Use short sleeves and keep the visible hand and lower-arm opening zones clear. Sleeve fabric must stop before the exposed hand zone begins."
             : sleeve === "sleeveless"
-              ? "Use true sleeveless arm treatment. Every bright hot pink sleeve-guide zone is mandatory exposed skin territory, not optional fabric. Leave those arm-opening and hand-opening zones uncovered and render them in the selected skin tone."
+              ? "Use true sleeveless arm treatment. Treat every arm-opening and hand-opening guide zone as protected empty space: no fabric, stitching, studs, graphics, text, shadows, gradients, or skin anatomy. Those zones are filled programmatically after generation."
               : "Use long sleeves but always leave a clear hand opening and cuff break at the wrist end of the supplied guide layout so the hands stay exposed. Every bright hot pink guide zone is mandatory visible skin territory and must not be covered by sleeve fabric.";
         var sleeveReferenceInstruction = !garmentConfig.usesShirt
           ? ""
@@ -3068,10 +3092,10 @@
 
       function resolveSkinToneColor() {
         var value = skinTone ? String(skinTone.value || "auto").trim().toLowerCase() : "auto";
-        if (value === "white") return "#f0d5c6";
-        if (value === "lightskin") return "#d6a47f";
-        if (value === "darkskin") return "#7b4e35";
-        return "#e4d6ca";
+        if (value === "white") return "#EFD2BF";
+        if (value === "lightskin") return "#C99876";
+        if (value === "darkskin") return "#5C4030";
+        return "#DBB8A0";
       }
 
       function loadPreviewImage(url) {
@@ -3399,6 +3423,7 @@
           pantsLength: pantsLength ? pantsLength.value : "auto",
           resolvedPantsLength: resolvePantsLengthValue(),
           skinTone: skinTone ? skinTone.value : "auto",
+          skinToneHex: resolveSkinToneColor(),
           generationCost: getGenerationCost(garmentType.value),
           styleDirection: styleValue,
           colorPalette: colorPalette.value,
