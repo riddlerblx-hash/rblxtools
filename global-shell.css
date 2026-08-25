@@ -3510,40 +3510,7 @@ body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-title {
 body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-copy,
 body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-benefit { overflow-wrap: anywhere; }
 
-/* Home keeps its own silver Plus spotlight instead of inheriting the dark tool promo. */
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card {
-  min-height: 500px !important;
-  border: 1px solid rgba(237, 242, 250, .78) !important;
-  border-radius: 26px !important;
-  background:
-    radial-gradient(circle at 84% 12%, rgba(255, 255, 255, .62), transparent 22%),
-    radial-gradient(circle at 10% 14%, rgba(255, 255, 255, .28), transparent 27%),
-    linear-gradient(142deg, #727b89 0%, #c7cdd7 45%, #4c5564 100%) !important;
-  box-shadow: 0 22px 46px rgba(0, 0, 0, .32), inset 0 1px 0 rgba(255, 255, 255, .62) !important;
-}
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card::before {
-  background:
-    linear-gradient(125deg, rgba(255,255,255,.19), transparent 29%, rgba(255,255,255,.05) 51%, transparent 72%),
-    repeating-linear-gradient(135deg, rgba(255,255,255,.055) 0 1px, transparent 1px 12px) !important;
-}
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-title,
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-copy,
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-price-label,
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-price,
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-benefit { color: #f8fafc !important; }
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-copy { color: rgba(245, 248, 252, .86) !important; }
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-price-wrap,
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-benefit {
-  border-color: rgba(220, 229, 241, .28) !important;
-  background: linear-gradient(145deg, rgba(21, 28, 41, .78), rgba(40, 48, 62, .73)) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.07) !important;
-}
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .plus-price { color: #65f29e !important; }
-body.rblx-shell-ready .rblx-shell-page .home-grid-top > .plus-card .btn.ghost {
-  border-color: rgba(238, 244, 251, .2) !important;
-  background: rgba(255,255,255,.09) !important;
-  color: #fff !important;
-}
+body.rblx-home-page .rblx-shell-footer-kicker { display: none !important; }
 
 body.rblx-shell-ready .rblx-shell-page .plans-grid .plan-card {
   overflow: hidden !important;

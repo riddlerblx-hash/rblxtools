@@ -1367,8 +1367,7 @@
                 "</form>" +
                 '<div class="rblx-shell-chat-foot">' +
                   '<a class="rblx-shell-chat-rules" href="#" id="rblxShellRulesLink">Chat Rules</a>' +
-                  '<span class="rblx-shell-chat-online"><span class="rblx-shell-chat-online-dot"></span><span id="rblxShellOnlineCount">0</span></span>' +
-                "</div>" +
+                  "</div>" +
               "</div>" +
             "</div>" +
           "</aside>" +
