@@ -1602,7 +1602,7 @@
         ? '<img class="rblx-shell-chat-avatar-image" src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\';" />' +
           '<span class="rblx-shell-chat-avatar-fallback" style="display:none;">' + escapeHtml(profile.avatarText) + "</span>"
         : '<span class="rblx-shell-chat-avatar-fallback">' + escapeHtml(profile.avatarText) + "</span>";
-      var badgeMarkup = isPlus ? "" : '<span class="rblx-shell-chat-badge">' + escapeHtml(profile.badge) + "</span>";
+      var badgeMarkup = "";
       var nameClass = isPlus ? ' class="rblx-shell-chat-name-text is-plus"' : ' class="rblx-shell-chat-name-text"';
       var messageBody = message && message.specialType === "claimDrop" && message.claimDrop
         ? buildClaimDropMessage(message, message.claimDrop)
@@ -1652,7 +1652,7 @@
       var name = escapeHtml(String((message && (message.displayName || message.username || message.name)) || 'Guest'));
       var textValue = escapeHtml(String((message && message.text) || ''));
       var isPlus = String((message && message.plan) || '').toLowerCase() === 'plus' || Boolean(message && message.isPlus);
-      var badgeMarkup = isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : '<span class="rblx-shell-chat-badge">MEMBER</span>';
+      var badgeMarkup = isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "";
       return '<article class="rblx-shell-chat-message">' +
         '<div class="rblx-shell-chat-avatar-button"><span class="rblx-shell-chat-avatar"><span class="rblx-shell-chat-avatar-fallback">' + name.charAt(0).toUpperCase() + '</span></span></div>' +
         '<div><div class="rblx-shell-chat-name">' + badgeMarkup + '<span class="rblx-shell-chat-name-text' + (isPlus ? ' is-plus' : '') + '">' + name + '</span></div><div class="rblx-shell-chat-text">' + textValue + '</div></div>' +
@@ -3458,6 +3458,14 @@
     });
   }
 
+  function placeSharedFooter(pageHost) {
+    var footer = document.querySelector(".rblx-shell-footer");
+    var shellCenter = pageHost && pageHost.parentElement;
+    if (footer && shellCenter && footer.parentElement !== shellCenter) {
+      shellCenter.appendChild(footer);
+    }
+  }
+
   function captureStreamingPageContent(pageHost) {
     if (document.readyState !== "loading") return;
 
@@ -3480,6 +3488,7 @@
       Array.prototype.slice.call(document.body.childNodes).forEach(function (node) {
         if (node !== document.getElementById("rblxShellRoot")) moveNode(node);
       });
+      placeSharedFooter(pageHost);
     }, { once: true });
   }
 
@@ -3897,6 +3906,7 @@
     // Keep the shared footer outside individual page layouts so it always spans the shell center.
     pageHost.parentElement.insertAdjacentHTML("beforeend", buildFooterMarkup());
     captureStreamingPageContent(pageHost);
+    window.setTimeout(function () { placeSharedFooter(pageHost); }, 0);
     syncMobileShellState();
     closeMobilePanels();
     initFaqAccordions();
@@ -3911,6 +3921,8 @@
     initSupportModal();
     setupAuthModal();
     document.addEventListener("click", function (event) {
+      var profileMenu = document.querySelector(".rblx-shell-profile-menu[open]");
+      if (profileMenu && !profileMenu.contains(event.target)) profileMenu.open = false;
       var logoutTrigger = event.target && event.target.closest ? event.target.closest("[data-shell-logout]") : null;
       if (!logoutTrigger) return;
       event.preventDefault();
