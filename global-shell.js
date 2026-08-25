@@ -32,7 +32,8 @@
     chatSyncTimer: null,
     chatSyncInFlight: false,
     chatAuthToken: "",
-    onlineCount: 0,
+    // The active visitor is part of the room even before Socket.IO confirms its join.
+    onlineCount: 1,
     isAdmin: false,
     deviceId: "",
     moderation: null,
@@ -2364,19 +2365,28 @@
       return !(message && message.specialType === "toolActivity");
     }) : null;
     if (history) {
+      var historyChanged = history.length !== shellState.chatMessages.length || history.some(function (message, index) {
+        var current = shellState.chatMessages[index];
+        return !current || !message || String(current.id || "") !== String(message.id || "") ||
+          String(current.updatedAt || current.createdAt || "") !== String(message.updatedAt || message.createdAt || "");
+      });
       shellState.chatMessages = history;
       cacheChatMessages(history);
-      if (shellState.chatList) renderChatMessages(shellState.chatList, history);
+      // Do not repaint identical history on every background sync.
+      if (historyChanged && shellState.chatList) renderChatMessages(shellState.chatList, history);
     }
     if (typeof payload.onlineCount === "number") {
-      shellState.onlineCount = payload.onlineCount;
+      // OpenLiteSpeed can briefly report an empty room during a socket reconnect.
+      // Preserve the last confirmed count instead of visibly dropping to zero.
+      var reportedCount = Math.max(0, payload.onlineCount);
+      if (reportedCount > 0 || shellState.onlineCount === 0) shellState.onlineCount = reportedCount;
       var onlineEl = document.getElementById("rblxShellOnlineCount");
-      if (onlineEl) onlineEl.textContent = String(Math.max(0, payload.onlineCount));
+      if (onlineEl) onlineEl.textContent = String(Math.max(0, shellState.onlineCount));
     }
   }
 
   async function syncChatFromServer() {
-    if (shellState.chatSyncInFlight || document.hidden) return;
+    if (shellState.chatSyncInFlight) return;
     shellState.chatSyncInFlight = true;
     try {
       var response = await fetch(API_BASE + "/chat/sync?room=rblxtools-main", {
@@ -2649,9 +2659,10 @@
 
       shellState.socket.on("room-users", function (users) {
           console.log("[RBLX chat] users", Array.isArray(users) ? users.length : users);
-        shellState.onlineCount = Array.isArray(users) ? users.length : 0;
+        var reportedCount = Array.isArray(users) ? users.length : 0;
+        if (reportedCount > 0 || shellState.onlineCount === 0) shellState.onlineCount = reportedCount;
         var onlineEl = document.getElementById("rblxShellOnlineCount");
-        if (onlineEl) onlineEl.textContent = String(shellState.onlineCount || 0);
+        if (onlineEl) onlineEl.textContent = String(Math.max(0, shellState.onlineCount));
       });
 
       shellState.socket.on("room-specials", function (specials) {
@@ -3382,6 +3393,8 @@
       saveCachedAuthUser(user);
       displayName = getPreferredUserName(user, payload);
       plus = plus || hasPlusFromPayload(payload) || hasPlusFromPayload(user);
+      // The auth payload may omit billing flags, so retain the premium-status result.
+      writeCachedPlusStatus(plus);
       return {
         loggedIn: true,
         plan: plus ? "plus" : "free",
