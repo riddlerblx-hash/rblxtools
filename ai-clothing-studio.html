@@ -6,7 +6,7 @@
   <title>AI Clothing Studio - RBLXTools</title>
   <meta name="description" content="Admin-only AI Roblox clothing generation workspace for prompt drafting, template-aware outfit planning, and future 585 x 559 export-ready generations." />
   <meta name="robots" content="noindex, nofollow" />
-<link rel="stylesheet" href="./global-shell.css?v=20260825-18" />
+<link rel="stylesheet" href="./global-shell.css?v=20260825-19" />
   <style>
     *,
     *::before,
@@ -1435,6 +1435,39 @@
       -webkit-background-clip: text;
       background-clip: text;
     }
+
+    /* The studio itself sits on the site canvas; only interactive groups use panels. */
+    body.ai-shell-page.rblx-shell-ready .rblx-shell-center { padding-top: 18px; }
+    .ai-page { max-width: 1080px; padding-top: 38px; gap: 28px; }
+    .ai-card.ai-hero {
+      overflow: visible;
+      padding: 20px 0 10px;
+      border: 0 !important;
+      border-radius: 0;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    .ai-card.ai-hero::before { display: none; }
+    .ai-hero-center { max-width: 940px; gap: 22px; }
+    .ai-title { max-width: 14ch; font-size: clamp(50px, 6.2vw, 82px); }
+    .ai-copy { max-width: 56ch; }
+    .ai-builder { gap: 18px; }
+    .ai-prompt-shell {
+      padding: 12px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(28, 46, 77, .92), rgba(13, 23, 41, .94)) !important;
+      box-shadow: 0 22px 42px rgba(2, 7, 18, .34);
+    }
+    .ai-hero-grid { gap: 12px; }
+    .ai-option-card {
+      min-height: 92px;
+      border-radius: 16px;
+      text-align: left;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+    .ai-option-card:hover { transform: translateY(-2px); border-color: rgba(127, 173, 255, .68) !important; }
+    .ai-live-token-cost { margin-top: 4px; }
+    .ai-generate-btn { min-height: 58px; border-radius: 18px; }
   </style>
 </head>
 <body class="ai-shell-page">
@@ -1442,10 +1475,6 @@
     <div class="ai-gate-card">
       <div class="ai-kicker">Admin Only</div>
       <h2 class="ai-gate-title">Checking AI tool access...</h2>
-      <p class="ai-gate-copy" id="aiGateStatus">Verifying your RBLXTools admin account before loading the AI workspace.</p>
-    </div>
-  </div>
-
   <main class="ai-page ai-hidden" id="aiPage">
     <section class="ai-card ai-hero">
       <div class="ai-hero-center">
