@@ -3381,15 +3381,21 @@ body.rblx-shell-ready .rblx-shell-page .rblx-tool-stat strong { display: block; 
     linear-gradient(180deg, rgba(17, 28, 47, .98), rgba(10, 17, 30, .99)) !important;
 }
 
-/* The footer is a shell-wide row, not part of a tool page's narrow content frame. */
-.rblx-shell-page {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) !important;
+/* Keep page content flexible, but let the footer span the entire shell center column. */
+.rblx-shell-center {
+  display: block !important;
   width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+.rblx-shell-page {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
 }
 body.rblx-shell-ready #rblxShellPage > .rblx-shell-footer {
-  grid-column: 1 / -1 !important;
-  justify-self: stretch !important;
+  display: block !important;
   width: 100% !important;
   min-width: 0 !important;
   max-width: none !important;
