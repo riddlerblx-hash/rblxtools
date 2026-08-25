@@ -1468,6 +1468,43 @@
     .ai-option-card:hover { transform: translateY(-2px); border-color: rgba(127, 173, 255, .68) !important; }
     .ai-live-token-cost { margin-top: 4px; }
     .ai-generate-btn { min-height: 58px; border-radius: 18px; }
+
+    /* Keep the optional power controls on the canvas instead of inside another card. */
+    .ai-advanced-toggle-btn {
+      min-height: auto;
+      padding: 4px 0;
+      border: 0 !important;
+      border-radius: 0;
+      background: transparent !important;
+      box-shadow: none;
+      color: #d7e2f5;
+      letter-spacing: .45px;
+    }
+    .ai-advanced-toggle-btn:hover {
+      color: #fff;
+      filter: none;
+    }
+    .ai-bottom-grid.is-open {
+      gap: 0;
+    }
+    .ai-advanced-section {
+      width: 100%;
+      padding: 18px 0 8px;
+      border: 0 !important;
+      border-radius: 0;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    .ai-advanced-section::before {
+      display: none !important;
+    }
+    .ai-advanced-section > * {
+      position: relative;
+      z-index: 1;
+    }
+    .ai-advanced-section .ai-section-title {
+      margin-top: 0;
+    }
   </style>
 </head>
 <body class="ai-shell-page">
@@ -1481,7 +1518,6 @@
   <main class="ai-page ai-hidden" id="aiPage">
     <section class="ai-card ai-hero">
       <div class="ai-hero-center">
-        <div class="ai-kicker">RBLXTools AI</div>
         <h1 class="ai-title">
           <span>Create Your Dream</span>
           <span>Roblox Clothing</span>
@@ -1592,8 +1628,7 @@
     </section>
 
     <section class="ai-bottom-grid" id="aiBottomGrid">
-      <div class="ai-card ai-card-block">
-        <div class="ai-kicker">Advanced Settings</div>
+      <section class="ai-advanced-section">
         <h2 class="ai-section-title">Prompt control for power users</h2>
         <p class="ai-note">The top bar is still the user's main prompt. Everything below just helps tighten how that prompt gets translated before it is eventually sent to the AI.</p>
 
@@ -1679,7 +1714,7 @@
         </div>
 
         <div class="ai-status" id="aiStudioStatus">Your visible prompt updates the stronger hidden Roblox-template-aware AI prompt live in the background. Advanced settings are just there if you want to tighten it further.</div>
-      </div>
+      </section>
     </section>
 
   </main>
