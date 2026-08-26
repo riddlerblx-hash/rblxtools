@@ -2907,11 +2907,11 @@
             : "";
 
         var lines = isSleevelessVest ? [
-          "Precision Mode: create front and back graphic art tiles only using the supplied two-square guide.",
-          "The server builds the vest, seams, studs, torso coverage, and skin zones from verified UV coordinates.",
-          "Generate only dark full-bleed graphics, prints, patches, symbols, and texture. Do not create a clothing silhouette, collar, neck hole, armhole, mannequin, sleeves, arms, or skin.",
-          "The lower template area is all arm UV islands and receives no generated artwork. Keep graphics centered with safe margins.",
-          "Design brief: " + (userPrompt || "Create polished dark streetwear artwork for a sleeveless Roblox top.")
+          "Create one front-and-back sleeveless-top art sheet using the supplied two-square guide.",
+          "Fill the left square with continuous front fabric art and the right square with matching back fabric art.",
+          "The server maps both squares into the verified torso UV panels automatically. The lower template area is all arm UV islands and receives no generated artwork.",
+          "Do not create a UV template, mannequin, sleeves, arms, hands, skin, borders, or guide labels. Keep front and back artwork centered with safe margins.",
+          "Design brief: " + (userPrompt || "Create a polished sleeveless Roblox top texture.")
         ] : [
           "Create a clean clothing texture for the supplied blank clothing panel layout.",
           "Return only a wearable clothing texture at exactly 585 x 559 pixels.",
