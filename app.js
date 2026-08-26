@@ -287,9 +287,6 @@ function expandAIClothingGuideMask(maskBuffer, width, height, radius = 0) {
 function shouldUseExpandedAIClothingSkinMask(templateType, sleeveLength, pantsLength, x, y) {
   if (templateType === "shirt") {
     if (sleeveLength === "sleeveless") {
-      if (y >= 289) return true;
-      if (x >= 165 && x < 229 && y >= 74 && y < 202) return true;
-      if (x >= 361 && x < 425 && y >= 74 && y < 202) return true;
       return false;
     }
     if (sleeveLength === "short") {
@@ -441,23 +438,10 @@ function getAIClothingSkinToneInstruction(skinTone) {
   return "";
 }
 
-function getAIClothingPanelGuideInstruction(templateType, sleeveLength) {
-  if (templateType === "shirt" && sleeveLength === "sleeveless") {
-    return [
-      "The supplied image is a color-coded sleeveless shirt panel guide.",
-      "#AF52DE is the upper torso / neck-adjacent panel.",
-      "#FF3B30 is the front torso panel.",
-      "#0A84FF is the back torso panel.",
-      "#34C759 is the right torso-side panel.",
-      "#FFCC00 is the left torso-side panel.",
-      "#FF9500 is the lower torso panel.",
-      "#00C7BE marks sleeve and arm fabric panels; because this is sleeveless, leave every #00C7BE panel completely empty.",
-      "Transparent pixels are empty canvas or protected skin zones and must remain free of garment artwork.",
-      "The visible words are guide annotations only: never copy, redraw, or include those words in the clothing texture.",
-    ].join(" ");
-  }
-
-  return "";
+function isAIClothingSleevelessArmPanel(x, y) {
+  // In the Roblox shirt UV map, every arm panel starts at y=289. The R/L
+  // panels beside the torso are garment side panels, not exposed skin.
+  return y >= 289 && isInsideAIClothingPanel("shirt", x, y);
 }
 
 function expandAIClothingMask(maskBuffer, width, height, radius) {
@@ -816,8 +800,7 @@ async function applyAIClothingSkinGuide(
 
   let expansionRadius = 0;
   if (templateType === "shirt") {
-    if (sleeveLength === "sleeveless") expansionRadius = 18;
-    else if (sleeveLength === "short") expansionRadius = 8;
+    if (sleeveLength === "short") expansionRadius = 8;
   } else if (templateType === "pants") {
     if (pantsLength === "30") expansionRadius = 4;
     else if (pantsLength === "80") expansionRadius = 2;
@@ -835,6 +818,10 @@ async function applyAIClothingSkinGuide(
   for (let index = 0; index < guideMask.length; index += 1) {
     const x = index % referenceTemplateRaw.info.width;
     const y = Math.floor(index / referenceTemplateRaw.info.width);
+    const isSleevelessArmSkin =
+      templateType === "shirt" &&
+      sleeveLength === "sleeveless" &&
+      isAIClothingSleevelessArmPanel(x, y);
     const useExpandedMask = shouldUseExpandedAIClothingSkinMask(
       templateType,
       sleeveLength,
@@ -842,7 +829,9 @@ async function applyAIClothingSkinGuide(
       x,
       y
     );
-    finalSkinMask[index] = useExpandedMask ? expandedMask[index] : guideMask[index];
+    finalSkinMask[index] = isSleevelessArmSkin
+      ? 255
+      : (useExpandedMask ? expandedMask[index] : guideMask[index]);
   }
 
   const panelRaw = await sharp(panelBuffer)
@@ -1282,12 +1271,15 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     .ensureAlpha()
     .png()
     .toBuffer();
-  const generationReferenceBuffer = await buildAIClothingGenerationReference(
-    referenceTemplateBuffer,
-    cleanedApplyTemplateBuffer,
-    normalizeAIClothingSkinTone(skinTone),
-    normalizedTemplateType
-  );
+  const generationReferenceBuffer =
+    normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "sleeveless"
+      ? cleanedApplyTemplateBuffer
+      : await buildAIClothingGenerationReference(
+          referenceTemplateBuffer,
+          cleanedApplyTemplateBuffer,
+          normalizeAIClothingSkinTone(skinTone),
+          normalizedTemplateType
+        );
   const templateUpload = await toFile(Readable.from([generationReferenceBuffer]), path.basename(applicationTemplatePath), {
     type: "image/png",
   });
@@ -1295,7 +1287,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: templateUpload,
-    prompt: `${promptText} ${getAIClothingPanelGuideInstruction(normalizedTemplateType, resolvedSleeveReferenceKey)} Build directly on the supplied blank ${normalizedTemplateType} clothing panel layout. The visible colored panel map is the only place for garment artwork; the surrounding canvas and transparent guide areas must remain empty. Do not add any mannequin previews, template labels, helper diagrams, letters, logos, background sheet elements, or explanatory text. Return only mapped clothing artwork on that blank panel layout.`,
+    prompt: `${promptText} Build directly on the supplied blank ${normalizedTemplateType} clothing panel layout. The visible white panel map is the only place for garment artwork; the surrounding canvas and transparent guide areas must remain empty. Do not add any mannequin previews, template labels, helper diagrams, letters, logos, background sheet elements, or explanatory text. Return only mapped clothing artwork on that blank panel layout.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
