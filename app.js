@@ -441,6 +441,25 @@ function getAIClothingSkinToneInstruction(skinTone) {
   return "";
 }
 
+function getAIClothingPanelGuideInstruction(templateType, sleeveLength) {
+  if (templateType === "shirt" && sleeveLength === "sleeveless") {
+    return [
+      "The supplied image is a color-coded sleeveless shirt panel guide.",
+      "#AF52DE is the upper torso / neck-adjacent panel.",
+      "#FF3B30 is the front torso panel.",
+      "#0A84FF is the back torso panel.",
+      "#34C759 is the right torso-side panel.",
+      "#FFCC00 is the left torso-side panel.",
+      "#FF9500 is the lower torso panel.",
+      "#00C7BE marks sleeve and arm fabric panels; because this is sleeveless, leave every #00C7BE panel completely empty.",
+      "Transparent pixels are empty canvas or protected skin zones and must remain free of garment artwork.",
+      "The visible words are guide annotations only: never copy, redraw, or include those words in the clothing texture.",
+    ].join(" ");
+  }
+
+  return "";
+}
+
 function expandAIClothingMask(maskBuffer, width, height, radius) {
   const bleed = Math.max(0, radius | 0);
   if (!bleed) {
@@ -1276,7 +1295,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: templateUpload,
-    prompt: `${promptText} Build directly on the supplied blank ${normalizedTemplateType} clothing panel layout. The visible white panel map is the only place for garment artwork; the surrounding gray canvas and transparent guide areas must remain empty. Do not add any mannequin previews, template labels, helper diagrams, letters, logos, background sheet elements, or explanatory text. Return only mapped clothing artwork on that blank panel layout.`,
+    prompt: `${promptText} ${getAIClothingPanelGuideInstruction(normalizedTemplateType, resolvedSleeveReferenceKey)} Build directly on the supplied blank ${normalizedTemplateType} clothing panel layout. The visible colored panel map is the only place for garment artwork; the surrounding canvas and transparent guide areas must remain empty. Do not add any mannequin previews, template labels, helper diagrams, letters, logos, background sheet elements, or explanatory text. Return only mapped clothing artwork on that blank panel layout.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 

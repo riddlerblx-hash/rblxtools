@@ -2935,6 +2935,9 @@
         if (selectedSkinTone !== "auto") {
           lines.push(formatSkinToneInstruction(selectedSkinTone));
         }
+        if (garmentConfig.usesShirt && sleeve === "sleeveless") {
+          lines.push("Sleeveless color guide: #AF52DE upper torso, #FF3B30 front torso, #0A84FF back torso, #34C759 right torso side, #FFCC00 left torso side, #FF9500 lower torso, and #00C7BE sleeve/arm panels. Leave #00C7BE panels empty for sleeveless clothing, keep transparent areas empty, and never copy guide labels into the design.");
+        }
         if (avoidPrompt) {
           lines.push("Avoid: " + avoidPrompt + ".");
         }
