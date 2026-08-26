@@ -953,6 +953,68 @@ async function applyAIClothingSkinGuide(
     .toBuffer();
 }
 
+const AI_CLOTHING_VEST_SHEET = {
+  width: 832,
+  height: 800,
+  tileSize: 336,
+  front: { left: 48, top: 232 },
+  back: { left: 448, top: 232 },
+};
+
+async function createAIClothingVestSheetGuide() {
+  const sharp = getSharp();
+  const { width, height, tileSize, front, back } = AI_CLOTHING_VEST_SHEET;
+  const svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="#e9edf2"/>
+    <rect x="${front.left}" y="${front.top}" width="${tileSize}" height="${tileSize}" rx="10" fill="#ffffff" stroke="#9aa5b4" stroke-width="5"/>
+    <rect x="${back.left}" y="${back.top}" width="${tileSize}" height="${tileSize}" rx="10" fill="#ffffff" stroke="#9aa5b4" stroke-width="5"/>
+    <text x="${front.left + (tileSize / 2)}" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#344154">FRONT ART</text>
+    <text x="${back.left + (tileSize / 2)}" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#344154">BACK ART</text>
+  </svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+async function buildAIClothingVestTemplateFromSheet(generatedBuffer, blankTemplateBuffer) {
+  const sharp = getSharp();
+  const { width, height, tileSize, front, back } = AI_CLOTHING_VEST_SHEET;
+  const sheetBuffer = await sharp(generatedBuffer)
+    .resize(width, height, { fit: "fill", kernel: "lanczos3" })
+    .png()
+    .toBuffer();
+  const frontTile = await sharp(sheetBuffer)
+    .extract({ left: front.left, top: front.top, width: tileSize, height: tileSize })
+    .resize(128, 128, { fit: "fill", kernel: "lanczos3" })
+    .png()
+    .toBuffer();
+  const backTile = await sharp(sheetBuffer)
+    .extract({ left: back.left, top: back.top, width: tileSize, height: tileSize })
+    .resize(128, 128, { fit: "fill", kernel: "lanczos3" })
+    .png()
+    .toBuffer();
+  const frontTop = await sharp(frontTile).extract({ left: 0, top: 0, width: 128, height: 64 }).png().toBuffer();
+  const frontBottom = await sharp(frontTile).extract({ left: 0, top: 64, width: 128, height: 64 }).png().toBuffer();
+  const frontLeft = await sharp(frontTile).extract({ left: 0, top: 0, width: 64, height: 128 }).png().toBuffer();
+  const backRight = await sharp(backTile).extract({ left: 64, top: 0, width: 64, height: 128 }).png().toBuffer();
+  const baseTemplate = await sharp(blankTemplateBuffer)
+    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, { fit: "fill", kernel: "nearest" })
+    .ensureAlpha()
+    .png()
+    .toBuffer();
+
+  // Destination coordinates were verified against the rig's UV orientation test.
+  return sharp(baseTemplate)
+    .composite([
+      { input: frontTop, left: 231, top: 8 },
+      { input: frontTile, left: 231, top: 74 },
+      { input: frontBottom, left: 231, top: 204 },
+      { input: frontLeft, left: 165, top: 74 },
+      { input: backRight, left: 361, top: 74 },
+      { input: backTile, left: 427, top: 74 },
+    ])
+    .png()
+    .toBuffer();
+}
+
 async function repairAIClothingSleevelessVestTorso(panelBuffer) {
   const sharp = getSharp();
   const panelRaw = await sharp(panelBuffer)
@@ -1092,6 +1154,22 @@ function buildAIClothingPrompt(input = {}) {
 function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
   const templateType = variant.templateType === "pants" ? "pants" : "shirt";
   const isSleevelessVest = templateType === "shirt" && basePrompt.isSleevelessVest;
+  if (isSleevelessVest) {
+    return [
+      "Create a clean two-tile flat fabric art sheet using the supplied guide.",
+      "Fill the left square with a front-facing sleeveless vest texture and the right square with its matching back-facing vest texture.",
+      "Each square must be fully filled edge-to-edge with continuous wearable fabric artwork, not a mannequin, garment cutout, mockup, or UV map.",
+      "The left tile may include a centered collar, placket, pockets, and front graphic. The right tile may include a centered back graphic and matching seams.",
+      "Do not draw sleeves, arms, hands, skin, legs, a person, background scene, borders, guide labels, or any text outside the two artwork squares.",
+      "Keep important graphics centered with safe margins so they remain readable after the texture is mapped onto Roblox panels.",
+      `Design brief: ${basePrompt.userPrompt || "Create a polished sleeveless Roblox vest texture"}.`,
+      basePrompt.style ? `Art direction: ${basePrompt.style}.` : "",
+      basePrompt.palette ? `Color palette: ${basePrompt.palette}.` : "",
+      basePrompt.vibe ? `Target vibe: ${basePrompt.vibe}.` : "",
+      basePrompt.goalTexts.length ? `Priority goals: ${basePrompt.goalTexts.join(", ")}.` : "",
+      basePrompt.negativePrompt ? `Avoid: ${basePrompt.negativePrompt}.` : "",
+    ].filter(Boolean).join(" ");
+  }
   const sleeveInstruction = templateType === "shirt"
       ? basePrompt.sleeveLength === "short"
       ? "Use short sleeves and keep the visible hand and lower-arm opening zones clear. Sleeve fabric must stop before the exposed hand zone begins."
@@ -1261,6 +1339,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
       : "";
   const usesManualSleevelessMask =
     normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "sleeveless";
+  const usesDeterministicVestSheet = usesManualSleevelessMask && Boolean(isSleevelessVest);
   const referenceTemplatePath = normalizedTemplateType === "shirt"
     ? AI_SLEEVE_REFERENCE_PATHS[resolvedSleeveReferenceKey]
     : AI_PANTS_REFERENCE_PATHS[resolvedPantsReferenceKey];
@@ -1284,7 +1363,9 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     .png()
     .toBuffer();
   const generationReferenceBuffer =
-    usesManualSleevelessMask
+    usesDeterministicVestSheet
+      ? await createAIClothingVestSheetGuide()
+      : usesManualSleevelessMask
       ? cleanedApplyTemplateBuffer
       : await buildAIClothingGenerationReference(
           referenceTemplateBuffer,
@@ -1292,14 +1373,16 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
           normalizeAIClothingSkinTone(skinTone),
           normalizedTemplateType
         );
-  const templateUpload = await toFile(Readable.from([generationReferenceBuffer]), path.basename(applicationTemplatePath), {
+  const templateUpload = await toFile(Readable.from([generationReferenceBuffer]), usesDeterministicVestSheet ? "rblxtools-vest-art-guide.png" : path.basename(applicationTemplatePath), {
     type: "image/png",
   });
 
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: templateUpload,
-    prompt: `${promptText} Build directly on the supplied blank ${normalizedTemplateType} clothing panel layout. The visible white panel map is the only place for garment artwork; the surrounding canvas and transparent guide areas must remain empty. Do not add any mannequin previews, template labels, helper diagrams, letters, logos, background sheet elements, or explanatory text. Return only mapped clothing artwork on that blank panel layout.`,
+    prompt: usesDeterministicVestSheet
+      ? `${promptText} Return the completed two-tile vest art sheet on the supplied guide.`
+      : `${promptText} Build directly on the supplied blank ${normalizedTemplateType} clothing panel layout. The visible white panel map is the only place for garment artwork; the surrounding canvas and transparent guide areas must remain empty. Do not add any mannequin previews, template labels, helper diagrams, letters, logos, background sheet elements, or explanatory text. Return only mapped clothing artwork on that blank panel layout.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -1314,18 +1397,19 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   }
 
   const generatedBuffer = Buffer.from(generatedBase64, "base64");
-  const resizedGeneratedBuffer = await sharp(generatedBuffer)
-    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
-      fit: "fill",
-      kernel: "lanczos3",
-    })
-    .png()
-    .toBuffer();
-  const panelMappedBuffer = await rebuildAIClothingPanelsOnBlankTemplate(
-    resizedGeneratedBuffer,
-    cleanedApplyTemplateBuffer,
-    normalizedTemplateType
-  );
+  const panelMappedBuffer = usesDeterministicVestSheet
+    ? await buildAIClothingVestTemplateFromSheet(generatedBuffer, cleanedApplyTemplateBuffer)
+    : await rebuildAIClothingPanelsOnBlankTemplate(
+        await sharp(generatedBuffer)
+          .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
+            fit: "fill",
+            kernel: "lanczos3",
+          })
+          .png()
+          .toBuffer(),
+        cleanedApplyTemplateBuffer,
+        normalizedTemplateType
+      );
   const skinMappedBuffer = await applyAIClothingSkinGuide(
     panelMappedBuffer,
     referenceTemplateBuffer,

@@ -2904,7 +2904,13 @@
               : "The very top-center opening on the supplied shirt guide is always the neck area and must stay clear for the avatar neck. The lower ends of the arm strips are always hand-opening territory and should render as exposed skin in the selected skin tone, with clean wrist exits that stay clearly separated from the sleeve fabric."
             : "";
 
-        var lines = [
+        var lines = isSleevelessVest ? [
+          "Create one front-and-back vest art sheet using the supplied two-square guide.",
+          "Fill the left square with continuous front-facing sleeveless vest fabric art and the right square with matching back-facing vest fabric art.",
+          "The server maps both squares into the verified Roblox UV panels automatically; do not create a UV template, mannequin, sleeves, arms, hands, skin, borders, or guide labels.",
+          "Keep front and back artwork centered with safe margins for clean placement on the final vest.",
+          "Design brief: " + (userPrompt || "Create a polished sleeveless Roblox vest texture.")
+        ] : [
           "Create a clean clothing texture for the supplied blank clothing panel layout.",
           "Return only a wearable clothing texture at exactly 585 x 559 pixels.",
           "The working image may be generated at 832 x 800, but the final design must map cleanly back into the supplied panel layout size.",
