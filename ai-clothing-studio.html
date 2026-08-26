@@ -3173,8 +3173,14 @@
             var shirtImage = await loadPreviewImage(previewSet.shirtUrl);
             var shirtMaterial = createTemplateMaterial(shirtImage, RIG_COLORS.shirt);
             replacePartMaterials(rigPreview3D.parts.torso, shirtMaterial.clone());
-            replacePartMaterials(rigPreview3D.parts.rightArm, shirtMaterial.clone());
-            replacePartMaterials(rigPreview3D.parts.leftArm, shirtMaterial.clone());
+            if (previewSet.useSkinArms) {
+              var skinMaterial = createColorMaterial(previewSet.skinColor || resolveSkinToneColor());
+              replacePartMaterials(rigPreview3D.parts.rightArm, skinMaterial.clone());
+              replacePartMaterials(rigPreview3D.parts.leftArm, skinMaterial.clone());
+            } else {
+              replacePartMaterials(rigPreview3D.parts.rightArm, shirtMaterial.clone());
+              replacePartMaterials(rigPreview3D.parts.leftArm, shirtMaterial.clone());
+            }
           }
           return true;
         } catch (_error) {
@@ -3366,6 +3372,8 @@
       function buildPreviewPayloadFromResponse(payload) {
         var outputs = Array.isArray(payload && payload.outputs) ? payload.outputs : [];
         var mode = payload && payload.garmentType ? payload.garmentType : garmentType.value;
+        var useSkinArms = Boolean(payload && payload.templateType !== "pants" && payload.sleeveLength === "sleeveless");
+        var skinColor = resolveSkinToneColor();
         if (!outputs.length && payload && payload.imageDataUrl) {
           outputs = [{
             imageDataUrl: payload.imageDataUrl,
@@ -3380,7 +3388,9 @@
             mode: mode,
             primary: {
               shirtUrl: outputs[0] && outputs[0].imageDataUrl || "",
-              pantsUrl: outputs[1] && outputs[1].imageDataUrl || ""
+              pantsUrl: outputs[1] && outputs[1].imageDataUrl || "",
+              useSkinArms: useSkinArms,
+              skinColor: skinColor
             },
             previews: [],
             downloads: outputs.map(function (item, index) {
@@ -3412,7 +3422,9 @@
           primary: primaryOutput
             ? {
                 shirtUrl: primaryOutput.templateType === "pants" ? "" : (primaryOutput.imageDataUrl || ""),
-                pantsUrl: primaryOutput.templateType === "pants" ? (primaryOutput.imageDataUrl || "") : ""
+                pantsUrl: primaryOutput.templateType === "pants" ? (primaryOutput.imageDataUrl || "") : "",
+                useSkinArms: useSkinArms,
+                skinColor: skinColor
               }
             : null,
           previews: [],

@@ -1390,7 +1390,18 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   })
     .png()
     .toBuffer();
-  const finalBuffer = maskedArtBuffer;
+  // Keep the explicit sleeveless arm color as the final texture operation.
+  // This prevents later alpha/gutter cleanup from exposing model artwork again.
+  const finalBuffer = normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "sleeveless"
+    ? await applyAIClothingSkinGuide(
+        maskedArtBuffer,
+        null,
+        normalizeAIClothingSkinTone(skinTone),
+        normalizedTemplateType,
+        resolvedSleeveReferenceKey,
+        resolvedPantsReferenceKey
+      )
+    : maskedArtBuffer;
 
   return {
     outputBuffer: finalBuffer,
@@ -6106,6 +6117,7 @@ app.post("/ai/generate-clothing", async (req, res) => {
       sleeveLength: built.sleeveLength,
       pantsLength: built.pantsLength,
       skinTone: built.skinTone,
+      isSleevelessVest: built.isSleevelessVest,
       templateType: primary ? primary.templateType : getAIBaseTemplateType(built.garmentType),
       enhancedPrompt: built.promptPreview,
       promptPreview: built.promptPreview,
