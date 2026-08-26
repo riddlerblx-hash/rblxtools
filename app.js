@@ -972,6 +972,66 @@ async function createAIClothingVestSheetGuide() {
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
+function buildAIClothingPrecisionVestStuds(x, y, count, direction = "vertical", spacing = 11) {
+  const studs = [];
+  for (let index = 0; index < count; index += 1) {
+    const cx = x + (direction === "horizontal" ? index * spacing : 0);
+    const cy = y + (direction === "vertical" ? index * spacing : 0);
+    studs.push(`<circle cx="${cx}" cy="${cy}" r="3.2" fill="#c6b28c" stroke="#3d3529" stroke-width="1.1"/>`);
+    studs.push(`<circle cx="${cx - 0.7}" cy="${cy - 0.8}" r="0.8" fill="#fff0c9" opacity="0.8"/>`);
+  }
+  return studs.join("");
+}
+
+async function createAIClothingPrecisionVestBase() {
+  const sharp = getSharp();
+  const torsoPanels = [
+    { x: 231, y: 8, w: 128, h: 64 },
+    { x: 165, y: 74, w: 64, h: 128 },
+    { x: 231, y: 74, w: 128, h: 128 },
+    { x: 361, y: 74, w: 64, h: 128 },
+    { x: 427, y: 74, w: 128, h: 128 },
+    { x: 231, y: 204, w: 128, h: 64 },
+  ];
+  const panelRects = torsoPanels
+    .map((panel) => `<rect x="${panel.x}" y="${panel.y}" width="${panel.w}" height="${panel.h}" fill="url(#leather)"/>`)
+    .join("");
+  const svg = `<svg width="${AI_CLOTHING_OUTPUT_WIDTH}" height="${AI_CLOTHING_OUTPUT_HEIGHT}" viewBox="0 0 ${AI_CLOTHING_OUTPUT_WIDTH} ${AI_CLOTHING_OUTPUT_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.16" numOctaves="3" seed="17" result="noise"/><feColorMatrix in="noise" type="saturate" values="0" result="mono"/><feComponentTransfer in="mono" result="fine"><feFuncA type="table" tableValues="0 0.13"/></feComponentTransfer><feBlend in="SourceGraphic" in2="fine" mode="screen"/></filter>
+      <linearGradient id="leather" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b0d0f"/><stop offset="0.48" stop-color="#292522"/><stop offset="1" stop-color="#08090a"/></linearGradient>
+    </defs>
+    <g filter="url(#grain)">${panelRects}</g>
+  </svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+async function createAIClothingPrecisionVestTrim() {
+  const sharp = getSharp();
+  const studs = [
+    buildAIClothingPrecisionVestStuds(239, 84, 17),
+    buildAIClothingPrecisionVestStuds(351, 84, 17),
+    buildAIClothingPrecisionVestStuds(171, 82, 11),
+    buildAIClothingPrecisionVestStuds(419, 82, 11),
+    buildAIClothingPrecisionVestStuds(239, 84, 11, "horizontal"),
+    buildAIClothingPrecisionVestStuds(239, 260, 11, "horizontal"),
+    buildAIClothingPrecisionVestStuds(295, 84, 16),
+  ].join("");
+  const svg = `<svg width="${AI_CLOTHING_OUTPUT_WIDTH}" height="${AI_CLOTHING_OUTPUT_HEIGHT}" viewBox="0 0 ${AI_CLOTHING_OUTPUT_WIDTH} ${AI_CLOTHING_OUTPUT_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="#8a7a61" stroke-width="1.25" opacity="0.74">
+      <path d="M232 75 L252 94 L272 108 L295 128 L318 108 L338 94 L358 75"/>
+      <path d="M248 95 L248 198"/><path d="M342 95 L342 198"/>
+      <path d="M231 202 L359 202"/><path d="M231 74 L359 74"/>
+      <path d="M165 74 L165 202"/><path d="M425 74 L425 202"/>
+    </g>
+    <g>${studs}</g>
+    <g fill="#c6b28c" stroke="#342c23" stroke-width="1">
+      <circle cx="295" cy="116" r="4.2"/><circle cx="295" cy="145" r="4.2"/><circle cx="295" cy="174" r="4.2"/>
+    </g>
+  </svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
 function fillAIClothingLargeLightCutouts(data, width, height) {
   const visited = Buffer.alloc(width * height, 0);
   const minCutoutPixels = Math.max(600, Math.floor(width * height * 0.006));
@@ -1118,11 +1178,10 @@ async function buildAIClothingVestTemplateFromSheet(generatedBuffer, blankTempla
   // edges follow the R/L orientation verified on the Blender rig.
   const torsoRight = await sharp(frontTile).extract({ left: 64, top: 0, width: 64, height: 128 }).png().toBuffer();
   const torsoLeft = await sharp(backTile).extract({ left: 0, top: 0, width: 64, height: 128 }).png().toBuffer();
-  const baseTemplate = await sharp(blankTemplateBuffer)
-    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, { fit: "fill", kernel: "nearest" })
-    .ensureAlpha()
-    .png()
-    .toBuffer();
+  const [baseTemplate, vestTrim] = await Promise.all([
+    createAIClothingPrecisionVestBase(),
+    createAIClothingPrecisionVestTrim(),
+  ]);
 
   // Destination coordinates were verified against the rig's UV orientation test.
   return sharp(baseTemplate)
@@ -1133,6 +1192,7 @@ async function buildAIClothingVestTemplateFromSheet(generatedBuffer, blankTempla
       { input: torsoRight, left: 165, top: 74 },
       { input: torsoLeft, left: 361, top: 74 },
       { input: backTile, left: 427, top: 74 },
+      { input: vestTrim, left: 0, top: 0 },
     ])
     .png()
     .toBuffer();
@@ -1220,13 +1280,12 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
   const usesSleevelessSwatchSheet = templateType === "shirt" && basePrompt.sleeveLength === "sleeveless";
   if (usesSleevelessSwatchSheet) {
     return [
-      "Create exactly two square, edge-to-edge sleeveless-top fabric texture swatches on the supplied guide.",
-      "The left white square is the front; the right white square is the matching back. Do not swap them.",
-      "Cover every pixel of each white square with continuous garment fabric. Do not leave white, transparent, empty, or background areas inside either square.",
-      "These are flat rectangular texture swatches, not drawings of a vest silhouette: do not create armholes, neck holes, garment cutouts, a mannequin, or a mockup.",
-      "Place front details and graphics in the left swatch. Place the matching back design and seams in the right swatch.",
-      "Do not draw sleeves, arms, hands, skin, legs, a person, background scene, borders, labels, or text outside the two white squares.",
-      "Keep important graphics centered with safe margins so they survive the Roblox UV panel splits.",
+      "Precision Mode: create exactly two square graphic art tiles on the supplied guide.",
+      "The left white square is front artwork; the right white square is matching back artwork. Do not swap them.",
+      "Each tile must have a solid dark or black background that reaches every edge. Create graphics, prints, patches, paint, symbols, typography, and texture only.",
+      "Do not draw any clothing item, vest outline, collar, neck hole, armhole, button placket, mannequin, person, or garment silhouette. The server supplies the garment structure.",
+      "Keep key artwork inside the central 70% of each square, with dark texture around it so the result is safe across UV splits.",
+      "Do not draw sleeves, arms, hands, skin, legs, a background scene, borders, labels, or text outside the two white squares.",
       `Design brief: ${basePrompt.userPrompt || "Create a polished sleeveless Roblox top texture"}.`,
       basePrompt.style ? `Art direction: ${basePrompt.style}.` : "",
       basePrompt.palette ? `Color palette: ${basePrompt.palette}.` : "",
