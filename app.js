@@ -750,7 +750,8 @@ async function applyAIClothingSkinGuide(
   skinTone,
   templateType,
   sleeveLength,
-  pantsLength
+  pantsLength,
+  allowSkinTattoos = false
 ) {
   const tone = getAIClothingSkinToneColor(skinTone);
   if (!tone) return panelBuffer;
@@ -839,6 +840,16 @@ async function applyAIClothingSkinGuide(
         panelRaw.data[offset + 1] = tone.g;
         panelRaw.data[offset + 2] = tone.b;
         panelRaw.data[offset + 3] = tone.a;
+        continue;
+      }
+
+      // Preserve only clearly ink-like tattoo marks when they were requested.
+      // Everything else in a pink marker zone is still replaced with skin.
+      if (allowSkinTattoos &&
+          red <= 70 &&
+          green <= 70 &&
+          blue <= 70 &&
+          Math.max(red, green, blue) - Math.min(red, green, blue) <= 28) {
         continue;
       }
 
@@ -1144,6 +1155,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   }
 
   const normalizedTemplateType = templateType === "pants" ? "pants" : "shirt";
+  const allowSkinTattoos = /\btattoos?\b/i.test(promptText);
   const resolvedSleeveReferenceKey =
     normalizedTemplateType === "shirt"
       ? (sleeveLength === "short" || sleeveLength === "sleeveless" ? sleeveLength : "long")
@@ -1217,7 +1229,8 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     appliedSkinTone,
     normalizedTemplateType,
     resolvedSleeveReferenceKey,
-    resolvedPantsReferenceKey
+    resolvedPantsReferenceKey,
+    allowSkinTattoos
   );
   const repairedArtBuffer = skinMappedBuffer;
   const templateRaw = await sharp(cleanedApplyTemplateBuffer)
@@ -1283,7 +1296,8 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
         appliedSkinTone,
         normalizedTemplateType,
         resolvedSleeveReferenceKey,
-        resolvedPantsReferenceKey
+        resolvedPantsReferenceKey,
+        allowSkinTattoos
       )
     : maskedArtBuffer;
 
