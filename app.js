@@ -953,6 +953,37 @@ async function applyAIClothingSkinGuide(
     .toBuffer();
 }
 
+async function applyStrictAIClothingSleevelessArmSkin(panelBuffer, skinTone) {
+  const tone = getAIClothingSkinToneColor(skinTone);
+  if (!tone) return panelBuffer;
+  const sharp = getSharp();
+  const panelRaw = await sharp(panelBuffer)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  for (let y = 0; y < panelRaw.info.height; y += 1) {
+    for (let x = 0; x < panelRaw.info.width; x += 1) {
+      if (!isAIClothingSleevelessArmPanel(x, y)) continue;
+      const offset = ((y * panelRaw.info.width) + x) * 4;
+      panelRaw.data[offset] = tone.r;
+      panelRaw.data[offset + 1] = tone.g;
+      panelRaw.data[offset + 2] = tone.b;
+      panelRaw.data[offset + 3] = tone.a;
+    }
+  }
+
+  return sharp(panelRaw.data, {
+    raw: {
+      width: panelRaw.info.width,
+      height: panelRaw.info.height,
+      channels: 4,
+    },
+  })
+    .png()
+    .toBuffer();
+}
+
 const AI_CLOTHING_VEST_SHEET = {
   width: 832,
   height: 800,
@@ -1550,15 +1581,18 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     resolvedSleeveReferenceKey,
     resolvedPantsReferenceKey
   );
+  const finalSleevelessBuffer = usesDeterministicSleevelessSheet
+    ? await applyStrictAIClothingSleevelessArmSkin(skinMappedBuffer, appliedSkinTone)
+    : skinMappedBuffer;
 
   // The sleeveless source is composited onto UV coordinates verified in Blender.
   // Do not run legacy alpha repair or generic gutter masking afterward: those
   // belonged to the old direct-template experiment and can rewrite this map.
   if (usesDeterministicSleevelessSheet) {
     return {
-      outputBuffer: skinMappedBuffer,
+      outputBuffer: finalSleevelessBuffer,
       outputMime: "image/png",
-      outputBase64: skinMappedBuffer.toString("base64"),
+      outputBase64: finalSleevelessBuffer.toString("base64"),
       outputWidth: AI_CLOTHING_OUTPUT_WIDTH,
       outputHeight: AI_CLOTHING_OUTPUT_HEIGHT,
       sourceGenerationSize: AI_CLOTHING_GENERATION_SIZE,
