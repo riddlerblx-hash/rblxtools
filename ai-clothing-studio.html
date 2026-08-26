@@ -1580,17 +1580,6 @@
             </button>
           </div>
 
-          <div>
-            <div class="ai-chip-heading">Template Goals:</div>
-            <div class="ai-goal-row" id="aiTemplateGoalRow" style="margin-top:10px;">
-              <button class="ai-goal-chip is-active" data-goal="clean readable torso zones" type="button">Clean torso zones</button>
-              <button class="ai-goal-chip" data-goal="strong sleeve detailing" type="button">Strong sleeves</button>
-              <button class="ai-goal-chip" data-goal="balanced front and back composition" type="button">Balanced front/back</button>
-              <button class="ai-goal-chip" data-goal="catalog-ready readability" type="button">Catalog ready</button>
-              <button class="ai-goal-chip" data-goal="sharp seam alignment" type="button">Sharp seams</button>
-            </div>
-          </div>
-
           <div class="ai-control-group" id="aiSleeveControlGroup">
             <div class="ai-chip-heading">Sleeve Length:</div>
             <div class="ai-goal-row" id="aiSleeveLengthRow" style="margin-top:10px;">
@@ -2665,19 +2654,6 @@
         updateLiveTokenCost();
       }
 
-      function getActiveGoalTexts() {
-        var sleeve = resolveSleeveLengthValue();
-        return goalChips.filter(function (chip) {
-          var goal = String(chip.getAttribute("data-goal") || "").toLowerCase();
-          return !chip.hasAttribute("data-sleeve") &&
-            !chip.hasAttribute("data-skin-tone") &&
-            chip.classList.contains("is-active") &&
-            !(sleeve === "sleeveless" && goal.indexOf("sleeve") !== -1);
-        }).map(function (chip) {
-          return chip.getAttribute("data-goal") || "";
-        }).filter(Boolean);
-      }
-
       function setSleeveLength(value) {
         var normalized = String(value || "").trim().toLowerCase();
         if (normalized !== "short" && normalized !== "long" && normalized !== "sleeveless") {
@@ -2688,13 +2664,6 @@
         }
         sleeveChips.forEach(function (chip) {
           chip.classList.toggle("is-active", chip.getAttribute("data-sleeve") === normalized);
-        });
-        goalChips.forEach(function (chip) {
-          var isSleeveDetailGoal = String(chip.getAttribute("data-goal") || "").toLowerCase().indexOf("sleeve") !== -1;
-          if (!isSleeveDetailGoal) return;
-          chip.disabled = normalized === "sleeveless";
-          chip.classList.toggle("is-disabled", normalized === "sleeveless");
-          if (normalized === "sleeveless") chip.classList.remove("is-active");
         });
       }
 
@@ -2828,10 +2797,6 @@
         }
       }
 
-      function isSleevelessVestRequest(value) {
-        return /\b(?:vest|waistcoat|sleeveless\s+(?:outerwear|jacket)|cut[\s-]?off)\b/i.test(String(value || ""));
-      }
-
       function openAdvancedSettings() {
         bottomGrid.classList.add("is-open");
         if (advancedToggleButton) {
@@ -2861,10 +2826,6 @@
         var vibe = String(audience.value || "").trim();
         var userPrompt = String(prompt.value || "").trim();
         var avoidPrompt = String(negativePrompt.value || "").trim();
-        var goals = getActiveGoalTexts();
-        // Sleeve selection controls the generation route. The user does not
-        // need to include the word "vest" to keep arm UV islands untouched.
-        var isSleevelessVest = garmentConfig.usesShirt && sleeve === "sleeveless";
         var templateInstruction = garment === "full_outfit"
             ? "Create a coordinated outfit set that will be split into one shirt panel layout and one pants panel layout while keeping both pieces visually connected."
           : garment === "matching_outfits"
@@ -2875,19 +2836,17 @@
                   ? "Create two coordinated pants or shorts panel layouts for two people. The pair should share motifs, palette, and energy without being identical clones."
                   : garment === "pants"
                     ? "Use only the supplied pants panel map. Focus strictly on waist, thigh, knee, calf, cuff, and ankle zones. Do not generate shirt collars, chest panels, sleeves, shoulder seams, or upper-body outfit pieces."
-                    : isSleevelessVest
-                      ? "Use only the supplied shirt panel map. This is a sleeveless vest: create garment artwork only on the torso-front, torso-back, and side-torso garment panels. Keep every torso garment panel fully covered by continuous vest fabric; do not create transparent gaps, cutouts, or skin areas inside a torso panel. Do not create sleeves, shoulder fabric, cuffs, arm fabric, wrist fabric, or a full-shirt silhouette."
-                      : "Use only the supplied shirt panel map. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate leg-only layouts or lower-body outfit pieces that do not belong on the shirt panel map.";
+                    : "Use only the supplied Roblox shirt panel map. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate leg-only layouts or lower-body outfit pieces that do not belong on the shirt panel map.";
         var sleeveInstruction = !garmentConfig.usesShirt
           ? ""
           : sleeve === "short"
             ? "Use short sleeves and keep the visible hand and lower-arm opening zones clear. Sleeve fabric must stop before the exposed hand zone begins."
             : sleeve === "sleeveless"
-              ? "Use true sleeveless arm treatment. Treat every transparent arm-opening and hand-opening guide zone as protected empty space: no fabric, stitching, studs, graphics, text, shadows, gradients, or skin anatomy. Those zones are filled programmatically after generation."
+              ? "Use true sleeveless arm treatment. In the supplied sleeveless ref test, #FF30F8 means exposed skin: never put material, fabric, trim, seams, shading, graphics, or chains over #FF30F8. Use the selected skin tone there; tattoos are allowed only if requested."
               : "Use long sleeves but always leave a clear hand opening and cuff break at the wrist end of the supplied guide layout so the hands stay exposed. Every bright hot pink guide zone is mandatory visible skin territory and must not be covered by sleeve fabric.";
         var sleeveReferenceInstruction = !garmentConfig.usesShirt
           ? ""
-          : "On the supplied sleeve reference, fully transparent cutout areas are strict skin markers. They are not garment panels. Never print fabric, trim, chains, shading, graphics, text, or a garment silhouette over transparent guide zones.";
+          : "This is a Roblox character clothing UV template, not a flat clothing mockup. On the sleeve reference, #FF30F8 means skin and never garment material.";
         var pantsLengthInstruction = !garmentConfig.usesPants
           ? ""
           : pantsFit === "30"
@@ -2901,19 +2860,11 @@
         var landmarkInstruction = garmentConfig.usesPants && !garmentConfig.usesShirt
           ? "The lowest exposed parts of the supplied pants guide represent ankle and shoe-entry territory, not random fabric panels. Keep those ankle openings readable and never treat them like sealed solid blocks."
           : garmentConfig.usesShirt
-            ? isSleevelessVest
-              ? "Keep the top-center neck opening completely clear. The vest must end cleanly at both armholes: do not bridge from the torso into either arm panel, and do not extend fabric beyond the torso panel edges."
-              : "The very top-center opening on the supplied shirt guide is always the neck area and must stay clear for the avatar neck. The lower ends of the arm strips are always hand-opening territory and should render as exposed skin in the selected skin tone, with clean wrist exits that stay clearly separated from the sleeve fabric."
+            ? "The very top-center opening on the supplied shirt guide is always the neck area and must stay clear for the Roblox avatar neck. The lower ends of the arm strips are hand-opening territory and should stay clearly separated from sleeve fabric."
             : "";
 
-        var lines = isSleevelessVest ? [
-          "Precision Mode: create front and back graphic art tiles only using the supplied two-square guide.",
-          "The server builds the vest, seams, studs, torso coverage, and skin zones from verified UV coordinates.",
-          "Generate only dark full-bleed graphics, prints, patches, symbols, and texture. Do not create a clothing silhouette, collar, neck hole, armhole, mannequin, sleeves, arms, or skin.",
-          "The lower template area is all arm UV islands and receives no generated artwork. Keep graphics centered with safe margins.",
-          "Design brief: " + (userPrompt || "Create polished dark streetwear artwork for a sleeveless Roblox top.")
-        ] : [
-          "Create a clean clothing texture for the supplied blank clothing panel layout.",
+        var lines = [
+          "Create a clean wearable Roblox clothing texture for the supplied Roblox character UV template.",
           "Return only a wearable clothing texture at exactly 585 x 559 pixels.",
           "The working image may be generated at 832 x 800, but the final design must map cleanly back into the supplied panel layout size.",
           templateInstruction,
@@ -2936,9 +2887,6 @@
         }
         if (vibe) {
           lines.push("Target vibe: " + vibe + ".");
-        }
-        if (goals.length) {
-          lines.push("Priority goals: " + goals.join(", ") + ".");
         }
         if (selectedSkinTone !== "auto") {
           lines.push(formatSkinToneInstruction(selectedSkinTone));
@@ -3459,8 +3407,7 @@
           audience: audience.value,
           userPrompt: prompt.value,
           negativePrompt: negativePrompt.value,
-          styleName: styleValue,
-          templateGoals: getActiveGoalTexts()
+          styleName: styleValue
         };
       }
 
@@ -3579,10 +3526,6 @@
         setSleeveLength("auto");
         setPantsLength("auto");
         setSkinTone("auto");
-        goalChips.forEach(function (chip, index) {
-          if (chip.hasAttribute("data-sleeve") || chip.hasAttribute("data-skin-tone") || chip.hasAttribute("data-pants-length")) return;
-          chip.classList.toggle("is-active", index === 0);
-        });
         status.textContent = "Prompt form reset. Users can stay simple at the top bar, and power users can open Advanced Settings whenever they want more control.";
         resultImage.removeAttribute("src");
         latestPreviewPayload = null;
@@ -3630,16 +3573,6 @@
           });
           return;
         }
-        chip.addEventListener("click", function () {
-          chip.classList.toggle("is-active");
-          if (!getActiveGoalTexts().length) {
-            var firstGoalChip = goalChips.find(function (candidate) {
-              return candidate.hasAttribute("data-goal");
-            });
-            if (firstGoalChip) firstGoalChip.classList.add("is-active");
-          }
-          buildGeneratorPrompt();
-        });
       });
 
       garmentCards.forEach(function (card) {
