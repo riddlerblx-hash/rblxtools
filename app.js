@@ -972,6 +972,77 @@ async function createAIClothingVestSheetGuide() {
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
+function fillAIClothingLargeLightCutouts(data, width, height) {
+  const visited = Buffer.alloc(width * height, 0);
+  const minCutoutPixels = Math.max(600, Math.floor(width * height * 0.006));
+  const isLightPixel = (pixelIndex) => {
+    const offset = pixelIndex * 4;
+    const alpha = data[offset + 3];
+    return alpha < 32 || isAIClothingNearWhitePixel(data[offset], data[offset + 1], data[offset + 2], alpha);
+  };
+
+  for (let start = 0; start < width * height; start += 1) {
+    if (visited[start] || !isLightPixel(start)) continue;
+    const component = [];
+    const queue = [start];
+    visited[start] = 1;
+    let darkestBoundary = null;
+    let darkestLuma = Infinity;
+
+    for (let cursor = 0; cursor < queue.length; cursor += 1) {
+      const pixelIndex = queue[cursor];
+      component.push(pixelIndex);
+      const x = pixelIndex % width;
+      const y = Math.floor(pixelIndex / width);
+      const neighbors = [
+        x > 0 ? pixelIndex - 1 : -1,
+        x < width - 1 ? pixelIndex + 1 : -1,
+        y > 0 ? pixelIndex - width : -1,
+        y < height - 1 ? pixelIndex + width : -1,
+      ];
+
+      for (const neighborIndex of neighbors) {
+        if (neighborIndex < 0) continue;
+        if (isLightPixel(neighborIndex)) {
+          if (!visited[neighborIndex]) {
+            visited[neighborIndex] = 1;
+            queue.push(neighborIndex);
+          }
+          continue;
+        }
+        const neighborOffset = neighborIndex * 4;
+        const luma = getAIClothingPixelLuma(
+          data[neighborOffset],
+          data[neighborOffset + 1],
+          data[neighborOffset + 2]
+        );
+        if (luma < darkestLuma) {
+          darkestLuma = luma;
+          darkestBoundary = [
+            data[neighborOffset],
+            data[neighborOffset + 1],
+            data[neighborOffset + 2],
+            data[neighborOffset + 3],
+          ];
+        }
+      }
+    }
+
+    // Preserve lettering and small highlights. Large light areas in a
+    // sleeveless texture are model-created garment holes, not valid fabric.
+    if (component.length < minCutoutPixels || !darkestBoundary) continue;
+    for (const pixelIndex of component) {
+      const offset = pixelIndex * 4;
+      data[offset] = darkestBoundary[0];
+      data[offset + 1] = darkestBoundary[1];
+      data[offset + 2] = darkestBoundary[2];
+      data[offset + 3] = darkestBoundary[3];
+    }
+  }
+
+  return data;
+}
+
 async function extractAIClothingVestFabricTile(sheetBuffer, sourceRect) {
   const sharp = getSharp();
   const source = await sharp(sheetBuffer)
@@ -999,22 +1070,24 @@ async function extractAIClothingVestFabricTile(sheetBuffer, sourceRect) {
     }
   }
 
-  if (maxX < minX || maxY < minY) {
-    return sharp(source.data, { raw: { width, height, channels: 4 } })
-      .resize(128, 128, { fit: "fill", kernel: "lanczos3" })
-      .png()
-      .toBuffer();
-  }
-
   // Model output occasionally leaves a white margin around the requested
   // edge-to-edge swatch. Crop only that outer margin before UV mapping.
   const padding = 6;
-  const left = Math.max(0, minX - padding);
-  const top = Math.max(0, minY - padding);
-  const cropWidth = Math.min(width - left, (maxX - minX + 1) + (padding * 2));
-  const cropHeight = Math.min(height - top, (maxY - minY + 1) + (padding * 2));
-  return sharp(source.data, { raw: { width, height, channels: 4 } })
+  const left = maxX < minX ? 0 : Math.max(0, minX - padding);
+  const top = maxY < minY ? 0 : Math.max(0, minY - padding);
+  const cropWidth = maxX < minX ? width : Math.min(width - left, (maxX - minX + 1) + (padding * 2));
+  const cropHeight = maxY < minY ? height : Math.min(height - top, (maxY - minY + 1) + (padding * 2));
+  const cropped = await sharp(source.data, { raw: { width, height, channels: 4 } })
     .extract({ left, top, width: cropWidth, height: cropHeight })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const repairedData = fillAIClothingLargeLightCutouts(
+    Buffer.from(cropped.data),
+    cropped.info.width,
+    cropped.info.height
+  );
+  return sharp(repairedData, { raw: { width: cropped.info.width, height: cropped.info.height, channels: 4 } })
     .resize(128, 128, { fit: "fill", kernel: "lanczos3" })
     .png()
     .toBuffer();
