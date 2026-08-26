@@ -966,10 +966,8 @@ async function createAIClothingVestSheetGuide() {
   const { width, height, tileSize, front, back } = AI_CLOTHING_VEST_SHEET;
   const svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
     <rect width="100%" height="100%" fill="#e9edf2"/>
-    <rect x="${front.left}" y="${front.top}" width="${tileSize}" height="${tileSize}" rx="10" fill="#ffffff" stroke="#9aa5b4" stroke-width="5"/>
-    <rect x="${back.left}" y="${back.top}" width="${tileSize}" height="${tileSize}" rx="10" fill="#ffffff" stroke="#9aa5b4" stroke-width="5"/>
-    <text x="${front.left + (tileSize / 2)}" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#344154">FRONT ART</text>
-    <text x="${back.left + (tileSize / 2)}" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#344154">BACK ART</text>
+    <rect x="${front.left}" y="${front.top}" width="${tileSize}" height="${tileSize}" fill="#ffffff"/>
+    <rect x="${back.left}" y="${back.top}" width="${tileSize}" height="${tileSize}" fill="#ffffff"/>
   </svg>`;
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
@@ -1008,8 +1006,8 @@ async function extractAIClothingVestFabricTile(sheetBuffer, sourceRect) {
       .toBuffer();
   }
 
-  // Image models often leave a white margin around a garment-shaped result.
-  // Crop that margin before mapping so the fabric fills its UV panel.
+  // Model output occasionally leaves a white margin around the requested
+  // edge-to-edge swatch. Crop only that outer margin before UV mapping.
   const padding = 6;
   const left = Math.max(0, minX - padding);
   const top = Math.max(0, minY - padding);
@@ -1061,65 +1059,6 @@ async function buildAIClothingVestTemplateFromSheet(generatedBuffer, blankTempla
       { input: backRight, left: 361, top: 74 },
       { input: backTile, left: 427, top: 74 },
     ])
-    .png()
-    .toBuffer();
-}
-
-async function repairAIClothingSleevelessVestTorso(panelBuffer) {
-  const sharp = getSharp();
-  const panelRaw = await sharp(panelBuffer)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const { data, info } = panelRaw;
-  const torsoPanels = [
-    { x: 231, y: 74, w: 128, h: 128 },
-    { x: 231, y: 204, w: 128, h: 64 },
-  ];
-
-  for (const panel of torsoPanels) {
-    const right = Math.min(info.width, panel.x + panel.w);
-    const bottom = Math.min(info.height, panel.y + panel.h);
-    for (let y = panel.y; y < bottom; y += 1) {
-      for (let x = panel.x; x < right; x += 1) {
-        const offset = ((y * info.width) + x) * 4;
-        if (data[offset + 3] > 16) continue;
-
-        // Image models sometimes create an armhole-shaped transparent cutout
-        // inside the torso-front panel. That panel is fabric for a vest, so
-        // borrow the nearest real fabric pixel from the same row instead.
-        let sourceX = -1;
-        for (let distance = 1; distance < panel.w; distance += 1) {
-          const leftX = x - distance;
-          const rightX = x + distance;
-          if (leftX >= panel.x) {
-            const leftOffset = ((y * info.width) + leftX) * 4;
-            if (data[leftOffset + 3] > 16) {
-              sourceX = leftX;
-              break;
-            }
-          }
-          if (rightX < right) {
-            const rightOffset = ((y * info.width) + rightX) * 4;
-            if (data[rightOffset + 3] > 16) {
-              sourceX = rightX;
-              break;
-            }
-          }
-        }
-        if (sourceX < 0) continue;
-        const sourceOffset = ((y * info.width) + sourceX) * 4;
-        data[offset] = data[sourceOffset];
-        data[offset + 1] = data[sourceOffset + 1];
-        data[offset + 2] = data[sourceOffset + 2];
-        data[offset + 3] = data[sourceOffset + 3];
-      }
-    }
-  }
-
-  return sharp(data, {
-    raw: { width: info.width, height: info.height, channels: 4 },
-  })
     .png()
     .toBuffer();
 }
@@ -1206,12 +1145,13 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
   const isSleevelessVest = templateType === "shirt" && basePrompt.isSleevelessVest;
   if (isSleevelessVest) {
     return [
-      "Create a clean two-tile flat fabric art sheet using the supplied guide.",
-      "Fill the left square with a front-facing sleeveless vest texture and the right square with its matching back-facing vest texture.",
-      "Each square must be fully filled edge-to-edge with continuous wearable fabric artwork, not a mannequin, garment cutout, mockup, or UV map.",
-      "The left tile may include a centered collar, placket, pockets, and front graphic. The right tile may include a centered back graphic and matching seams.",
-      "Do not draw sleeves, arms, hands, skin, legs, a person, background scene, borders, guide labels, or any text outside the two artwork squares.",
-      "Keep important graphics centered with safe margins so they remain readable after the texture is mapped onto Roblox panels.",
+      "Create exactly two square, edge-to-edge fabric texture swatches on the supplied guide.",
+      "The left white square is the vest front; the right white square is the matching vest back. Do not swap them.",
+      "Cover every pixel of each white square with continuous dark vest fabric. Do not leave white, transparent, empty, or background areas inside either square.",
+      "These are flat rectangular texture swatches, not drawings of a vest silhouette: do not create armholes, neck holes, garment cutouts, a mannequin, or a mockup.",
+      "Place the front placket, collar detail, pockets, and front graphic in the left swatch. Place the back graphic and matching seams in the right swatch.",
+      "Do not draw sleeves, arms, hands, skin, legs, a person, background scene, borders, labels, or text outside the two white squares.",
+      "Keep important graphics centered with safe margins so they survive the Roblox UV panel splits.",
       `Design brief: ${basePrompt.userPrompt || "Create a polished sleeveless Roblox vest texture"}.`,
       basePrompt.style ? `Art direction: ${basePrompt.style}.` : "",
       basePrompt.palette ? `Color palette: ${basePrompt.palette}.` : "",
@@ -1474,9 +1414,24 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     resolvedSleeveReferenceKey,
     resolvedPantsReferenceKey
   );
-  const repairedArtBuffer = normalizedTemplateType === "shirt" && isSleevelessVest
-    ? await repairAIClothingSleevelessVestTorso(skinMappedBuffer)
-    : skinMappedBuffer;
+
+  // The vest source is composited onto UV coordinates we verified in Blender.
+  // Do not run legacy alpha repair or generic gutter masking afterward: those
+  // belonged to the old direct-template experiment and can rewrite this map.
+  if (usesDeterministicVestSheet) {
+    return {
+      outputBuffer: skinMappedBuffer,
+      outputMime: "image/png",
+      outputBase64: skinMappedBuffer.toString("base64"),
+      outputWidth: AI_CLOTHING_OUTPUT_WIDTH,
+      outputHeight: AI_CLOTHING_OUTPUT_HEIGHT,
+      sourceGenerationSize: AI_CLOTHING_GENERATION_SIZE,
+      model: AI_CLOTHING_MODEL,
+      templateType: normalizedTemplateType,
+    };
+  }
+
+  const repairedArtBuffer = skinMappedBuffer;
   const templateRaw = await sharp(cleanedApplyTemplateBuffer)
     .ensureAlpha()
     .raw()
