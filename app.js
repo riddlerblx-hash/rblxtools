@@ -767,35 +767,41 @@ async function applyAIClothingSkinGuide(
   const tone = getAIClothingSkinToneColor(skinTone);
   if (!tone) return panelBuffer;
   const sharp = getSharp();
-  const referenceTemplateRaw = await sharp(referenceTemplateBuffer)
-    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
-      fit: "fill",
-      kernel: "nearest",
-    })
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const guideMask = Buffer.alloc(referenceTemplateRaw.info.width * referenceTemplateRaw.info.height, 0);
+  const usesManualSleevelessMask = templateType === "shirt" && sleeveLength === "sleeveless";
+  const maskWidth = AI_CLOTHING_OUTPUT_WIDTH;
+  const maskHeight = AI_CLOTHING_OUTPUT_HEIGHT;
+  const guideMask = Buffer.alloc(maskWidth * maskHeight, 0);
 
-  for (let offset = 0; offset < referenceTemplateRaw.data.length; offset += 4) {
-    const pixelIndex = offset / 4;
-    const x = pixelIndex % referenceTemplateRaw.info.width;
-    const y = Math.floor(pixelIndex / referenceTemplateRaw.info.width);
-    const red = referenceTemplateRaw.data[offset];
-    const green = referenceTemplateRaw.data[offset + 1];
-    const blue = referenceTemplateRaw.data[offset + 2];
-    const alpha = referenceTemplateRaw.data[offset + 3];
-    const insidePanel = isInsideAIClothingPanel(templateType, x, y);
-    if (!insidePanel) continue;
-    const isTransparentSkinGuide = templateType === "shirt" && alpha <= 16;
-    const isHotPinkGuide =
-      templateType === "pants" &&
-      alpha > 0 &&
-      red >= 220 &&
-      blue >= 220 &&
-      green <= 120;
-    if (!isTransparentSkinGuide && !isHotPinkGuide) continue;
-    guideMask[pixelIndex] = 255;
+  if (!usesManualSleevelessMask) {
+    const referenceTemplateRaw = await sharp(referenceTemplateBuffer)
+      .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
+        fit: "fill",
+        kernel: "nearest",
+      })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    for (let offset = 0; offset < referenceTemplateRaw.data.length; offset += 4) {
+      const pixelIndex = offset / 4;
+      const x = pixelIndex % maskWidth;
+      const y = Math.floor(pixelIndex / maskWidth);
+      const red = referenceTemplateRaw.data[offset];
+      const green = referenceTemplateRaw.data[offset + 1];
+      const blue = referenceTemplateRaw.data[offset + 2];
+      const alpha = referenceTemplateRaw.data[offset + 3];
+      const insidePanel = isInsideAIClothingPanel(templateType, x, y);
+      if (!insidePanel) continue;
+      const isTransparentSkinGuide = templateType === "shirt" && alpha <= 16;
+      const isHotPinkGuide =
+        templateType === "pants" &&
+        alpha > 0 &&
+        red >= 220 &&
+        blue >= 220 &&
+        green <= 120;
+      if (!isTransparentSkinGuide && !isHotPinkGuide) continue;
+      guideMask[pixelIndex] = 255;
+    }
   }
 
   let expansionRadius = 0;
@@ -809,15 +815,15 @@ async function applyAIClothingSkinGuide(
   const expandedMask = expansionRadius > 0
     ? expandAIClothingGuideMask(
         guideMask,
-        referenceTemplateRaw.info.width,
-        referenceTemplateRaw.info.height,
+        maskWidth,
+        maskHeight,
         expansionRadius
       )
     : guideMask;
   const finalSkinMask = Buffer.alloc(guideMask.length, 0);
   for (let index = 0; index < guideMask.length; index += 1) {
-    const x = index % referenceTemplateRaw.info.width;
-    const y = Math.floor(index / referenceTemplateRaw.info.width);
+    const x = index % maskWidth;
+    const y = Math.floor(index / maskWidth);
     const isSleevelessArmSkin =
       templateType === "shirt" &&
       sleeveLength === "sleeveless" &&
@@ -1253,15 +1259,21 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     normalizedTemplateType === "pants"
       ? (pantsLength === "30" || pantsLength === "80" ? pantsLength : "100")
       : "";
+  const usesManualSleevelessMask =
+    normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "sleeveless";
   const referenceTemplatePath = normalizedTemplateType === "shirt"
     ? AI_SLEEVE_REFERENCE_PATHS[resolvedSleeveReferenceKey]
     : AI_PANTS_REFERENCE_PATHS[resolvedPantsReferenceKey];
   const applicationTemplatePath = AI_TEMPLATE_APPLICATION_PATHS[normalizedTemplateType] || AI_TEMPLATE_APPLICATION_PATHS.shirt;
   const { toFile } = getOpenAIUploadHelpers();
-  await fs.promises.access(referenceTemplatePath, fs.constants.R_OK);
+  if (!usesManualSleevelessMask) {
+    await fs.promises.access(referenceTemplatePath, fs.constants.R_OK);
+  }
   await fs.promises.access(applicationTemplatePath, fs.constants.R_OK);
   const sharp = getSharp();
-  const referenceTemplateBuffer = await fs.promises.readFile(referenceTemplatePath);
+  const referenceTemplateBuffer = usesManualSleevelessMask
+    ? null
+    : await fs.promises.readFile(referenceTemplatePath);
   const applyTemplateBuffer = await fs.promises.readFile(applicationTemplatePath);
   const cleanedApplyTemplateBuffer = await sharp(applyTemplateBuffer)
     .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
@@ -1272,7 +1284,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     .png()
     .toBuffer();
   const generationReferenceBuffer =
-    normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "sleeveless"
+    usesManualSleevelessMask
       ? cleanedApplyTemplateBuffer
       : await buildAIClothingGenerationReference(
           referenceTemplateBuffer,
