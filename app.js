@@ -121,7 +121,6 @@ const AI_CLOTHING_PANEL_PARTS = {
     { x: 308, y: 485, w: 64, h: 64 },
   ],
 };
-const AI_CLOTHING_MASK_BLEED_PX = 12;
 const AI_CLOTHING_SLEEVE_KEYWORDS = {
   long: ["hoodie", "hooded", "sweater", "sweatshirt", "jacket", "varsity", "zip up", "zipup", "coat", "flannel", "cardigan", "crewneck", "pullover"],
   short: ["t shirt", "t-shirt", "tshirt", "tee", "polo", "jersey", "short sleeve", "short-sleeve"],
@@ -1247,21 +1246,11 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     const looksLikeTemplateZone = alpha <= 8;
     maskBuffer[index] = looksLikeTemplateZone ? 255 : 0;
   }
-  const expandedMaskBuffer = expandAIClothingMask(
-    maskBuffer,
-    AI_CLOTHING_OUTPUT_WIDTH,
-    AI_CLOTHING_OUTPUT_HEIGHT,
-    AI_CLOTHING_MASK_BLEED_PX
-  );
-  const gutterMaskBuffer = expandAIClothingMask(
-    maskBuffer,
-    AI_CLOTHING_OUTPUT_WIDTH,
-    AI_CLOTHING_OUTPUT_HEIGHT,
-    Math.max(AI_CLOTHING_MASK_BLEED_PX, 24)
-  );
   const maskRgbaBuffer = Buffer.alloc(AI_CLOTHING_OUTPUT_WIDTH * AI_CLOTHING_OUTPUT_HEIGHT * 4, 255);
-  for (let index = 0; index < expandedMaskBuffer.length; index += 1) {
-    maskRgbaBuffer[index * 4 + 3] = expandedMaskBuffer[index];
+  for (let index = 0; index < maskBuffer.length; index += 1) {
+    // Use only the actual transparent UV islands. Expanding this mask pulled
+    // the blank template's white guide border into downloaded textures.
+    maskRgbaBuffer[index * 4 + 3] = maskBuffer[index];
   }
   const maskImageBuffer = await sharp(maskRgbaBuffer, {
     raw: {
