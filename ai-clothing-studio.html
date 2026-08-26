@@ -2862,7 +2862,9 @@
         var userPrompt = String(prompt.value || "").trim();
         var avoidPrompt = String(negativePrompt.value || "").trim();
         var goals = getActiveGoalTexts();
-        var isSleevelessVest = garmentConfig.usesShirt && sleeve === "sleeveless" && isSleevelessVestRequest([userPrompt, style, vibe].join(" "));
+        // Sleeve selection controls the generation route. The user does not
+        // need to include the word "vest" to keep arm UV islands untouched.
+        var isSleevelessVest = garmentConfig.usesShirt && sleeve === "sleeveless";
         var templateInstruction = garment === "full_outfit"
             ? "Create a coordinated outfit set that will be split into one shirt panel layout and one pants panel layout while keeping both pieces visually connected."
           : garment === "matching_outfits"
@@ -2905,11 +2907,11 @@
             : "";
 
         var lines = isSleevelessVest ? [
-          "Create one front-and-back vest art sheet using the supplied two-square guide.",
-          "Fill the left square with continuous front-facing sleeveless vest fabric art and the right square with matching back-facing vest fabric art.",
-          "The server maps both squares into the verified Roblox UV panels automatically; do not create a UV template, mannequin, sleeves, arms, hands, skin, borders, or guide labels.",
-          "Keep front and back artwork centered with safe margins for clean placement on the final vest.",
-          "Design brief: " + (userPrompt || "Create a polished sleeveless Roblox vest texture.")
+          "Create one front-and-back sleeveless-top art sheet using the supplied two-square guide.",
+          "Fill the left square with continuous front fabric art and the right square with matching back fabric art.",
+          "The server maps both squares into the verified torso UV panels automatically. The lower template area is all arm UV islands and receives no generated artwork.",
+          "Do not create a UV template, mannequin, sleeves, arms, hands, skin, borders, or guide labels. Keep front and back artwork centered with safe margins.",
+          "Design brief: " + (userPrompt || "Create a polished sleeveless Roblox top texture.")
         ] : [
           "Create a clean clothing texture for the supplied blank clothing panel layout.",
           "Return only a wearable clothing texture at exactly 585 x 559 pixels.",

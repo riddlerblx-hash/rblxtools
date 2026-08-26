@@ -1041,8 +1041,10 @@ async function buildAIClothingVestTemplateFromSheet(generatedBuffer, blankTempla
   });
   const frontTop = await sharp(frontTile).extract({ left: 0, top: 0, width: 128, height: 64 }).png().toBuffer();
   const frontBottom = await sharp(frontTile).extract({ left: 0, top: 64, width: 128, height: 64 }).png().toBuffer();
-  const frontLeft = await sharp(frontTile).extract({ left: 0, top: 0, width: 64, height: 128 }).png().toBuffer();
-  const backRight = await sharp(backTile).extract({ left: 64, top: 0, width: 64, height: 128 }).png().toBuffer();
+  // These two strips wrap from the front and back respectively. Their source
+  // edges follow the R/L orientation verified on the Blender rig.
+  const torsoRight = await sharp(frontTile).extract({ left: 64, top: 0, width: 64, height: 128 }).png().toBuffer();
+  const torsoLeft = await sharp(backTile).extract({ left: 0, top: 0, width: 64, height: 128 }).png().toBuffer();
   const baseTemplate = await sharp(blankTemplateBuffer)
     .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, { fit: "fill", kernel: "nearest" })
     .ensureAlpha()
@@ -1055,8 +1057,8 @@ async function buildAIClothingVestTemplateFromSheet(generatedBuffer, blankTempla
       { input: frontTop, left: 231, top: 8 },
       { input: frontTile, left: 231, top: 74 },
       { input: frontBottom, left: 231, top: 204 },
-      { input: frontLeft, left: 165, top: 74 },
-      { input: backRight, left: 361, top: 74 },
+      { input: torsoRight, left: 165, top: 74 },
+      { input: torsoLeft, left: 361, top: 74 },
       { input: backTile, left: 427, top: 74 },
     ])
     .png()
@@ -1142,17 +1144,17 @@ function buildAIClothingPrompt(input = {}) {
 
 function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
   const templateType = variant.templateType === "pants" ? "pants" : "shirt";
-  const isSleevelessVest = templateType === "shirt" && basePrompt.isSleevelessVest;
-  if (isSleevelessVest) {
+  const usesSleevelessSwatchSheet = templateType === "shirt" && basePrompt.sleeveLength === "sleeveless";
+  if (usesSleevelessSwatchSheet) {
     return [
-      "Create exactly two square, edge-to-edge fabric texture swatches on the supplied guide.",
-      "The left white square is the vest front; the right white square is the matching vest back. Do not swap them.",
-      "Cover every pixel of each white square with continuous dark vest fabric. Do not leave white, transparent, empty, or background areas inside either square.",
+      "Create exactly two square, edge-to-edge sleeveless-top fabric texture swatches on the supplied guide.",
+      "The left white square is the front; the right white square is the matching back. Do not swap them.",
+      "Cover every pixel of each white square with continuous garment fabric. Do not leave white, transparent, empty, or background areas inside either square.",
       "These are flat rectangular texture swatches, not drawings of a vest silhouette: do not create armholes, neck holes, garment cutouts, a mannequin, or a mockup.",
-      "Place the front placket, collar detail, pockets, and front graphic in the left swatch. Place the back graphic and matching seams in the right swatch.",
+      "Place front details and graphics in the left swatch. Place the matching back design and seams in the right swatch.",
       "Do not draw sleeves, arms, hands, skin, legs, a person, background scene, borders, labels, or text outside the two white squares.",
       "Keep important graphics centered with safe margins so they survive the Roblox UV panel splits.",
-      `Design brief: ${basePrompt.userPrompt || "Create a polished sleeveless Roblox vest texture"}.`,
+      `Design brief: ${basePrompt.userPrompt || "Create a polished sleeveless Roblox top texture"}.`,
       basePrompt.style ? `Art direction: ${basePrompt.style}.` : "",
       basePrompt.palette ? `Color palette: ${basePrompt.palette}.` : "",
       basePrompt.vibe ? `Target vibe: ${basePrompt.vibe}.` : "",
@@ -1309,7 +1311,7 @@ function buildAIClothingGenerationPlan(basePrompt) {
   return [{ key: "shirt", label: "Shirt Template", templateType: "shirt" }];
 }
 
-async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, skinTone, isSleevelessVest }) {
+async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, skinTone }) {
   assertAIClothingConfigured();
   const promptText = cleanAIClothingText(enhancedPrompt, 6000);
   if (!promptText) {
@@ -1329,11 +1331,13 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
       : "";
   const usesManualSleevelessMask =
     normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "sleeveless";
-  const usesDeterministicVestSheet = usesManualSleevelessMask && Boolean(isSleevelessVest);
+  // Sleeve selection is authoritative. Never let wording decide whether a
+  // sleeveless request is sent through the old all-panel template workflow.
+  const usesDeterministicSleevelessSheet = usesManualSleevelessMask;
   const requestedSkinTone = normalizeAIClothingSkinTone(skinTone);
-  // A sleeveless vest always exposes the arm UV islands. Do not leave them as
+  // A sleeveless top always exposes the arm UV islands. Do not leave them as
   // the blank template's dark fallback when "No skin" was selected earlier.
-  const appliedSkinTone = usesDeterministicVestSheet && requestedSkinTone === "none"
+  const appliedSkinTone = usesDeterministicSleevelessSheet && requestedSkinTone === "none"
     ? "auto"
     : requestedSkinTone;
   const referenceTemplatePath = normalizedTemplateType === "shirt"
@@ -1359,7 +1363,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     .png()
     .toBuffer();
   const generationReferenceBuffer =
-    usesDeterministicVestSheet
+    usesDeterministicSleevelessSheet
       ? await createAIClothingVestSheetGuide()
       : usesManualSleevelessMask
       ? cleanedApplyTemplateBuffer
@@ -1369,15 +1373,15 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
           appliedSkinTone,
           normalizedTemplateType
         );
-  const templateUpload = await toFile(Readable.from([generationReferenceBuffer]), usesDeterministicVestSheet ? "rblxtools-vest-art-guide.png" : path.basename(applicationTemplatePath), {
+  const templateUpload = await toFile(Readable.from([generationReferenceBuffer]), usesDeterministicSleevelessSheet ? "rblxtools-sleeveless-art-guide.png" : path.basename(applicationTemplatePath), {
     type: "image/png",
   });
 
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: templateUpload,
-    prompt: usesDeterministicVestSheet
-      ? `${promptText} Return the completed two-tile vest art sheet on the supplied guide.`
+    prompt: usesDeterministicSleevelessSheet
+      ? `${promptText} Return the completed two-tile sleeveless-top art sheet on the supplied guide.`
       : `${promptText} Build directly on the supplied blank ${normalizedTemplateType} clothing panel layout. The visible white panel map is the only place for garment artwork; the surrounding canvas and transparent guide areas must remain empty. Do not add any mannequin previews, template labels, helper diagrams, letters, logos, background sheet elements, or explanatory text. Return only mapped clothing artwork on that blank panel layout.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
@@ -1393,7 +1397,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   }
 
   const generatedBuffer = Buffer.from(generatedBase64, "base64");
-  const panelMappedBuffer = usesDeterministicVestSheet
+  const panelMappedBuffer = usesDeterministicSleevelessSheet
     ? await buildAIClothingVestTemplateFromSheet(generatedBuffer, cleanedApplyTemplateBuffer)
     : await rebuildAIClothingPanelsOnBlankTemplate(
         await sharp(generatedBuffer)
@@ -1415,10 +1419,10 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     resolvedPantsReferenceKey
   );
 
-  // The vest source is composited onto UV coordinates we verified in Blender.
+  // The sleeveless source is composited onto UV coordinates verified in Blender.
   // Do not run legacy alpha repair or generic gutter masking afterward: those
   // belonged to the old direct-template experiment and can rewrite this map.
-  if (usesDeterministicVestSheet) {
+  if (usesDeterministicSleevelessSheet) {
     return {
       outputBuffer: skinMappedBuffer,
       outputMime: "image/png",
@@ -6190,7 +6194,6 @@ app.post("/ai/generate-clothing", async (req, res) => {
         sleeveLength: built.sleeveLength,
         pantsLength: built.pantsLength,
         skinTone: built.skinTone,
-        isSleevelessVest: built.isSleevelessVest,
       });
       outputs.push({
         key: variant.key,
