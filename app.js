@@ -980,6 +980,51 @@ async function applyAIClothingSkinGuide(
     .toBuffer();
 }
 
+async function enforceAIClothingPantsCropGuide(panelBuffer, referenceTemplateBuffer, skinTone) {
+  const sharp = getSharp();
+  const tone = getAIClothingSkinToneColor(skinTone);
+  const alignedReferenceTemplateBuffer = await alignAIClothingReferenceToOutput(referenceTemplateBuffer);
+  const [panelRaw, referenceRaw] = await Promise.all([
+    sharp(panelBuffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
+    sharp(alignedReferenceTemplateBuffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
+  ]);
+
+  for (let offset = 0; offset < referenceRaw.data.length; offset += 4) {
+    const pixelIndex = offset / 4;
+    const x = pixelIndex % AI_CLOTHING_OUTPUT_WIDTH;
+    const y = Math.floor(pixelIndex / AI_CLOTHING_OUTPUT_WIDTH);
+    if (!isInsideAIClothingPanel("pants", x, y)) continue;
+
+    const red = referenceRaw.data[offset];
+    const green = referenceRaw.data[offset + 1];
+    const blue = referenceRaw.data[offset + 2];
+    const alpha = referenceRaw.data[offset + 3];
+    const isHotPinkGuide = alpha > 0 && red >= 235 && green <= 105 && blue >= 225;
+    if (!isHotPinkGuide) continue;
+
+    // Cropped guides always remove fabric. "No skin" leaves the texture
+    // transparent so Roblox's underlying avatar skin remains visible.
+    if (tone) {
+      panelRaw.data[offset] = tone.r;
+      panelRaw.data[offset + 1] = tone.g;
+      panelRaw.data[offset + 2] = tone.b;
+      panelRaw.data[offset + 3] = tone.a;
+    } else {
+      panelRaw.data[offset + 3] = 0;
+    }
+  }
+
+  return sharp(panelRaw.data, {
+    raw: {
+      width: panelRaw.info.width,
+      height: panelRaw.info.height,
+      channels: 4,
+    },
+  })
+    .png()
+    .toBuffer();
+}
+
 function buildAIClothingPrompt(input = {}) {
   const garment = normalizeAIClothingGarmentType(input.garmentType);
   const style = cleanAIClothingText(input.styleDirection, 160);
@@ -1317,13 +1362,19 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   })
     .png()
     .toBuffer();
-  // Reapply explicit skin markers after masking so #FF30F8 guide zones cannot
-  // turn back into fabric during edge cleanup.
-  const requiresFinalSkinGuide =
-    (normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "sleeveless") ||
-    (normalizedTemplateType === "pants" && (resolvedPantsReferenceKey === "30" || resolvedPantsReferenceKey === "80"));
-  const finalBuffer = requiresFinalSkinGuide
-    ? await applyAIClothingSkinGuide(
+  // Enforce crop regions after every other processing step so they cannot
+  // turn back into full-length fabric, including when "No skin" is selected.
+  const hasCroppedPantsGuide =
+    normalizedTemplateType === "pants" &&
+    (resolvedPantsReferenceKey === "30" || resolvedPantsReferenceKey === "80");
+  const finalBuffer = hasCroppedPantsGuide
+    ? await enforceAIClothingPantsCropGuide(
+        maskedArtBuffer,
+        referenceTemplateBuffer,
+        appliedSkinTone
+      )
+    : normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "sleeveless"
+      ? await applyAIClothingSkinGuide(
         maskedArtBuffer,
         referenceTemplateBuffer,
         appliedSkinTone,
@@ -1332,7 +1383,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
         resolvedPantsReferenceKey,
         allowSkinTattoos
       )
-    : maskedArtBuffer;
+      : maskedArtBuffer;
 
   return {
     outputBuffer: finalBuffer,
