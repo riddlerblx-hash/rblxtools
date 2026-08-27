@@ -1053,6 +1053,11 @@
       font-weight: 700;
     }
 
+    .ai-select option {
+      background: #111c30;
+      color: #eef5ff;
+    }
+
     .ai-textarea {
       min-height: 140px;
       padding: 14px 16px;
@@ -1559,11 +1564,18 @@
           <div class="ai-control-group">
             <label class="ai-chip-heading" for="aiTemplateKey">Choose A Garment Template:</label>
             <select class="ai-select" id="aiTemplateKey" style="margin-top:10px;">
-              <optgroup label="Tops"><option value="hoodie">Hoodie</option><option value="tshirt">T-shirt</option><option value="button_down">Button-down Shirt</option><option value="blouse">Blouse</option><option value="cardigan">Cardigan</option><option value="polo">Polo Shirt</option><option value="crop_top">Crop Top</option><option value="henley">Henley Top</option><option value="camisole">Camisole</option><option value="sweater">Sweater</option><option value="pullover_sweatshirt">Pullover Sweatshirt</option><option value="vest">Vest</option></optgroup>
-              <optgroup label="Bottoms"><option value="jeans">Jeans</option><option value="shorts">Shorts</option><option value="pants">Pants / Trousers</option><option value="skirt">Skirt</option><option value="leggings">Leggings</option><option value="capri_pants">Capri Pants</option></optgroup>
-              <optgroup label="Outerwear"><option value="jacket">Jacket</option><option value="coat">Coat</option><option value="blazer">Blazer</option><option value="parka">Parka</option><option value="duster">Duster</option></optgroup>
-              <optgroup label="Other Garments"><option value="bodysuit">Bodysuit</option><option value="corset">Corset</option><option value="dashiki">Dashiki</option><option value="halter_top">Halter Top</option><option value="peplum_top">Peplum Top</option><option value="peter_pan_collar">Peter Pan Collar Top</option><option value="turtleneck">Turtleneck</option></optgroup>
-              <optgroup label="Hoodie Variations"><option value="pullover_hoodie">Pullover Hoodie</option><option value="zip_up_hoodie">Zip-up Hoodie</option><option value="half_zip_hoodie">Half-zip Hoodie</option><option value="fleece_hoodie">Fleece Hoodie</option><option value="french_terry_hoodie">French Terry Hoodie</option><option value="oversized_hoodie">Oversized Hoodie</option><option value="sleeveless_hoodie">Sleeveless Hoodie</option><option value="cropped_hoodie">Cropped Hoodie</option></optgroup>
+              <option value="hoodie">Tops: Hoodie</option><option value="tshirt">Tops: T-shirt</option><option value="button_down">Tops: Button-down Shirt</option><option value="blouse">Tops: Blouse</option><option value="cardigan">Tops: Cardigan</option><option value="polo">Tops: Polo Shirt</option><option value="crop_top">Tops: Crop Top</option><option value="henley">Tops: Henley Top</option><option value="camisole">Tops: Camisole</option><option value="sweater">Tops: Sweater</option><option value="pullover_sweatshirt">Tops: Pullover Sweatshirt</option><option value="vest">Tops: Vest</option>
+              <option value="jeans">Bottoms: Jeans</option><option value="shorts">Bottoms: Shorts</option><option value="pants">Bottoms: Pants / Trousers</option><option value="skirt">Bottoms: Skirt</option><option value="leggings">Bottoms: Leggings</option><option value="capri_pants">Bottoms: Capri Pants</option>
+              <option value="jacket">Outerwear: Jacket</option><option value="coat">Outerwear: Coat</option><option value="blazer">Outerwear: Blazer</option><option value="parka">Outerwear: Parka</option><option value="duster">Outerwear: Duster</option>
+              <option value="bodysuit">Other: Bodysuit</option><option value="corset">Other: Corset</option><option value="dashiki">Other: Dashiki</option><option value="halter_top">Other: Halter Top</option><option value="peplum_top">Other: Peplum Top</option><option value="peter_pan_collar">Other: Peter Pan Collar Top</option><option value="turtleneck">Other: Turtleneck</option>
+              <option value="pullover_hoodie">Hoodie Variation: Pullover</option><option value="zip_up_hoodie">Hoodie Variation: Zip-up</option><option value="half_zip_hoodie">Hoodie Variation: Half-zip</option><option value="fleece_hoodie">Hoodie Variation: Fleece</option><option value="french_terry_hoodie">Hoodie Variation: French Terry</option><option value="oversized_hoodie">Hoodie Variation: Oversized</option><option value="sleeveless_hoodie">Hoodie Variation: Sleeveless</option><option value="cropped_hoodie">Hoodie Variation: Cropped</option>
+            </select>
+          </div>
+
+          <div class="ai-control-group">
+            <label class="ai-chip-heading" for="aiFootwear">Shoes / Socks:</label>
+            <select class="ai-select" id="aiFootwear" style="margin-top:10px;">
+              <option value="">None</option><option value="low socks">Low socks</option><option value="crew socks">Crew socks</option><option value="thigh-high socks">Thigh-high socks</option><option value="sneakers">Sneakers</option><option value="boots">Boots</option><option value="sandals">Sandals</option><option value="sneakers with socks">Sneakers with socks</option><option value="boots with socks">Boots with socks</option>
             </select>
           </div>
 
@@ -1751,6 +1763,7 @@
       var builtPrompt = document.getElementById("aiBuiltPrompt");
       var negativePrompt = document.getElementById("aiNegativePrompt");
       var templateKey = document.getElementById("aiTemplateKey");
+      var footwear = document.getElementById("aiFootwear");
       var garmentType = document.getElementById("aiGarmentType");
       var styleDirection = document.getElementById("aiStyleDirection");
       var colorPalette = document.getElementById("aiColorPalette");
@@ -2649,6 +2662,7 @@
         var vibe = String(audience.value || "").trim();
         var userPrompt = String(prompt.value || "").trim();
         var avoidPrompt = String(negativePrompt.value || "").trim();
+        var footwearValue = footwear ? String(footwear.value || "").trim() : "";
 
         var lines = [
           "Create a clean wearable Roblox clothing texture for the supplied Roblox character UV template.",
@@ -2657,7 +2671,7 @@
           "Garment template: " + selectedTemplate.label + ".",
           selectedTemplate.type === "shirt"
             ? "Use the " + selectedTemplate.sleeve + " sleeve Roblox top guide. The top section maps the torso and the lower strips map the arms."
-            : "Use the " + selectedTemplate.length + "% lower-body Roblox guide. The lower section maps the two legs and #FF30F8 maps exposed avatar skin.",
+            : "Use the " + selectedTemplate.length + "% lower-body Roblox guide. Every mapped panel in the bottom section belongs to the two legs: front, back, left, right, top, and bottom leg faces. Keep the upper torso section blank for this lower-body template. #FF30F8 maps exposed avatar skin.",
           "Keep artwork aligned inside the connected mapped garment regions and keep guide space clean.",
           "#FF30F8 marks visible Roblox avatar skin.",
           "Make the result a catalog-ready Roblox texture with cohesive front and back panel details.",
@@ -2672,6 +2686,9 @@
         }
         if (vibe) {
           lines.push("Target vibe: " + vibe + ".");
+        }
+        if (footwearValue) {
+          lines.push("Shoes / socks: " + footwearValue + ". Apply that only to the lower-leg and ankle regions of the lower-body map.");
         }
         lines.push(formatSkinToneInstruction(selectedSkinTone));
         if (avoidPrompt) {
@@ -3121,6 +3138,7 @@
           styleDirection: styleValue,
           colorPalette: colorPalette.value,
           audience: audience.value,
+          footwear: footwear ? footwear.value : "",
           userPrompt: prompt.value,
           negativePrompt: negativePrompt.value,
           styleName: styleValue
@@ -3231,6 +3249,7 @@
         styleDirection.value = "";
         colorPalette.value = "";
         audience.value = "";
+        if (footwear) footwear.value = "";
         setActiveStyle("");
         setTemplate("hoodie");
         setSkinTone("auto");
@@ -3274,6 +3293,9 @@
           setTemplate(templateKey.value);
           buildGeneratorPrompt();
         });
+      }
+      if (footwear) {
+        footwear.addEventListener("change", buildGeneratorPrompt);
       }
       if (skinTone) {
         skinTone.addEventListener("change", function () {

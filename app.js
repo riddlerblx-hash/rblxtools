@@ -1005,6 +1005,7 @@ function buildAIClothingPrompt(input = {}) {
   const style = cleanAIClothingText(input.styleDirection, 160);
   const palette = cleanAIClothingText(input.colorPalette, 200);
   const vibe = cleanAIClothingText(input.audience, 200);
+  const footwear = cleanAIClothingText(input.footwear, 120);
   const userPrompt = cleanAIClothingText(input.userPrompt || input.prompt, 1200);
   const negativePrompt = cleanAIClothingText(input.negativePrompt, 700);
   const styleName = cleanAIClothingText(input.styleName, 60);
@@ -1023,6 +1024,7 @@ function buildAIClothingPrompt(input = {}) {
     style,
     palette,
     vibe,
+    footwear,
     userPrompt,
     negativePrompt,
     styleName,
@@ -1036,6 +1038,7 @@ function buildAIClothingPrompt(input = {}) {
       style ? `Art direction: ${style}.` : "",
       palette ? `Color palette: ${palette}.` : "",
       vibe ? `Target vibe: ${vibe}.` : "",
+      footwear ? `Shoes / socks: ${footwear}.` : "",
       negativePrompt ? `Preferred exclusions: ${negativePrompt}.` : "",
     ].filter(Boolean).join(" "),
   };
@@ -1051,7 +1054,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     basePrompt.templateInstruction,
     templateType === "shirt"
       ? `Use the ${basePrompt.sleeveLength} sleeve Roblox top guide. The top section maps the torso and the lower two strips map the arms.`
-      : `Use the ${basePrompt.pantsLength}% lower-body Roblox guide. The lower section maps the two legs and the hot-pink regions map exposed avatar skin.`,
+      : `Use the ${basePrompt.pantsLength}% lower-body Roblox guide. Every mapped panel in the bottom section is a face of the two legs: front, back, left, right, top, and bottom. Keep the upper torso section blank for this lower-body texture. The hot-pink regions map exposed avatar skin.`,
     "Keep the artwork aligned inside the connected mapped garment regions. Keep the surrounding canvas, guide space, neck opening, and skin-marker regions clean.",
     "#FF30F8 marks visible Roblox avatar skin on this template.",
     "Make this a catalog-ready Roblox texture, with readable panels, seam-safe edges, and a cohesive front and back.",
@@ -1059,6 +1062,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     basePrompt.style ? `Art direction: ${basePrompt.style}.` : "",
     basePrompt.palette ? `Color palette: ${basePrompt.palette}.` : "",
     basePrompt.vibe ? `Target vibe: ${basePrompt.vibe}.` : "",
+    basePrompt.footwear ? `Shoes / socks: ${basePrompt.footwear}. Apply this only to lower-leg and ankle regions.` : "",
     basePrompt.styleName ? `Preset style tag: ${basePrompt.styleName}.` : "",
     getAIClothingSkinToneInstruction(basePrompt.skinTone),
     basePrompt.negativePrompt ? `Preferred exclusions: ${basePrompt.negativePrompt}.` : "",
@@ -5861,6 +5865,7 @@ app.post("/ai/generate-clothing", async (req, res) => {
       styleDirection: req.body?.styleDirection,
       colorPalette: req.body?.colorPalette,
       audience: req.body?.audience,
+      footwear: req.body?.footwear,
       userPrompt: req.body?.userPrompt,
       negativePrompt: req.body?.negativePrompt,
       styleName: req.body?.styleName,
