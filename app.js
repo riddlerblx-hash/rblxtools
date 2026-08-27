@@ -63,6 +63,10 @@ const MAX_SUPPORT_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MAX_CHAT_TIMEOUT_SECONDS = 3650 * 24 * 60 * 60;
 const AI_CLOTHING_OUTPUT_WIDTH = 585;
 const AI_CLOTHING_OUTPUT_HEIGHT = 559;
+const AI_CLOTHING_LEGACY_REFERENCE_WIDTH = 554;
+const AI_CLOTHING_LEGACY_REFERENCE_HEIGHT = 544;
+const AI_CLOTHING_LEGACY_REFERENCE_LEFT = 19;
+const AI_CLOTHING_LEGACY_REFERENCE_TOP = 8;
 const AI_CLOTHING_MODEL = "gpt-image-2";
 const AI_CLOTHING_GENERATION_SIZE = "832x800";
 const AI_CLOTHING_SKIN_TONES = {
@@ -312,6 +316,50 @@ function getAIClothingPixelLuma(red, green, blue) {
   return (red * 0.299) + (green * 0.587) + (blue * 0.114);
 }
 
+async function alignAIClothingReferenceToOutput(referenceTemplateBuffer) {
+  const sharp = getSharp();
+  const source = sharp(referenceTemplateBuffer).ensureAlpha();
+  const metadata = await source.metadata();
+
+  if (
+    metadata.width === AI_CLOTHING_OUTPUT_WIDTH &&
+    metadata.height === AI_CLOTHING_OUTPUT_HEIGHT
+  ) {
+    return source.png().toBuffer();
+  }
+
+  // The 30% and 80% pants guides are cropped legacy Roblox maps. They must
+  // be placed at their original UV offset rather than stretched to the export.
+  if (
+    metadata.width === AI_CLOTHING_LEGACY_REFERENCE_WIDTH &&
+    metadata.height === AI_CLOTHING_LEGACY_REFERENCE_HEIGHT
+  ) {
+    return sharp({
+      create: {
+        width: AI_CLOTHING_OUTPUT_WIDTH,
+        height: AI_CLOTHING_OUTPUT_HEIGHT,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite([{
+        input: await source.png().toBuffer(),
+        left: AI_CLOTHING_LEGACY_REFERENCE_LEFT,
+        top: AI_CLOTHING_LEGACY_REFERENCE_TOP,
+      }])
+      .png()
+      .toBuffer();
+  }
+
+  return source
+    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
+      fit: "fill",
+      kernel: "nearest",
+    })
+    .png()
+    .toBuffer();
+}
+
 async function buildAIClothingGenerationReference(
   referenceTemplateBuffer,
   blankTemplateBuffer,
@@ -327,11 +375,8 @@ async function buildAIClothingGenerationReference(
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
-  const referenceTemplateRaw = await sharp(referenceTemplateBuffer)
-    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
-      fit: "fill",
-      kernel: "nearest",
-    })
+  const alignedReferenceTemplateBuffer = await alignAIClothingReferenceToOutput(referenceTemplateBuffer);
+  const referenceTemplateRaw = await sharp(alignedReferenceTemplateBuffer)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -759,11 +804,8 @@ async function applyAIClothingSkinGuide(
   const maskHeight = AI_CLOTHING_OUTPUT_HEIGHT;
   const guideMask = Buffer.alloc(maskWidth * maskHeight, 0);
 
-  const referenceTemplateRaw = await sharp(referenceTemplateBuffer)
-    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
-      fit: "fill",
-      kernel: "nearest",
-    })
+  const alignedReferenceTemplateBuffer = await alignAIClothingReferenceToOutput(referenceTemplateBuffer);
+  const referenceTemplateRaw = await sharp(alignedReferenceTemplateBuffer)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
