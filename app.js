@@ -78,7 +78,7 @@ const AI_CLOTHING_SKIN_TONES = {
 const AI_SLEEVE_REFERENCE_PATHS = {
   long: path.join(__dirname, "assets", "ai-rig", "Long Sleeve Reference.png"),
   short: path.join(__dirname, "assets", "ai-rig", "Short Sleeve Reference.png"),
-  sleeveless: path.join(__dirname, "assets", "ai-rig", "sleeveless ref test.png"),
+  sleeveless: path.join(__dirname, "assets", "ai-rig", "Sleeveless Reference.png"),
 };
 const AI_PANTS_REFERENCE_PATHS = {
   "30": path.join(__dirname, "assets", "ai-rig", "30%.png"),
@@ -1043,17 +1043,22 @@ function buildAIClothingPrompt(input = {}) {
 
 function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
   const templateType = variant.templateType === "pants" ? "pants" : "shirt";
+  const isTop = templateType === "shirt";
   return [
     "Create a clean wearable Roblox clothing texture on the supplied Roblox character UV template.",
     `Return only a wearable clothing texture at exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
     `The working image may be generated at ${AI_CLOTHING_GENERATION_SIZE}, but the final design must map cleanly back into the supplied panel layout size.`,
+    "Input image 1 is Blank Template.png: this is the exact final Roblox UV canvas to build on.",
+    `Input image 2 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference: it identifies the allowed garment panels and #FF30F8 skin markers.`,
     `Garment template: ${basePrompt.templateLabel}.`,
     basePrompt.templateInstruction,
-    templateType === "shirt"
-      ? `Use the ${basePrompt.sleeveLength} sleeve Roblox top guide. The top section maps the torso and the lower two strips map the arms.`
-      : `Use the ${basePrompt.pantsLength}% lower-body Roblox guide. Every mapped panel in the bottom section is a face of the two legs: front, back, left, right, top, and bottom. Keep the upper torso section blank for this lower-body texture. The hot-pink regions map exposed avatar skin.`,
-    "Keep the artwork aligned inside the connected mapped garment regions. Keep the surrounding canvas, guide space, neck opening, and skin-marker regions clean.",
-    "#FF30F8 marks visible Roblox avatar skin on this template.",
+    isTop
+      ? "Torso panels are only: top (230,7,130,66), right (165,74,65,128), front (230,74,130,129), left (360,74,66,128), back (426,74,129,128), and bottom (230,203,130,66). Arm panels are only the twelve lower islands: arm 1 around x 19-281 and arm 2 around x 307-570, y 289-550. Do not confuse the lower arm islands with torso front or torso back."
+      : "This is a lower-body texture. The upper torso islands are not pants. Every mapped lower island represents a face of the two Roblox legs: front, back, left, right, top, and bottom. Keep all upper torso islands empty and map the design only to the lower-leg islands.",
+    "#FF30F8 is a strict exposed-skin marker. Render that marker as the selected skin color only, without fabric, trim, shading, patterns, or graphics.",
+    "DO NOT draw white outlines, white gutters, white panel borders, white divider lines, white backgrounds, guide boxes, template labels, helper diagrams, mannequins, mockups, or any template artwork.",
+    "DO NOT put fabric, material, graphics, shadows, seams, cuffs, or accessories over #FF30F8 skin markers, the neck opening, or unused transparent guide space.",
+    "DO NOT overflow artwork across a UV island boundary. Keep the canvas outside mapped panels transparent and keep each garment panel filled only with its intended clothing artwork.",
     "Make this a catalog-ready Roblox texture, with readable panels, seam-safe edges, and a cohesive front and back.",
     `Design brief: ${basePrompt.userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
     basePrompt.style ? `Art direction: ${basePrompt.style}.` : "",
@@ -1106,19 +1111,25 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     .ensureAlpha()
     .png()
     .toBuffer();
-  const generationReferenceBuffer = await buildAIClothingGenerationReference(
-    referenceTemplateBuffer,
-    cleanedApplyTemplateBuffer,
-    normalizedTemplateType
-  );
-  const templateUpload = await toFile(Readable.from([generationReferenceBuffer]), path.basename(applicationTemplatePath), {
+  const cleanedReferenceTemplateBuffer = await sharp(referenceTemplateBuffer)
+    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
+      fit: "fill",
+      kernel: "nearest",
+    })
+    .ensureAlpha()
+    .png()
+    .toBuffer();
+  const blankTemplateUpload = await toFile(Readable.from([cleanedApplyTemplateBuffer]), path.basename(applicationTemplatePath), {
+    type: "image/png",
+  });
+  const sleeveGuideUpload = await toFile(Readable.from([cleanedReferenceTemplateBuffer]), path.basename(referenceTemplatePath), {
     type: "image/png",
   });
 
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
-    image: templateUpload,
-    prompt: `${promptText} Build directly on the supplied blank Roblox ${normalizedTemplateType} clothing UV template for a Roblox character. Place garment artwork in the visible panel map and keep surrounding canvas and guide areas empty. Return only mapped clothing artwork on that Roblox template.`,
+    image: [blankTemplateUpload, sleeveGuideUpload],
+    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, only as the matching panel and pink skin-marker reference. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
