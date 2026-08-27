@@ -89,6 +89,46 @@ const AI_TEMPLATE_APPLICATION_PATHS = {
   shirt: path.join(__dirname, "assets", "ai-rig", "Blank Template.png"),
   pants: path.join(__dirname, "assets", "ai-rig", "Blank Template.png"),
 };
+const AI_CLOTHING_TEMPLATE_CONFIG = {
+  hoodie: { label: "Hoodie", type: "shirt", sleeve: "long", instruction: "Create a hooded sweatshirt with a clear hood, long sleeves, cuffs, and a cohesive torso front and back." },
+  tshirt: { label: "T-shirt", type: "shirt", sleeve: "short", instruction: "Create a casual short-sleeve T-shirt with a clean crew neckline and continuous torso artwork." },
+  button_down: { label: "Button-down Shirt", type: "shirt", sleeve: "long", instruction: "Create a collared button-down shirt with a readable placket, buttons, and tailored long sleeves." },
+  blouse: { label: "Blouse", type: "shirt", sleeve: "short", instruction: "Create a soft feminine blouse with a refined neckline, flowing short sleeves, and polished torso details." },
+  cardigan: { label: "Cardigan", type: "shirt", sleeve: "long", instruction: "Create a knit cardigan with an open or buttoned front, long sleeves, cuffs, and connected knit texture." },
+  polo: { label: "Polo Shirt", type: "shirt", sleeve: "short", instruction: "Create a short-sleeve polo shirt with a collar, front placket, and coordinated torso panels." },
+  crop_top: { label: "Crop Top", type: "shirt", sleeve: "short", instruction: "Create a short-sleeve crop top with a higher hem design, a clear neckline, and a fashion-forward torso treatment." },
+  henley: { label: "Henley Top", type: "shirt", sleeve: "long", instruction: "Create a collarless Henley with a small button placket, long sleeves, and consistent torso texture." },
+  camisole: { label: "Camisole", type: "shirt", sleeve: "sleeveless", instruction: "Create a lightweight camisole with narrow shoulder straps, a clean neckline, and sleeveless torso coverage." },
+  sweater: { label: "Sweater", type: "shirt", sleeve: "long", instruction: "Create a knit sweater with a crew or V neckline, long sleeves, cuffs, and connected knit texture." },
+  pullover_sweatshirt: { label: "Pullover Sweatshirt", type: "shirt", sleeve: "long", instruction: "Create a crewneck pullover sweatshirt with long sleeves, ribbed cuffs, and a comfortable cohesive body." },
+  vest: { label: "Vest", type: "shirt", sleeve: "sleeveless", instruction: "Create a sleeveless vest with clear armholes, a readable neck opening, and continuous torso front and back fabric." },
+  jacket: { label: "Jacket", type: "shirt", sleeve: "long", instruction: "Create a structured jacket with long sleeves, cuffs, a front closure, and aligned outerwear panels." },
+  coat: { label: "Coat", type: "shirt", sleeve: "long", instruction: "Create a long outerwear coat with a defined collar, front closure, and elegant long-sleeve detailing." },
+  blazer: { label: "Blazer", type: "shirt", sleeve: "long", instruction: "Create a tailored blazer with lapels, a button closure, long sleeves, and sharp panel alignment." },
+  parka: { label: "Parka", type: "shirt", sleeve: "long", instruction: "Create an insulated hooded parka with long sleeves, practical pockets, and outerwear texture." },
+  duster: { label: "Duster", type: "shirt", sleeve: "long", instruction: "Create a loose duster-style outer layer with an open front, long sleeves, and flowing fabric treatment." },
+  bodysuit: { label: "Bodysuit", type: "shirt", sleeve: "short", instruction: "Create a fitted bodysuit-style upper garment with a smooth torso, clean neckline, and short sleeves." },
+  corset: { label: "Corset", type: "shirt", sleeve: "sleeveless", instruction: "Create a structured sleeveless corset top with seams, lacing or boning details, and a fitted torso." },
+  dashiki: { label: "Dashiki", type: "shirt", sleeve: "short", instruction: "Create a loose colorful dashiki-inspired top with a V-neck, bold decorative trim, and short sleeves." },
+  halter_top: { label: "Halter Top", type: "shirt", sleeve: "sleeveless", instruction: "Create a sleeveless halter top with a neck-focused strap treatment and clean exposed arm openings." },
+  peplum_top: { label: "Peplum Top", type: "shirt", sleeve: "short", instruction: "Create a polished peplum top with a shaped waist detail, refined neckline, and short sleeves." },
+  peter_pan_collar: { label: "Peter Pan Collar Top", type: "shirt", sleeve: "short", instruction: "Create a charming top with a rounded Peter Pan collar, short sleeves, and neat decorative details." },
+  turtleneck: { label: "Turtleneck", type: "shirt", sleeve: "long", instruction: "Create a fitted turtleneck with a high folded neck, long sleeves, and continuous knit texture." },
+  pullover_hoodie: { label: "Pullover Hoodie", type: "shirt", sleeve: "long", instruction: "Create a classic pullover hoodie with a hood, kangaroo pocket, long sleeves, and cuffs." },
+  zip_up_hoodie: { label: "Zip-up Hoodie", type: "shirt", sleeve: "long", instruction: "Create a zip-up hoodie with a centered zipper, hood, long sleeves, and practical pocket details." },
+  half_zip_hoodie: { label: "Half-zip Hoodie", type: "shirt", sleeve: "long", instruction: "Create a half-zip hoodie with a short neckline zipper, hood or high collar, and long sleeves." },
+  fleece_hoodie: { label: "Fleece Hoodie", type: "shirt", sleeve: "long", instruction: "Create a warm fleece hoodie with soft textured fabric, a hood, long sleeves, and cuffs." },
+  french_terry_hoodie: { label: "French Terry Hoodie", type: "shirt", sleeve: "long", instruction: "Create a French terry hoodie with soft knit texture, a hood, long sleeves, and ribbed trims." },
+  oversized_hoodie: { label: "Oversized Hoodie", type: "shirt", sleeve: "long", instruction: "Create an oversized hoodie with relaxed long sleeves, a roomy hood, and streetwear proportions." },
+  sleeveless_hoodie: { label: "Sleeveless Hoodie", type: "shirt", sleeve: "sleeveless", instruction: "Create a sleeveless hoodie with a hood, clean armholes, and a cohesive torso front and back." },
+  cropped_hoodie: { label: "Cropped Hoodie", type: "shirt", sleeve: "long", instruction: "Create a cropped hoodie with a hood, long sleeves, and a shorter high-hem torso styling." },
+  jeans: { label: "Jeans", type: "pants", length: "100", instruction: "Create full-length denim jeans with a waistband, pockets, seams, and continuous leg texture." },
+  shorts: { label: "Shorts", type: "pants", length: "30", instruction: "Create above-the-knee shorts with a waistband, a clean shorts hem, and a continuous design across both upper-leg regions." },
+  pants: { label: "Pants / Trousers", type: "pants", length: "100", instruction: "Create full-length trousers with a waistband, tailored seams, and continuous leg coverage." },
+  skirt: { label: "Skirt", type: "pants", length: "30", instruction: "Create a waist-fitted skirt with a clean hem, fabric folds, and a cohesive lower-body design." },
+  leggings: { label: "Leggings", type: "pants", length: "100", instruction: "Create full-length fitted leggings with smooth stretch texture and continuous leg coverage." },
+  capri_pants: { label: "Capri Pants", type: "pants", length: "80", instruction: "Create mid-calf capri trousers with a clean hem and continuous fabric above the lower-leg cutoff." },
+};
 const AI_CLOTHING_PANEL_PARTS = {
   shirt: [
     { x: 231, y: 8, w: 128, h: 64 },
@@ -124,16 +164,6 @@ const AI_CLOTHING_PANEL_PARTS = {
     { x: 506, y: 355, w: 64, h: 128 },
     { x: 308, y: 485, w: 64, h: 64 },
   ],
-};
-const AI_CLOTHING_SLEEVE_KEYWORDS = {
-  long: ["hoodie", "hooded", "sweater", "sweatshirt", "jacket", "varsity", "zip up", "zipup", "coat", "flannel", "cardigan", "crewneck", "pullover"],
-  short: ["t shirt", "t-shirt", "tshirt", "tee", "polo", "jersey", "short sleeve", "short-sleeve"],
-  sleeveless: ["tank", "tank top", "beater", "wife beater", "sleeveless", "vest"],
-};
-const AI_CLOTHING_PANTS_LENGTH_KEYWORDS = {
-  "30": ["shorts", "short", "basketball shorts", "swim trunks", "boxer", "underwear shorts"],
-  "80": ["cropped", "capri", "3/4", "three quarter", "three-quarter", "highwater", "high water"],
-  "100": ["pants", "jeans", "joggers", "sweatpants", "cargo", "full length", "full-length", "slacks"],
 };
 const AUTH_JWT_TTL_DAYS = Math.max(
   1,
@@ -217,14 +247,6 @@ function getAIBaseTemplateType(garmentType) {
 
 function cleanAIClothingText(value, maxLength = 1200) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
-}
-
-function normalizeAIClothingSleeveLength(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  if (normalized === "short" || normalized === "long" || normalized === "sleeveless") {
-    return normalized;
-  }
-  return "auto";
 }
 
 function normalizeAIClothingSkinTone(value) {
@@ -420,50 +442,12 @@ async function buildAIClothingGenerationReference(
     .toBuffer();
 }
 
-function normalizeAIClothingPantsLength(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  if (normalized === "30" || normalized === "80" || normalized === "100") {
-    return normalized;
-  }
-  return "auto";
-}
-
-function inferAIClothingSleeveLength(promptText) {
-  const text = String(promptText || "").trim().toLowerCase();
-  if (!text) return "long";
-  if (AI_CLOTHING_SLEEVE_KEYWORDS.sleeveless.some((keyword) => text.includes(keyword))) {
-    return "sleeveless";
-  }
-  if (AI_CLOTHING_SLEEVE_KEYWORDS.short.some((keyword) => text.includes(keyword))) {
-    return "short";
-  }
-  if (AI_CLOTHING_SLEEVE_KEYWORDS.long.some((keyword) => text.includes(keyword))) {
-    return "long";
-  }
-  return "long";
-}
-
-function inferAIClothingPantsLength(promptText) {
-  const text = String(promptText || "").trim().toLowerCase();
-  if (!text) return "100";
-  if (AI_CLOTHING_PANTS_LENGTH_KEYWORDS["30"].some((keyword) => text.includes(keyword))) {
-    return "30";
-  }
-  if (AI_CLOTHING_PANTS_LENGTH_KEYWORDS["80"].some((keyword) => text.includes(keyword))) {
-    return "80";
-  }
-  if (AI_CLOTHING_PANTS_LENGTH_KEYWORDS["100"].some((keyword) => text.includes(keyword))) {
-    return "100";
-  }
-  return "100";
-}
-
 function getAIClothingSkinToneInstruction(skinTone) {
   if (skinTone === "none") {
-    return "#FF30F8 is a strict exposed-skin marker, not fabric. Leave every #FF30F8 marker transparent when No skin is selected.";
+    return "#FF30F8 marks exposed-skin space. With No skin selected, keep every #FF30F8 marker transparent and clean.";
   }
   const selectedHex = getAIClothingSkinToneHex(skinTone) || AI_CLOTHING_SKIN_TONES.auto.hex;
-  return `#FF30F8 is a strict exposed-skin marker, not fabric. Generate every #FF30F8 marker as flat exact skin color ${selectedHex}. Never draw fabric, trim, seams, shading, graphics, or text over it.`;
+  return `#FF30F8 marks exposed Roblox avatar skin. Generate every #FF30F8 marker as flat exact skin color ${selectedHex}, with clean skin-only marker regions.`;
 }
 
 function expandAIClothingMask(maskBuffer, width, height, radius) {
@@ -1016,7 +1000,8 @@ async function enforceAIClothingPantsCropGuide(panelBuffer, referenceTemplateBuf
 }
 
 function buildAIClothingPrompt(input = {}) {
-  const garment = normalizeAIClothingGarmentType(input.garmentType);
+  const templateKey = String(input.templateKey || "").trim().toLowerCase();
+  const template = AI_CLOTHING_TEMPLATE_CONFIG[templateKey] || AI_CLOTHING_TEMPLATE_CONFIG.hoodie;
   const style = cleanAIClothingText(input.styleDirection, 160);
   const palette = cleanAIClothingText(input.colorPalette, 200);
   const vibe = cleanAIClothingText(input.audience, 200);
@@ -1024,32 +1009,13 @@ function buildAIClothingPrompt(input = {}) {
   const negativePrompt = cleanAIClothingText(input.negativePrompt, 700);
   const styleName = cleanAIClothingText(input.styleName, 60);
   const skinTone = normalizeAIClothingSkinTone(input.skinTone);
-  const sleeveLength = normalizeAIClothingSleeveLength(input.sleeveLength);
-  const pantsLength = normalizeAIClothingPantsLength(input.pantsLength);
-  const resolvedSleeveLength =
-    sleeveLength === "auto"
-      ? normalizeAIClothingSleeveLength(input.resolvedSleeveLength) !== "auto"
-        ? normalizeAIClothingSleeveLength(input.resolvedSleeveLength)
-        : inferAIClothingSleeveLength([userPrompt, style, vibe].filter(Boolean).join(" "))
-      : sleeveLength;
-  const resolvedPantsLength =
-    pantsLength === "auto"
-      ? normalizeAIClothingPantsLength(input.resolvedPantsLength) !== "auto"
-        ? normalizeAIClothingPantsLength(input.resolvedPantsLength)
-        : inferAIClothingPantsLength([userPrompt, style, vibe].filter(Boolean).join(" "))
-      : pantsLength;
-  const usesShirt =
-    garment === "shirt" ||
-    garment === "full_outfit" ||
-    garment === "matching_shirts" ||
-    garment === "matching_outfits";
-  const usesPants =
-    garment === "pants" ||
-    garment === "full_outfit" ||
-    garment === "matching_pants" ||
-    garment === "matching_outfits";
+  const resolvedSleeveLength = template.type === "shirt" ? template.sleeve : "";
+  const resolvedPantsLength = template.type === "pants" ? template.length : "";
   return {
-    garmentType: garment,
+    garmentType: template.type,
+    templateKey: AI_CLOTHING_TEMPLATE_CONFIG[templateKey] ? templateKey : "hoodie",
+    templateLabel: template.label,
+    templateInstruction: template.instruction,
     sleeveLength: resolvedSleeveLength,
     pantsLength: resolvedPantsLength,
     skinTone,
@@ -1062,163 +1028,45 @@ function buildAIClothingPrompt(input = {}) {
     styleName,
     promptPreview: [
       "Create a wearable Roblox clothing texture for the supplied Roblox character UV template.",
-      usesShirt ? `Resolved sleeve guide: ${resolvedSleeveLength}.` : "",
-      usesPants ? `Resolved pants length guide: ${resolvedPantsLength}%.` : "",
-      skinTone !== "auto" ? `Visible skin tone: ${skinTone}.` : "",
-      skinTone !== "auto" ? `Exact visible skin color: ${getAIClothingSkinToneHex(skinTone)}.` : "",
+      `Garment template: ${template.label}.`,
+      template.instruction,
+      `UV reference: ${template.type === "shirt" ? `${resolvedSleeveLength}-sleeve top` : `${resolvedPantsLength}% lower-body`} guide.`,
+      `Skin marker #FF30F8 uses ${getAIClothingSkinToneHex(skinTone) || AI_CLOTHING_SKIN_TONES.auto.hex}.`,
       `Design brief: ${userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
       style ? `Art direction: ${style}.` : "",
       palette ? `Color palette: ${palette}.` : "",
       vibe ? `Target vibe: ${vibe}.` : "",
-      negativePrompt ? `Avoid: ${negativePrompt}.` : "",
+      negativePrompt ? `Preferred exclusions: ${negativePrompt}.` : "",
     ].filter(Boolean).join(" "),
   };
 }
 
 function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
   const templateType = variant.templateType === "pants" ? "pants" : "shirt";
-  const sleeveInstruction = templateType === "shirt"
-      ? basePrompt.sleeveLength === "short"
-      ? "Use short sleeves and keep the visible hand and lower-arm opening zones clear. Sleeve fabric must stop before the exposed hand zone begins."
-      : basePrompt.sleeveLength === "sleeveless"
-        ? "Use true sleeveless arm treatment. In the supplied sleeveless ref test, #FF30F8 is a strict exposed-skin marker. Never put material, fabric, trim, seams, shading, graphics, or chains over #FF30F8. Render those zones as the selected skin tone; tattoos are allowed there only when the design brief asks for tattoos."
-        : "Use long sleeves but always leave a clear hand opening and cuff break at the wrist end of the supplied guide layout so the hands stay exposed. Any fully transparent cutout zone on the supplied sleeve reference is mandatory visible skin territory and must not be covered by sleeve fabric."
-    : "";
-  const sleeveReferenceInstruction = templateType === "shirt"
-    ? "This is a Roblox character clothing UV template, not a flat clothing mockup. Use the supplied sleeve reference only to identify exposed-skin zones; #FF30F8 means skin and never garment material."
-    : "";
-  const pantsLengthInstruction = templateType === "pants"
-    ? basePrompt.pantsLength === "30"
-      ? "This is a mandatory 30% shorts cutoff, not a style suggestion. Every #FF30F8 lower-leg guide zone is exposed Roblox avatar skin below the shorts hem. Never draw pants fabric, seams, cuffs, shadows, graphics, or patterns in those zones."
-      : basePrompt.pantsLength === "80"
-        ? "Use a cropped pants length around the 80% guide. The hot pink guide zones on the pants length reference are exposed skin zones below the fabric cutoff and should render in the selected skin tone."
-        : "Use a full pants length around the 100% guide. Any hot pink guide zones should stay as visible skin or open ankle territory rendered in the selected skin tone."
-    : "";
-  const pantsReferenceInstruction = templateType === "pants"
-    ? "On the supplied pants length reference, #FF30F8 is a strict skin marker. Any #FF30F8 area must become exposed skin in the exact selected skin hex or remain a clean open cutoff where the pants stop. Never place fabric or graphics over #FF30F8."
-    : "";
-  const garmentInstruction = templateType === "pants"
-    ? "Use only the supplied pants panel map. Focus strictly on waist, thigh, knee, calf, cuff, and ankle zones. Do not generate shirt collars, chest panels, sleeves, shoulder seams, or upper-body outfit pieces."
-    : "Use only the supplied Roblox shirt panel map. Focus strictly on torso front, torso back, side torso panels, sleeves, shoulders, cuffs, and neck opening zones. Do not generate leg-only layouts or lower-body outfit pieces that do not belong on the shirt map.";
-  const landmarkInstruction = templateType === "pants"
-    ? "The lowest exposed parts of the supplied pants guide represent ankle and shoe-entry territory, not random fabric panels. Keep those ankle openings readable and never treat them like sealed solid blocks."
-    : "The very top-center opening on the supplied shirt guide is always the neck area and must stay clear for the Roblox avatar neck. The lower ends of the arm strips are hand-opening territory and should stay separate from sleeve fabric.";
   return [
     "Create a clean wearable Roblox clothing texture on the supplied Roblox character UV template.",
     `Return only a wearable clothing texture at exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
     `The working image may be generated at ${AI_CLOTHING_GENERATION_SIZE}, but the final design must map cleanly back into the supplied panel layout size.`,
-    garmentInstruction,
-    sleeveInstruction,
-    sleeveReferenceInstruction,
-    pantsLengthInstruction,
-    pantsReferenceInstruction,
-    landmarkInstruction,
-    "Use the supplied layout only as a placement guide. Do not redraw mannequin previews, helper diagrams, template labels, divider lines, border strokes, letters, logos, or background sheet elements.",
-    "Keep artwork strictly inside its intended garment panels and aligned across connected torso panels. Never bleed, extend, or overpaint across a panel boundary into a transparent skin-guide zone.",
-    "Make the result feel like a real catalog-ready clothing texture, not a poster, mockup, or random square graphic.",
-    variant.modeInstruction || "",
-    variant.lookInstruction || "",
-    variant.partInstruction || "",
+    `Garment template: ${basePrompt.templateLabel}.`,
+    basePrompt.templateInstruction,
+    templateType === "shirt"
+      ? `Use the ${basePrompt.sleeveLength} sleeve Roblox top guide. The top section maps the torso and the lower two strips map the arms.`
+      : `Use the ${basePrompt.pantsLength}% lower-body Roblox guide. The lower section maps the two legs and the hot-pink regions map exposed avatar skin.`,
+    "Keep the artwork aligned inside the connected mapped garment regions. Keep the surrounding canvas, guide space, neck opening, and skin-marker regions clean.",
+    "#FF30F8 marks visible Roblox avatar skin on this template.",
+    "Make this a catalog-ready Roblox texture, with readable panels, seam-safe edges, and a cohesive front and back.",
     `Design brief: ${basePrompt.userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
     basePrompt.style ? `Art direction: ${basePrompt.style}.` : "",
     basePrompt.palette ? `Color palette: ${basePrompt.palette}.` : "",
     basePrompt.vibe ? `Target vibe: ${basePrompt.vibe}.` : "",
     basePrompt.styleName ? `Preset style tag: ${basePrompt.styleName}.` : "",
     getAIClothingSkinToneInstruction(basePrompt.skinTone),
-    basePrompt.negativePrompt ? `Avoid: ${basePrompt.negativePrompt}.` : "",
+    basePrompt.negativePrompt ? `Preferred exclusions: ${basePrompt.negativePrompt}.` : "",
   ].filter(Boolean).join(" ");
 }
 
 function buildAIClothingGenerationPlan(basePrompt) {
-  const mode = basePrompt.garmentType;
-  if (mode === "pants") {
-    return [{ key: "pants", label: "Pants Template", templateType: "pants" }];
-  }
-  if (mode === "full_outfit") {
-    return [
-      {
-        key: "full-outfit-shirt",
-        label: "Full Outfit Shirt",
-        templateType: "shirt",
-        modeInstruction: "This output is the shirt half of a single coordinated full outfit.",
-      },
-      {
-        key: "full-outfit-pants",
-        label: "Full Outfit Pants",
-        templateType: "pants",
-        modeInstruction: "This output is the pants half of a single coordinated full outfit. It should clearly match the shirt half in palette, texture language, trims, and overall vibe.",
-      },
-    ];
-  }
-  if (mode === "matching_shirts") {
-    return [
-      {
-        key: "matching-shirt-1",
-        label: "Look One Shirt",
-        templateType: "shirt",
-        modeInstruction: "This output is look one in a coordinated two-person matching set.",
-        lookInstruction: "Keep this look clearly related to the partner look through shared palette, motifs, trim language, and vibe, but do not make it an identical clone.",
-      },
-      {
-        key: "matching-shirt-2",
-        label: "Look Two Shirt",
-        templateType: "shirt",
-        modeInstruction: "This output is look two in a coordinated two-person matching set.",
-        lookInstruction: "Keep this look clearly related to the partner look through shared palette, motifs, trim language, and vibe, but do not make it an identical clone.",
-      },
-    ];
-  }
-  if (mode === "matching_pants") {
-    return [
-      {
-        key: "matching-pants-1",
-        label: "Look One Pants",
-        templateType: "pants",
-        modeInstruction: "This output is look one in a coordinated two-person matching set.",
-        lookInstruction: "Keep this look clearly related to the partner look through shared palette, motifs, trim language, and vibe, but do not make it an identical clone.",
-      },
-      {
-        key: "matching-pants-2",
-        label: "Look Two Pants",
-        templateType: "pants",
-        modeInstruction: "This output is look two in a coordinated two-person matching set.",
-        lookInstruction: "Keep this look clearly related to the partner look through shared palette, motifs, trim language, and vibe, but do not make it an identical clone.",
-      },
-    ];
-  }
-  if (mode === "matching_outfits") {
-    return [
-      {
-        key: "matching-outfit-1-shirt",
-        label: "Look One Shirt",
-        templateType: "shirt",
-        modeInstruction: "This output belongs to look one in a coordinated two-person matching outfit set.",
-        lookInstruction: "Keep this look clearly related to the partner look through shared palette, motifs, trim language, and vibe, but do not make it an identical clone.",
-      },
-      {
-        key: "matching-outfit-1-pants",
-        label: "Look One Pants",
-        templateType: "pants",
-        modeInstruction: "This output belongs to look one in a coordinated two-person matching outfit set.",
-        lookInstruction: "These pants should match look one's shirt and still stay coordinated with look two overall.",
-      },
-      {
-        key: "matching-outfit-2-shirt",
-        label: "Look Two Shirt",
-        templateType: "shirt",
-        modeInstruction: "This output belongs to look two in a coordinated two-person matching outfit set.",
-        lookInstruction: "Keep this look clearly related to the partner look through shared palette, motifs, trim language, and vibe, but do not make it an identical clone.",
-      },
-      {
-        key: "matching-outfit-2-pants",
-        label: "Look Two Pants",
-        templateType: "pants",
-        modeInstruction: "This output belongs to look two in a coordinated two-person matching outfit set.",
-        lookInstruction: "These pants should match look two's shirt and still stay coordinated with look one overall.",
-      },
-    ];
-  }
-  return [{ key: "shirt", label: "Shirt Template", templateType: "shirt" }];
+  return [{ key: basePrompt.templateKey, label: basePrompt.templateLabel, templateType: basePrompt.garmentType }];
 }
 
 async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, skinTone }) {
@@ -1269,7 +1117,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: templateUpload,
-    prompt: `${promptText} Build directly on the supplied blank Roblox ${normalizedTemplateType} clothing UV template for a Roblox character. The visible panel map is the only place for garment artwork; surrounding canvas and guide areas must remain empty. Do not add mannequin previews, template labels, helper diagrams, letters, logos, background sheet elements, or explanatory text. Return only mapped clothing artwork on that Roblox template.`,
+    prompt: `${promptText} Build directly on the supplied blank Roblox ${normalizedTemplateType} clothing UV template for a Roblox character. Place garment artwork in the visible panel map and keep surrounding canvas and guide areas empty. Return only mapped clothing artwork on that Roblox template.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -6003,6 +5851,7 @@ app.post("/ai/generate-clothing", async (req, res) => {
   try {
     await requireAdminUser(req);
     const promptPayload = {
+      templateKey: req.body?.templateKey,
       garmentType: req.body?.garmentType,
       sleeveLength: req.body?.sleeveLength,
       resolvedSleeveLength: req.body?.resolvedSleeveLength,
