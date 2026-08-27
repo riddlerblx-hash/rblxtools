@@ -794,6 +794,7 @@
     }
 
     .ai-generation-modal {
+      position: relative;
       width: 100%;
       max-height: calc(100vh - var(--shell-header-height));
       height: calc(100vh - var(--shell-header-height));
@@ -869,6 +870,8 @@
       padding: 0;
       display: grid;
       gap: 0;
+      height: 100%;
+      min-height: 100%;
     }
 
     @media (max-width: 920px) {
@@ -2776,18 +2779,18 @@
           darkskin: "#5C4030"
         };
         if (value === "none") {
-          return "Do not show visible skin. Keep exposed hand, arm, leg, neck, torso, and cutout zones covered or visually concealed by the garment design.";
+          return "#FF30F8 is a strict exposed-skin marker, not fabric. Leave every #FF30F8 marker transparent when No skin is selected.";
         }
         if (value === "white") {
-          return "Visible skin must use one flat, exact color only: " + hexByTone.white + ". Never shade, texture, write on, or vary that color in exposed-skin zones.";
+          return "Every #FF30F8 marker is exposed skin, never fabric. Generate one flat, exact skin color only: " + hexByTone.white + ". Never shade, texture, write on, or vary it.";
         }
         if (value === "lightskin") {
-          return "Visible skin must use one flat, exact color only: " + hexByTone.lightskin + ". Never shade, texture, write on, or vary that color in exposed-skin zones.";
+          return "Every #FF30F8 marker is exposed skin, never fabric. Generate one flat, exact skin color only: " + hexByTone.lightskin + ". Never shade, texture, write on, or vary it.";
         }
         if (value === "darkskin") {
-          return "Visible skin must use one flat, exact color only: " + hexByTone.darkskin + ". Never shade, texture, write on, or vary that color in exposed-skin zones.";
+          return "Every #FF30F8 marker is exposed skin, never fabric. Generate one flat, exact skin color only: " + hexByTone.darkskin + ". Never shade, texture, write on, or vary it.";
         }
-        return "";
+        return "Every #FF30F8 marker is exposed skin, never fabric. Generate one flat, exact skin color only: #DBB8A0. Never shade, texture, write on, or vary it.";
       }
 
       function syncVisiblePrompt() {
@@ -2850,13 +2853,13 @@
         var pantsLengthInstruction = !garmentConfig.usesPants
           ? ""
           : pantsFit === "30"
-            ? "This is a mandatory 30% shorts cutoff, not a style suggestion. Every hot pink lower-leg guide zone is exposed Roblox avatar skin below the shorts hem. Never draw pants fabric, seams, cuffs, shadows, graphics, or patterns in those zones."
-            : pantsFit === "80"
-              ? "Use a cropped pants length around the 80% guide. The hot pink guide zones on the pants length reference are exposed skin zones below the fabric cutoff and should render in the selected skin tone."
-              : "Use a full pants length around the 100% guide. Any hot pink guide zones should stay as visible skin or open ankle territory rendered in the selected skin tone.";
+            ? "This is a mandatory 30% shorts cutoff, not a style suggestion. Every #FF30F8 lower-leg guide zone is exposed Roblox avatar skin below the shorts hem. Never draw pants fabric, seams, cuffs, shadows, graphics, or patterns in those zones."
+          : pantsFit === "80"
+              ? "Use a cropped pants length around the 80% guide. The #FF30F8 guide zones on the pants length reference are exposed skin zones below the fabric cutoff and should render in the selected skin hex."
+              : "Use a full pants length around the 100% guide. Any #FF30F8 guide zones should stay as visible skin or open ankle territory rendered in the selected skin hex.";
         var pantsReferenceInstruction = !garmentConfig.usesPants
           ? ""
-          : "On the supplied pants length reference, bright hot pink is a strict skin marker. Any bright hot pink area must become exposed skin in the exact selected skin tone or remain a clean open cutoff where the pants stop. Never place fabric or graphics over hot pink guide zones.";
+          : "On the supplied pants length reference, #FF30F8 is a strict skin marker. Any #FF30F8 area must become exposed skin in the exact selected skin hex or remain a clean open cutoff where the pants stop. Never place fabric or graphics over #FF30F8.";
         var landmarkInstruction = garmentConfig.usesPants && !garmentConfig.usesShirt
           ? "The lowest exposed parts of the supplied pants guide represent ankle and shoe-entry territory, not random fabric panels. Keep those ankle openings readable and never treat them like sealed solid blocks."
           : garmentConfig.usesShirt

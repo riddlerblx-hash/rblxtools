@@ -363,7 +363,6 @@ async function alignAIClothingReferenceToOutput(referenceTemplateBuffer) {
 async function buildAIClothingGenerationReference(
   referenceTemplateBuffer,
   blankTemplateBuffer,
-  skinTone,
   templateType
 ) {
   const sharp = getSharp();
@@ -382,7 +381,6 @@ async function buildAIClothingGenerationReference(
     .toBuffer({ resolveWithObject: true });
 
   const outputRaw = Buffer.from(blankTemplateRaw.data);
-  const tone = getAIClothingSkinToneColor(skinTone);
 
   for (let offset = 0; offset < referenceTemplateRaw.data.length; offset += 4) {
     const pixelIndex = offset / 4;
@@ -396,12 +394,12 @@ async function buildAIClothingGenerationReference(
     const alpha = referenceTemplateRaw.data[offset + 3];
 
     if (templateType === "shirt" && alpha <= 16) {
-      if (tone) {
-        outputRaw[offset] = tone.r;
-        outputRaw[offset + 1] = tone.g;
-        outputRaw[offset + 2] = tone.b;
-        outputRaw[offset + 3] = 255;
-      }
+      // Give the model the same explicit #FF30F8 skin marker used by pants.
+      // The model, not post-processing, now renders the selected skin hex.
+      outputRaw[offset] = 255;
+      outputRaw[offset + 1] = 48;
+      outputRaw[offset + 2] = 248;
+      outputRaw[offset + 3] = 255;
       continue;
     }
 
@@ -462,18 +460,10 @@ function inferAIClothingPantsLength(promptText) {
 
 function getAIClothingSkinToneInstruction(skinTone) {
   if (skinTone === "none") {
-    return "Do not show visible skin. Keep exposed hand, arm, leg, neck, torso, and cutout zones covered or visually concealed by the garment design.";
+    return "#FF30F8 is a strict exposed-skin marker, not fabric. Leave every #FF30F8 marker transparent when No skin is selected.";
   }
-  if (skinTone === "white") {
-    return `Visible skin must use one flat, exact color only: ${getAIClothingSkinToneHex(skinTone)}. Never shade, texture, write on, or vary that color in exposed-skin zones.`;
-  }
-  if (skinTone === "lightskin") {
-    return `Visible skin must use one flat, exact color only: ${getAIClothingSkinToneHex(skinTone)}. Never shade, texture, write on, or vary that color in exposed-skin zones.`;
-  }
-  if (skinTone === "darkskin") {
-    return `Visible skin must use one flat, exact color only: ${getAIClothingSkinToneHex(skinTone)}. Never shade, texture, write on, or vary that color in exposed-skin zones.`;
-  }
-  return "";
+  const selectedHex = getAIClothingSkinToneHex(skinTone) || AI_CLOTHING_SKIN_TONES.auto.hex;
+  return `#FF30F8 is a strict exposed-skin marker, not fabric. Generate every #FF30F8 marker as flat exact skin color ${selectedHex}. Never draw fabric, trim, seams, shading, graphics, or text over it.`;
 }
 
 function expandAIClothingMask(maskBuffer, width, height, radius) {
@@ -1099,13 +1089,13 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     : "";
   const pantsLengthInstruction = templateType === "pants"
     ? basePrompt.pantsLength === "30"
-      ? "This is a mandatory 30% shorts cutoff, not a style suggestion. Every hot pink lower-leg guide zone is exposed Roblox avatar skin below the shorts hem. Never draw pants fabric, seams, cuffs, shadows, graphics, or patterns in those zones."
+      ? "This is a mandatory 30% shorts cutoff, not a style suggestion. Every #FF30F8 lower-leg guide zone is exposed Roblox avatar skin below the shorts hem. Never draw pants fabric, seams, cuffs, shadows, graphics, or patterns in those zones."
       : basePrompt.pantsLength === "80"
         ? "Use a cropped pants length around the 80% guide. The hot pink guide zones on the pants length reference are exposed skin zones below the fabric cutoff and should render in the selected skin tone."
         : "Use a full pants length around the 100% guide. Any hot pink guide zones should stay as visible skin or open ankle territory rendered in the selected skin tone."
     : "";
   const pantsReferenceInstruction = templateType === "pants"
-    ? "On the supplied pants length reference, bright hot pink is a strict skin marker. Any bright hot pink area must become exposed skin in the exact selected skin tone or remain a clean open cutoff where the pants stop. Never place fabric or graphics over hot pink guide zones."
+    ? "On the supplied pants length reference, #FF30F8 is a strict skin marker. Any #FF30F8 area must become exposed skin in the exact selected skin hex or remain a clean open cutoff where the pants stop. Never place fabric or graphics over #FF30F8."
     : "";
   const garmentInstruction = templateType === "pants"
     ? "Use only the supplied pants panel map. Focus strictly on waist, thigh, knee, calf, cuff, and ankle zones. Do not generate shirt collars, chest panels, sleeves, shoulder seams, or upper-body outfit pieces."
@@ -1241,7 +1231,6 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   }
 
   const normalizedTemplateType = templateType === "pants" ? "pants" : "shirt";
-  const allowSkinTattoos = /\btattoos?\b/i.test(promptText);
   const resolvedSleeveReferenceKey =
     normalizedTemplateType === "shirt"
       ? (sleeveLength === "short" || sleeveLength === "sleeveless" ? sleeveLength : "long")
@@ -1250,8 +1239,6 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     normalizedTemplateType === "pants"
       ? (pantsLength === "30" || pantsLength === "80" ? pantsLength : "100")
       : "";
-  const requestedSkinTone = normalizeAIClothingSkinTone(skinTone);
-  const appliedSkinTone = requestedSkinTone;
   const referenceTemplatePath = normalizedTemplateType === "shirt"
     ? AI_SLEEVE_REFERENCE_PATHS[resolvedSleeveReferenceKey]
     : AI_PANTS_REFERENCE_PATHS[resolvedPantsReferenceKey];
@@ -1273,7 +1260,6 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generationReferenceBuffer = await buildAIClothingGenerationReference(
     referenceTemplateBuffer,
     cleanedApplyTemplateBuffer,
-    appliedSkinTone,
     normalizedTemplateType
   );
   const templateUpload = await toFile(Readable.from([generationReferenceBuffer]), path.basename(applicationTemplatePath), {
@@ -1309,16 +1295,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     cleanedApplyTemplateBuffer,
     normalizedTemplateType
   );
-  const skinMappedBuffer = await applyAIClothingSkinGuide(
-    panelMappedBuffer,
-    referenceTemplateBuffer,
-    appliedSkinTone,
-    normalizedTemplateType,
-    resolvedSleeveReferenceKey,
-    resolvedPantsReferenceKey,
-    allowSkinTattoos
-  );
-  const repairedArtBuffer = skinMappedBuffer;
+  const repairedArtBuffer = panelMappedBuffer;
   const templateRaw = await sharp(cleanedApplyTemplateBuffer)
     .ensureAlpha()
     .raw()
@@ -1362,33 +1339,10 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   })
     .png()
     .toBuffer();
-  // Enforce crop regions after every other processing step so they cannot
-  // turn back into full-length fabric, including when "No skin" is selected.
-  const hasCroppedPantsGuide =
-    normalizedTemplateType === "pants" &&
-    (resolvedPantsReferenceKey === "30" || resolvedPantsReferenceKey === "80");
-  const finalBuffer = hasCroppedPantsGuide
-    ? await enforceAIClothingPantsCropGuide(
-        maskedArtBuffer,
-        referenceTemplateBuffer,
-        appliedSkinTone
-      )
-    : normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "sleeveless"
-      ? await applyAIClothingSkinGuide(
-        maskedArtBuffer,
-        referenceTemplateBuffer,
-        appliedSkinTone,
-        normalizedTemplateType,
-        resolvedSleeveReferenceKey,
-        resolvedPantsReferenceKey,
-        allowSkinTattoos
-      )
-      : maskedArtBuffer;
-
   return {
-    outputBuffer: finalBuffer,
+    outputBuffer: maskedArtBuffer,
     outputMime: "image/png",
-    outputBase64: finalBuffer.toString("base64"),
+    outputBase64: maskedArtBuffer.toString("base64"),
     outputWidth: AI_CLOTHING_OUTPUT_WIDTH,
     outputHeight: AI_CLOTHING_OUTPUT_HEIGHT,
     sourceGenerationSize: AI_CLOTHING_GENERATION_SIZE,
