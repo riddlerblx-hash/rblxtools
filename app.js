@@ -1007,8 +1007,14 @@ function buildAIClothingPrompt(input = {}) {
   const negativePrompt = cleanAIClothingText(input.negativePrompt, 700);
   const styleName = cleanAIClothingText(input.styleName, 60);
   const skinTone = normalizeAIClothingSkinTone(input.skinTone);
-  const resolvedSleeveLength = template.type === "shirt" ? template.sleeve : "";
-  const resolvedPantsLength = template.type === "pants" ? template.length : "";
+  const requestedSleeveLength = String(input.resolvedSleeveLength || input.sleeveLength || "").trim().toLowerCase();
+  const requestedPantsLength = String(input.resolvedPantsLength || input.pantsLength || "").trim();
+  const resolvedSleeveLength = template.type === "shirt"
+    ? (["long", "short", "sleeveless"].includes(requestedSleeveLength) ? requestedSleeveLength : template.sleeve)
+    : "";
+  const resolvedPantsLength = template.type === "pants"
+    ? (["30", "80", "100"].includes(requestedPantsLength) ? requestedPantsLength : template.length)
+    : "";
   return {
     garmentType: template.type,
     templateKey: AI_CLOTHING_TEMPLATE_CONFIG[templateKey] ? templateKey : "hoodie",
@@ -1155,7 +1161,18 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     cleanedApplyTemplateBuffer,
     normalizedTemplateType
   );
-  const repairedArtBuffer = panelMappedBuffer;
+  // The second reference image teaches the model where skin belongs. This
+  // final pass guarantees that its #FF30F8 markers never ship as white seams
+  // or fabric, even when the generated artwork ignores the guide.
+  const repairedArtBuffer = await applyAIClothingSkinGuide(
+    panelMappedBuffer,
+    cleanedReferenceTemplateBuffer,
+    skinTone,
+    normalizedTemplateType,
+    sleeveLength,
+    pantsLength,
+    /\btattoo(?:s)?\b/i.test(promptText)
+  );
   const templateRaw = await sharp(cleanedApplyTemplateBuffer)
     .ensureAlpha()
     .raw()

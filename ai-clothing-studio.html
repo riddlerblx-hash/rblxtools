@@ -1572,7 +1572,25 @@
             </select>
           </div>
 
-          <div class="ai-control-group">
+          <div class="ai-control-group" id="aiSleeveLengthGroup">
+            <label class="ai-chip-heading" for="aiSleeveLength">Sleeve Length:</label>
+            <select class="ai-select" id="aiSleeveLength" style="margin-top:10px;">
+              <option value="long">Long sleeves</option>
+              <option value="short">Short sleeves</option>
+              <option value="sleeveless">Sleeveless</option>
+            </select>
+          </div>
+
+          <div class="ai-control-group is-hidden" id="aiPantsLengthGroup">
+            <label class="ai-chip-heading" for="aiPantsLength">Pants Length:</label>
+            <select class="ai-select" id="aiPantsLength" style="margin-top:10px;">
+              <option value="100">Full length</option>
+              <option value="80">Capri / cropped</option>
+              <option value="30">Shorts / cropped</option>
+            </select>
+          </div>
+
+          <div class="ai-control-group is-hidden" id="aiFootwearGroup">
             <label class="ai-chip-heading" for="aiFootwear">Shoes / Socks:</label>
             <select class="ai-select" id="aiFootwear" style="margin-top:10px;">
               <option value="">None</option><option value="low socks">Low socks</option><option value="crew socks">Crew socks</option><option value="thigh-high socks">Thigh-high socks</option><option value="sneakers">Sneakers</option><option value="boots">Boots</option><option value="sandals">Sandals</option><option value="sneakers with socks">Sneakers with socks</option><option value="boots with socks">Boots with socks</option>
@@ -1763,6 +1781,11 @@
       var builtPrompt = document.getElementById("aiBuiltPrompt");
       var negativePrompt = document.getElementById("aiNegativePrompt");
       var templateKey = document.getElementById("aiTemplateKey");
+      var sleeveLength = document.getElementById("aiSleeveLength");
+      var pantsLength = document.getElementById("aiPantsLength");
+      var sleeveLengthGroup = document.getElementById("aiSleeveLengthGroup");
+      var pantsLengthGroup = document.getElementById("aiPantsLengthGroup");
+      var footwearGroup = document.getElementById("aiFootwearGroup");
       var footwear = document.getElementById("aiFootwear");
       var garmentType = document.getElementById("aiGarmentType");
       var styleDirection = document.getElementById("aiStyleDirection");
@@ -2567,7 +2590,19 @@
         var normalized = TEMPLATE_CONFIG[value] ? value : "hoodie";
         if (templateKey) templateKey.value = normalized;
         if (garmentType) garmentType.value = TEMPLATE_CONFIG[normalized].type;
+        updateTemplateDependentControls();
         updateLiveTokenCost();
+      }
+
+      function updateTemplateDependentControls() {
+        var selectedTemplate = getSelectedTemplate();
+        var isPants = selectedTemplate.type === "pants";
+        if (sleeveLengthGroup) sleeveLengthGroup.classList.toggle("is-hidden", isPants);
+        if (pantsLengthGroup) pantsLengthGroup.classList.toggle("is-hidden", !isPants);
+        if (footwearGroup) footwearGroup.classList.toggle("is-hidden", !isPants);
+        if (!isPants && footwear) footwear.value = "";
+        if (!isPants && sleeveLength && selectedTemplate.sleeve) sleeveLength.value = selectedTemplate.sleeve;
+        if (isPants && pantsLength && selectedTemplate.length) pantsLength.value = selectedTemplate.length;
       }
 
       function setSkinTone(value) {
@@ -2648,6 +2683,8 @@
         var userPrompt = String(prompt.value || "").trim();
         var avoidPrompt = String(negativePrompt.value || "").trim();
         var footwearValue = footwear ? String(footwear.value || "").trim() : "";
+        var selectedSleeveLength = sleeveLength ? String(sleeveLength.value || selectedTemplate.sleeve || "long").trim() : selectedTemplate.sleeve;
+        var selectedPantsLength = pantsLength ? String(pantsLength.value || selectedTemplate.length || "100").trim() : selectedTemplate.length;
 
         var lines = [
           "Create a clean wearable Roblox clothing texture for the supplied Roblox character UV template.",
@@ -2657,8 +2694,8 @@
           "Input image 2 is the selected sleeve or lower-body reference: use it only to identify garment panels and #FF30F8 skin markers.",
           "Garment template: " + selectedTemplate.label + ".",
           selectedTemplate.type === "shirt"
-            ? "Use the " + selectedTemplate.sleeve + " sleeve Roblox top guide. Torso panels are only the top six islands; the twelve lower islands are arm faces, never torso front or back."
-            : "Use the " + selectedTemplate.length + "% lower-body Roblox guide. Every mapped panel in the bottom section belongs to the two legs: front, back, left, right, top, and bottom leg faces. Keep the upper torso section blank for this lower-body template. #FF30F8 maps exposed avatar skin.",
+            ? "Use the " + selectedSleeveLength + " sleeve Roblox top guide. Torso panels are only the top six islands; the twelve lower islands are arm faces, never torso front or back."
+            : "Use the " + selectedPantsLength + "% lower-body Roblox guide. Every mapped panel in the bottom section belongs to the two legs: front, back, left, right, top, and bottom leg faces. Keep the upper torso section blank for this lower-body template. #FF30F8 maps exposed avatar skin.",
           "#FF30F8 is a strict exposed-skin marker. Use only the selected skin color there, with no fabric, material, trim, seams, shadows, patterns, or graphics.",
           "DO NOT draw white outlines, white gutters, white panel borders, white divider lines, white backgrounds, guide boxes, template labels, helper diagrams, mannequins, or mockups.",
           "DO NOT put artwork over #FF30F8 skin markers, the neck opening, or unused transparent guide space. Do not cross a UV island boundary.",
@@ -2675,7 +2712,7 @@
         if (vibe) {
           lines.push("Target vibe: " + vibe + ".");
         }
-        if (footwearValue) {
+        if (selectedTemplate.type === "pants" && footwearValue) {
           lines.push("Shoes / socks: " + footwearValue + ". Apply that only to the lower-leg and ankle regions of the lower-body map.");
         }
         lines.push(formatSkinToneInstruction(selectedSkinTone));
@@ -3116,17 +3153,17 @@
         return {
           templateKey: templateKey ? templateKey.value : "hoodie",
           garmentType: selectedTemplate.type,
-          sleeveLength: selectedTemplate.sleeve || "auto",
-          resolvedSleeveLength: selectedTemplate.sleeve || "auto",
-          pantsLength: selectedTemplate.length || "100",
-          resolvedPantsLength: selectedTemplate.length || "100",
+          sleeveLength: sleeveLength ? sleeveLength.value : (selectedTemplate.sleeve || "long"),
+          resolvedSleeveLength: sleeveLength ? sleeveLength.value : (selectedTemplate.sleeve || "long"),
+          pantsLength: pantsLength ? pantsLength.value : (selectedTemplate.length || "100"),
+          resolvedPantsLength: pantsLength ? pantsLength.value : (selectedTemplate.length || "100"),
           skinTone: skinTone ? skinTone.value : "auto",
           skinToneHex: resolveSkinToneColor(),
           generationCost: getGenerationCost(),
           styleDirection: styleValue,
           colorPalette: colorPalette.value,
           audience: audience.value,
-          footwear: footwear ? footwear.value : "",
+          footwear: selectedTemplate.type === "pants" && footwear ? footwear.value : "",
           userPrompt: prompt.value,
           negativePrompt: negativePrompt.value,
           styleName: styleValue
@@ -3282,6 +3319,8 @@
           buildGeneratorPrompt();
         });
       }
+      if (sleeveLength) sleeveLength.addEventListener("change", buildGeneratorPrompt);
+      if (pantsLength) pantsLength.addEventListener("change", buildGeneratorPrompt);
       if (footwear) {
         footwear.addEventListener("change", buildGeneratorPrompt);
       }
@@ -3362,6 +3401,7 @@
 
       setTemplate("hoodie");
       setSkinTone("auto");
+      updateTemplateDependentControls();
       updateLiveTokenCost();
       buildGeneratorPrompt();
       resetRatingState();
