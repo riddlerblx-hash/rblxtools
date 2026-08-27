@@ -1012,7 +1012,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     : "";
   const pantsLengthInstruction = templateType === "pants"
     ? basePrompt.pantsLength === "30"
-      ? "Use a short pants length around the 30% guide. The hot pink guide zones on the pants length reference are exposed skin zones below the shorts cutoff and should render in the selected skin tone."
+      ? "This is a mandatory 30% shorts cutoff, not a style suggestion. Every hot pink lower-leg guide zone is exposed Roblox avatar skin below the shorts hem. Never draw pants fabric, seams, cuffs, shadows, graphics, or patterns in those zones."
       : basePrompt.pantsLength === "80"
         ? "Use a cropped pants length around the 80% guide. The hot pink guide zones on the pants length reference are exposed skin zones below the fabric cutoff and should render in the selected skin tone."
         : "Use a full pants length around the 100% guide. Any hot pink guide zones should stay as visible skin or open ankle territory rendered in the selected skin tone."
@@ -1275,10 +1275,12 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   })
     .png()
     .toBuffer();
-  // Reapply only the explicit pink sleeveless markers after masking. This is
-  // the same normal template flow as long sleeves, with a final marker pass so
-  // #FF30F8 cannot turn back into fabric during edge cleanup.
-  const finalBuffer = normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "sleeveless"
+  // Reapply explicit skin markers after masking so #FF30F8 guide zones cannot
+  // turn back into fabric during edge cleanup.
+  const requiresFinalSkinGuide =
+    (normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "sleeveless") ||
+    (normalizedTemplateType === "pants" && (resolvedPantsReferenceKey === "30" || resolvedPantsReferenceKey === "80"));
+  const finalBuffer = requiresFinalSkinGuide
     ? await applyAIClothingSkinGuide(
         maskedArtBuffer,
         referenceTemplateBuffer,
