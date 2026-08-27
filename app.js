@@ -703,6 +703,16 @@ async function rebuildAIClothingPanelsOnBlankTemplate(generatedBuffer, blankTemp
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
+  const transparentCanvas = await sharp({
+    create: {
+      width: AI_CLOTHING_OUTPUT_WIDTH,
+      height: AI_CLOTHING_OUTPUT_HEIGHT,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .png()
+    .toBuffer();
   const composites = [];
 
   for (let index = 0; index < panels.length; index += 1) {
@@ -756,7 +766,9 @@ async function rebuildAIClothingPanelsOnBlankTemplate(generatedBuffer, blankTemp
     });
   }
 
-  return sharp(baseTemplate)
+  // The blank Roblox guide has visible white border pixels. Build the final
+  // texture on transparency so guide artwork can never become a worn seam.
+  return sharp(transparentCanvas)
     .composite(composites)
     .png()
     .toBuffer();
