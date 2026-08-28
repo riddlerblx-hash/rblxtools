@@ -3275,7 +3275,8 @@ body.rblx-subscription-store .plans-grid .plan-top { display:block; text-align:c
 body.rblx-subscription-store .plans-grid .plan-title { margin:0; font-size:clamp(31px,3vw,40px) !important; }
 body.rblx-subscription-store .plans-grid .plan-subtitle { min-height:55px; margin:10px 0 16px; text-align:center; }
 body.rblx-subscription-store .plans-grid .price-box { width:100%; margin:0 0 16px; text-align:center; }
-body.rblx-subscription-store .plans-grid .plan-grid { display:grid; gap:8px; }
+body.rblx-subscription-store .plans-grid .plan-subtitle,
+body.rblx-subscription-store .plans-grid .plan-grid { display:none; }
 body.rblx-subscription-store .plans-grid .perk-card { padding:10px !important; }
 body.rblx-subscription-store .plans-grid .section-kicker,
 body.rblx-subscription-store .plans-grid .note-box,
@@ -3287,6 +3288,13 @@ body.rblx-subscription-store .plans-grid .plus-cta-group { margin-top:auto; }
 body.rblx-subscription-store .plans-grid .plus-cta-group .cta { width:100%; }
 body.rblx-subscription-store .plans-grid .plus-cta-group .cta.secondary { display:none; }
 body.rblx-subscription-store .plans-grid .status { min-height:18px; margin-top:9px; text-align:center; }
+body.rblx-subscription-store .subscription-perks { display:grid; gap:9px; margin:0; padding:0; list-style:none; text-align:left; }
+body.rblx-subscription-store .subscription-perks li { position:relative; padding:10px 10px 10px 31px; border:1px solid rgba(123,164,255,.18); border-radius:11px; background:rgba(255,255,255,.035); color:#e8edf8; font-size:12px; font-weight:800; line-height:1.25; }
+body.rblx-subscription-store .subscription-perks li::before { content:"+"; position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#38e6e0; font-size:17px; font-weight:900; }
+body.rblx-subscription-store .plus-card .subscription-perks li { border-color:rgba(56,230,224,.23); background:rgba(56,230,224,.055); }
+body.rblx-subscription-store .pro-card .subscription-perks li::before { color:#ffd26a; }
+body.rblx-subscription-store .rblx-shell-footer { min-height:245px; margin-top:26px; }
+body.rblx-subscription-store .rblx-shell-footer-top { padding:34px; }
 @media (max-width:900px) {
   body.rblx-subscription-store main { display:block; min-height:0; padding:42px 14px 68px; }
   body.rblx-subscription-store .plans-grid { grid-template-columns:1fr; }
