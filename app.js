@@ -35,6 +35,7 @@ const ROBLOSECURITY = process.env.ROBLOSECURITY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const AUTH_USERS_TABLE = process.env.AUTH_USERS_TABLE || "member_accounts";
+const AI_TOKEN_PURCHASES_TABLE = process.env.AI_TOKEN_PURCHASES_TABLE || "ai_token_purchases";
 const MODERATION_ACTIONS_TABLE = process.env.MODERATION_ACTIONS_TABLE || "member_moderation_actions";
 const DEVICE_LINKS_TABLE = process.env.DEVICE_LINKS_TABLE || "member_device_links";
 const AUTH_JWT_SECRET = String(process.env.AUTH_JWT_SECRET || "");
@@ -76,6 +77,13 @@ const MAX_AI_THUMBNAIL_REFERENCE_IMAGES = 3;
 const MAX_AI_THUMBNAIL_REFERENCE_BYTES = 2 * 1024 * 1024;
 const AI_TOKEN_DEFAULT_BALANCE = 0;
 const AI_THUMBNAIL_TOKEN_COST = 1;
+const AI_TOKEN_PACKAGES = [
+  { key: "20", tokens: 20, priceCents: 300, priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_20 || "").trim() },
+  { key: "45", tokens: 45, priceCents: 500, priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_45 || "").trim() },
+  { key: "130", tokens: 130, priceCents: 1300, priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_130 || "").trim() },
+  { key: "245", tokens: 245, priceCents: 2300, priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_245 || "").trim() },
+  { key: "500", tokens: 500, priceCents: 50000, priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_500 || "").trim() },
+];
 const AI_CLOTHING_SKIN_TONES = {
   white: { hex: "#EFD2BF", r: 239, g: 210, b: 191, a: 255 },
   lightskin: { hex: "#C99876", r: 201, g: 152, b: 118, a: 255 },
@@ -1374,6 +1382,14 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
       case "checkout.session.completed": {
         const session = event.data.object;
 
+        if (
+          session.mode === "payment" &&
+          session.payment_status === "paid" &&
+          session.metadata?.aiTokenQuantity
+        ) {
+          await grantAITokensFromStripeCheckout(session);
+        }
+
         if (session.mode === "subscription" && session.metadata && session.metadata.appUserId) {
           const customerId =
             typeof session.customer === "string"
@@ -1549,6 +1565,14 @@ function getSafeCheckoutCancelUrl() {
   return `${getSafePortalReturnUrl()}?checkout=cancelled`;
 }
 
+function getSafeAiTokenStoreSuccessUrl() {
+  return `${getSanitizedAppBaseUrl()}/ai-tokens?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+}
+
+function getSafeAiTokenStoreCancelUrl() {
+  return `${getSanitizedAppBaseUrl()}/ai-tokens?checkout=cancelled`;
+}
+
 function assertStripePortalConfigured() {
   if (!STRIPE_SECRET_KEY || !stripeClient) {
     const error = new Error("Stripe customer portal is not configured.");
@@ -1588,6 +1612,20 @@ function getPlanForSubscriptionStatus(status) {
 function getAITokenBalance(user) {
   const parsed = Number.parseInt(user?.ai_token_balance, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : AI_TOKEN_DEFAULT_BALANCE;
+}
+
+function getAITokenPackage(packageKey) {
+  return AI_TOKEN_PACKAGES.find((item) => item.key === String(packageKey || "").trim()) || null;
+}
+
+function getPublicAITokenPackages() {
+  return AI_TOKEN_PACKAGES.map((item) => ({
+    key: item.key,
+    tokens: item.tokens,
+    priceCents: item.priceCents,
+    currency: "usd",
+    configured: Boolean(item.priceId),
+  }));
 }
 
 function extractMissingSupabaseColumnName(error) {
@@ -2841,6 +2879,29 @@ async function debitAITokens(userId, cost) {
   const error = new Error("Your AI token balance changed. Please try again.");
   error.statusCode = 409;
   throw error;
+}
+
+async function grantAITokensFromStripeCheckout(session) {
+  const userId = String(session?.metadata?.appUserId || "").trim();
+  const tokens = Number.parseInt(session?.metadata?.aiTokenQuantity, 10);
+  const packageKey = String(session?.metadata?.aiTokenPackage || "").trim();
+  const packageDefinition = getAITokenPackage(packageKey);
+  const sessionId = String(session?.id || "").trim();
+
+  if (!userId || !sessionId || !packageDefinition || packageDefinition.tokens !== tokens) {
+    throw new Error("AI token checkout metadata is invalid.");
+  }
+
+  const rows = await supabaseRequest("/rest/v1/rpc/grant_ai_token_purchase", {
+    method: "POST",
+    body: JSON.stringify({
+      p_session_id: sessionId,
+      p_user_id: userId,
+      p_tokens: tokens,
+    }),
+  });
+
+  return Number.parseInt(rows, 10) || 0;
 }
 
 async function getDeviceLinksForUser(userId) {
@@ -7012,6 +7073,48 @@ app.get("/coupon-status", async (req, res) => {
     console.error("GET /coupon-status failed:", error.message);
     return res.status(error.statusCode || 500).json({
       error: error.message || "Could not load coupon status.",
+    });
+  }
+});
+
+app.get("/store/ai-token-packages", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({ ok: true, packages: getPublicAITokenPackages() });
+});
+
+app.post("/store/create-ai-token-checkout", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const packageDefinition = getAITokenPackage(req.body?.packageKey);
+    if (!packageDefinition) {
+      return res.status(400).json({ error: "Choose a valid AI token package." });
+    }
+    if (!packageDefinition.priceId) {
+      return res.status(503).json({ error: "This AI token package is not configured yet." });
+    }
+
+    const customerId = await getOrCreateStripeCustomerForUser(user);
+    const checkoutSession = await stripeClient.checkout.sessions.create({
+      mode: "payment",
+      customer: customerId,
+      line_items: [{ price: packageDefinition.priceId, quantity: 1 }],
+      success_url: getSafeAiTokenStoreSuccessUrl(),
+      cancel_url: getSafeAiTokenStoreCancelUrl(),
+      allow_promotion_codes: true,
+      client_reference_id: user.id,
+      metadata: {
+        appUserId: user.id,
+        aiTokenPackage: packageDefinition.key,
+        aiTokenQuantity: String(packageDefinition.tokens),
+      },
+    });
+
+    return res.json({ ok: true, url: checkoutSession.url });
+  } catch (error) {
+    console.error("POST /store/create-ai-token-checkout failed:", error.message);
+    return res.status(error.statusCode || 500).json({
+      error: error.message || "Could not create the AI token checkout session.",
     });
   }
 });
