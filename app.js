@@ -7101,15 +7101,20 @@ app.get("/coupon-status", async (req, res) => {
   }
 });
 
-app.get("/store/ai-token-packages", (_req, res) => {
-  res.setHeader("Cache-Control", "no-store");
-  return res.json({ ok: true, packages: getPublicAITokenPackages() });
+app.get("/store/ai-token-packages", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ ok: true, packages: getPublicAITokenPackages() });
+  } catch (error) {
+    return res.status(error.statusCode || 403).json({ error: error.message || "Admin access is required." });
+  }
 });
 
 app.post("/store/create-ai-token-checkout", async (req, res) => {
   try {
     assertStripePortalConfigured();
-    const user = await requireAuthenticatedUser(req);
+    const user = await requireAdminUser(req);
     const packageDefinition = getAITokenPackage(req.body?.packageKey);
     if (!packageDefinition) {
       return res.status(400).json({ error: "Choose a valid AI token package." });
@@ -8846,6 +8851,15 @@ app.use((error, req, res, next) => {
     return next(error);
   }
   return next(error);
+});
+
+app.get(["/ai-tokens", "/ai-tokens.html"], async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    return res.sendFile(path.join(STATIC_ROOT, "ai-tokens.html"));
+  } catch (_error) {
+    return res.redirect(302, "/");
+  }
 });
 
 app.use(express.static(STATIC_ROOT, {

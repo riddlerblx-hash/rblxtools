@@ -142,7 +142,7 @@
     {
       title: "Store",
       items: [
-        { href: "./ai-tokens", label: "AI Tokens", icon: "spark" },
+        { href: "./ai-tokens", label: "AI Tokens", icon: "spark", adminOnly: true },
         { href: "./subscriptions", label: "Subscriptions", icon: "plan" }
       ]
     },

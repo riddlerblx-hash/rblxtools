@@ -3281,27 +3281,12 @@ body.rblx-subscription-store .subscription-perks li { position:relative; padding
 body.rblx-subscription-store .subscription-perks li::before { content:"+"; position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#38e6e0; font-size:17px; font-weight:900; }
 body.rblx-subscription-store .plus-card .subscription-perks li { border-color:rgba(56,230,224,.23); background:rgba(56,230,224,.055); }
 body.rblx-subscription-store .pro-card .subscription-perks li::before { color:#ffd26a; }
-body.rblx-subscription-store .rblx-shell-footer { display:none; }
-body.rblx-subscription-store .subscription-store-footer { width:100%; margin-top:38px; padding:30px 34px; border:1px solid rgba(123,164,255,.24); border-radius:24px; background:radial-gradient(circle at top right,rgba(255,84,104,.16),transparent 32%),radial-gradient(circle at bottom left,rgba(104,130,255,.14),transparent 30%),linear-gradient(145deg,rgba(25,36,59,.98),rgba(10,15,27,.99)); box-shadow:0 22px 46px rgba(2,6,18,.28); }
-body.rblx-subscription-store .subscription-store-footer-top { display:grid; grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(120px,.55fr)); gap:22px; }
-body.rblx-subscription-store .subscription-store-footer-kicker { margin:0 0 10px; color:#ffafbd; font-size:10px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
-body.rblx-subscription-store .subscription-store-footer h2 { margin:0; max-width:14ch; color:#f7f8ef; font-size:clamp(25px,3vw,39px); line-height:.98; letter-spacing:-.045em; }
-body.rblx-subscription-store .subscription-store-footer p { margin:12px 0 0; max-width:48ch; color:#b9c4d7; font-size:13px; font-weight:650; line-height:1.55; }
-body.rblx-subscription-store .subscription-store-footer-links { display:grid; align-content:start; gap:10px; }
-body.rblx-subscription-store .subscription-store-footer-links strong { color:#f1f4fc; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
-body.rblx-subscription-store .subscription-store-footer-links a { color:#b9c8e7; font-size:12px; font-weight:750; text-decoration:none; }
-body.rblx-subscription-store .subscription-store-footer-links a:hover { color:#38e6e0; }
-body.rblx-subscription-store .subscription-store-footer-bottom { display:flex; justify-content:space-between; gap:16px; margin-top:26px; padding-top:17px; border-top:1px solid rgba(255,255,255,.08); color:#8794ac; font-size:11px; font-weight:700; }
 @media (max-width:900px) {
   body.rblx-subscription-store main { display:block; min-height:0; padding:42px 14px 68px; }
   body.rblx-subscription-store .plans-grid { grid-template-columns:1fr; }
   body.rblx-subscription-store .plan-col.plus-focus { transform:none; }
   body.rblx-subscription-store .plan-card { min-height:0 !important; }
-  body.rblx-subscription-store .subscription-store-footer { padding:24px 20px; }
-  body.rblx-subscription-store .subscription-store-footer-top { grid-template-columns:1fr 1fr; }
-  body.rblx-subscription-store .subscription-store-footer-bottom { flex-direction:column; }
 }
-@media (max-width:560px) { body.rblx-subscription-store .subscription-store-footer-top { grid-template-columns:1fr; } }
 .rblx-shell-chat-bottom > .rblx-shell-chat-alert,
 .rblx-shell-chat-bottom > .rblx-shell-chat-compose,
 .rblx-shell-chat-bottom > .rblx-shell-chat-foot { position:relative; z-index:2; }
