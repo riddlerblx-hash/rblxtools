@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Thumbnail Studio - RBLXTools</title>
   <meta name="robots" content="noindex, nofollow" />
-  <link rel="stylesheet" href="./global-shell.css?v=20260827-2" />
+  <link rel="stylesheet" href="./global-shell.css?v=20260827-3" />
   <style>
     :root { --canvas:#09101c; --ink:#fbfbf2; --muted:#9da9bf; --line:rgba(255,255,255,.13); --coral:#ff4c59; --aqua:#38e6e0; --blue:#6e98ff; }
     * { box-sizing:border-box; }
     body { margin:0; min-height:100vh; color:var(--ink); background:radial-gradient(circle at 50% 42%,rgba(110,152,255,.16),transparent 24%),radial-gradient(circle at 81% 20%,rgba(255,76,89,.11),transparent 24%),linear-gradient(150deg,#07101c,#0c1021 52%,#080b12); font-family:Arial,sans-serif; }
     body::before { content:""; position:fixed; inset:0; pointer-events:none; background-image:radial-gradient(rgba(255,255,255,.16) .7px,transparent .8px); background-size:19px 19px; opacity:.17; }
-    .screen { position:relative; z-index:1; min-height:calc(100vh - 50px); padding:58px 22px 96px; }
+    .screen { position:relative; z-index:1; display:grid; min-height:calc(100vh - 50px); padding:58px 22px 96px; place-items:center; }
     .workspace { width:min(760px,100%); margin:0 auto; text-align:center; }
+    .workspace.has-history { align-self:start; margin-top:24px; }
     .mark { width:58px; height:58px; display:grid; place-items:center; margin:0 auto 20px; border:1px solid rgba(56,230,224,.56); border-radius:18px; color:var(--aqua); background:linear-gradient(145deg,rgba(56,230,224,.22),rgba(110,152,255,.13)); font-size:28px; box-shadow:0 14px 32px rgba(0,0,0,.25); }
     .intro.is-history { display:none; }
     h1 { margin:0; font:900 clamp(27px,4.2vw,43px)/1.05 Georgia,serif; letter-spacing:-.045em; }
@@ -31,6 +32,8 @@
     .attach span { display:grid; width:28px; height:28px; place-items:center; border:1px solid rgba(110,152,255,.42); border-radius:8px; color:var(--blue); font-size:18px; }
     .attach input { display:none; }
     .counter { margin-left:auto; color:#748097; font:700 11px/1 Arial,sans-serif; }
+    .token-summary { display:inline-flex; align-items:center; gap:7px; margin-left:auto; color:#b8f8f4; font:800 11px/1 Arial,sans-serif; white-space:nowrap; }
+    .token-summary strong { display:grid; min-width:25px; min-height:23px; place-items:center; padding:0 6px; border:1px solid rgba(56,230,224,.3); border-radius:7px; background:rgba(56,230,224,.1); color:var(--aqua); }
     .send { width:40px; height:40px; border:0; border-radius:12px; cursor:pointer; color:#07101c; background:linear-gradient(135deg,var(--aqua),#77a5ff); font-size:19px; font-weight:900; box-shadow:0 8px 18px rgba(56,230,224,.16); }
     .send:disabled { opacity:.55; cursor:wait; }
     .status { min-height:24px; margin:14px 0 0; color:var(--muted); font:600 13px/1.45 Arial,sans-serif; }
@@ -45,14 +48,26 @@
     .chat-references img { width:122px; aspect-ratio:16/9; object-fit:cover; border:1px solid var(--line); border-radius:10px; }
     .chat-output { overflow:hidden; border:1px solid var(--line); border-radius:15px; background:#050a11; box-shadow:0 18px 38px rgba(0,0,0,.3); }
     .chat-output img { display:block; width:100%; aspect-ratio:16/9; object-fit:cover; }
-    .result-footer { display:flex; align-items:center; justify-content:space-between; padding:11px 13px; background:rgba(13,21,36,.92); }
+    .result-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 13px; background:rgba(13,21,36,.92); }
     .result-footer span { color:#aab5c9; font:700 12px/1 Arial,sans-serif; }
     .download { border-radius:9px; padding:9px 11px; color:#fff; background:var(--coral); text-decoration:none; font:800 12px/1 Arial,sans-serif; }
+    .result-actions { display:flex; align-items:center; gap:7px; }
+    .result-action { min-width:34px; height:34px; border:1px solid rgba(255,255,255,.12); border-radius:9px; cursor:pointer; color:#d6deec; background:rgba(255,255,255,.04); font:800 15px/1 Arial,sans-serif; }
+    .result-action:hover,.result-action.active { border-color:rgba(56,230,224,.62); color:var(--aqua); background:rgba(56,230,224,.12); }
+    .result-action.regenerate { width:auto; padding:0 10px; color:#f3f7ff; font-size:12px; }
+    .token-modal { position:fixed; z-index:30; inset:0; display:none; place-items:center; padding:20px; background:rgba(3,7,13,.72); backdrop-filter:blur(8px); }
+    .token-modal.visible { display:grid; }
+    .token-dialog { width:min(420px,100%); padding:25px; border:1px solid rgba(110,152,255,.35); border-radius:20px; background:linear-gradient(145deg,#121c31,#0b111d); box-shadow:0 30px 70px rgba(0,0,0,.48); text-align:left; }
+    .token-dialog h2 { margin:0 0 8px; font:900 24px/1.1 Georgia,serif; }
+    .token-dialog p { margin:0; color:var(--muted); font:600 14px/1.5 Arial,sans-serif; }
+    .token-dialog-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:9px; margin-top:22px; }
+    .token-dialog button { border:0; border-radius:10px; padding:10px 12px; cursor:pointer; color:#f7fbff; background:rgba(255,255,255,.08); font:800 12px/1 Arial,sans-serif; }
+    .token-dialog .confirm { color:#06121b; background:linear-gradient(135deg,var(--aqua),#77a5ff); }
     .gate { display:none; width:min(440px,100%); padding:30px; border:1px solid var(--line); border-radius:22px; background:rgba(13,21,36,.92); text-align:center; box-shadow:0 22px 52px rgba(0,0,0,.3); }
     .gate.visible { display:block; }
     .gate h2 { margin:0 0 9px; font:800 25px/1 Georgia,serif; }
     .gate p { margin:0; color:var(--muted); font:600 14px/1.45 Arial,sans-serif; }
-    @media(max-width:560px){ .screen{padding:42px 14px 75px}.sub{margin-bottom:23px}.toolbar{gap:7px}.counter{display:none}.reference-row{grid-template-columns:repeat(2,1fr)} }
+    @media(max-width:560px){ .screen{padding:42px 14px 75px}.sub{margin-bottom:23px}.toolbar{gap:7px}.counter{display:none}.token-summary{font-size:10px}.reference-row{grid-template-columns:repeat(2,1fr)}.result-footer{align-items:flex-start;flex-direction:column}.result-actions{width:100%;justify-content:space-between} }
   </style>
 </head>
 <body class="rblx-shell-page">
@@ -66,6 +81,7 @@
           <div class="reference-row" id="referenceRow"></div>
           <div class="toolbar">
             <label class="attach" title="Add up to three reference images"><span>+</span> Add references<input id="referenceInput" type="file" accept="image/png,image/jpeg,image/webp" multiple /></label>
+            <span class="token-summary" title="Each thumbnail costs one AI token"><strong id="tokenBalance">0</strong><span>1 AI token</span></span>
             <span class="counter" id="counter">0 / 3 images</span>
             <button class="send" id="generateButton" type="submit" title="Generate thumbnail">↑</button>
           </div>
@@ -74,8 +90,11 @@
       <p class="status" id="status"></p>
     </section>
     <section class="gate" id="gate"><h2>Admin access only</h2><p id="gateMessage">Checking your account access...</p></section>
+    <section class="token-modal" id="tokenModal" role="dialog" aria-modal="true" aria-labelledby="tokenDialogTitle">
+      <div class="token-dialog"><h2 id="tokenDialogTitle">Use 1 AI token?</h2><p>Creating a thumbnail costs 1 AI token. You currently have <strong id="modalTokenBalance">0</strong> AI tokens.</p><div class="token-dialog-actions"><button type="button" id="cancelTokenCharge">Cancel</button><button type="button" class="confirm" id="confirmTokenCharge">Continue</button><button type="button" class="confirm" id="confirmAndHideTokenCharge">Continue &amp; don't ask again</button></div></div>
+    </section>
   </main>
-  <script src="./global-shell.js?v=20260827-2"></script>
+  <script src="./global-shell.js?v=20260827-3"></script>
   <script>
     (function () {
       var MAX_REFERENCES = 3;
@@ -94,7 +113,15 @@
       var status = document.getElementById('status');
       var conversation = document.getElementById('conversation');
       var intro = document.getElementById('intro');
+      var tokenBalanceEl = document.getElementById('tokenBalance');
+      var tokenModal = document.getElementById('tokenModal');
+      var modalTokenBalance = document.getElementById('modalTokenBalance');
+      var tokenBalance = 0;
+      var TOKEN_WARNING_KEY = 'rblxtools_thumbnail_token_warning_hidden';
       function getToken() { try { return localStorage.getItem('rblxtools_auth_token') || ''; } catch (_error) { return ''; } }
+      function getWarningHidden() { try { return localStorage.getItem(TOKEN_WARNING_KEY) === '1'; } catch (_error) { return false; } }
+      function hideFutureWarning() { try { localStorage.setItem(TOKEN_WARNING_KEY, '1'); } catch (_error) {} }
+      function setTokenBalance(value) { tokenBalance = Math.max(0, Number.parseInt(value, 10) || 0); tokenBalanceEl.textContent = String(tokenBalance); modalTokenBalance.textContent = String(tokenBalance); }
       function setStatus(message, error) { status.textContent = message || ''; status.classList.toggle('error', Boolean(error)); }
       function showGate(message) { workspace.hidden = true; gate.classList.add('visible'); gateMessage.textContent = message; }
       function appendUserTurn(message, imageUrls) {
@@ -102,14 +129,30 @@
         var imageMarkup = imageUrls.map(function (url) { return '<img src="' + url + '" alt="Reference image">'; }).join('');
         turn.innerHTML = '<div class="chat-avatar user">T</div><div><p class="chat-copy"></p>' + (imageMarkup ? '<div class="chat-references">' + imageMarkup + '</div>' : '') + '</div>';
         turn.querySelector('.chat-copy').textContent = message;
-        conversation.appendChild(turn); conversation.classList.add('visible'); intro.classList.add('is-history');
+        conversation.appendChild(turn); conversation.classList.add('visible'); intro.classList.add('is-history'); workspace.classList.add('has-history');
       }
-      function appendAssistantTurn(imageUrl, downloadName) {
+      function appendAssistantTurn(imageUrl, downloadName, sourcePrompt, sourceReferences) {
         var turn = document.createElement('article'); turn.className = 'chat-turn';
-        turn.innerHTML = '<div class="chat-avatar">✦</div><div><p class="chat-copy">Here\'s your thumbnail.</p><div class="chat-output"><img alt="Generated Roblox thumbnail"><div class="result-footer"><span>1280 x 720 PNG</span><a class="download">Download</a></div></div></div>';
+        turn.innerHTML = '<div class="chat-avatar">✦</div><div><p class="chat-copy">Here\'s your thumbnail.</p><div class="chat-output"><img alt="Generated Roblox thumbnail"><div class="result-footer"><span>1280 x 720 PNG</span><div class="result-actions"><a class="download">Download</a><button type="button" class="result-action" data-feedback="like" title="Like this thumbnail">&#128077;</button><button type="button" class="result-action" data-feedback="dislike" title="Dislike this thumbnail">&#128078;</button><button type="button" class="result-action regenerate" title="Regenerate for 1 AI token">&#8635; Regen · 1</button></div></div></div></div>';
         var output = turn.querySelector('img'); var downloadLink = turn.querySelector('.download');
         output.src = imageUrl; downloadLink.href = imageUrl; downloadLink.download = downloadName || 'rblxtools-ai-thumbnail.png';
+        turn.querySelectorAll('[data-feedback]').forEach(function (feedbackButton) { feedbackButton.addEventListener('click', function () { turn.querySelectorAll('[data-feedback]').forEach(function (item) { item.classList.remove('active'); }); feedbackButton.classList.add('active'); }); });
+        turn.querySelector('.regenerate').addEventListener('click', function () { beginGeneration(sourcePrompt, sourceReferences, true); });
         conversation.appendChild(turn); conversation.classList.add('visible'); turn.scrollIntoView({ behavior:'smooth', block:'nearest' });
+      }
+      function requestTokenApproval() {
+        if (getWarningHidden()) return Promise.resolve(true);
+        modalTokenBalance.textContent = String(tokenBalance); tokenModal.classList.add('visible');
+        return new Promise(function (resolve) {
+          function finish(result, hideForever) { tokenModal.classList.remove('visible'); if (hideForever) hideFutureWarning(); cleanup(); resolve(result); }
+          function cleanup() { document.getElementById('cancelTokenCharge').removeEventListener('click', cancel); document.getElementById('confirmTokenCharge').removeEventListener('click', confirm); document.getElementById('confirmAndHideTokenCharge').removeEventListener('click', confirmAndHide); }
+          function cancel() { finish(false, false); }
+          function confirm() { finish(true, false); }
+          function confirmAndHide() { finish(true, true); }
+          document.getElementById('cancelTokenCharge').addEventListener('click', cancel);
+          document.getElementById('confirmTokenCharge').addEventListener('click', confirm);
+          document.getElementById('confirmAndHideTokenCharge').addEventListener('click', confirmAndHide);
+        });
       }
       function renderReferences() {
         row.innerHTML = '';
@@ -154,27 +197,32 @@
       card.addEventListener('dragleave', function () { card.classList.remove('dragging'); });
       card.addEventListener('drop', function (event) { event.preventDefault(); card.classList.remove('dragging'); addFiles(event.dataTransfer.files); });
       prompt.addEventListener('paste', function (event) { var files = Array.prototype.slice.call(event.clipboardData.items || []).filter(function (item) { return item.type.indexOf('image/') === 0; }).map(function (item) { return item.getAsFile(); }).filter(Boolean); if (files.length) { event.preventDefault(); addFiles(files); } });
-      form.addEventListener('submit', async function (event) {
-        event.preventDefault();
-        if (!prompt.value.trim()) { setStatus('Describe the thumbnail you want to create.', true); prompt.focus(); return; }
+      async function beginGeneration(requestPrompt, requestReferences, isRegeneration) {
+        if (!String(requestPrompt || '').trim()) { setStatus('Describe the thumbnail you want to create.', true); prompt.focus(); return; }
+        if (tokenBalance < 1) { setStatus('No AI tokens available. Add tokens before creating another thumbnail.', true); return; }
+        if (!(await requestTokenApproval())) return;
         button.disabled = true; button.textContent = '…'; setStatus('Creating your thumbnail...');
         try {
-          var submittedPrompt = prompt.value.trim();
-          var submittedReferences = references.slice();
+          var submittedPrompt = String(requestPrompt).trim();
+          var submittedReferences = Array.isArray(requestReferences) ? requestReferences.slice() : [];
           appendUserTurn(submittedPrompt, submittedReferences);
-          prompt.value = ''; references = []; renderReferences();
+          if (!isRegeneration) { prompt.value = ''; references = []; renderReferences(); }
           var response = await fetch('/ai/generate-thumbnail', { method:'POST', credentials:'include', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + getToken() }, body:JSON.stringify({ prompt:submittedPrompt, references:submittedReferences }) });
           var responseText = await response.text();
           var payload = null;
           try { payload = responseText ? JSON.parse(responseText) : null; } catch (_error) { payload = null; }
           if (!response.ok) {
+            if (payload && payload.aiTokens != null) setTokenBalance(payload.aiTokens);
             if (!payload && /Cannot POST \/ai\/generate-thumbnail/i.test(responseText)) throw new Error('Thumbnail backend is not deployed on the current VPS app yet.');
             throw new Error((payload && payload.error) || 'The thumbnail server returned an unexpected response.');
           }
           if (!payload || !payload.imageDataUrl) throw new Error('The thumbnail server did not return an image.');
-          appendAssistantTurn(payload.imageDataUrl, payload.downloadFileName); setStatus('Thumbnail ready.');
+          setTokenBalance(payload.aiTokens); window.dispatchEvent(new CustomEvent('rblxtools-ai-token-balance', { detail:{ aiTokens: payload.aiTokens } })); appendAssistantTurn(payload.imageDataUrl, payload.downloadFileName, submittedPrompt, submittedReferences); setStatus('Thumbnail ready.');
         } catch (error) { setStatus(error.message || 'Could not generate the thumbnail.', true); }
         finally { button.disabled = false; button.textContent = '↑'; }
+      }
+      form.addEventListener('submit', function (event) {
+        event.preventDefault(); beginGeneration(prompt.value, references.slice(), false);
       });
       async function verifyAdmin() {
         try {
@@ -182,6 +230,7 @@
           var payload = await response.json().catch(function () { return null; });
           var user = payload && (payload.user || payload);
           if (!response.ok || !user || !user.isAdmin) throw new Error('This studio is only available to backend-approved admin accounts.');
+          setTokenBalance(user.aiTokens);
           gate.classList.remove('visible'); workspace.hidden = false;
         } catch (error) { showGate(error.message || 'Could not verify admin access.'); setTimeout(function () { window.location.href = './index'; }, 1000); }
       }

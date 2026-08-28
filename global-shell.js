@@ -1346,6 +1346,7 @@
               "</div>" +
               '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + "</div>" +
               '<div class="rblx-shell-left-foot">' +
+                '<a class="rblx-shell-token-banner" id="rblxShellTokenBanner" href="./subscriptions" hidden><strong>AI Tokens</strong><span id="rblxShellTokenBalance">0</span></a>' +
                 '<a class="rblx-shell-mini-banner" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span></a>' +
                 '<div class="rblx-shell-socials">' +
                   '<a href="https://x.com/Reese28575571" target="_blank" rel="noreferrer" aria-label="X">' + getSocialIcon("x") + '</a>' +
@@ -3227,7 +3228,13 @@
     status.setAttribute("data-plan", state.plan);
     statusText.textContent = state.message;
     document.body.classList.toggle("rblx-shell-plus-user", state.plan === "plus");
-    shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "" };
+    shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : 0 };
+    var tokenBanner = document.getElementById("rblxShellTokenBanner");
+    var tokenBalance = document.getElementById("rblxShellTokenBalance");
+    if (tokenBanner && tokenBalance) {
+      tokenBanner.hidden = !state.loggedIn;
+      tokenBalance.textContent = String(shellState.currentUser.aiTokens);
+    }
     shellState.isAdmin = Boolean(state.isAdmin);
     shellState.authUiSignature = nextSignature;
     applyModerationState(state.moderation || shellState.moderation);
@@ -3264,6 +3271,14 @@
     return Boolean(premiumFlag || nestedPremiumFlag);
   }
 
+  window.addEventListener("rblxtools-ai-token-balance", function (event) {
+    var nextBalance = Number(event && event.detail && event.detail.aiTokens);
+    if (!Number.isFinite(nextBalance) || !shellState.currentUser || !shellState.currentUser.loggedIn) return;
+    shellState.currentUser.aiTokens = Math.max(0, nextBalance);
+    var tokenBalance = document.getElementById("rblxShellTokenBalance");
+    if (tokenBalance) tokenBalance.textContent = String(shellState.currentUser.aiTokens);
+  });
+
   function buildUserStateFromPayload(payload, moderationOverride) {
     var user = payload && payload.user ? payload.user : payload;
     if (!user || typeof user !== "object") return null;
@@ -3280,6 +3295,7 @@
       username: user && user.username ? String(user.username) : "",
       displayName: displayName,
       email: user && user.email ? String(user.email) : "",
+      aiTokens: user && user.aiTokens != null ? Number(user.aiTokens) : 0,
       isAdmin: Boolean(user && user.isAdmin),
       moderation: moderationOverride || (payload && payload.moderation ? payload.moderation : shellState.moderation)
     };
@@ -3378,6 +3394,7 @@
       username: cachedUser && cachedUser.username ? String(cachedUser.username) : "",
       displayName: displayName,
       email: cachedUser && cachedUser.email ? String(cachedUser.email) : "",
+      aiTokens: cachedUser && cachedUser.aiTokens != null ? Number(cachedUser.aiTokens) : 0,
       isAdmin: Boolean(cachedUser && cachedUser.isAdmin),
       moderation: shellState.moderation
     };

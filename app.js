@@ -74,6 +74,8 @@ const AI_THUMBNAIL_OUTPUT_HEIGHT = 720;
 const AI_THUMBNAIL_GENERATION_SIZE = "1536x1024";
 const MAX_AI_THUMBNAIL_REFERENCE_IMAGES = 3;
 const MAX_AI_THUMBNAIL_REFERENCE_BYTES = 2 * 1024 * 1024;
+const AI_TOKEN_DEFAULT_BALANCE = 10;
+const AI_THUMBNAIL_TOKEN_COST = 1;
 const AI_CLOTHING_SKIN_TONES = {
   white: { hex: "#EFD2BF", r: 239, g: 210, b: 191, a: 255 },
   lightskin: { hex: "#C99876", r: 201, g: 152, b: 118, a: 255 },
@@ -1583,6 +1585,11 @@ function getPlanForSubscriptionStatus(status) {
   return isPremiumStatus(status) ? "plus" : "free";
 }
 
+function getAITokenBalance(user) {
+  const parsed = Number.parseInt(user?.ai_token_balance, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : AI_TOKEN_DEFAULT_BALANCE;
+}
+
 function extractMissingSupabaseColumnName(error) {
   const message = String(error && error.message || "");
   const match = message.match(/column\s+"([^"]+)"/i);
@@ -1922,6 +1929,7 @@ function buildPublicUser(row) {
     plusDaysTotal: membership.plusDaysTotal,
     plusDaysLeft: membership.plusDaysLeft,
     plusExpiresAt: membership.plusExpiresAt,
+    aiTokens: getAITokenBalance(row),
     currentPeriodStartAt: membership.currentPeriodStartAt,
     currentPeriodEndAt: membership.currentPeriodEndAt,
     createdAt: row.created_at || null,
@@ -2604,6 +2612,7 @@ async function buildResolvedPublicUser(row) {
     plusDaysTotal: membership.plusDaysTotal,
     plusDaysLeft: membership.plusDaysLeft,
     plusExpiresAt: membership.plusExpiresAt,
+    aiTokens: getAITokenBalance(row),
     currentPeriodStartAt: membership.currentPeriodStartAt,
     currentPeriodEndAt: membership.currentPeriodEndAt,
     membershipBreakdown: membership.membershipBreakdown,
@@ -2684,6 +2693,7 @@ async function createAuthUser(email, password) {
     stripe_days_total: null,
     stripe_current_period_start_at: null,
     stripe_current_period_end_at: null,
+    ai_token_balance: AI_TOKEN_DEFAULT_BALANCE,
     created_at: nowIso,
     updated_at: nowIso,
   });
@@ -2779,6 +2789,58 @@ async function updateAuthUserFields(userId, fields) {
     }
   }
   return Array.isArray(rows) && rows[0] ? rows[0] : null;
+}
+
+async function debitAITokens(userId, cost) {
+  const normalizedCost = Math.max(1, Number.parseInt(cost, 10) || 1);
+
+  // The balance predicate prevents two overlapping requests from spending the same token.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const user = await getAuthUserById(userId);
+    if (!user) {
+      const error = new Error("User not found.");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const balance = getAITokenBalance(user);
+    if (user.ai_token_balance == null || user.ai_token_balance === "") {
+      await supabaseRequest(
+        buildAuthTablePath(`?id=eq.${encodeURIComponent(userId)}&ai_token_balance=is.null`),
+        {
+          method: "PATCH",
+          body: JSON.stringify({ ai_token_balance: AI_TOKEN_DEFAULT_BALANCE }),
+        }
+      );
+      continue;
+    }
+    if (balance < normalizedCost) {
+      const error = new Error("No AI tokens available. Add tokens before creating another thumbnail.");
+      error.statusCode = 402;
+      error.aiTokens = balance;
+      throw error;
+    }
+
+    const rows = await supabaseRequest(
+      buildAuthTablePath(`?id=eq.${encodeURIComponent(userId)}&ai_token_balance=eq.${balance}`),
+      {
+        method: "PATCH",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          ai_token_balance: balance - normalizedCost,
+          updated_at: new Date().toISOString(),
+        }),
+      }
+    );
+
+    if (Array.isArray(rows) && rows[0]) {
+      return getAITokenBalance(rows[0]);
+    }
+  }
+
+  const error = new Error("Your AI token balance changed. Please try again.");
+  error.statusCode = 409;
+  throw error;
 }
 
 async function getDeviceLinksForUser(userId) {
@@ -6053,14 +6115,26 @@ app.post("/ai/generate-clothing", async (req, res) => {
 
 app.post("/ai/generate-thumbnail", async (req, res) => {
   try {
-    await requireAdminUser(req);
-    const result = await generateAIThumbnail({
-      prompt: req.body?.prompt,
-      references: req.body?.references,
-    });
+    const user = await requireAdminUser(req);
+    const aiTokens = await debitAITokens(user.id, AI_THUMBNAIL_TOKEN_COST);
+    let result;
+    try {
+      result = await generateAIThumbnail({
+        prompt: req.body?.prompt,
+        references: req.body?.references,
+      });
+    } catch (generationError) {
+      // A failed provider request should not consume a member's token.
+      const latestUser = await getAuthUserById(user.id).catch(() => null);
+      const restoredBalance = getAITokenBalance(latestUser) + AI_THUMBNAIL_TOKEN_COST;
+      await updateAuthUserFields(user.id, { ai_token_balance: restoredBalance }).catch(() => null);
+      throw generationError;
+    }
     const timestamp = Date.now();
     return res.json({
       ok: true,
+      aiTokens,
+      tokenCost: AI_THUMBNAIL_TOKEN_COST,
       model: result.model,
       promptPreview: result.promptPreview,
       outputWidth: result.outputWidth,
@@ -6072,6 +6146,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
     console.error("POST /ai/generate-thumbnail failed:", error);
     return res.status(error.statusCode || 500).json({
       error: error.message || "AI thumbnail generation failed.",
+      aiTokens: Number.isFinite(error.aiTokens) ? error.aiTokens : undefined,
     });
   }
 });

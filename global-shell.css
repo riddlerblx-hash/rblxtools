@@ -668,6 +668,39 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   text-decoration: none;
 }
 
+.rblx-shell-token-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid rgba(71, 218, 238, 0.26);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(18, 70, 87, 0.9), rgba(13, 30, 45, 0.96));
+  color: #e8fbff;
+  text-decoration: none;
+}
+
+.rblx-shell-token-banner strong {
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .72px;
+}
+
+.rblx-shell-token-banner span {
+  display: grid;
+  min-width: 29px;
+  min-height: 27px;
+  place-items: center;
+  padding: 0 8px;
+  border-radius: 9px;
+  background: rgba(56, 230, 224, 0.18);
+  color: #72fff5;
+  font-size: 15px;
+  font-weight: 900;
+}
+
 .rblx-shell-mini-banner strong {
   display: block;
   font-size: 11px;
@@ -2815,6 +2848,7 @@ body.rblx-shell-right-collapsed {
 body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-panel-title,
 body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-nav-group-title,
 body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-nav-link > span:not(.rblx-shell-nav-icon):not(.rblx-shell-nav-tooltip),
+body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-token-banner,
 body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-mini-banner,
 body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-socials {
   display: none;
