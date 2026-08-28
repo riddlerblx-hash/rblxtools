@@ -82,7 +82,7 @@ const AI_TOKEN_PACKAGES = [
   { key: "45", tokens: 45, priceCents: 500, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
   { key: "130", tokens: 130, priceCents: 1300, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_130 || "prod_V9YGsNXs9IXcrX").trim() },
   { key: "245", tokens: 245, priceCents: 2300, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_245 || "prod_V9YK5x1FI50wj2").trim() },
-  { key: "500", tokens: 500, priceCents: 50000, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_500 || "prod_V9YLT7NritZtsJ").trim() },
+  { key: "500", tokens: 500, priceCents: 4500, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_500 || "prod_V9YLT7NritZtsJ").trim() },
 ];
 const AI_CLOTHING_SKIN_TONES = {
   white: { hex: "#EFD2BF", r: 239, g: 210, b: 191, a: 255 },
