@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Thumbnail Studio - RBLXTools</title>
+  <meta name="description" content="Create polished, clickable Roblox thumbnails with AI." />
+  <link rel="stylesheet" href="./global-shell.css?v=20260827-1" />
+  <style>
+    :root { --ink:#f9f7ef; --muted:#aeb6c8; --panel:rgba(12,18,30,.88); --line:rgba(255,255,255,.11); --lime:#d7ff4e; --coral:#ff5f50; --blue:#6da7ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:radial-gradient(circle at 11% 6%,rgba(215,255,78,.16),transparent 26%),radial-gradient(circle at 89% 18%,rgba(109,167,255,.19),transparent 32%),linear-gradient(145deg,#07111d,#111027 52%,#07131b); font-family:Georgia,'Times New Roman',serif; }
+    body::before { content:''; position:fixed; inset:0; pointer-events:none; opacity:.36; background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px); background-size:34px 34px; mask-image:linear-gradient(#000,transparent 80%); }
+    .thumbnail-page { position:relative; z-index:1; width:min(1170px,100%); margin:0 auto; padding:54px 24px 70px; }
+    .hero { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:28px; }
+    .eyebrow { margin:0 0 8px; color:var(--lime); font:800 12px/1 Arial,sans-serif; letter-spacing:.16em; text-transform:uppercase; }
+    h1 { margin:0; max-width:700px; font-size:clamp(44px,7vw,84px); line-height:.83; letter-spacing:-.07em; }
+    h1 span { color:var(--coral); }
+    .hero-copy { max-width:340px; margin:0; color:var(--muted); font:600 15px/1.5 Arial,sans-serif; }
+    .studio { display:grid; grid-template-columns:minmax(310px,.87fr) minmax(400px,1.13fr); gap:18px; }
+    .panel { border:1px solid var(--line); background:linear-gradient(145deg,rgba(21,30,49,.96),rgba(8,13,23,.92)); border-radius:26px; box-shadow:0 24px 60px rgba(0,0,0,.25); overflow:hidden; }
+    .form-panel { padding:23px; }
+    .panel-title { margin:0 0 6px; font-size:27px; letter-spacing:-.045em; }
+    .panel-note { margin:0 0 21px; color:var(--muted); font:600 13px/1.45 Arial,sans-serif; }
+    label { display:block; margin:15px 0 7px; color:#dce2ef; font:800 11px/1 Arial,sans-serif; letter-spacing:.09em; text-transform:uppercase; }
+    input, textarea, select { width:100%; border:1px solid rgba(181,200,255,.2); border-radius:13px; outline:none; color:var(--ink); background:rgba(1,7,17,.55); padding:12px 13px; font:600 14px/1.3 Arial,sans-serif; }
+    textarea { min-height:106px; resize:vertical; }
+    input:focus,textarea:focus,select:focus { border-color:var(--lime); box-shadow:0 0 0 3px rgba(215,255,78,.12); }
+    option,optgroup { color:#111827; background:#fff; }
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .generate { width:100%; margin-top:21px; border:0; border-radius:14px; cursor:pointer; padding:15px 18px; color:#08101b; background:linear-gradient(100deg,var(--lime),#a9ef71); font:900 16px/1 Arial,sans-serif; box-shadow:0 12px 25px rgba(174,255,83,.19); }
+    .generate:hover { filter:brightness(1.08); transform:translateY(-1px); }
+    .generate:disabled { opacity:.55; cursor:wait; transform:none; }
+    .preview-panel { min-height:590px; display:flex; flex-direction:column; }
+    .preview-bar { display:flex; justify-content:space-between; align-items:center; padding:18px 20px; border-bottom:1px solid var(--line); }
+    .preview-bar strong { font:800 15px/1 Arial,sans-serif; }
+    .resolution { color:var(--lime); font:800 11px/1 Arial,sans-serif; letter-spacing:.08em; }
+    .preview-stage { flex:1; min-height:420px; display:grid; place-items:center; padding:20px; background:radial-gradient(circle at center,rgba(109,167,255,.12),transparent 55%); }
+    .placeholder { width:100%; aspect-ratio:16/9; display:grid; place-items:center; text-align:center; padding:32px; border:1px dashed rgba(255,255,255,.2); border-radius:18px; background:linear-gradient(135deg,rgba(215,255,78,.08),rgba(255,95,80,.09)); }
+    .placeholder-icon { display:block; margin-bottom:12px; font:900 52px/1 Arial,sans-serif; color:var(--lime); }
+    .placeholder p,.status { margin:0; color:#c1c9da; font:600 14px/1.5 Arial,sans-serif; }
+    #thumbnailImage { display:none; width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:15px; box-shadow:0 22px 55px rgba(0,0,0,.34); }
+    .preview-actions { display:flex; gap:10px; padding:16px 20px 19px; border-top:1px solid var(--line); }
+    .download { display:none; text-decoration:none; padding:11px 14px; border-radius:11px; background:var(--coral); color:white; font:800 13px/1 Arial,sans-serif; }
+    .status { flex:1; align-self:center; }
+    .status.error { color:#ffaaa3; }
+    .tip { margin-top:17px; padding:12px; border-left:3px solid var(--blue); color:#b9c5db; background:rgba(109,167,255,.07); font:600 12px/1.45 Arial,sans-serif; }
+    @media(max-width:860px){ .thumbnail-page{padding:34px 15px 54px}.hero,.studio{display:grid}.hero-copy{max-width:520px}.preview-panel{min-height:460px}.preview-stage{min-height:295px} }
+    @media(max-width:470px){ h1{font-size:52px}.two-col{grid-template-columns:1fr}.form-panel{padding:18px}.preview-actions{align-items:flex-start;flex-direction:column}.status{align-self:auto} }
+  </style>
+</head>
+<body class="rblx-shell-page">
+  <main class="thumbnail-page">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">RBLXTools AI Lab</p>
+        <h1>Make them<br /><span>click.</span></h1>
+      </div>
+      <p class="hero-copy">Build a polished Roblox thumbnail with a clear subject, real game energy, and a title that stays readable.</p>
+    </header>
+    <section class="studio" aria-label="AI Thumbnail Studio">
+      <form class="panel form-panel" id="thumbnailForm">
+        <h2 class="panel-title">Direct the shot</h2>
+        <p class="panel-note">Describe the moment, then let the studio handle the cinematic polish.</p>
+        <label for="brief">What should happen?</label>
+        <textarea id="brief" maxlength="520" required placeholder="Example: Two Roblox friends escaping a collapsing lava temple while a giant stone golem reaches toward them."></textarea>
+        <div class="two-col">
+          <div><label for="genre">Game type</label><select id="genre"><option>Adventure</option><option>Horror</option><option>Roleplay</option><option>Obby</option><option>Tycoon</option><option>Simulator</option><option>FPS / Battle</option><option>Anime</option><option>Fashion</option></select></div>
+          <div><label for="mood">Mood</label><select id="mood"><option>High-energy</option><option>Dark and mysterious</option><option>Funny and chaotic</option><option>Epic and cinematic</option><option>Cozy and colorful</option><option>Competitive</option></select></div>
+        </div>
+        <label for="focus">Main focus</label>
+        <input id="focus" maxlength="160" placeholder="Example: a red ninja with a glowing sword" />
+        <div class="two-col">
+          <div><label for="palette">Colors</label><input id="palette" maxlength="120" placeholder="Neon purple and cyan" /></div>
+          <div><label for="title">Headline overlay</label><input id="title" maxlength="46" placeholder="ESCAPE THE GOLEM" /></div>
+        </div>
+        <button class="generate" id="generateButton" type="submit">Generate Thumbnail</button>
+        <p class="tip">The AI paints the scene. Your optional headline is added afterward for clean, readable lettering.</p>
+      </form>
+      <section class="panel preview-panel" aria-live="polite">
+        <div class="preview-bar"><strong>Thumbnail Preview</strong><span class="resolution">1280 x 720</span></div>
+        <div class="preview-stage">
+          <div class="placeholder" id="placeholder"><div><span class="placeholder-icon">✦</span><p>Your Roblox thumbnail will land here.<br />Start with a scene, not just a clothing item or logo.</p></div></div>
+          <img id="thumbnailImage" alt="Generated Roblox thumbnail" />
+        </div>
+        <div class="preview-actions"><p class="status" id="status">Sign in and describe your thumbnail to begin.</p><a class="download" id="download" href="#" download="rblxtools-ai-thumbnail.png">Download PNG</a></div>
+      </section>
+    </section>
+  </main>
+  <script src="./global-shell.js?v=20260827-1"></script>
+  <script>
+    (function () {
+      var form = document.getElementById('thumbnailForm');
+      var button = document.getElementById('generateButton');
+      var status = document.getElementById('status');
+      var image = document.getElementById('thumbnailImage');
+      var placeholder = document.getElementById('placeholder');
+      var download = document.getElementById('download');
+      function token() { return localStorage.getItem('rblxtools_auth_token') || ''; }
+      function setStatus(message, isError) { status.textContent = message; status.classList.toggle('error', Boolean(isError)); }
+      form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        if (!token()) {
+          setStatus('Sign in or create an account to generate thumbnails.', true);
+          if (window.RBLXToolsAuth && window.RBLXToolsAuth.open) window.RBLXToolsAuth.open({ mode: 'login', message: 'Sign in to use AI Thumbnail Studio.' });
+          return;
+        }
+        button.disabled = true;
+        button.textContent = 'Painting your scene...';
+        setStatus('Composing your Roblox thumbnail. This can take a moment.');
+        try {
+          var response = await fetch('/ai/generate-thumbnail', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + token() }, body:JSON.stringify({ brief:document.getElementById('brief').value, genre:document.getElementById('genre').value, mood:document.getElementById('mood').value, focus:document.getElementById('focus').value, palette:document.getElementById('palette').value, title:document.getElementById('title').value, aspect:'roblox' }) });
+          var payload = await response.json();
+          if (!response.ok) throw new Error(payload.error || 'Could not generate the thumbnail.');
+          image.src = payload.imageDataUrl;
+          image.style.display = 'block';
+          placeholder.style.display = 'none';
+          download.href = payload.imageDataUrl;
+          download.download = payload.downloadFileName || 'rblxtools-ai-thumbnail.png';
+          download.style.display = 'inline-flex';
+          setStatus('Ready to download.');
+        } catch (error) { setStatus(error.message || 'Could not generate the thumbnail.', true); }
+        finally { button.disabled = false; button.textContent = 'Generate Thumbnail'; }
+      });
+    }());
+  </script>
+</body>
+</html>
