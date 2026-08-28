@@ -72,6 +72,8 @@ const AI_CLOTHING_GENERATION_SIZE = "832x800";
 const AI_THUMBNAIL_OUTPUT_WIDTH = 1280;
 const AI_THUMBNAIL_OUTPUT_HEIGHT = 720;
 const AI_THUMBNAIL_GENERATION_SIZE = "1536x1024";
+const MAX_AI_THUMBNAIL_REFERENCE_IMAGES = 3;
+const MAX_AI_THUMBNAIL_REFERENCE_BYTES = 2 * 1024 * 1024;
 const AI_CLOTHING_SKIN_TONES = {
   white: { hex: "#EFD2BF", r: 239, g: 210, b: 191, a: 255 },
   lightskin: { hex: "#C99876", r: 201, g: 152, b: 118, a: 255 },
@@ -342,82 +344,62 @@ function cleanAIThumbnailText(value, maxLength = 240) {
     .slice(0, maxLength);
 }
 
-function escapeSvgText(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-function buildAIThumbnailPrompt(payload = {}) {
-  const brief = cleanAIThumbnailText(payload.brief, 520);
-  const genre = cleanAIThumbnailText(payload.genre, 80) || "Roblox adventure";
-  const mood = cleanAIThumbnailText(payload.mood, 80) || "high-energy";
-  const focus = cleanAIThumbnailText(payload.focus, 160) || "a memorable Roblox character";
-  const palette = cleanAIThumbnailText(payload.palette, 120);
-  const title = cleanAIThumbnailText(payload.title, 46);
-  const aspect = cleanAIThumbnailText(payload.aspect, 30) === "youtube" ? "YouTube" : "Roblox game";
-
-  return {
-    brief,
-    title,
-    prompt: [
-      `Create a premium ${aspect} thumbnail illustration for a Roblox creator.`,
-      "Compose as a bold 16:9 game thumbnail: one clear foreground focal subject, readable silhouette, cinematic lighting, strong depth, polished game-art finish, and deliberate empty space for a headline overlay.",
-      "Use blocky Roblox-inspired characters and environments, but do not copy Roblox UI, the Roblox logo, a game icon, a watermark, a mock browser frame, or a thumbnail template.",
-      "Do not render any text, letters, numbers, logos, labels, interface elements, borders, watermarks, or a white frame. The website adds headline text itself after generation.",
-      `Genre: ${genre}.`,
-      `Mood: ${mood}.`,
-      `Primary focal subject: ${focus}.`,
-      brief ? `Creative brief: ${brief}.` : "Creative brief: make the scene instantly clickable and suitable for a Roblox game discovery page.",
-      palette ? `Color palette: ${palette}.` : "Use a high-contrast color palette with a bright focal point.",
-      title ? "Reserve the lower-left region for a website-added headline; leave it visually clean and dark enough for readable text." : "Fill the frame with a strong, uncluttered composition.",
-    ].join(" "),
-  };
-}
-
-function buildAIThumbnailTitleOverlay(title) {
-  const safeTitle = escapeSvgText(title);
-  if (!safeTitle) return null;
-  const lines = [];
-  const words = safeTitle.split(" ");
-  let line = "";
-  for (const word of words) {
-    const next = line ? `${line} ${word}` : word;
-    if (next.length > 16 && line) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = next;
-    }
+function parseAIThumbnailReferenceImages(rawReferences) {
+  if (!Array.isArray(rawReferences)) return [];
+  if (rawReferences.length > MAX_AI_THUMBNAIL_REFERENCE_IMAGES) {
+    const error = new Error(`Use up to ${MAX_AI_THUMBNAIL_REFERENCE_IMAGES} reference images.`);
+    error.statusCode = 400;
+    throw error;
   }
-  if (line) lines.push(line);
-  const visibleLines = lines.slice(0, 2);
-  const textNodes = visibleLines.map((item, index) => (
-    `<text x="76" y="${558 + index * 92}" font-family="Impact, Arial Black, sans-serif" font-size="82" font-weight="900" letter-spacing="1" fill="#ffffff" stroke="#09101d" stroke-width="13" paint-order="stroke" >${item}</text>`
-  )).join("");
-  return Buffer.from(
-    `<svg width="${AI_THUMBNAIL_OUTPUT_WIDTH}" height="${AI_THUMBNAIL_OUTPUT_HEIGHT}" xmlns="http://www.w3.org/2000/svg">` +
-    `<defs><linearGradient id="fade" x1="0" x2="1"><stop offset="0" stop-color="#06101f" stop-opacity="0.9"/><stop offset="1" stop-color="#06101f" stop-opacity="0"/></linearGradient></defs>` +
-    `<path d="M0 468 H660 V720 H0 Z" fill="url(#fade)"/>${textNodes}</svg>`
-  );
+  return rawReferences.map((rawReference, index) => {
+    const dataUrl = String(rawReference || "").trim();
+    const match = dataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([a-z0-9+/=]+)$/i);
+    if (!match) {
+      const error = new Error(`Reference image ${index + 1} must be a PNG, JPG, or WebP image.`);
+      error.statusCode = 400;
+      throw error;
+    }
+    const buffer = Buffer.from(match[2], "base64");
+    if (!buffer.length || buffer.length > MAX_AI_THUMBNAIL_REFERENCE_BYTES) {
+      const error = new Error(`Each reference image must be ${MAX_AI_THUMBNAIL_REFERENCE_BYTES / (1024 * 1024)} MB or smaller.`);
+      error.statusCode = 400;
+      throw error;
+    }
+    const extension = match[1].toLowerCase() === "image/png" ? "png" : match[1].toLowerCase() === "image/webp" ? "webp" : "jpg";
+    return { buffer, type: match[1].toLowerCase(), name: `thumbnail-reference-${index + 1}.${extension}` };
+  });
 }
 
 async function generateAIThumbnail(payload) {
   assertAIThumbnailConfigured();
-  const built = buildAIThumbnailPrompt(payload);
-  if (!built.brief) {
+  const prompt = cleanAIThumbnailText(payload.prompt, 2000);
+  if (!prompt) {
     const error = new Error("Tell us what you want in the thumbnail first.");
     error.statusCode = 400;
     throw error;
   }
-  const generation = await getOpenAIClient().images.generate({
-    model: AI_CLOTHING_MODEL,
-    prompt: built.prompt,
-    size: AI_THUMBNAIL_GENERATION_SIZE,
-  });
+  const references = parseAIThumbnailReferenceImages(payload.references);
+  let generation;
+  if (references.length) {
+    const { toFile } = getOpenAIUploadHelpers();
+    const uploads = await Promise.all(references.map((reference) => toFile(
+      Readable.from([reference.buffer]),
+      reference.name,
+      { type: reference.type }
+    )));
+    generation = await getOpenAIClient().images.edit({
+      model: AI_CLOTHING_MODEL,
+      image: uploads,
+      prompt,
+      size: AI_THUMBNAIL_GENERATION_SIZE,
+    });
+  } else {
+    generation = await getOpenAIClient().images.generate({
+      model: AI_CLOTHING_MODEL,
+      prompt,
+      size: AI_THUMBNAIL_GENERATION_SIZE,
+    });
+  }
   const generatedBase64 = generation?.data?.[0]?.b64_json || "";
   if (!generatedBase64) {
     const error = new Error("OpenAI did not return a thumbnail image.");
@@ -425,13 +407,11 @@ async function generateAIThumbnail(payload) {
     throw error;
   }
   const sharp = getSharp();
-  const overlay = buildAIThumbnailTitleOverlay(built.title);
   const outputBuffer = await sharp(Buffer.from(generatedBase64, "base64"))
     .resize(AI_THUMBNAIL_OUTPUT_WIDTH, AI_THUMBNAIL_OUTPUT_HEIGHT, {
       fit: "cover",
       position: "centre",
     })
-    .composite(overlay ? [{ input: overlay, top: 0, left: 0 }] : [])
     .png()
     .toBuffer();
   return {
@@ -441,7 +421,7 @@ async function generateAIThumbnail(payload) {
     outputWidth: AI_THUMBNAIL_OUTPUT_WIDTH,
     outputHeight: AI_THUMBNAIL_OUTPUT_HEIGHT,
     model: AI_CLOTHING_MODEL,
-    promptPreview: built.prompt,
+    promptPreview: prompt,
   };
 }
 
@@ -6073,15 +6053,10 @@ app.post("/ai/generate-clothing", async (req, res) => {
 
 app.post("/ai/generate-thumbnail", async (req, res) => {
   try {
-    await requireAuthenticatedUser(req);
+    await requireAdminUser(req);
     const result = await generateAIThumbnail({
-      brief: req.body?.brief,
-      genre: req.body?.genre,
-      mood: req.body?.mood,
-      focus: req.body?.focus,
-      palette: req.body?.palette,
-      title: req.body?.title,
-      aspect: req.body?.aspect,
+      prompt: req.body?.prompt,
+      references: req.body?.references,
     });
     const timestamp = Date.now();
     return res.json({

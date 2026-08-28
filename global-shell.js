@@ -136,7 +136,7 @@
       title: "AI Tools",
       items: [
         { href: "./ai-clothing-studio", label: "AI Clothing Studio", icon: "ai", adminOnly: true },
-        { href: "./ai-thumbnail-studio", label: "AI Thumbnail Studio", icon: "spark" }
+        { href: "./ai-thumbnail-studio", label: "AI Thumbnail Studio", icon: "spark", adminOnly: true }
       ]
     },
     {
