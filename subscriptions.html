@@ -1451,6 +1451,7 @@
         <article class="plan-card pro-card">
           <div class="card-inner">
             <div class="pill-row">
+              <div class="pill active" id="proOwnedPill" style="display:none;">Plan Active</div>
             </div>
 
             <div class="plan-top">
@@ -1458,13 +1459,13 @@
                 <h2 class="plan-title">
                   <span class="accent-pro">Pro</span>
                 </h2>
-                <p class="plan-subtitle">A teaser for the next premium tier focused on stronger AI utility, faster access, and bigger perks beyond the current Plus setup.</p>
+                <p class="plan-subtitle">The higher-tier creator membership for wider thumbnail flexibility, larger download batches, and a cleaner ad-free workflow.</p>
               </div>
 
               <div class="price-box">
-                <div class="price-kicker">Status</div>
-                <div class="price-value">Soon</div>
-                <div class="price-sub">Not live yet</div>
+                <div class="price-kicker">Pro Membership</div>
+                <div class="price-value">Pro</div>
+                <div class="price-sub">Monthly Stripe subscription</div>
               </div>
             </div>
 
@@ -1472,6 +1473,8 @@
               <li>No Annoying Ads</li>
               <li>Bulk Downloads (5-10)</li>
               <li>6 AI Thumbnail Attachments</li>
+              <li>All Aspect Ratios</li>
+              <li>1080p Quality Outputs</li>
             </ul>
 
             <div class="plus-highlight" style="background: radial-gradient(circle at top right, rgba(255, 190, 78, 0.18), transparent 35%), linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));">
@@ -1510,8 +1513,9 @@
               </div>
             </div>
 
-            <div class="note-box">Best for future power users who want the next step after Plus once the bigger AI and queue perks are ready.</div>
-            <div class="status pro">Pro is still a teaser and is not purchasable yet.</div>
+            <div class="note-box">Best for power users who want the widest thumbnail controls and heavier creator workflows.</div>
+            <div class="plus-cta-group"><button id="proCheckoutBtn" class="cta" type="button">Start Pro Membership</button></div>
+            <div id="proStatus" class="status pro"></div>
           </div>
         </article>
       </div>
@@ -1598,6 +1602,9 @@
       var plusCheckoutBtn = document.getElementById("plusCheckoutBtn");
       var plusStatusEl = document.getElementById("plusStatus");
       var plusOwnedPill = document.getElementById("plusOwnedPill");
+      var proCheckoutBtn = document.getElementById("proCheckoutBtn");
+      var proStatusEl = document.getElementById("proStatus");
+      var proOwnedPill = document.getElementById("proOwnedPill");
       var freeOwnedPill = document.getElementById("freeOwnedPill");
       var freeStatusEl = document.getElementById("freeStatus");
       var loginLock = document.getElementById("loginLock");
@@ -1782,7 +1789,9 @@
           payload.plusActive === true ||
           payload.subscription === "plus" ||
           payload.plan === "plus" ||
-          payload.tier === "plus"
+          payload.tier === "plus" ||
+          payload.plan === "pro" ||
+          payload.tier === "pro"
         );
       }
 
@@ -1807,6 +1816,7 @@
 
       function applyPlanState(plan) {
         var isPlus = plan === "plus";
+        var isPro = plan === "pro";
         var isFree = plan === "free";
 
         if (plusOwnedPill) {
@@ -1816,19 +1826,29 @@
         if (freeOwnedPill) {
           freeOwnedPill.style.display = isFree ? "inline-flex" : "none";
         }
+        if (proOwnedPill) {
+          proOwnedPill.style.display = isPro ? "inline-flex" : "none";
+        }
 
         if (plusCheckoutBtn) {
-          if (isPlus) {
-            plusCheckoutBtn.textContent = "Plus Plan Active";
+          if (isPlus || isPro) {
+            plusCheckoutBtn.textContent = isPro ? "Included with Pro" : "Plus Plan Active";
             plusCheckoutBtn.classList.add("is-owned");
             plusCheckoutBtn.disabled = false;
-            setStatus(plusStatusEl, "You already own the Plus plan on this account.", "success");
+            setStatus(plusStatusEl, isPro ? "Pro includes every Plus benefit on this account." : "You already own the Plus plan on this account.", "success");
           } else {
             plusCheckoutBtn.textContent = "Start Plus Membership";
             plusCheckoutBtn.classList.remove("is-owned");
             plusCheckoutBtn.disabled = false;
             setStatus(plusStatusEl, "", "");
           }
+        }
+
+        if (proCheckoutBtn) {
+          proCheckoutBtn.textContent = isPro ? "Pro Plan Active" : "Start Pro Membership";
+          proCheckoutBtn.classList.toggle("is-owned", isPro);
+          proCheckoutBtn.disabled = false;
+          setStatus(proStatusEl, isPro ? "You already own the Pro plan on this account." : "", isPro ? "success" : "");
         }
 
         if (isFree) {
@@ -1853,7 +1873,7 @@
           if (premiumResponse.ok) {
             var premiumPayload = await premiumResponse.json().catch(function () { return null; });
             if (hasPlusFromPayload(premiumPayload)) {
-              applyPlanState("plus");
+              applyPlanState(String(premiumPayload.plan || "plus").toLowerCase() === "pro" ? "pro" : "plus");
               return;
             }
           } else if (premiumResponse.status === 401 || premiumResponse.status === 403) {
@@ -1871,7 +1891,7 @@
           }
 
           var payload = await response.json().catch(function () { return null; });
-          applyPlanState(hasPlusFromPayload(payload) ? "plus" : "free");
+          applyPlanState(hasPlusFromPayload(payload) ? (String((payload.user || payload).plan || "plus").toLowerCase() === "pro" ? "pro" : "plus") : "free");
         } catch (_error) {
           applyPlanState("guest");
         }
@@ -1920,6 +1940,35 @@
 
       if (plusCheckoutBtn) {
         plusCheckoutBtn.addEventListener("click", startCheckout);
+      }
+
+      if (proCheckoutBtn) {
+        proCheckoutBtn.addEventListener("click", async function () {
+          var token = getToken();
+          if (!token) {
+            setStatus(proStatusEl, "You need an account first so Pro can be attached to the right profile.");
+            openLoginRedirectPopup();
+            return;
+          }
+          if (proCheckoutBtn.classList.contains("is-owned")) {
+            setStatus(proStatusEl, "This account already has an active Pro plan.", "success");
+            return;
+          }
+          proCheckoutBtn.disabled = true;
+          setStatus(proStatusEl, "Opening secure Stripe checkout...", "success");
+          try {
+            var result = await apiRequest("/auth/create-pro-checkout-session", {
+              method: "POST",
+              headers: { Authorization: "Bearer " + token }
+            });
+            if (!result || !result.url) throw new Error("Stripe did not return a checkout URL.");
+            if (window.top && window.top !== window) window.top.location.href = result.url;
+            else window.location.href = result.url;
+          } catch (error) {
+            setStatus(proStatusEl, error.message || "Could not open Pro checkout.");
+            proCheckoutBtn.disabled = false;
+          }
+        });
       }
 
       planCards.forEach(function (card) {

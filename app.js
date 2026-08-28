@@ -36,11 +36,13 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const AUTH_USERS_TABLE = process.env.AUTH_USERS_TABLE || "member_accounts";
 const AI_TOKEN_PURCHASES_TABLE = process.env.AI_TOKEN_PURCHASES_TABLE || "ai_token_purchases";
+const AI_THUMBNAIL_HISTORY_TABLE = process.env.AI_THUMBNAIL_HISTORY_TABLE || "ai_thumbnail_history";
 const MODERATION_ACTIONS_TABLE = process.env.MODERATION_ACTIONS_TABLE || "member_moderation_actions";
 const DEVICE_LINKS_TABLE = process.env.DEVICE_LINKS_TABLE || "member_device_links";
 const AUTH_JWT_SECRET = String(process.env.AUTH_JWT_SECRET || "");
 const STRIPE_SECRET_KEY = String(process.env.STRIPE_SECRET_KEY || "");
 const STRIPE_PRICE_ID = String(process.env.STRIPE_PRICE_ID || "");
+const STRIPE_PRO_PRODUCT_ID = String(process.env.STRIPE_PRO_PRODUCT_ID || "prod_V9rw4G9vIzpnZb").trim();
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "");
 const APP_BASE_URL = String(process.env.APP_BASE_URL || "https://www.rblxtools.net");
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
@@ -77,6 +79,8 @@ const MAX_AI_THUMBNAIL_REFERENCE_IMAGES = 3;
 const MAX_AI_THUMBNAIL_REFERENCE_BYTES = 2 * 1024 * 1024;
 const AI_TOKEN_DEFAULT_BALANCE = 0;
 const AI_THUMBNAIL_TOKEN_COST = 1;
+const AI_THUMBNAIL_FREE_REFERENCES = 3;
+const AI_THUMBNAIL_PRO_REFERENCES = 6;
 const AI_TOKEN_PACKAGES = [
   { key: "20", tokens: 20, priceCents: 300, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9Y1oleZ7XCqM9").trim() },
   { key: "45", tokens: 45, priceCents: 500, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
@@ -354,10 +358,10 @@ function cleanAIThumbnailText(value, maxLength = 240) {
     .slice(0, maxLength);
 }
 
-function parseAIThumbnailReferenceImages(rawReferences) {
+function parseAIThumbnailReferenceImages(rawReferences, maxReferences = AI_THUMBNAIL_FREE_REFERENCES) {
   if (!Array.isArray(rawReferences)) return [];
-  if (rawReferences.length > MAX_AI_THUMBNAIL_REFERENCE_IMAGES) {
-    const error = new Error(`Use up to ${MAX_AI_THUMBNAIL_REFERENCE_IMAGES} reference images.`);
+  if (rawReferences.length > maxReferences) {
+    const error = new Error(`Use up to ${maxReferences} reference images.`);
     error.statusCode = 400;
     throw error;
   }
@@ -388,7 +392,24 @@ async function generateAIThumbnail(payload) {
     error.statusCode = 400;
     throw error;
   }
-  const references = parseAIThumbnailReferenceImages(payload.references);
+  const isPro = Boolean(payload.isPro);
+  const references = parseAIThumbnailReferenceImages(
+    payload.references,
+    isPro ? AI_THUMBNAIL_PRO_REFERENCES : AI_THUMBNAIL_FREE_REFERENCES
+  );
+  const aspectRatio = isPro ? String(payload.aspectRatio || "16:9") : "16:9";
+  const outputQuality = isPro ? String(payload.outputQuality || "standard") : "standard";
+  const aspectConfig = {
+    "16:9": { generationSize: "1536x1024", width: outputQuality === "1080p" ? 1920 : 1280, height: outputQuality === "1080p" ? 1080 : 720 },
+    "1:1": { generationSize: "1024x1024", width: outputQuality === "1080p" ? 1080 : 1024, height: outputQuality === "1080p" ? 1080 : 1024 },
+    "9:16": { generationSize: "1024x1536", width: outputQuality === "1080p" ? 1080 : 720, height: outputQuality === "1080p" ? 1920 : 1280 },
+    "4:5": { generationSize: "1024x1536", width: outputQuality === "1080p" ? 1080 : 864, height: outputQuality === "1080p" ? 1350 : 1080 },
+  }[aspectRatio] || null;
+  if (!aspectConfig) {
+    const error = new Error("Choose a supported thumbnail aspect ratio.");
+    error.statusCode = 400;
+    throw error;
+  }
   let generation;
   if (references.length) {
     const { toFile } = getOpenAIUploadHelpers();
@@ -401,13 +422,13 @@ async function generateAIThumbnail(payload) {
       model: AI_CLOTHING_MODEL,
       image: uploads,
       prompt,
-      size: AI_THUMBNAIL_GENERATION_SIZE,
+      size: aspectConfig.generationSize,
     });
   } else {
     generation = await getOpenAIClient().images.generate({
       model: AI_CLOTHING_MODEL,
       prompt,
-      size: AI_THUMBNAIL_GENERATION_SIZE,
+      size: aspectConfig.generationSize,
     });
   }
   const generatedBase64 = generation?.data?.[0]?.b64_json || "";
@@ -418,7 +439,7 @@ async function generateAIThumbnail(payload) {
   }
   const sharp = getSharp();
   const outputBuffer = await sharp(Buffer.from(generatedBase64, "base64"))
-    .resize(AI_THUMBNAIL_OUTPUT_WIDTH, AI_THUMBNAIL_OUTPUT_HEIGHT, {
+    .resize(aspectConfig.width, aspectConfig.height, {
       fit: "cover",
       position: "centre",
     })
@@ -428,11 +449,39 @@ async function generateAIThumbnail(payload) {
     outputBuffer,
     outputBase64: outputBuffer.toString("base64"),
     outputMime: "image/png",
-    outputWidth: AI_THUMBNAIL_OUTPUT_WIDTH,
-    outputHeight: AI_THUMBNAIL_OUTPUT_HEIGHT,
+    outputWidth: aspectConfig.width,
+    outputHeight: aspectConfig.height,
     model: AI_CLOTHING_MODEL,
     promptPreview: prompt,
   };
+}
+
+function buildAIThumbnailHistoryRecord(row) {
+  if (!row || typeof row !== "object") return null;
+  return {
+    id: String(row.id || ""),
+    prompt: String(row.prompt || ""),
+    references: Array.isArray(row.reference_images) ? row.reference_images : [],
+    imageDataUrl: String(row.image_data_url || ""),
+    downloadFileName: String(row.download_filename || "rblxtools-ai-thumbnail.png"),
+    feedback: ["like", "dislike"].includes(String(row.feedback || "")) ? String(row.feedback) : "",
+    createdAt: row.created_at || null,
+  };
+}
+
+async function saveAIThumbnailHistory(userId, payload) {
+  const rows = await supabaseRequest(buildTablePath(AI_THUMBNAIL_HISTORY_TABLE), {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      user_id: userId,
+      prompt: cleanAIThumbnailText(payload.prompt, 2000),
+      reference_images: Array.isArray(payload.references) ? payload.references : [],
+      image_data_url: String(payload.imageDataUrl || ""),
+      download_filename: cleanAIThumbnailText(payload.downloadFileName, 180) || "rblxtools-ai-thumbnail.png",
+    }),
+  });
+  return Array.isArray(rows) ? buildAIThumbnailHistoryRecord(rows[0]) : null;
 }
 
 async function alignAIClothingReferenceToOutput(referenceTemplateBuffer) {
@@ -1609,6 +1658,14 @@ function getPlanForSubscriptionStatus(status) {
   return isPremiumStatus(status) ? "plus" : "free";
 }
 
+function normalizeMembershipPlan(value) {
+  return String(value || "").trim().toLowerCase() === "pro" ? "pro" : "plus";
+}
+
+function isProMember(user) {
+  return String(user?.plan || "").trim().toLowerCase() === "pro";
+}
+
 function getAITokenBalance(user) {
   const parsed = Number.parseInt(user?.ai_token_balance, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : AI_TOKEN_DEFAULT_BALANCE;
@@ -1650,6 +1707,27 @@ async function resolveAITokenPackagePrice(packageDefinition) {
   }
 
   return priceId;
+}
+
+async function resolveRecurringProductPrice(productId) {
+  if (!productId) {
+    const error = new Error("This membership product is not configured yet.");
+    error.statusCode = 503;
+    throw error;
+  }
+  const prices = await stripeClient.prices.list({
+    product: productId,
+    active: true,
+    type: "recurring",
+    limit: 10,
+  });
+  const price = Array.isArray(prices?.data) ? prices.data.find((item) => item?.recurring) : null;
+  if (!price?.id) {
+    const error = new Error("This membership product needs an active recurring Stripe price.");
+    error.statusCode = 503;
+    throw error;
+  }
+  return String(price.id);
 }
 
 function extractMissingSupabaseColumnName(error) {
@@ -2137,7 +2215,7 @@ function buildCombinedMembershipSnapshot(stripeMembership, complimentaryMembersh
   const manualPlusFallback = Boolean(
     !hasStripeData &&
     !hasComplimentaryData &&
-    (row?.premium_active === true || String(row?.plan || "").toLowerCase() === "plus")
+    (row?.premium_active === true || ["plus", "pro"].includes(String(row?.plan || "").toLowerCase()))
   );
   const premiumActive = Boolean(stripe.active || complimentary.active || plusDaysLeft > 0 || manualPlusFallback);
   const membershipSource = hasStripeData && hasComplimentaryData
@@ -2153,7 +2231,7 @@ function buildCombinedMembershipSnapshot(stripeMembership, complimentaryMembersh
 
   return {
     premiumActive,
-    plan: premiumActive ? "plus" : (row?.plan || "free"),
+    plan: premiumActive ? normalizeMembershipPlan(row?.plan) : "free",
     stripeSubscriptionStatus: stripe.status || row?.stripe_subscription_status || null,
     complimentaryExpiresAt: complimentary.expiresAt || complimentary.currentPeriodEndAt || null,
     complimentaryActive: Boolean(complimentary.active),
@@ -3340,7 +3418,7 @@ async function syncSubscriptionStateForUser(userId, customerId, subscriptionStat
     return updateAuthUserFields(userId, {
       stripe_customer_id: customerId || null,
       premium_active: premiumActive,
-      plan: premiumActive ? "plus" : "free",
+      plan: premiumActive ? normalizeMembershipPlan(membershipFields.plan) : "free",
       stripe_subscription_status: subscriptionStatus || null,
       membership_source: membershipSource,
       ...(hasStripeSnapshotData ? buildStripeMembershipStorageFields(membershipFields) : {}),
@@ -3351,6 +3429,7 @@ function buildStripeMembershipFieldsFromSubscription(subscription) {
   const currentPeriodStartAt = getIsoFromUnixSeconds(subscription?.current_period_start);
   const currentPeriodEndAt = getIsoFromUnixSeconds(subscription?.current_period_end);
   return {
+    plan: normalizeMembershipPlan(subscription?.metadata?.plan),
     stripeDaysTotal: getDaysBetween(currentPeriodStartAt, currentPeriodEndAt),
     stripeCurrentPeriodStartAt: currentPeriodStartAt,
     stripeCurrentPeriodEndAt: currentPeriodEndAt,
@@ -6198,15 +6277,29 @@ app.post("/ai/generate-clothing", async (req, res) => {
   }
 });
 
+// Fast page gate: avoids a live Stripe refresh when a tool only needs identity and entitlements.
+app.get("/auth/session", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    return res.json({ ok: true, user: buildPublicUser(user) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the current session." });
+  }
+});
+
 app.post("/ai/generate-thumbnail", async (req, res) => {
   try {
     const user = await requireAdminUser(req);
+    const isPro = isProMember(user);
     const aiTokens = await debitAITokens(user.id, AI_THUMBNAIL_TOKEN_COST);
     let result;
     try {
       result = await generateAIThumbnail({
         prompt: req.body?.prompt,
         references: req.body?.references,
+        aspectRatio: req.body?.aspectRatio,
+        outputQuality: req.body?.outputQuality,
+        isPro,
       });
     } catch (generationError) {
       // A failed provider request should not consume a member's token.
@@ -6216,6 +6309,19 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
       throw generationError;
     }
     const timestamp = Date.now();
+    const imageDataUrl = `data:${result.outputMime};base64,${result.outputBase64}`;
+    const downloadFileName = `rblxtools-ai-thumbnail-${timestamp}.png`;
+    let historyItem = null;
+    try {
+      historyItem = await saveAIThumbnailHistory(user.id, {
+        prompt: req.body?.prompt,
+        references: req.body?.references,
+        imageDataUrl,
+        downloadFileName,
+      });
+    } catch (historyError) {
+      console.warn("Could not save AI thumbnail history:", historyError.message);
+    }
     return res.json({
       ok: true,
       aiTokens,
@@ -6224,8 +6330,10 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
       promptPreview: result.promptPreview,
       outputWidth: result.outputWidth,
       outputHeight: result.outputHeight,
-      imageDataUrl: `data:${result.outputMime};base64,${result.outputBase64}`,
-      downloadFileName: `rblxtools-ai-thumbnail-${timestamp}.png`,
+      imageDataUrl,
+      downloadFileName,
+      historyItem,
+      isPro,
     });
   } catch (error) {
     console.error("POST /ai/generate-thumbnail failed:", error);
@@ -6233,6 +6341,36 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
       error: error.message || "AI thumbnail generation failed.",
       aiTokens: Number.isFinite(error.aiTokens) ? error.aiTokens : undefined,
     });
+  }
+});
+
+app.get("/ai/thumbnail-history", async (req, res) => {
+  try {
+    const user = await requireAdminUser(req);
+    const rows = await supabaseRequest(
+      buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?user_id=eq.${encodeURIComponent(user.id)}&order=created_at.desc&limit=50&select=id,prompt,reference_images,image_data_url,download_filename,feedback,created_at`)
+    );
+    return res.json({ ok: true, items: (Array.isArray(rows) ? rows : []).map(buildAIThumbnailHistoryRecord).filter(Boolean) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load thumbnail history." });
+  }
+});
+
+app.patch("/ai/thumbnail-history/:historyId", async (req, res) => {
+  try {
+    const user = await requireAdminUser(req);
+    const historyId = String(req.params.historyId || "").trim();
+    const feedback = ["like", "dislike"].includes(String(req.body?.feedback || "")) ? String(req.body.feedback) : null;
+    if (!historyId) return res.status(400).json({ error: "A history item is required." });
+    const rows = await supabaseRequest(
+      buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?id=eq.${encodeURIComponent(historyId)}&user_id=eq.${encodeURIComponent(user.id)}`),
+      { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ feedback }) }
+    );
+    const item = Array.isArray(rows) ? buildAIThumbnailHistoryRecord(rows[0]) : null;
+    if (!item) return res.status(404).json({ error: "Thumbnail history item not found." });
+    return res.json({ ok: true, item });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not save thumbnail feedback." });
   }
 });
 
@@ -7189,6 +7327,30 @@ app.post("/auth/create-checkout-session", async (req, res) => {
     });
     }
   });
+
+app.post("/auth/create-pro-checkout-session", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const customerId = await getOrCreateStripeCustomerForUser(user);
+    const priceId = await resolveRecurringProductPrice(STRIPE_PRO_PRODUCT_ID);
+    const checkoutSession = await stripeClient.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: getSafeCheckoutSuccessUrl(),
+      cancel_url: getSafeCheckoutCancelUrl(),
+      allow_promotion_codes: true,
+      client_reference_id: user.id,
+      metadata: { appUserId: user.id, plan: "pro" },
+      subscription_data: { metadata: { appUserId: user.id, plan: "pro" } },
+    });
+    return res.json({ ok: true, url: checkoutSession.url });
+  } catch (error) {
+    console.error("POST /auth/create-pro-checkout-session failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not create a Pro checkout session." });
+  }
+});
   
   app.get("/auth/checkout-session-summary", async (req, res) => {
     try {

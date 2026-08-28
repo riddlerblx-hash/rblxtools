@@ -2551,7 +2551,7 @@
 
       async function verifyAdminAccess() {
         try {
-          var response = await fetch(API_BASE + "/auth/me", {
+          var response = await fetch(API_BASE + "/auth/session", {
             method: "GET",
             credentials: "include"
           });
