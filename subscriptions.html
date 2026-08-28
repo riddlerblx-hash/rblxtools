@@ -1218,6 +1218,20 @@
       .plans-grid { grid-template-columns: 1fr; }
       .side-plan, .plus-focus { padding-block: 0; }
     }
+    /* Match the focused AI token-store presentation without changing checkout behavior. */
+    body { background:radial-gradient(circle at 58% 11%, rgba(56,230,224,.11), transparent 25%),radial-gradient(circle at 25% 76%, rgba(255,76,89,.10), transparent 28%),#080e19; }
+    main { max-width:1120px; min-height:calc(100vh - 52px); display:flex; flex-direction:column; justify-content:center; padding:52px 22px 72px; }
+    .hero { margin-bottom:24px; }
+    .hero h1 span:first-child { color:#f7f8ef; }
+    .hero h1 span:last-child { background:none; -webkit-text-fill-color:initial; color:#38e6e0; }
+    .hero p { max-width:620px; color:#a9b4c9; }
+    .plan-banner, .hero-strip, .compare-card, .faq-card { border-color:rgba(123,164,255,.24); background:linear-gradient(155deg,rgba(24,35,59,.94),rgba(8,15,26,.98)); box-shadow:0 18px 42px rgba(0,0,0,.2); }
+    .hero-strip { max-width:920px; }
+    .hero-chip { border-color:rgba(123,164,255,.24); background:rgba(15,28,48,.8); }
+    .plus-card { background:linear-gradient(155deg,rgba(21,71,79,.97),rgba(8,18,31,.99)); border-color:rgba(56,230,224,.72); box-shadow:0 24px 54px rgba(30,195,205,.14); }
+    .free-card, .pro-card { background:linear-gradient(155deg,rgba(24,35,59,.94),rgba(8,15,26,.98)); }
+    .plus-focus { transform:translateY(-9px); }
+    @media (max-width:900px) { main { display:block; min-height:0; padding:42px 14px 68px; } .plus-focus { transform:none; } }
   </style>
 <link rel="stylesheet" href="./global-shell.css?v=20260825-19" />
   <link rel="stylesheet" href="./mobile-overrides.css" />
