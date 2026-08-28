@@ -792,6 +792,15 @@
     <section class="admin-actions-grid">
         <div class="admin-card">
           <div class="admin-card-inner">
+            <div class="admin-card-head"><div><h2 class="admin-card-title">Complimentary Pro & AI Tokens</h2><p class="admin-card-copy">Grant Pro access or AI credits with a staff note.</p></div></div>
+            <div class="admin-field"><label class="admin-label" for="proTokenTarget">User ID Or Email</label><input class="admin-input" id="proTokenTarget" type="text" placeholder="Target member" /></div>
+            <div class="admin-triple"><div class="admin-field"><label class="admin-label" for="proDays">Pro Days</label><input class="admin-input" id="proDays" type="number" min="1" max="3650" value="14" /></div><div class="admin-field"><label class="admin-label" for="tokenAmount">AI Tokens</label><input class="admin-input" id="tokenAmount" type="number" min="1" max="100000" value="20" /></div><div class="admin-field"><label class="admin-label" for="proTokenNote">Staff Note</label><input class="admin-input" id="proTokenNote" type="text" placeholder="Required" /></div></div>
+            <div class="admin-buttons"><button class="admin-btn green" id="grantProButton" type="button">Grant Pro</button><button class="admin-btn blue" id="grantTokensButton" type="button">Grant AI Tokens</button></div><div class="admin-result" id="proTokenStatus"></div>
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-card-inner">
             <div class="admin-card-head">
               <div>
                 <h2 class="admin-card-title">Complimentary Plus</h2>
@@ -1439,6 +1448,18 @@
         });
       }
 
+      async function grantProOrTokens(kind) {
+        return withBusy(["grantProButton", "grantTokensButton"], async function () {
+          var note = getFieldValue("proTokenNote");
+          if (!note) throw new Error("A staff note is required.");
+          var target = await resolveTargetMember(getFieldValue("proTokenTarget"));
+          var isPro = kind === "pro";
+          var payload = await fetchJson(API_BASE + (isPro ? "/admin/grant-pro" : "/admin/grant-ai-tokens"), { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ userId:target.id, note:note, days:Math.max(1,Math.min(getFieldNumber("proDays",14),3650)), amount:Math.max(1,Math.min(getFieldNumber("tokenAmount",20),100000)) }) });
+          renderMember(normalizeLoadedMember(payload.member || target, payload));
+          setResult("proTokenStatus", payload.message || "Grant complete.", "success");
+        }).catch(function (error) { setResult("proTokenStatus", error.message || "Could not complete the grant.", "error"); });
+      }
+
       async function applyWebsiteLock() {
         return withBusy(["blacklistButton", "clearBlacklistButton"], async function () {
           var target = await resolveTargetMember(getFieldValue("blacklistTarget"));
@@ -1694,6 +1715,8 @@
 
       document.getElementById("grantPlusButton").addEventListener("click", grantPlus);
       document.getElementById("removePlusButton").addEventListener("click", removePlus);
+      document.getElementById("grantProButton").addEventListener("click", function () { grantProOrTokens("pro"); });
+      document.getElementById("grantTokensButton").addEventListener("click", function () { grantProOrTokens("tokens"); });
       document.getElementById("blacklistButton").addEventListener("click", applyWebsiteLock);
       document.getElementById("clearBlacklistButton").addEventListener("click", clearWebsiteLock);
       document.getElementById("timeoutButton").addEventListener("click", applyChatTimeout);

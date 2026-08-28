@@ -324,6 +324,10 @@
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.25h14M5 12h14M5 16.75h14"/></svg>';
   }
 
+  function getChatToggleIcon() {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14v10H9l-4 3v-13z"></path><path d="M8 9h8M8 12h5"></path></svg>';
+  }
+
     function getSupportCategoryOptionsMarkup() {
       return [
         '<option value="website_bug">🐞 Website Bugs</option>',
@@ -1347,7 +1351,7 @@
               "</div>" +
               '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + "</div>" +
               '<div class="rblx-shell-left-foot">' +
-                '<a class="rblx-shell-token-banner" id="rblxShellTokenBanner" href="./subscriptions" hidden><strong>AI Tokens</strong><span id="rblxShellTokenBalance">0</span></a>' +
+                '<div class="rblx-shell-token-banner" id="rblxShellTokenBanner" hidden><strong>AI Tokens</strong><span id="rblxShellTokenBalance">0</span><a class="rblx-shell-token-add" href="./ai-tokens" aria-label="Buy AI tokens" title="Buy AI tokens">+</a></div>' +
                 '<a class="rblx-shell-mini-banner" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span></a>' +
                 '<div class="rblx-shell-socials">' +
                   '<a href="https://x.com/Reese28575571" target="_blank" rel="noreferrer" aria-label="X">' + getSocialIcon("x") + '</a>' +
@@ -1365,7 +1369,7 @@
             '<div class="rblx-shell-right-inner">' +
               '<div class="rblx-shell-panel-head">' +
                 '<h2 class="rblx-shell-panel-title">Community Chat</h2>' +
-                '<button class="rblx-shell-toggle" type="button" id="rblxShellRightToggle" aria-label="Toggle chat">' + getToggleIcon() + '</button>' +
+                '<button class="rblx-shell-toggle" type="button" id="rblxShellRightToggle" aria-label="Toggle chat">' + getChatToggleIcon() + '</button>' +
               "</div>" +
               '<div class="rblx-shell-chat-card">' +
                 '<div class="rblx-shell-chat-room">' +

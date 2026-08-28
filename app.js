@@ -3999,6 +3999,39 @@ async function grantComplimentaryPlusToUser(userId, days) {
   };
 }
 
+async function grantComplimentaryProToUser(userId, days) {
+  const plusGrant = await grantComplimentaryPlusToUser(userId, days);
+  const updatedUser = await updateAuthUserFields(plusGrant.user.id, {
+    plan: "pro",
+    membership_source: "complimentary pro",
+  });
+  if (!updatedUser) {
+    const error = new Error("Could not save the complimentary Pro grant.");
+    error.statusCode = 500;
+    throw error;
+  }
+  return { ...plusGrant, user: updatedUser };
+}
+
+async function grantAITokensToUser(userId, amount) {
+  const targetUser = await getAuthUserByIdentifier(userId);
+  if (!targetUser) {
+    const error = new Error("No member account was found for that token grant.");
+    error.statusCode = 404;
+    throw error;
+  }
+  const safeAmount = Math.max(1, Math.min(Number.parseInt(amount, 10) || 0, 100000));
+  const updatedUser = await updateAuthUserFields(targetUser.id, {
+    ai_token_balance: getAITokenBalance(targetUser) + safeAmount,
+  });
+  if (!updatedUser) {
+    const error = new Error("Could not save the AI token grant.");
+    error.statusCode = 500;
+    throw error;
+  }
+  return { user: updatedUser, amount: safeAmount };
+}
+
 async function removePlusFromUser(userId) {
   const targetUser = await getAuthUserByIdentifier(userId);
   if (!targetUser) {
@@ -7246,6 +7279,37 @@ app.get("/store/ai-token-packages", async (req, res) => {
     return res.json({ ok: true, packages: getPublicAITokenPackages() });
   } catch (error) {
     return res.status(error.statusCode || 403).json({ error: error.message || "Admin access is required." });
+  }
+});
+
+app.post("/admin/grant-pro", async (req, res) => {
+  try {
+    const adminUser = await requireAdminUser(req);
+    const targetUser = await getAuthUserByIdentifier(req.body?.userId);
+    const note = cleanText(req.body?.note, 500);
+    const days = Math.max(1, Math.min(Number.parseInt(req.body?.days, 10) || DEFAULT_COMPLIMENTARY_PLUS_DAYS, MAX_COMPLIMENTARY_PLUS_DAYS));
+    if (!targetUser) return res.status(404).json({ error: "No member account was found for that Pro grant." });
+    if (!note) return res.status(400).json({ error: "A note is required before complimentary Pro can be granted." });
+    const grantResult = await grantComplimentaryProToUser(targetUser.id, days);
+    emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.days + " days of complimentary Pro.");
+    return res.json({ ok: true, message: "Complimentary Pro granted for " + grantResult.days + " days.", member: buildPublicUser(grantResult.user), days: grantResult.days, expiresAt: grantResult.expiresAt, grantedBy: { id: adminUser.id, email: adminUser.email } });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not grant complimentary Pro." });
+  }
+});
+
+app.post("/admin/grant-ai-tokens", async (req, res) => {
+  try {
+    const adminUser = await requireAdminUser(req);
+    const targetUser = await getAuthUserByIdentifier(req.body?.userId);
+    const note = cleanText(req.body?.note, 500);
+    if (!targetUser) return res.status(404).json({ error: "No member account was found for that token grant." });
+    if (!note) return res.status(400).json({ error: "A note is required before AI tokens can be granted." });
+    const grantResult = await grantAITokensToUser(targetUser.id, req.body?.amount);
+    emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.amount + " AI tokens.");
+    return res.json({ ok: true, message: grantResult.amount + " AI tokens granted.", member: buildPublicUser(grantResult.user), amount: grantResult.amount, grantedBy: { id: adminUser.id, email: adminUser.email } });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not grant AI tokens." });
   }
 });
 
