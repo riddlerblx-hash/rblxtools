@@ -78,11 +78,11 @@ const MAX_AI_THUMBNAIL_REFERENCE_BYTES = 2 * 1024 * 1024;
 const AI_TOKEN_DEFAULT_BALANCE = 0;
 const AI_THUMBNAIL_TOKEN_COST = 1;
 const AI_TOKEN_PACKAGES = [
-  { key: "20", tokens: 20, priceCents: 300, priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_20 || "").trim() },
-  { key: "45", tokens: 45, priceCents: 500, priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_45 || "").trim() },
-  { key: "130", tokens: 130, priceCents: 1300, priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_130 || "").trim() },
-  { key: "245", tokens: 245, priceCents: 2300, priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_245 || "").trim() },
-  { key: "500", tokens: 500, priceCents: 50000, priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_500 || "").trim() },
+  { key: "20", tokens: 20, priceCents: 300, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9Y1oleZ7XCqM9").trim() },
+  { key: "45", tokens: 45, priceCents: 500, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
+  { key: "130", tokens: 130, priceCents: 1300, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_130 || "prod_V9YGsNXs9IXcrX").trim() },
+  { key: "245", tokens: 245, priceCents: 2300, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_245 || "prod_V9YK5x1FI50wj2").trim() },
+  { key: "500", tokens: 500, priceCents: 50000, productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_500 || "prod_V9YLT7NritZtsJ").trim() },
 ];
 const AI_CLOTHING_SKIN_TONES = {
   white: { hex: "#EFD2BF", r: 239, g: 210, b: 191, a: 255 },
@@ -1624,8 +1624,32 @@ function getPublicAITokenPackages() {
     tokens: item.tokens,
     priceCents: item.priceCents,
     currency: "usd",
-    configured: Boolean(item.priceId),
+    configured: Boolean(item.productId),
   }));
+}
+
+async function resolveAITokenPackagePrice(packageDefinition) {
+  const product = await stripeClient.products.retrieve(packageDefinition.productId);
+  let priceId = typeof product?.default_price === "string"
+    ? product.default_price
+    : String(product?.default_price?.id || "").trim();
+
+  if (!priceId) {
+    const prices = await stripeClient.prices.list({
+      product: packageDefinition.productId,
+      active: true,
+      limit: 1,
+    });
+    priceId = String(prices?.data?.[0]?.id || "").trim();
+  }
+
+  if (!priceId) {
+    const error = new Error("This AI token product does not have an active Stripe price.");
+    error.statusCode = 503;
+    throw error;
+  }
+
+  return priceId;
 }
 
 function extractMissingSupabaseColumnName(error) {
@@ -7090,15 +7114,16 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
     if (!packageDefinition) {
       return res.status(400).json({ error: "Choose a valid AI token package." });
     }
-    if (!packageDefinition.priceId) {
+    if (!packageDefinition.productId) {
       return res.status(503).json({ error: "This AI token package is not configured yet." });
     }
 
     const customerId = await getOrCreateStripeCustomerForUser(user);
+    const priceId = await resolveAITokenPackagePrice(packageDefinition);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
       customer: customerId,
-      line_items: [{ price: packageDefinition.priceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: getSafeAiTokenStoreSuccessUrl(),
       cancel_url: getSafeAiTokenStoreCancelUrl(),
       allow_promotion_codes: true,
