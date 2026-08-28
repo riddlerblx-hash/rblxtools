@@ -4,6 +4,7 @@
 
   var API_BASE = window.location.origin;
   var ADSENSE_CLIENT = "ca-pub-1298532626039613";
+  var ADSTERRA_POPUNDER_SRC = "https://pl31060691.profitableratecpmnetwork.com/db/b2/3c/dbb23c04482ce596492b26e928c44986.js";
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
@@ -235,6 +236,22 @@
   }
 
   ensureAdSenseSetup();
+
+  function ensureAdsterraPopunderSetup() {
+    if (!ADSTERRA_POPUNDER_SRC || window.__rblxAdsterraPopunderLoaded) return;
+    var head = document.head || document.getElementsByTagName("head")[0];
+    if (!head || document.querySelector('script[data-rblxtools-adsterra-popunder="true"]')) return;
+
+    var script = document.createElement("script");
+    script.async = true;
+    script.dataset.rblxtoolsAdsterraPopunder = "true";
+    script.src = ADSTERRA_POPUNDER_SRC;
+    head.appendChild(script);
+    window.__rblxAdsterraPopunderLoaded = true;
+  }
+
+  // One third-party popunder script load for each full page visit.
+  ensureAdsterraPopunderSetup();
 
   function ensureGoogleAnalyticsSetup() {
     if (!GOOGLE_ANALYTICS_ID) return;
