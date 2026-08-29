@@ -1436,14 +1436,24 @@
         const templateImage = new Image();
         templateImage.onload = function () {
           if (templateRigRenderer !== renderer) return;
-          const texture = new THREE.CanvasTexture(templateImage);
+          // Flatten transparent template pixels onto an opaque canvas before
+          // making the texture. That prevents Roblox decals from punching
+          // transparent-looking holes through the mapped body parts.
+          const textureCanvas = document.createElement("canvas");
+          textureCanvas.width = templateImage.naturalWidth || templateImage.width || 585;
+          textureCanvas.height = templateImage.naturalHeight || templateImage.height || 559;
+          const textureContext = textureCanvas.getContext("2d");
+          textureContext.fillStyle = "#303946";
+          textureContext.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+          textureContext.drawImage(templateImage, 0, 0, textureCanvas.width, textureCanvas.height);
+          const texture = new THREE.CanvasTexture(textureCanvas);
           texture.flipY = true;
           texture.encoding = THREE.sRGBEncoding;
           texture.minFilter = THREE.LinearFilter;
           texture.magFilter = THREE.LinearFilter;
           texture.generateMipmaps = false;
           texture.anisotropy = 4;
-          const clothingMaterial = function () { return new THREE.MeshStandardMaterial({ color: 0xffffff, map: texture, roughness: 0.96, metalness: 0, side: THREE.DoubleSide }); };
+          const clothingMaterial = function () { return new THREE.MeshStandardMaterial({ color: 0xffffff, map: texture, transparent: false, opacity: 1, alphaTest: 0, roughness: 0.96, metalness: 0, side: THREE.DoubleSide }); };
           const baseMaterial = function (color) { return new THREE.MeshStandardMaterial({ color: color, roughness: 0.88, metalness: 0.01, side: THREE.DoubleSide }); };
           // Some Roblox template files contain transparent regions. Start each
           // mesh with a solid body material so those pixels never make limbs
@@ -1467,8 +1477,10 @@
         box.setFromObject(rig);
         box.getCenter(center);
         rig.position.set(-center.x, -box.min.y + 4.78, -center.z);
-        rig.rotation.y = 0.06;
-        scene.add(rig);
+        const rigPivot = new THREE.Group();
+        rigPivot.rotation.y = 0.06;
+        rigPivot.add(rig);
+        scene.add(rigPivot);
         let dragging = false;
         let previousX = 0;
         renderer.domElement.addEventListener("pointerdown", function (event) {
@@ -1479,7 +1491,7 @@
         });
         renderer.domElement.addEventListener("pointermove", function (event) {
           if (!dragging) return;
-          rig.rotation.y += (event.clientX - previousX) * 0.012;
+          rigPivot.rotation.y += (event.clientX - previousX) * 0.012;
           previousX = event.clientX;
           render();
         });
@@ -1490,7 +1502,12 @@
         };
         renderer.domElement.addEventListener("pointerup", stopDragging);
         renderer.domElement.addEventListener("pointercancel", stopDragging);
-        render();
+        (function spinRig() {
+          if (templateRigRenderer !== renderer) return;
+          if (!dragging) rigPivot.rotation.y += 0.004;
+          render();
+          templateRigAnimationFrame = requestAnimationFrame(spinRig);
+        })();
       }, undefined, function () {
         // The original template image remains visible as the safe fallback.
         render();
