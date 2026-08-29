@@ -3353,7 +3353,7 @@ body.rblx-subscription-store .plan-banner,
 body.rblx-subscription-store .hero-strip,
 body.rblx-subscription-store .compare-card,
 body.rblx-subscription-store .faq-card { display:none !important; }
-body.rblx-subscription-store main { max-width:1060px !important; min-height:calc(100vh - 52px); display:flex; flex-direction:column; justify-content:center; padding:48px 22px 70px; }
+body.rblx-subscription-store .subscriptions-main { max-width:1060px !important; min-height:calc(100vh - 52px); display:flex; flex-direction:column; justify-content:center; padding:48px 22px 70px; }
 body.rblx-subscription-store .mobile-plan-stage { width:100%; max-width:none; }
 body.rblx-subscription-store .mobile-plan-viewport { overflow:visible; }
 body.rblx-subscription-store .plans-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; align-items:stretch; }
@@ -3385,7 +3385,7 @@ body.rblx-subscription-store .subscription-perks li::before { content:"+"; posit
 body.rblx-subscription-store .plus-card .subscription-perks li { border-color:rgba(56,230,224,.23); background:rgba(56,230,224,.055); }
 body.rblx-subscription-store .pro-card .subscription-perks li::before { color:#ffd26a; }
 @media (max-width:900px) {
-  body.rblx-subscription-store main { display:block; min-height:0; padding:42px 14px 68px; }
+  body.rblx-subscription-store .subscriptions-main { display:block; min-height:0; padding:42px 14px 68px; }
   body.rblx-subscription-store .plans-grid { grid-template-columns:1fr; }
   body.rblx-subscription-store .plan-col.plus-focus { transform:none; }
   body.rblx-subscription-store .plan-card { min-height:0 !important; }
