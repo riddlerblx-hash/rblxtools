@@ -4016,13 +4016,13 @@
       subtitle: "Monthly Stripe subscription",
       title: "Pro",
       action: actionLabel || "Try Now",
-      perks: ["20 AI Credits Every Month", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1080p Quality Outputs", "Premium Giveaways", "Custom Chat Tag", "Animation Tool Included", "Textured UGCs Included", "Premium Looking Website Included"]
+      perks: ["20 AI Credits Every Month", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1440p - 4K AI Thumbnail Quality", "Premium Giveaways", "Custom Chat Tag", "Animation Tool Included", "Textured UGCs Included", "Premium Looking Website Included"]
     } : {
       price: "$1.00",
       subtitle: "Monthly membership",
       title: "Plus",
       action: actionLabel || "Try Now",
-      perks: ["Chat Tag Cosmetic", "Animation Tool", "Textured UGCs", "Bulk Downloads (1-5)", "Premium Looking Website"]
+      perks: ["Chat Tag Cosmetic", "Animation Tool", "Textured UGCs", "Bulk Downloads (1-5)", "1080p AI Thumbnail Quality", "Premium Looking Website"]
     };
     return [
       '<div class="rblx-membership-promo-floaters ' + (isPro ? 'is-pro' : 'is-plus') + '" aria-hidden="true"><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span></div>',
