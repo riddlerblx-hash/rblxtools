@@ -3363,6 +3363,11 @@
     var nextBalance = Number(event && event.detail && event.detail.aiTokens);
     if (!Number.isFinite(nextBalance) || !shellState.currentUser || !shellState.currentUser.loggedIn) return;
     shellState.currentUser.aiTokens = Math.max(0, nextBalance);
+    var cachedUser = getCachedAuthUser();
+    if (cachedUser && (!cachedUser.id || !shellState.currentUser.userId || String(cachedUser.id) === String(shellState.currentUser.userId))) {
+      cachedUser.aiTokens = shellState.currentUser.aiTokens;
+      saveCachedAuthUser(cachedUser);
+    }
     var tokenBalance = document.getElementById("rblxShellTokenBalance");
     if (tokenBalance) tokenBalance.textContent = String(shellState.currentUser.aiTokens);
   });
