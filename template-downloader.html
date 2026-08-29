@@ -334,6 +334,8 @@
       background: rgba(10, 25, 46, 0.86);
       color: #e7f3ff;
       font: 800 11px/1 Arial, sans-serif;
+      appearance: none;
+      cursor: pointer;
       text-decoration: none;
       box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
       transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
@@ -1418,6 +1420,8 @@
     function showMappedRigPreview(templateUrl) {
       const viewer = document.getElementById("templateRigViewer");
       const fallbackImage = document.getElementById("activeTemplateImage");
+      const previewButton = document.getElementById("previewTemplateBtn");
+      const rotateHint = viewer && viewer.querySelector(".template-rig-rotate-hint");
       if (!viewer || !fallbackImage || !window.THREE || !window.THREE.OBJLoader) return;
 
       disposeMappedRigPreview();
@@ -1431,6 +1435,23 @@
       renderer.setSize(width, height, false);
       renderer.outputEncoding = THREE.sRGBEncoding;
       viewer.insertBefore(renderer.domElement, fallbackImage);
+
+      let showingFlatTemplate = false;
+      const updatePreviewMode = function () {
+        fallbackImage.style.display = showingFlatTemplate ? "block" : "none";
+        renderer.domElement.style.display = showingFlatTemplate ? "none" : "block";
+        if (rotateHint) rotateHint.style.display = showingFlatTemplate ? "none" : "";
+        if (previewButton) {
+          previewButton.innerHTML = showingFlatTemplate ? "&#x2728; Preview 3D rig" : "&#x1F5BC; Preview template";
+          previewButton.setAttribute("aria-pressed", String(showingFlatTemplate));
+        }
+      };
+      if (previewButton) {
+        previewButton.addEventListener("click", function () {
+          showingFlatTemplate = !showingFlatTemplate;
+          updatePreviewMode();
+        });
+      }
 
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(24, width / height, 0.1, 100);
@@ -1489,7 +1510,7 @@
           [parts.torso, parts.leftArm, parts.rightArm, parts.leftLeg, parts.rightLeg].forEach(function (part) {
             if (part) part.material = clothingMaterial();
           });
-          fallbackImage.style.display = "none";
+          updatePreviewMode();
           render();
         };
         templateImage.src = templateUrl;
@@ -1937,8 +1958,6 @@
       const downloadBtn = document.getElementById("downloadBtn");
 
       activeImage.src = activeSlide.url;
-      const previewLink = document.getElementById("previewTemplateBtn");
-      if (previewLink) previewLink.href = activeSlide.url;
       activeImage.alt = "Roblox clothing template " + activeSlide.id;
       showMappedRigPreview(activeSlide.url);
       slideCounter.innerText = (currentSlideIndex + 1) + " of " + currentSlides.length;
@@ -1976,7 +1995,7 @@
         <div id="previewShell">
           <div class="previewCarousel">
             <button class="previewArrow left ${isMulti ? "" : "hidden"}" type="button" onclick="showSlide(-1)">&lsaquo;</button>
-            <div class="previewStage"><div id="templateRigViewer" aria-label="Mapped 3D Roblox clothing rig preview"><img id="activeTemplateImage" class="template-rig-source" src="" alt="Roblox clothing template"><a id="previewTemplateBtn" class="template-rig-preview-link" href="#" target="_blank" rel="noopener">&#x1F50D; Preview template</a><span class="template-rig-rotate-hint">Drag to rotate</span></div></div>
+            <div class="previewStage"><div id="templateRigViewer" aria-label="Mapped 3D Roblox clothing rig preview"><img id="activeTemplateImage" class="template-rig-source" src="" alt="Roblox clothing template"><button id="previewTemplateBtn" class="template-rig-preview-link" type="button" aria-pressed="false">&#x1F5BC; Preview template</button><span class="template-rig-rotate-hint">Drag to rotate</span></div></div>
             <button class="previewArrow right ${isMulti ? "" : "hidden"}" type="button" onclick="showSlide(1)">&rsaquo;</button>
           </div>
         </div>
