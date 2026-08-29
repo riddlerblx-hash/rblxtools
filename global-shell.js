@@ -3980,6 +3980,7 @@
 
   function buildMembershipPromoMarkup(plan, actionLabel) {
     var isPro = plan === "pro";
+    var floatingMark = isPro ? "&#128736;" : "+";
     var config = isPro ? {
       price: "$5.00",
       subtitle: "Monthly Stripe subscription",
@@ -3994,6 +3995,7 @@
       perks: ["Chat Tag Cosmetic", "Animation Tool", "Textured UGCs", "Bulk Downloads (1-5)", "Premium Looking Website"]
     };
     return [
+      '<div class="rblx-membership-promo-floaters ' + (isPro ? 'is-pro' : 'is-plus') + '" aria-hidden="true"><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span></div>',
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
       '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price">' + config.price + '</span><small>' + config.subtitle + '</small></div>',
       '<div class="rblx-membership-promo-perks">' + config.perks.map(function (perk) { return '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',

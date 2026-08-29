@@ -214,3 +214,50 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
   transform:none !important;
   animation:none !important;
 }
+
+/* Floating tier marks sit beneath the card content and match each membership color. */
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-floaters,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-floaters,
+body.rblx-subscription-store .plans-grid .rblx-membership-promo-floaters {
+  position:absolute !important;
+  z-index:1 !important;
+  inset:0 !important;
+  overflow:hidden !important;
+  pointer-events:none !important;
+}
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-floaters span,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-floaters span,
+body.rblx-subscription-store .plans-grid .rblx-membership-promo-floaters span {
+  position:absolute !important;
+  font-size:21px !important;
+  line-height:1 !important;
+  opacity:.30 !important;
+  animation:membershipTierFloat 7.4s ease-in-out infinite !important;
+}
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-floaters.is-plus span,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-floaters.is-plus span,
+body.rblx-subscription-store .plans-grid .plus-card .plus-floater { color:rgba(237,245,255,.42) !important; text-shadow:0 0 15px rgba(235,244,255,.48) !important; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-floaters.is-pro span,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-floaters.is-pro span,
+body.rblx-subscription-store .plans-grid .pro-card .rblx-membership-promo-floaters span { filter:sepia(1) saturate(3) hue-rotate(350deg) brightness(1.22) !important; text-shadow:0 0 16px rgba(255,207,81,.62) !important; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-floaters span:nth-child(1),
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-floaters span:nth-child(1),
+body.rblx-subscription-store .plans-grid .rblx-membership-promo-floaters span:nth-child(1) { top:9%; left:9%; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-floaters span:nth-child(2),
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-floaters span:nth-child(2),
+body.rblx-subscription-store .plans-grid .rblx-membership-promo-floaters span:nth-child(2) { top:19%; right:9%; animation-delay:-1.2s !important; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-floaters span:nth-child(3),
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-floaters span:nth-child(3),
+body.rblx-subscription-store .plans-grid .rblx-membership-promo-floaters span:nth-child(3) { top:48%; left:6%; animation-delay:-2.8s !important; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-floaters span:nth-child(4),
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-floaters span:nth-child(4),
+body.rblx-subscription-store .plans-grid .rblx-membership-promo-floaters span:nth-child(4) { top:57%; right:8%; animation-delay:-4.3s !important; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-floaters span:nth-child(5),
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-floaters span:nth-child(5),
+body.rblx-subscription-store .plans-grid .rblx-membership-promo-floaters span:nth-child(5) { bottom:13%; left:24%; animation-delay:-5.6s !important; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-floaters span:nth-child(6),
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-floaters span:nth-child(6),
+body.rblx-subscription-store .plans-grid .rblx-membership-promo-floaters span:nth-child(6) { bottom:8%; right:20%; animation-delay:-6.7s !important; }
+body.rblx-subscription-store .plans-grid .plus-card .plus-floaters { z-index:1 !important; }
+body.rblx-subscription-store .plans-grid .plus-card .plus-floater { animation:membershipTierFloat 7.4s ease-in-out infinite !important; }
+@keyframes membershipTierFloat { 0%,100% { transform:translate3d(0,0,0) rotate(-7deg); } 50% { transform:translate3d(0,-11px,0) rotate(7deg); } }
