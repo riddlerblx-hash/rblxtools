@@ -14,6 +14,7 @@
   var DEVICE_KEY = "rblxtools_device_id";
   var TOOL_ACTIVITY_CACHE_KEY = "rblxtools_tool_activity_cache";
   var CHAT_CACHE_KEY = "rblxtools_shell_chat_cache_v1";
+  var COMMUNITY_NOTIFICATION_READ_KEY = "rblxtools_community_notification_reads_v1";
   var LEFT_STATE_KEY = "rblxtools_shell_left_collapsed";
   var RIGHT_STATE_KEY = "rblxtools_shell_right_collapsed";
   var GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
@@ -3321,6 +3322,45 @@
     return labels[String(category || "").toLowerCase()] || "Community update";
   }
 
+  function getLocalCommunityNotificationReads() {
+    var userId = String(shellState.currentUser && shellState.currentUser.userId || "");
+    if (!userId) return [];
+    try {
+      var saved = JSON.parse(localStorage.getItem(COMMUNITY_NOTIFICATION_READ_KEY + ":" + userId) || "[]");
+      return Array.isArray(saved) ? saved.map(String) : [];
+    } catch (_error) { return []; }
+  }
+
+  function saveLocalCommunityNotificationReads(ids) {
+    var userId = String(shellState.currentUser && shellState.currentUser.userId || "");
+    if (!userId) return;
+    try { localStorage.setItem(COMMUNITY_NOTIFICATION_READ_KEY + ":" + userId, JSON.stringify(Array.from(new Set(ids.map(String))).slice(-250))); } catch (_error) {}
+  }
+
+  async function getCommunityNotificationFallback() {
+    var response = await fetch(API_BASE + "/api/community-posts", { credentials: "include" });
+    var payload = await response.json().catch(function () { return null; });
+    if (!response.ok) throw new Error("Could not load community updates.");
+    var readIds = new Set(getLocalCommunityNotificationReads());
+    var items = (Array.isArray(payload && payload.posts) ? payload.posts : [])
+      .filter(function (post) {
+        var category = String(post && post.category || "").toLowerCase();
+        return category === "announcement" || category === "changelog" || category === "known-issue" || (category === "bug-report" && post && post.knownIssue);
+      })
+      .slice(0, 40)
+      .map(function (post) {
+        return {
+          id: String(post.id || ""),
+          title: String(post.title || "Official update"),
+          category: post.knownIssue ? "known-issue" : String(post.category || ""),
+          publishedAt: String(post.publishedAt || post.createdAt || ""),
+          read: readIds.has(String(post.id || "")),
+          href: "./community#post-" + encodeURIComponent(String(post.id || ""))
+        };
+      });
+    return { items: items, unreadCount: items.filter(function (item) { return !item.read; }).length };
+  }
+
   function renderCommunityNotifications() {
     var list = document.getElementById("rblxShellNotificationList");
     if (list) {
@@ -3355,18 +3395,34 @@
         headers: { Authorization: "Bearer " + getToken() }
       });
       var payload = await response.json().catch(function () { return null; });
-      if (!response.ok || String(shellState.currentUser && shellState.currentUser.userId || "") !== requestedUserId) return;
+      if (String(shellState.currentUser && shellState.currentUser.userId || "") !== requestedUserId) return;
+      if (!response.ok) throw new Error((payload && payload.error) || "Could not load notifications.");
+      var items = Array.isArray(payload && payload.items) ? payload.items : [];
+      // The Community feed is the durable source of official posts.  Use it as
+      // a client fallback for a just-published update while an old VPS process
+      // or notification-state file is catching up.
+      if (!items.length) payload = await getCommunityNotificationFallback();
       shellState.communityNotifications = Array.isArray(payload && payload.items) ? payload.items : [];
       shellState.communityUnreadCount = Math.max(0, Number(payload && payload.unreadCount) || 0);
       shellState.notificationsForUserId = requestedUserId;
       renderCommunityNotifications();
     } catch (_error) {
-      // Keep the rest of the shell available if notifications are temporarily unavailable.
+      try {
+        var fallback = await getCommunityNotificationFallback();
+        shellState.communityNotifications = fallback.items;
+        shellState.communityUnreadCount = fallback.unreadCount;
+        renderCommunityNotifications();
+      } catch (_fallbackError) {}
     }
   }
 
   async function markCommunityNotificationsRead(postId, markAll) {
     if (!shellState.currentUser || !shellState.currentUser.loggedIn) return;
+    var locallyRead = getLocalCommunityNotificationReads();
+    var nextRead = markAll
+      ? shellState.communityNotifications.map(function (item) { return String(item.id || ""); }).filter(Boolean)
+      : locallyRead.concat(String(postId || ""));
+    saveLocalCommunityNotificationReads(nextRead);
     try {
       await fetch(API_BASE + "/api/community-notifications/read", {
         method: "POST",
