@@ -3589,6 +3589,14 @@
     }
   }
 
+  function revealSharedFooter() {
+    var footer = document.querySelector(".rblx-shell-footer");
+    if (!footer) return;
+    window.requestAnimationFrame(function () {
+      footer.classList.add("rblx-shell-footer-ready");
+    });
+  }
+
   function captureStreamingPageContent(pageHost) {
     if (document.readyState !== "loading") return;
 
@@ -3612,6 +3620,7 @@
         if (node !== document.getElementById("rblxShellRoot")) moveNode(node);
       });
       placeSharedFooter(pageHost);
+      revealSharedFooter();
     }, { once: true });
   }
 
@@ -4136,7 +4145,10 @@
     // Keep the shared footer outside individual page layouts so it always spans the shell center.
     pageHost.parentElement.insertAdjacentHTML("beforeend", buildFooterMarkup());
     captureStreamingPageContent(pageHost);
-    window.setTimeout(function () { placeSharedFooter(pageHost); }, 0);
+    window.setTimeout(function () {
+      placeSharedFooter(pageHost);
+      if (document.readyState !== "loading") revealSharedFooter();
+    }, 0);
     syncMobileShellState();
     closeMobilePanels();
     initFaqAccordions();
