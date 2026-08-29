@@ -36,8 +36,11 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const AUTH_USERS_TABLE = process.env.AUTH_USERS_TABLE || "member_accounts";
 const AI_TOKEN_PURCHASES_TABLE = process.env.AI_TOKEN_PURCHASES_TABLE || "ai_token_purchases";
-const TASTER_PACKAGE_OFFER_PATH = path.join(__dirname, "taster-package-offer.json");
-const TASTER_PACKAGE_GIVEAWAY_PATH = path.join(__dirname, "taster-package-giveaway.json");
+// LiteSpeed serves the site directory read-only. Keep small application state outside it.
+const RBLXTOOLS_STATE_DIR = String(process.env.RBLXTOOLS_STATE_DIR || path.join(tmpdir(), "rblxtools-state")).trim();
+const TASTER_PACKAGE_OFFER_PATH = path.join(RBLXTOOLS_STATE_DIR, "taster-package-offer.json");
+const TASTER_PACKAGE_GIVEAWAY_PATH = path.join(RBLXTOOLS_STATE_DIR, "taster-package-giveaway.json");
+const MEMBER_REWARDS_PATH = path.join(RBLXTOOLS_STATE_DIR, "member-rewards.json");
 const TASTER_PACKAGE_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 const TASTER_PACKAGE_PENDING_MS = 24 * 60 * 60 * 1000;
 const AI_THUMBNAIL_HISTORY_TABLE = process.env.AI_THUMBNAIL_HISTORY_TABLE || "ai_thumbnail_history";
@@ -1805,9 +1808,63 @@ function readJsonFile(filePath, fallbackValue) {
 }
 
 function writeJsonFile(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const tempPath = filePath + ".tmp";
   fs.writeFileSync(tempPath, JSON.stringify(value, null, 2) + "\n", "utf8");
   fs.renameSync(tempPath, filePath);
+}
+
+function readMemberRewards() {
+  const state = readJsonFile(MEMBER_REWARDS_PATH, { rewards: [] });
+  return { rewards: Array.isArray(state.rewards) ? state.rewards : [] };
+}
+
+function writeMemberRewards(state) {
+  writeJsonFile(MEMBER_REWARDS_PATH, { rewards: (Array.isArray(state?.rewards) ? state.rewards : []).slice(-5000) });
+}
+
+function buildMemberReward(reward) {
+  return {
+    id: String(reward.id || ""),
+    title: String(reward.title || "A RBLXTools reward is waiting"),
+    note: String(reward.note || ""),
+    rewardType: String(reward.rewardType || "plus"),
+    amount: Math.max(0, Number(reward.amount) || 0),
+    availableAt: reward.availableAt || null,
+  };
+}
+
+function createMemberReward({ userId, title, note, rewardType, amount, adminUser }) {
+  const state = readMemberRewards();
+  const reward = {
+    id: randomUUID(), userId: String(userId || ""),
+    title: cleanText(title, 100) || "You've received a RBLXTools reward!",
+    note: cleanText(note, 500), rewardType: rewardType === "pro" ? "pro" : rewardType === "tokens" ? "tokens" : "plus",
+    amount: Math.max(0, Number(amount) || 0), createdAt: new Date().toISOString(),
+    availableAt: null, claimedAt: null, adminUserId: String(adminUser?.id || ""),
+  };
+  state.rewards.push(reward);
+  writeMemberRewards(state);
+  return buildMemberReward(reward);
+}
+
+function getPendingMemberRewards(userId) {
+  const state = readMemberRewards();
+  const now = Date.now(); let changed = false;
+  const rewards = state.rewards.filter((reward) => String(reward.userId || "") === String(userId || "") && !reward.claimedAt).map((reward) => {
+    if (!reward.availableAt) { reward.availableAt = new Date(now + 5000).toISOString(); changed = true; }
+    return buildMemberReward(reward);
+  });
+  if (changed) writeMemberRewards(state);
+  return rewards;
+}
+
+function claimMemberReward(userId, rewardId) {
+  const state = readMemberRewards();
+  const reward = state.rewards.find((item) => String(item.id || "") === String(rewardId || "") && String(item.userId || "") === String(userId || ""));
+  if (!reward || reward.claimedAt) { const error = new Error("That reward is no longer available."); error.statusCode = 404; throw error; }
+  if (!reward.availableAt || Date.parse(reward.availableAt) > Date.now()) { const error = new Error("Please take a moment to read your reward note first."); error.statusCode = 429; throw error; }
+  reward.claimedAt = new Date().toISOString(); writeMemberRewards(state); return buildMemberReward(reward);
 }
 
 function getTasterPackageOffer() {
@@ -7195,6 +7252,7 @@ app.post("/admin/grant-plus", async (req, res) => {
     const grantResult = await grantComplimentaryPlusToUser(targetUser.id, days);
     const updatedUser = grantResult.user;
     await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: "complimentary_plus", note, expiresAt: grantResult.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
+    const reward = createMemberReward({ userId: targetUser.id, title: req.body?.title, note, rewardType: "plus", amount: grantResult.days, adminUser });
 
     console.log(
       "[ADMIN GRANT PLUS]",
@@ -7211,6 +7269,7 @@ app.post("/admin/grant-plus", async (req, res) => {
     );
 
     await refreshMembershipStateForConnectedUser(updatedUser || targetUser);
+    emitToUserInRoom(defaultChatRoom, targetUser.id, "member-reward-ready", reward);
     emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.days + " days of complimentary Plus.");
     return res.json({
       ok: true,
@@ -7793,6 +7852,26 @@ app.get("/store/ai-token-packages", async (req, res) => {
   }
 });
 
+app.get("/member-rewards/pending", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ ok: true, rewards: getPendingMemberRewards(user.id) });
+  } catch (error) {
+    return res.status(error.statusCode || 403).json({ error: error.message || "Log in to view rewards." });
+  }
+});
+
+app.post("/member-rewards/claim", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const reward = claimMemberReward(user.id, req.body?.rewardId);
+    return res.json({ ok: true, reward });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not claim this reward." });
+  }
+});
+
 app.get("/admin/taster-package-giveaway", async (req, res) => {
   try {
     await requireAdminUser(req);
@@ -7828,7 +7907,9 @@ app.post("/admin/grant-pro", async (req, res) => {
     if (!note) return res.status(400).json({ error: "A note is required before complimentary Pro can be granted." });
     const grantResult = await grantComplimentaryProToUser(targetUser.id, days);
     await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: "complimentary_pro", note, expiresAt: grantResult.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
+    const reward = createMemberReward({ userId: targetUser.id, title: req.body?.title, note, rewardType: "pro", amount: grantResult.days, adminUser });
     await refreshMembershipStateForConnectedUser(grantResult.user);
+    emitToUserInRoom(defaultChatRoom, targetUser.id, "member-reward-ready", reward);
     emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.days + " days of complimentary Pro.");
     return res.json({ ok: true, message: "Complimentary Pro granted for " + grantResult.days + " days.", member: buildPublicUser(grantResult.user), days: grantResult.days, expiresAt: grantResult.expiresAt, grantedBy: { id: adminUser.id, email: adminUser.email } });
   } catch (error) {
@@ -7845,6 +7926,8 @@ app.post("/admin/grant-ai-tokens", async (req, res) => {
     if (!note) return res.status(400).json({ error: "A note is required before AI tokens can be granted." });
     const grantResult = await grantAITokensToUser(targetUser.id, req.body?.amount);
     await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: "ai_token_grant", reason: String(grantResult.amount), note, adminUserId: adminUser.id, adminEmail: adminUser.email });
+    const reward = createMemberReward({ userId: targetUser.id, title: req.body?.title, note, rewardType: "tokens", amount: grantResult.amount, adminUser });
+    emitToUserInRoom(defaultChatRoom, targetUser.id, "member-reward-ready", reward);
     emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.amount + " AI tokens.");
     return res.json({ ok: true, message: grantResult.amount + " AI tokens granted.", member: buildPublicUser(grantResult.user), amount: grantResult.amount, grantedBy: { id: adminUser.id, email: adminUser.email } });
   } catch (error) {

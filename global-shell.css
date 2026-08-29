@@ -2409,6 +2409,49 @@ body.rblx-shell-modal-open {
   pointer-events: auto;
 }
 
+.rblx-shell-reward-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(4, 7, 13, 0.74);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+  z-index: 80;
+}
+
+.rblx-shell-reward-overlay.is-open { opacity: 1; visibility: visible; pointer-events: auto; }
+
+.rblx-shell-reward-modal {
+  width: min(520px, calc(100vw - 32px));
+  padding: 28px;
+  border: 1px solid rgba(255, 207, 95, 0.42);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 84% 0%, rgba(255, 198, 66, 0.2), transparent 34%),
+    radial-gradient(circle at 0% 100%, rgba(100, 80, 255, 0.16), transparent 38%),
+    linear-gradient(145deg, rgba(26, 30, 53, 0.99), rgba(10, 16, 29, 0.99));
+  box-shadow: 0 30px 86px rgba(0,0,0,0.58);
+  transform: translateY(14px) scale(0.98);
+  transition: transform 0.24s ease;
+}
+
+.rblx-shell-reward-modal.is-open { transform: translateY(0) scale(1); }
+.rblx-shell-reward-kicker { color: #ffd56d; font-size: 10px; font-weight: 900; letter-spacing: 1.25px; text-transform: uppercase; }
+.rblx-shell-reward-title { margin: 10px 0 0; color: #fffdf5; font-size: clamp(29px, 5vw, 42px); line-height: 0.98; font-weight: 950; letter-spacing: -1.5px; }
+.rblx-shell-reward-value { margin: 14px 0 0; color: #9effcb; font-size: 16px; font-weight: 850; line-height: 1.4; }
+.rblx-shell-reward-note { margin-top: 18px; padding: 15px; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; background: rgba(255,255,255,0.05); }
+.rblx-shell-reward-note span { color: #aeb9d6; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+.rblx-shell-reward-note p { margin: 7px 0 0; color: #f7f8ff; font-size: 14px; font-weight: 650; line-height: 1.55; white-space: pre-wrap; }
+.rblx-shell-reward-wait { min-height: 21px; margin: 14px 0 0; color: #b9c5df; font-size: 12px; font-weight: 750; }
+.rblx-shell-reward-claim { width: 100%; justify-content: center; margin-top: 8px; }
+.rblx-shell-reward-claim[disabled] { opacity: 0.6; cursor: wait; filter: saturate(0.75); }
+
 .rblx-shell-checkout-modal {
   position: relative;
   width: min(560px, calc(100vw - 32px));

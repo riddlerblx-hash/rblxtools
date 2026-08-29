@@ -1652,6 +1652,16 @@
             '<button class="rblx-shell-btn is-primary rblx-shell-checkout-button" type="button" id="rblxShellCheckoutClose" disabled>Back To Account (10)</button>' +
           '</div>' +
         '</div>' +
+        '<div class="rblx-shell-reward-overlay" id="rblxShellRewardOverlay" aria-hidden="true">' +
+          '<div class="rblx-shell-reward-modal" id="rblxShellRewardModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellRewardTitle">' +
+            '<div class="rblx-shell-reward-kicker">A gift from the RBLXTools team</div>' +
+            '<h3 class="rblx-shell-reward-title" id="rblxShellRewardTitle">You\'ve received a reward!</h3>' +
+            '<p class="rblx-shell-reward-value" id="rblxShellRewardValue"></p>' +
+            '<div class="rblx-shell-reward-note"><span>Moderator note</span><p id="rblxShellRewardNote"></p></div>' +
+            '<p class="rblx-shell-reward-wait" id="rblxShellRewardWait">Please take a moment to read this note.</p>' +
+            '<button class="rblx-shell-btn is-primary rblx-shell-reward-claim" type="button" id="rblxShellRewardClaim" disabled>Claim reward</button>' +
+          '</div>' +
+        '</div>' +
         '<div class="rblx-shell-auth-overlay" id="rblxShellAuthOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-auth-modal" id="rblxShellAuthModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellAuthTitle">' +
             '<button class="rblx-shell-auth-close" type="button" id="rblxShellAuthClose" aria-label="Close login">×</button>' +
@@ -2934,6 +2944,10 @@
 
       shellState.socket.on("membership-state", function (payload) {
         applyMembershipPayload(payload);
+      });
+
+      shellState.socket.on("member-reward-ready", function () {
+        refreshMemberRewards();
       });
 
       shellState.socket.on("community-notifications-updated", function () {
@@ -4485,6 +4499,58 @@
     });
   }
 
+  function getRewardValueLabel(reward) {
+    var amount = Math.max(0, Number(reward && reward.amount) || 0);
+    if (reward && reward.rewardType === "tokens") return amount + " AI tokens have been added to your balance.";
+    return "You have been granted " + (reward && reward.rewardType === "pro" ? "Pro" : "Plus") + " for " + amount + " days.";
+  }
+
+  function showMemberReward(reward) {
+    var overlay = document.getElementById("rblxShellRewardOverlay");
+    var modal = document.getElementById("rblxShellRewardModal");
+    var title = document.getElementById("rblxShellRewardTitle");
+    var value = document.getElementById("rblxShellRewardValue");
+    var note = document.getElementById("rblxShellRewardNote");
+    var wait = document.getElementById("rblxShellRewardWait");
+    var claim = document.getElementById("rblxShellRewardClaim");
+    if (!overlay || !modal || !claim || !reward) return;
+    title.textContent = reward.title || "You've received a RBLXTools reward!";
+    value.textContent = getRewardValueLabel(reward);
+    note.textContent = reward.note || "Enjoy your reward from the RBLXTools team.";
+    overlay.classList.add("is-open"); overlay.setAttribute("aria-hidden", "false"); modal.classList.add("is-open"); document.body.classList.add("rblx-shell-modal-open");
+    function updateClaimState() {
+      var seconds = Math.max(0, Math.ceil((new Date(reward.availableAt || Date.now()).getTime() - Date.now()) / 1000));
+      claim.disabled = seconds > 0;
+      claim.textContent = seconds > 0 ? "Please read the note (" + seconds + ")" : "Claim reward";
+      wait.textContent = seconds > 0 ? "Your claim unlocks in " + seconds + " second" + (seconds === 1 ? "" : "s") + "." : "Everything is ready. Claim your reward when you are ready.";
+      return seconds;
+    }
+    var timer = window.setInterval(function () { if (updateClaimState() === 0) window.clearInterval(timer); }, 250);
+    updateClaimState();
+    claim.onclick = async function () {
+      if (claim.disabled) return;
+      claim.disabled = true; claim.textContent = "Claiming...";
+      try {
+        var response = await fetch(API_BASE + "/member-rewards/claim", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() }, body: JSON.stringify({ rewardId: reward.id }) });
+        var payload = await response.json().catch(function () { return null; });
+        if (!response.ok) throw new Error(payload && payload.error || "Could not claim this reward.");
+        overlay.classList.remove("is-open"); overlay.setAttribute("aria-hidden", "true"); modal.classList.remove("is-open"); document.body.classList.remove("rblx-shell-modal-open");
+        refreshMembershipStateFromServer(); refreshMemberRewards();
+      } catch (error) { claim.disabled = false; wait.textContent = error.message || "Could not claim this reward."; updateClaimState(); }
+    };
+  }
+
+  async function refreshMemberRewards() {
+    var currentUser = shellState.currentUser || {};
+    if (!currentUser.loggedIn || !currentUser.userId) return;
+    try {
+      var response = await fetch(API_BASE + "/member-rewards/pending", { credentials: "include", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
+      var payload = await response.json().catch(function () { return null; });
+      if (!response.ok || !Array.isArray(payload && payload.rewards) || !payload.rewards.length) return;
+      showMemberReward(payload.rewards[0]);
+    } catch (_error) {}
+  }
+
   function initShell() {
     var initialState = getImmediateUserState();
     shellState.currentUser = {
@@ -4580,10 +4646,12 @@
     initRulesLink();
     loadPublicModerationState();
     initMembershipRefresh();
+    refreshMemberRewards();
     initSiteMaintenancePolling();
     // Socket events update immediately. This short fallback also catches a
     // notification published while the visitor was briefly disconnected.
     window.setInterval(refreshCommunityNotifications, 30000);
+    window.setInterval(refreshMemberRewards, 60000);
     window.addEventListener("resize", renderChatRainOverlay);
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.addEventListener("click", openAdminWindow);
