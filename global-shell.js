@@ -3583,10 +3583,6 @@
 
   function placeSharedFooter(pageHost) {
     var footer = document.querySelector(".rblx-shell-footer");
-    if (footer && document.body.classList.contains("rblx-subscription-store")) {
-      if (footer.parentElement !== document.body) document.body.appendChild(footer);
-      return;
-    }
     var shellCenter = pageHost && pageHost.parentElement;
     if (footer && shellCenter && footer.parentElement !== shellCenter) {
       shellCenter.appendChild(footer);
