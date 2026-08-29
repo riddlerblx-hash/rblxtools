@@ -1792,9 +1792,20 @@ function getPublicAITokenPackages() {
 
 async function resolveAITokenPackagePrice(packageDefinition) {
   const product = await stripeClient.products.retrieve(packageDefinition.productId);
+  if (!product?.active) {
+    const error = new Error("This AI token product is inactive in Stripe. Activate it before accepting purchases.");
+    error.statusCode = 503;
+    throw error;
+  }
+
   let priceId = typeof product?.default_price === "string"
     ? product.default_price
     : String(product?.default_price?.id || "").trim();
+
+  if (priceId) {
+    const defaultPrice = await stripeClient.prices.retrieve(priceId);
+    if (!defaultPrice?.active) priceId = "";
+  }
 
   if (!priceId) {
     const prices = await stripeClient.prices.list({
