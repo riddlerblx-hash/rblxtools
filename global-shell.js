@@ -3978,13 +3978,29 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  function buildProPromoMarkup() {
+  function buildMembershipPromoMarkup(plan) {
+    var isPro = plan === "pro";
+    var config = isPro ? {
+      badge: "Best Value",
+      price: "$5 / month",
+      title: "Build more with Pro",
+      copy: "Every Plus benefit, upgraded with creator-focused Pro tools and 20 AI credits every month.",
+      action: "Explore Pro",
+      perks: ["20 AI Credits Every Month", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1080p Quality Outputs", "Premium Giveaways", "Custom Chat Tag", "Includes All Plus Benefits"]
+    } : {
+      badge: "Plus Membership",
+      price: "$1 / month",
+      title: "Build more with Plus",
+      copy: "Creator essentials that make your everyday RBLXTools workflow feel smoother, cleaner, and more capable.",
+      action: "Explore Plus",
+      perks: ["Chat Tag Cosmetic", "Animation Tool", "Textured UGCs", "Bulk Downloads (1-5)", "Premium Looking Website"]
+    };
     return [
-      '<div class="rblx-membership-promo-topline"><span class="rblx-membership-promo-badge">Best Value</span><span class="rblx-membership-promo-price">$5 / month</span></div>',
-      '<h3 class="rblx-membership-promo-title">Build more with Pro</h3>',
-      '<p class="rblx-membership-promo-copy">Every Plus benefit, upgraded with creator-focused Pro tools and 20 AI credits every month.</p>',
-      '<div class="rblx-membership-promo-perks"><span>No Annoying Ads</span><span>Bulk Downloads (5-10)</span><span>6 AI Thumbnail Attachments</span><span>All Aspect Ratios</span><span>1080p Quality Outputs</span><span>Premium Giveaways</span><span>Custom Chat Tag</span><span>20 AI Credits Every Month</span><span>Includes All Plus Benefits</span></div>',
-      '<a class="rblx-membership-promo-action" href="./subscriptions">Explore Pro</a>'
+      '<div class="rblx-membership-promo-topline"><span class="rblx-membership-promo-badge">' + config.badge + '</span><span class="rblx-membership-promo-price">' + config.price + '</span></div>',
+      '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
+      '<p class="rblx-membership-promo-copy">' + config.copy + '</p>',
+      '<div class="rblx-membership-promo-perks">' + config.perks.map(function (perk) { return '<span>' + perk + '</span>'; }).join("") + '</div>',
+      '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous membership plan">&#8592;</button><div class="rblx-membership-promo-progress" aria-label="Membership plan rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next membership plan">&#8594;</button></div><a class="rblx-membership-promo-action" href="./subscriptions">' + config.action + '</a></div>'
     ].join("");
   }
 
@@ -3993,18 +4009,33 @@
     Array.prototype.slice.call(document.querySelectorAll(selector)).forEach(function (promo) {
       if (promo.dataset.rblxPromoRotationBound === "true") return;
       promo.dataset.rblxPromoRotationBound = "true";
-      var plusMarkup = promo.innerHTML;
-      var showPro = false;
+      var plan = "plus";
+      var timerId = null;
 
-      function render() {
-        promo.classList.toggle("rblx-pro-promo", showPro);
-        promo.innerHTML = showPro ? buildProPromoMarkup() : plusMarkup;
+      function render(nextPlan) {
+        plan = nextPlan;
+        if (timerId) window.clearTimeout(timerId);
+        promo.classList.toggle("rblx-pro-promo", plan === "pro");
+        promo.innerHTML = buildMembershipPromoMarkup(plan);
+
+        var progress = promo.querySelector(".rblx-membership-promo-progress span");
+        if (progress) {
+          progress.style.animation = "none";
+          window.requestAnimationFrame(function () {
+            progress.style.animation = "membershipPromoTimer 30s linear forwards";
+          });
+        }
+        Array.prototype.forEach.call(promo.querySelectorAll("[data-membership-promo-prev], [data-membership-promo-next]"), function (button) {
+          button.addEventListener("click", function () {
+            render(plan === "plus" ? "pro" : "plus");
+          });
+        });
+        timerId = window.setTimeout(function () {
+          render(plan === "plus" ? "pro" : "plus");
+        }, 30000);
       }
 
-      window.setInterval(function () {
-        showPro = !showPro;
-        render();
-      }, 30000);
+      render(plan);
     });
   }
 
