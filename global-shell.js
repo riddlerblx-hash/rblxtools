@@ -4033,38 +4033,73 @@
     ].join("");
   }
 
+  function buildAiTokenPromoMarkup(tokenPack) {
+    return [
+      '<div class="rblx-token-promo-kicker">AI Generation Tokens</div>',
+      '<h3 class="rblx-token-promo-title">Keep creating<br><span>without waiting</span></h3>',
+      '<p class="rblx-token-promo-copy">Power RBLXTools AI features with a token pack whenever you need more generations.</p>',
+      '<div class="rblx-token-promo-pack"><div class="rblx-token-promo-coin">AI</div><strong>' + tokenPack.tokens + ' Tokens</strong><span>AI generation credits</span><b>' + tokenPack.price + '</b><small>' + tokenPack.note + '</small></div>',
+      '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous offer"></button><div class="rblx-membership-promo-progress" aria-label="Offer rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next offer"></button></div><a class="rblx-membership-promo-action" href="./ai-tokens">Buy tokens</a></div>'
+    ].join("");
+  }
+
   function initMembershipPromoRotation() {
     var selector = ".plus-promo, body.rblx-home-page .home-grid-top > .plus-card";
     Array.prototype.slice.call(document.querySelectorAll(selector)).forEach(function (promo) {
       if (promo.dataset.rblxPromoRotationBound === "true") return;
       promo.dataset.rblxPromoRotationBound = "true";
-      var plan = "plus";
       var timerId = null;
+      var activePlan = (shellState.currentUser && shellState.currentUser.plan) || "free";
+      var offerIndex = 0;
+      var tokenPacks = [
+        { tokens: 20, price: "$3.79", note: "Great for a quick project" },
+        { tokens: 45, price: "$5.99", note: "More room to experiment" },
+        { tokens: 130, price: "$14.49", note: "Built for active creators" },
+        { tokens: 245, price: "$24.99", note: "Stock up for bigger ideas" },
+        { tokens: 500, price: "$47.99", note: "Best value · Save 49%" }
+      ];
 
-      function render(nextPlan) {
-        plan = nextPlan;
+      function getOffers() {
+        if (document.body.classList.contains("rblx-home-page")) return [{ type: "plan", plan: "plus" }, { type: "plan", plan: "pro" }];
+        if (activePlan === "pro") return tokenPacks.map(function (pack) { return { type: "token", pack: pack }; });
+        if (activePlan === "plus") return [{ type: "plan", plan: "pro" }].concat(tokenPacks.map(function (pack) { return { type: "token", pack: pack }; }));
+        return [{ type: "plan", plan: "plus" }, { type: "plan", plan: "pro" }];
+      }
+
+      function render(nextIndex) {
+        var offers = getOffers();
+        offerIndex = (nextIndex + offers.length) % offers.length;
+        var offer = offers[offerIndex];
         if (timerId) window.clearTimeout(timerId);
-        promo.classList.toggle("rblx-pro-promo", plan === "pro");
-        promo.innerHTML = buildMembershipPromoMarkup(plan, document.body.classList.contains("rblx-home-page") ? "View" : "Try Now");
+        promo.classList.toggle("rblx-pro-promo", offer.type === "plan" && offer.plan === "pro");
+        promo.classList.toggle("rblx-token-promo", offer.type === "token");
+        promo.innerHTML = offer.type === "token"
+          ? buildAiTokenPromoMarkup(offer.pack)
+          : buildMembershipPromoMarkup(offer.plan, document.body.classList.contains("rblx-home-page") ? "View" : "Try Now");
 
         var progress = promo.querySelector(".rblx-membership-promo-progress span");
+        var duration = offer.type === "token" ? 6500 : 30000;
         if (progress) {
           progress.style.animation = "none";
           window.requestAnimationFrame(function () {
-            progress.style.animation = "membershipPromoTimer 30s linear forwards";
+            progress.style.animation = "membershipPromoTimer " + duration + "ms linear forwards";
           });
         }
         Array.prototype.forEach.call(promo.querySelectorAll("[data-membership-promo-prev], [data-membership-promo-next]"), function (button) {
           button.addEventListener("click", function () {
-            render(plan === "plus" ? "pro" : "plus");
+            render(offerIndex + (button.hasAttribute("data-membership-promo-prev") ? -1 : 1));
           });
         });
         timerId = window.setTimeout(function () {
-          render(plan === "plus" ? "pro" : "plus");
-        }, 30000);
+          render(offerIndex + 1);
+        }, duration);
       }
 
-      render(plan);
+      promo._rblxSetMembershipPromoPlan = function (nextPlan) {
+        activePlan = nextPlan === "pro" ? "pro" : nextPlan === "plus" ? "plus" : "free";
+        render(0);
+      };
+      render(0);
     });
   }
 
@@ -4099,6 +4134,13 @@
     document.body.classList.add("rblx-shell-ready");
     initMembershipTextTreatment();
     initMembershipPromoRotation();
+    window.addEventListener("rblxtools-membership-updated", function (event) {
+      var detail = event && event.detail ? event.detail : {};
+      var plan = detail.plan === "pro" ? "pro" : detail.plan === "plus" ? "plus" : "free";
+      Array.prototype.slice.call(document.querySelectorAll(".plus-promo, body.rblx-home-page .home-grid-top > .plus-card")).forEach(function (promo) {
+        if (typeof promo._rblxSetMembershipPromoPlan === "function") promo._rblxSetMembershipPromoPlan(plan);
+      });
+    });
     // Tool pages load this shell before their promo markup, so bind again after parsing.
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initMembershipPromoRotation, { once: true });
