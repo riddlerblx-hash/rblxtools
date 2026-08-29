@@ -1557,7 +1557,7 @@
             </div>
 
             <ul class="subscription-perks" aria-label="Pro plan perks">
-              <li>20 AI Credits Every Month</li>
+              <li id="proTokenBenefit">20 AI Credits Every Month</li>
               <li>All Plus Plan Benefits Included</li>
               <li>No Annoying Ads</li>
               <li>Bulk Downloads (5-10)</li>
@@ -1573,15 +1573,15 @@
 
             <div class="plus-highlight" style="background: radial-gradient(circle at top right, rgba(255, 190, 78, 0.18), transparent 35%), linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));">
               <div class="plus-highlight-title">Pro creator upgrades</div>
-              <div class="plus-highlight-copy">Made for higher-volume creators who need wider thumbnail controls, more attachments, and the complete Plus experience included.</div>
+              <div class="plus-highlight-copy">Choose annual Pro to receive all 240 AI credits instantly, or get 20 AI credits after each successful monthly Pro payment.</div>
             </div>
 
             <div class="plan-grid">
               <div class="perk-card">
-                <div class="perk-icon pro">20</div>
+                <div class="perk-icon pro" id="proTokenPerkIcon">20</div>
                 <div>
-                  <h3 class="perk-title">20 AI Credits Every Month</h3>
-                  <p class="perk-desc">A fresh 20 AI credits are added after every successful Pro monthly payment.</p>
+                  <h3 class="perk-title" id="proTokenPerkTitle">20 AI Credits Every Month</h3>
+                  <p class="perk-desc" id="proTokenPerkCopy">A fresh 20 AI credits are added after every successful Pro monthly payment.</p>
                 </div>
               </div>
               <div class="perk-card">
@@ -1712,6 +1712,10 @@
       var priceValues = Array.prototype.slice.call(document.querySelectorAll("[data-membership-price]"));
       var priceSubtitles = Array.prototype.slice.call(document.querySelectorAll("[data-membership-price-sub]"));
       var priceSavings = Array.prototype.slice.call(document.querySelectorAll("[data-membership-save]"));
+      var proTokenBenefit = document.getElementById("proTokenBenefit");
+      var proTokenPerkIcon = document.getElementById("proTokenPerkIcon");
+      var proTokenPerkTitle = document.getElementById("proTokenPerkTitle");
+      var proTokenPerkCopy = document.getElementById("proTokenPerkCopy");
       var billingInterval = "month";
       var membershipPricing = null;
         var loginRedirectTimer = 0;
@@ -1743,6 +1747,11 @@
           priceSubtitles.forEach(function(element) {
             element.textContent = billingInterval === "year" ? "Per year" : "Per month";
           });
+          var isAnnualPro = billingInterval === "year";
+          if (proTokenBenefit) proTokenBenefit.textContent = isAnnualPro ? "240 AI Credits Every Year" : "20 AI Credits Every Month";
+          if (proTokenPerkIcon) proTokenPerkIcon.textContent = isAnnualPro ? "240" : "20";
+          if (proTokenPerkTitle) proTokenPerkTitle.textContent = isAnnualPro ? "240 AI Credits Every Year" : "20 AI Credits Every Month";
+          if (proTokenPerkCopy) proTokenPerkCopy.textContent = isAnnualPro ? "All 240 AI credits are added instantly after your successful annual Pro payment." : "A fresh 20 AI credits are added after every successful Pro monthly payment.";
           priceSavings.forEach(function(element) {
             var plan = element.getAttribute("data-membership-save");
             var monthlyPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan].month;
