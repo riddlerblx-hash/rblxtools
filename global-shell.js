@@ -939,7 +939,7 @@
   function initSiteMaintenancePolling() {
     if (shellState.maintenanceRefreshTimer) return;
     refreshSiteMaintenanceState();
-    shellState.maintenanceRefreshTimer = window.setInterval(refreshSiteMaintenanceState, 8000);
+    shellState.maintenanceRefreshTimer = window.setInterval(refreshSiteMaintenanceState, 30000);
     window.addEventListener("focus", refreshSiteMaintenanceState);
     document.addEventListener("visibilitychange", function () {
       if (!document.hidden) refreshSiteMaintenanceState();
@@ -2543,20 +2543,20 @@
 
   function initChatSyncPolling() {
     if (shellState.chatSyncTimer) return;
-    syncChatFromServer();
+    if (!shellState.socketReady) syncChatFromServer();
     shellState.chatSyncTimer = window.setInterval(function () {
-      // Keep every page on the same room even if its initial Socket.IO handshake was delayed.
+      // Use HTTP sync only while the live socket is unavailable.
       ensureChatSocketConnection();
-      syncChatFromServer();
-    }, 2500);
+      if (!shellState.socketReady) syncChatFromServer();
+    }, 15000);
     window.addEventListener("focus", function () {
       ensureChatSocketConnection();
-      syncChatFromServer();
+      if (!shellState.socketReady) syncChatFromServer();
     });
     document.addEventListener("visibilitychange", function () {
       if (!document.hidden) {
         ensureChatSocketConnection();
-        syncChatFromServer();
+        if (!shellState.socketReady) syncChatFromServer();
       }
     });
   }
@@ -3653,7 +3653,7 @@
 
   function initMembershipRefresh() {
     if (shellState.membershipRefreshTimer) return;
-    shellState.membershipRefreshTimer = window.setInterval(refreshMembershipStateFromServer, 5000);
+    shellState.membershipRefreshTimer = window.setInterval(refreshMembershipStateFromServer, 30000);
     window.addEventListener("focus", refreshMembershipStateFromServer);
     document.addEventListener("visibilitychange", function () {
       if (!document.hidden) refreshMembershipStateFromServer();
@@ -3903,19 +3903,8 @@
       var link = getInternalLink(event);
       if (link) prefetchShellPage(link.href);
     });
-    // Warm the primary shell destinations after the page settles. Prefetch is
-    // deliberately low-priority, so it never blocks the current tool page.
-    var primaryLinks = Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-nav-link[href]"));
-    var index = 0;
-    function warmNext() {
-      if (index >= primaryLinks.length) return;
-      prefetchShellPage(primaryLinks[index].href);
-      index += 1;
-      window.setTimeout(warmNext, 70);
-    }
-    var startWarmup = function () { window.setTimeout(warmNext, 700); };
-    if ("requestIdleCallback" in window) window.requestIdleCallback(startWarmup, { timeout: 1800 });
-    else startWarmup();
+    // Intent-based prefetch above keeps the next navigation quick without
+    // downloading every tool page after every navigation.
   }
 
 
@@ -4453,7 +4442,7 @@
     initSiteMaintenancePolling();
     // Socket events update immediately. This short fallback also catches a
     // notification published while the visitor was briefly disconnected.
-    window.setInterval(refreshCommunityNotifications, 8000);
+    window.setInterval(refreshCommunityNotifications, 30000);
     window.addEventListener("resize", renderChatRainOverlay);
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.addEventListener("click", openAdminWindow);
