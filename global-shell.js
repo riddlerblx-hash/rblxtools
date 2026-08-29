@@ -4059,7 +4059,7 @@
     nextTool.addEventListener("click", function () { goToTool(activeToolIndex + 1); });
     openTool.addEventListener("click", openCurrentTool);
     if (closeGate) closeGate.addEventListener("click", hidePlusGate);
-    if (plusGate) {
+    if (plusGate && plusGate.dataset.rblxPersistentGate !== "true") {
       plusGate.addEventListener("click", function (event) {
         if (event.target && event.target.id === "plusGate") hidePlusGate();
       });
@@ -4261,7 +4261,7 @@
       subtitle: "Monthly Stripe subscription",
       title: "Pro",
       action: actionLabel || "Try Now",
-      perks: ["20 AI Credits Every Month", "All Plus Plan Benefits Included", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1440p - 4K AI Thumbnail Quality", "Premium Giveaways", "Custom Chat Tag", "Premium Looking Website Included"]
+      perks: ["20 AI Credits Every Month", "Includes All Plus Benefits", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1440p - 4K AI Thumbnail Quality", "Premium Giveaways", "Custom Chat Tag", "Premium Looking Website Included"]
     } : {
       price: "$1.00",
       subtitle: "Monthly membership",
@@ -4273,7 +4273,7 @@
       '<div class="rblx-membership-promo-floaters ' + (isPro ? 'is-pro' : 'is-plus') + '" aria-hidden="true"><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span></div>',
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
       '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price">' + config.price + '</span><small>' + config.subtitle + '</small></div>',
-      '<div class="rblx-membership-promo-perks">' + config.perks.map(function (perk) { return '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
+      '<div class="rblx-membership-promo-perks">' + config.perks.map(function (perk) { return perk === "Includes All Plus Benefits" ? '<span>' + perk + '</span>' : '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous membership plan"></button><div class="rblx-membership-promo-progress" aria-label="Membership plan rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next membership plan"></button></div><a class="rblx-membership-promo-action" href="./subscriptions">' + config.action + '</a></div>'
     ].join("");
   }

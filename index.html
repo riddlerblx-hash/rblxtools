@@ -920,9 +920,9 @@
       justify-content: center;
       padding: 24px;
       z-index: 60;
-      background: rgba(6, 10, 16, 0.72);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      background:rgba(5,10,20,.78);
+      backdrop-filter:blur(14px) saturate(1.15);
+      -webkit-backdrop-filter:blur(14px) saturate(1.15);
     }
 
     .plus-modal.open {
@@ -933,10 +933,11 @@
       width: min(100%, 560px);
       padding: 22px;
       background:
-        radial-gradient(circle at top right, rgba(255, 58, 58, 0.16), transparent 28%),
-        radial-gradient(circle at 22% 16%, rgba(255,255,255,0.08), transparent 18%),
-        linear-gradient(180deg, rgba(38, 45, 66, 0.98), rgba(23, 19, 30, 0.98));
-      border-color: rgba(255,255,255,0.10);
+        radial-gradient(circle at 92% 8%, rgba(144,92,255,.28), transparent 32%),
+        radial-gradient(circle at 8% 100%, rgba(47,211,202,.15), transparent 38%),
+        linear-gradient(145deg, rgba(24,32,55,.99), rgba(9,15,29,.99));
+      border-color:rgba(138,119,255,.42);
+      box-shadow:0 28px 80px rgba(1,5,15,.58),inset 0 1px 0 rgba(255,255,255,.12);
       isolation: isolate;
     }
 
@@ -945,7 +946,7 @@
       position: absolute;
       inset: -20% auto -20% -35%;
       width: 42%;
-      background: linear-gradient(100deg, transparent 0%, rgba(255,255,255,0.05) 35%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0.04) 66%, transparent 100%);
+      background:linear-gradient(100deg,transparent 0%,rgba(186,153,255,.04) 35%,rgba(186,153,255,.18) 50%,rgba(186,153,255,.04) 66%,transparent 100%);
       transform: skewX(-18deg) translateX(-180%);
       animation: homeShine 8.2s ease-in-out infinite;
       pointer-events: none;
@@ -980,7 +981,8 @@
     }
 
     .modal-actions {
-      margin-top: 18px;
+      margin-top:22px;
+      justify-content:center;
     }
 
     .modal-features {
@@ -1210,7 +1212,7 @@
     .tool-category.ai-category { margin-top:48px; padding:0; border:0; border-radius:0; background:transparent; }
     .tool-grid.ai-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .tool-card.ai-card { min-height:236px !important; display:flex; flex-direction:column; gap:0; border-color:rgba(188,138,255,.68) !important; background:linear-gradient(145deg,rgba(52,37,91,.97),rgba(14,13,35,.99)) !important; }
-    .tool-card.ai-card::after { background:linear-gradient(90deg,#e6d4ff,#8b3dff) !important; }
+    .tool-card.ai-card::after { background:linear-gradient(90deg,#bd79ff,#7b27e8) !important; }
     .ai-studio-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .ai-studio-head .tool-title { margin:18px 0 0; }
     .ai-studio-kicker { display:none; }
@@ -1504,17 +1506,17 @@
                 </div>
               </div>
               <h3 class="tool-title">Animations</h3>
-              <div class="tool-mini"><span class="plus-word">Plus</span> Required</div>
+              <div class="tool-mini"><span class="plus-word">Plus</span> or <span class="pro-word">Pro</span> Required</div>
               <p class="tool-copy">Advanced animation utility access for users who want more than the basic free creator tools.</p>
               <ul class="tool-feature-list">
                 <li>Premium-only advanced utility</li>
                 <li>Stronger creator workflow path</li>
-                <li>Exclusive <span class="plus-word">Plus</span> access</li>
+                <li><span class="plus-word">Plus</span> or <span class="pro-word">Pro</span> access</li>
                 <li>Higher-tier tool presentation</li>
               </ul>
               <div class="tool-footer">
                 <div class="tool-footer-label">Animations</div>
-                <span class="tool-action-btn" data-plus-button="true">Requires <span class="rblx-plus-word">Plus</span></span>
+                <span class="tool-action-btn" data-plus-button="true">Requires Plus or Pro</span>
               </div>
             </a>
           </div>
@@ -1585,14 +1587,13 @@
     <div class="plus-modal-card">
       <div class="modal-top">
         <div>
-          <div class="tool-pill plus modal-plan-tag"><span class="plus-word">Plus</span> Required</div>
-          <h2 class="modal-title">Uh Oh... This Requires <span class="plus-word">Plus</span></h2>
+          <div class="tool-pill plus modal-plan-tag">Membership Required</div>
+          <h2 class="modal-title">Animations needs Plus or Pro</h2>
         </div>
-        <button class="modal-close" type="button" id="plusModalClose">X</button>
       </div>
 
       <p class="modal-copy" id="plusModalCopy">
-        This premium tool needs an active <span class="plus-word">Plus</span> plan before you can use it.
+        This premium tool needs an active Plus or Pro membership before you can use it.
       </p>
 
       <div class="modal-features">
@@ -1604,21 +1605,18 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn ghost" type="button" id="plusModalCancel">Close</button>
         <a class="btn plus pulse-green" href="./subscriptions">View Plans</a>
       </div>
     </div>
   </div>
 
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20260829-7"></script>
+<script src="./global-shell.js?v=20260829-8"></script>
   <script>
     (function () {
       const API_BASE = window.location.origin;
       const modal = document.getElementById("plusModal");
       const modalCopy = document.getElementById("plusModalCopy");
-      const closeBtn = document.getElementById("plusModalClose");
-      const cancelBtn = document.getElementById("plusModalCancel");
       const plusLinks = document.querySelectorAll("[data-plus-tool='true']");
       const plusButtons = document.querySelectorAll("[data-plus-button='true']");
       const spotlightButton = document.getElementById("plusSpotlightButton");
@@ -1665,13 +1663,13 @@
         plusButtons.forEach(function (button) {
           button.innerHTML = ownsPlus
             ? "Open Animations"
-            : 'Requires <span class="rblx-plus-word">Plus</span>';
+            : "Requires Plus or Pro";
           button.classList.toggle("is-locked", !ownsPlus);
         });
       }
 
       function openPlusModal(toolName) {
-        modalCopy.innerHTML = toolName + ' needs an active <span class="plus-word">Plus</span> plan before you can use it. Upgrade to unlock premium tools, bulk workflows, cool cosmetics, and a cleaner site experience.';
+        modalCopy.textContent = toolName + " needs an active Plus or Pro membership before you can use it. Upgrade to unlock premium tools, bulk workflows, and the full creator toolkit.";
         modal.classList.add("open");
         modal.setAttribute("aria-hidden", "false");
       }
@@ -1691,14 +1689,6 @@
         }, true);
       });
 
-      closeBtn.addEventListener("click", closePlusModal);
-      cancelBtn.addEventListener("click", closePlusModal);
-      modal.addEventListener("click", (event) => {
-        if (event.target === modal) closePlusModal();
-      });
-      window.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") closePlusModal();
-      });
 
       resolvePlusOwnership().then(function (result) {
         ownsPlus = result === true;

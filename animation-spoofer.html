@@ -99,19 +99,19 @@
       z-index: 25;
     }
 
-    #plusGate.page-plus-lock .gate-actions {
-      grid-template-columns: minmax(108px, 1fr) minmax(150px, 1.35fr);
-      justify-content: center;
-    }
+    #plusGate.page-plus-lock .gate-actions { display:flex; justify-content:center; }
     #plusGate.page-plus-lock .gate-modal {
-      border-color: rgba(194, 210, 230, .44);
+      width:min(470px, calc(100vw - 32px));
+      border-color:rgba(132,114,255,.52);
       background:
-        linear-gradient(115deg, rgba(255,255,255,.16), transparent 28%, rgba(255,255,255,.05) 52%, transparent 72%),
-        radial-gradient(circle at 88% 8%, rgba(244,248,255,.22), transparent 32%),
-        linear-gradient(145deg, #263244, #111b2d 62%, #667486);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.52), 0 30px 78px rgba(3,8,18,.58);
+        radial-gradient(circle at 88% 0%, rgba(157,91,255,.27), transparent 37%),
+        radial-gradient(circle at 8% 100%, rgba(54,211,204,.15), transparent 42%),
+        linear-gradient(145deg, rgba(24,31,54,.98), rgba(9,15,29,.99));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 30px 78px rgba(3,8,18,.68),0 0 0 1px rgba(119,93,255,.1);
     }
-    #plusGate.page-plus-lock .gate-modal h3 span:last-child { color: #eef3fa; }
+    #plusGate.page-plus-lock .gate-modal h3 span:first-child { color:#ab94ff; letter-spacing:.11em; text-transform:uppercase; }
+    #plusGate.page-plus-lock .gate-modal h3 span:last-child { color:#f8f9ff; }
+    #plusGate.page-plus-lock .plans-btn { width:100%; max-width:240px; border-radius:12px; background:linear-gradient(135deg,#9b5cff,#6130d5); box-shadow:0 12px 26px rgba(112,61,230,.32); }
       .tutorial-video-box {
       position: relative;
       overflow: hidden;
@@ -1303,7 +1303,7 @@
 </head>
   <body data-tool-report="Animations">
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20260829-7"></script>
+<script src="./global-shell.js?v=20260829-8"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1323,8 +1323,8 @@
           <article id="animation-spoofer-card" class="stack-card">
           <div id="accessGate" class="hidden">
             <div class="access-top">
-              <span id="accessBadge" class="access-chip"><span class="plus-word">Plus</span> Required</span>
-              <span class="access-chip">RBTools <span class="plus-word">Plus</span></span>
+              <span id="accessBadge" class="access-chip">Plus or Pro Required</span>
+              <span class="access-chip">RBLXTools Membership</span>
             </div>
 
             <h2 class="access-title">
@@ -1516,13 +1516,12 @@
     </section>
   </main>
 
-  <div class="gate-overlay" id="plusGate">
+<div class="gate-overlay" id="plusGate" data-rblx-persistent-gate="true">
     <div class="gate-modal">
-      <h3><span><span class="plus-word">Plus</span> Required</span><span>Uh Oh... This Requires <span class="plus-word">Plus</span></span></h3>
-      <p>Animations needs an active RBLXTools <span class="plus-word">Plus</span> plan before you can use it. Upgrade to unlock premium tools, bulk workflows, cool cosmetics, and a cleaner site experience.</p>
+      <h3><span>Membership Required</span><span>Animations needs Plus or Pro</span></h3>
+      <p>Unlock the animation workflow with an active RBLXTools Plus or Pro membership.</p>
       <div class="gate-actions">
         <a class="plans-btn" href="./subscriptions">View Plans</a>
-        <button class="close-btn" type="button" id="closeGate">Close</button>
       </div>
     </div>
   </div>
@@ -1595,24 +1594,19 @@
         const actions = plusGate.querySelector(".gate-actions");
 
         if (heading) {
-          heading.innerHTML = "<span><span class=\"plus-word\">Plus</span> Required</span><span>Uh Oh... This Requires <span class=\"plus-word\">Plus</span></span>";
+          heading.innerHTML = "<span>Membership Required</span><span>Animations needs Plus or Pro</span>";
         }
 
         if (copy) {
           if (reason === "login") {
-            copy.innerHTML = "You need to log in and make sure your RBLXTools <span class=\"plus-word\">Plus</span> plan is active before using Animations.";
+            copy.textContent = "Log in, then activate a Plus or Pro membership to use Animations.";
           } else {
-            copy.innerHTML = "This page and its full utility are only available to RBLXTools <span class=\"plus-word\">Plus</span> members. Upgrade now to unlock the Animations workflow, premium tools, and the full creator utility set.";
+            copy.textContent = "This workflow is available to active RBLXTools Plus and Pro members.";
           }
         }
 
         if (actions) {
-          actions.innerHTML =
-            '<button class="close-btn" type="button" id="closeGate">Close</button><a class="plans-btn" href="./subscriptions">View Plans</a>';
-          const closeGate = document.getElementById("closeGate");
-          if (closeGate) {
-            closeGate.addEventListener("click", clearPageLockOverlay, { once: true });
-          }
+          actions.innerHTML = '<a class="plans-btn" href="./subscriptions">View Plans</a>';
         }
       }
 
@@ -1759,9 +1753,9 @@
 
       function hasPlusFromPayload(payload) {
   if (!payload || typeof payload !== "object") return false;
-  const directPremium = payload.premiumActive === true || payload.plusActive === true || payload.plus === true || payload.isPlus === true || payload.hasPlus === true;
+  const directPremium = payload.premiumActive === true || payload.plusActive === true || payload.plus === true || payload.isPlus === true || payload.hasPlus === true || payload.plan === "plus" || payload.plan === "pro";
   const user = payload.user && typeof payload.user === "object" ? payload.user : null;
-  const userPremium = user && (user.premiumActive === true || user.plusActive === true || user.plus === true || user.isPlus === true || user.hasPlus === true);
+  const userPremium = user && (user.premiumActive === true || user.plusActive === true || user.plus === true || user.isPlus === true || user.hasPlus === true || user.plan === "plus" || user.plan === "pro");
   return Boolean(directPremium || userPremium);
 }
 
@@ -2027,13 +2021,13 @@
 
         if (reason === "login") {
           accessBadge.innerHTML = "Login Required";
-          accessCopy.innerHTML = "You need to log in first, then make sure your RBTools <span class=\"plus-word\">Plus</span> plan is active before using Animations.";
+          accessCopy.textContent = "Log in, then activate a Plus or Pro membership to use Animations.";
         } else if (reason === "checking") {
           accessBadge.innerHTML = "Checking Access";
-          accessCopy.innerHTML = "Checking your account and RBTools <span class=\"plus-word\">Plus</span> access now.";
+          accessCopy.textContent = "Checking your Plus or Pro membership now.";
         } else {
-          accessBadge.innerHTML = "<span class=\"plus-word\">Plus</span> Required";
-          accessCopy.innerHTML = "Animations is locked to RBTools <span class=\"plus-word\">Plus</span>. Grab the plan and come right back here once access is active.";
+          accessBadge.textContent = "Plus or Pro Required";
+          accessCopy.textContent = "Animations is available to active RBLXTools Plus and Pro members.";
         }
 
         lockPlusPage(reason === "login" ? "login" : "plus");
@@ -2408,7 +2402,7 @@
       window.addEventListener("rblxtools-membership-updated", function (event) {
         const detail = event && event.detail ? event.detail : {};
         if (detail && detail.user === null) return;
-        applyLivePlusAccess(Boolean(detail && (detail.premiumActive === true || detail.plan === "plus")));
+        applyLivePlusAccess(Boolean(detail && (detail.premiumActive === true || detail.plan === "plus" || detail.plan === "pro")));
       });
       window.addEventListener("storage", function (event) {
         if (!event || (event.key !== "rblxtools_plus_cache" && event.key !== "rblxtools_auth_user")) return;
