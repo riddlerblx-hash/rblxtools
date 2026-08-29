@@ -319,6 +319,32 @@
       pointer-events: none;
     }
 
+    .template-rig-preview-link {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid #3975c5;
+      border-radius: 8px;
+      background: rgba(10, 25, 46, 0.86);
+      color: #e7f3ff;
+      font: 800 11px/1 Arial, sans-serif;
+      text-decoration: none;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+
+    .template-rig-preview-link:hover {
+      transform: translateY(-1px);
+      border-color: #65cfff;
+      background: #15385a;
+    }
+
     #templateRigViewer .template-rig-source {
       position: absolute;
       inset: 0;
@@ -1911,6 +1937,8 @@
       const downloadBtn = document.getElementById("downloadBtn");
 
       activeImage.src = activeSlide.url;
+      const previewLink = document.getElementById("previewTemplateBtn");
+      if (previewLink) previewLink.href = activeSlide.url;
       activeImage.alt = "Roblox clothing template " + activeSlide.id;
       showMappedRigPreview(activeSlide.url);
       slideCounter.innerText = (currentSlideIndex + 1) + " of " + currentSlides.length;
@@ -1948,7 +1976,7 @@
         <div id="previewShell">
           <div class="previewCarousel">
             <button class="previewArrow left ${isMulti ? "" : "hidden"}" type="button" onclick="showSlide(-1)">&lsaquo;</button>
-            <div class="previewStage"><div id="templateRigViewer" aria-label="Mapped 3D Roblox clothing rig preview"><img id="activeTemplateImage" class="template-rig-source" src="" alt="Roblox clothing template"><span class="template-rig-rotate-hint">Drag to rotate</span></div></div>
+            <div class="previewStage"><div id="templateRigViewer" aria-label="Mapped 3D Roblox clothing rig preview"><img id="activeTemplateImage" class="template-rig-source" src="" alt="Roblox clothing template"><a id="previewTemplateBtn" class="template-rig-preview-link" href="#" target="_blank" rel="noopener">&#x1F50D; Preview template</a><span class="template-rig-rotate-hint">Drag to rotate</span></div></div>
             <button class="previewArrow right ${isMulti ? "" : "hidden"}" type="button" onclick="showSlide(1)">&rsaquo;</button>
           </div>
         </div>
