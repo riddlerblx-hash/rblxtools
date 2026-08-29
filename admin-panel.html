@@ -125,6 +125,7 @@
         rgba(11, 15, 21, 0.94);
       box-shadow: var(--admin-shadow);
     }
+    .admin-topbar{display:none}.admin-actions-grid .admin-card:has(#grantPlusButton),.admin-actions-grid .admin-card:has(#grantProButton){display:none}.admin-unified{border-color:rgba(56,230,224,.26);background:radial-gradient(circle at top right,rgba(56,230,224,.13),transparent 34%),var(--admin-surface)}.admin-note-log{display:grid;gap:8px;max-height:340px;overflow:auto}.admin-note-entry{padding:10px;border:1px solid var(--admin-line);border-radius:12px;background:rgba(0,0,0,.16);font-size:12px;line-height:1.45}.admin-note-entry strong{color:#76fff4}
 
     .admin-title-wrap {
       min-width: 0;
@@ -790,6 +791,7 @@
     </section>
 
     <section class="admin-actions-grid">
+        <div class="admin-card admin-unified"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Complimentary Grants</h2><p class="admin-card-copy">Choose the reward type, target a member, and leave a staff note.</p></div></div><div class="admin-compact-grid"><div class="admin-field"><label class="admin-label" for="unifiedReward">Reward</label><select class="admin-input" id="unifiedReward"><option value="plus">Plus Plan</option><option value="pro">Pro Plan</option><option value="tokens">AI Tokens</option></select></div><div class="admin-field"><label class="admin-label" for="unifiedTarget">User ID Or Email</label><input class="admin-input" id="unifiedTarget" placeholder="Target member" /></div><div class="admin-field"><label class="admin-label" for="unifiedAmount">Days / Tokens</label><input class="admin-input" id="unifiedAmount" type="number" min="1" value="14" /></div><div class="admin-field"><label class="admin-label" for="unifiedNote">Staff Note</label><input class="admin-input" id="unifiedNote" placeholder="Required reason" /></div></div><div class="admin-buttons"><button class="admin-btn green" id="unifiedGrantButton" type="button">Send Complimentary Grant</button></div><div class="admin-result" id="unifiedGrantStatus"></div></div></div>
         <div class="admin-card">
           <div class="admin-card-inner">
             <div class="admin-card-head"><div><h2 class="admin-card-title">Complimentary Pro & AI Tokens</h2><p class="admin-card-copy">Grant Pro access or AI credits with a staff note.</p></div></div>
@@ -927,6 +929,7 @@
         </div>
       </div>
     </section>
+    <section class="admin-card"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Staff Notes</h2><p class="admin-card-copy">Recent moderator notes and the admin who recorded them.</p></div><button class="admin-btn ghost" id="refreshNotesButton" type="button">Refresh</button></div><div class="admin-note-log" id="staffNotesLog">Loading notes...</div></div></section>
 
     <section class="admin-actions-grid">
       <div class="admin-card">
@@ -1460,6 +1463,9 @@
         }).catch(function (error) { setResult("proTokenStatus", error.message || "Could not complete the grant.", "error"); });
       }
 
+      async function sendUnifiedGrant() { return withBusy(["unifiedGrantButton"], async function(){ var kind=getFieldValue("unifiedReward"); var note=getFieldValue("unifiedNote"); if(!note) throw new Error("A staff note is required."); var target=await resolveTargetMember(getFieldValue("unifiedTarget")); var amount=Math.max(1,getFieldNumber("unifiedAmount",14)); var path=kind==="plus"?"/admin/grant-plus":kind==="pro"?"/admin/grant-pro":"/admin/grant-ai-tokens"; var payload=await fetchJson(API_BASE+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:target.id,note:note,days:amount,amount:amount})}); setResult("unifiedGrantStatus",payload.message||"Grant complete.","success"); }).catch(function(error){setResult("unifiedGrantStatus",error.message||"Could not send grant.","error");}); }
+      async function loadStaffNotes(){ var log=document.getElementById("staffNotesLog"); try{var payload=await fetchJson(API_BASE+"/admin/staff-notes",{headers:{}}); var notes=Array.isArray(payload.notes)?payload.notes:[]; log.innerHTML=notes.length?notes.map(function(note){return '<div class="admin-note-entry"><strong>'+String(note.action_type||"action")+'</strong> · '+String(note.admin_email||"admin")+'<br>'+String(note.note||"")+'<br><small>'+String(note.created_at||"")+"</small></div>";}).join(""):"No saved staff notes yet.";}catch(error){log.textContent=error.message||"Could not load staff notes.";} }
+
       async function applyWebsiteLock() {
         return withBusy(["blacklistButton", "clearBlacklistButton"], async function () {
           var target = await resolveTargetMember(getFieldValue("blacklistTarget"));
@@ -1717,6 +1723,9 @@
       document.getElementById("removePlusButton").addEventListener("click", removePlus);
       document.getElementById("grantProButton").addEventListener("click", function () { grantProOrTokens("pro"); });
       document.getElementById("grantTokensButton").addEventListener("click", function () { grantProOrTokens("tokens"); });
+      document.getElementById("unifiedGrantButton").addEventListener("click", sendUnifiedGrant);
+      document.getElementById("refreshNotesButton").addEventListener("click", loadStaffNotes);
+      loadStaffNotes();
       document.getElementById("blacklistButton").addEventListener("click", applyWebsiteLock);
       document.getElementById("clearBlacklistButton").addEventListener("click", clearWebsiteLock);
       document.getElementById("timeoutButton").addEventListener("click", applyChatTimeout);

@@ -7291,6 +7291,7 @@ app.post("/admin/grant-pro", async (req, res) => {
     if (!targetUser) return res.status(404).json({ error: "No member account was found for that Pro grant." });
     if (!note) return res.status(400).json({ error: "A note is required before complimentary Pro can be granted." });
     const grantResult = await grantComplimentaryProToUser(targetUser.id, days);
+    await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: "complimentary_pro", note, expiresAt: grantResult.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
     emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.days + " days of complimentary Pro.");
     return res.json({ ok: true, message: "Complimentary Pro granted for " + grantResult.days + " days.", member: buildPublicUser(grantResult.user), days: grantResult.days, expiresAt: grantResult.expiresAt, grantedBy: { id: adminUser.id, email: adminUser.email } });
   } catch (error) {
@@ -7306,10 +7307,21 @@ app.post("/admin/grant-ai-tokens", async (req, res) => {
     if (!targetUser) return res.status(404).json({ error: "No member account was found for that token grant." });
     if (!note) return res.status(400).json({ error: "A note is required before AI tokens can be granted." });
     const grantResult = await grantAITokensToUser(targetUser.id, req.body?.amount);
+    await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: "ai_token_grant", reason: String(grantResult.amount), note, adminUserId: adminUser.id, adminEmail: adminUser.email });
     emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.amount + " AI tokens.");
     return res.json({ ok: true, message: grantResult.amount + " AI tokens granted.", member: buildPublicUser(grantResult.user), amount: grantResult.amount, grantedBy: { id: adminUser.id, email: adminUser.email } });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not grant AI tokens." });
+  }
+});
+
+app.get("/admin/staff-notes", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const rows = await supabaseRequest(buildTablePath(MODERATION_ACTIONS_TABLE, "?note=not.is.null&order=created_at.desc&limit=100&select=action_type,note,admin_email,user_email,created_at"));
+    return res.json({ ok: true, notes: Array.isArray(rows) ? rows : [] });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load staff notes." });
   }
 });
 
