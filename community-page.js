@@ -2,7 +2,7 @@
   var API_BASE = window.location.origin;
   var USER_KEY = "rblxtools_auth_user";
   var PROFILE_KEY = "rblxtools_profile_overview";
-  var VALID_FILTERS = ["announcement", "changelog", "bug-report", "feedback", "known-issue"];
+  var VALID_FILTERS = ["announcement", "changelog", "bug-report", "feedback", "q-and-a", "known-issue"];
   var isAdminUser = false;
   var isLoggedIn = false;
   var editingPostId = "";
@@ -38,6 +38,7 @@
       changelog: "Changelog",
       "bug-report": "Bug Reports",
       feedback: "Feedback",
+      "q-and-a": "Q&A",
       "known-issue": "Known Issues"
     };
     return map[filter] || "All";
@@ -49,6 +50,7 @@
       changelog: "Changelog",
       "bug-report": "Bug Report",
       feedback: "Feedback",
+      "q-and-a": "Q&A",
       "known-issue": "Known Issue"
     };
     return map[type] || "Update";
@@ -332,7 +334,7 @@
 
   function isMemberContribution(post) {
     var category = String(post && post.category || "");
-    return (category === "bug-report" || category === "feedback") && !post.authorIsAdmin;
+    return (category === "bug-report" || category === "feedback" || category === "q-and-a") && !post.authorIsAdmin;
   }
 
   function buildAdminPostMenu(post) {
@@ -587,8 +589,8 @@
     var ratingField = document.getElementById("communityFeedbackRatingField");
     if (!composer) return;
     var activeFilter = getActiveFilter();
-    var memberCategory = activeFilter === "feedback" ? "feedback" : "bug-report";
-    var memberCanPost = isLoggedIn && !isAdminUser && (activeFilter === "bug-report" || activeFilter === "feedback");
+    var memberCategory = activeFilter === "feedback" ? "feedback" : activeFilter === "q-and-a" ? "q-and-a" : "bug-report";
+    var memberCanPost = isLoggedIn && !isAdminUser && (activeFilter === "bug-report" || activeFilter === "feedback" || activeFilter === "q-and-a");
     composer.hidden = !(isAdminUser || memberCanPost);
     composer.classList.toggle("is-member-report", memberCanPost);
     composer.classList.toggle("is-member-feedback", memberCanPost && memberCategory === "feedback");
@@ -601,7 +603,7 @@
       return;
     }
     if (editingPostId) {
-      if (title) title.textContent = memberCategory === "feedback" ? "Edit Website Feedback" : "Edit Bug Report";
+      if (title) title.textContent = memberCategory === "feedback" ? "Edit Website Feedback" : memberCategory === "q-and-a" ? "Edit Community Question" : "Edit Bug Report";
       if (helper) helper.textContent = "Update your submission, then save your changes.";
       if (button) button.textContent = "Save Changes";
       return;
@@ -612,6 +614,12 @@
       if (category) category.value = "feedback";
       if (categoryLabel) categoryLabel.textContent = "Feedback";
       if (button) button.textContent = "Submit Feedback";
+    } else if (memberCategory === "q-and-a") {
+      if (title) title.textContent = "Ask the Community";
+      if (helper) helper.textContent = "Ask a tool or creator-workflow question and let other members share what has worked for them.";
+      if (category) category.value = "q-and-a";
+      if (categoryLabel) categoryLabel.textContent = "Q&A";
+      if (button) button.textContent = "Post Question";
     } else {
       if (title) title.textContent = "Create Bug Report";
       if (helper) helper.textContent = "Tell the RBLXTools team what happened. Your report will start as unresolved until it is verified.";
@@ -743,7 +751,7 @@
     var attachmentName = document.getElementById("communityAttachmentName");
     if (attachmentName) attachmentName.textContent = "Up to 2 MB.";
     var categoryNode = document.getElementById("communityPostCategory");
-    if (categoryNode) categoryNode.value = isAdminUser ? "announcement" : (getActiveFilter() === "feedback" ? "feedback" : "bug-report");
+    if (categoryNode) categoryNode.value = isAdminUser ? "announcement" : (getActiveFilter() === "feedback" ? "feedback" : getActiveFilter() === "q-and-a" ? "q-and-a" : "bug-report");
     var ratingNode = document.getElementById("communityFeedbackRating");
     if (ratingNode) ratingNode.value = "0";
     updateRatingPicker(0);
@@ -801,8 +809,8 @@
     if (!body) return setPublishStatus("Write the post body first.", "error");
 
     var memberCategory = getActiveFilter();
-    if (!isAdminUser && memberCategory !== "bug-report" && memberCategory !== "feedback") {
-      return setPublishStatus("Choose Bug Reports or Feedback before submitting a community post.", "error");
+    if (!isAdminUser && memberCategory !== "bug-report" && memberCategory !== "feedback" && memberCategory !== "q-and-a") {
+      return setPublishStatus("Choose Bug Reports, Feedback, or Q&A before submitting a community post.", "error");
     }
     if (!isAdminUser && memberCategory === "feedback" && (!ratingNode || Number(ratingNode.value) < 1 || Number(ratingNode.value) > 5)) {
       return setPublishStatus("Choose a rating from 1 to 5 stars.", "error");
@@ -1032,7 +1040,7 @@
     var openButton = document.getElementById("communityOpenComposer");
     if (openButton) openButton.addEventListener("click", function () {
       if (!isLoggedIn) return void openLoginPrompt("Log in or sign up to create a community post.");
-      if (!isAdminUser && getActiveFilter() !== "bug-report" && getActiveFilter() !== "feedback") {
+      if (!isAdminUser && getActiveFilter() !== "bug-report" && getActiveFilter() !== "feedback" && getActiveFilter() !== "q-and-a") {
         var url = new URL(window.location.href);
         url.searchParams.set("filter", "bug-report");
         window.history.pushState({}, "", url.pathname + url.search);

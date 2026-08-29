@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { randomUUID } = require("crypto");
 
-const VALID_CATEGORIES = new Set(["announcement", "changelog", "bug-report", "feedback", "known-issue"]);
+const VALID_CATEGORIES = new Set(["announcement", "changelog", "bug-report", "feedback", "q-and-a", "known-issue"]);
 const STATIC_FILE_EXTENSIONS = new Set([
   ".css", ".js", ".mjs", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".woff", ".woff2", ".ttf", ".eot", ".map", ".txt", ".xml", ".json", ".obj", ".glb", ".gltf", ".bin", ".mp3", ".wav", ".ogg", ".mp4", ".webm"
 ]);
@@ -457,15 +457,15 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       if (!userId) return res.status(401).json({ error: "Log in first." });
 
       const requestedCategory = req.path.endsWith("/bug-reports") ? "bug-report" : normalizeCategory(req.body?.category);
-      if (requestedCategory !== "bug-report" && requestedCategory !== "feedback") {
-        return res.status(400).json({ error: "Members can submit bug reports or feedback only." });
+      if (requestedCategory !== "bug-report" && requestedCategory !== "feedback" && requestedCategory !== "q-and-a") {
+        return res.status(400).json({ error: "Members can submit bug reports, feedback, or Q&A posts only." });
       }
       const isFeedback = requestedCategory === "feedback";
       const title = cleanText(req.body?.title, 140);
       const body = cleanText(req.body?.body, 6000);
       const rating = Number.parseInt(req.body?.rating, 10);
-      if (!title) return res.status(400).json({ error: isFeedback ? "A feedback title is required." : "A bug-report title is required." });
-      if (!body) return res.status(400).json({ error: isFeedback ? "Write your feedback before submitting it." : "Describe the bug before submitting it." });
+      if (!title) return res.status(400).json({ error: isFeedback ? "A feedback title is required." : requestedCategory === "q-and-a" ? "A question title is required." : "A bug-report title is required." });
+      if (!body) return res.status(400).json({ error: isFeedback ? "Write your feedback before submitting it." : requestedCategory === "q-and-a" ? "Write your question before submitting it." : "Describe the bug before submitting it." });
       if (isFeedback && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
         return res.status(400).json({ error: "Choose a rating from 1 to 5 stars." });
       }
@@ -498,7 +498,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const posts = readCommunityPosts(baseDir);
       posts.push(nextPost);
       writeCommunityPosts(baseDir, posts);
-      return res.json({ ok: true, message: isFeedback ? "Feedback submitted. Thanks for helping improve RBLXTools." : "Bug report submitted. Thanks for helping improve RBLXTools.", post: buildPublicCommunityPost(nextPost, userId) });
+      return res.json({ ok: true, message: isFeedback ? "Feedback submitted. Thanks for helping improve RBLXTools." : requestedCategory === "q-and-a" ? "Question posted. The community can now join the conversation." : "Bug report submitted. Thanks for helping improve RBLXTools.", post: buildPublicCommunityPost(nextPost, userId) });
     } catch (error) {
       return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit the bug report." });
     }
@@ -569,8 +569,8 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       if (index < 0) return res.status(404).json({ error: "That post could not be found." });
 
       const existing = normalizePostForStorage(posts[index]);
-      const isOwnMemberPost = String(existing.authorId || "") === userId && !existing.authorIsAdmin && (existing.category === "bug-report" || existing.category === "feedback");
-      if (!isOwnMemberPost) return res.status(403).json({ error: "You can only edit your own bug reports or feedback." });
+      const isOwnMemberPost = String(existing.authorId || "") === userId && !existing.authorIsAdmin && (existing.category === "bug-report" || existing.category === "feedback" || existing.category === "q-and-a");
+      if (!isOwnMemberPost) return res.status(403).json({ error: "You can only edit your own bug reports, feedback, or Q&A posts." });
 
       const title = cleanText(req.body?.title, 140);
       const body = cleanText(req.body?.body, 6000);
@@ -602,8 +602,8 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const index = posts.findIndex((post) => String(post.id || "") === postId);
       if (index < 0) return res.status(404).json({ error: "That post could not be found." });
       const existing = normalizePostForStorage(posts[index]);
-      const isOwnMemberPost = String(existing.authorId || "") === userId && !existing.authorIsAdmin && (existing.category === "bug-report" || existing.category === "feedback");
-      if (!isOwnMemberPost) return res.status(403).json({ error: "You can only delete your own bug reports or feedback." });
+      const isOwnMemberPost = String(existing.authorId || "") === userId && !existing.authorIsAdmin && (existing.category === "bug-report" || existing.category === "feedback" || existing.category === "q-and-a");
+      if (!isOwnMemberPost) return res.status(403).json({ error: "You can only delete your own bug reports, feedback, or Q&A posts." });
 
       posts.splice(index, 1);
       writeCommunityPosts(baseDir, posts);

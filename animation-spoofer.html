@@ -113,6 +113,8 @@
     #plusGate.page-plus-lock .gate-modal h3 .gate-plus { color:#ffffff; text-shadow:0 0 15px rgba(229,239,255,.44); }
     #plusGate.page-plus-lock .gate-modal h3 .gate-pro { color:#ffd46f; text-shadow:0 0 16px rgba(255,188,52,.46); }
     #plusGate.page-plus-lock .plans-btn { width:100%; max-width:240px; border-radius:12px; background:linear-gradient(135deg,#9b5cff,#6130d5); box-shadow:0 12px 26px rgba(112,61,230,.32); }
+    #plusGate.page-plus-lock .gate-cancel { min-height:44px; padding:0 17px; border:1px solid rgba(215,225,244,.2); border-radius:12px; color:#dce6f6; background:rgba(255,255,255,.06); font:inherit; font-weight:800; cursor:pointer; }
+    #plusGate.page-plus-lock .gate-cancel:hover { background:rgba(255,255,255,.12); }
       .tutorial-video-box {
       position: relative;
       overflow: hidden;
@@ -177,7 +179,7 @@
       height: 100%;
     }
 </style>
-<link rel="stylesheet" href="./global-shell.css?v=20260829-4" />
+<link rel="stylesheet" href="./global-shell.css?v=20260829-5" />
   <link rel="stylesheet" href="./template-tool-layout.css" />
 <style>
       .tool-stack,
@@ -1304,7 +1306,7 @@
 </head>
   <body data-tool-report="Animations">
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20260829-10"></script>
+<script src="./global-shell.js?v=20260829-11"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1522,6 +1524,7 @@
       <h3>Animations is available with <span class="gate-plus">Plus</span> or <span class="gate-pro">Pro</span>.</h3>
       <p>Choose a membership to unlock the animation workflow and the creator benefits that come with it.</p>
       <div class="gate-actions">
+        <button class="gate-cancel" type="button" data-page-gate-cancel="true">Cancel</button>
         <a class="plans-btn" href="./subscriptions">View Plans</a>
       </div>
     </div>
@@ -1593,6 +1596,12 @@
         const heading = plusGate.querySelector("h3");
         const copy = plusGate.querySelector("p");
         const actions = plusGate.querySelector(".gate-actions");
+        const cancelButton = plusGate.querySelector("[data-page-gate-cancel]");
+
+        if (cancelButton && cancelButton.dataset.bound !== "true") {
+          cancelButton.dataset.bound = "true";
+          cancelButton.addEventListener("click", clearPageLockOverlay);
+        }
 
         if (heading) {
           heading.innerHTML = 'Animations is available with <span class="gate-plus">Plus</span> or <span class="gate-pro">Pro</span>.';
@@ -1607,7 +1616,9 @@
         }
 
         if (actions) {
-          actions.innerHTML = '<a class="plans-btn" href="./subscriptions">View Plans</a>';
+          actions.innerHTML = '<button class="gate-cancel" type="button" data-page-gate-cancel="true">Cancel</button><a class="plans-btn" href="./subscriptions">View Plans</a>';
+          const refreshedCancelButton = plusGate.querySelector("[data-page-gate-cancel]");
+          if (refreshedCancelButton) refreshedCancelButton.addEventListener("click", clearPageLockOverlay, { once: true });
         }
       }
 

@@ -101,6 +101,22 @@ body.rblx-shell-ready {
 
 .rblx-shell-membership-gate-button:hover { filter: brightness(1.08); transform: translateY(-1px); }
 
+.rblx-shell-membership-gate-actions { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 23px; }
+.rblx-shell-membership-gate-actions .rblx-shell-membership-gate-button { margin-top: 0; }
+.rblx-shell-membership-gate-cancel {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid rgba(205, 216, 239, 0.2);
+  border-radius: 13px;
+  color: #dce6f6;
+  background: rgba(255, 255, 255, 0.06);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.rblx-shell-membership-gate-cancel:hover { background: rgba(255, 255, 255, 0.11); }
+
 @media (max-width: 520px) {
   .rblx-shell-membership-gate { padding: 16px; }
   .rblx-shell-membership-gate-card { padding: 25px 20px; border-radius: 20px; }

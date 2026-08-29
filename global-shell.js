@@ -374,7 +374,7 @@
           '<div class="rblx-shell-membership-gate-kicker">Animations Access</div>' +
           '<h3 id="rblxShellAnimationGateTitle">Animations is available with <span class="rblx-shell-gate-plus">Plus</span> or <span class="rblx-shell-gate-pro">Pro</span>.</h3>' +
           '<p>Choose a membership to unlock the animation tool and the creator benefits that come with it.</p>' +
-          '<a class="rblx-shell-membership-gate-button" href="./subscriptions">Compare Plans</a>' +
+          '<div class="rblx-shell-membership-gate-actions"><button class="rblx-shell-membership-gate-cancel" type="button" data-rblx-animation-gate-cancel="true">Cancel</button><a class="rblx-shell-membership-gate-button" href="./subscriptions">Compare Plans</a></div>' +
         '</div>' +
       '</div>'
     );
@@ -394,6 +394,12 @@
       gate.classList.add("is-open");
       gate.setAttribute("aria-hidden", "false");
     }
+
+    var cancelButton = gate.querySelector("[data-rblx-animation-gate-cancel]");
+    if (cancelButton) cancelButton.addEventListener("click", function () {
+      gate.classList.remove("is-open");
+      gate.setAttribute("aria-hidden", "true");
+    });
 
     document.addEventListener("click", function (event) {
       if (event.defaultPrevented || (typeof event.button === "number" && event.button !== 0) || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -435,7 +441,8 @@
 
     var protectedPages = {
       "subscriptions": "Log in or sign up to view membership plans.",
-      "ai-thumbnail-studio": "Log in or sign up to use AI Thumbnail Studio."
+      "ai-thumbnail-studio": "Log in or sign up to use AI Thumbnail Studio.",
+      "ai-tokens": "Log in or sign up to buy AI tokens."
     };
 
     document.addEventListener("click", function (event) {
@@ -4458,6 +4465,26 @@
     });
   }
 
+  function removePageFaqs(pageHost) {
+    if (!pageHost) return;
+    var sections = Array.prototype.slice.call(pageHost.querySelectorAll("section"));
+    sections.forEach(function (section) {
+      var heading = section.querySelector("h1, h2, h3");
+      var hasFaqContent = section.matches(".faq-wrap, .faq-card, .faq-section") ||
+        Boolean(heading && /\bfaqs?\b/i.test(String(heading.textContent || "")));
+      if (hasFaqContent) section.remove();
+    });
+
+    Array.prototype.slice.call(pageHost.querySelectorAll(".faq-wrap, .faq-card, .faq-section")).forEach(function (faq) {
+      faq.remove();
+    });
+
+    Array.prototype.slice.call(pageHost.querySelectorAll("#rblx-hub-faq")).forEach(function (faq) {
+      var card = faq.closest(".calc-side-card");
+      (card || faq).remove();
+    });
+  }
+
   function initShell() {
     var initialState = getImmediateUserState();
     shellState.currentUser = {
@@ -4479,6 +4506,7 @@
     applyPlanAtmosphere(initialState.plan);
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
+    removePageFaqs(pageHost);
     // Keep the shared footer outside individual page layouts so it always spans the shell center.
     pageHost.parentElement.insertAdjacentHTML("beforeend", buildFooterMarkup());
     captureStreamingPageContent(pageHost);
