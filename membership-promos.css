@@ -117,19 +117,27 @@ body.rblx-home-page .home-grid-top > .plus-card.rblx-pro-promo > * { position: r
 
 /* The two slides intentionally share every layout value; only the color variables change. */
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-topline,
-body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-topline { display:flex; align-items:center; justify-content:flex-end; gap:10px; }
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-topline { display:none; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-badge,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-badge { display:inline-flex; align-items:center; min-height:25px; padding:0 10px; border:1px solid var(--promo-line, rgba(239,246,255,.54)); border-radius:999px; color:var(--promo-ink, #f5f9ff); background:var(--promo-chip, rgba(25,36,53,.56)); font-size:10px; font-weight:950; letter-spacing:.08em; text-transform:uppercase; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-price { color:var(--promo-ink, #f5f9ff); font-size:12px; font-weight:950; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-title,
-body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-title { margin:18px 0 8px !important; color:var(--promo-ink, #f5f9ff) !important; font-size:clamp(30px,3.2vw,44px) !important; line-height:.93 !important; letter-spacing:-1.5px; }
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-title { margin:3px 0 12px !important; color:var(--promo-ink, #f5f9ff) !important; font-size:clamp(36px,4vw,52px) !important; line-height:.93 !important; letter-spacing:-1.8px; text-align:center; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-copy,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-copy { margin:0 !important; color:var(--promo-copy, #d8e1ed) !important; font-size:12px !important; font-weight:750; line-height:1.5; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price-box,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-price-box { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:69px; margin-bottom:14px; border:1px solid var(--promo-line, rgba(239,246,255,.36)); border-radius:14px; background:var(--promo-chip, rgba(7,14,25,.45)); }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-price { color:var(--promo-ink, #f5f9ff); font-size:28px; font-weight:950; line-height:1; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price-box small,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-price-box small { margin-top:5px; color:var(--promo-copy, #d8e1ed); font-size:8px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-perks,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-perks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:16px; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-perks span,
-body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-perks span { min-height:42px; display:flex; align-items:center; padding:8px 10px; border:1px solid var(--promo-line, rgba(239,246,255,.28)); border-radius:11px; color:var(--promo-ink, #f5f9ff); background:var(--promo-chip, rgba(7,14,25,.45)); font-size:10px; font-weight:850; line-height:1.2; }
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-perks span { min-height:34px; display:flex; align-items:center; gap:7px; padding:7px 9px; border:1px solid var(--promo-line, rgba(239,246,255,.28)); border-radius:10px; color:var(--promo-ink, #f5f9ff); background:var(--promo-chip, rgba(7,14,25,.45)); font-size:10px; font-weight:850; line-height:1.15; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-perks b,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-perks b { color:var(--promo-marker, #eaf3ff); font-size:16px; line-height:1; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-footer,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:auto; padding-top:17px; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-nav,
@@ -151,9 +159,9 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-p
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-action,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-action { display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:0 14px; border:0; border-radius:11px; color:#101828 !important; background:var(--promo-action, linear-gradient(135deg,#f3f7ff,#aebfd1)) !important; box-shadow:0 10px 20px var(--promo-glow, rgba(233,244,255,.32)); font-size:11px; font-weight:950; text-decoration:none; white-space:nowrap; }
 body.rblx-home-page .home-grid-top > .plus-card:not(.rblx-pro-promo),
-body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo) { --promo-line:rgba(239,246,255,.54); --promo-ink:#f5f9ff; --promo-copy:#d8e1ed; --promo-chip:rgba(7,14,25,.45); --promo-progress:linear-gradient(90deg,#f4f8ff,#aebed0); --promo-action:linear-gradient(135deg,#f4f8ff,#aebed0); --promo-glow:rgba(233,244,255,.34); }
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo) { --promo-line:rgba(239,246,255,.54); --promo-ink:#f5f9ff; --promo-copy:#d8e1ed; --promo-chip:rgba(7,14,25,.45); --promo-marker:#eaf3ff; --promo-progress:linear-gradient(90deg,#f4f8ff,#aebed0); --promo-action:linear-gradient(135deg,#f4f8ff,#aebed0); --promo-glow:rgba(233,244,255,.34); }
 body.rblx-home-page .home-grid-top > .plus-card.rblx-pro-promo,
-body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-pro-promo { --promo-line:rgba(255,218,126,.62); --promo-ink:#fff6d5; --promo-copy:#f1dfac; --promo-chip:rgba(38,27,8,.46); --promo-progress:linear-gradient(90deg,#fff0a0,#e2a62e); --promo-action:linear-gradient(135deg,#fff0a0,#e2a62e); --promo-glow:rgba(232,173,48,.38); }
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-pro-promo { --promo-line:rgba(255,218,126,.62); --promo-ink:#fff6d5; --promo-copy:#f1dfac; --promo-chip:rgba(38,27,8,.46); --promo-marker:#ffe17c; --promo-progress:linear-gradient(90deg,#fff0a0,#e2a62e); --promo-action:linear-gradient(135deg,#fff0a0,#e2a62e); --promo-glow:rgba(232,173,48,.38); }
 
 @keyframes membershipPromoTimer { from { width:0; } to { width:100%; } }
 

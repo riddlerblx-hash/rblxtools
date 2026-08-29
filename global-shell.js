@@ -3981,23 +3981,22 @@
   function buildMembershipPromoMarkup(plan) {
     var isPro = plan === "pro";
     var config = isPro ? {
-      price: "$5 / month",
-      title: "Build more with Pro",
-      copy: "Every Plus benefit, upgraded with creator-focused Pro tools and 20 AI credits every month.",
+      price: "$5.00",
+      subtitle: "Monthly Stripe subscription",
+      title: "Pro",
       action: "Try Now",
-      perks: ["20 AI Credits Every Month", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1080p Quality Outputs", "Premium Giveaways", "Custom Chat Tag", "Includes All Plus Benefits"]
+      perks: ["20 AI Credits Every Month", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1080p Quality Outputs", "Premium Giveaways", "Custom Chat Tag", "Animation Tool Included", "Textured UGCs Included", "Premium Looking Website Included"]
     } : {
-      price: "$1 / month",
-      title: "Build more with Plus",
-      copy: "Creator essentials that make your everyday RBLXTools workflow feel smoother, cleaner, and more capable.",
+      price: "$1.00",
+      subtitle: "Monthly membership",
+      title: "Plus",
       action: "Try Now",
       perks: ["Chat Tag Cosmetic", "Animation Tool", "Textured UGCs", "Bulk Downloads (1-5)", "Premium Looking Website"]
     };
     return [
-      '<div class="rblx-membership-promo-topline"><span class="rblx-membership-promo-price">' + config.price + '</span></div>',
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
-      '<p class="rblx-membership-promo-copy">' + config.copy + '</p>',
-      '<div class="rblx-membership-promo-perks">' + config.perks.map(function (perk) { return '<span>' + perk + '</span>'; }).join("") + '</div>',
+      '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price">' + config.price + '</span><small>' + config.subtitle + '</small></div>',
+      '<div class="rblx-membership-promo-perks">' + config.perks.map(function (perk) { return '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous membership plan"></button><div class="rblx-membership-promo-progress" aria-label="Membership plan rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next membership plan"></button></div><a class="rblx-membership-promo-action" href="./subscriptions">' + config.action + '</a></div>'
     ].join("");
   }
