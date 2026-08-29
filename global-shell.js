@@ -1443,7 +1443,7 @@
               "</div>" +
               '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + "</div>" +
               '<div class="rblx-shell-left-foot">' +
-                '<div class="rblx-shell-token-banner" id="rblxShellTokenBanner" hidden><strong>AI Tokens</strong><span id="rblxShellTokenBalance">0</span><a class="rblx-shell-token-add" href="./ai-tokens" aria-label="Buy AI tokens" title="Buy AI tokens">+</a></div>' +
+                '<div class="rblx-shell-token-banner" id="rblxShellTokenBanner" hidden><strong>AI Tokens</strong><span id="rblxShellTokenBalance">...</span><a class="rblx-shell-token-add" href="./ai-tokens" aria-label="Buy AI tokens" title="Buy AI tokens">+</a></div>' +
                 '<a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" href="./subscriptions"><strong>Pro Plan</strong><span>$5.00 / month</span></a>' +
                 '<a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span></a>' +
                 '<div class="rblx-shell-socials">' +
@@ -3528,12 +3528,12 @@
     status.setAttribute("data-plan", state.plan);
     statusText.textContent = state.message;
     applyPlanAtmosphere(state.plan);
-    shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : 0 };
+    shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : null };
     var tokenBanner = document.getElementById("rblxShellTokenBanner");
     var tokenBalance = document.getElementById("rblxShellTokenBalance");
     if (tokenBanner && tokenBalance) {
       tokenBanner.hidden = !state.loggedIn;
-      tokenBalance.textContent = String(shellState.currentUser.aiTokens);
+      tokenBalance.textContent = shellState.currentUser.aiTokens == null ? "..." : String(shellState.currentUser.aiTokens);
     }
     shellState.isAdmin = Boolean(state.isAdmin);
     shellState.authUiSignature = nextSignature;
@@ -3614,7 +3614,7 @@
       username: user && user.username ? String(user.username) : "",
       displayName: displayName,
       email: user && user.email ? String(user.email) : "",
-      aiTokens: user && user.aiTokens != null ? Number(user.aiTokens) : 0,
+      aiTokens: user && user.aiTokens != null ? Number(user.aiTokens) : null,
       isAdmin: Boolean(user && user.isAdmin),
       moderation: moderationOverride || (payload && payload.moderation ? payload.moderation : shellState.moderation)
     };
@@ -3713,7 +3713,7 @@
       username: cachedUser && cachedUser.username ? String(cachedUser.username) : "",
       displayName: displayName,
       email: cachedUser && cachedUser.email ? String(cachedUser.email) : "",
-      aiTokens: cachedUser && cachedUser.aiTokens != null ? Number(cachedUser.aiTokens) : 0,
+      aiTokens: cachedUser && cachedUser.aiTokens != null ? Number(cachedUser.aiTokens) : null,
       isAdmin: Boolean(cachedUser && cachedUser.isAdmin),
       moderation: shellState.moderation
     };
