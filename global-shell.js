@@ -4518,8 +4518,10 @@
     value.textContent = getRewardValueLabel(reward);
     note.textContent = reward.note || "Enjoy your reward from the RBLXTools team.";
     overlay.classList.add("is-open"); overlay.setAttribute("aria-hidden", "false"); modal.classList.add("is-open"); document.body.classList.add("rblx-shell-modal-open");
+    // The server sends the remaining delay so an inaccurate device clock cannot stretch five seconds into minutes.
+    var unlockAt = Date.now() + Math.max(0, Number(reward.claimDelayMs) || 0);
     function updateClaimState() {
-      var seconds = Math.max(0, Math.ceil((new Date(reward.availableAt || Date.now()).getTime() - Date.now()) / 1000));
+      var seconds = Math.max(0, Math.ceil((unlockAt - Date.now()) / 1000));
       claim.disabled = seconds > 0;
       claim.textContent = seconds > 0 ? "Please read the note (" + seconds + ")" : "Claim reward";
       wait.textContent = seconds > 0 ? "Your claim unlocks in " + seconds + " second" + (seconds === 1 ? "" : "s") + "." : "Everything is ready. Claim your reward when you are ready.";

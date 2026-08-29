@@ -1823,7 +1823,7 @@ function writeMemberRewards(state) {
   writeJsonFile(MEMBER_REWARDS_PATH, { rewards: (Array.isArray(state?.rewards) ? state.rewards : []).slice(-5000) });
 }
 
-function buildMemberReward(reward) {
+function buildMemberReward(reward, now = Date.now()) {
   return {
     id: String(reward.id || ""),
     title: String(reward.title || "A RBLXTools reward is waiting"),
@@ -1831,6 +1831,7 @@ function buildMemberReward(reward) {
     rewardType: String(reward.rewardType || "plus"),
     amount: Math.max(0, Number(reward.amount) || 0),
     availableAt: reward.availableAt || null,
+    claimDelayMs: Math.max(0, Date.parse(reward.availableAt || "") - now),
   };
 }
 
@@ -1852,8 +1853,9 @@ function getPendingMemberRewards(userId) {
   const state = readMemberRewards();
   const now = Date.now(); let changed = false;
   const rewards = state.rewards.filter((reward) => String(reward.userId || "") === String(userId || "") && !reward.claimedAt).map((reward) => {
-    if (!reward.availableAt) { reward.availableAt = new Date(now + 5000).toISOString(); changed = true; }
-    return buildMemberReward(reward);
+    // Correct rewards created by the earlier client-clock timer implementation.
+    if (!reward.availableAt || Date.parse(reward.availableAt) > now + 10000) { reward.availableAt = new Date(now + 5000).toISOString(); changed = true; }
+    return buildMemberReward(reward, now);
   });
   if (changed) writeMemberRewards(state);
   return rewards;
