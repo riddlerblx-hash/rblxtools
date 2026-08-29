@@ -63,7 +63,7 @@
     .chat-references { display:flex; gap:7px; flex-wrap:wrap; }
     .chat-references img { width:122px; aspect-ratio:16/9; object-fit:cover; border:1px solid var(--line); border-radius:10px; }
     .chat-output { overflow:hidden; border:1px solid var(--line); border-radius:15px; background:#050a11; box-shadow:0 18px 38px rgba(0,0,0,.3); }
-    .chat-output img { display:block; width:100%; height:auto; object-fit:contain; }
+    .chat-output img { display:block; width:100%; aspect-ratio:16/9; object-fit:cover; }
     .result-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 13px; background:rgba(13,21,36,.92); }
     .result-footer span { color:#aab5c9; font:700 12px/1 Arial,sans-serif; }
     .download { border-radius:9px; padding:9px 11px; color:#fff; background:var(--coral); text-decoration:none; font:800 12px/1 Arial,sans-serif; }
@@ -188,8 +188,8 @@
         conversation.appendChild(turn); conversation.classList.add('visible'); turn.scrollIntoView({ behavior:'smooth', block:'nearest' });
       }
       function buildGenerationPrompt(userPrompt) {
-        var safeFrame = 'MANDATORY FRAMING RULES: Compose a fully zoomed-out, finished thumbnail at the selected aspect ratio. Treat the outer 15% of every edge as an empty safety area: do not put any text, face, character, logo, arrow, number, or important object there. Keep every element entirely visible inside the central safe area with background space around it. Never crop, cut off, or let an element touch an edge of the canvas. If the design contains text, render every complete word and letter well inside the frame.';
-        return safeFrame + '\n\nCreator request:\n' + String(userPrompt || '').trim() + '\n\nRepeat before generating: use wide framing with generous empty margins; all elements must be fully visible and uncropped.';
+        var safeFrame = 'MANDATORY FRAMING RULES: Create a full-bleed 16:9 YouTube thumbnail that fills the entire 1280 x 720 canvas edge to edge. The background scene must extend all the way to every edge: no white border, blank frame, matte, letterboxing, or empty canvas around the artwork. Use wide framing and keep every important subject, face, logo, arrow, number, and line of text fully visible inside a roughly 10% safe area from each edge, with natural background behind it. Never crop, cut off, or let important elements touch an edge. If the design contains text, render every complete word and letter inside the frame.';
+        return safeFrame + '\n\nCreator request:\n' + String(userPrompt || '').trim() + '\n\nRepeat before generating: full-bleed background to all canvas edges, but all important content remains fully visible and uncropped inside the safe area.';
       }
       function requestTokenApproval() {
         if (getWarningHidden()) return Promise.resolve(true);
