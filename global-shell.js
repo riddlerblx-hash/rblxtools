@@ -4257,7 +4257,7 @@
       subtitle: "Monthly Stripe subscription",
       title: "Pro",
       action: actionLabel || "Try Now",
-      perks: ["20 AI Credits Every Month", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1440p - 4K AI Thumbnail Quality", "Premium Giveaways", "Custom Chat Tag", "Animation Tool Included", "Textured UGCs Included", "Premium Looking Website Included"]
+      perks: ["20 AI Credits Every Month", "All Plus Plan Benefits Included", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1440p - 4K AI Thumbnail Quality", "Premium Giveaways", "Custom Chat Tag", "Animation Tool Included", "Textured UGCs Included", "Premium Looking Website Included"]
     } : {
       price: "$1.00",
       subtitle: "Monthly membership",
