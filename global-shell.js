@@ -4066,6 +4066,10 @@
     document.body.classList.add("rblx-shell-ready");
     initMembershipTextTreatment();
     initMembershipPromoRotation();
+    // Tool pages load this shell before their promo markup, so bind again after parsing.
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initMembershipPromoRotation, { once: true });
+    }
     shellState.deviceId = getDeviceId();
     applyCollapsedState(document.body);
     initProfileOverlay();
