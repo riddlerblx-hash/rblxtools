@@ -63,7 +63,7 @@
     .chat-references { display:flex; gap:7px; flex-wrap:wrap; }
     .chat-references img { width:122px; aspect-ratio:16/9; object-fit:cover; border:1px solid var(--line); border-radius:10px; }
     .chat-output { overflow:hidden; border:1px solid var(--line); border-radius:15px; background:#050a11; box-shadow:0 18px 38px rgba(0,0,0,.3); }
-    .chat-output img { display:block; width:100%; aspect-ratio:16/9; object-fit:cover; }
+    .chat-output img { display:block; width:100%; height:auto; object-fit:contain; }
     .result-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 13px; background:rgba(13,21,36,.92); }
     .result-footer span { color:#aab5c9; font:700 12px/1 Arial,sans-serif; }
     .download { border-radius:9px; padding:9px 11px; color:#fff; background:var(--coral); text-decoration:none; font:800 12px/1 Arial,sans-serif; }
@@ -181,6 +181,9 @@
         turn.querySelector('.regenerate').addEventListener('click', function () { beginGeneration(sourcePrompt, sourceReferences, true); });
         conversation.appendChild(turn); conversation.classList.add('visible'); turn.scrollIntoView({ behavior:'smooth', block:'nearest' });
       }
+      function buildGenerationPrompt(userPrompt) {
+        return String(userPrompt || '').trim() + '\n\nComposition requirements (mandatory): create the complete thumbnail at the selected aspect ratio. Keep every important subject, face, logo, arrow, number, and line of text fully inside the canvas with a generous 8% safe margin on all four sides. Do not crop, cut off, or place important elements against any edge. Leave enough background around subjects and text so the entire composition remains visible.';
+      }
       function requestTokenApproval() {
         if (getWarningHidden()) return Promise.resolve(true);
         modalTokenBalance.textContent = String(tokenBalance); tokenModal.classList.add('visible');
@@ -251,7 +254,7 @@
           var submittedReferences = Array.isArray(requestReferences) ? requestReferences.slice() : [];
           appendUserTurn(submittedPrompt, submittedReferences);
           if (!isRegeneration) { prompt.value = ''; references = []; renderReferences(); }
-          var response = await fetch('/ai/generate-thumbnail', { method:'POST', credentials:'include', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + getToken() }, body:JSON.stringify({ prompt:submittedPrompt, references:submittedReferences, aspectRatio:aspectRatio.value, outputQuality:outputQuality.value }) });
+          var response = await fetch('/ai/generate-thumbnail', { method:'POST', credentials:'include', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + getToken() }, body:JSON.stringify({ prompt:buildGenerationPrompt(submittedPrompt), references:submittedReferences, aspectRatio:aspectRatio.value, outputQuality:outputQuality.value }) });
           var responseText = await response.text();
           var payload = null;
           try { payload = responseText ? JSON.parse(responseText) : null; } catch (_error) { payload = null; }
