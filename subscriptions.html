@@ -797,6 +797,35 @@
       margin-top: 12px;
     }
 
+    .robux-checkout-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #aebbd0;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-align: center;
+    }
+
+    .robux-checkout-divider::before,
+    .robux-checkout-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(123, 164, 255, 0.46));
+    }
+
+    .robux-checkout-divider::after {
+      transform: scaleX(-1);
+    }
+
+    .robux-checkout-link {
+      border-color: rgba(103, 188, 255, 0.46) !important;
+      background: linear-gradient(135deg, rgba(39, 120, 215, 0.46), rgba(34, 73, 135, 0.56)) !important;
+      box-shadow: 0 14px 26px rgba(33, 112, 215, 0.18) !important;
+    }
+
     @keyframes cardSweep {
       0% { transform: translateX(-160%) rotate(12deg); }
       100% { transform: translateX(340%) rotate(12deg); }
@@ -1471,7 +1500,8 @@
 
             <div class="plus-cta-group">
               <button id="plusCheckoutBtn" class="cta" type="button">Try Now</button>
-              <a class="cta secondary cta-link" href="https://discord.gg/TMmBQgYK32" target="_blank" rel="noopener noreferrer">Pay with Robux</a>
+              <div class="robux-checkout-divider" aria-hidden="true">OR</div>
+              <a class="cta secondary cta-link robux-checkout-link" href="https://discord.gg/SXKbEw4zwZ" target="_blank" rel="noopener noreferrer">Pay with Robux</a>
             </div>
             <div class="cta-subcopy">One clean upgrade. Premium tools, faster actions, and a way better overall workflow.</div>
             <div id="plusStatus" class="status"></div>
@@ -1553,7 +1583,11 @@
             </div>
 
             <div class="note-box">Best for power users who want the widest thumbnail controls and heavier creator workflows.</div>
-            <div class="plus-cta-group"><button id="proCheckoutBtn" class="cta" type="button">Try Now</button></div>
+            <div class="plus-cta-group">
+              <button id="proCheckoutBtn" class="cta" type="button">Try Now</button>
+              <div class="robux-checkout-divider" aria-hidden="true">OR</div>
+              <a class="cta secondary cta-link robux-checkout-link" href="https://discord.gg/SXKbEw4zwZ" target="_blank" rel="noopener noreferrer">Pay with Robux</a>
+            </div>
             <div id="proStatus" class="status pro"></div>
           </div>
         </article>

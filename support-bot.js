@@ -254,6 +254,22 @@ function buildDisabledClosedRow() {
   );
 }
 
+function buildRobuxMembershipPricing() {
+  return [
+    "🩶 **Plus Membership**",
+    "• Monthly — Game Pass: **378 Robux / month**",
+    "• Monthly — Roblox Plus: **264 Robux / month**",
+    "• Annual — Game Pass: **3,759 Robux / year**",
+    "• Annual — Roblox Plus: **2,631 Robux / year**",
+    "",
+    "👑 **Pro Membership**",
+    "• Monthly — Game Pass: **1,882 Robux / month**",
+    "• Monthly — Roblox Plus: **1,317 Robux / month**",
+    "• Annual — Game Pass: **31,572 Robux / year**",
+    "• Annual — Roblox Plus: **15,804 Robux / year**",
+  ];
+}
+
 function buildPaymentsPanelEmbed() {
   return new EmbedBuilder()
     .setTitle("💸 Robux Payments")
@@ -262,8 +278,8 @@ function buildPaymentsPanelEmbed() {
       [
         "✨ Make payments with **Robux** for website subscriptions and future purchases.",
         "",
-        "📦 **Current subscription**",
-        "Plus Membership: **378 Robux / month**",
+        "📦 **Membership prices**",
+        ...buildRobuxMembershipPricing(),
         "",
         "📌 **Why Robux prices can be higher**",
         "DevEx rates, Roblox taxes, and payout loss mean Robux pricing may cost more than normal cash pricing.",
@@ -274,7 +290,7 @@ function buildPaymentsPanelEmbed() {
     )
     .addFields({
       name: "🧾 What this is for",
-      value: "Use the button below if you want to buy a subscription with Robux or ask about a Robux payment before purchasing.",
+      value: "Use the button below, then tell us the membership, billing period (monthly or annual), and whether you are paying through a Game Pass or Roblox Plus.",
       inline: false,
     })
     .setFooter({ text: PAYMENT_PANEL_SIGNATURE });
@@ -339,9 +355,9 @@ function buildPaymentTicketEmbed(interaction) {
         "Thanks for opening a payment ticket.",
         "",
         "🛍️ **Available right now**",
-        "Plus Membership: **378 Robux / month**",
+        ...buildRobuxMembershipPricing(),
         "",
-        "📨 Tell us what you want to buy and confirm that you are paying with Robux.",
+        "📨 Tell us the membership, monthly or annual billing, and whether you are using a Game Pass or Roblox Plus.",
         "⚠️ Support reports are not handled here. If you need support, submit it on the website instead.",
       ].join("\n")
     )
