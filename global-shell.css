@@ -30,6 +30,7 @@ body.rblx-shell-ready {
 .rblx-shell {
   position: relative;
   z-index: 8;
+  isolation: isolate;
   min-height: 100vh;
   display: grid;
   grid-template-rows: var(--shell-header-height) minmax(0, 1fr);
@@ -237,6 +238,10 @@ body.rblx-shell-ready {
 
 .rblx-shell-profile-card.is-plus {
   border-color: rgba(224, 230, 240, 0.68);
+  background:
+    radial-gradient(circle at top left, rgba(255,255,255,0.3), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(124,151,178,0.22), transparent 32%),
+    linear-gradient(180deg, rgba(91,111,132,0.82), rgba(27,39,53,0.92));
   box-shadow: 0 14px 30px rgba(13, 18, 28, 0.34), 0 0 20px rgba(222, 229, 241, 0.12);
 }
 
@@ -374,6 +379,17 @@ body.rblx-shell-ready {
   animation: supportPulseGreen 1.8s ease-in-out infinite;
 }
 
+/* Header actions share one deliberate control height in every account state. */
+.rblx-shell-support-link,
+.rblx-shell-profile-card,
+.rblx-shell-auth > a:not(.rblx-shell-profile-card-link) {
+  min-height: 50px;
+}
+
+.rblx-shell-auth > a:not(.rblx-shell-profile-card-link) {
+  min-width: 146px;
+}
+
 .rblx-shell-contact-support {
   min-height: 54px;
   min-width: 146px;
@@ -471,7 +487,7 @@ body.rblx-shell-ready {
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
   opacity: 0;
   transition: opacity 0.28s ease;
 }
@@ -504,6 +520,12 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   padding: 0;
   min-height: calc(100vh - var(--shell-header-height));
   transition: grid-template-columns .32s cubic-bezier(.22,.8,.28,1);
+}
+
+.rblx-shell-page {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
 }
 
 .rblx-shell-left,
@@ -3571,6 +3593,13 @@ body.rblx-home-page .home-grid-top > .plus-card:not(.rblx-pro-promo) {
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::before,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::after {
   background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
+}
+
+/* Keep header account actions visually aligned after all legacy button rules load. */
+.rblx-shell-header .rblx-shell-support-link,
+.rblx-shell-header .rblx-shell-profile-card,
+.rblx-shell-header .rblx-shell-auth > a:not(.rblx-shell-profile-card-link) {
+  min-height: 50px;
 }
 
 /* Tool-page offer rotation: paid members see AI token packs instead of plans they already own. */
