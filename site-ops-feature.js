@@ -104,7 +104,10 @@ function writeCommunityNotificationState(baseDir, state) {
 function getOfficialNotificationPosts(baseDir) {
   return sortCommunityPosts(readCommunityPosts(baseDir))
     .map(normalizePostForStorage)
-    .filter((post) => post.authorIsAdmin && (["announcement", "changelog", "known-issue"].includes(post.category) || (post.category === "bug-report" && post.knownIssue)));
+    // These categories are server-reserved for admins; use the category as the
+    // source of truth so older official posts without authorIsAdmin metadata
+    // still reach every member's inbox.
+    .filter((post) => ["announcement", "changelog", "known-issue"].includes(post.category) || (post.category === "bug-report" && post.knownIssue));
 }
 
 function readSiteSettings(baseDir) {
