@@ -1249,6 +1249,41 @@
         text-align: center;
       }
 
+      .ai-token-promo-card {
+        min-height: 0;
+        overflow: hidden;
+        border-color: rgba(56, 230, 224, 0.42);
+        background:
+          radial-gradient(circle at 84% 12%, rgba(56, 230, 224, 0.24), transparent 28%),
+          radial-gradient(circle at 12% 92%, rgba(91, 144, 255, 0.18), transparent 30%),
+          linear-gradient(155deg, rgba(17, 57, 75, 0.98), rgba(8, 16, 34, 0.99));
+        box-shadow: inset 0 1px 0 rgba(180, 255, 250, 0.22), 0 20px 42px rgba(24, 180, 198, 0.16);
+      }
+
+      .ai-token-promo { display: flex; flex-direction: column; height: 100%; text-align: center; }
+      .ai-token-kicker { color: #7df8ef; font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+      .ai-token-promo h3 { margin: 8px 0 0; color: #f6fffe; font-size: clamp(28px, 3vw, 38px); line-height: .95; letter-spacing: -1.2px; }
+      .ai-token-promo h3 span { color: #63b9ff; }
+      .ai-token-promo > p { margin: 10px auto 15px; max-width: 34ch; color: #c7e4ed; font-size: 11px; font-weight: 700; line-height: 1.45; }
+      .ai-token-slide { position: relative; display: grid; place-items: center; min-height: 184px; padding: 16px; border: 1px solid rgba(113, 220, 255, 0.3); border-radius: 16px; background: rgba(3, 15, 29, 0.38); overflow: hidden; }
+      .ai-token-slide::before { content: ""; position: absolute; inset: -40%; background: radial-gradient(circle, rgba(56, 230, 224, 0.16), transparent 48%); animation: aiTokenPulse 4.8s ease-in-out infinite; }
+      .ai-token-slide-content { position: relative; z-index: 1; display: grid; justify-items: center; animation: aiTokenSlideIn .38s ease both; }
+      .ai-token-coin { display: grid; width: 58px; height: 58px; place-items: center; border: 1px solid rgba(255, 224, 117, 0.68); border-radius: 50%; color: #ffe375; background: radial-gradient(circle at 32% 27%, #fff4ad, #d38d1a 55%, #694206); box-shadow: inset 0 0 0 5px rgba(79,45,0,.32), 0 10px 22px rgba(0,0,0,.24); font-size: 16px; font-weight: 950; }
+      .ai-token-amount { margin-top: 11px; color: #f7fbff; font-size: 27px; font-weight: 950; letter-spacing: -1px; }
+      .ai-token-label { margin-top: 2px; color: #a9c5d7; font-size: 10px; font-weight: 800; }
+      .ai-token-price { margin-top: 9px; color: #7df8ef; font-size: 20px; font-weight: 950; }
+      .ai-token-value { min-height: 14px; margin-top: 4px; color: #9bf3c8; font-size: 9px; font-weight: 900; letter-spacing: .03em; }
+      .ai-token-controls { display: flex; align-items: center; justify-content: center; gap: 11px; margin-top: 14px; }
+      .ai-token-arrow { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid rgba(125, 248, 239, 0.38); border-radius: 50%; color: #d8fffc; background: rgba(56, 230, 224, 0.1); cursor: pointer; font-size: 19px; line-height: 1; }
+      .ai-token-arrow:hover { background: rgba(56, 230, 224, 0.2); }
+      .ai-token-dots { display: flex; gap: 6px; }
+      .ai-token-dot { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%; background: rgba(203, 236, 255, 0.32); cursor: pointer; }
+      .ai-token-dot.is-active { width: 20px; border-radius: 999px; background: #72fff5; box-shadow: 0 0 12px rgba(114, 255, 245, 0.58); }
+      .ai-token-buy { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 42px; margin-top: 15px; border-radius: 11px; color: #06101a; background: linear-gradient(135deg, #40f0dc, #6fa4ff); box-shadow: 0 12px 25px rgba(34, 206, 220, 0.22); font-size: 12px; font-weight: 950; text-decoration: none; }
+      .ai-token-buy:hover { filter: brightness(1.06); transform: translateY(-1px); }
+      @keyframes aiTokenPulse { 0%, 100% { transform: scale(.88); opacity: .42; } 50% { transform: scale(1.1); opacity: .82; } }
+      @keyframes aiTokenSlideIn { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
       @media (max-width: 480px) {
         .stack-card {
           padding: 22px 16px 18px;
@@ -1415,35 +1450,18 @@
           </div>
         </article>
 
-        <section class="card plus-card">
-          <div class="plus-promo">
-            <div class="plus-floaters">
-              <span class="plus-floater plus-word one">+</span>
-              <span class="plus-floater plus-word two">+</span>
-              <span class="plus-floater plus-word three">+</span>
-              <span class="plus-floater plus-word four">+</span>
-              <span class="plus-floater plus-word five">+</span>
-              <span class="plus-floater plus-word six">+</span>
-              <span class="plus-floater plus-word seven">+</span>
+        <section class="card ai-token-promo-card" aria-label="AI token packages">
+          <div class="ai-token-promo">
+            <div class="ai-token-kicker">AI Generation Tokens</div>
+            <h3>Keep creating<br><span>without waiting</span></h3>
+            <p>Use token packs for RBLXTools AI features whenever you need more generations.</p>
+            <div class="ai-token-slide" aria-live="polite"><div class="ai-token-slide-content" id="aiTokenSlideContent"></div></div>
+            <div class="ai-token-controls">
+              <button class="ai-token-arrow" id="aiTokenPrev" type="button" aria-label="Show previous token package">&#8249;</button>
+              <div class="ai-token-dots" id="aiTokenDots" aria-label="Token package slides"></div>
+              <button class="ai-token-arrow" id="aiTokenNext" type="button" aria-label="Show next token package">&#8250;</button>
             </div>
-            <div class="plus-topline">
-              <span class="plus-kicker">RBLXTools Sponsor</span>
-              <span class="plus-price">More power. Less waiting.</span>
-            </div>
-            <h3><span>RBLXTools</span><span><span class="plus-word">Plus</span> Plan</span></h3>
-            <p>RBTools <span class="plus-word">Plus</span> unlocks the premium side of the website with bulk usage upgrades, premium creator tools, cleaner visuals, and extra account cosmetics built for heavy Roblox workflows.</p>
-            <div class="perk-list">
-              <div class="perk"><strong>Animation Tools</strong><span>Open Animation Tools access as part of your premium tool set.</span></div>
-              <div class="perk"><strong>UGC Texture Baking</strong><span>Unlock texture baking tools for cleaner UGC creator workflows.</span></div>
-              <div class="perk"><strong>Bulk actions and faster tool usage</strong><span>Use supported tools faster with 2-5 at a time workflows where available.</span></div>
-              <div class="perk"><strong>Cool chat tag cosmetic</strong><span>Show off a premium member cosmetic inside the live site chat experience.</span></div>
-              <div class="perk"><strong>More premium website feel</strong><span>Get a more polished account-side experience across premium parts of the site.</span></div>
-              <div class="perk"><strong>No site advertisements</strong><span>Use the website with a cleaner premium experience and no site ads.</span></div>
-            </div>
-            <div class="plus-actions">
-              <p><span class="price-green">$1.00</span> a month for premium tools, creator perks, no site advertisements, and a more premium RBLX Tools experience.</p>
-              <a class="plus-link" href="./subscriptions">View Plans</a>
-            </div>
+            <a class="ai-token-buy" href="./ai-tokens">Buy AI tokens</a>
           </div>
         </section>
       </div>
@@ -2356,6 +2374,46 @@
       window.addEventListener("resize", scheduleEmbedHeightReport);
       setInterval(renderCouponStatus, 1000);
       setInterval(pollCouponStatus, 30000);
+
+      (function initAiTokenPromo() {
+        const slideContent = document.getElementById("aiTokenSlideContent");
+        const dots = document.getElementById("aiTokenDots");
+        const previous = document.getElementById("aiTokenPrev");
+        const next = document.getElementById("aiTokenNext");
+        if (!slideContent || !dots || !previous || !next) return;
+
+        const packages = [
+          { tokens: 20, price: "$3.79", note: "Great for a quick project" },
+          { tokens: 45, price: "$5.99", note: "More room to experiment" },
+          { tokens: 130, price: "$14.49", note: "Built for active creators" },
+          { tokens: 245, price: "$24.99", note: "Stock up for bigger ideas" },
+          { tokens: 500, price: "$47.99", note: "Best value · Save 49%" }
+        ];
+        let index = 0;
+        let timer = 0;
+
+        function renderTokenPackage(nextIndex) {
+          index = (nextIndex + packages.length) % packages.length;
+          const item = packages[index];
+          slideContent.innerHTML = '<div class="ai-token-coin">AI</div><div class="ai-token-amount">' + item.tokens + ' Tokens</div><div class="ai-token-label">AI generation credits</div><div class="ai-token-price">' + item.price + '</div><div class="ai-token-value">' + item.note + '</div>';
+          dots.innerHTML = packages.map(function (_item, itemIndex) {
+            return '<button class="ai-token-dot' + (itemIndex === index ? ' is-active' : '') + '" type="button" aria-label="Show ' + packages[itemIndex].tokens + ' token package"></button>';
+          }).join("");
+          Array.prototype.forEach.call(dots.children, function (dot, itemIndex) {
+            dot.addEventListener("click", function () { renderTokenPackage(itemIndex); restartTimer(); });
+          });
+        }
+
+        function restartTimer() {
+          if (timer) window.clearInterval(timer);
+          timer = window.setInterval(function () { renderTokenPackage(index + 1); }, 4800);
+        }
+
+        previous.addEventListener("click", function () { renderTokenPackage(index - 1); restartTimer(); });
+        next.addEventListener("click", function () { renderTokenPackage(index + 1); restartTimer(); });
+        renderTokenPackage(0);
+        restartTimer();
+      }());
 
       initializeAnimationPage();
       window.addEventListener("rblxtools-membership-updated", function (event) {
