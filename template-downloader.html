@@ -1388,8 +1388,8 @@
       viewer.insertBefore(renderer.domElement, fallbackImage);
 
       const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(27, width / height, 0.1, 100);
-      camera.position.set(0, 3.5, 24);
+      const camera = new THREE.PerspectiveCamera(24, width / height, 0.1, 100);
+      camera.position.set(0, 7.4, 33.5);
       scene.add(new THREE.HemisphereLight(0xe8f3ff, 0x172238, 1.6));
       const key = new THREE.DirectionalLight(0xffffff, 1.45);
       key.position.set(5, 8, 8);
@@ -1405,23 +1405,45 @@
 
       new THREE.OBJLoader().load(TEMPLATE_RIG_URL, function (rig) {
         if (templateRigRenderer !== renderer) return;
-        const texture = new THREE.TextureLoader().load(templateUrl, function () { render(); });
-        texture.encoding = THREE.sRGBEncoding;
-        texture.anisotropy = 4;
+        const parts = {};
         rig.traverse(function (child) {
           if (!child.isMesh) return;
-          child.material = new THREE.MeshStandardMaterial({ map: texture, color: 0xffffff, roughness: 0.86, metalness: 0.02 });
+          const name = String(child.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+          const part = name.includes("head") ? "head" : name.includes("torso") ? "torso" : name.includes("leftarm") ? "leftArm" : name.includes("rightarm") ? "rightArm" : name.includes("leftleg") ? "leftLeg" : name.includes("rightleg") ? "rightLeg" : "";
+          if (part) parts[part] = child;
         });
+        const templateImage = new Image();
+        templateImage.onload = function () {
+          if (templateRigRenderer !== renderer) return;
+          const texture = new THREE.CanvasTexture(templateImage);
+          texture.flipY = true;
+          texture.encoding = THREE.sRGBEncoding;
+          texture.minFilter = THREE.LinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+          texture.generateMipmaps = false;
+          texture.anisotropy = 4;
+          const clothingMaterial = function () { return new THREE.MeshStandardMaterial({ color: 0xffffff, map: texture, alphaTest: 0.02, roughness: 0.96, metalness: 0 }); };
+          const baseMaterial = function (color) { return new THREE.MeshStandardMaterial({ color: color, roughness: 0.88, metalness: 0.01 }); };
+          if (parts.head) parts.head.material = baseMaterial(0xdedee2);
+          [parts.torso, parts.leftArm, parts.rightArm, parts.leftLeg, parts.rightLeg].forEach(function (part) {
+            if (part) part.material = clothingMaterial();
+          });
+          fallbackImage.style.display = "none";
+          render();
+        };
+        templateImage.src = templateUrl;
         const box = new THREE.Box3().setFromObject(rig);
         const size = new THREE.Vector3();
         const center = new THREE.Vector3();
         box.getSize(size);
         box.getCenter(center);
-        const scale = 11 / Math.max(size.x || 1, size.y || 1, size.z || 1);
+        const scale = 6.25 / Math.max(size.y || 1, 1);
         rig.scale.setScalar(scale);
-        rig.position.set(-center.x * scale, -center.y * scale - 4.8, 0);
+        box.setFromObject(rig);
+        box.getCenter(center);
+        rig.position.set(-center.x, -box.min.y + 4.78, -center.z);
+        rig.rotation.y = 0.06;
         scene.add(rig);
-        fallbackImage.style.display = "none";
         render();
       }, undefined, function () {
         // The original template image remains visible as the safe fallback.
