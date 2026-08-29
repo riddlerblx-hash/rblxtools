@@ -3978,8 +3978,8 @@ async function grantComplimentaryPlusToUser(userId, days) {
 
   const updatedUser = await updateAuthUserFields(targetUser.id, {
     premium_active: true,
-    plan: "plus",
-    membership_source: hasStripeAccess ? "stripe + complimentary" : "complimentary",
+    plan: isProMember(targetUser) ? "pro" : "plus",
+    membership_source: isProMember(targetUser) ? "complimentary pro" : (hasStripeAccess ? "stripe + complimentary" : "complimentary"),
     plus_days_total: totalDays,
     plus_expires_at: expiresAt,
     plus_current_period_start_at: currentPeriodStartAt,

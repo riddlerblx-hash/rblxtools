@@ -604,7 +604,7 @@
       username: currentProfile.displayName || (shellState.currentUser && shellState.currentUser.username) || fallbackName,
       avatarUrl: currentProfile.avatarUrl || "",
       bio: currentProfile.bio || "",
-      isPlus: shellState.currentUser && shellState.currentUser.plan === "plus",
+      isPlus: shellState.currentUser && ["plus", "pro"].includes(String(shellState.currentUser.plan || "").toLowerCase()),
       isGuest: !isLoggedIn,
       plan: shellState.currentUser && shellState.currentUser.plan ? shellState.currentUser.plan : "guest",
       favoriteTools: []
@@ -1216,7 +1216,7 @@
     var subtitle = displayName ? (maskedEmail || "Personal profile") : "Personal profile";
     var avatarUrl = String(currentProfile && currentProfile.avatarUrl || "").trim();
     var avatarFallback = getInitials(displayName || getEmailNamePart(currentUser.email) || currentUser.username || "R");
-    var isPlus = currentUser.plan === "plus";
+    var isPlus = ["plus", "pro"].includes(String(currentUser.plan || "").toLowerCase());
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
@@ -1636,7 +1636,7 @@
     target.innerHTML = shellState.chatMessages.map(function (message, index) {
       var profile = getMessageProfile(message);
       shellState.profileCache[index] = profile;
-      var isPlus = profile.plan === "plus" || String(profile.badge || "").toLowerCase() === "plus";
+      var isPlus = ["plus", "pro"].includes(String(profile.plan || "").toLowerCase()) || String(profile.badge || "").toLowerCase() === "plus";
       var isSystem = Boolean(profile.system);
       var isTimedOut = Boolean(profile.moderationTimeoutUntil && new Date(profile.moderationTimeoutUntil).getTime() > Date.now());
       var avatarMarkup = profile.avatarUrl
@@ -1692,7 +1692,7 @@
     target.innerHTML = safeMessages.map(function (message) {
       var name = escapeHtml(String((message && (message.displayName || message.username || message.name)) || 'Guest'));
       var textValue = escapeHtml(String((message && message.text) || ''));
-      var isPlus = String((message && message.plan) || '').toLowerCase() === 'plus' || Boolean(message && message.isPlus);
+      var isPlus = ["plus", "pro"].includes(String((message && message.plan) || '').toLowerCase()) || Boolean(message && message.isPlus);
       var badgeMarkup = isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "";
       return '<article class="rblx-shell-chat-message">' +
         '<div class="rblx-shell-chat-avatar-button"><span class="rblx-shell-chat-avatar"><span class="rblx-shell-chat-avatar-fallback">' + name.charAt(0).toUpperCase() + '</span></span></div>' +
@@ -1753,7 +1753,7 @@
       refreshCurrentProfile();
     }
     var profile = index >= 0 && shellState.profileCache[index] ? shellState.profileCache[index] : getMessageProfile(message);
-    var isPlus = profile.plan === "plus" || String(profile.badge || "").toLowerCase() === "plus";
+    var isPlus = ["plus", "pro"].includes(String(profile.plan || "").toLowerCase()) || String(profile.badge || "").toLowerCase() === "plus";
     shellState.lastViewedProfileUserId = profile.userId || "";
 
     shellState.profileAvatar.classList.toggle("has-image", Boolean(profile.avatarUrl));
