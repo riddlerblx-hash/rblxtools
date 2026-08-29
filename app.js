@@ -85,11 +85,11 @@ const AI_THUMBNAIL_FREE_REFERENCES = 3;
 const AI_THUMBNAIL_PRO_REFERENCES = 6;
 const PRO_MONTHLY_AI_TOKEN_CREDITS = 20;
 const AI_TOKEN_PACKAGES = [
-  { key: "20", tokens: 20, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9Y1oleZ7XCqM9").trim() },
+  { key: "20", tokens: 20, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9siwVVdZ6u716").trim() },
   { key: "45", tokens: 45, priceCents: 599, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
   { key: "130", tokens: 130, priceCents: 1449, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_130 || "prod_V9YGsNXs9IXcrX").trim() },
   { key: "245", tokens: 245, priceCents: 2499, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_245 || "prod_V9YK5x1FI50wj2").trim() },
-  { key: "500", tokens: 500, priceCents: 4799, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_500 || "prod_V9YLT7NritZtsJ").trim() },
+  { key: "500", tokens: 500, priceCents: 4799, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_500 || "prod_V9shFwrlWrEAqI").trim() },
 ];
 const AI_CLOTHING_SKIN_TONES = {
   white: { hex: "#EFD2BF", r: 239, g: 210, b: 191, a: 255 },
