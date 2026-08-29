@@ -3537,55 +3537,29 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
 
 body.rblx-shell-ready .rblx-shell { position: relative; z-index: 8; }
 
-html:has(body.rblx-shell-pro-user),
-body.rblx-shell-pro-user,
-body.rblx-shell-pro-user.rblx-tool-atmosphere {
-  background-color: #0e0d08 !important;
-  background-image:
-    radial-gradient(900px 680px at -8% -12%, rgba(240, 186, 60, .28), transparent 67%),
-    radial-gradient(880px 680px at 108% 88%, rgba(186, 123, 21, .24), transparent 67%),
-    linear-gradient(145deg, #1b150a 0%, #0e0d08 54%, #171006 100%) !important;
-  background-attachment: fixed !important;
-}
-
-html:has(body.rblx-shell-plus-user),
-body.rblx-shell-plus-user,
-body.rblx-shell-plus-user.rblx-tool-atmosphere {
-  background-color: #0d1117 !important;
-  background-image:
-    radial-gradient(900px 680px at -8% -12%, rgba(238, 244, 255, .22), transparent 67%),
-    radial-gradient(880px 680px at 108% 88%, rgba(157, 174, 194, .20), transparent 67%),
-    linear-gradient(145deg, #1a222d 0%, #0d1117 54%, #151b23 100%) !important;
-  background-attachment: fixed !important;
-}
-
-html:has(body.rblx-shell-free-user),
-body.rblx-shell-free-user,
-body.rblx-shell-free-user.rblx-tool-atmosphere {
-  background-color: #0a1019 !important;
-  background-image:
-    radial-gradient(880px 660px at -8% -12%, rgba(70, 133, 230, .19), transparent 67%),
-    radial-gradient(840px 660px at 108% 88%, rgba(45, 92, 172, .16), transparent 67%),
-    linear-gradient(145deg, #111d30 0%, #0a1019 55%, #0e1724 100%) !important;
-  background-attachment: fixed !important;
-}
-
 .rblx-plan-atmosphere::before {
   content: "";
   position: absolute;
-  inset: -25%;
-  opacity: .55;
-  transform: rotate(-10deg);
-  animation: rblx-plan-sheen 24s ease-in-out infinite alternate;
+  inset: 0;
+  opacity: .7;
+  animation: rblx-plan-orb-drift 22s ease-in-out infinite alternate;
 }
 .rblx-plan-atmosphere.is-pro::before {
-  background: linear-gradient(105deg, transparent 32%, rgba(255, 215, 116, .09) 47%, transparent 61%);
+  background:
+    radial-gradient(circle at 13% 22%, rgba(255, 213, 104, .20) 0 3px, rgba(255, 213, 104, .05) 7px, transparent 23px),
+    radial-gradient(circle at 78% 16%, rgba(247, 192, 56, .16) 0 2px, rgba(247, 192, 56, .04) 7px, transparent 20px),
+    radial-gradient(circle at 88% 73%, rgba(255, 222, 133, .17) 0 3px, rgba(255, 222, 133, .04) 8px, transparent 25px),
+    radial-gradient(circle at 34% 86%, rgba(235, 174, 43, .13) 0 2px, rgba(235, 174, 43, .03) 7px, transparent 21px);
 }
 .rblx-plan-atmosphere.is-plus::before {
-  background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, .08) 47%, transparent 61%);
+  background:
+    radial-gradient(circle at 13% 22%, rgba(245, 249, 255, .19) 0 3px, rgba(245, 249, 255, .05) 7px, transparent 23px),
+    radial-gradient(circle at 78% 16%, rgba(204, 218, 236, .16) 0 2px, rgba(204, 218, 236, .04) 7px, transparent 20px),
+    radial-gradient(circle at 88% 73%, rgba(241, 246, 255, .16) 0 3px, rgba(241, 246, 255, .04) 8px, transparent 25px),
+    radial-gradient(circle at 34% 86%, rgba(181, 198, 219, .13) 0 2px, rgba(181, 198, 219, .03) 7px, transparent 21px);
 }
 .rblx-plan-atmosphere.is-free::before {
-  background: linear-gradient(105deg, transparent 32%, rgba(110, 170, 255, .06) 47%, transparent 61%);
+  display: none;
 }
 
 .rblx-plan-atmosphere span {
@@ -3619,9 +3593,9 @@ body.rblx-shell-free-user.rblx-tool-atmosphere {
   0%, 100% { transform: translate3d(0, 0, 0) rotate(-8deg); }
   50% { transform: translate3d(14px, -28px, 0) rotate(9deg); }
 }
-@keyframes rblx-plan-sheen {
-  from { transform: translate3d(-4%, -2%, 0) rotate(-10deg); }
-  to { transform: translate3d(5%, 3%, 0) rotate(-10deg); }
+@keyframes rblx-plan-orb-drift {
+  from { transform: translate3d(-1.5%, -1%, 0); }
+  to { transform: translate3d(1.5%, 1%, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
