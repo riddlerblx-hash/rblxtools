@@ -287,6 +287,30 @@
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
     }
 
+    #templateRigViewer {
+      width: 100%;
+      min-height: 420px;
+      position: relative;
+      background: radial-gradient(circle at 50% 18%, rgba(93, 162, 255, 0.20), transparent 38%), linear-gradient(180deg, #192638, #0e151f);
+    }
+
+    #templateRigViewer canvas {
+      display: block;
+      width: 100%;
+      height: 420px;
+    }
+
+    #templateRigViewer .template-rig-source {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      object-fit: contain;
+      padding: 14px;
+      background: #151515;
+    }
+
     .previewArrow {
       position: absolute;
       top: 50%;
@@ -1163,12 +1187,12 @@
         <p class="subtitle">Pull clean shirt and pants templates instantly.</p>
 
         <div class="notice">
-          <strong>TIP:</strong> <a class="plus-word" href="./subscriptions">Plus</a> users can download 2-5 at a time with comma-separated IDs.
+          <strong>TIP:</strong> Free users download 1 at a time. <a class="plus-word" href="./subscriptions">Plus</a> users can download 2-5, while <a class="plus-word" href="./subscriptions">Pro</a> users can download 5-10 at a time with comma-separated IDs.
           <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
         </div>
 
         <label class="field-label" for="robloxId">Roblox Clothing Asset ID</label>
-        <textarea id="robloxId" placeholder="Enter one Roblox clothing asset ID, or comma-separated IDs for Plus"></textarea>
+        <textarea id="robloxId" placeholder="Enter one Roblox clothing asset ID, or comma-separated IDs for Plus / Pro"></textarea>
         <button id="templateButton" class="btn" onclick="generate()">Download Template</button>
         <div id="status"></div>
         <div id="result"></div>
@@ -1207,7 +1231,7 @@
             <div class="perk-list">
               <div class="perk"><strong>Animation Tools</strong><span>Open Animation Tools access as part of your premium tool set.</span></div>
               <div class="perk"><strong>UGC Texture Baking</strong><span>Unlock texture baking tools for cleaner UGC creator workflows.</span></div>
-              <div class="perk"><strong>Bulk actions and faster tool usage</strong><span>Use supported tools faster with 2-5 at a time workflows where available.</span></div>
+              <div class="perk"><strong>Bulk actions and faster tool usage</strong><span>Plus supports 2-5 at a time; Pro supports heavier 5-10 item workflows where available.</span></div>
               <div class="perk"><strong>Cool chat tag cosmetic</strong><span>Show off a premium member cosmetic inside the live site chat experience.</span></div>
               <div class="perk"><strong>More premium website feel</strong><span>Get a more polished account-side experience across premium parts of the site.</span></div>
               <div class="perk"><strong>No site advertisements</strong><span>Use the website with a cleaner premium experience and no site ads.</span></div>
@@ -1276,7 +1300,7 @@
       </div>
       <div class="faq-item">
         <button class="faq-q" type="button">Does this support multi-download?</button>
-        <div class="faq-a">Yes, but only for <span class="plus-word">Plus</span> accounts, up to 5 IDs at once.</div>
+        <div class="faq-a">Yes. <span class="plus-word">Plus</span> accounts can use 2-5 IDs at once, while <span class="plus-word">Pro</span> accounts can use up to 10.</div>
       </div>
     </section>
   </main>
@@ -1292,6 +1316,8 @@
     </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
   <script>
     const API_BASE = window.location.origin;
     const TOKEN_KEY = "rblxtools_auth_token";
@@ -1308,6 +1334,9 @@
     let knownPlus = null;
     let showcaseTimer = null;
     let showcaseProgressTimer = null;
+    let templateRigRenderer = null;
+    let templateRigAnimationFrame = 0;
+    const TEMPLATE_RIG_URL = "/assets/ai-rig/MappedRig.obj";
 
     const toolsData = [
       { name: "Template Background Changer", desc: "Remove marks and restore a clean classic template background.", href: "./template-background-changer", plus: false, icon: "spark", tag: "Cleanup Tool", tone: "linear-gradient(180deg,#31506a,#1f2f42)" },
@@ -1329,6 +1358,76 @@
   const userPremium = user && (user.premiumActive === true || user.plusActive === true || user.plus === true || user.isPlus === true || user.hasPlus === true);
   return Boolean(directPremium || userPremium);
 }
+
+    function disposeMappedRigPreview() {
+      if (templateRigAnimationFrame) {
+        cancelAnimationFrame(templateRigAnimationFrame);
+        templateRigAnimationFrame = 0;
+      }
+      if (templateRigRenderer) {
+        templateRigRenderer.dispose();
+        templateRigRenderer = null;
+      }
+    }
+
+    function showMappedRigPreview(templateUrl) {
+      const viewer = document.getElementById("templateRigViewer");
+      const fallbackImage = document.getElementById("activeTemplateImage");
+      if (!viewer || !fallbackImage || !window.THREE || !window.THREE.OBJLoader) return;
+
+      disposeMappedRigPreview();
+      fallbackImage.style.display = "block";
+      const THREE = window.THREE;
+      const width = Math.max(1, viewer.clientWidth || 560);
+      const height = Math.max(320, viewer.clientHeight || 420);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      templateRigRenderer = renderer;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(width, height, false);
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      viewer.insertBefore(renderer.domElement, fallbackImage);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(27, width / height, 0.1, 100);
+      camera.position.set(0, 3.5, 24);
+      scene.add(new THREE.HemisphereLight(0xe8f3ff, 0x172238, 1.6));
+      const key = new THREE.DirectionalLight(0xffffff, 1.45);
+      key.position.set(5, 8, 8);
+      scene.add(key);
+      const rim = new THREE.DirectionalLight(0x77b7ff, 0.65);
+      rim.position.set(-6, 4, -7);
+      scene.add(rim);
+
+      const render = function () {
+        if (templateRigRenderer !== renderer) return;
+        renderer.render(scene, camera);
+      };
+
+      new THREE.OBJLoader().load(TEMPLATE_RIG_URL, function (rig) {
+        if (templateRigRenderer !== renderer) return;
+        const texture = new THREE.TextureLoader().load(templateUrl, function () { render(); });
+        texture.encoding = THREE.sRGBEncoding;
+        texture.anisotropy = 4;
+        rig.traverse(function (child) {
+          if (!child.isMesh) return;
+          child.material = new THREE.MeshStandardMaterial({ map: texture, color: 0xffffff, roughness: 0.86, metalness: 0.02 });
+        });
+        const box = new THREE.Box3().setFromObject(rig);
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        box.getSize(size);
+        box.getCenter(center);
+        const scale = 11 / Math.max(size.x || 1, size.y || 1, size.z || 1);
+        rig.scale.setScalar(scale);
+        rig.position.set(-center.x * scale, -center.y * scale - 4.8, 0);
+        scene.add(rig);
+        fallbackImage.style.display = "none";
+        render();
+      }, undefined, function () {
+        // The original template image remains visible as the safe fallback.
+        render();
+      });
+    }
 
     function normalizeFavoriteTools(value) {
       if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 5);
@@ -1728,6 +1827,7 @@
 
       activeImage.src = activeSlide.url;
       activeImage.alt = "Roblox clothing template " + activeSlide.id;
+      showMappedRigPreview(activeSlide.url);
       slideCounter.innerText = (currentSlideIndex + 1) + " of " + currentSlides.length;
       activeId.innerText = "ID " + activeSlide.id;
       downloadBtn.href = activeSlide.url;
@@ -1763,7 +1863,7 @@
         <div id="previewShell">
           <div class="previewCarousel">
             <button class="previewArrow left ${isMulti ? "" : "hidden"}" type="button" onclick="showSlide(-1)">&lsaquo;</button>
-            <div class="previewStage"><img id="activeTemplateImage" src="" alt="Roblox clothing template"></div>
+            <div class="previewStage"><div id="templateRigViewer" aria-label="Mapped 3D Roblox clothing rig preview"><img id="activeTemplateImage" class="template-rig-source" src="" alt="Roblox clothing template"></div></div>
             <button class="previewArrow right ${isMulti ? "" : "hidden"}" type="button" onclick="showSlide(1)">&rsaquo;</button>
           </div>
         </div>
