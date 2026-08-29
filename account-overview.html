@@ -608,7 +608,6 @@
     }
 
     #rbtools-account-overview .acct-plus-tag.hidden { display: none; }
-    #rbtools-account-overview .acct-card.is-plus { border-color:rgba(224,230,240,.56); box-shadow:0 20px 54px rgba(168,181,201,.14); }
     #rbtools-account-overview .acct-card.is-pro { border-color:rgba(255,194,67,.58); box-shadow:0 20px 54px rgba(177,111,17,.20); }
     #rbtools-account-overview .acct-card.is-pro::before { background:radial-gradient(circle at 18% 12%,rgba(255,214,92,.22),transparent 30%),radial-gradient(circle at 84% 82%,rgba(194,121,18,.18),transparent 30%); }
     #rbtools-account-overview .acct-pill-value.is-pro { display:inline-flex; align-items:center; gap:7px; font-size:15px; line-height:1; }
@@ -1156,16 +1155,6 @@
       border-radius: 18px; background: linear-gradient(135deg, rgba(111, 146, 205, .13), rgba(12, 20, 35, .72));
     }
     #rbtools-account-overview .acct-profile-header::after { content: none; }
-    #rbtools-account-overview .acct-card.is-plus .acct-profile-header {
-      border-color: rgba(224, 230, 240, .58);
-      background: linear-gradient(130deg, rgba(18, 25, 37, .96), rgba(76, 85, 99, .54) 47%, rgba(15, 24, 37, .96));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.26), 0 18px 36px rgba(4, 8, 18, .3);
-    }
-    #rbtools-account-overview .acct-card.is-plus .acct-profile-header::after {
-      content: ""; position: absolute; inset: -70% -32%; z-index: 0; pointer-events: none;
-      background: linear-gradient(112deg, transparent 42%, rgba(255,255,255,.42) 50%, transparent 58%);
-      animation: acctProfileGlare 5.8s ease-in-out infinite;
-    }
     #rbtools-account-overview .acct-card.is-pro .acct-profile-header {
       border-color: rgba(255, 199, 71, .66);
       background: linear-gradient(130deg, rgba(33, 27, 16, .96), rgba(116, 78, 20, .52) 47%, rgba(25, 22, 16, .96));
@@ -1315,8 +1304,8 @@
               <div class="acct-grid">
                 <div class="acct-stack">
                   <section class="acct-block" data-account-section="billing">
-                    <div class="acct-section-kicker">Membership</div>
-                    <h3 class="acct-section-title">Membership & Access</h3>
+                    <div id="acctMembershipKicker" class="acct-section-kicker">Membership</div>
+                    <h3 id="acctMembershipTitle" class="acct-section-title">Membership & Access</h3>
                     <p class="acct-section-copy">
                       Confirm your current access level and jump into Stripe tools without leaving the account center.
                     </p>
@@ -1328,7 +1317,7 @@
                       </div>
 
                       <div class="acct-pill-card">
-                        <div class="acct-pill-label">Plus Status</div>
+                        <div id="acctPremiumLabel" class="acct-pill-label">Plus Status</div>
                         <div id="acctPremium" class="acct-pill-value">false</div>
                       </div>
 
@@ -1445,8 +1434,8 @@
 
                 <div class="acct-stack">
                   <section class="acct-block" data-account-section="billing">
-                    <div class="acct-section-kicker">Billing Tools</div>
-                    <h3 class="acct-section-title">Billing & Plan Management</h3>
+                    <div id="acctBillingKicker" class="acct-section-kicker">Billing Tools</div>
+                    <h3 id="acctBillingTitle" class="acct-section-title">Billing & Plan Management</h3>
                     <p class="acct-section-copy">
                       Stripe's customer portal stays the main place for invoices, payment methods, cancellation, and renewal management. Keep those actions here so the rest of the site stays clean.
                     </p>
@@ -1677,6 +1666,11 @@
         acctSettingsEmail: document.getElementById("acctSettingsEmail"),
         acctPlan: document.getElementById("acctPlan"),
         acctPremium: document.getElementById("acctPremium"),
+        acctPremiumLabel: document.getElementById("acctPremiumLabel"),
+        acctMembershipKicker: document.getElementById("acctMembershipKicker"),
+        acctMembershipTitle: document.getElementById("acctMembershipTitle"),
+        acctBillingKicker: document.getElementById("acctBillingKicker"),
+        acctBillingTitle: document.getElementById("acctBillingTitle"),
         acctStripeStatus: document.getElementById("acctStripeStatus"),
         acctMembershipSource: document.getElementById("acctMembershipSource"),
         acctPlusDaysLeft: document.getElementById("acctPlusDaysLeft"),
@@ -2083,6 +2077,11 @@
         }
         if (els.acctDaysLeftLabel) els.acctDaysLeftLabel.textContent = displayPlan === "pro" ? "Pro Days Left" : "Plus Days Left";
         if (els.acctExpiryLabel) els.acctExpiryLabel.textContent = displayPlan === "pro" ? "Pro Renews / Expires" : "Plus Renews / Expires";
+        if (els.acctPremiumLabel) els.acctPremiumLabel.textContent = displayPlan === "pro" ? "Pro Status" : "Plus Status";
+        if (els.acctMembershipKicker) els.acctMembershipKicker.textContent = displayPlan === "pro" ? "Pro Membership" : "Membership";
+        if (els.acctMembershipTitle) els.acctMembershipTitle.textContent = displayPlan === "pro" ? "Pro Membership & Access" : "Membership & Access";
+        if (els.acctBillingKicker) els.acctBillingKicker.textContent = displayPlan === "pro" ? "Pro Billing" : "Billing Tools";
+        if (els.acctBillingTitle) els.acctBillingTitle.textContent = displayPlan === "pro" ? "Pro Billing & Plan Management" : "Billing & Plan Management";
         els.acctPremium.textContent = String(Boolean(state.user.premiumActive));
         els.acctPremium.classList.toggle("is-good", Boolean(state.user.premiumActive));
         els.acctStripeStatus.textContent = state.user.stripeSubscriptionStatus || "-";

@@ -174,6 +174,7 @@ const AUTH_JWT_TTL_DAYS = Math.max(
   Number.parseInt(process.env.AUTH_JWT_TTL_DAYS || "30", 10) || 30
 );
 const OPTIONAL_AUTH_USER_COLUMNS = new Set([
+  "plus_active",
   "membership_source",
   "plus_days_total",
   "plus_expires_at",
@@ -1666,6 +1667,10 @@ function isProMember(user) {
   return String(user?.plan || "").trim().toLowerCase() === "pro";
 }
 
+function isPlusPlan(plan) {
+  return String(plan || "").trim().toLowerCase() === "plus";
+}
+
 function getStripeSubscriptionPlan(subscription) {
   const metadataPlan = String(subscription?.metadata?.plan || "").trim().toLowerCase();
   const items = Array.isArray(subscription?.items?.data) ? subscription.items.data : [];
@@ -2072,6 +2077,7 @@ function buildPublicUser(row) {
     isAdmin: isAdminUser(row),
     plan: membership.plan,
     premiumActive: membership.premiumActive,
+    plusActive: membership.plan === "plus",
     proActive: membership.plan === "pro",
     stripeCustomerId: row.stripe_customer_id || null,
     stripeSubscriptionStatus: membership.stripeSubscriptionStatus,
@@ -2756,6 +2762,7 @@ async function buildResolvedPublicUser(row) {
     isAdmin: isAdminUser(row),
     plan: membership.plan,
     premiumActive: membership.premiumActive,
+    plusActive: membership.plan === "plus",
     proActive: membership.plan === "pro",
     stripeCustomerId: row.stripe_customer_id || null,
     stripeSubscriptionStatus: membership.stripeSubscriptionStatus,
@@ -2836,6 +2843,7 @@ async function createAuthUser(email, password) {
     password_hash: hashPassword(password),
     plan: "free",
     premium_active: false,
+    plus_active: false,
     stripe_customer_id: null,
     stripe_subscription_status: null,
     membership_source: "none",
@@ -3383,9 +3391,11 @@ async function getOrCreateStripeCustomerForUser(user) {
 }
 
 function buildMembershipStorageFields(snapshot = {}) {
+  const plan = snapshot.plan || (snapshot.premiumActive ? "plus" : "free");
   return {
     premium_active: Boolean(snapshot.premiumActive),
-    plan: snapshot.plan || (snapshot.premiumActive ? "plus" : "free"),
+    plus_active: isPlusPlan(plan),
+    plan,
     stripe_subscription_status: snapshot.stripeSubscriptionStatus || null,
     membership_source: snapshot.membershipSource || (snapshot.premiumActive ? "account" : "none"),
     plus_days_total: snapshot.plusDaysTotal != null ? Math.max(0, Number(snapshot.plusDaysTotal) || 0) : null,
@@ -3430,10 +3440,12 @@ async function syncSubscriptionStateForUser(userId, customerId, subscriptionStat
       (membershipFields.stripeDaysTotal != null ||
         membershipFields.stripeCurrentPeriodStartAt ||
         membershipFields.stripeCurrentPeriodEndAt);
+    const resolvedPlan = premiumActive ? (keepExistingPro ? "pro" : normalizeMembershipPlan(membershipFields.plan)) : "free";
     return updateAuthUserFields(userId, {
       stripe_customer_id: customerId || null,
       premium_active: premiumActive,
-      plan: premiumActive ? (keepExistingPro ? "pro" : normalizeMembershipPlan(membershipFields.plan)) : "free",
+      plus_active: isPlusPlan(resolvedPlan),
+      plan: resolvedPlan,
       stripe_subscription_status: subscriptionStatus || null,
       membership_source: membershipSource,
       ...(hasStripeSnapshotData ? buildStripeMembershipStorageFields(membershipFields) : {}),
@@ -3585,6 +3597,7 @@ async function performStripeAdminAction(targetUser, action, payload = {}) {
     }
     await updateAuthUserFields(targetUser.id, {
       premium_active: false,
+      plus_active: false,
       plan: "free",
       stripe_subscription_status: "canceled",
       membership_source: "none",
@@ -3666,9 +3679,10 @@ async function syncSubscriptionStateFromStripeSubscription(subscription) {
     return updateAuthUserFields(user.id, {
       stripe_customer_id: customerId,
       premium_active: Boolean(complimentaryMembership && complimentaryMembership.active),
-      plan: complimentaryMembership && complimentaryMembership.active ? "plus" : "free",
+      plus_active: Boolean(complimentaryMembership && complimentaryMembership.active && !isProMember(user)),
+      plan: complimentaryMembership && complimentaryMembership.active ? (isProMember(user) ? "pro" : "plus") : "free",
       stripe_subscription_status: subscription.status || null,
-      membership_source: complimentaryMembership ? "complimentary" : "none",
+      membership_source: complimentaryMembership ? (isProMember(user) ? "complimentary pro" : "complimentary") : "none",
       ...buildStripeMembershipStorageFields({
         stripeDaysTotal: null,
         stripeCurrentPeriodStartAt: null,
@@ -3993,6 +4007,7 @@ async function grantComplimentaryPlusToUser(userId, days) {
 
   const updatedUser = await updateAuthUserFields(targetUser.id, {
     premium_active: true,
+    plus_active: !isProMember(targetUser),
     plan: isProMember(targetUser) ? "pro" : "plus",
     membership_source: isProMember(targetUser) ? "complimentary pro" : (hasStripeAccess ? "stripe + complimentary" : "complimentary"),
     plus_days_total: totalDays,
@@ -4029,6 +4044,7 @@ async function grantComplimentaryProToUser(userId, days) {
   const totalDays = Math.max(0, Number(existingComplimentary?.totalDays) || 0) + safeDays;
   const updatedUser = await updateAuthUserFields(targetUser.id, {
     premium_active: true,
+    plus_active: false,
     plan: "pro",
     membership_source: "complimentary pro",
     plus_days_total: totalDays,
@@ -4074,6 +4090,7 @@ async function removePlusFromUser(userId) {
   const hasStripeAccess = isPremiumStatus(targetUser.stripe_subscription_status);
   const updatedUser = await updateAuthUserFields(targetUser.id, {
     premium_active: hasStripeAccess,
+    plus_active: hasStripeAccess && !isProMember(targetUser),
     plan: hasStripeAccess ? "plus" : "free",
     membership_source: hasStripeAccess ? "stripe" : "none",
     plus_days_total: null,
@@ -6187,6 +6204,7 @@ app.get("/auth/premium-status", async (req, res) => {
       ok: true,
       premiumActive: membership.premiumActive,
       plan: membership.plan,
+      plusActive: membership.plan === "plus",
       proActive: membership.plan === "pro",
       stripeSubscriptionStatus: membership.stripeSubscriptionStatus,
       complimentaryExpiresAt: membership.complimentaryExpiresAt,
@@ -6776,6 +6794,9 @@ app.post("/admin/remove-plus", async (req, res) => {
     const targetUser = await getAuthUserByIdentifier(targetIdentifier);
     if (!targetUser) {
       return res.status(404).json({ error: "No member was found for that ID or email." });
+    }
+    if (isProMember(targetUser)) {
+      return res.status(409).json({ error: "This member has Pro. The Plus removal action cannot downgrade a Pro plan." });
     }
 
     const updatedUser = await removePlusFromUser(targetUser.id);
