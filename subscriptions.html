@@ -421,6 +421,23 @@
         linear-gradient(180deg, #272628 0%, #141416 100%);
     }
 
+    .pro-card::after {
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 210, 94, 0.08) 38%, rgba(255, 241, 178, 0.58) 50%, rgba(255, 190, 48, 0.10) 62%, transparent 100%);
+      animation: proSweep 4.6s linear infinite;
+      opacity: 0.9;
+    }
+
+    .pro-card {
+      border-color: rgba(255, 194, 67, 0.78);
+      box-shadow: inset 0 1px 0 rgba(255, 237, 174, 0.18), 0 30px 56px rgba(0, 0, 0, 0.36), 0 0 36px rgba(255, 183, 45, 0.20);
+      animation: proPulse 2.8s ease-in-out infinite;
+    }
+
+    .pro-card:hover {
+      border-color: rgba(255, 218, 119, 0.95);
+      box-shadow: inset 0 1px 0 rgba(255, 244, 198, 0.24), 0 34px 60px rgba(0, 0, 0, 0.40), 0 0 44px rgba(255, 184, 43, 0.32);
+    }
+
     .card-inner {
       padding: 18px;
       height: 100%;
@@ -1218,6 +1235,17 @@
       .plans-grid { grid-template-columns: 1fr; }
       .side-plan, .plus-focus { padding-block: 0; }
     }
+
+    @keyframes proSweep {
+      0% { transform: translateX(-165%) rotate(12deg); opacity: 0.16; }
+      45% { opacity: 0.86; }
+      100% { transform: translateX(360%) rotate(12deg); opacity: 0.10; }
+    }
+
+    @keyframes proPulse {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-3px) scale(1.008); }
+    }
     /* Match the focused AI token-store presentation without changing checkout behavior. */
     body { background:radial-gradient(circle at 58% 11%, rgba(56,230,224,.11), transparent 25%),radial-gradient(circle at 25% 76%, rgba(255,76,89,.10), transparent 28%),#080e19; }
     main { max-width:1120px; min-height:calc(100vh - 52px); display:flex; flex-direction:column; justify-content:center; padding:52px 22px 72px; }
@@ -1229,9 +1257,12 @@
     .hero-strip { max-width:920px; }
     .hero-chip { border-color:rgba(123,164,255,.24); background:rgba(15,28,48,.8); }
     .plus-card { background:linear-gradient(155deg,rgba(21,71,79,.97),rgba(8,18,31,.99)); border-color:rgba(56,230,224,.72); box-shadow:0 24px 54px rgba(30,195,205,.14); }
-    .free-card, .pro-card { background:linear-gradient(155deg,rgba(24,35,59,.94),rgba(8,15,26,.98)); }
-    .plus-focus { transform:translateY(-9px); }
-    @media (max-width:900px) { main { display:block; min-height:0; padding:42px 14px 68px; } .plus-focus { transform:none; } }
+    .free-card { background:linear-gradient(155deg,rgba(24,35,59,.94),rgba(8,15,26,.98)); }
+    .plan-col.plus-focus { order:3; transform:none; }
+    .plan-col.pro-focus { order:2; padding-top:0; padding-bottom:0; transform:translateY(-9px); }
+    .plan-col.side-plan:first-child { order:1; }
+    .pro-card { background:radial-gradient(circle at 84% 18%,rgba(255,205,88,.28),transparent 24%),radial-gradient(circle at 16% 86%,rgba(185,118,17,.20),transparent 31%),linear-gradient(155deg,rgba(76,52,18,.98),rgba(13,16,21,.99)); }
+    @media (max-width:900px) { main { display:block; min-height:0; padding:42px 14px 68px; } .plus-focus, .pro-focus { transform:none; } .plan-col.plus-focus { order:2; } .plan-col.pro-focus { order:3; } }
   </style>
 <link rel="stylesheet" href="./global-shell.css?v=20260825-19" />
   <link rel="stylesheet" href="./mobile-overrides.css" />
@@ -1269,8 +1300,8 @@
         <span>Designed for repeat users, resellers, designers, and Roblox players who actually use the utilities often.</span>
       </div>
       <div class="hero-chip">
-        <strong>Pro Comes Later</strong>
-        <span>The future tier is planned, but Plus is the real upgrade path that matters right now.</span>
+        <strong>Pro Is Best Value</strong>
+        <span>Get the complete creator tier, wider AI controls, and 20 AI credits after every successful monthly payment.</span>
       </div>
     </section>
 
@@ -1320,15 +1351,6 @@
                   <h3 class="perk-title">Core tools included</h3>
                   <p class="perk-desc">Templates, UGC, audio, media, robux math, and classic cleanup stay accessible here.</p>
                 </div>
-              </div>
-            </div>
-
-            <div class="section-kicker free">Why Users Upgrade</div>
-            <div class="perk-card">
-              <div class="perk-icon soon">+</div>
-              <div>
-                <h3 class="perk-title">Upgrade when you want more speed</h3>
-                <p class="perk-desc">Move up to Plus anytime for multi-item actions, premium-only tools, and stronger creator workflow convenience.</p>
               </div>
             </div>
 
@@ -1447,10 +1469,11 @@
         </article>
       </div>
 
-      <div class="plan-col side-plan" data-plan-index="2">
+      <div class="plan-col pro-focus" data-plan-index="2">
         <article class="plan-card pro-card">
           <div class="card-inner">
             <div class="pill-row">
+              <div class="pill pro">Best Value</div>
               <div class="pill active" id="proOwnedPill" style="display:none;">Plan Active</div>
             </div>
 
@@ -1470,6 +1493,7 @@
             </div>
 
             <ul class="subscription-perks" aria-label="Pro plan perks">
+              <li>20 AI Credits Every Month</li>
               <li>No Annoying Ads</li>
               <li>Bulk Downloads (5-10)</li>
               <li>6 AI Thumbnail Attachments</li>
@@ -1489,10 +1513,10 @@
 
             <div class="plan-grid">
               <div class="perk-card">
-                <div class="perk-icon pro">45</div>
+                <div class="perk-icon pro">20</div>
                 <div>
-                  <h3 class="perk-title">45 AI Generation Tokens</h3>
-                  <p class="perk-desc">Planned token balance for users who want more serious AI usage built into the higher-tier experience.</p>
+                  <h3 class="perk-title">20 AI Credits Every Month</h3>
+                  <p class="perk-desc">A fresh 20 AI credits are added after every successful Pro monthly payment.</p>
                 </div>
               </div>
               <div class="perk-card">
@@ -1506,14 +1530,14 @@
                 <div class="perk-icon pro">10</div>
                 <div>
                   <h3 class="perk-title">Even bulkier downloads and tool usage (5-10)</h3>
-                  <p class="perk-desc">Planned bigger 5 to 10 item batches for users who want heavier workflows than the current Plus limit.</p>
+                  <p class="perk-desc">Handle supported tools in larger 5 to 10 item batches for heavier creator workflows.</p>
                 </div>
               </div>
               <div class="perk-card">
-                <div class="perk-icon soon">+</div>
+                <div class="perk-icon pro">+</div>
                 <div>
-                  <h3 class="perk-title">More coming soon</h3>
-                  <p class="perk-desc">The Pro tier is still being shaped, so more premium-only features can be added as the site grows.</p>
+                  <h3 class="perk-title">Every Plus benefit included</h3>
+                  <p class="perk-desc">Keep Plus features such as Animations, Textured UGCs, and the premium website experience with your Pro membership.</p>
                 </div>
               </div>
             </div>
@@ -1551,9 +1575,9 @@
         <div class="compare-column">
           <h3>Pro</h3>
           <div class="compare-list">
-            <div class="compare-item"><strong>Best for:</strong> future heavy users who want the next step after Plus.</div>
-            <div class="compare-item"><strong>Planned perks:</strong> 45 AI Generation Tokens, Priority Speed Queue, 5-10 item bulk actions, and more premium-only upgrades later on.</div>
-            <div class="compare-item"><strong>Current reality:</strong> it is still just a teaser, so there is no purchase button or live Pro access yet.</div>
+            <div class="compare-item"><strong>Best for:</strong> higher-volume creators who need the complete member experience and wider AI controls.</div>
+            <div class="compare-item"><strong>Monthly benefit:</strong> 20 AI credits are added after every successful Pro payment.</div>
+            <div class="compare-item"><strong>Biggest win:</strong> Pro includes all Plus benefits alongside 5-10 bulk actions, ad-free browsing, and enhanced thumbnail output options.</div>
           </div>
         </div>
       </div>
@@ -1576,7 +1600,7 @@
         </div>
         <div class="faq-item">
           <strong>Is Pro live right now?</strong>
-          <span>No. Pro is only a future direction preview right now. The current live choice is between Free and Plus.</span>
+          <span>Yes. Pro is a live $5 monthly membership with all Plus benefits, expanded creator features, and 20 AI credits each month.</span>
         </div>
       </div>
     </section>

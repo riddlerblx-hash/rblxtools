@@ -81,6 +81,7 @@ const AI_TOKEN_DEFAULT_BALANCE = 0;
 const AI_THUMBNAIL_TOKEN_COST = 1;
 const AI_THUMBNAIL_FREE_REFERENCES = 3;
 const AI_THUMBNAIL_PRO_REFERENCES = 6;
+const PRO_MONTHLY_AI_TOKEN_CREDITS = 20;
 const AI_TOKEN_PACKAGES = [
   { key: "20", tokens: 20, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9Y1oleZ7XCqM9").trim() },
   { key: "45", tokens: 45, priceCents: 599, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
@@ -1484,6 +1485,7 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
             }));
           }
         }
+        await grantMonthlyProTokensFromStripeInvoice(invoice);
         break;
       }
 
@@ -3021,6 +3023,60 @@ async function grantAITokensFromStripeCheckout(session) {
       p_session_id: sessionId,
       p_user_id: userId,
       p_tokens: tokens,
+    }),
+  });
+
+  return Number.parseInt(rows, 10) || 0;
+}
+
+function getStripePriceProductId(price) {
+  const product = price?.product;
+  return typeof product === "string" ? product : String(product?.id || "").trim();
+}
+
+function invoiceContainsProSubscription(invoice) {
+  const lines = Array.isArray(invoice?.lines?.data) ? invoice.lines.data : [];
+  return lines.some((line) => getStripePriceProductId(line?.price) === STRIPE_PRO_PRODUCT_ID);
+}
+
+async function grantMonthlyProTokensFromStripeInvoice(invoice) {
+  const invoiceId = String(invoice?.id || "").trim();
+  const customerId = typeof invoice?.customer === "string"
+    ? invoice.customer
+    : String(invoice?.customer?.id || "").trim();
+  if (!invoiceId || !customerId || !stripeClient) return null;
+  const billingReason = String(invoice?.billing_reason || "").trim().toLowerCase();
+  if (billingReason && billingReason !== "subscription_create" && billingReason !== "subscription_cycle") {
+    return null;
+  }
+
+  let subscription = null;
+  const subscriptionId = typeof invoice?.subscription === "string"
+    ? invoice.subscription
+    : String(invoice?.subscription?.id || invoice?.parent?.subscription_details?.subscription || "").trim();
+  if (subscriptionId) {
+    subscription = await stripeClient.subscriptions.retrieve(subscriptionId, {
+      expand: ["items.data.price.product"],
+    }).catch(() => null);
+  }
+
+  if (!invoiceContainsProSubscription(invoice) && getStripeSubscriptionPlan(subscription) !== "pro") {
+    return null;
+  }
+
+  let user = await getAuthUserByStripeCustomerId(customerId);
+  if (!user && subscription?.metadata?.appUserId) {
+    user = await getAuthUserById(subscription.metadata.appUserId);
+  }
+  if (!user) return null;
+
+  const rows = await supabaseRequest("/rest/v1/rpc/grant_ai_token_purchase", {
+    method: "POST",
+    body: JSON.stringify({
+      // Invoice IDs are stable, so Stripe webhook retries cannot award the same month twice.
+      p_session_id: "pro-monthly:" + invoiceId,
+      p_user_id: user.id,
+      p_tokens: PRO_MONTHLY_AI_TOKEN_CREDITS,
     }),
   });
 
