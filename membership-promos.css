@@ -54,12 +54,12 @@ body.rblx-subscription-store .plans-grid .plus-card .plus-floater {
   text-shadow: 0 0 14px rgba(255, 255, 255, .26) !important;
 }
 
-body.rblx-subscription-store .plans-grid .plus-card .card-inner,
 body.rblx-subscription-store .plans-grid .plus-card .price-box,
 body.rblx-subscription-store .plans-grid .plus-card .perk-card {
-  background-color: rgba(8, 15, 26, .42) !important;
+  background-color: rgba(8, 15, 26, .30) !important;
   border-color: rgba(234, 243, 255, .32) !important;
 }
+body.rblx-subscription-store .plans-grid .plus-card .card-inner { background: transparent !important; }
 
 /* Pro slides use the exact Plus promo structure, changing only the tier color. */
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-pro-promo,
@@ -69,11 +69,11 @@ body.rblx-home-page .home-grid-top > .plus-card.rblx-pro-promo {
   border: 1px solid rgba(255, 211, 105, .82) !important;
   border-radius: 24px !important;
   background:
-    linear-gradient(108deg, transparent 0%, rgba(255, 239, 177, .1) 28%, transparent 49%),
-    radial-gradient(circle at 86% 13%, rgba(255, 223, 127, .18), transparent 22%),
-    radial-gradient(circle at 12% 100%, rgba(193, 133, 29, .12), transparent 27%),
-    linear-gradient(145deg, #57401c 0%, #1b1710 57%, #332611 100%) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 244, 191, .52), 0 18px 44px rgba(185, 124, 24, .25) !important;
+    linear-gradient(108deg, transparent 0%, rgba(255, 244, 191, .24) 28%, transparent 49%),
+    radial-gradient(circle at 86% 13%, rgba(255, 225, 120, .4), transparent 30%),
+    radial-gradient(circle at 12% 100%, rgba(214, 150, 35, .28), transparent 34%),
+    linear-gradient(145deg, #8a682a 0%, #36250a 57%, #5a3c10 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 244, 191, .7), 0 18px 44px rgba(209, 145, 25, .38) !important;
   animation: none !important;
   transform: none !important;
 }
@@ -117,7 +117,7 @@ body.rblx-home-page .home-grid-top > .plus-card.rblx-pro-promo > * { position: r
 
 /* The two slides intentionally share every layout value; only the color variables change. */
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-topline,
-body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-topline { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-topline { display:flex; align-items:center; justify-content:flex-end; gap:10px; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-badge,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-badge { display:inline-flex; align-items:center; min-height:25px; padding:0 10px; border:1px solid var(--promo-line, rgba(239,246,255,.54)); border-radius:999px; color:var(--promo-ink, #f5f9ff); background:var(--promo-chip, rgba(25,36,53,.56)); font-size:10px; font-weight:950; letter-spacing:.08em; text-transform:uppercase; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price,
@@ -135,7 +135,13 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-p
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-nav,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-nav { display:flex; align-items:center; gap:7px; min-width:0; flex:1; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-arrow,
-body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-arrow { width:30px; height:30px; flex:0 0 auto; border:1px solid var(--promo-line, rgba(239,246,255,.4)); border-radius:9px; color:var(--promo-ink, #f5f9ff); background:var(--promo-chip, rgba(7,14,25,.45)); font-size:15px; font-weight:900; cursor:pointer; }
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-arrow { width:32px; height:32px; flex:0 0 auto; position:relative; border:1px solid var(--promo-line, rgba(239,246,255,.4)); border-radius:50%; color:transparent; background:var(--promo-chip, rgba(7,14,25,.45)); cursor:pointer; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-arrow::before,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-arrow::before { content:""; position:absolute; top:10px; width:8px; height:8px; border-right:2px solid var(--promo-ink, #f5f9ff); border-bottom:2px solid var(--promo-ink, #f5f9ff); }
+body.rblx-home-page .home-grid-top > .plus-card [data-membership-promo-prev]::before,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo [data-membership-promo-prev]::before { left:12px; transform:rotate(135deg); }
+body.rblx-home-page .home-grid-top > .plus-card [data-membership-promo-next]::before,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo [data-membership-promo-next]::before { right:12px; transform:rotate(-45deg); }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-arrow:hover,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-arrow:hover { filter:brightness(1.16); transform:translateY(-1px); }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-progress,

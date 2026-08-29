@@ -1300,7 +1300,7 @@
         <span>Designed for repeat users, resellers, designers, and Roblox players who actually use the utilities often.</span>
       </div>
       <div class="hero-chip">
-        <strong>Pro Is Best Value</strong>
+        <strong>Pro Creator Membership</strong>
         <span>Get the complete creator tier, wider AI controls, and 20 AI credits after every successful monthly payment.</span>
       </div>
     </section>
@@ -1460,7 +1460,7 @@
             </div>
 
             <div class="plus-cta-group">
-              <button id="plusCheckoutBtn" class="cta" type="button">Start Plus Membership</button>
+              <button id="plusCheckoutBtn" class="cta" type="button">Try Now</button>
               <a class="cta secondary cta-link" href="https://discord.gg/TMmBQgYK32" target="_blank" rel="noopener noreferrer">Pay with Robux</a>
             </div>
             <div class="cta-subcopy">One clean upgrade. Premium tools, faster actions, and a way better overall workflow.</div>
@@ -1473,7 +1473,6 @@
         <article class="plan-card pro-card">
           <div class="card-inner">
             <div class="pill-row">
-              <div class="pill pro">Best Value</div>
               <div class="pill active" id="proOwnedPill" style="display:none;">Plan Active</div>
             </div>
 
@@ -1543,7 +1542,7 @@
             </div>
 
             <div class="note-box">Best for power users who want the widest thumbnail controls and heavier creator workflows.</div>
-            <div class="plus-cta-group"><button id="proCheckoutBtn" class="cta" type="button">Start Pro Membership</button></div>
+            <div class="plus-cta-group"><button id="proCheckoutBtn" class="cta" type="button">Try Now</button></div>
             <div id="proStatus" class="status pro"></div>
           </div>
         </article>
@@ -1620,8 +1619,8 @@
     </div>
   </div>
 
-  <link rel="stylesheet" href="./membership-promos.css?v=20260828-3" />
-  <script src="./global-shell.js?v=20260828-3"></script>
+  <link rel="stylesheet" href="./membership-promos.css?v=20260828-4" />
+  <script src="./global-shell.js?v=20260828-4"></script>
   <script>
     (function () {
       var API_BASE = window.location.origin;
@@ -1867,7 +1866,7 @@
             plusCheckoutBtn.disabled = false;
             setStatus(plusStatusEl, isPro ? "Pro includes every Plus benefit on this account." : "You already own the Plus plan on this account.", "success");
           } else {
-            plusCheckoutBtn.textContent = "Start Plus Membership";
+            plusCheckoutBtn.textContent = "Try Now";
             plusCheckoutBtn.classList.remove("is-owned");
             plusCheckoutBtn.disabled = false;
             setStatus(plusStatusEl, "", "");
@@ -1875,7 +1874,7 @@
         }
 
         if (proCheckoutBtn) {
-          proCheckoutBtn.textContent = isPro ? "Pro Plan Active" : "Start Pro Membership";
+          proCheckoutBtn.textContent = isPro ? "Pro Plan Active" : "Try Now";
           proCheckoutBtn.classList.toggle("is-owned", isPro);
           proCheckoutBtn.disabled = false;
           setStatus(proStatusEl, isPro ? "You already own the Pro plan on this account." : "", isPro ? "success" : "");
