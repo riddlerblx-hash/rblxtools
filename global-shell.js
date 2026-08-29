@@ -4097,7 +4097,9 @@
       }
 
       promo._rblxSetMembershipPromoPlan = function (nextPlan) {
-        activePlan = nextPlan === "pro" ? "pro" : nextPlan === "plus" ? "plus" : "free";
+        var normalizedPlan = nextPlan === "pro" ? "pro" : nextPlan === "plus" ? "plus" : "free";
+        if (normalizedPlan === activePlan) return;
+        activePlan = normalizedPlan;
         render(0);
       };
       render(0);
