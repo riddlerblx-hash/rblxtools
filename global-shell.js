@@ -8,6 +8,10 @@
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
+  // Keep a verified identity available while the cookie session is checked on a
+  // new page.  A navigation must never briefly render a signed-in member as a
+  // guest just because that background request has not completed yet.
+  var SESSION_SNAPSHOT_KEY = "rblxtools_verified_session_snapshot";
   var AUTH_MODE_KEY = "rblxtools_auth_mode";
   var PLUS_STATUS_KEY = "rblxtools_plus_cache";
   var PROFILE_KEY = "rblxtools_profile_overview";
@@ -517,19 +521,31 @@
 
   function getCachedAuthUser() {
     var raw = readRawStorage(USER_KEY) || "";
+    if (!raw) raw = readRawStorage(SESSION_SNAPSHOT_KEY) || "";
     if (!raw) return null;
     try {
       var parsed = JSON.parse(raw);
+      if (parsed && parsed.user && typeof parsed.user === "object") {
+        return parsed.user;
+      }
       return parsed && typeof parsed === "object" ? parsed : null;
     } catch (_error) {
       return null;
     }
   }
 
+  function clearVerifiedSessionSnapshot() {
+    try { localStorage.removeItem(SESSION_SNAPSHOT_KEY); } catch (_error) {}
+  }
+
   function saveCachedAuthUser(user) {
     try {
       if (user && typeof user === "object") {
         localStorage.setItem(USER_KEY, JSON.stringify(user));
+        localStorage.setItem(SESSION_SNAPSHOT_KEY, JSON.stringify({
+          user: user,
+          verifiedAt: Date.now()
+        }));
         localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
           isPlus: hasPlusFromPayload(user),
           updatedAt: Date.now()
@@ -1285,6 +1301,7 @@
     clearLegacyAuthTokenCache();
     setChatAuthToken("");
     saveCachedAuthUser(null);
+    clearVerifiedSessionSnapshot();
     writeCachedPlusStatus(false);
     updateAuthUi(getImmediateUserState());
     refreshCurrentProfile();
@@ -3618,6 +3635,7 @@
         if (response.status === 401 || response.status === 403) {
           clearLegacyAuthTokenCache();
           saveCachedAuthUser(null);
+          clearVerifiedSessionSnapshot();
           updateAuthUi(getImmediateUserState());
         }
         return;
@@ -3719,8 +3737,9 @@
       }
     } catch (_error) {}
 
+    var response;
     try {
-      var response = await fetch(API_BASE + "/auth/me", {
+      response = await fetch(API_BASE + "/auth/me", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -3728,9 +3747,26 @@
         }
       });
 
-      if (!response.ok) throw new Error("Not signed in");
+    } catch (_networkError) {
+      // Keep the last verified session rendered while a request is delayed or
+      // temporarily fails. The next background refresh will reconcile it.
+      return getImmediateUserState();
+    }
+
+    if (!response.ok) {
+      // Only the server explicitly rejecting the session is a real logout.
+      if (response.status === 401 || response.status === 403) {
+        clearLegacyAuthTokenCache();
+        saveCachedAuthUser(null);
+        clearVerifiedSessionSnapshot();
+      }
+      return getImmediateUserState();
+    }
+
+    try {
       var payload = await response.json().catch(function () { return null; });
       var user = payload && payload.user ? payload.user : payload;
+      if (!user || typeof user !== "object") return getImmediateUserState();
       if (!shellState.chatAuthToken && payload && payload.chatToken) setChatAuthToken(payload.chatToken);
       saveCachedAuthUser(user);
       displayName = getPreferredUserName(user, payload);
@@ -3749,24 +3785,8 @@
         isAdmin: Boolean(user && user.isAdmin),
         moderation: payload && payload.moderation ? payload.moderation : null
       };
-    } catch (_error2) {
-      clearLegacyAuthTokenCache();
-      saveCachedAuthUser(null);
-      if (cachedUser) {
-        displayName = "";
-      }
-      var fallbackGuestHash = getGuestHash();
-      return {
-        loggedIn: false,
-        plan: "guest",
-        message: "You are browsing this website as a guest.",
-        userId: fallbackGuestHash,
-        username: "",
-        displayName: "Guest",
-        email: "",
-        isAdmin: false,
-        moderation: shellState.moderation
-      };
+    } catch (_payloadError) {
+      return getImmediateUserState();
     }
   }
 
@@ -4474,15 +4494,7 @@
       refreshSiteMaintenanceState();
       refreshMembershipStateFromServer();
     }).catch(function () {
-      updateAuthUi({
-        loggedIn: false,
-        plan: "guest",
-        message: "You are browsing this website as a guest.",
-        userId: "",
-        username: "",
-        displayName: "",
-        email: ""
-      });
+      updateAuthUi(getImmediateUserState());
     }).finally(function () {});
   }
 
