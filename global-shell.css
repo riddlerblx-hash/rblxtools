@@ -3328,6 +3328,11 @@ body.rblx-shell-ready #rblxShellPage > *::before,
 body.rblx-shell-ready #rblxShellPage > *::after { background-image:none !important; }
 body.rblx-shell-ready #rblxShellPage > *::before,
 body.rblx-shell-ready #rblxShellPage > *::after { display:none !important; }
+
+/* A shared, subtle entry motion gives every shell page the same polished arrival as Home. */
+body.rblx-shell-ready #rblxShellPage > * { animation: rblxShellPageEnter .42s cubic-bezier(.22,.8,.28,1) both; }
+@keyframes rblxShellPageEnter { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion: reduce) { body.rblx-shell-ready #rblxShellPage > * { animation:none; } }
 .rblx-shell-chat-bottom { position:relative; overflow:visible; z-index:3; }
 
 /* AI studio/store pages use the established tool atmosphere after the shell moves page content. */

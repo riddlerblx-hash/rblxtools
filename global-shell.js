@@ -3647,6 +3647,14 @@
       var link = getInternalLink(event);
       if (link) prefetchShellPage(link.href);
     }, { passive: true });
+    document.addEventListener("pointerdown", function (event) {
+      var link = getInternalLink(event);
+      if (link) prefetchShellPage(link.href);
+    }, { passive: true });
+    document.addEventListener("touchstart", function (event) {
+      var link = getInternalLink(event);
+      if (link) prefetchShellPage(link.href);
+    }, { passive: true });
     document.addEventListener("focusin", function (event) {
       var link = getInternalLink(event);
       if (link) prefetchShellPage(link.href);
@@ -3659,7 +3667,7 @@
       if (index >= primaryLinks.length) return;
       prefetchShellPage(primaryLinks[index].href);
       index += 1;
-      window.setTimeout(warmNext, 180);
+      window.setTimeout(warmNext, 70);
     }
     var startWarmup = function () { window.setTimeout(warmNext, 700); };
     if ("requestIdleCallback" in window) window.requestIdleCallback(startWarmup, { timeout: 1800 });
