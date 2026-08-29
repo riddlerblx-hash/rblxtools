@@ -1666,6 +1666,17 @@ function isProMember(user) {
   return String(user?.plan || "").trim().toLowerCase() === "pro";
 }
 
+function getStripeSubscriptionPlan(subscription) {
+  const metadataPlan = String(subscription?.metadata?.plan || "").trim().toLowerCase();
+  const items = Array.isArray(subscription?.items?.data) ? subscription.items.data : [];
+  const hasProProduct = items.some((item) => {
+    const product = item?.price?.product;
+    const productId = typeof product === "string" ? product : product?.id;
+    return Boolean(STRIPE_PRO_PRODUCT_ID && productId === STRIPE_PRO_PRODUCT_ID);
+  });
+  return metadataPlan === "pro" || hasProProduct ? "pro" : "plus";
+}
+
 function getAITokenBalance(user) {
   const parsed = Number.parseInt(user?.ai_token_balance, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : AI_TOKEN_DEFAULT_BALANCE;
@@ -2061,6 +2072,7 @@ function buildPublicUser(row) {
     isAdmin: isAdminUser(row),
     plan: membership.plan,
     premiumActive: membership.premiumActive,
+    proActive: membership.plan === "pro",
     stripeCustomerId: row.stripe_customer_id || null,
     stripeSubscriptionStatus: membership.stripeSubscriptionStatus,
     complimentaryExpiresAt: membership.complimentaryExpiresAt,
@@ -2744,6 +2756,7 @@ async function buildResolvedPublicUser(row) {
     isAdmin: isAdminUser(row),
     plan: membership.plan,
     premiumActive: membership.premiumActive,
+    proActive: membership.plan === "pro",
     stripeCustomerId: row.stripe_customer_id || null,
     stripeSubscriptionStatus: membership.stripeSubscriptionStatus,
     complimentaryExpiresAt: membership.complimentaryExpiresAt,
@@ -3431,7 +3444,7 @@ function buildStripeMembershipFieldsFromSubscription(subscription) {
   const currentPeriodStartAt = getIsoFromUnixSeconds(subscription?.current_period_start);
   const currentPeriodEndAt = getIsoFromUnixSeconds(subscription?.current_period_end);
   return {
-    plan: normalizeMembershipPlan(subscription?.metadata?.plan),
+    plan: getStripeSubscriptionPlan(subscription),
     stripeDaysTotal: getDaysBetween(currentPeriodStartAt, currentPeriodEndAt),
     stripeCurrentPeriodStartAt: currentPeriodStartAt,
     stripeCurrentPeriodEndAt: currentPeriodEndAt,
@@ -3441,8 +3454,8 @@ function buildStripeMembershipFieldsFromSubscription(subscription) {
 function rankStripeSubscription(left, right) {
   const leftStatus = String(left?.status || "").toLowerCase();
   const rightStatus = String(right?.status || "").toLowerCase();
-  const leftRank = isPremiumStatus(leftStatus) ? (normalizeMembershipPlan(left?.metadata?.plan) === "pro" ? 4 : 3) : leftStatus === "past_due" ? 2 : 1;
-  const rightRank = isPremiumStatus(rightStatus) ? (normalizeMembershipPlan(right?.metadata?.plan) === "pro" ? 4 : 3) : rightStatus === "past_due" ? 2 : 1;
+  const leftRank = isPremiumStatus(leftStatus) ? (getStripeSubscriptionPlan(left) === "pro" ? 4 : 3) : leftStatus === "past_due" ? 2 : 1;
+  const rightRank = isPremiumStatus(rightStatus) ? (getStripeSubscriptionPlan(right) === "pro" ? 4 : 3) : rightStatus === "past_due" ? 2 : 1;
   if (leftRank !== rightRank) {
     return rightRank - leftRank;
   }
@@ -4002,17 +4015,33 @@ async function grantComplimentaryPlusToUser(userId, days) {
 }
 
 async function grantComplimentaryProToUser(userId, days) {
-  const plusGrant = await grantComplimentaryPlusToUser(userId, days);
-  const updatedUser = await updateAuthUserFields(plusGrant.user.id, {
+  const targetUser = await getAuthUserByIdentifier(userId);
+  if (!targetUser) {
+    const error = new Error("No member account was found for that Pro grant.");
+    error.statusCode = 404;
+    throw error;
+  }
+  const safeDays = Number.isFinite(days) ? Math.max(1, Math.min(days, MAX_COMPLIMENTARY_PLUS_DAYS)) : DEFAULT_COMPLIMENTARY_PLUS_DAYS;
+  const existingComplimentary = getStoredComplimentaryMembership(targetUser);
+  const existingExpiry = parseIsoDate(existingComplimentary?.expiresAt || existingComplimentary?.currentPeriodEndAt);
+  const extensionBaseMs = existingExpiry && existingExpiry.getTime() > Date.now() ? existingExpiry.getTime() : Date.now();
+  const expiresAt = new Date(extensionBaseMs + safeDays * 24 * 60 * 60 * 1000).toISOString();
+  const totalDays = Math.max(0, Number(existingComplimentary?.totalDays) || 0) + safeDays;
+  const updatedUser = await updateAuthUserFields(targetUser.id, {
+    premium_active: true,
     plan: "pro",
     membership_source: "complimentary pro",
+    plus_days_total: totalDays,
+    plus_expires_at: expiresAt,
+    plus_current_period_start_at: new Date().toISOString(),
+    plus_current_period_end_at: expiresAt,
   });
   if (!updatedUser) {
     const error = new Error("Could not save the complimentary Pro grant.");
     error.statusCode = 500;
     throw error;
   }
-  return { ...plusGrant, user: updatedUser };
+  return { user: updatedUser, days: safeDays, expiresAt, totalDays };
 }
 
 async function grantAITokensToUser(userId, amount) {
@@ -6158,6 +6187,7 @@ app.get("/auth/premium-status", async (req, res) => {
       ok: true,
       premiumActive: membership.premiumActive,
       plan: membership.plan,
+      proActive: membership.plan === "pro",
       stripeSubscriptionStatus: membership.stripeSubscriptionStatus,
       complimentaryExpiresAt: membership.complimentaryExpiresAt,
       membershipSource: membership.membershipSource,
@@ -7303,6 +7333,7 @@ app.post("/admin/grant-pro", async (req, res) => {
     if (!note) return res.status(400).json({ error: "A note is required before complimentary Pro can be granted." });
     const grantResult = await grantComplimentaryProToUser(targetUser.id, days);
     await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: "complimentary_pro", note, expiresAt: grantResult.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
+    await refreshMembershipStateForConnectedUser(grantResult.user);
     emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.days + " days of complimentary Pro.");
     return res.json({ ok: true, message: "Complimentary Pro granted for " + grantResult.days + " days.", member: buildPublicUser(grantResult.user), days: grantResult.days, expiresAt: grantResult.expiresAt, grantedBy: { id: adminUser.id, email: adminUser.email } });
   } catch (error) {
@@ -8525,7 +8556,7 @@ async function refreshMembershipStateForConnectedUser(targetUser) {
     ...message,
     isPlus,
     plan,
-    badge: isPlus ? "Plus" : "Free Plan",
+    badge: plan === "pro" ? "Pro" : (isPlus ? "Plus" : "Free Plan"),
   }));
 
   emitToUserInRoom(defaultChatRoom, targetUser.id, "membership-state", {
@@ -8533,6 +8564,7 @@ async function refreshMembershipStateForConnectedUser(targetUser) {
     user: publicUser,
     plan,
     premiumActive: isPlus,
+    proActive: plan === "pro",
     stripeSubscriptionStatus: publicUser.stripeSubscriptionStatus || null,
     complimentaryExpiresAt: publicUser.complimentaryExpiresAt || null,
     membershipSource: publicUser.membershipSource || null,
