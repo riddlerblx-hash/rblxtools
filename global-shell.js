@@ -125,7 +125,8 @@
     communityUnreadCount: 0,
     notificationsForUserId: "",
     communityVisitReadAttempt: "",
-    renderedCommunityUnreadCount: null
+    renderedCommunityUnreadCount: null,
+    authResolved: false
   };
 
   window.__rblxShellState = shellState;
@@ -264,8 +265,10 @@
     window.__rblxAdsterraPopunderLoaded = true;
   }
 
-  // One third-party popunder script load for each full page visit.
-  ensureAdsterraPopunderSetup();
+  function syncAdsterraPopunderForMember(state) {
+    if (!shellState.authResolved || String(state && state.plan || "").toLowerCase() === "pro") return;
+    ensureAdsterraPopunderSetup();
+  }
 
   function ensureGoogleAnalyticsSetup() {
     if (!GOOGLE_ANALYTICS_ID) return;
@@ -3529,6 +3532,7 @@
     statusText.textContent = state.message;
     applyPlanAtmosphere(state.plan);
     shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : null };
+    syncAdsterraPopunderForMember(state);
     var tokenBanner = document.getElementById("rblxShellTokenBanner");
     var tokenBalance = document.getElementById("rblxShellTokenBalance");
     if (tokenBanner && tokenBalance) {
@@ -4257,7 +4261,7 @@
       subtitle: "Monthly Stripe subscription",
       title: "Pro",
       action: actionLabel || "Try Now",
-      perks: ["20 AI Credits Every Month", "All Plus Plan Benefits Included", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1440p - 4K AI Thumbnail Quality", "Premium Giveaways", "Custom Chat Tag", "Animation Tool Included", "Textured UGCs Included", "Premium Looking Website Included"]
+      perks: ["20 AI Credits Every Month", "All Plus Plan Benefits Included", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1440p - 4K AI Thumbnail Quality", "Premium Giveaways", "Custom Chat Tag", "Premium Looking Website Included"]
     } : {
       price: "$1.00",
       subtitle: "Monthly membership",
@@ -4479,10 +4483,12 @@
     });
     updateAuthUi(initialState);
     resolveUserState().then(function (state) {
+      shellState.authResolved = true;
       updateAuthUi(state);
       refreshSiteMaintenanceState();
       refreshMembershipStateFromServer();
     }).catch(function () {
+      shellState.authResolved = true;
       updateAuthUi(getImmediateUserState());
     }).finally(function () {});
   }
