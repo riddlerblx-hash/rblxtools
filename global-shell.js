@@ -16,6 +16,7 @@
   var CHAT_CACHE_KEY = "rblxtools_shell_chat_cache_v1";
   var COMMUNITY_NOTIFICATION_READ_KEY = "rblxtools_community_notification_reads_v1";
   var COMMUNITY_RECENTLY_SEEN_KEY = "rblxtools_community_recently_seen_v1";
+  var COMMUNITY_NOTIFICATION_CACHE_KEY = "rblxtools_community_notification_cache_v1";
   var LEFT_STATE_KEY = "rblxtools_shell_left_collapsed";
   var RIGHT_STATE_KEY = "rblxtools_shell_right_collapsed";
   var GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
@@ -3333,6 +3334,35 @@
     } catch (_error) { return []; }
   }
 
+  function getCommunityNotificationCache() {
+    var userId = String(shellState.currentUser && shellState.currentUser.userId || "");
+    if (!userId) return null;
+    try {
+      var cached = JSON.parse(localStorage.getItem(COMMUNITY_NOTIFICATION_CACHE_KEY + ":" + userId) || "null");
+      if (!cached || Date.now() - Number(cached.savedAt || 0) > 15 * 60 * 1000 || !Array.isArray(cached.items)) return null;
+      return cached;
+    } catch (_error) { return null; }
+  }
+
+  function saveCommunityNotificationCache() {
+    var userId = String(shellState.currentUser && shellState.currentUser.userId || "");
+    if (!userId) return;
+    try {
+      localStorage.setItem(COMMUNITY_NOTIFICATION_CACHE_KEY + ":" + userId, JSON.stringify({
+        savedAt: Date.now(),
+        items: Array.isArray(shellState.communityNotifications) ? shellState.communityNotifications : [],
+        unreadCount: Math.max(0, Number(shellState.communityUnreadCount) || 0)
+      }));
+    } catch (_error) {}
+  }
+
+  function hydrateCommunityNotificationCache() {
+    var cached = getCommunityNotificationCache();
+    if (!cached) return;
+    shellState.communityNotifications = cached.items;
+    shellState.communityUnreadCount = Math.max(0, Number(cached.unreadCount) || 0);
+  }
+
   function saveLocalCommunityNotificationReads(ids) {
     var userId = String(shellState.currentUser && shellState.currentUser.userId || "");
     if (!userId) return;
@@ -3419,6 +3449,7 @@
       shellState.communityNotifications = Array.isArray(payload && payload.items) ? payload.items : [];
       shellState.communityUnreadCount = Math.max(0, Number(payload && payload.unreadCount) || 0);
       shellState.notificationsForUserId = requestedUserId;
+      saveCommunityNotificationCache();
       var currentPath = normalizePath(window.location.pathname);
       var visitReadKey = requestedUserId + ":" + currentPath;
       if ((currentPath.endsWith("/community") || currentPath.endsWith("/community.html")) && shellState.communityUnreadCount > 0 && shellState.communityVisitReadAttempt !== visitReadKey) {
@@ -3433,6 +3464,7 @@
         var fallback = await getCommunityNotificationFallback();
         shellState.communityNotifications = fallback.items;
         shellState.communityUnreadCount = fallback.unreadCount;
+        saveCommunityNotificationCache();
         renderCommunityNotifications();
       } catch (_fallbackError) {}
     }
@@ -3445,6 +3477,12 @@
       ? shellState.communityNotifications.map(function (item) { return String(item.id || ""); }).filter(Boolean)
       : locallyRead.concat(String(postId || ""));
     saveLocalCommunityNotificationReads(nextRead);
+    shellState.communityNotifications = shellState.communityNotifications.map(function (item) {
+      return Object.assign({}, item, { read: markAll || String(item.id || "") === String(postId || "") ? true : item.read });
+    });
+    shellState.communityUnreadCount = shellState.communityNotifications.filter(function (item) { return !item.read; }).length;
+    saveCommunityNotificationCache();
+    renderCommunityNotifications();
     try {
       await fetch(API_BASE + "/api/community-notifications/read", {
         method: "POST",
@@ -4303,6 +4341,7 @@
       email: initialState.email || ""
     };
     shellState.isAdmin = Boolean(initialState.isAdmin);
+    hydrateCommunityNotificationCache();
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
