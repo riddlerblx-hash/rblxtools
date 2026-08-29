@@ -675,15 +675,49 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
 }
 
 .rblx-shell-mini-banner {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: block;
   border-radius: 16px;
   padding: 12px;
-  border: 1px solid rgba(109,255,154,0.18);
-  background:
-    radial-gradient(circle at top right, rgba(109,255,154,0.22), transparent 30%),
-    linear-gradient(135deg, rgba(34,57,42,0.94), rgba(17,30,24,0.94));
-  color: #effff4;
+  border: 1px solid rgba(226, 235, 247, 0.58);
+  background: linear-gradient(135deg, #273545, #101925 52%, #334557);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.46), 0 8px 20px rgba(154, 176, 201, 0.16);
+  color: #f5f9ff;
   text-decoration: none;
+}
+
+.rblx-shell-mini-banner::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -45%;
+  left: -75%;
+  width: 52%;
+  height: 190%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+  transform: rotate(14deg);
+  animation: rblxShellMembershipGlare 5.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.rblx-shell-mini-banner-pro {
+  border-color: rgba(255, 215, 119, 0.7);
+  background: linear-gradient(135deg, #624810, #241a06 52%, #765713);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 191, 0.48), 0 8px 20px rgba(216, 159, 33, 0.2);
+  color: #fff6d5;
+}
+
+.rblx-shell-mini-banner-pro::after {
+  background: linear-gradient(105deg, transparent, rgba(255, 233, 158, 0.78), transparent);
+  animation-delay: -2.9s;
+}
+
+@keyframes rblxShellMembershipGlare {
+  0%, 18% { transform: translateX(-90%) rotate(14deg); opacity: 0; }
+  42% { opacity: 0.8; }
+  68%, 100% { transform: translateX(500%) rotate(14deg); opacity: 0; }
 }
 
 .rblx-shell-token-banner {
@@ -737,6 +771,8 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
 }
 
 .rblx-shell-mini-banner strong {
+  position: relative;
+  z-index: 1;
   display: block;
   font-size: 11px;
   line-height: 1.2;
@@ -746,13 +782,17 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
 }
 
 .rblx-shell-mini-banner span {
+  position: relative;
+  z-index: 1;
   display: block;
   margin-top: 6px;
-  color: #bce8c8;
+  color: #dbe6f2;
   font-size: 18px;
   line-height: 1;
   font-weight: 900;
 }
+
+.rblx-shell-mini-banner-pro span { color: #ffe7a0; }
 
 .rblx-shell-socials {
   display: grid;
