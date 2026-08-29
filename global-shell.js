@@ -396,7 +396,7 @@
     }
 
     document.addEventListener("click", function (event) {
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (event.defaultPrevented || (typeof event.button === "number" && event.button !== 0) || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
       if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
       var href = String(link.getAttribute("href") || "");
@@ -425,6 +425,50 @@
         continueOrGate(state);
       }).catch(function () {
         continueOrGate(getImmediateUserState());
+      });
+    }, true);
+  }
+
+  function initLoginRequiredNavigation() {
+    if (!document.body || document.body.dataset.rblxLoginNavigationBound === "true") return;
+    document.body.dataset.rblxLoginNavigationBound = "true";
+
+    var protectedPages = {
+      "subscriptions": "Log in or sign up to view membership plans.",
+      "ai-thumbnail-studio": "Log in or sign up to use AI Thumbnail Studio."
+    };
+
+    document.addEventListener("click", function (event) {
+      if (event.defaultPrevented || (typeof event.button === "number" && event.button !== 0) || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
+      if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
+      var href = String(link.getAttribute("href") || "");
+      var path = href.split("?")[0].split("#")[0].replace(/^\.\//, "").replace(/\.html$/i, "");
+      var message = protectedPages[path];
+      if (!message) return;
+
+      function continueOrPrompt(state) {
+        if (state && state.loggedIn) {
+          window.location.href = href;
+          return;
+        }
+        openAuthModal({ mode: "login", message: message, returnTo: getCleanCurrentUrl() });
+      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      event.stopPropagation();
+
+      if (shellState.authResolved) {
+        continueOrPrompt(shellState.currentUser);
+        return;
+      }
+      resolveUserState().then(function (state) {
+        shellState.authResolved = true;
+        updateAuthUi(state);
+        continueOrPrompt(state);
+      }).catch(function () {
+        continueOrPrompt(getImmediateUserState());
       });
     }, true);
   }
@@ -4468,6 +4512,7 @@
     initCheckoutSuccessModal();
     initSupportModal();
     setupAuthModal();
+    initLoginRequiredNavigation();
     document.addEventListener("click", function (event) {
       var profileMenu = document.querySelector(".rblx-shell-profile-menu[open]");
       if (profileMenu && !profileMenu.contains(event.target)) profileMenu.open = false;
