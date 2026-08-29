@@ -4385,8 +4385,8 @@
     var isPro = plan === "pro";
     var floatingMark = isPro ? "&#128736;" : "+";
     var config = isPro ? {
-      price: "$5.00",
-      subtitle: "Monthly Stripe subscription",
+      price: "$2.50",
+      subtitle: "With code PROCREATOR",
       title: "Pro",
       action: actionLabel || "Try Now",
       perks: ["20 AI Credits Every Month", "Includes All Plus Benefits", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1440p - 4K AI Thumbnail Quality", "Premium Giveaways", "Custom Chat Tag", "Premium Looking Website Included"]

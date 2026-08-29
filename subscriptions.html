@@ -1272,6 +1272,13 @@
       align-items:center;
       justify-content:center;
     }
+
+    .pro-creator-offer { display:grid; gap:7px; margin-top:12px; padding:11px 12px; border:1px solid rgba(255,212,103,.42); border-radius:14px; background:linear-gradient(135deg,rgba(255,211,97,.12),rgba(255,255,255,.025)); }
+    .pro-creator-offer-label { color:#ffe29a; font-size:9px; font-weight:950; letter-spacing:.1em; text-transform:uppercase; }
+    .pro-creator-offer-row { display:flex; align-items:center; justify-content:space-between; gap:9px; }
+    .pro-creator-offer-copy { color:#fff4d5; font-size:11px; font-weight:850; line-height:1.25; }
+    .pro-creator-offer-code { border:1px solid rgba(255,229,158,.68); border-radius:9px; padding:6px 8px; color:#2b1900; background:linear-gradient(135deg,#fff0b0,#e9b43f); font-size:10px; font-weight:950; letter-spacing:.06em; cursor:pointer; }
+    .pro-creator-offer-code:active { transform:translateY(1px); }
     .pill-row:empty { display: none; }
     .plan-title { margin-top: 7px; font-size: clamp(28px, 2.55vw, 38px); line-height: .95; }
     .plan-subtitle { margin-top: 8px; line-height: 1.5; }
@@ -1554,6 +1561,10 @@
                 <div class="price-sub" data-membership-price-sub="pro">Per month</div>
                 <div class="price-save" data-membership-save="pro"></div>
               </div>
+              <div class="pro-creator-offer">
+                <div class="pro-creator-offer-label">Creator discount</div>
+                <div class="pro-creator-offer-row"><span class="pro-creator-offer-copy" id="proCreatorOfferCopy">50% off monthly: $5.00 to $2.50</span><button class="pro-creator-offer-code" id="proCreatorOfferCode" type="button" title="Copy promo code">PROCREATOR</button></div>
+              </div>
             </div>
 
             <ul class="subscription-perks" aria-label="Pro plan perks">
@@ -1714,6 +1725,8 @@
       var proTokenPerkIcon = document.getElementById("proTokenPerkIcon");
       var proTokenPerkTitle = document.getElementById("proTokenPerkTitle");
       var proTokenPerkCopy = document.getElementById("proTokenPerkCopy");
+      var proCreatorOfferCopy = document.getElementById("proCreatorOfferCopy");
+      var proCreatorOfferCode = document.getElementById("proCreatorOfferCode");
       var billingInterval = "month";
       var membershipPricing = null;
         var loginRedirectTimer = 0;
@@ -1740,7 +1753,8 @@
           priceValues.forEach(function(element) {
             var plan = element.getAttribute("data-membership-price");
             var price = membershipPricing && membershipPricing[plan] && membershipPricing[plan][billingInterval];
-            if (price) element.textContent = formatMembershipPrice(price);
+            if (plan === "pro") element.textContent = billingInterval === "year" ? "$47.49" : "$2.50";
+            else if (price) element.textContent = formatMembershipPrice(price);
           });
           priceSubtitles.forEach(function(element) {
             element.textContent = billingInterval === "year" ? "Per year" : "Per month";
@@ -1750,6 +1764,7 @@
           if (proTokenPerkIcon) proTokenPerkIcon.textContent = isAnnualPro ? "240" : "20";
           if (proTokenPerkTitle) proTokenPerkTitle.textContent = isAnnualPro ? "240 AI Credits Every Year" : "20 AI Credits Every Month";
           if (proTokenPerkCopy) proTokenPerkCopy.textContent = isAnnualPro ? "All 240 AI credits are added instantly after your successful annual Pro payment." : "A fresh 20 AI credits are added after every successful Pro monthly payment.";
+          if (proCreatorOfferCopy) proCreatorOfferCopy.textContent = isAnnualPro ? "$2.50 off annual: $49.99 to $47.49" : "50% off monthly: $5.00 to $2.50";
           priceSavings.forEach(function(element) {
             var plan = element.getAttribute("data-membership-save");
             var monthlyPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan].month;
@@ -1761,6 +1776,13 @@
             element.style.display = billingInterval === "year" && savingPercent > 0 ? "inline-block" : "none";
           });
         }
+
+        if (proCreatorOfferCode) proCreatorOfferCode.addEventListener("click", function() {
+          var code = "PROCREATOR";
+          var fallback = function() { proCreatorOfferCode.textContent = "Copied!"; window.setTimeout(function(){ proCreatorOfferCode.textContent = code; }, 1600); };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(fallback).catch(fallback);
+          else fallback();
+        });
 
         async function loadMembershipPricing() {
           try {
