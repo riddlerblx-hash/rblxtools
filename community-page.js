@@ -486,6 +486,19 @@
         "</article>"
       );
     }).join("");
+    focusRequestedCommunityPost();
+  }
+
+  function focusRequestedCommunityPost() {
+    var postId = String(window.location.hash || "").replace(/^#post-/, "").trim();
+    if (!postId) return;
+    window.setTimeout(function () {
+      var post = document.getElementById("post-" + postId);
+      if (!post) return;
+      post.classList.add("community-post-notification-target");
+      post.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.setTimeout(function () { post.classList.remove("community-post-notification-target"); }, 2200);
+    }, 0);
   }
 
   async function fetchJson(url, options) {

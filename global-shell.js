@@ -113,7 +113,10 @@
     chatMessageRefreshTimer: null,
     chatSocketBooting: false,
     chatReplyTo: null,
-    authUiSignature: ""
+    authUiSignature: "",
+    communityNotifications: [],
+    communityUnreadCount: 0,
+    notificationsForUserId: ""
   };
 
   window.__rblxShellState = shellState;
@@ -1115,10 +1118,14 @@
       var links = items.map(function (item) {
         var normalizedHref = normalizePath(item.href).replace("./", "/");
         var active = currentPath.endsWith(normalizedHref) || currentPath.endsWith(normalizedHref.slice(1));
+        var communityBadge = item.href === "./community" && shellState.communityUnreadCount > 0
+          ? '<span class="rblx-shell-nav-notification-badge" aria-label="' + shellState.communityUnreadCount + ' unread community notifications">' + (shellState.communityUnreadCount > 99 ? '99+' : shellState.communityUnreadCount) + '</span>'
+          : '';
         return (
           '<a class="rblx-shell-nav-link' + (active ? ' is-active' : '') + '" href="' + item.href + '">' +
             '<span class="rblx-shell-nav-icon">' + getNavIcon(item.icon) + '</span>' +
             '<span>' + escapeHtml(item.label) + '</span>' +
+            communityBadge +
             '<span class="rblx-shell-nav-tooltip">' + escapeHtml(item.label) + '</span>' +
           "</a>"
         );
@@ -1221,6 +1228,16 @@
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
+          '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
+            '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
+              '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 10.5a6 6 0 0 0-12 0c0 7-2.5 7-2.5 8.5h17C20.5 17.5 18 17.5 18 10.5ZM9.5 21h5"></path></svg>' +
+              (shellState.communityUnreadCount > 0 ? '<span class="rblx-shell-notification-count">' + (shellState.communityUnreadCount > 99 ? '99+' : shellState.communityUnreadCount) + '</span>' : '') +
+            '</summary>' +
+            '<div class="rblx-shell-notification-panel">' +
+              '<div class="rblx-shell-notification-head"><strong>Notifications</strong><button type="button" data-shell-notifications-read-all="true">Mark all read</button></div>' +
+              '<div class="rblx-shell-notification-list" id="rblxShellNotificationList"></div>' +
+            '</div>' +
+          '</details>' +
           '<details class="rblx-shell-profile-menu">' +
             '<summary class="rblx-shell-profile-menu-summary" aria-label="Open account menu">' +
               '<span class="rblx-shell-profile-card' + (isPro ? ' is-pro' : (isPlus ? ' is-plus' : '')) + '">' +
@@ -3294,6 +3311,69 @@
       applyCollapsedState(document.body);
     });
   }
+
+  function formatCommunityNotificationCategory(category) {
+    var labels = { announcement: "Announcement", changelog: "Changelog", "known-issue": "Known issue" };
+    return labels[String(category || "").toLowerCase()] || "Community update";
+  }
+
+  function renderCommunityNotifications() {
+    var list = document.getElementById("rblxShellNotificationList");
+    if (list) {
+      var items = Array.isArray(shellState.communityNotifications) ? shellState.communityNotifications : [];
+      list.innerHTML = items.length
+        ? items.map(function (item) {
+            return '<a class="rblx-shell-notification-item' + (item.read ? '' : ' is-unread') + '" href="' + escapeHtml(item.href || './community') + '" data-shell-notification-post="' + escapeHtml(item.id || '') + '">' +
+              '<span class="rblx-shell-notification-type">' + escapeHtml(formatCommunityNotificationCategory(item.category)) + '</span>' +
+              '<strong>' + escapeHtml(item.title || 'Official community update') + '</strong>' +
+              (item.read ? '' : '<span class="rblx-shell-notification-new">New</span>') +
+            '</a>';
+          }).join('')
+        : '<div class="rblx-shell-notification-empty">You are all caught up.</div>';
+    }
+    var navScroll = document.getElementById("rblxShellNavScroll");
+    if (navScroll) navScroll.innerHTML = buildNavMarkup();
+  }
+
+  async function refreshCommunityNotifications() {
+    var currentUser = shellState.currentUser || {};
+    if (!currentUser.loggedIn || !currentUser.userId) {
+      shellState.communityNotifications = [];
+      shellState.communityUnreadCount = 0;
+      shellState.notificationsForUserId = "";
+      renderCommunityNotifications();
+      return;
+    }
+    var requestedUserId = String(currentUser.userId);
+    try {
+      var response = await fetch(API_BASE + "/api/community-notifications", {
+        credentials: "include",
+        headers: { Authorization: "Bearer " + getToken() }
+      });
+      var payload = await response.json().catch(function () { return null; });
+      if (!response.ok || String(shellState.currentUser && shellState.currentUser.userId || "") !== requestedUserId) return;
+      shellState.communityNotifications = Array.isArray(payload && payload.items) ? payload.items : [];
+      shellState.communityUnreadCount = Math.max(0, Number(payload && payload.unreadCount) || 0);
+      shellState.notificationsForUserId = requestedUserId;
+      renderCommunityNotifications();
+    } catch (_error) {
+      // Keep the rest of the shell available if notifications are temporarily unavailable.
+    }
+  }
+
+  async function markCommunityNotificationsRead(postId, markAll) {
+    if (!shellState.currentUser || !shellState.currentUser.loggedIn) return;
+    try {
+      await fetch(API_BASE + "/api/community-notifications/read", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() },
+        body: JSON.stringify(markAll ? { all: true } : { postId: postId })
+      });
+      await refreshCommunityNotifications();
+    } catch (_error) {}
+  }
+
   function updateAuthUi(state) {
     var auth = document.getElementById("rblxShellAuth");
     var status = document.getElementById("rblxShellStatus");
@@ -3329,6 +3409,7 @@
       mobileAccountLink.classList.toggle("is-primary", !state.loggedIn);
     }
     auth.innerHTML = buildAuthMarkup().replace('<div class="rblx-shell-auth" id="rblxShellAuth">', "").replace(/<\/div>$/, "");
+    refreshCommunityNotifications();
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.hidden = !shellState.isAdmin;
       shellState.chatAdminButton.style.display = shellState.isAdmin ? "inline-flex" : "none";
@@ -4182,6 +4263,20 @@
     document.addEventListener("click", function (event) {
       var profileMenu = document.querySelector(".rblx-shell-profile-menu[open]");
       if (profileMenu && !profileMenu.contains(event.target)) profileMenu.open = false;
+      var markAllTrigger = event.target && event.target.closest ? event.target.closest("[data-shell-notifications-read-all]") : null;
+      if (markAllTrigger) {
+        event.preventDefault();
+        markCommunityNotificationsRead("", true);
+        return;
+      }
+      var notificationLink = event.target && event.target.closest ? event.target.closest("[data-shell-notification-post]") : null;
+      if (notificationLink) {
+        event.preventDefault();
+        var destination = notificationLink.getAttribute("href") || "./community";
+        markCommunityNotificationsRead(notificationLink.getAttribute("data-shell-notification-post") || "", false)
+          .finally(function () { window.location.href = destination; });
+        return;
+      }
       var logoutTrigger = event.target && event.target.closest ? event.target.closest("[data-shell-logout]") : null;
       if (!logoutTrigger) return;
       event.preventDefault();
@@ -4196,6 +4291,7 @@
     loadPublicModerationState();
     initMembershipRefresh();
     initSiteMaintenancePolling();
+    window.setInterval(refreshCommunityNotifications, 60000);
     window.addEventListener("resize", renderChatRainOverlay);
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.addEventListener("click", openAdminWindow);

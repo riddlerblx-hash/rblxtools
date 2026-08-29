@@ -42,6 +42,10 @@ function getCommunityPostsPath(baseDir) {
   return path.join(baseDir, "community-posts.json");
 }
 
+function getCommunityNotificationStatePath(baseDir) {
+  return path.join(baseDir, "community-notification-state.json");
+}
+
 function getSiteSettingsPath(baseDir) {
   return path.join(baseDir, "site-settings.json");
 }
@@ -74,6 +78,33 @@ function writeCommunityPosts(baseDir, posts) {
     JSON.stringify(sortCommunityPosts(posts), null, 2) + "\n",
     "utf8"
   );
+}
+
+function readCommunityNotificationState(baseDir) {
+  const filePath = getCommunityNotificationStatePath(baseDir);
+  ensureJsonFile(filePath, { users: {} });
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    return parsed && typeof parsed === "object" && parsed.users && typeof parsed.users === "object"
+      ? { users: parsed.users }
+      : { users: {} };
+  } catch (_error) {
+    return { users: {} };
+  }
+}
+
+function writeCommunityNotificationState(baseDir, state) {
+  fs.writeFileSync(
+    getCommunityNotificationStatePath(baseDir),
+    JSON.stringify({ users: state?.users && typeof state.users === "object" ? state.users : {} }, null, 2) + "\n",
+    "utf8"
+  );
+}
+
+function getOfficialNotificationPosts(baseDir) {
+  return sortCommunityPosts(readCommunityPosts(baseDir))
+    .map(normalizePostForStorage)
+    .filter((post) => post.authorIsAdmin && (["announcement", "changelog", "known-issue"].includes(post.category) || (post.category === "bug-report" && post.knownIssue)));
 }
 
 function readSiteSettings(baseDir) {
@@ -368,6 +399,51 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       return res.json({ ok: true, posts: posts.map((post) => buildPublicCommunityPost(post, viewerId)) });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Could not load community posts." });
+    }
+  });
+
+  app.get("/api/community-notifications", async (req, res) => {
+    try {
+      const user = await requireAuthenticatedUser(req);
+      const userId = String(user?.id || "").trim();
+      if (!userId) return res.status(401).json({ error: "Log in first." });
+      const state = readCommunityNotificationState(baseDir);
+      const userState = state.users[userId] && typeof state.users[userId] === "object" ? state.users[userId] : {};
+      const readPostIds = new Set(Array.isArray(userState.readPostIds) ? userState.readPostIds.map(String) : []);
+      const items = getOfficialNotificationPosts(baseDir).slice(0, 40).map((post) => ({
+        id: String(post.id || ""),
+        title: String(post.title || "Official update"),
+        category: post.knownIssue ? "known-issue" : normalizeCategory(post.category),
+        publishedAt: String(post.publishedAt || post.createdAt || ""),
+        read: readPostIds.has(String(post.id || "")),
+        href: "./community#post-" + encodeURIComponent(String(post.id || "")),
+      }));
+      return res.json({ ok: true, items, unreadCount: items.filter((item) => !item.read).length });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not load notifications." });
+    }
+  });
+
+  app.post("/api/community-notifications/read", async (req, res) => {
+    try {
+      const user = await requireAuthenticatedUser(req);
+      const userId = String(user?.id || "").trim();
+      if (!userId) return res.status(401).json({ error: "Log in first." });
+      const officialPostIds = getOfficialNotificationPosts(baseDir).map((post) => String(post.id || "")).filter(Boolean);
+      const requestedPostId = String(req.body?.postId || "").trim();
+      const markAll = Boolean(req.body?.all);
+      if (!markAll && (!requestedPostId || !officialPostIds.includes(requestedPostId))) {
+        return res.status(400).json({ error: "Choose a valid notification." });
+      }
+      const state = readCommunityNotificationState(baseDir);
+      const current = state.users[userId] && typeof state.users[userId] === "object" ? state.users[userId] : {};
+      const readPostIds = new Set(Array.isArray(current.readPostIds) ? current.readPostIds.map(String) : []);
+      (markAll ? officialPostIds : [requestedPostId]).forEach((id) => readPostIds.add(id));
+      state.users[userId] = { readPostIds: Array.from(readPostIds).filter((id) => officialPostIds.includes(id)).slice(-250), updatedAt: new Date().toISOString() };
+      writeCommunityNotificationState(baseDir, state);
+      return res.json({ ok: true });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || "Could not mark notifications as read." });
     }
   });
 
