@@ -170,6 +170,7 @@
       function setStatus(message, error) { status.textContent = message || ''; status.classList.toggle('error', Boolean(error)); }
       function showGate(message) { workspace.hidden = true; gate.classList.add('visible'); gateMessage.textContent = message; }
       function getCachedUser() { try { var raw = localStorage.getItem('rblxtools_auth_user'); return raw ? JSON.parse(raw) : null; } catch (_error) { return null; } }
+      function cacheCurrentUser(user) { try { if (user && typeof user === 'object') localStorage.setItem('rblxtools_auth_user', JSON.stringify(user)); } catch (_error) {} }
       function getHistoryCacheKey() { var cached = getCachedUser() || {}; return HISTORY_CACHE_KEY + ':' + String(cached.id || cached.userId || cached.email || 'guest'); }
       function readCachedHistory() { try { var items = JSON.parse(localStorage.getItem(getHistoryCacheKey()) || '[]'); return Array.isArray(items) ? items : []; } catch (_error) { return []; } }
       function historyExpiresAt(item) { var raw = item && (item.createdAt || item.created_at); var created = Number(raw); if (!Number.isFinite(created)) created = Date.parse(raw); return (Number.isFinite(created) ? created : Date.now()) + HISTORY_TTL; }
@@ -299,14 +300,14 @@
       async function verifyAccess() {
         var cachedUser = getCachedUser();
         if (cachedUser) {
-          configureEntitlements(cachedUser); setTokenBalance(cachedUser.aiTokens); gate.classList.remove('visible'); workspace.hidden = false; loadHistory();
+          configureEntitlements(cachedUser); setTokenBalance(cachedUser.aiTokens); gate.classList.remove('visible'); workspace.hidden = false;
         }
         try {
           var response = await fetch('/auth/session', { credentials:'include', headers:{ Authorization:'Bearer ' + getToken() } });
           var payload = await response.json().catch(function () { return null; });
           var user = payload && (payload.user || payload);
           if (!response.ok || !user) throw new Error('Log in to use AI Thumbnail Studio.');
-          configureEntitlements(user); setTokenBalance(user.aiTokens);
+          cacheCurrentUser(user); configureEntitlements(user); setTokenBalance(user.aiTokens);
           gate.classList.remove('visible'); workspace.hidden = false; loadHistory();
         } catch (error) { showGate(error.message || 'Could not verify account access.'); setTimeout(function () { window.location.href = './login'; }, 1000); }
       }

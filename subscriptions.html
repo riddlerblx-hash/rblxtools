@@ -1887,7 +1887,11 @@
       }
 
       async function apiRequest(path, options) {
-        var response = await fetch(API_BASE + path, options || {});
+        // The account token is also stored in an HttpOnly cookie.  Always send
+        // it so a valid signed-in session still works if localStorage is stale
+        // or was cleared by the browser.
+        var requestOptions = Object.assign({ credentials: "include" }, options || {});
+        var response = await fetch(API_BASE + path, requestOptions);
         var contentType = response.headers.get("content-type") || "";
         var payload = null;
 

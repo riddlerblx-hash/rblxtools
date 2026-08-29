@@ -37,6 +37,8 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const AUTH_USERS_TABLE = process.env.AUTH_USERS_TABLE || "member_accounts";
 const AI_TOKEN_PURCHASES_TABLE = process.env.AI_TOKEN_PURCHASES_TABLE || "ai_token_purchases";
 const AI_THUMBNAIL_HISTORY_TABLE = process.env.AI_THUMBNAIL_HISTORY_TABLE || "ai_thumbnail_history";
+const AI_THUMBNAIL_HISTORY_PATH = path.join(__dirname, "ai-thumbnail-history.json");
+const AI_THUMBNAIL_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MODERATION_ACTIONS_TABLE = process.env.MODERATION_ACTIONS_TABLE || "member_moderation_actions";
 const DEVICE_LINKS_TABLE = process.env.DEVICE_LINKS_TABLE || "member_device_links";
 const AUTH_JWT_SECRET = String(process.env.AUTH_JWT_SECRET || "");
@@ -471,19 +473,104 @@ function buildAIThumbnailHistoryRecord(row) {
   };
 }
 
+function pruneAIThumbnailHistory(items, now = Date.now()) {
+  return (Array.isArray(items) ? items : [])
+    .filter((item) => {
+      const timestamp = Date.parse(String(item?.createdAt || item?.created_at || ""));
+      return item?.id && Number.isFinite(timestamp) && timestamp >= now - AI_THUMBNAIL_HISTORY_RETENTION_MS;
+    })
+    .sort((left, right) => Date.parse(String(right.createdAt || 0)) - Date.parse(String(left.createdAt || 0)))
+    .slice(0, 50);
+}
+
+function readPersistentAIThumbnailHistory() {
+  try {
+    if (!fs.existsSync(AI_THUMBNAIL_HISTORY_PATH)) return { users: {} };
+    const payload = JSON.parse(fs.readFileSync(AI_THUMBNAIL_HISTORY_PATH, "utf8"));
+    const users = payload && typeof payload.users === "object" && payload.users ? payload.users : {};
+    let changed = false;
+    Object.keys(users).forEach((userId) => {
+      const pruned = pruneAIThumbnailHistory(users[userId]);
+      if (pruned.length !== (Array.isArray(users[userId]) ? users[userId].length : 0)) changed = true;
+      users[userId] = pruned;
+    });
+    const result = { users };
+    if (changed) fs.writeFileSync(AI_THUMBNAIL_HISTORY_PATH, JSON.stringify(result) + "\n", "utf8");
+    return result;
+  } catch (error) {
+    console.error("[AI THUMBNAIL HISTORY] Could not read local backup:", error.message);
+    return { users: {} };
+  }
+}
+
+function writePersistentAIThumbnailHistory(payload) {
+  try {
+    fs.writeFileSync(AI_THUMBNAIL_HISTORY_PATH, JSON.stringify(payload) + "\n", "utf8");
+  } catch (error) {
+    console.error("[AI THUMBNAIL HISTORY] Could not write local backup:", error.message);
+  }
+}
+
+function getPersistentAIThumbnailHistory(userId) {
+  const payload = readPersistentAIThumbnailHistory();
+  return pruneAIThumbnailHistory(payload.users[String(userId)] || []);
+}
+
+function savePersistentAIThumbnailHistory(userId, item) {
+  if (!item?.id) return;
+  const payload = readPersistentAIThumbnailHistory();
+  const key = String(userId);
+  const previous = Array.isArray(payload.users[key]) ? payload.users[key] : [];
+  payload.users[key] = pruneAIThumbnailHistory([item, ...previous.filter((entry) => String(entry?.id) !== String(item.id))]);
+  writePersistentAIThumbnailHistory(payload);
+}
+
+function updatePersistentAIThumbnailHistory(userId, historyId, updates) {
+  const payload = readPersistentAIThumbnailHistory();
+  const key = String(userId);
+  const previous = Array.isArray(payload.users[key]) ? payload.users[key] : [];
+  payload.users[key] = previous.map((item) => String(item?.id) === String(historyId) ? { ...item, ...updates } : item);
+  writePersistentAIThumbnailHistory(payload);
+}
+
+function deletePersistentAIThumbnailHistory(userId, historyId) {
+  const payload = readPersistentAIThumbnailHistory();
+  const key = String(userId);
+  payload.users[key] = (Array.isArray(payload.users[key]) ? payload.users[key] : [])
+    .filter((item) => String(item?.id) !== String(historyId));
+  writePersistentAIThumbnailHistory(payload);
+}
+
 async function saveAIThumbnailHistory(userId, payload) {
-  const rows = await supabaseRequest(buildTablePath(AI_THUMBNAIL_HISTORY_TABLE), {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
-    body: JSON.stringify({
-      user_id: userId,
-      prompt: cleanAIThumbnailText(payload.prompt, 2000),
-      reference_images: Array.isArray(payload.references) ? payload.references : [],
-      image_data_url: String(payload.imageDataUrl || ""),
-      download_filename: cleanAIThumbnailText(payload.downloadFileName, 180) || "rblxtools-ai-thumbnail.png",
-    }),
-  });
-  return Array.isArray(rows) ? buildAIThumbnailHistoryRecord(rows[0]) : null;
+  const fallback = {
+    id: `local-${randomUUID()}`,
+    prompt: cleanAIThumbnailText(payload.prompt, 2000),
+    references: Array.isArray(payload.references) ? payload.references : [],
+    imageDataUrl: String(payload.imageDataUrl || ""),
+    downloadFileName: cleanAIThumbnailText(payload.downloadFileName, 180) || "rblxtools-ai-thumbnail.png",
+    feedback: "",
+    createdAt: new Date().toISOString(),
+  };
+  let item = fallback;
+  try {
+    const rows = await supabaseRequest(buildTablePath(AI_THUMBNAIL_HISTORY_TABLE), {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        user_id: userId,
+        prompt: fallback.prompt,
+        reference_images: fallback.references,
+        image_data_url: fallback.imageDataUrl,
+        download_filename: fallback.downloadFileName,
+      }),
+    });
+    const saved = Array.isArray(rows) ? buildAIThumbnailHistoryRecord(rows[0]) : null;
+    if (saved) item = saved;
+  } catch (error) {
+    console.warn("Could not save AI thumbnail history to Supabase; using local backup:", error.message);
+  }
+  savePersistentAIThumbnailHistory(userId, item);
+  return item;
 }
 
 async function alignAIClothingReferenceToOutput(referenceTemplateBuffer) {
@@ -6529,10 +6616,31 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
 app.get("/ai/thumbnail-history", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    const rows = await supabaseRequest(
-      buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?user_id=eq.${encodeURIComponent(user.id)}&order=created_at.desc&limit=50&select=id,prompt,reference_images,image_data_url,download_filename,feedback,created_at`)
-    );
-    return res.json({ ok: true, items: (Array.isArray(rows) ? rows : []).map(buildAIThumbnailHistoryRecord).filter(Boolean) });
+    const retentionCutoff = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)).toISOString();
+    const localItems = getPersistentAIThumbnailHistory(user.id);
+    // History is account-owned and retained for 30 days. Remove expired rows
+    // while loading, so old chats cannot reappear after a server restart.
+    await supabaseRequest(
+      buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?user_id=eq.${encodeURIComponent(user.id)}&created_at=lt.${encodeURIComponent(retentionCutoff)}`),
+      { method: "DELETE" }
+    ).catch((error) => console.warn("Could not prune expired AI thumbnail history:", error.message));
+    let databaseItems = [];
+    try {
+      const rows = await supabaseRequest(
+        buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?user_id=eq.${encodeURIComponent(user.id)}&created_at=gte.${encodeURIComponent(retentionCutoff)}&order=created_at.desc&limit=50&select=id,prompt,reference_images,image_data_url,download_filename,feedback,created_at`)
+      );
+      databaseItems = (Array.isArray(rows) ? rows : []).map(buildAIThumbnailHistoryRecord).filter(Boolean);
+      databaseItems.forEach((item) => savePersistentAIThumbnailHistory(user.id, item));
+    } catch (error) {
+      console.warn("Could not load AI thumbnail history from Supabase; using local backup:", error.message);
+    }
+    const merged = new Map();
+    [...databaseItems, ...localItems].forEach((item) => {
+      if (!item?.id) return;
+      const key = String(item.id);
+      merged.set(key, { ...(merged.get(key) || {}), ...item });
+    });
+    return res.json({ ok: true, items: pruneAIThumbnailHistory([...merged.values()]) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load thumbnail history." });
   }
@@ -6542,17 +6650,48 @@ app.patch("/ai/thumbnail-history/:historyId", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
     const historyId = String(req.params.historyId || "").trim();
-    const feedback = ["like", "dislike"].includes(String(req.body?.feedback || "")) ? String(req.body.feedback) : null;
+    const requestedFeedback = String(req.body?.feedback || "");
+    const hasFeedback = ["like", "dislike"].includes(requestedFeedback);
+    const title = cleanAIThumbnailText(req.body?.title, 90);
     if (!historyId) return res.status(400).json({ error: "A history item is required." });
-    const rows = await supabaseRequest(
-      buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?id=eq.${encodeURIComponent(historyId)}&user_id=eq.${encodeURIComponent(user.id)}`),
-      { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ feedback }) }
-    );
-    const item = Array.isArray(rows) ? buildAIThumbnailHistoryRecord(rows[0]) : null;
+    if (!hasFeedback && !title) return res.status(400).json({ error: "Choose feedback or provide a title." });
+    let item = getPersistentAIThumbnailHistory(user.id).find((entry) => String(entry.id) === historyId) || null;
+    if (hasFeedback) {
+      try {
+        const rows = await supabaseRequest(
+          buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?id=eq.${encodeURIComponent(historyId)}&user_id=eq.${encodeURIComponent(user.id)}`),
+          { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ feedback: requestedFeedback }) }
+        );
+        const updated = Array.isArray(rows) ? buildAIThumbnailHistoryRecord(rows[0]) : null;
+        if (updated) item = updated;
+      } catch (error) {
+        console.warn("Could not update AI thumbnail feedback in Supabase:", error.message);
+      }
+    }
     if (!item) return res.status(404).json({ error: "Thumbnail history item not found." });
-    return res.json({ ok: true, item });
+    const updates = {};
+    if (hasFeedback) updates.feedback = requestedFeedback;
+    if (title) updates.title = title;
+    updatePersistentAIThumbnailHistory(user.id, historyId, updates);
+    return res.json({ ok: true, item: { ...item, ...updates } });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not save thumbnail feedback." });
+  }
+});
+
+app.delete("/ai/thumbnail-history/:historyId", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const historyId = String(req.params.historyId || "").trim();
+    if (!historyId) return res.status(400).json({ error: "A history item is required." });
+    await supabaseRequest(
+      buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?id=eq.${encodeURIComponent(historyId)}&user_id=eq.${encodeURIComponent(user.id)}`),
+      { method: "DELETE" }
+    ).catch((error) => console.warn("Could not delete AI thumbnail history from Supabase:", error.message));
+    deletePersistentAIThumbnailHistory(user.id, historyId);
+    return res.json({ ok: true });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete thumbnail history." });
   }
 });
 
