@@ -116,13 +116,13 @@ if (!shellJs.includes("function buildFooterMarkup() {")) {
 }
 
 shellJs = shellJs.replace(
-`          '<main class="rblx-shell-center">' +
+`          '<div class="rblx-shell-center" role="main">' +
             '<div class="rblx-shell-page" id="rblxShellPage"></div>' +
-          "</main>" +`,
-`          '<main class="rblx-shell-center">' +
+          "</div>" +`,
+`          '<div class="rblx-shell-center" role="main">' +
             '<div class="rblx-shell-page" id="rblxShellPage"></div>' +
             buildFooterMarkup() +
-          "</main>" +`
+          "</div>" +`
 );
 
 write("global-shell.js", shellJs);

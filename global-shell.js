@@ -1416,9 +1416,9 @@
               "</div>" +
             "</div>" +
           "</aside>" +
-          '<main class="rblx-shell-center">' +
+          '<div class="rblx-shell-center" role="main">' +
             '<div class="rblx-shell-page" id="rblxShellPage"></div>' +
-          "</main>" +
+          "</div>" +
           '<aside class="rblx-shell-right">' +
             '<div class="rblx-shell-right-inner">' +
               '<div class="rblx-shell-panel-head">' +
