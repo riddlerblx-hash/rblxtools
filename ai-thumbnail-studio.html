@@ -106,12 +106,12 @@
       </form>
       <p class="status" id="status"></p>
     </section>
-    <section class="gate" id="gate"><h2>Admin access only</h2><p id="gateMessage">Checking your account access...</p></section>
+    <section class="gate" id="gate"><h2>Sign in to create thumbnails</h2><p id="gateMessage">Checking your account access...</p></section>
     <section class="token-modal" id="tokenModal" role="dialog" aria-modal="true" aria-labelledby="tokenDialogTitle">
       <div class="token-dialog"><h2 id="tokenDialogTitle">Use 1 AI token?</h2><p>Creating a thumbnail costs 1 AI token. You currently have <strong id="modalTokenBalance">0</strong> AI tokens.</p><div class="token-dialog-actions"><button type="button" id="cancelTokenCharge">Cancel</button><button type="button" class="confirm" id="confirmTokenCharge">Continue</button><button type="button" class="confirm" id="confirmAndHideTokenCharge">Continue &amp; don't ask again</button></div></div>
     </section>
   </main>
-  <script src="./global-shell.js?v=20260828-2"></script>
+  <script src="./global-shell.js?v=20260829-4"></script>
   <script>
     (function () {
       var MAX_REFERENCES = 3;
@@ -266,21 +266,21 @@
       form.addEventListener('submit', function (event) {
         event.preventDefault(); beginGeneration(prompt.value, references.slice(), false);
       });
-      async function verifyAdmin() {
+      async function verifyAccess() {
         var cachedUser = getCachedUser();
-        if (cachedUser && cachedUser.isAdmin) {
+        if (cachedUser) {
           configureEntitlements(cachedUser); setTokenBalance(cachedUser.aiTokens); gate.classList.remove('visible'); workspace.hidden = false; loadHistory();
         }
         try {
           var response = await fetch('/auth/session', { credentials:'include', headers:{ Authorization:'Bearer ' + getToken() } });
           var payload = await response.json().catch(function () { return null; });
           var user = payload && (payload.user || payload);
-          if (!response.ok || !user || !user.isAdmin) throw new Error('This studio is only available to backend-approved admin accounts.');
+          if (!response.ok || !user) throw new Error('Log in to use AI Thumbnail Studio.');
           configureEntitlements(user); setTokenBalance(user.aiTokens);
           gate.classList.remove('visible'); workspace.hidden = false; loadHistory();
-        } catch (error) { showGate(error.message || 'Could not verify admin access.'); setTimeout(function () { window.location.href = './index'; }, 1000); }
+        } catch (error) { showGate(error.message || 'Could not verify account access.'); setTimeout(function () { window.location.href = './login'; }, 1000); }
       }
-      verifyAdmin();
+      verifyAccess();
     }());
   </script>
 </body>

@@ -136,13 +136,13 @@
       title: "AI Tools",
       items: [
         { href: "./ai-clothing-studio", label: "AI Clothing Studio", icon: "ai", adminOnly: true },
-        { href: "./ai-thumbnail-studio", label: "AI Thumbnail Studio", icon: "spark", adminOnly: true }
+        { href: "./ai-thumbnail-studio", label: "AI Thumbnail Studio", icon: "spark" }
       ]
     },
     {
       title: "Store",
       items: [
-        { href: "./ai-tokens", label: "AI Tokens", icon: "spark", adminOnly: true },
+        { href: "./ai-tokens", label: "AI Tokens", icon: "spark" },
         { href: "./subscriptions", label: "Subscriptions", icon: "plan" }
       ]
     },

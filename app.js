@@ -6443,7 +6443,7 @@ app.get("/auth/session", async (req, res) => {
 
 app.post("/ai/generate-thumbnail", async (req, res) => {
   try {
-    const user = await requireAdminUser(req);
+    const user = await requireAuthenticatedUser(req);
     const isPro = isProMember(user);
     const aiTokens = await debitAITokens(user.id, AI_THUMBNAIL_TOKEN_COST);
     let result;
@@ -6500,7 +6500,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
 
 app.get("/ai/thumbnail-history", async (req, res) => {
   try {
-    const user = await requireAdminUser(req);
+    const user = await requireAuthenticatedUser(req);
     const rows = await supabaseRequest(
       buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?user_id=eq.${encodeURIComponent(user.id)}&order=created_at.desc&limit=50&select=id,prompt,reference_images,image_data_url,download_filename,feedback,created_at`)
     );
@@ -6512,7 +6512,7 @@ app.get("/ai/thumbnail-history", async (req, res) => {
 
 app.patch("/ai/thumbnail-history/:historyId", async (req, res) => {
   try {
-    const user = await requireAdminUser(req);
+    const user = await requireAuthenticatedUser(req);
     const historyId = String(req.params.historyId || "").trim();
     const feedback = ["like", "dislike"].includes(String(req.body?.feedback || "")) ? String(req.body.feedback) : null;
     if (!historyId) return res.status(400).json({ error: "A history item is required." });
@@ -7407,11 +7407,11 @@ app.get("/coupon-status", async (req, res) => {
 
 app.get("/store/ai-token-packages", async (req, res) => {
   try {
-    await requireAdminUser(req);
+    await requireAuthenticatedUser(req);
     res.setHeader("Cache-Control", "no-store");
     return res.json({ ok: true, packages: getPublicAITokenPackages() });
   } catch (error) {
-    return res.status(error.statusCode || 403).json({ error: error.message || "Admin access is required." });
+    return res.status(error.statusCode || 403).json({ error: error.message || "Log in to view AI token packages." });
   }
 });
 
@@ -7462,7 +7462,7 @@ app.get("/admin/staff-notes", async (req, res) => {
 app.post("/store/create-ai-token-checkout", async (req, res) => {
   try {
     assertStripePortalConfigured();
-    const user = await requireAdminUser(req);
+    const user = await requireAuthenticatedUser(req);
     const packageDefinition = getAITokenPackage(req.body?.packageKey);
     if (!packageDefinition) {
       return res.status(400).json({ error: "Choose a valid AI token package." });
@@ -9245,10 +9245,10 @@ app.use((error, req, res, next) => {
 
 app.get(["/ai-tokens", "/ai-tokens.html"], async (req, res) => {
   try {
-    await requireAdminUser(req);
+    await requireAuthenticatedUser(req);
     return res.sendFile(path.join(STATIC_ROOT, "ai-tokens.html"));
   } catch (_error) {
-    return res.redirect(302, "/");
+    return res.redirect(302, "/login");
   }
 });
 

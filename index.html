@@ -1201,6 +1201,16 @@
     .tool-feature-list li { color:#cbd7e8; font-size:11px; }
     .tool-footer { margin-top:18px; padding-top:14px; border-top-color:rgba(186,207,239,.12); }
     .tool-action-btn { border-radius:9px; }
+    .tool-category.ai-category { margin-top:48px; padding:34px; border:1px solid rgba(117,166,255,.28); border-radius:20px; background:radial-gradient(circle at 87% 11%,rgba(98,170,255,.24),transparent 26%),radial-gradient(circle at 8% 92%,rgba(255,78,117,.14),transparent 30%),linear-gradient(135deg,rgba(27,47,79,.72),rgba(10,19,34,.7)); }
+    .tool-category.ai-category .tool-category-head { display:flex; align-items:end; justify-content:space-between; gap:18px; }
+    .tool-category.ai-category .tool-category-copy { max-width:54ch; }
+    .tool-grid.ai-grid { grid-template-columns:minmax(0,1fr); }
+    .tool-card.ai-card { min-height:262px; display:grid; grid-template-columns:minmax(0,1fr) minmax(190px,.38fr); column-gap:24px; border-color:rgba(137,190,255,.43) !important; background:linear-gradient(124deg,rgba(46,81,128,.88),rgba(17,30,52,.96) 57%,rgba(15,21,37,.98)) !important; }
+    .tool-card.ai-card::after { content:"✦"; position:absolute; right:28px; bottom:16px; color:rgba(198,229,255,.2); font-size:140px; line-height:1; text-shadow:0 0 50px rgba(94,170,255,.38); }
+    .tool-card.ai-card .tool-head { grid-column:1; }
+    .tool-card.ai-card .tool-title, .tool-card.ai-card .tool-mini, .tool-card.ai-card .tool-copy, .tool-card.ai-card .tool-feature-list, .tool-card.ai-card .tool-footer { grid-column:1; }
+    .tool-card.ai-card .tool-icon { width:52px; height:52px; color:#d8efff; border-color:rgba(158,211,255,.48); background:linear-gradient(145deg,rgba(107,190,255,.32),rgba(40,76,154,.3)); box-shadow:0 0 26px rgba(104,181,255,.22); }
+    .tool-card.ai-card .tool-action-btn { color:#071422; background:linear-gradient(135deg,#d8f4ff,#79bbff); box-shadow:0 10px 24px rgba(91,178,255,.34); }
     .social-grid { gap:13px; }
     .social-card { min-height:190px; padding:20px !important; border-radius:18px !important; }
     .social-icon { width:42px; height:42px; border-radius:13px; }
@@ -1440,6 +1450,38 @@
           </div>
         </div>
 
+        <div class="tool-category ai-category">
+          <div class="tool-category-head">
+            <div>
+              <h3 class="tool-category-title">AI Tools</h3>
+              <p class="tool-category-copy">Turn a written idea into a polished Roblox thumbnail with your AI token balance. Bring up to three reference images to guide the result.</p>
+            </div>
+          </div>
+
+          <div class="tool-grid ai-grid">
+            <a class="tool-card ai-card" href="./ai-thumbnail-studio">
+              <div class="tool-head">
+                <span class="tool-pill">AI Generation</span>
+                <div class="tool-icon">
+                  <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l2.9 9.1L36 18l-9.1 2.9L24 30l-2.9-9.1L12 18l9.1-2.9L24 6z"></path><path d="M37 28l1.8 5.2L44 35l-5.2 1.8L37 42l-1.8-5.2L30 35l5.2-1.8L37 28z"></path><path d="M11 29l1.5 4.5L17 35l-4.5 1.5L11 41l-1.5-4.5L5 35l4.5-1.5L11 29z"></path></svg>
+                </div>
+              </div>
+              <h3 class="tool-title">AI Thumbnail Studio</h3>
+              <div class="tool-mini">1 AI TOKEN PER GENERATION</div>
+              <p class="tool-copy">Describe the thumbnail you want, add references, choose a ratio, and generate a ready-to-download image from one focused workspace.</p>
+              <ul class="tool-feature-list">
+                <li>Prompt-led thumbnail generation</li>
+                <li>Up to 3 reference images</li>
+                <li>Saved thumbnail chat history</li>
+              </ul>
+              <div class="tool-footer">
+                <div class="tool-footer-label">AI Thumbnail Studio</div>
+                <span class="tool-action-btn">Open Studio</span>
+              </div>
+            </a>
+          </div>
+        </div>
+
         <div class="tool-category">
           <div class="tool-category-head">
             <div>
@@ -1596,7 +1638,7 @@
   </div>
 
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20260829-3"></script>
+<script src="./global-shell.js?v=20260829-4"></script>
   <script>
     (function () {
       const API_BASE = window.location.origin;
