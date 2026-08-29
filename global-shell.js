@@ -15,6 +15,7 @@
   var TOOL_ACTIVITY_CACHE_KEY = "rblxtools_tool_activity_cache";
   var CHAT_CACHE_KEY = "rblxtools_shell_chat_cache_v1";
   var COMMUNITY_NOTIFICATION_READ_KEY = "rblxtools_community_notification_reads_v1";
+  var COMMUNITY_RECENTLY_SEEN_KEY = "rblxtools_community_recently_seen_v1";
   var LEFT_STATE_KEY = "rblxtools_shell_left_collapsed";
   var RIGHT_STATE_KEY = "rblxtools_shell_right_collapsed";
   var GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
@@ -3362,6 +3363,13 @@
     return { items: items, unreadCount: items.filter(function (item) { return !item.read; }).length };
   }
 
+  function rememberCommunityPostsSeen() {
+    var unseenPostIds = shellState.communityNotifications.filter(function (item) { return !item.read && item.id; }).map(function (item) { return String(item.id); });
+    var expiresAt = Date.now() + 60000;
+    try { sessionStorage.setItem(COMMUNITY_RECENTLY_SEEN_KEY, JSON.stringify({ ids: unseenPostIds, expiresAt: expiresAt })); } catch (_storageError) {}
+    window.dispatchEvent(new CustomEvent("rblxtools-community-posts-seen", { detail: { ids: unseenPostIds, expiresAt: expiresAt } }));
+  }
+
   function renderCommunityNotifications() {
     var bellCount = document.getElementById("rblxShellNotificationCount");
     if (bellCount) {
@@ -3414,6 +3422,7 @@
       var currentPath = normalizePath(window.location.pathname);
       var visitReadKey = requestedUserId + ":" + currentPath;
       if ((currentPath.endsWith("/community") || currentPath.endsWith("/community.html")) && shellState.communityUnreadCount > 0 && shellState.communityVisitReadAttempt !== visitReadKey) {
+        rememberCommunityPostsSeen();
         shellState.communityVisitReadAttempt = visitReadKey;
         await markCommunityNotificationsRead("", true);
         return;
@@ -4349,6 +4358,15 @@
         markCommunityNotificationsRead(notificationLink.getAttribute("data-shell-notification-post") || "", false)
           .finally(function () { window.location.href = destination; });
         return;
+      }
+      var communityLink = event.target && event.target.closest ? event.target.closest('a[href="./community"], a[href="./community.html"]') : null;
+      if (communityLink && shellState.communityUnreadCount > 0) {
+        // Clear the indicator immediately; the server marks the same updates
+        // read as the Community page opens.
+        rememberCommunityPostsSeen();
+        shellState.communityUnreadCount = 0;
+        renderCommunityNotifications();
+        markCommunityNotificationsRead("", true);
       }
       var logoutTrigger = event.target && event.target.closest ? event.target.closest("[data-shell-logout]") : null;
       if (!logoutTrigger) return;

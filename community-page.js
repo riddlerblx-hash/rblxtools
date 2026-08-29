@@ -487,6 +487,7 @@
       );
     }).join("");
     focusRequestedCommunityPost();
+    applyRecentlySeenPostHighlights();
   }
 
   function focusRequestedCommunityPost() {
@@ -499,6 +500,36 @@
       post.scrollIntoView({ behavior: "smooth", block: "start" });
       window.setTimeout(function () { post.classList.remove("community-post-notification-target"); }, 2200);
     }, 0);
+  }
+
+  function applyRecentlySeenPostHighlights() {
+    var key = "rblxtools_community_recently_seen_v1";
+    var saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem(key) || "null"); } catch (_error) {}
+    var ids = saved && Array.isArray(saved.ids) ? saved.ids.map(String) : [];
+    var expiresAt = Number(saved && saved.expiresAt) || 0;
+    var remaining = expiresAt - Date.now();
+    if (!ids.length || remaining <= 0) {
+      try { sessionStorage.removeItem(key); } catch (_error) {}
+      return;
+    }
+    ids.forEach(function (postId) {
+      var post = document.getElementById("post-" + postId);
+      if (!post) return;
+      post.classList.add("community-post-recently-seen");
+      var head = post.querySelector(".community-post-head-main");
+      if (head && !head.querySelector(".community-post-new-label")) {
+        var label = document.createElement("span");
+        label.className = "community-post-new-label";
+        label.textContent = "New";
+        head.appendChild(label);
+      }
+    });
+    window.setTimeout(function () {
+      document.querySelectorAll(".community-post-recently-seen").forEach(function (post) { post.classList.remove("community-post-recently-seen"); });
+      document.querySelectorAll(".community-post-new-label").forEach(function (label) { label.remove(); });
+      try { sessionStorage.removeItem(key); } catch (_error) {}
+    }, remaining);
   }
 
   async function fetchJson(url, options) {
@@ -1151,5 +1182,6 @@
     startFeedHeartbeat();
   }
 
+  window.addEventListener("rblxtools-community-posts-seen", applyRecentlySeenPostHighlights);
   init();
 })();
