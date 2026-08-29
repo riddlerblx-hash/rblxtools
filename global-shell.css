@@ -3567,8 +3567,13 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
 /* Tool-page offer rotation: paid members see AI token packs instead of plans they already own. */
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-token-promo {
   border-color: rgba(56, 230, 224, .64) !important;
-  background: radial-gradient(circle at 84% 12%, rgba(56, 230, 224, .25), transparent 28%), radial-gradient(circle at 12% 92%, rgba(91, 144, 255, .18), transparent 30%), linear-gradient(155deg, #123d52, #081022 78%) !important;
+  background: transparent !important;
   box-shadow: inset 0 1px 0 rgba(180, 255, 250, .28), 0 20px 46px rgba(24, 180, 198, .2) !important;
+}
+body.rblx-shell-ready .rblx-shell-page .plus-card.rblx-token-promo-card {
+  border-color: rgba(56, 230, 224, .42) !important;
+  background: radial-gradient(circle at 84% 12%, rgba(56, 230, 224, .24), transparent 28%), radial-gradient(circle at 12% 92%, rgba(91, 144, 255, .18), transparent 30%), linear-gradient(155deg, rgba(17, 57, 75, .98), rgba(8, 16, 34, .99)) !important;
+  box-shadow: inset 0 1px 0 rgba(180, 255, 250, .22), 0 20px 42px rgba(24, 180, 198, .16) !important;
 }
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-token-promo::before,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-token-promo::after { display: none !important; }

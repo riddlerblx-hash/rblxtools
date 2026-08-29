@@ -4073,6 +4073,7 @@
         if (timerId) window.clearTimeout(timerId);
         promo.classList.toggle("rblx-pro-promo", offer.type === "plan" && offer.plan === "pro");
         promo.classList.toggle("rblx-token-promo", offer.type === "token");
+        if (promo.parentElement) promo.parentElement.classList.toggle("rblx-token-promo-card", offer.type === "token");
         promo.innerHTML = offer.type === "token"
           ? buildAiTokenPromoMarkup(offer.pack)
           : buildMembershipPromoMarkup(offer.plan, document.body.classList.contains("rblx-home-page") ? "View" : "Try Now");
