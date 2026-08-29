@@ -349,7 +349,7 @@ function buildPublicSiteStatus(settings) {
   };
 }
 
-function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenticatedUser, isAdminUser, cleanText }) {
+function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenticatedUser, isAdminUser, cleanText, io }) {
   ensureJsonFile(getCommunityPostsPath(baseDir), []);
   ensureJsonFile(getSiteSettingsPath(baseDir), getDefaultSiteSettings());
 
@@ -544,6 +544,9 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const posts = readCommunityPosts(baseDir);
       posts.push(nextPost);
       writeCommunityPosts(baseDir, posts);
+      if (["announcement", "changelog", "known-issue"].includes(nextPost.category) || nextPost.knownIssue) {
+        io?.emit("community-notifications-updated", { postId: nextPost.id });
+      }
       return res.json({ ok: true, message: "Community post published.", post: buildPublicCommunityPost(nextPost, String(adminUser.id || "")) });
     } catch (error) {
       return res.status(error.statusCode || 500).json({ error: error.message || "Could not publish the community post." });
@@ -655,6 +658,9 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
 
       posts[index] = updated;
       writeCommunityPosts(baseDir, posts);
+      if (updated.authorIsAdmin && (["announcement", "changelog", "known-issue"].includes(updated.category) || updated.knownIssue)) {
+        io?.emit("community-notifications-updated", { postId: updated.id });
+      }
       return res.json({ ok: true, message: "Community post updated.", post: buildPublicCommunityPost(updated) });
     } catch (error) {
       return res.status(error.statusCode || 500).json({ error: error.message || "Could not update the community post." });

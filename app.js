@@ -6828,7 +6828,7 @@ app.post("/auth/delete-account", async (req, res) => {
   }
 });
 
-installSiteOpsFeature({ app, baseDir: __dirname, requireAdminUser, requireAuthenticatedUser, isAdminUser, cleanText });
+installSiteOpsFeature({ app, baseDir: __dirname, requireAdminUser, requireAuthenticatedUser, isAdminUser, cleanText, io });
 
 app.get("/admin/member-lookup", async (req, res) => {
   try {

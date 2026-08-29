@@ -2797,6 +2797,10 @@
         applyMembershipPayload(payload);
       });
 
+      shellState.socket.on("community-notifications-updated", function () {
+        refreshCommunityNotifications();
+      });
+
       shellState.socket.on("special-action-result", function (result) {
         if (!result) return;
         if (result.ok === true && (result.type === "claim-drop" || result.type === "chat-rain") && result.awarded && shellState.currentUser) {
@@ -4291,7 +4295,9 @@
     loadPublicModerationState();
     initMembershipRefresh();
     initSiteMaintenancePolling();
-    window.setInterval(refreshCommunityNotifications, 60000);
+    // Socket events update immediately. This short fallback also catches a
+    // notification published while the visitor was briefly disconnected.
+    window.setInterval(refreshCommunityNotifications, 8000);
     window.addEventListener("resize", renderChatRainOverlay);
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.addEventListener("click", openAdminWindow);
