@@ -261,3 +261,17 @@ body.rblx-subscription-store .plans-grid .rblx-membership-promo-floaters span:nt
 body.rblx-subscription-store .plans-grid .plus-card .plus-floaters { z-index:1 !important; }
 body.rblx-subscription-store .plans-grid .plus-card .plus-floater { animation:membershipTierFloat 7.4s ease-in-out infinite !important; }
 @keyframes membershipTierFloat { 0%,100% { transform:translate3d(0,0,0) rotate(-7deg); } 50% { transform:translate3d(0,-11px,0) rotate(7deg); } }
+
+/* AI token offers are intentionally their own teal/blue tier, never a silver Plus card. */
+body.rblx-shell-ready .rblx-shell-page .plus-card.rblx-token-promo-card {
+  border-color: rgba(56, 230, 224, .42) !important;
+  background: radial-gradient(circle at 84% 12%, rgba(56, 230, 224, .24), transparent 28%), radial-gradient(circle at 12% 92%, rgba(91, 144, 255, .18), transparent 30%), linear-gradient(155deg, rgba(17, 57, 75, .98), rgba(8, 16, 34, .99)) !important;
+  box-shadow: inset 0 1px 0 rgba(180, 255, 250, .22), 0 20px 42px rgba(24, 180, 198, .16) !important;
+}
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-token-promo {
+  border-color: rgba(56, 230, 224, .64) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-token-promo::before,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-token-promo::after { display: none !important; }
