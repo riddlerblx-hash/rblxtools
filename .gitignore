@@ -6,5 +6,7 @@ npm-debug.log*
 *.log
 scp
 site-settings.json
+taster-package-offer.json
+taster-package-giveaway.json
 community-posts.json
 chat-history.json
