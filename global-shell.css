@@ -503,6 +503,7 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   align-items: stretch;
   padding: 0;
   min-height: calc(100vh - var(--shell-header-height));
+  transition: grid-template-columns .32s cubic-bezier(.22,.8,.28,1);
 }
 
 .rblx-shell-left,
@@ -519,6 +520,7 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
     linear-gradient(180deg, rgba(19,31,44,0.96), rgba(15,24,34,0.96));
   box-shadow: var(--shell-shadow);
   overflow: visible;
+  transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
 }
 
 .rblx-shell-left {
@@ -576,6 +578,7 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   box-shadow: 0 10px 20px rgba(0,0,0,0.18);
   font-size: 20px;
   line-height: 1;
+  transition: left .32s cubic-bezier(.22,.8,.28,1), right .32s cubic-bezier(.22,.8,.28,1), background .2s ease, box-shadow .2s ease;
 }
 
 .rblx-shell-toggle svg {
@@ -3331,8 +3334,8 @@ body.rblx-shell-ready #rblxShellPage > *::before,
 body.rblx-shell-ready #rblxShellPage > *::after { display:none !important; }
 
 /* A shared, subtle entry motion gives every shell page the same polished arrival as Home. */
-body.rblx-shell-ready #rblxShellPage > * { animation: rblxShellPageEnter .42s cubic-bezier(.22,.8,.28,1) both; }
-@keyframes rblxShellPageEnter { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+body.rblx-shell-ready #rblxShellPage > * { animation: rblxShellPageEnter .32s ease-out both; }
+@keyframes rblxShellPageEnter { from { opacity:0; } to { opacity:1; } }
 @media (prefers-reduced-motion: reduce) { body.rblx-shell-ready #rblxShellPage > * { animation:none; } }
 .rblx-shell-chat-bottom { position:relative; overflow:visible; z-index:3; }
 
