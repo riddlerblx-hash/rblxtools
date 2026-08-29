@@ -1916,13 +1916,13 @@ function reserveTasterPackageCheckout(user) {
     if (entry.status === "pending" && Date.parse(entry.pendingExpiresAt || "") <= now) entry.status = "expired";
   });
   const existing = getTasterPackageEntryForUser(state, user.id);
-  if (existing) {
-    const error = new Error(existing.status === "paid"
-      ? "You have already purchased the one-per-account Taster Package."
-      : "You already have a Taster Package checkout open. Complete or let it expire before trying again.");
+  if (existing?.status === "paid") {
+    const error = new Error("You have already purchased the one-per-account Taster Package.");
     error.statusCode = 409;
     throw error;
   }
+  // An abandoned Stripe Checkout session must not consume the limited offer.
+  if (existing) return existing;
 
   const reservation = {
     id: randomUUID(),
@@ -1993,8 +1993,8 @@ function getPublicAITokenPackages(user) {
     giveawayEntry: Boolean(item.giveawayEntry),
     onePerAccount: Boolean(item.onePerAccount),
     endsAt: item.limited ? offer.endsAt : null,
-    available: !item.limited || (offer.active && !tasterEntry),
-    unavailableReason: item.limited && tasterEntry ? "Already claimed" : item.limited && !offer.active ? "Offer ended" : "",
+    available: !item.limited || (offer.active && tasterEntry?.status !== "paid"),
+    unavailableReason: item.limited && tasterEntry?.status === "paid" ? "Already claimed" : item.limited && !offer.active ? "Offer ended" : "",
   }));
 }
 
