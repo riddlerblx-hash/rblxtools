@@ -235,6 +235,17 @@ body.rblx-shell-ready {
   animation: shellProfileCardGlare 4.8s ease-in-out infinite;
 }
 
+.rblx-shell-profile-card.is-pro {
+  border-color: rgba(255, 194, 67, 0.72);
+  background: radial-gradient(circle at top left, rgba(255, 209, 87, 0.26), transparent 36%), radial-gradient(circle at bottom right, rgba(184, 101, 12, 0.25), transparent 32%), linear-gradient(180deg, rgba(92, 55, 10, 0.66), rgba(35, 24, 8, 0.82));
+  box-shadow: 0 14px 30px rgba(202, 139, 20, 0.28);
+}
+
+.rblx-shell-profile-card.is-pro::after { content:""; position:absolute; inset:-45% -35%; background:linear-gradient(118deg,transparent 40%,rgba(255,236,156,.18) 46%,rgba(255,248,206,.62) 50%,rgba(255,218,100,.18) 54%,transparent 60%); transform:translateX(-60%) skewX(-18deg); mix-blend-mode:screen; animation:shellProfileCardGlare 3.8s ease-in-out infinite; }
+.rblx-shell-profile-card.is-pro .rblx-shell-profile-card-title { background:linear-gradient(115deg,#fff8d3,#e7ad31,#fff2a9,#b97613,#fff2ad); background-size:220% 100%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:shellSilverFlow 3.2s linear infinite; }
+.rblx-shell-profile-card.is-pro .rblx-shell-profile-card-subtitle { color:#ffe6a0; }
+.rblx-shell-profile-card-pro { color:rgba(255,222,113,var(--profile-card-plus-opacity)); filter:drop-shadow(0 0 8px rgba(255,188,49,.55)); }
+
 .rblx-shell-profile-card-pluses {
   position: absolute;
   inset: 0;
@@ -245,6 +256,7 @@ body.rblx-shell-ready {
 .rblx-shell-profile-card.is-plus .rblx-shell-profile-card-pluses {
   opacity: 1;
 }
+.rblx-shell-profile-card.is-pro .rblx-shell-profile-card-pluses { opacity:1; }
 
 .rblx-shell-profile-card-plus {
   position: absolute;
@@ -1043,6 +1055,11 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   font-weight: 900;
   animation: shellSilverFlow 3.2s linear infinite, shellPlanPulse 1.9s ease-in-out infinite;
 }
+
+.rblx-shell-chat-plus-mark.is-pro,
+.rblx-shell-profile-modal.is-pro .rblx-shell-profile-plus-mark { color:#271800; background:linear-gradient(115deg,#fff7c9,#e7af32,#fff3ad,#bd7712,#fff3ae); background-size:220% 100%; box-shadow:0 0 14px rgba(255,189,47,.42); animation:shellSilverFlow 3.2s linear infinite,shellPlanPulse 1.9s ease-in-out infinite; }
+.rblx-shell-chat-name-text.is-pro,
+.rblx-shell-profile-name.is-pro { background:linear-gradient(115deg,#fff8d4,#e9af2f,#fff2ac,#b87510,#fff2ad); background-size:220% 100%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; text-shadow:0 0 14px rgba(255,194,51,.26); animation:shellSilverFlow 3.2s linear infinite; }
 
 .rblx-shell-chat-name-text.is-plus,
 .rblx-shell-profile-name.is-plus {
@@ -2449,6 +2466,7 @@ body.rblx-shell-modal-open {
 .rblx-shell-profile-modal.is-plus .rblx-shell-profile-plus-mark {
   display: inline-flex;
 }
+.rblx-shell-profile-modal.is-pro .rblx-shell-profile-plus-mark { display:inline-flex; min-width:34px; width:auto; padding:0 5px; }
 
 .rblx-shell-profile-plan {
   display: none;
@@ -2459,6 +2477,9 @@ body.rblx-shell-modal-open {
   align-items: center;
   gap: 8px;
 }
+.rblx-shell-profile-plan.is-pro { display:inline-flex; align-items:center; gap:8px; color:#ffe39c; }
+.rblx-shell-profile-modal.is-pro { border-color:rgba(255,194,67,.65); box-shadow:0 24px 64px rgba(194,128,18,.28); }
+.rblx-shell-profile-pro-float { color:rgba(255,215,96,var(--float-opacity)) !important; filter:drop-shadow(0 0 9px rgba(255,188,45,.5)); }
 
 .rblx-shell-profile-badge.is-plus {
   padding: 0;

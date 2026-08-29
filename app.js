@@ -3404,6 +3404,7 @@ async function syncSubscriptionStateForUser(userId, customerId, subscriptionStat
   );
   const stripeActive = isPremiumStatus(subscriptionStatus);
   const premiumActive = stripeActive || Boolean(complimentaryMembership && complimentaryMembership.active);
+  const keepComplimentaryPro = isProMember(currentUser) && String(currentUser.membership_source || "").toLowerCase().includes("complimentary pro");
     const membershipSource = stripeActive && hasComplimentaryData
       ? "stripe + complimentary"
       : stripeActive
@@ -3418,7 +3419,7 @@ async function syncSubscriptionStateForUser(userId, customerId, subscriptionStat
     return updateAuthUserFields(userId, {
       stripe_customer_id: customerId || null,
       premium_active: premiumActive,
-      plan: premiumActive ? normalizeMembershipPlan(membershipFields.plan) : "free",
+      plan: premiumActive ? (keepComplimentaryPro ? "pro" : normalizeMembershipPlan(membershipFields.plan)) : "free",
       stripe_subscription_status: subscriptionStatus || null,
       membership_source: membershipSource,
       ...(hasStripeSnapshotData ? buildStripeMembershipStorageFields(membershipFields) : {}),

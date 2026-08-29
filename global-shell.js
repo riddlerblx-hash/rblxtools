@@ -1216,14 +1216,15 @@
     var subtitle = displayName ? (maskedEmail || "Personal profile") : "Personal profile";
     var avatarUrl = String(currentProfile && currentProfile.avatarUrl || "").trim();
     var avatarFallback = getInitials(displayName || getEmailNamePart(currentUser.email) || currentUser.username || "R");
-    var isPlus = ["plus", "pro"].includes(String(currentUser.plan || "").toLowerCase());
+    var isPro = String(currentUser.plan || "").toLowerCase() === "pro";
+    var isPlus = String(currentUser.plan || "").toLowerCase() === "plus";
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
           '<details class="rblx-shell-profile-menu">' +
             '<summary class="rblx-shell-profile-menu-summary" aria-label="Open account menu">' +
-              '<span class="rblx-shell-profile-card' + (isPlus ? ' is-plus' : '') + '">' +
-                (isPlus ? ('<span class="rblx-shell-profile-card-pluses" aria-hidden="true">' + buildHeaderProfilePlusMarkup() + '</span>') : '') +
+              '<span class="rblx-shell-profile-card' + (isPro ? ' is-pro' : (isPlus ? ' is-plus' : '')) + '">' +
+                ((isPro || isPlus) ? ('<span class="rblx-shell-profile-card-pluses" aria-hidden="true">' + (isPro ? buildHeaderProfileProMarkup() : buildHeaderProfilePlusMarkup()) + '</span>') : '') +
                 '<span class="rblx-shell-profile-card-avatar' + (avatarUrl ? ' has-image' : '') + '">' +
                   (avatarUrl
                     ? ('<img src="' + escapeHtml(avatarUrl) + '" alt="" />')
@@ -1304,6 +1305,14 @@
 
     return specs.map(function (spec) {
       return '<span class="rblx-shell-profile-card-plus" style="--profile-card-plus-left:' + spec[0] + ';--profile-card-plus-top:' + spec[1] + ';--profile-card-plus-size:' + spec[2] + ';--profile-card-plus-delay:' + spec[3] + ';--profile-card-plus-opacity:' + spec[4] + ';">+</span>';
+    }).join("");
+  }
+
+  function buildHeaderProfileProMarkup() {
+    var specs = [["16%", "62%", "10px", "-0.8s", "0.32"], ["34%", "24%", "12px", "-2.0s", "0.42"], ["57%", "68%", "9px", "-1.2s", "0.28"], ["78%", "28%", "11px", "-2.8s", "0.36"]];
+    return specs.map(function (spec, index) {
+      var icon = index % 2 ? "&#128296;" : "&#127959;";
+      return '<span class="rblx-shell-profile-card-plus rblx-shell-profile-card-pro" style="--profile-card-plus-left:' + spec[0] + ';--profile-card-plus-top:' + spec[1] + ';--profile-card-plus-size:' + spec[2] + ';--profile-card-plus-delay:' + spec[3] + ';--profile-card-plus-opacity:' + spec[4] + ';">' + icon + '</span>';
     }).join("");
   }
 
@@ -1636,7 +1645,8 @@
     target.innerHTML = shellState.chatMessages.map(function (message, index) {
       var profile = getMessageProfile(message);
       shellState.profileCache[index] = profile;
-      var isPlus = ["plus", "pro"].includes(String(profile.plan || "").toLowerCase()) || String(profile.badge || "").toLowerCase() === "plus";
+      var isPro = String(profile.plan || "").toLowerCase() === "pro";
+      var isPlus = String(profile.plan || "").toLowerCase() === "plus" || (!isPro && String(profile.badge || "").toLowerCase() === "plus");
       var isSystem = Boolean(profile.system);
       var isTimedOut = Boolean(profile.moderationTimeoutUntil && new Date(profile.moderationTimeoutUntil).getTime() > Date.now());
       var avatarMarkup = profile.avatarUrl
@@ -1644,7 +1654,7 @@
           '<span class="rblx-shell-chat-avatar-fallback" style="display:none;">' + escapeHtml(profile.avatarText) + "</span>"
         : '<span class="rblx-shell-chat-avatar-fallback">' + escapeHtml(profile.avatarText) + "</span>";
       var badgeMarkup = "";
-      var nameClass = isPlus ? ' class="rblx-shell-chat-name-text is-plus"' : ' class="rblx-shell-chat-name-text"';
+      var nameClass = isPro ? ' class="rblx-shell-chat-name-text is-pro"' : (isPlus ? ' class="rblx-shell-chat-name-text is-plus"' : ' class="rblx-shell-chat-name-text"');
       var messageBody = message && message.specialType === "claimDrop" && message.claimDrop
         ? buildClaimDropMessage(message, message.claimDrop)
         : '<div class="rblx-shell-chat-text">' + escapeHtml(message.text) + "</div>";
@@ -1667,7 +1677,7 @@
             '<div class="rblx-shell-chat-name">' +
               '<button class="rblx-shell-chat-name-button" type="button" data-chat-action="profile" data-chat-index="' + index + '">' +
                 badgeMarkup +
-                (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "") +
+                (isPro ? '<span class="rblx-shell-chat-plus-mark is-pro">&#127959;&#128296;</span>' : (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "")) +
                 '<span' + nameClass + '>' + escapeHtml(profile.displayName) + "</span>" +
               "</button>" +
             "</div>" +
@@ -1692,11 +1702,12 @@
     target.innerHTML = safeMessages.map(function (message) {
       var name = escapeHtml(String((message && (message.displayName || message.username || message.name)) || 'Guest'));
       var textValue = escapeHtml(String((message && message.text) || ''));
-      var isPlus = ["plus", "pro"].includes(String((message && message.plan) || '').toLowerCase()) || Boolean(message && message.isPlus);
-      var badgeMarkup = isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "";
+      var isPro = String((message && message.plan) || '').toLowerCase() === 'pro';
+      var isPlus = String((message && message.plan) || '').toLowerCase() === 'plus' || (!isPro && Boolean(message && message.isPlus));
+      var badgeMarkup = isPro ? '<span class="rblx-shell-chat-plus-mark is-pro">&#127959;&#128296;</span>' : (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "");
       return '<article class="rblx-shell-chat-message">' +
         '<div class="rblx-shell-chat-avatar-button"><span class="rblx-shell-chat-avatar"><span class="rblx-shell-chat-avatar-fallback">' + name.charAt(0).toUpperCase() + '</span></span></div>' +
-        '<div><div class="rblx-shell-chat-name">' + badgeMarkup + '<span class="rblx-shell-chat-name-text' + (isPlus ? ' is-plus' : '') + '">' + name + '</span></div><div class="rblx-shell-chat-text">' + textValue + '</div></div>' +
+        '<div><div class="rblx-shell-chat-name">' + badgeMarkup + '<span class="rblx-shell-chat-name-text' + (isPro ? ' is-pro' : (isPlus ? ' is-plus' : '')) + '">' + name + '</span></div><div class="rblx-shell-chat-text">' + textValue + '</div></div>' +
       '</article>';
     }).join('');
   }
@@ -1747,13 +1758,18 @@
     }).join("");
   }
 
+  function buildProfileProFloats() {
+    return buildProfilePlusFloats().replaceAll('rblx-shell-profile-plus-float', 'rblx-shell-profile-plus-float rblx-shell-profile-pro-float').replaceAll('>+</span>', function (_match, offset) { return offset % 2 ? '>&#128296;</span>' : '>&#127959;</span>'; });
+  }
+
   function openProfileModal(message, anchorEl) {
     var index = message && message.__chatIndex != null ? Number(message.__chatIndex) : -1;
     if (!shellState.currentProfile || !shellState.currentProfile.displayName) {
       refreshCurrentProfile();
     }
     var profile = index >= 0 && shellState.profileCache[index] ? shellState.profileCache[index] : getMessageProfile(message);
-    var isPlus = ["plus", "pro"].includes(String(profile.plan || "").toLowerCase()) || String(profile.badge || "").toLowerCase() === "plus";
+    var isPro = String(profile.plan || "").toLowerCase() === "pro";
+    var isPlus = String(profile.plan || "").toLowerCase() === "plus" || (!isPro && String(profile.badge || "").toLowerCase() === "plus");
     shellState.lastViewedProfileUserId = profile.userId || "";
 
     shellState.profileAvatar.classList.toggle("has-image", Boolean(profile.avatarUrl));
@@ -1775,7 +1791,16 @@
     }
 
     shellState.profileName.classList.toggle("is-plus", isPlus);
+    shellState.profileName.classList.toggle("is-pro", isPro);
     shellState.profileModal.classList.toggle("is-plus", isPlus);
+    shellState.profileModal.classList.toggle("is-pro", isPro);
+    if (shellState.profilePlan) {
+      shellState.profilePlan.classList.toggle("is-plus", isPlus);
+      shellState.profilePlan.classList.toggle("is-pro", isPro);
+    }
+    var profileFloats = shellState.profileModal && shellState.profileModal.querySelector(".rblx-shell-profile-pluses");
+    if (profileFloats) profileFloats.innerHTML = isPro ? buildProfileProFloats() : buildProfilePlusFloats();
+    if (shellState.profilePlusMark) shellState.profilePlusMark.innerHTML = isPro ? "&#127959;&#128296;" : "+";
     shellState.profileName.textContent = profile.displayName || "Profile";
     shellState.profileUserId.textContent = profile.userId || "-";
     shellState.profileDisplayName.textContent = profile.displayName || "-";

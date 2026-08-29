@@ -608,6 +608,11 @@
     }
 
     #rbtools-account-overview .acct-plus-tag.hidden { display: none; }
+    #rbtools-account-overview .acct-card.is-pro { border-color:rgba(255,194,67,.58); box-shadow:0 20px 54px rgba(177,111,17,.20); }
+    #rbtools-account-overview .acct-card.is-pro::before { background:radial-gradient(circle at 18% 12%,rgba(255,214,92,.22),transparent 30%),radial-gradient(circle at 84% 82%,rgba(194,121,18,.18),transparent 30%); }
+    #rbtools-account-overview .acct-pill-value.is-pro { display:inline-flex; align-items:center; gap:7px; font-size:15px; line-height:1; }
+    #rbtools-account-overview .acct-pro-mark { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:22px; border-radius:8px; color:#251600; background:linear-gradient(115deg,#fff4b8 0%,#e8aa25 32%,#fff0a4 54%,#bd7211 76%,#fff0b0 100%); background-size:220% 100%; box-shadow:0 0 14px rgba(255,190,55,.34); animation:acctSilverFlow 3.2s linear infinite,acctPlanPulse 1.9s ease-in-out infinite; }
+    #rbtools-account-overview .acct-pro-name { display:inline-block; background:linear-gradient(115deg,#fff7c9 0%,#eeb43a 28%,#fff3b0 50%,#bf7913 74%,#fff3b0 100%); background-size:220% 100%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; color:transparent; animation:acctSilverFlow 3.2s linear infinite,acctPlanPulse 1.9s ease-in-out infinite; }
 
     #rbtools-account-overview .acct-actions {
       margin-top: 12px;
@@ -1327,12 +1332,12 @@
                       </div>
 
                       <div class="acct-pill-card">
-                        <div class="acct-pill-label">Plus Days Left</div>
+                        <div id="acctDaysLeftLabel" class="acct-pill-label">Plus Days Left</div>
                         <div id="acctPlusDaysLeft" class="acct-pill-value">-</div>
                       </div>
 
                       <div class="acct-pill-card">
-                        <div class="acct-pill-label">Plus Renews / Expires</div>
+                        <div id="acctExpiryLabel" class="acct-pill-label">Plus Renews / Expires</div>
                         <div id="acctPlusExpiresAt" class="acct-pill-value">-</div>
                       </div>
 
@@ -1665,6 +1670,8 @@
         acctMembershipSource: document.getElementById("acctMembershipSource"),
         acctPlusDaysLeft: document.getElementById("acctPlusDaysLeft"),
         acctPlusExpiresAt: document.getElementById("acctPlusExpiresAt"),
+        acctDaysLeftLabel: document.getElementById("acctDaysLeftLabel"),
+        acctExpiryLabel: document.getElementById("acctExpiryLabel"),
         acctUserId: document.getElementById("acctUserId"),
         acctCustomerId: document.getElementById("acctCustomerId"),
         acctMembershipStatus: document.getElementById("acctMembershipStatus"),
@@ -1844,6 +1851,9 @@
 
       function getMembershipHeadline(user) {
         if (!user) return "Membership snapshot unavailable.";
+        if (String(user.plan || "").toLowerCase() === "pro") {
+          return "Pro is active with every Plus benefit and Pro creator upgrades.";
+        }
         if (user.premiumActive) {
           var leftDays = Number(user.plusDaysLeft);
           if (isFinite(leftDays) && leftDays > 0) {
@@ -1988,7 +1998,9 @@
 
         els.acctDisplayName.textContent = displayName;
         els.acctDisplaySubname.textContent = subtitle;
-        els.acctDisplayName.parentElement.classList.toggle("is-plus", Boolean(state.user && state.user.premiumActive));
+        var currentPlan = String(state.user && state.user.plan || "free").toLowerCase();
+        els.acctDisplayName.parentElement.classList.toggle("is-plus", currentPlan === "plus");
+        els.acctDisplayName.parentElement.classList.toggle("is-pro", currentPlan === "pro");
         els.acctDisplayNameInput.value = state.profile.displayName || "";
         if (els.acctBioInput) els.acctBioInput.value = state.profile.bio || "";
         if (els.acctBioTop) {
@@ -1998,7 +2010,9 @@
         syncBioCount();
         els.acctAvatarFallback.textContent = getInitials(displayName);
         els.acctPlusCosmetic.classList.toggle("hidden", !(state.user && state.user.premiumActive));
-        els.acctCard.classList.toggle("is-plus", Boolean(state.user && state.user.premiumActive));
+        els.acctPlusCosmetic.innerHTML = currentPlan === "pro" ? '<div class="acct-pro-mark">&#127959;&#128296;</div><div class="acct-pro-name">Pro Member</div>' : '<div class="acct-plus-mark">+</div><div class="acct-plus-name">Plus Member</div>';
+        els.acctCard.classList.toggle("is-plus", currentPlan === "plus");
+        els.acctCard.classList.toggle("is-pro", currentPlan === "pro");
         els.acctDropzone.style.setProperty("--acct-avatar-scale", String(avatarScale));
         els.acctDropzone.style.setProperty("--acct-avatar-x", avatarX + "%");
         els.acctDropzone.style.setProperty("--acct-avatar-y", avatarY + "%");
@@ -2036,7 +2050,7 @@
       function renderUser(user) {
         state.user = user || null;
         if (!state.user) {
-          els.acctCard.classList.remove("is-plus");
+          els.acctCard.classList.remove("is-plus", "is-pro");
           return;
         }
 
@@ -2048,11 +2062,16 @@
         if (els.acctEmail) els.acctEmail.textContent = state.user.email || "-";
         if (els.acctSettingsEmail) els.acctSettingsEmail.textContent = state.user.email || "-";
         els.acctPlan.classList.toggle("is-plus", displayPlan === "plus");
+        els.acctPlan.classList.toggle("is-pro", displayPlan === "pro");
         if (displayPlan === "plus") {
           els.acctPlan.innerHTML = '<span class="acct-pill-plus-mark">+</span><span class="acct-pill-plus-text">plus</span>';
+        } else if (displayPlan === "pro") {
+          els.acctPlan.innerHTML = '<span class="acct-pro-mark">&#127959;&#128296;</span><span class="acct-pro-name">pro</span>';
         } else {
           els.acctPlan.textContent = displayPlan;
         }
+        if (els.acctDaysLeftLabel) els.acctDaysLeftLabel.textContent = displayPlan === "pro" ? "Pro Days Left" : "Plus Days Left";
+        if (els.acctExpiryLabel) els.acctExpiryLabel.textContent = displayPlan === "pro" ? "Pro Renews / Expires" : "Plus Renews / Expires";
         els.acctPremium.textContent = String(Boolean(state.user.premiumActive));
         els.acctPremium.classList.toggle("is-good", Boolean(state.user.premiumActive));
         els.acctStripeStatus.textContent = state.user.stripeSubscriptionStatus || "-";
