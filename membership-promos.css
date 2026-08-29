@@ -1,0 +1,84 @@
+/* Final membership promo layer. It deliberately loads after legacy page styles. */
+:root {
+  --membership-silver-1: #f8fbff;
+  --membership-silver-2: #bfcbd9;
+  --membership-silver-3: #526073;
+  --membership-silver-panel: #111b2a;
+}
+
+body.rblx-home-page .home-grid-top > .plus-card:not(.rblx-pro-promo),
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo),
+body.rblx-subscription-store .plans-grid .plus-card {
+  position: relative !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(238, 246, 255, .82) !important;
+  background:
+    linear-gradient(108deg, transparent 0%, rgba(255, 255, 255, .16) 28%, transparent 49%),
+    radial-gradient(circle at 86% 13%, rgba(246, 250, 255, .3), transparent 27%),
+    radial-gradient(circle at 12% 100%, rgba(152, 170, 193, .2), transparent 34%),
+    linear-gradient(145deg, #3a485c 0%, var(--membership-silver-panel) 57%, #202d40 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .66), 0 18px 44px rgba(141, 159, 183, .24) !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+body.rblx-home-page .home-grid-top > .plus-card:not(.rblx-pro-promo)::after,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::after,
+body.rblx-subscription-store .plans-grid .plus-card::after {
+  content: "" !important;
+  position: absolute !important;
+  z-index: 1 !important;
+  top: -42% !important;
+  bottom: -42% !important;
+  left: -38% !important;
+  width: 28% !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .82), transparent) !important;
+  filter: blur(1px) !important;
+  pointer-events: none !important;
+  animation: membershipSilverSweep 6.4s ease-in-out infinite !important;
+}
+
+body.rblx-home-page .home-grid-top > .plus-card:not(.rblx-pro-promo)::before,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::before {
+  background: radial-gradient(circle, rgba(255, 255, 255, .22), transparent 68%) !important;
+  animation: membershipSilverGlow 5.4s ease-in-out infinite !important;
+}
+
+body.rblx-home-page .home-grid-top > .plus-card:not(.rblx-pro-promo) > *,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo) > *,
+body.rblx-subscription-store .plans-grid .plus-card > * { position: relative; z-index: 2; }
+
+body.rblx-home-page .home-grid-top > .plus-card:not(.rblx-pro-promo) .plus-float,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo) .plus-float,
+body.rblx-subscription-store .plans-grid .plus-card .plus-floater {
+  color: rgba(244, 249, 255, .32) !important;
+  text-shadow: 0 0 14px rgba(255, 255, 255, .26) !important;
+}
+
+body.rblx-subscription-store .plans-grid .plus-card .card-inner,
+body.rblx-subscription-store .plans-grid .plus-card .price-box,
+body.rblx-subscription-store .plans-grid .plus-card .perk-card {
+  background-color: rgba(8, 15, 26, .42) !important;
+  border-color: rgba(234, 243, 255, .32) !important;
+}
+
+@keyframes membershipSilverSweep {
+  0%, 16% { transform: translateX(-165%) rotate(11deg); opacity: 0; }
+  42% { opacity: .88; }
+  68%, 100% { transform: translateX(470%) rotate(11deg); opacity: 0; }
+}
+
+@keyframes membershipSilverGlow {
+  0%, 100% { opacity: .45; transform: scale(.94); }
+  50% { opacity: .9; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.rblx-home-page .home-grid-top > .plus-card:not(.rblx-pro-promo)::after,
+  body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::after,
+  body.rblx-subscription-store .plans-grid .plus-card::after,
+  body.rblx-home-page .home-grid-top > .plus-card:not(.rblx-pro-promo)::before,
+  body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::before { animation: none !important; }
+}
