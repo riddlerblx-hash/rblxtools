@@ -3404,7 +3404,8 @@ async function syncSubscriptionStateForUser(userId, customerId, subscriptionStat
   );
   const stripeActive = isPremiumStatus(subscriptionStatus);
   const premiumActive = stripeActive || Boolean(complimentaryMembership && complimentaryMembership.active);
-  const keepComplimentaryPro = isProMember(currentUser) && String(currentUser.membership_source || "").toLowerCase().includes("complimentary pro");
+  // Pro is the higher tier, so a Plus sync must never demote an existing Pro account.
+  const keepExistingPro = isProMember(currentUser) && normalizeMembershipPlan(membershipFields.plan) !== "pro";
     const membershipSource = stripeActive && hasComplimentaryData
       ? "stripe + complimentary"
       : stripeActive
@@ -3419,7 +3420,7 @@ async function syncSubscriptionStateForUser(userId, customerId, subscriptionStat
     return updateAuthUserFields(userId, {
       stripe_customer_id: customerId || null,
       premium_active: premiumActive,
-      plan: premiumActive ? (keepComplimentaryPro ? "pro" : normalizeMembershipPlan(membershipFields.plan)) : "free",
+      plan: premiumActive ? (keepExistingPro ? "pro" : normalizeMembershipPlan(membershipFields.plan)) : "free",
       stripe_subscription_status: subscriptionStatus || null,
       membership_source: membershipSource,
       ...(hasStripeSnapshotData ? buildStripeMembershipStorageFields(membershipFields) : {}),
@@ -3440,8 +3441,8 @@ function buildStripeMembershipFieldsFromSubscription(subscription) {
 function rankStripeSubscription(left, right) {
   const leftStatus = String(left?.status || "").toLowerCase();
   const rightStatus = String(right?.status || "").toLowerCase();
-  const leftRank = isPremiumStatus(leftStatus) ? 3 : leftStatus === "past_due" ? 2 : 1;
-  const rightRank = isPremiumStatus(rightStatus) ? 3 : rightStatus === "past_due" ? 2 : 1;
+  const leftRank = isPremiumStatus(leftStatus) ? (normalizeMembershipPlan(left?.metadata?.plan) === "pro" ? 4 : 3) : leftStatus === "past_due" ? 2 : 1;
+  const rightRank = isPremiumStatus(rightStatus) ? (normalizeMembershipPlan(right?.metadata?.plan) === "pro" ? 4 : 3) : rightStatus === "past_due" ? 2 : 1;
   if (leftRank !== rightRank) {
     return rightRank - leftRank;
   }

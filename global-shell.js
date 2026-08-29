@@ -3275,6 +3275,7 @@
     status.setAttribute("data-plan", state.plan);
     statusText.textContent = state.message;
     document.body.classList.toggle("rblx-shell-plus-user", state.plan === "plus");
+    document.body.classList.toggle("rblx-shell-pro-user", state.plan === "pro");
     shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : 0 };
     var tokenBanner = document.getElementById("rblxShellTokenBanner");
     var tokenBalance = document.getElementById("rblxShellTokenBalance");
@@ -3318,6 +3319,17 @@
     return Boolean(premiumFlag || nestedPremiumFlag);
   }
 
+  function getMembershipPlan(payload, user, premiumActive) {
+    var rawPlan = String((user && user.plan) || (payload && payload.plan) || "").toLowerCase();
+    if (rawPlan === "pro") return "pro";
+    return premiumActive ? "plus" : "free";
+  }
+
+  function getMembershipMessage(plan, displayName) {
+    var label = plan === "pro" ? "Pro member" : plan === "plus" ? "Plus subscriber" : "free plan user";
+    return "You are browsing this website as a " + label + (displayName ? ", " + displayName : "") + ".";
+  }
+
   window.addEventListener("rblxtools-ai-token-balance", function (event) {
     var nextBalance = Number(event && event.detail && event.detail.aiTokens);
     if (!Number.isFinite(nextBalance) || !shellState.currentUser || !shellState.currentUser.loggedIn) return;
@@ -3332,12 +3344,11 @@
 
     var plus = hasPlusFromPayload(payload) || hasPlusFromPayload(user);
     var displayName = getPreferredUserName(user, payload);
+    var plan = getMembershipPlan(payload, user, plus);
     return {
       loggedIn: true,
-      plan: plus ? "plus" : "free",
-      message: plus
-        ? "You are browsing this website as a Plus subscriber. Thank you for your support" + (displayName ? ", " + displayName : "") + "."
-        : "You are browsing this website as a free plan user" + (displayName ? ", " + displayName : "") + ".",
+      plan: plan,
+      message: getMembershipMessage(plan, displayName),
       userId: user && user.id ? String(user.id) : "",
       username: user && user.username ? String(user.username) : "",
       displayName: displayName,
@@ -3398,12 +3409,12 @@
     var cachedUser = getCachedAuthUser() || {};
     var mergedUser = Object.assign({}, cachedUser, user || {});
     saveCachedAuthUser(mergedUser);
-    writeCachedPlusStatus(nextState.plan === "plus");
+    writeCachedPlusStatus(nextState.plan === "plus" || nextState.plan === "pro");
     updateAuthUi(nextState);
     dispatchMembershipUpdate({
       user: mergedUser,
       plan: nextState.plan,
-      premiumActive: nextState.plan === "plus",
+      premiumActive: nextState.plan === "plus" || nextState.plan === "pro",
       membershipSource: mergedUser.membershipSource || null,
       plusDaysTotal: mergedUser.plusDaysTotal != null ? mergedUser.plusDaysTotal : null,
       plusDaysLeft: mergedUser.plusDaysLeft != null ? mergedUser.plusDaysLeft : 0,
@@ -3431,12 +3442,11 @@
 
     var displayName = getPreferredUserName(cachedUser, cachedUser);
     var plus = hasPlusFromPayload(cachedUser);
+    var plan = getMembershipPlan(cachedUser, cachedUser, plus);
     return {
       loggedIn: true,
-      plan: plus ? "plus" : "free",
-      message: plus
-        ? "You are browsing this website as a Plus subscriber. Thank you for your support" + (displayName ? ", " + displayName : "") + "."
-        : "You are browsing this website as a free plan user" + (displayName ? ", " + displayName : "") + ".",
+      plan: plan,
+      message: getMembershipMessage(plan, displayName),
       userId: cachedUser && cachedUser.id ? String(cachedUser.id) : "",
       username: cachedUser && cachedUser.username ? String(cachedUser.username) : "",
       displayName: displayName,
@@ -3451,6 +3461,7 @@
     var cachedUser = getCachedAuthUser();
     var displayName = "";
     var plus = false;
+    var membershipPlan = "";
 
     try {
       var premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
@@ -3458,7 +3469,9 @@
         credentials: "include"
       });
       if (premiumResponse.ok) {
-        plus = hasPlusFromPayload(await premiumResponse.json().catch(function () { return null; }));
+        var premiumPayload = await premiumResponse.json().catch(function () { return null; });
+        plus = hasPlusFromPayload(premiumPayload);
+        membershipPlan = getMembershipPlan(premiumPayload, premiumPayload, plus);
       }
     } catch (_error) {}
 
@@ -3478,14 +3491,13 @@
       saveCachedAuthUser(user);
       displayName = getPreferredUserName(user, payload);
       plus = plus || hasPlusFromPayload(payload) || hasPlusFromPayload(user);
+      membershipPlan = getMembershipPlan(payload, user, plus) === "pro" ? "pro" : (membershipPlan === "pro" ? "pro" : (plus ? "plus" : "free"));
       // The auth payload may omit billing flags, so retain the premium-status result.
       writeCachedPlusStatus(plus);
       return {
         loggedIn: true,
-        plan: plus ? "plus" : "free",
-        message: plus
-          ? "You are browsing this website as a Plus subscriber. Thank you for your support" + (displayName ? ", " + displayName : "") + "."
-          : "You are browsing this website as a free plan user" + (displayName ? ", " + displayName : "") + ".",
+        plan: membershipPlan,
+        message: getMembershipMessage(membershipPlan, displayName),
         userId: user && user.id ? String(user.id) : "",
         username: user && user.username ? String(user.username) : "",
         displayName: displayName,
@@ -3755,13 +3767,13 @@
         window.location.href = tool.href;
         return;
       }
-      if (shellState.currentUser && String(shellState.currentUser.plan || "").toLowerCase() === "plus") {
+      if (shellState.currentUser && ["plus", "pro"].includes(String(shellState.currentUser.plan || "").toLowerCase())) {
         window.location.href = tool.href;
         return;
       }
       try {
         var state = await resolveUserState();
-        if (state && String(state.plan || "").toLowerCase() === "plus") {
+        if (state && ["plus", "pro"].includes(String(state.plan || "").toLowerCase())) {
           window.location.href = tool.href;
           return;
         }
@@ -4049,7 +4061,7 @@
         dispatchMembershipUpdate({
           user: getCachedAuthUser(),
           plan: nextState.plan,
-          premiumActive: nextState.plan === "plus"
+          premiumActive: nextState.plan === "plus" || nextState.plan === "pro"
         });
       }
     });
