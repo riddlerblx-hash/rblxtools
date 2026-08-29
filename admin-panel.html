@@ -946,8 +946,12 @@
               <input class="admin-input" id="dropTitle" type="text" value="Claim Free Plus" />
             </div>
             <div class="admin-field">
-              <label class="admin-label" for="dropDays">Plus Days</label>
-              <input class="admin-input" id="dropDays" type="number" min="1" max="3650" value="14" />
+              <label class="admin-label" for="dropReward">Reward</label>
+              <select class="admin-input" id="dropReward"><option value="plus">Plus Plan</option><option value="pro">Pro Plan</option><option value="tokens">AI Tokens</option></select>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="dropAmount">Days / Tokens</label>
+              <input class="admin-input" id="dropAmount" type="number" min="1" max="100000" value="14" />
             </div>
             <div class="admin-field">
               <label class="admin-label" for="dropClaims">Max Claims</label>
@@ -979,8 +983,12 @@
               <input class="admin-input" id="rainTitle" type="text" value="Live Chat Rain" />
             </div>
             <div class="admin-field">
-              <label class="admin-label" for="rainDays">Plus Days</label>
-              <input class="admin-input" id="rainDays" type="number" min="1" max="3650" value="14" />
+              <label class="admin-label" for="rainReward">Reward</label>
+              <select class="admin-input" id="rainReward"><option value="plus">Plus Plan</option><option value="pro">Pro Plan</option><option value="tokens">AI Tokens</option></select>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="rainAmount">Days / Tokens</label>
+              <input class="admin-input" id="rainAmount" type="number" min="1" max="100000" value="14" />
             </div>
           </div>
           <div class="admin-triple">
@@ -1615,7 +1623,8 @@
               "Content-Type": "application/json"},
             body: JSON.stringify({
               title: getFieldValue("dropTitle"),
-              days: Math.max(1, Math.min(getFieldNumber("dropDays", 14), 3650)),
+              rewardType: getFieldValue("dropReward"),
+              amount: Math.max(1, Math.min(getFieldNumber("dropAmount", 14), 100000)),
               maxClaims: Math.max(1, Math.min(getFieldNumber("dropClaims", 3), 500)),
               expiresSeconds: Math.max(1, Math.min(getFieldNumber("dropSeconds", 10), 86400)),
               displayName: adminIdentity.displayName,
@@ -1650,7 +1659,8 @@
               "Content-Type": "application/json"},
             body: JSON.stringify({
               title: getFieldValue("rainTitle"),
-              days: Math.max(1, Math.min(getFieldNumber("rainDays", 14), 3650)),
+              rewardType: getFieldValue("rainReward"),
+              amount: Math.max(1, Math.min(getFieldNumber("rainAmount", 14), 100000)),
               winnersCount: Math.max(1, Math.min(getFieldNumber("rainWinners", 1), 100)),
               durationSeconds: durationSeconds,
               displayName: adminIdentity.displayName,

@@ -775,6 +775,20 @@
     return items.join("");
   }
 
+  function getEventRewardLabel(rewardType, amount) {
+    if (rewardType === "tokens") return String(amount || 0) + " AI tokens";
+    return String(amount || 0) + " " + (rewardType === "pro" ? "Pro days" : "Plus days");
+  }
+
+  function buildRewardBurstMarkup(className, count, rewardType) {
+    var items = [];
+    for (var index = 0; index < count; index += 1) {
+      var symbol = rewardType === "tokens" ? "AI" : (index % 2 ? "&#128296;" : "&#127913;");
+      items.push('<span class="' + className + '" style="--plus-left:' + ((index * 17) % 100) + '%;--plus-delay:' + (index * -0.18).toFixed(2) + 's;--plus-size:' + (12 + (index % 5) * 3) + 'px;">' + symbol + "</span>");
+    }
+    return items.join("");
+  }
+
   function renderRoomSpecials() {
     if (!shellState.chatSpecials) return;
     clearRoomSpecialsTimer();
@@ -800,9 +814,9 @@
           '<div><div class="rblx-shell-special-kicker">Chat Rain</div><h3 class="rblx-shell-special-title">' + escapeHtml(rain.title || "Live Chat Rain") + "</h3></div>" +
           '<div class="rblx-shell-special-chip">Ends In ' + escapeHtml(formatCountdownTo(rain.expiresAt)) + "</div>" +
         "</div>" +
-        '<p class="rblx-shell-special-copy">Join the live chat rain for <strong>' + escapeHtml(String(rain.winnersCount || 1)) + "</strong> Plus winner" + ((rain.winnersCount || 1) === 1 ? "" : "s") + ".</p>" +
+        '<p class="rblx-shell-special-copy">Join the live chat rain for <strong>' + escapeHtml(String(rain.winnersCount || 1)) + "</strong> " + escapeHtml(String(rain.rewardType === "tokens" ? "AI token" : rain.rewardType === "pro" ? "Pro" : "Plus")) + " winner" + ((rain.winnersCount || 1) === 1 ? "" : "s") + ".</p>" +
         '<div class="rblx-shell-event-progress"><span class="rblx-shell-event-progress-fill" style="width:' + rainProgressPercent.toFixed(2) + '%;"></span></div>' +
-        '<div class="rblx-shell-special-meta"><span>' + escapeHtml(String(rain.participantCount || 0)) + ' joined</span><span>' + escapeHtml(String(rain.days || 0)) + ' Plus days</span></div>' +
+        '<div class="rblx-shell-special-meta"><span>' + escapeHtml(String(rain.participantCount || 0)) + " joined</span><span>" + escapeHtml(getEventRewardLabel(rain.rewardType || "plus", rain.amount || rain.days)) + "</span></div>" +
         '<div class="rblx-shell-special-actions"><button class="rblx-shell-special-btn is-rain" type="button" data-special-action="join-rain">Join Rain</button></div>' +
       "</section>"
     );
@@ -833,8 +847,9 @@
     shellState.chatRainOverlay.style.top = top + "px";
     shellState.chatRainOverlay.style.bottom = bottomInset + "px";
     shellState.chatRainOverlay.hidden = false;
-    if (!shellState.chatRainOverlay.innerHTML) {
-      shellState.chatRainOverlay.innerHTML = buildPlusBurstMarkup("rblx-shell-chat-rain-plus", 72);
+    if (shellState.chatRainOverlay.dataset.rewardType !== String(specials.chatRain && specials.chatRain.rewardType || "plus")) {
+      shellState.chatRainOverlay.innerHTML = buildRewardBurstMarkup("rblx-shell-chat-rain-plus", 72, specials.chatRain && specials.chatRain.rewardType);
+      shellState.chatRainOverlay.dataset.rewardType = String(specials.chatRain && specials.chatRain.rewardType || "plus");
     }
   }
 
@@ -1563,10 +1578,12 @@
     var maxClaims = drop && drop.maxClaims ? drop.maxClaims : 0;
     var remainingClaims = Math.max(0, maxClaims - claimedCount);
     var currentPlan = String(shellState.currentUser && shellState.currentUser.plan || "").toLowerCase();
-    var alreadyPlus = currentPlan === "plus";
+    var rewardType = drop && drop.rewardType || "plus";
+    var rewardName = rewardType === "tokens" ? "AI Tokens" : rewardType === "pro" ? "Pro" : "Plus";
+    var alreadyPlus = rewardType === "plus" && currentPlan === "plus";
     var expired = Boolean(drop && (drop.ended || new Date(drop.expiresAt).getTime() <= (Date.now() + (shellState.serverTimeOffset || 0))));
     var winnerLabel = claimedCount === 0 ? "No Winners" : (claimedCount === 1 ? "1 Winner" : claimedCount + " Winners");
-    var buttonLabel = expired ? winnerLabel : (alreadyPlus ? "You Already Have Plus" : "Claim Plus");
+    var buttonLabel = expired ? winnerLabel : (alreadyPlus ? "You Already Have Plus" : "Claim " + rewardName);
     var buttonAttrs = (expired || alreadyPlus) ? ' disabled aria-disabled="true"' : "";
     var durationMs = Math.max(1, new Date(drop.expiresAt).getTime() - new Date(drop.createdAt || drop.expiresAt).getTime());
     var remainingMs = Math.max(0, new Date(drop.expiresAt).getTime() - (Date.now() + (shellState.serverTimeOffset || 0)));
@@ -1575,14 +1592,14 @@
     return (
       '<div class="rblx-shell-drop-message">' +
         '<div class="rblx-shell-drop-glare" aria-hidden="true"></div>' +
-        '<div class="rblx-shell-drop-burst" aria-hidden="true">' + buildPlusBurstMarkup("rblx-shell-drop-plus", 16) + "</div>" +
+        '<div class="rblx-shell-drop-burst" aria-hidden="true">' + buildRewardBurstMarkup("rblx-shell-drop-plus", 16, rewardType) + "</div>" +
         '<div class="rblx-shell-drop-head">' +
-          '<div class="rblx-shell-drop-kicker">Claimable Plus Drop</div>' +
+          '<div class="rblx-shell-drop-kicker">Claimable ' + escapeHtml(rewardName) + " Drop</div>" +
           '<div class="rblx-shell-drop-chip' + (expired ? ' is-expired' : '') + '">' + (expired ? "Expired" : ("Ends In " + escapeHtml(formatCountdownTo(drop.expiresAt)))) + "</div>" +
         "</div>" +
-        '<div class="rblx-shell-drop-title">' + escapeHtml(drop.title || "Claim Free Plus") + "</div>" +
+        '<div class="rblx-shell-drop-title">' + escapeHtml(drop.title || ("Claim Free " + rewardName)) + "</div>" +
         '<div class="rblx-shell-event-progress"><span class="rblx-shell-event-progress-fill" style="width:' + progressPercent.toFixed(2) + '%;"></span></div>' +
-        '<div class="rblx-shell-drop-meta"><span>' + escapeHtml(String(remainingClaims)) + ' claims left</span><span>' + escapeHtml(String(drop.days || 0)) + ' Plus days</span></div>' +
+        '<div class="rblx-shell-drop-meta"><span>' + escapeHtml(String(remainingClaims)) + " claims left</span><span>" + escapeHtml(getEventRewardLabel(rewardType, drop.amount || drop.days)) + "</span></div>" +
         '<div class="rblx-shell-drop-actions"><button class="rblx-shell-drop-btn" type="button" data-special-action="claim-drop"' + buttonAttrs + ">" + escapeHtml(buttonLabel) + "</button></div>" +
       "</div>"
     );

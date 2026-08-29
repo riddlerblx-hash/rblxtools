@@ -6695,6 +6695,7 @@ app.post("/admin/grant-plus", async (req, res) => {
 
     const grantResult = await grantComplimentaryPlusToUser(targetUser.id, days);
     const updatedUser = grantResult.user;
+    await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: "complimentary_plus", note, expiresAt: grantResult.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
 
     console.log(
       "[ADMIN GRANT PLUS]",
@@ -7114,14 +7115,16 @@ app.post("/admin/create-claim-drop", async (req, res) => {
   try {
     const adminUser = await requireAdminUser(req);
     const room = cleanText(req.body?.room || defaultChatRoom, 40) || defaultChatRoom;
-    const daysRaw = Number.parseInt(String(req.body?.days || DEFAULT_COMPLIMENTARY_PLUS_DAYS), 10);
+    const rewardType = ["plus", "pro", "tokens"].includes(String(req.body?.rewardType || "").toLowerCase()) ? String(req.body.rewardType).toLowerCase() : "plus";
+    const amountRaw = Number.parseInt(String(req.body?.amount || req.body?.days || DEFAULT_COMPLIMENTARY_PLUS_DAYS), 10);
     const maxClaimsRaw = Number.parseInt(String(req.body?.maxClaims || 1), 10);
     const expiresSecondsRaw = Number.parseInt(String(req.body?.expiresSeconds || 60), 10);
 
-    const days = Number.isFinite(daysRaw) ? Math.max(1, Math.min(daysRaw, MAX_COMPLIMENTARY_PLUS_DAYS)) : DEFAULT_COMPLIMENTARY_PLUS_DAYS;
+    const amount = Number.isFinite(amountRaw) ? Math.max(1, Math.min(amountRaw, rewardType === "tokens" ? 100000 : MAX_COMPLIMENTARY_PLUS_DAYS)) : DEFAULT_COMPLIMENTARY_PLUS_DAYS;
     const maxClaims = Number.isFinite(maxClaimsRaw) ? Math.max(1, Math.min(maxClaimsRaw, 500)) : 1;
     const expiresSeconds = Number.isFinite(expiresSecondsRaw) ? Math.max(1, Math.min(expiresSecondsRaw, 86400)) : 60;
-    const title = cleanText(req.body?.title, 60) || "Claim Free Plus";
+    const rewardLabel = rewardType === "tokens" ? "AI Tokens" : rewardType === "pro" ? "Pro" : "Plus";
+    const title = cleanText(req.body?.title, 60) || "Claim Free " + rewardLabel;
     const expiresAt = new Date(Date.now() + expiresSeconds * 1000).toISOString();
     const adminDisplayName = cleanText(req.body?.displayName || adminUser.email?.split("@")[0] || "Admin", displayNameLength) || "Admin";
     const adminUsername = cleanText(req.body?.username || adminDisplayName, usernameLength) || adminDisplayName;
@@ -7135,7 +7138,8 @@ app.post("/admin/create-claim-drop", async (req, res) => {
     state.claimDrop = {
       id: randomUUID(),
       title,
-      days,
+      rewardType,
+      amount,
       maxClaims,
       expiresAt,
       createdAt: new Date().toISOString(),
@@ -7148,6 +7152,7 @@ app.post("/admin/create-claim-drop", async (req, res) => {
         avatarUrl: adminAvatarUrl,
       },
     };
+    await createModerationAction({ actionType: "claim_drop_started", note: title + " · " + amount + " " + rewardLabel, adminUserId: adminUser.id, adminEmail: adminUser.email });
     state.claimDropTimeout = setTimeout(() => {
       finalizeClaimDrop(room, "expired");
     }, expiresSeconds * 1000);
@@ -7162,7 +7167,7 @@ app.post("/admin/create-claim-drop", async (req, res) => {
       plan: "plus",
       favoriteTools: [],
     }, {
-      text: adminDisplayName + " started a claimable Plus drop in chat.",
+      text: adminDisplayName + " started a claimable " + rewardLabel + " drop in chat.",
       specialType: "claimDrop",
       claimDrop: state.claimDrop,
     });
@@ -7172,7 +7177,7 @@ app.post("/admin/create-claim-drop", async (req, res) => {
 
     return res.json({
       ok: true,
-      message: "Claimable Plus drop sent into live chat.",
+      message: "Claimable " + rewardLabel + " drop sent into live chat.",
       claimDrop: serializeClaimDrop(state.claimDrop),
     });
   } catch (error) {
@@ -7186,14 +7191,16 @@ app.post("/admin/start-chat-rain", async (req, res) => {
   try {
     const adminUser = await requireAdminUser(req);
     const room = cleanText(req.body?.room || defaultChatRoom, 40) || defaultChatRoom;
-    const daysRaw = Number.parseInt(String(req.body?.days || DEFAULT_COMPLIMENTARY_PLUS_DAYS), 10);
+    const rewardType = ["plus", "pro", "tokens"].includes(String(req.body?.rewardType || "").toLowerCase()) ? String(req.body.rewardType).toLowerCase() : "plus";
+    const amountRaw = Number.parseInt(String(req.body?.amount || req.body?.days || DEFAULT_COMPLIMENTARY_PLUS_DAYS), 10);
     const winnersRaw = Number.parseInt(String(req.body?.winnersCount || 1), 10);
     const durationSecondsRaw = Number.parseInt(String(req.body?.durationSeconds || 300), 10);
 
-    const days = Number.isFinite(daysRaw) ? Math.max(1, Math.min(daysRaw, MAX_COMPLIMENTARY_PLUS_DAYS)) : DEFAULT_COMPLIMENTARY_PLUS_DAYS;
+    const amount = Number.isFinite(amountRaw) ? Math.max(1, Math.min(amountRaw, rewardType === "tokens" ? 100000 : MAX_COMPLIMENTARY_PLUS_DAYS)) : DEFAULT_COMPLIMENTARY_PLUS_DAYS;
     const winnersCount = Number.isFinite(winnersRaw) ? Math.max(1, Math.min(winnersRaw, 100)) : 1;
     const durationSeconds = Number.isFinite(durationSecondsRaw) ? Math.max(1, Math.min(durationSecondsRaw, 604800)) : 300;
-    const title = cleanText(req.body?.title, 60) || "Chat Rain";
+    const rewardLabel = rewardType === "tokens" ? "AI Tokens" : rewardType === "pro" ? "Pro" : "Plus";
+    const title = cleanText(req.body?.title, 60) || rewardLabel + " Chat Rain";
     const expiresAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
     const adminDisplayName = cleanText(req.body?.displayName || adminUser.email?.split("@")[0] || "Admin", displayNameLength) || "Admin";
     const adminUsername = cleanText(req.body?.username || adminDisplayName, usernameLength) || adminDisplayName;
@@ -7208,7 +7215,8 @@ app.post("/admin/start-chat-rain", async (req, res) => {
     state.chatRain = {
       id: randomUUID(),
       title,
-      days,
+      rewardType,
+      amount,
       winnersCount,
       expiresAt,
       createdAt: new Date().toISOString(),
@@ -7223,6 +7231,7 @@ app.post("/admin/start-chat-rain", async (req, res) => {
         avatarUrl: adminAvatarUrl,
       },
     };
+    await createModerationAction({ actionType: "chat_rain_started", note: title + " · " + amount + " " + rewardLabel + " · " + winnersCount + " winner(s)", adminUserId: adminUser.id, adminEmail: adminUser.email });
 
     state.rainTimeout = setTimeout(() => {
       finalizeChatRain(room, "completed").catch((error) => {
@@ -7232,7 +7241,7 @@ app.post("/admin/start-chat-rain", async (req, res) => {
 
     emitSpecialAnnouncement(
       room,
-      adminDisplayName + " started a live chat rain for " + winnersCount + " Plus winner" + (winnersCount === 1 ? "" : "s") + "."
+      adminDisplayName + " started a live chat rain for " + winnersCount + " " + rewardLabel + " winner" + (winnersCount === 1 ? "" : "s") + "."
     );
     emitRoomSpecials(room);
 
@@ -8161,7 +8170,9 @@ function serializeClaimDrop(drop) {
   return {
     id: drop.id,
     title: drop.title,
-    days: drop.days,
+    rewardType: drop.rewardType || "plus",
+    amount: drop.amount || drop.days,
+    days: drop.amount || drop.days,
     maxClaims: drop.maxClaims,
     remainingClaims,
     expiresAt: drop.expiresAt,
@@ -8214,7 +8225,9 @@ function serializeChatRain(rain) {
   return {
     id: rain.id,
     title: rain.title,
-    days: rain.days,
+    rewardType: rain.rewardType || "plus",
+    amount: rain.amount || rain.days,
+    days: rain.amount || rain.days,
     winnersCount: rain.winnersCount,
     expiresAt: rain.expiresAt,
     createdAt: rain.createdAt,
@@ -8575,21 +8588,28 @@ async function finalizeChatRain(room, reason = "completed") {
 
   for (const winner of winners) {
     try {
-      const grantResult = await grantComplimentaryPlusToUser(winner.userId, rain.days);
+      const rewardType = rain.rewardType || "plus";
+      const rewardAmount = Number(rain.amount || rain.days || DEFAULT_COMPLIMENTARY_PLUS_DAYS);
+      const grantResult = rewardType === "tokens"
+        ? await grantAITokensToUser(winner.userId, rewardAmount)
+        : rewardType === "pro"
+          ? await grantComplimentaryProToUser(winner.userId, rewardAmount)
+          : await grantComplimentaryPlusToUser(winner.userId, rewardAmount);
+      const rewardLabel = rewardType === "tokens" ? rewardAmount + " AI tokens" : rewardType === "pro" ? "Pro for " + grantResult.days + " days" : "Plus for " + grantResult.days + " days";
       await refreshMembershipStateForConnectedUser(grantResult.user || { ...winner, id: winner.userId });
       emitToUserInRoom(room, winner.userId, "special-action-result", {
         type: "chat-rain",
         ok: true,
         awarded: true,
-        message: "You won chat rain and received Plus for " + grantResult.days + " days.",
-        days: grantResult.days,
-        expiresAt: grantResult.expiresAt,
+        message: "You won chat rain and received " + rewardLabel + ".",
+        days: grantResult.days || 0,
+        expiresAt: grantResult.expiresAt || null,
       });
       grantedWinners.push({
         userId: winner.userId,
         username: winner.username,
         displayName: winner.displayName,
-        expiresAt: grantResult.expiresAt,
+        expiresAt: grantResult.expiresAt || null,
       });
     } catch (error) {
       console.error("Chat rain grant failed:", error.message);
@@ -8601,7 +8621,7 @@ async function finalizeChatRain(room, reason = "completed") {
     grantedWinners.forEach((winner) => {
       emitSpecialAnnouncement(
         room,
-        winner.displayName + " just won a Plus subscription from chat rain."
+        winner.displayName + " just won " + (rain.rewardType === "tokens" ? String(rain.amount) + " AI tokens" : (rain.rewardType === "pro" ? "a Pro membership" : "a Plus subscription")) + " from chat rain."
       );
     });
   } else {
@@ -8750,11 +8770,13 @@ io.on("connection", (socket) => {
 
     const state = getRoomSpecialState(currentRoom);
     const drop = state.claimDrop;
+    var rewardType = drop && drop.rewardType || "plus";
+    var rewardLabel = rewardType === "tokens" ? "AI token" : rewardType === "pro" ? "Pro" : "Plus";
     if (!drop) {
       socket.emit("special-action-result", {
         type: "claim-drop",
         ok: false,
-        error: "There is no active Plus drop right now.",
+        error: "There is no active " + rewardLabel + " drop right now.",
       });
       return;
     }
@@ -8764,7 +8786,7 @@ io.on("connection", (socket) => {
       socket.emit("special-action-result", {
         type: "claim-drop",
         ok: false,
-        error: "That Plus drop already expired.",
+        error: "That " + rewardLabel + " drop already expired.",
       });
       return;
     }
@@ -8773,12 +8795,12 @@ io.on("connection", (socket) => {
       socket.emit("special-action-result", {
         type: "claim-drop",
         ok: false,
-        error: "You need a real account to claim Plus.",
+        error: "You need a real account to claim this reward.",
       });
       return;
     }
 
-    if (memberProfile.isPlus || String(memberProfile.plan || "").toLowerCase() === "plus") {
+    if (rewardType === "plus" && (memberProfile.isPlus || String(memberProfile.plan || "").toLowerCase() === "plus")) {
       socket.emit("special-action-result", {
         type: "claim-drop",
         ok: false,
@@ -8791,7 +8813,7 @@ io.on("connection", (socket) => {
       socket.emit("special-action-result", {
         type: "claim-drop",
         ok: false,
-        error: "You already claimed this Plus drop.",
+        error: "You already claimed this drop.",
       });
       return;
     }
@@ -8801,15 +8823,19 @@ io.on("connection", (socket) => {
       socket.emit("special-action-result", {
         type: "claim-drop",
         ok: false,
-        error: "That Plus drop is already fully claimed.",
+        error: "That " + rewardLabel + " drop is already fully claimed.",
       });
       return;
     }
 
     try {
-      const grantResult = await grantComplimentaryPlusToUser(memberProfile.userId, drop.days);
-      memberProfile.isPlus = true;
-      memberProfile.plan = "plus";
+      const rewardAmount = Number(drop.amount || drop.days || DEFAULT_COMPLIMENTARY_PLUS_DAYS);
+      const grantResult = rewardType === "tokens"
+        ? await grantAITokensToUser(memberProfile.userId, rewardAmount)
+        : rewardType === "pro"
+          ? await grantComplimentaryProToUser(memberProfile.userId, rewardAmount)
+          : await grantComplimentaryPlusToUser(memberProfile.userId, rewardAmount);
+      if (rewardType !== "tokens") { memberProfile.isPlus = true; memberProfile.plan = rewardType; }
       await refreshMembershipStateForConnectedUser(grantResult.user || { ...memberProfile, id: memberProfile.userId });
       drop.claimedBy.push({
         userId: memberProfile.userId,
@@ -8822,14 +8848,14 @@ io.on("connection", (socket) => {
       socket.emit("special-action-result", {
         type: "claim-drop",
         ok: true,
-        message: "You claimed Plus for " + grantResult.days + " days.",
+        message: rewardType === "tokens" ? "You claimed " + grantResult.amount + " AI tokens." : "You claimed " + rewardLabel + " for " + grantResult.days + " days.",
         awarded: true,
-        days: grantResult.days,
-        expiresAt: grantResult.expiresAt,
+        days: grantResult.days || 0,
+        expiresAt: grantResult.expiresAt || null,
       });
       emitSpecialAnnouncement(
         currentRoom,
-        memberProfile.displayName + " just claimed a Plus subscription for " + grantResult.days + " days."
+        memberProfile.displayName + " just claimed " + (rewardType === "tokens" ? grantResult.amount + " AI tokens." : "a " + rewardLabel + " membership for " + grantResult.days + " days.")
       );
 
       if (drop.claimedBy.length >= drop.maxClaims) {
@@ -8841,7 +8867,7 @@ io.on("connection", (socket) => {
       socket.emit("special-action-result", {
         type: "claim-drop",
         ok: false,
-        error: "Could not claim Plus right now.",
+        error: "Could not claim this reward right now.",
       });
     }
   });
