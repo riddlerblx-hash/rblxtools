@@ -1344,6 +1344,36 @@
     document.body.appendChild(layer);
   }
 
+  function applyPlanAtmosphere(plan) {
+    if (!document.body) return;
+    var normalizedPlan = String(plan || "guest").toLowerCase();
+    var tier = normalizedPlan === "pro" ? "pro" : normalizedPlan === "plus" ? "plus" : "free";
+    document.body.classList.toggle("rblx-shell-plus-user", tier === "plus");
+    document.body.classList.toggle("rblx-shell-pro-user", tier === "pro");
+    document.body.classList.toggle("rblx-shell-free-user", tier === "free");
+
+    var layer = document.getElementById("rblxPlanAtmosphere");
+    if (!layer) {
+      layer = document.createElement("div");
+      layer.id = "rblxPlanAtmosphere";
+      layer.setAttribute("aria-hidden", "true");
+      document.body.insertBefore(layer, document.body.firstChild);
+    }
+
+    if (layer.dataset.plan === tier) return;
+    layer.dataset.plan = tier;
+    layer.className = "rblx-plan-atmosphere is-" + tier;
+    if (tier === "free") {
+      layer.innerHTML = "";
+      return;
+    }
+
+    var mark = tier === "pro" ? "&#128736;" : "+";
+    var marks = [];
+    for (var index = 0; index < 9; index += 1) marks.push("<span>" + mark + "</span>");
+    layer.innerHTML = marks.join("");
+  }
+
   function buildShellMarkup() {
     return (
       '<div class="rblx-shell" id="rblxShellRoot">' +
@@ -3273,8 +3303,7 @@
     var identityChanged = nextSignature !== shellState.authUiSignature;
     status.setAttribute("data-plan", state.plan);
     statusText.textContent = state.message;
-    document.body.classList.toggle("rblx-shell-plus-user", state.plan === "plus");
-    document.body.classList.toggle("rblx-shell-pro-user", state.plan === "pro");
+    applyPlanAtmosphere(state.plan);
     shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : 0 };
     var tokenBanner = document.getElementById("rblxShellTokenBanner");
     var tokenBalance = document.getElementById("rblxShellTokenBalance");
@@ -4054,6 +4083,7 @@
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
     ensureSitePlusBackdrop();
+    applyPlanAtmosphere(initialState.plan);
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
     // Keep the shared footer outside individual page layouts so it always spans the shell center.

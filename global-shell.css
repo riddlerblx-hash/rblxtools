@@ -3523,6 +3523,111 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::after {
   background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
 }
+
+/* One membership-aware atmosphere runs behind every shared-shell page. */
+.rblx-shell-plus-backdrop { display: none !important; }
+
+#rblxPlanAtmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+body.rblx-shell-ready .rblx-shell { position: relative; z-index: 8; }
+
+html:has(body.rblx-shell-pro-user),
+body.rblx-shell-pro-user,
+body.rblx-shell-pro-user.rblx-tool-atmosphere {
+  background-color: #0e0d08 !important;
+  background-image:
+    radial-gradient(900px 680px at -8% -12%, rgba(240, 186, 60, .28), transparent 67%),
+    radial-gradient(880px 680px at 108% 88%, rgba(186, 123, 21, .24), transparent 67%),
+    linear-gradient(145deg, #1b150a 0%, #0e0d08 54%, #171006 100%) !important;
+  background-attachment: fixed !important;
+}
+
+html:has(body.rblx-shell-plus-user),
+body.rblx-shell-plus-user,
+body.rblx-shell-plus-user.rblx-tool-atmosphere {
+  background-color: #0d1117 !important;
+  background-image:
+    radial-gradient(900px 680px at -8% -12%, rgba(238, 244, 255, .22), transparent 67%),
+    radial-gradient(880px 680px at 108% 88%, rgba(157, 174, 194, .20), transparent 67%),
+    linear-gradient(145deg, #1a222d 0%, #0d1117 54%, #151b23 100%) !important;
+  background-attachment: fixed !important;
+}
+
+html:has(body.rblx-shell-free-user),
+body.rblx-shell-free-user,
+body.rblx-shell-free-user.rblx-tool-atmosphere {
+  background-color: #0a1019 !important;
+  background-image:
+    radial-gradient(880px 660px at -8% -12%, rgba(70, 133, 230, .19), transparent 67%),
+    radial-gradient(840px 660px at 108% 88%, rgba(45, 92, 172, .16), transparent 67%),
+    linear-gradient(145deg, #111d30 0%, #0a1019 55%, #0e1724 100%) !important;
+  background-attachment: fixed !important;
+}
+
+.rblx-plan-atmosphere::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  opacity: .55;
+  transform: rotate(-10deg);
+  animation: rblx-plan-sheen 24s ease-in-out infinite alternate;
+}
+.rblx-plan-atmosphere.is-pro::before {
+  background: linear-gradient(105deg, transparent 32%, rgba(255, 215, 116, .09) 47%, transparent 61%);
+}
+.rblx-plan-atmosphere.is-plus::before {
+  background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, .08) 47%, transparent 61%);
+}
+.rblx-plan-atmosphere.is-free::before {
+  background: linear-gradient(105deg, transparent 32%, rgba(110, 170, 255, .06) 47%, transparent 61%);
+}
+
+.rblx-plan-atmosphere span {
+  position: absolute;
+  display: block;
+  font-size: clamp(21px, 2.5vw, 39px);
+  font-weight: 900;
+  line-height: 1;
+  opacity: .15;
+  animation: rblx-plan-float 14s ease-in-out infinite;
+}
+.rblx-plan-atmosphere span:nth-child(1) { left: 7%; top: 13%; animation-delay: -2s; }
+.rblx-plan-atmosphere span:nth-child(2) { left: 22%; top: 72%; animation-delay: -9s; }
+.rblx-plan-atmosphere span:nth-child(3) { left: 43%; top: 18%; animation-delay: -4s; }
+.rblx-plan-atmosphere span:nth-child(4) { left: 56%; top: 84%; animation-delay: -11s; }
+.rblx-plan-atmosphere span:nth-child(5) { left: 73%; top: 9%; animation-delay: -6s; }
+.rblx-plan-atmosphere span:nth-child(6) { left: 89%; top: 32%; animation-delay: -1s; }
+.rblx-plan-atmosphere span:nth-child(7) { left: 81%; top: 76%; animation-delay: -8s; }
+.rblx-plan-atmosphere span:nth-child(8) { left: 32%; top: 43%; animation-delay: -12s; }
+.rblx-plan-atmosphere span:nth-child(9) { left: 12%; top: 91%; animation-delay: -5s; }
+.rblx-plan-atmosphere.is-pro span {
+  color: #ffd369;
+  filter: sepia(1) saturate(3) hue-rotate(350deg) brightness(1.2) drop-shadow(0 0 13px rgba(242, 184, 47, .42));
+}
+.rblx-plan-atmosphere.is-plus span {
+  color: #f0f5ff;
+  text-shadow: 0 0 14px rgba(232, 241, 255, .32);
+}
+
+@keyframes rblx-plan-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-8deg); }
+  50% { transform: translate3d(14px, -28px, 0) rotate(9deg); }
+}
+@keyframes rblx-plan-sheen {
+  from { transform: translate3d(-4%, -2%, 0) rotate(-10deg); }
+  to { transform: translate3d(5%, 3%, 0) rotate(-10deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rblx-plan-atmosphere::before,
+  .rblx-plan-atmosphere span { animation: none; }
+}
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-pro-promo,
 body.rblx-home-page .home-grid-top > .plus-card.rblx-pro-promo {
   border-color: rgba(255, 205, 89, .76) !important;
