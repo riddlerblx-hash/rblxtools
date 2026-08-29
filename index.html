@@ -1158,6 +1158,63 @@
       animation: rblxPlusSilverPulse 4.8s ease-in-out infinite;
     }
     .home-grid-top > .plus-card .plus-benefit, .home-grid-top > .plus-card .plus-price-wrap { background: rgba(8,15,27,.48) !important; border-color: rgba(235,241,248,.22) !important; }
+
+    /* 2026 home refresh: a focused creator workspace instead of the older promotional landing stack. */
+    #rblx-homepage { padding: 34px 26px 58px; background: radial-gradient(circle at 92% 4%, rgba(202,164,74,.13), transparent 24%), radial-gradient(circle at 4% 30%, rgba(100,137,203,.16), transparent 29%), linear-gradient(180deg,#0a111d,#0d1523 46%,#09111c); }
+    #rblx-homepage, #rblx-homepage * { font-family: "Trebuchet MS", "Segoe UI", sans-serif; }
+    .home-shell { gap: 26px; max-width: 1380px; }
+    .home-grid-top { gap: 22px; grid-template-columns: minmax(0,1.46fr) minmax(330px,.8fr); }
+    .home-card, .tool-card, .faq-card, .social-card { border-color: rgba(182,202,234,.18) !important; border-radius: 22px !important; background: linear-gradient(145deg,rgba(30,43,64,.96),rgba(10,18,31,.98)) !important; box-shadow: 0 22px 55px rgba(0,0,0,.27) !important; }
+    .home-card::before, .tool-card::before, .faq-card::before, .social-card::before { background: linear-gradient(130deg,rgba(255,255,255,.09),transparent 24%), repeating-linear-gradient(135deg,rgba(255,255,255,.018) 0 1px,transparent 1px 12px) !important; }
+    .hero-card { min-height: 555px; padding: clamp(28px,4vw,54px) !important; background: radial-gradient(circle at 78% 8%,rgba(255,86,105,.2),transparent 24%), radial-gradient(circle at 100% 75%,rgba(106,159,247,.18),transparent 32%), linear-gradient(135deg,#172a46 0%,#0d1728 55%,#0a111d 100%) !important; }
+    .hero-card::after { content:""; position:absolute; width:330px; height:330px; right:-110px; bottom:-145px; border:1px solid rgba(184,209,248,.17); border-radius:50%; box-shadow:0 0 0 34px rgba(184,209,248,.035),0 0 0 68px rgba(184,209,248,.025); pointer-events:none; }
+    .hero-eyebrow { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid rgba(163,195,244,.32); border-radius:999px; color:#dceaff; background:rgba(99,135,194,.13); font-size:11px; font-weight:900; letter-spacing:.11em; text-transform:uppercase; }
+    .hero-eyebrow::before { content:""; width:7px; height:7px; border-radius:50%; background:#69f2b0; box-shadow:0 0 14px rgba(105,242,176,.85); }
+    .hero-title { max-width:12ch; margin:18px 0 16px; font-size:clamp(48px,6vw,82px); line-height:.89; letter-spacing:-.065em; }
+    .hero-title .accent { margin-top:9px; background:linear-gradient(105deg,#ffeff0 0%,#ff6c7d 47%,#fe394f 100%); -webkit-background-clip:text; background-clip:text; }
+    .hero-copy { max-width:64ch; font-size:15px; color:#bdcbdf; }
+    .hero-actions { margin-top:24px; }
+    .hero-actions .btn { min-height:48px; padding-inline:21px; border-radius:13px; font-weight:900; }
+    .hero-actions .btn.ghost { border-color:rgba(190,211,247,.31); background:rgba(10,20,36,.45); color:#e8f0ff; }
+    .hero-links { position:absolute; right:36px; top:34px; margin:0; }
+    .hero-links .btn { width:34px; min-width:34px; min-height:34px; border-radius:10px; border-color:rgba(185,208,246,.24); background:rgba(10,20,36,.52); }
+    .hero-links .btn svg { width:15px; height:15px; }
+    .workflow-rail { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:38px; padding-top:18px; border-top:1px solid rgba(186,207,241,.16); }
+    .workflow-step { display:grid; gap:5px; }
+    .workflow-step b { color:#f1f6ff; font-size:13px; letter-spacing:.02em; }
+    .workflow-step span { color:#90a4c2; font-size:11px; font-weight:700; line-height:1.35; }
+    .workflow-step::before { content:attr(data-step); color:#7eaaff; font-size:10px; font-weight:900; letter-spacing:.12em; }
+    .section-card { padding:clamp(24px,3vw,38px) !important; }
+    .tool-category + .tool-category { margin-top:48px; padding-top:43px; border-top:1px solid rgba(189,207,235,.15); }
+    .tool-category-head { margin-bottom:20px; }
+    .tool-category-title, .section-title { font-size:clamp(28px,3vw,42px); letter-spacing:-.055em; }
+    .tool-category-copy, .section-copy { max-width:62ch; color:#9eb0ca; }
+    .tool-grid { gap:13px; }
+    .tool-card { min-height:315px; padding:20px !important; border-radius:18px !important; transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease; }
+    .tool-card:hover { border-color:rgba(178,207,255,.62) !important; box-shadow:0 18px 36px rgba(0,0,0,.3),0 0 0 1px rgba(172,203,255,.1) !important; transform:translateY(-5px) !important; }
+    .tool-pill { min-height:25px; padding:0 9px; border-radius:7px; font-size:9px; letter-spacing:.08em; }
+    .tool-icon { width:42px; height:42px; border-radius:13px; }
+    .tool-title { margin-top:18px; font-size:24px; letter-spacing:-.045em; }
+    .tool-mini { color:#7f9cc9; font-size:10px; letter-spacing:.09em; }
+    .tool-copy { min-height:51px; color:#afbdd0; font-size:12px; }
+    .tool-feature-list { margin-top:15px; gap:7px; }
+    .tool-feature-list li { color:#cbd7e8; font-size:11px; }
+    .tool-footer { margin-top:18px; padding-top:14px; border-top-color:rgba(186,207,239,.12); }
+    .tool-action-btn { border-radius:9px; }
+    .social-grid { gap:13px; }
+    .social-card { min-height:190px; padding:20px !important; border-radius:18px !important; }
+    .social-icon { width:42px; height:42px; border-radius:13px; }
+    .faq-row { gap:13px; }
+    .faq-card { padding:21px !important; border-radius:18px !important; }
+    .faq-title { font-size:17px; }
+    .home-shell > section { animation:homeSectionEnter .62s both ease-out; }
+    .home-shell > section:nth-child(2) { animation-delay:.08s; }
+    .home-shell > section:nth-child(3) { animation-delay:.15s; }
+    .home-shell > section:nth-child(4) { animation-delay:.22s; }
+    @keyframes homeSectionEnter { from { opacity:0; transform:translateY(15px); } to { opacity:1; transform:translateY(0); } }
+    @media (max-width:1080px) { .hero-links { position:static; margin-top:18px; } .workflow-rail { margin-top:28px; } }
+    @media (max-width:720px) { #rblx-homepage { padding:18px 14px 38px; } .hero-card { min-height:auto; padding:27px !important; } .hero-title { font-size:clamp(43px,13vw,64px); } .workflow-rail { grid-template-columns:1fr; gap:13px; } .workflow-step { grid-template-columns:70px 1fr; align-items:center; } .workflow-step b, .workflow-step span { grid-column:2; } .workflow-step::before { grid-row:1 / span 2; grid-column:1; } }
+    @media (prefers-reduced-motion:reduce) { .home-shell > section { animation:none; } }
   </style>
   <link rel="stylesheet" href="./mobile-overrides.css" />
 </head>
@@ -1166,16 +1223,18 @@
     <div class="home-shell">
       <section class="home-grid-top">
         <article class="home-card hero-card">
+          <div class="hero-eyebrow">Creator workspace</div>
           <h1 class="hero-title">
-            The #1 Roblox Tools Website
-            <span class="accent">Built For Creator Profit</span>
+            Make Roblox assets
+            <span class="accent">move faster.</span>
           </h1>
           <p class="hero-copy">
-            RBLXTools is built for people who want cleaner creator workflows, faster downloads, and better ways to turn Roblox clothing, assets, and utilities into real dollar and Robux profit. The site focuses on useful tools, a cleaner flow, and premium upgrades that actually feel worth using.
+            A focused toolkit for the Roblox creator workflow: pull templates, collect media, work with UGC, and get back to building without jumping between sketchy sites.
           </p>
 
           <div class="hero-actions">
-            <a class="btn primary pulse-soft" href="#tools-section">View Tools</a>
+            <a class="btn primary pulse-soft" href="#tools-section">Explore tools</a>
+            <a class="btn ghost" href="./subscriptions">Creator plans</a>
           </div>
 
           <div class="hero-links">
@@ -1196,21 +1255,10 @@
             </a>
           </div>
 
-          <div class="hero-promo">
-            <div>
-              <h2 class="hero-promo-title">We're Asking For Your Help</h2>
-              <p class="hero-promo-copy">
-                Keeping RBLXTools online, maintained, and improving is getting expensive, and we're doing everything we can to keep the core tools free. If you want to support the project, even $1 helps us cover server costs, build more free tools, and keep adding useful content for free plan users and guests.
-              </p>
-            </div>
-            <div class="support-card">
-              <div class="cash-float one">$</div>
-              <div class="cash-float two">$</div>
-              <div class="cash-float three">$</div>
-              <h3 class="support-title">Support RBLXTools</h3>
-              <p class="support-copy">Help fund future tool updates, premium ideas, and site improvements.</p>
-              <a class="btn plus pulse-green" href="https://ko-fi.com/rblxtools" target="_blank" rel="noopener noreferrer">Support</a>
-            </div>
+          <div class="workflow-rail" aria-label="RBLXTools workflow">
+            <div class="workflow-step" data-step="01"><b>Choose a tool</b><span>Start with clothing, UGC, media, audio, or utility tools.</span></div>
+            <div class="workflow-step" data-step="02"><b>Make the pull</b><span>Use a direct, simple workflow built around Roblox assets.</span></div>
+            <div class="workflow-step" data-step="03"><b>Keep creating</b><span>Use Plus or Pro when your workflow needs more room.</span></div>
           </div>
         </article>
 
@@ -1535,10 +1583,9 @@
       <div class="modal-features">
         <div class="modal-feature">Animation Tools</div>
         <div class="modal-feature">UGC Texture Baking</div>
-        <div class="modal-feature">Bulk actions and faster tool usage</div>
+        <div class="modal-feature">Bulk Downloads (1-5)</div>
         <div class="modal-feature">Cool chat tag cosmetic</div>
         <div class="modal-feature">More premium website feel</div>
-        <div class="modal-feature">No site advertisements</div>
       </div>
 
       <div class="modal-actions">
