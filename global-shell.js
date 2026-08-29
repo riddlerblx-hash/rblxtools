@@ -120,7 +120,8 @@
     communityNotifications: [],
     communityUnreadCount: 0,
     notificationsForUserId: "",
-    communityVisitReadAttempt: ""
+    communityVisitReadAttempt: "",
+    renderedCommunityUnreadCount: null
   };
 
   window.__rblxShellState = shellState;
@@ -3420,7 +3421,10 @@
         : '<div class="rblx-shell-notification-empty">You are all caught up.</div>';
     }
     var navScroll = document.getElementById("rblxShellNavScroll");
-    if (navScroll) navScroll.innerHTML = buildNavMarkup();
+    if (navScroll && shellState.renderedCommunityUnreadCount !== shellState.communityUnreadCount) {
+      navScroll.innerHTML = buildNavMarkup();
+      shellState.renderedCommunityUnreadCount = shellState.communityUnreadCount;
+    }
   }
 
   async function refreshCommunityNotifications() {
@@ -3500,7 +3504,9 @@
     var statusText = document.getElementById("rblxShellStatusText");
     if (!auth || !status || !statusText) return;
 
-    var nextSignature = [Boolean(state.loggedIn), state.userId || "", state.plan || "guest", Boolean(state.isAdmin), state.displayName || "", state.username || ""].join("|");
+    // Only rebuild the header for real session changes. Profile/name and token
+    // refreshes are data updates, not a reason to visibly replace the UI.
+    var nextSignature = [Boolean(state.loggedIn), state.userId || "", state.plan || "guest", Boolean(state.isAdmin)].join("|");
     var identityChanged = nextSignature !== shellState.authUiSignature;
     status.setAttribute("data-plan", state.plan);
     statusText.textContent = state.message;
@@ -3518,7 +3524,10 @@
     applyMaintenanceState(shellState.maintenanceState);
     if (!identityChanged) return;
     var navScroll = document.getElementById("rblxShellNavScroll");
-    if (navScroll) navScroll.innerHTML = buildNavMarkup();
+    if (navScroll) {
+      navScroll.innerHTML = buildNavMarkup();
+      shellState.renderedCommunityUnreadCount = shellState.communityUnreadCount;
+    }
     refreshCurrentProfile();
     syncChatIdentity();
     if (shellState.socket && shellState.socketReady) shellState.socket.emit("join-room", getSocketJoinPayload());
@@ -4345,6 +4354,7 @@
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
+    shellState.renderedCommunityUnreadCount = shellState.communityUnreadCount;
     ensureSitePlusBackdrop();
     applyPlanAtmosphere(initialState.plan);
     var pageHost = document.getElementById("rblxShellPage");
