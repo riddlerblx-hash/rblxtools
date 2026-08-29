@@ -7700,6 +7700,44 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
   }
 });
 
+app.post("/store/confirm-ai-token-checkout", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const sessionId = String(req.body?.sessionId || "").trim();
+    if (!sessionId) return res.status(400).json({ error: "A checkout session ID is required." });
+
+    const session = await stripeClient.checkout.sessions.retrieve(sessionId);
+    const sessionCustomerId = typeof session?.customer === "string"
+      ? session.customer
+      : String(session?.customer?.id || "").trim();
+    const belongsToUser = Boolean(
+      (user.stripe_customer_id && sessionCustomerId && sessionCustomerId === user.stripe_customer_id) ||
+      String(session?.client_reference_id || "") === String(user.id || "") ||
+      String(session?.metadata?.appUserId || "") === String(user.id || "")
+    );
+    if (!belongsToUser) return res.status(403).json({ error: "That checkout session does not belong to this account." });
+    if (session?.mode !== "payment" || !session?.metadata?.aiTokenQuantity) {
+      return res.status(400).json({ error: "That checkout session is not an AI token purchase." });
+    }
+    if (session?.payment_status !== "paid") {
+      return res.json({ ok: true, pending: true, paymentStatus: session?.payment_status || "pending" });
+    }
+
+    await grantAITokensFromStripeCheckout(session);
+    const refreshedUser = await getAuthUserById(user.id);
+    return res.json({
+      ok: true,
+      pending: false,
+      creditedTokens: Number.parseInt(session.metadata.aiTokenQuantity, 10) || 0,
+      tokenBalance: getAITokenBalance(refreshedUser || user),
+    });
+  } catch (error) {
+    console.error("POST /store/confirm-ai-token-checkout failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not confirm the AI token purchase." });
+  }
+});
+
 app.post("/auth/create-checkout-session", async (req, res) => {
     try {
     assertStripeCheckoutConfigured();
