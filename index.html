@@ -1210,7 +1210,10 @@
     .tool-card.ai-card .tool-head { grid-column:1; }
     .tool-card.ai-card .tool-title, .tool-card.ai-card .tool-mini, .tool-card.ai-card .tool-copy, .tool-card.ai-card .tool-feature-list, .tool-card.ai-card .tool-footer { grid-column:1; }
     .tool-card.ai-card .tool-icon { width:52px; height:52px; color:#d8efff; border-color:rgba(158,211,255,.48); background:linear-gradient(145deg,rgba(107,190,255,.32),rgba(40,76,154,.3)); box-shadow:0 0 26px rgba(104,181,255,.22); }
-    .tool-card.ai-card .tool-action-btn { color:#071422; background:linear-gradient(135deg,#d8f4ff,#79bbff); box-shadow:0 10px 24px rgba(91,178,255,.34); }
+    .ai-tool-pill { display:inline-flex; align-items:center; gap:7px; min-height:29px; padding:0 11px 0 8px; border:1px solid rgba(160,220,255,.44); border-radius:9px; color:#e8f8ff; background:linear-gradient(135deg,rgba(114,208,255,.24),rgba(81,117,231,.18)); box-shadow:inset 0 1px 0 rgba(238,251,255,.2),0 8px 20px rgba(43,141,239,.18); font-size:10px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+    .ai-tool-pill i { display:grid; width:19px; height:19px; place-items:center; border-radius:6px; color:#071526; background:linear-gradient(135deg,#d7fbff,#75b5ff); box-shadow:0 0 14px rgba(131,217,255,.56); font-size:12px; font-style:normal; }
+    .tool-card.ai-card .tool-action-btn { display:inline-flex; align-items:center; gap:7px; color:#071422; background:linear-gradient(135deg,#d8f4ff,#79bbff); box-shadow:0 10px 24px rgba(91,178,255,.34); }
+    .tool-card.ai-card .tool-action-btn::after { content:"›"; font-size:18px; line-height:.7; }
     .social-grid { gap:13px; }
     .social-card { min-height:190px; padding:20px !important; border-radius:18px !important; }
     .social-icon { width:42px; height:42px; border-radius:13px; }
@@ -1461,7 +1464,7 @@
           <div class="tool-grid ai-grid">
             <a class="tool-card ai-card" href="./ai-thumbnail-studio">
               <div class="tool-head">
-                <span class="tool-pill">AI Generation</span>
+                <span class="ai-tool-pill"><i>✦</i> AI Thumbnail</span>
                 <div class="tool-icon">
                   <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l2.9 9.1L36 18l-9.1 2.9L24 30l-2.9-9.1L12 18l9.1-2.9L24 6z"></path><path d="M37 28l1.8 5.2L44 35l-5.2 1.8L37 42l-1.8-5.2L30 35l5.2-1.8L37 28z"></path><path d="M11 29l1.5 4.5L17 35l-4.5 1.5L11 41l-1.5-4.5L5 35l4.5-1.5L11 29z"></path></svg>
                 </div>
