@@ -8767,6 +8767,7 @@ app.get("/ugc-obj", async (req, res) => {
 // ------------------------------
 const rooms = new Map();
 const recentMessages = new Map();
+const clearedChatRooms = new Map();
 const roomSpecials = new Map();
 const maxRecentMessages = 50;
 const maxMessageLength = 500;
@@ -8794,11 +8795,19 @@ function pruneRecentMessages(messages, now = Date.now()) {
 
 function persistRecentMessages() {
   try {
+    const persisted = readJsonFile(chatHistoryPath, { rooms: {}, clearedRooms: {} });
+    const persistedClears = persisted && typeof persisted.clearedRooms === "object" ? persisted.clearedRooms : {};
+    Object.entries(persistedClears).forEach(([room, clearedAt]) => {
+      const timestamp = Date.parse(String(clearedAt || ""));
+      const current = clearedChatRooms.get(room) || 0;
+      if (Number.isFinite(timestamp) && timestamp > current) clearedChatRooms.set(room, timestamp);
+    });
     const payload = {
       updatedAt: new Date().toISOString(),
+      clearedRooms: Object.fromEntries(Array.from(clearedChatRooms.entries()).map(([room, timestamp]) => [room, new Date(timestamp).toISOString()])),
       rooms: Object.fromEntries(
         Array.from(recentMessages.entries())
-          .map(([room, messages]) => [room, pruneRecentMessages(messages)])
+          .map(([room, messages]) => [room, pruneRecentMessages(messages).filter((message) => getChatMessageTimestamp(message) > (clearedChatRooms.get(room) || 0))])
           .filter(([, messages]) => messages.length)
       ),
     };
@@ -8826,12 +8835,17 @@ function loadPersistedRecentMessages() {
     }
 
     const parsed = JSON.parse(fs.readFileSync(chatHistoryPath, "utf8"));
+    const persistedClears = parsed && typeof parsed.clearedRooms === "object" ? parsed.clearedRooms : {};
+    Object.entries(persistedClears).forEach(([room, clearedAt]) => {
+      const timestamp = Date.parse(String(clearedAt || ""));
+      if (Number.isFinite(timestamp)) clearedChatRooms.set(room, timestamp);
+    });
     const roomEntries = parsed && typeof parsed === "object" && parsed.rooms && typeof parsed.rooms === "object"
       ? Object.entries(parsed.rooms)
       : [];
 
     roomEntries.forEach(([room, messages]) => {
-      const nextHistory = pruneRecentMessages(messages);
+      const nextHistory = pruneRecentMessages(messages).filter((message) => getChatMessageTimestamp(message) > (clearedChatRooms.get(room) || 0));
       if (nextHistory.length) {
         recentMessages.set(room, nextHistory);
       }
@@ -9023,6 +9037,7 @@ function pushRoomMessage(room, message) {
 }
 
 function clearRoomMessages(room) {
+  clearedChatRooms.set(room, Date.now());
   recentMessages.delete(room);
   persistRoomHistory(room);
   io.to(room).emit("chat-history", []);

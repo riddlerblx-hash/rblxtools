@@ -1273,10 +1273,15 @@
       justify-content:center;
     }
 
-    .pro-creator-offer { display:grid; gap:7px; margin-top:12px; padding:11px 12px; border:1px solid rgba(255,212,103,.42); border-radius:14px; background:linear-gradient(135deg,rgba(255,211,97,.12),rgba(255,255,255,.025)); }
-    .pro-creator-offer-label { color:#ffe29a; font-size:9px; font-weight:950; letter-spacing:.1em; text-transform:uppercase; }
+    .pro-price-stack { flex:0 0 188px; }
+    .pro-price-box { min-width:154px; }
+    .pro-price-row { display:flex; align-items:baseline; justify-content:center; gap:8px; margin-top:5px; }
+    .pro-price-original { color:#ff9a96; font-size:15px; font-weight:900; text-decoration:line-through 2px #ff5454; }
+    .pro-price-discounted { color:#fff; font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1; }
+    .pro-creator-offer { display:flex; align-items:center; justify-content:space-between; gap:9px; margin-top:8px; padding:2px 3px; }
+    .pro-creator-offer-label { color:#ffe29a; font-size:9px; font-weight:950; letter-spacing:.08em; text-transform:uppercase; }
     .pro-creator-offer-row { display:flex; align-items:center; justify-content:space-between; gap:9px; }
-    .pro-creator-offer-copy { color:#fff4d5; font-size:11px; font-weight:850; line-height:1.25; }
+    .pro-creator-offer-copy { color:#d7cda9; font-size:10px; font-weight:800; line-height:1.25; }
     .pro-creator-offer-code { border:1px solid rgba(255,229,158,.68); border-radius:9px; padding:6px 8px; color:#2b1900; background:linear-gradient(135deg,#fff0b0,#e9b43f); font-size:10px; font-weight:950; letter-spacing:.06em; cursor:pointer; }
     .pro-creator-offer-code:active { transform:translateY(1px); }
     .pill-row:empty { display: none; }
@@ -1555,15 +1560,17 @@
                 <p class="plan-subtitle">The higher-tier creator membership for wider thumbnail flexibility, larger download batches, and a cleaner ad-free workflow.</p>
               </div>
 
-              <div class="price-box">
+              <div class="pro-price-stack">
+              <div class="price-box pro-price-box">
                 <div class="price-kicker">Current Price</div>
-                <div class="price-value" data-membership-price="pro">$5.00</div>
+                <div class="pro-price-row"><span class="pro-price-original" data-membership-price="pro">$5.00</span><span class="pro-price-discounted" id="proDiscountPrice">$2.50</span></div>
                 <div class="price-sub" data-membership-price-sub="pro">Per month</div>
                 <div class="price-save" data-membership-save="pro"></div>
               </div>
               <div class="pro-creator-offer">
-                <div class="pro-creator-offer-label">Creator discount</div>
-                <div class="pro-creator-offer-row"><span class="pro-creator-offer-copy" id="proCreatorOfferCopy">50% off monthly: $5.00 to $2.50</span><button class="pro-creator-offer-code" id="proCreatorOfferCode" type="button" title="Copy promo code">PROCREATOR</button></div>
+                <div><div class="pro-creator-offer-label">Creator discount</div><span class="pro-creator-offer-copy" id="proCreatorOfferCopy">Copy and apply at Stripe checkout.</span></div>
+                <div class="pro-creator-offer-row"><button class="pro-creator-offer-code" id="proCreatorOfferCode" type="button" title="Copy promo code">PROCREATOR</button></div>
+              </div>
               </div>
             </div>
 
@@ -1727,6 +1734,7 @@
       var proTokenPerkCopy = document.getElementById("proTokenPerkCopy");
       var proCreatorOfferCopy = document.getElementById("proCreatorOfferCopy");
       var proCreatorOfferCode = document.getElementById("proCreatorOfferCode");
+      var proDiscountPrice = document.getElementById("proDiscountPrice");
       var billingInterval = "month";
       var membershipPricing = null;
         var loginRedirectTimer = 0;
@@ -1753,8 +1761,7 @@
           priceValues.forEach(function(element) {
             var plan = element.getAttribute("data-membership-price");
             var price = membershipPricing && membershipPricing[plan] && membershipPricing[plan][billingInterval];
-            if (plan === "pro") element.textContent = billingInterval === "year" ? "$47.49" : "$2.50";
-            else if (price) element.textContent = formatMembershipPrice(price);
+            if (price) element.textContent = formatMembershipPrice(price);
           });
           priceSubtitles.forEach(function(element) {
             element.textContent = billingInterval === "year" ? "Per year" : "Per month";
@@ -1764,7 +1771,8 @@
           if (proTokenPerkIcon) proTokenPerkIcon.textContent = isAnnualPro ? "240" : "20";
           if (proTokenPerkTitle) proTokenPerkTitle.textContent = isAnnualPro ? "240 AI Credits Every Year" : "20 AI Credits Every Month";
           if (proTokenPerkCopy) proTokenPerkCopy.textContent = isAnnualPro ? "All 240 AI credits are added instantly after your successful annual Pro payment." : "A fresh 20 AI credits are added after every successful Pro monthly payment.";
-          if (proCreatorOfferCopy) proCreatorOfferCopy.textContent = isAnnualPro ? "$2.50 off annual: $49.99 to $47.49" : "50% off monthly: $5.00 to $2.50";
+          if (proDiscountPrice) proDiscountPrice.textContent = isAnnualPro ? "$47.49" : "$2.50";
+          if (proCreatorOfferCopy) proCreatorOfferCopy.textContent = isAnnualPro ? "Copy and apply for $2.50 off annual." : "Copy and apply for 50% off monthly.";
           priceSavings.forEach(function(element) {
             var plan = element.getAttribute("data-membership-save");
             var monthlyPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan].month;
@@ -1772,6 +1780,7 @@
             var monthlyTotal = (Number(monthlyPrice && monthlyPrice.unitAmount) || 0) * 12;
             var annualTotal = Number(annualPrice && annualPrice.unitAmount) || 0;
             var savingPercent = monthlyTotal > annualTotal ? Math.round((1 - annualTotal / monthlyTotal) * 100) : 0;
+            if (plan === "pro") { element.style.display = "none"; return; }
             element.textContent = savingPercent > 0 ? "Save " + savingPercent + "%" : "";
             element.style.display = billingInterval === "year" && savingPercent > 0 ? "inline-block" : "none";
           });

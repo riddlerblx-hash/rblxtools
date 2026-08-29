@@ -4336,7 +4336,7 @@
   function decorateMembershipText(root) {
     if (!root || !document.createTreeWalker) return;
     var matcher = /\b(plus|pro)\b/gi;
-    var ignoredSelector = ".rblx-plus-word, .rblx-pro-word, .rblx-shell-gate-plus, .rblx-shell-gate-pro, .gate-plus, .gate-pro, .rblx-membership-promo-included, script, style, textarea, select, option, input, pre, code";
+    var ignoredSelector = ".rblx-plus-word, .rblx-pro-word, .rblx-shell-gate-plus, .rblx-shell-gate-pro, .gate-plus, .gate-pro, .rblx-membership-promo-included, .rblx-no-membership-text-treatment, script, style, textarea, select, option, input, pre, code";
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function (node) {
         if (!matcher.test(node.nodeValue || "")) return NodeFilter.FILTER_REJECT;
