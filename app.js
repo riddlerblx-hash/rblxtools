@@ -2217,6 +2217,8 @@ function getStoredComplimentaryMembership(row) {
 function buildCombinedMembershipSnapshot(stripeMembership, complimentaryMembership, row) {
   const stripe = stripeMembership || buildMembershipBreakdownEntry({ active: false, totalDays: null, daysLeft: 0, status: row?.stripe_subscription_status || null });
   const complimentary = complimentaryMembership || buildMembershipBreakdownEntry({ active: false, totalDays: null, daysLeft: 0, status: "complimentary" });
+  const resolvedPlan = normalizeMembershipPlan(row?.plan);
+  const isComplimentaryPro = resolvedPlan === "pro" && String(row?.membership_source || "").toLowerCase().includes("complimentary pro");
   const hasStripeData = Boolean(stripe.status || stripe.currentPeriodEndAt || stripe.currentPeriodStartAt || stripe.totalDays != null);
   const hasComplimentaryData = Boolean(
     complimentary.totalDays != null ||
@@ -2224,34 +2226,43 @@ function buildCombinedMembershipSnapshot(stripeMembership, complimentaryMembersh
     complimentary.currentPeriodEndAt ||
     complimentary.currentPeriodStartAt
   );
+  const durationMembership = resolvedPlan === "pro"
+    ? (isComplimentaryPro ? complimentary : stripe)
+    : null;
   const stripeTotal = stripe.totalDays != null ? stripe.totalDays : 0;
   const complimentaryTotal = complimentary.totalDays != null ? complimentary.totalDays : 0;
   const stripeLeft = stripe.daysLeft != null ? stripe.daysLeft : 0;
   const complimentaryLeft = complimentary.daysLeft != null ? complimentary.daysLeft : 0;
-  const plusDaysTotal = stripe.totalDays == null && complimentary.totalDays == null
-    ? null
-    : stripeTotal + complimentaryTotal;
-  const plusDaysLeft = stripeLeft + complimentaryLeft;
+  const plusDaysTotal = durationMembership
+    ? durationMembership.totalDays
+    : (stripe.totalDays == null && complimentary.totalDays == null ? null : stripeTotal + complimentaryTotal);
+  const plusDaysLeft = durationMembership
+    ? (durationMembership.daysLeft != null ? durationMembership.daysLeft : 0)
+    : stripeLeft + complimentaryLeft;
   const manualPlusFallback = Boolean(
     !hasStripeData &&
     !hasComplimentaryData &&
     (row?.premium_active === true || ["plus", "pro"].includes(String(row?.plan || "").toLowerCase()))
   );
   const premiumActive = Boolean(stripe.active || complimentary.active || plusDaysLeft > 0 || manualPlusFallback);
-  const membershipSource = hasStripeData && hasComplimentaryData
+  const membershipSource = resolvedPlan === "pro"
+    ? (isComplimentaryPro ? "complimentary pro" : "stripe")
+    : hasStripeData && hasComplimentaryData
     ? "stripe + complimentary"
     : hasStripeData
       ? "stripe"
       : hasComplimentaryData
         ? "complimentary"
         : "none";
-  const combinedExpiresAt = plusDaysLeft > 0
+  const combinedExpiresAt = durationMembership
+    ? (durationMembership.expiresAt || durationMembership.currentPeriodEndAt || null)
+    : plusDaysLeft > 0
     ? new Date(Date.now() + (plusDaysLeft * 86400000)).toISOString()
     : getLaterIsoDate(stripe.expiresAt || stripe.currentPeriodEndAt, complimentary.expiresAt || complimentary.currentPeriodEndAt);
 
   return {
     premiumActive,
-    plan: premiumActive ? normalizeMembershipPlan(row?.plan) : "free",
+    plan: premiumActive ? resolvedPlan : "free",
     stripeSubscriptionStatus: stripe.status || row?.stripe_subscription_status || null,
     complimentaryExpiresAt: complimentary.expiresAt || complimentary.currentPeriodEndAt || null,
     complimentaryActive: Boolean(complimentary.active),
@@ -3485,6 +3496,7 @@ async function syncSubscriptionStateForUser(userId, customerId, subscriptionStat
   const premiumActive = stripeActive || Boolean(complimentaryMembership && complimentaryMembership.active);
   // Pro is the higher tier, so a Plus sync must never demote an existing Pro account.
   const keepExistingPro = isProMember(currentUser) && normalizeMembershipPlan(membershipFields.plan) !== "pro";
+  const resolvedPlan = premiumActive ? (keepExistingPro ? "pro" : normalizeMembershipPlan(membershipFields.plan)) : "free";
     const membershipSource = stripeActive && hasComplimentaryData
       ? "stripe + complimentary"
       : stripeActive
@@ -3496,14 +3508,19 @@ async function syncSubscriptionStateForUser(userId, customerId, subscriptionStat
       (membershipFields.stripeDaysTotal != null ||
         membershipFields.stripeCurrentPeriodStartAt ||
         membershipFields.stripeCurrentPeriodEndAt);
-    const resolvedPlan = premiumActive ? (keepExistingPro ? "pro" : normalizeMembershipPlan(membershipFields.plan)) : "free";
     return updateAuthUserFields(userId, {
       stripe_customer_id: customerId || null,
       premium_active: premiumActive,
       plus_active: isPlusPlan(resolvedPlan),
       plan: resolvedPlan,
       stripe_subscription_status: subscriptionStatus || null,
-      membership_source: membershipSource,
+      membership_source: resolvedPlan === "pro" ? "stripe" : membershipSource,
+      ...(resolvedPlan === "pro" ? {
+        plus_days_total: null,
+        plus_expires_at: null,
+        plus_current_period_start_at: null,
+        plus_current_period_end_at: null,
+      } : {}),
       ...(hasStripeSnapshotData ? buildStripeMembershipStorageFields(membershipFields) : {}),
     });
   }
@@ -4093,11 +4110,9 @@ async function grantComplimentaryProToUser(userId, days) {
     throw error;
   }
   const safeDays = Number.isFinite(days) ? Math.max(1, Math.min(days, MAX_COMPLIMENTARY_PLUS_DAYS)) : DEFAULT_COMPLIMENTARY_PLUS_DAYS;
-  const existingComplimentary = getStoredComplimentaryMembership(targetUser);
-  const existingExpiry = parseIsoDate(existingComplimentary?.expiresAt || existingComplimentary?.currentPeriodEndAt);
-  const extensionBaseMs = existingExpiry && existingExpiry.getTime() > Date.now() ? existingExpiry.getTime() : Date.now();
-  const expiresAt = new Date(extensionBaseMs + safeDays * 24 * 60 * 60 * 1000).toISOString();
-  const totalDays = Math.max(0, Number(existingComplimentary?.totalDays) || 0) + safeDays;
+  // A Pro grant replaces lower-tier time instead of carrying Plus days into Pro.
+  const expiresAt = new Date(Date.now() + safeDays * 24 * 60 * 60 * 1000).toISOString();
+  const totalDays = safeDays;
   const updatedUser = await updateAuthUserFields(targetUser.id, {
     premium_active: true,
     plus_active: false,
