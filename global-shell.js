@@ -117,7 +117,8 @@
     authUiSignature: "",
     communityNotifications: [],
     communityUnreadCount: 0,
-    notificationsForUserId: ""
+    notificationsForUserId: "",
+    communityVisitReadAttempt: ""
   };
 
   window.__rblxShellState = shellState;
@@ -1232,7 +1233,7 @@
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
             '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
               '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 10.5a6 6 0 0 0-12 0c0 7-2.5 7-2.5 8.5h17C20.5 17.5 18 17.5 18 10.5ZM9.5 21h5"></path></svg>' +
-              (shellState.communityUnreadCount > 0 ? '<span class="rblx-shell-notification-count">' + (shellState.communityUnreadCount > 99 ? '99+' : shellState.communityUnreadCount) + '</span>' : '') +
+              '<span class="rblx-shell-notification-count" id="rblxShellNotificationCount"' + (shellState.communityUnreadCount > 0 ? '' : ' hidden') + '>' + (shellState.communityUnreadCount > 99 ? '99+' : shellState.communityUnreadCount) + '</span>' +
             '</summary>' +
             '<div class="rblx-shell-notification-panel">' +
               '<div class="rblx-shell-notification-head"><strong>Notifications</strong><button type="button" data-shell-notifications-read-all="true">Mark all read</button></div>' +
@@ -3362,6 +3363,11 @@
   }
 
   function renderCommunityNotifications() {
+    var bellCount = document.getElementById("rblxShellNotificationCount");
+    if (bellCount) {
+      bellCount.hidden = shellState.communityUnreadCount <= 0;
+      bellCount.textContent = shellState.communityUnreadCount > 99 ? "99+" : String(shellState.communityUnreadCount);
+    }
     var list = document.getElementById("rblxShellNotificationList");
     if (list) {
       var items = Array.isArray(shellState.communityNotifications) ? shellState.communityNotifications : [];
@@ -3405,6 +3411,13 @@
       shellState.communityNotifications = Array.isArray(payload && payload.items) ? payload.items : [];
       shellState.communityUnreadCount = Math.max(0, Number(payload && payload.unreadCount) || 0);
       shellState.notificationsForUserId = requestedUserId;
+      var currentPath = normalizePath(window.location.pathname);
+      var visitReadKey = requestedUserId + ":" + currentPath;
+      if ((currentPath.endsWith("/community") || currentPath.endsWith("/community.html")) && shellState.communityUnreadCount > 0 && shellState.communityVisitReadAttempt !== visitReadKey) {
+        shellState.communityVisitReadAttempt = visitReadKey;
+        await markCommunityNotificationsRead("", true);
+        return;
+      }
       renderCommunityNotifications();
     } catch (_error) {
       try {
