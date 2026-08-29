@@ -22,6 +22,90 @@ body.rblx-shell-ready {
   min-height: 100vh;
 }
 
+.rblx-shell-membership-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: none;
+  place-items: center;
+  padding: 22px;
+  background: rgba(3, 8, 20, 0.8);
+  backdrop-filter: blur(15px) saturate(1.15);
+  -webkit-backdrop-filter: blur(15px) saturate(1.15);
+}
+
+.rblx-shell-membership-gate.is-open { display: grid; }
+
+.rblx-shell-membership-gate-card {
+  width: min(100%, 470px);
+  padding: 30px;
+  border: 1px solid rgba(178, 146, 255, 0.52);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 92% 4%, rgba(141, 82, 255, 0.36), transparent 34%),
+    radial-gradient(circle at 0% 100%, rgba(29, 192, 191, 0.16), transparent 42%),
+    linear-gradient(145deg, #1a2140, #090f20 72%);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.62), inset 0 1px 0 rgba(255, 255, 255, 0.13);
+  text-align: center;
+}
+
+.rblx-shell-membership-gate-kicker {
+  display: inline-flex;
+  margin-bottom: 14px;
+  padding: 7px 11px;
+  border: 1px solid rgba(211, 195, 255, 0.32);
+  border-radius: 999px;
+  color: #ddd2ff;
+  background: rgba(131, 84, 229, 0.16);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rblx-shell-membership-gate h3 {
+  margin: 0;
+  color: #f8faff;
+  font-size: clamp(27px, 4vw, 37px);
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+}
+
+.rblx-shell-membership-gate p {
+  max-width: 380px;
+  margin: 14px auto 0;
+  color: #bdc8dd;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.rblx-shell-gate-plus { color: #ffffff; text-shadow: 0 0 15px rgba(229, 239, 255, 0.44); }
+.rblx-shell-gate-pro { color: #ffd46f; text-shadow: 0 0 16px rgba(255, 188, 52, 0.46); }
+
+.rblx-shell-membership-gate-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 190px;
+  min-height: 48px;
+  margin-top: 23px;
+  padding: 0 20px;
+  border-radius: 13px;
+  color: #211603;
+  background: linear-gradient(135deg, #ffe29a, #efb633 58%, #c68216);
+  box-shadow: 0 13px 28px rgba(216, 154, 28, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.rblx-shell-membership-gate-button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+@media (max-width: 520px) {
+  .rblx-shell-membership-gate { padding: 16px; }
+  .rblx-shell-membership-gate-card { padding: 25px 20px; border-radius: 20px; }
+}
+
 .rblx-shell,
 .rblx-shell * {
   font-family: var(--shell-font) !important;

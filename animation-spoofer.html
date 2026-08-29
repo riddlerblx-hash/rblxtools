@@ -109,8 +109,9 @@
         linear-gradient(145deg, rgba(24,31,54,.98), rgba(9,15,29,.99));
       box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 30px 78px rgba(3,8,18,.68),0 0 0 1px rgba(119,93,255,.1);
     }
-    #plusGate.page-plus-lock .gate-modal h3 span:first-child { color:#ab94ff; letter-spacing:.11em; text-transform:uppercase; }
-    #plusGate.page-plus-lock .gate-modal h3 span:last-child { color:#f8f9ff; }
+    #plusGate.page-plus-lock .gate-modal h3 { color:#f8f9ff; font-size:clamp(26px,4vw,36px); line-height:1.1; }
+    #plusGate.page-plus-lock .gate-modal h3 .gate-plus { color:#ffffff; text-shadow:0 0 15px rgba(229,239,255,.44); }
+    #plusGate.page-plus-lock .gate-modal h3 .gate-pro { color:#ffd46f; text-shadow:0 0 16px rgba(255,188,52,.46); }
     #plusGate.page-plus-lock .plans-btn { width:100%; max-width:240px; border-radius:12px; background:linear-gradient(135deg,#9b5cff,#6130d5); box-shadow:0 12px 26px rgba(112,61,230,.32); }
       .tutorial-video-box {
       position: relative;
@@ -176,7 +177,7 @@
       height: 100%;
     }
 </style>
-<link rel="stylesheet" href="./global-shell.css?v=20260828-2" />
+<link rel="stylesheet" href="./global-shell.css?v=20260829-3" />
   <link rel="stylesheet" href="./template-tool-layout.css" />
 <style>
       .tool-stack,
@@ -1303,7 +1304,7 @@
 </head>
   <body data-tool-report="Animations">
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20260829-8"></script>
+<script src="./global-shell.js?v=20260829-9"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1518,8 +1519,8 @@
 
 <div class="gate-overlay" id="plusGate" data-rblx-persistent-gate="true">
     <div class="gate-modal">
-      <h3><span>Membership Required</span><span>Animations needs Plus or Pro</span></h3>
-      <p>Unlock the animation workflow with an active RBLXTools Plus or Pro membership.</p>
+      <h3>Animations is available with <span class="gate-plus">Plus</span> or <span class="gate-pro">Pro</span>.</h3>
+      <p>Choose a membership to unlock the animation workflow and the creator benefits that come with it.</p>
       <div class="gate-actions">
         <a class="plans-btn" href="./subscriptions">View Plans</a>
       </div>
@@ -1594,7 +1595,7 @@
         const actions = plusGate.querySelector(".gate-actions");
 
         if (heading) {
-          heading.innerHTML = "<span>Membership Required</span><span>Animations needs Plus or Pro</span>";
+          heading.innerHTML = 'Animations is available with <span class="gate-plus">Plus</span> or <span class="gate-pro">Pro</span>.';
         }
 
         if (copy) {

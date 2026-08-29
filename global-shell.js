@@ -367,6 +367,68 @@
     return pieces;
   }
 
+  function buildAnimationMembershipGateMarkup() {
+    return (
+      '<div class="rblx-shell-membership-gate" id="rblxShellAnimationGate" aria-hidden="true">' +
+        '<div class="rblx-shell-membership-gate-card" role="dialog" aria-modal="true" aria-labelledby="rblxShellAnimationGateTitle">' +
+          '<div class="rblx-shell-membership-gate-kicker">Animations Access</div>' +
+          '<h3 id="rblxShellAnimationGateTitle">Animations is available with <span class="rblx-shell-gate-plus">Plus</span> or <span class="rblx-shell-gate-pro">Pro</span>.</h3>' +
+          '<p>Choose a membership to unlock the animation tool and the creator benefits that come with it.</p>' +
+          '<a class="rblx-shell-membership-gate-button" href="./subscriptions">Compare Plans</a>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function initAnimationMembershipGate() {
+    var gate = document.getElementById("rblxShellAnimationGate");
+    if (!gate || gate.dataset.rblxBound === "true") return;
+    gate.dataset.rblxBound = "true";
+
+    function hasAnimationAccess(state) {
+      var plan = String(state && state.plan || "").toLowerCase();
+      return plan === "plus" || plan === "pro";
+    }
+
+    function showGate() {
+      gate.classList.add("is-open");
+      gate.setAttribute("aria-hidden", "false");
+    }
+
+    document.addEventListener("click", function (event) {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
+      if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
+      var href = String(link.getAttribute("href") || "");
+      var path = href.split("?")[0].split("#")[0].replace(/^\.\//, "").replace(/\.html$/i, "");
+      if (path !== "animation-spoofer") return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      event.stopPropagation();
+
+      function continueOrGate(state) {
+        if (hasAnimationAccess(state)) {
+          window.location.href = href;
+          return;
+        }
+        showGate();
+      }
+
+      if (shellState.authResolved) {
+        continueOrGate(shellState.currentUser);
+        return;
+      }
+      resolveUserState().then(function (state) {
+        shellState.authResolved = true;
+        updateAuthUi(state);
+        continueOrGate(state);
+      }).catch(function () {
+        continueOrGate(getImmediateUserState());
+      });
+    }, true);
+  }
+
   function getToken() {
     try { return localStorage.getItem(TOKEN_KEY) || ""; }
     catch (_error) { return ""; }
@@ -1631,6 +1693,7 @@
             '<div class="rblx-shell-site-lock-note" id="rblxShellMaintenanceNote">This does not mean the servers are down. The RBLXTeam is currently updating the site. Please come back later.</div>' +
           "</div>" +
         "</div>" +
+        buildAnimationMembershipGateMarkup() +
         '<div class="rblx-shell-admin-window" id="rblxShellAdminWindow" hidden>' +
           '<div class="rblx-shell-admin-window-shell">' +
             '<div class="rblx-shell-admin-window-head" id="rblxShellAdminWindowHead">' +
@@ -4208,7 +4271,7 @@
   function decorateMembershipText(root) {
     if (!root || !document.createTreeWalker) return;
     var matcher = /\b(plus|pro)\b/gi;
-    var ignoredSelector = ".rblx-plus-word, .rblx-pro-word, script, style, textarea, select, option, input, pre, code";
+    var ignoredSelector = ".rblx-plus-word, .rblx-pro-word, .rblx-shell-gate-plus, .rblx-shell-gate-pro, .gate-plus, .gate-pro, script, style, textarea, select, option, input, pre, code";
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function (node) {
         if (!matcher.test(node.nodeValue || "")) return NodeFilter.FILTER_REJECT;
@@ -4387,6 +4450,7 @@
     document.body.classList.add("rblx-shell-ready");
     initMembershipTextTreatment();
     initMembershipPromoRotation();
+    initAnimationMembershipGate();
     window.addEventListener("rblxtools-membership-updated", function (event) {
       var detail = event && event.detail ? event.detail : {};
       var plan = detail.plan === "pro" ? "pro" : detail.plan === "plus" ? "plus" : "free";
