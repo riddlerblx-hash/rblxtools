@@ -1727,7 +1727,20 @@ async function resolveAITokenPackagePrice(packageDefinition) {
   return priceId;
 }
 
-async function resolveRecurringProductPrice(productId) {
+function normalizeBillingInterval(value) {
+  return String(value || "").trim().toLowerCase() === "year" ? "year" : "month";
+}
+
+function serializeMembershipPrice(price) {
+  return price && price.id ? {
+    id: String(price.id),
+    unitAmount: Number(price.unit_amount || 0),
+    currency: String(price.currency || "usd"),
+    interval: String(price.recurring?.interval || "month"),
+  } : null;
+}
+
+async function getRecurringProductPrices(productId) {
   if (!productId) {
     const error = new Error("This membership product is not configured yet.");
     error.statusCode = 503;
@@ -1737,15 +1750,30 @@ async function resolveRecurringProductPrice(productId) {
     product: productId,
     active: true,
     type: "recurring",
-    limit: 10,
+    limit: 100,
   });
-  const price = Array.isArray(prices?.data) ? prices.data.find((item) => item?.recurring) : null;
+  return Array.isArray(prices?.data) ? prices.data.filter((item) => item?.recurring) : [];
+}
+
+async function resolveRecurringProductPrice(productId, billingInterval) {
+  const interval = normalizeBillingInterval(billingInterval);
+  const prices = await getRecurringProductPrices(productId);
+  const price = prices.find((item) => item?.recurring?.interval === interval);
   if (!price?.id) {
-    const error = new Error("This membership product needs an active recurring Stripe price.");
+    const error = new Error("This membership product needs an active " + interval + " Stripe price.");
     error.statusCode = 503;
     throw error;
   }
   return String(price.id);
+}
+
+async function resolvePlusRecurringPrice(billingInterval) {
+  const interval = normalizeBillingInterval(billingInterval);
+  if (interval === "month") return STRIPE_PRICE_ID;
+  const monthlyPrice = await stripeClient.prices.retrieve(STRIPE_PRICE_ID);
+  const product = monthlyPrice?.product;
+  const productId = typeof product === "string" ? product : String(product?.id || "").trim();
+  return resolveRecurringProductPrice(productId, interval);
 }
 
 function extractMissingSupabaseColumnName(error) {
@@ -7502,13 +7530,15 @@ app.post("/auth/create-checkout-session", async (req, res) => {
     assertStripeCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const customerId = await getOrCreateStripeCustomerForUser(user);
+    const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
+    const priceId = await resolvePlusRecurringPrice(billingInterval);
 
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
       line_items: [
         {
-          price: STRIPE_PRICE_ID,
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -7518,6 +7548,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
       client_reference_id: user.id,
       metadata: {
         appUserId: user.id,
+        billingInterval,
       },
       subscription_data: {
         metadata: {
@@ -7543,7 +7574,8 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
     assertStripePortalConfigured();
     const user = await requireAuthenticatedUser(req);
     const customerId = await getOrCreateStripeCustomerForUser(user);
-    const priceId = await resolveRecurringProductPrice(STRIPE_PRO_PRODUCT_ID);
+    const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
+    const priceId = await resolveRecurringProductPrice(STRIPE_PRO_PRODUCT_ID, billingInterval);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
@@ -7552,13 +7584,34 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
       cancel_url: getSafeCheckoutCancelUrl(),
       allow_promotion_codes: true,
       client_reference_id: user.id,
-      metadata: { appUserId: user.id, plan: "pro" },
-      subscription_data: { metadata: { appUserId: user.id, plan: "pro" } },
+      metadata: { appUserId: user.id, plan: "pro", billingInterval },
+      subscription_data: { metadata: { appUserId: user.id, plan: "pro", billingInterval } },
     });
     return res.json({ ok: true, url: checkoutSession.url });
   } catch (error) {
     console.error("POST /auth/create-pro-checkout-session failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create a Pro checkout session." });
+  }
+  });
+
+app.get("/auth/membership-pricing", async (_req, res) => {
+  try {
+    assertStripeCheckoutConfigured();
+    const plusMonthly = await stripeClient.prices.retrieve(STRIPE_PRICE_ID);
+    const plusProduct = plusMonthly?.product;
+    const plusProductId = typeof plusProduct === "string" ? plusProduct : String(plusProduct?.id || "").trim();
+    const [plusPrices, proPrices] = await Promise.all([
+      getRecurringProductPrices(plusProductId),
+      getRecurringProductPrices(STRIPE_PRO_PRODUCT_ID),
+    ]);
+    const byInterval = (prices, interval) => serializeMembershipPrice(prices.find((price) => price?.recurring?.interval === interval));
+    return res.json({
+      ok: true,
+      plus: { month: serializeMembershipPrice(plusMonthly), year: byInterval(plusPrices, "year") },
+      pro: { month: byInterval(proPrices, "month"), year: byInterval(proPrices, "year") },
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load membership pricing." });
   }
 });
   

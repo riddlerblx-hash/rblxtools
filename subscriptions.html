@@ -1263,6 +1263,10 @@
     .plan-col.pro-focus { order:2; padding-top:0; padding-bottom:0; transform:translateY(-9px); }
     .plan-col.side-plan:first-child { order:1; }
     .pro-card { background:radial-gradient(circle at 84% 18%,rgba(255,205,88,.28),transparent 24%),radial-gradient(circle at 16% 86%,rgba(185,118,17,.20),transparent 31%),linear-gradient(155deg,rgba(76,52,18,.98),rgba(13,16,21,.99)); }
+    .billing-toggle { display:flex; width:max-content; max-width:100%; gap:4px; margin:0 auto 20px; padding:4px; border:1px solid rgba(123,164,255,.25); border-radius:999px; background:rgba(11,20,35,.82); box-shadow:0 12px 26px rgba(0,0,0,.18); }
+    .billing-toggle button { min-height:36px; border:0; border-radius:999px; padding:0 15px; cursor:pointer; color:#aebbd0; background:transparent; font:800 11px/1 Arial,sans-serif; }
+    .billing-toggle button.is-active { color:#07101c; background:linear-gradient(135deg,#38e6e0,#79a4ff); box-shadow:0 7px 16px rgba(56,230,224,.2); }
+    .billing-toggle button[data-billing="year"]::after { content:'Save yearly'; margin-left:6px; color:inherit; font-size:9px; opacity:.8; }
     @media (max-width:900px) { .subscriptions-main { display:block; min-height:0; padding:42px 14px 68px; } .plus-focus, .pro-focus { transform:none; } .plan-col.plus-focus { order:2; } .plan-col.pro-focus { order:3; } }
   </style>
 <link rel="stylesheet" href="./global-shell.css?v=20260828-2" />
@@ -1282,6 +1286,10 @@
       <h1><span>Creator</span><span>Memberships</span></h1>
       <p>Choose the RBLXTools plan that fits your workflow. Upgrade securely through Stripe whenever you are ready.</p>
     </section>
+    <div class="billing-toggle" role="group" aria-label="Billing period">
+      <button type="button" class="is-active" data-billing="month" aria-pressed="true">Monthly</button>
+      <button type="button" data-billing="year" aria-pressed="false">Annual</button>
+    </div>
 
     <section class="plan-banner">
       <span><strong>Plus does more than unlock tools.</strong> It helps keep the site running, supports the servers behind the downloads and premium utilities, and gives you the faster workflow upgrade at the same time.</span>
@@ -1388,8 +1396,8 @@
 
               <div class="price-box">
                 <div class="price-kicker">Current Price</div>
-                <div class="price-value">$1.00</div>
-                <div class="price-sub">Per month</div>
+                <div class="price-value" data-membership-price="plus">$1.00</div>
+                <div class="price-sub" data-membership-price-sub="plus">Per month</div>
               </div>
             </div>
 
@@ -1489,8 +1497,8 @@
 
               <div class="price-box">
                 <div class="price-kicker">Current Price</div>
-                <div class="price-value">$5.00</div>
-                <div class="price-sub">Per month</div>
+                <div class="price-value" data-membership-price="pro">$5.00</div>
+                <div class="price-sub" data-membership-price-sub="pro">Per month</div>
               </div>
             </div>
 
@@ -1641,6 +1649,11 @@
       var freeStatusEl = document.getElementById("freeStatus");
       var loginLock = document.getElementById("loginLock");
       var loginLockCountdown = document.getElementById("loginLockCountdown");
+      var billingButtons = Array.prototype.slice.call(document.querySelectorAll("[data-billing]"));
+      var priceValues = Array.prototype.slice.call(document.querySelectorAll("[data-membership-price]"));
+      var priceSubtitles = Array.prototype.slice.call(document.querySelectorAll("[data-membership-price-sub]"));
+      var billingInterval = "month";
+      var membershipPricing = null;
         var loginRedirectTimer = 0;
         var loginCountdownTimer = 0;
         var planCards = Array.prototype.slice.call(document.querySelectorAll(".plan-card"));
@@ -1651,6 +1664,52 @@
         var mobilePlanNext = document.getElementById("mobilePlanNext");
         var mobilePlanCols = Array.prototype.slice.call(document.querySelectorAll("[data-plan-index]"));
         var mobilePlanIndex = 1;
+
+        function formatMembershipPrice(price) {
+          return new Intl.NumberFormat("en-US", { style:"currency", currency:String(price && price.currency || "usd").toUpperCase(), minimumFractionDigits:2 }).format((Number(price && price.unitAmount) || 0) / 100);
+        }
+
+        function updateBillingUi() {
+          billingButtons.forEach(function(button) {
+            var active = button.getAttribute("data-billing") === billingInterval;
+            button.classList.toggle("is-active", active);
+            button.setAttribute("aria-pressed", String(active));
+          });
+          priceValues.forEach(function(element) {
+            var plan = element.getAttribute("data-membership-price");
+            var price = membershipPricing && membershipPricing[plan] && membershipPricing[plan][billingInterval];
+            if (price) element.textContent = formatMembershipPrice(price);
+          });
+          priceSubtitles.forEach(function(element) {
+            element.textContent = billingInterval === "year" ? "Per year" : "Per month";
+          });
+        }
+
+        async function loadMembershipPricing() {
+          try {
+            var pricing = await apiRequest("/auth/membership-pricing");
+            if (pricing && pricing.plus && pricing.pro) membershipPricing = pricing;
+            var annualAvailable = Boolean(membershipPricing && membershipPricing.plus && membershipPricing.plus.year && membershipPricing.pro && membershipPricing.pro.year);
+            billingButtons.forEach(function(button) {
+              if (button.getAttribute("data-billing") === "year") {
+                button.disabled = !annualAvailable;
+                button.title = annualAvailable ? "" : "Annual pricing is not configured yet.";
+              }
+            });
+            updateBillingUi();
+          } catch (_error) {
+            updateBillingUi();
+          }
+        }
+
+        billingButtons.forEach(function(button) {
+          button.addEventListener("click", function() {
+            var nextInterval = button.getAttribute("data-billing") === "year" ? "year" : "month";
+            if (nextInterval === "year" && (!membershipPricing || !membershipPricing.plus || !membershipPricing.plus.year || !membershipPricing.pro || !membershipPricing.pro.year)) return;
+            billingInterval = nextInterval;
+            updateBillingUi();
+          });
+        });
 
         function isMobilePlanViewport() {
           return window.matchMedia && window.matchMedia("(max-width: 820px)").matches;
@@ -1950,8 +2009,10 @@
           var result = await apiRequest("/auth/create-checkout-session", {
             method: "POST",
             headers: {
-              Authorization: "Bearer " + token
-            }
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ billingInterval: billingInterval })
           });
 
           if (!result || !result.url) {
@@ -1991,7 +2052,8 @@
           try {
             var result = await apiRequest("/auth/create-pro-checkout-session", {
               method: "POST",
-              headers: { Authorization: "Bearer " + token }
+              headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+              body: JSON.stringify({ billingInterval: billingInterval })
             });
             if (!result || !result.url) throw new Error("Stripe did not return a checkout URL.");
             if (window.top && window.top !== window) window.top.location.href = result.url;
@@ -2072,6 +2134,7 @@
       window.addEventListener("load", syncInitialMobilePlan);
       window.addEventListener("pageshow", syncInitialMobilePlan);
 
+      loadMembershipPricing();
       detectPlanState();
     }());
   </script>
