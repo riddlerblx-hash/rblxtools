@@ -3978,19 +3978,19 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  function buildMembershipPromoMarkup(plan) {
+  function buildMembershipPromoMarkup(plan, actionLabel) {
     var isPro = plan === "pro";
     var config = isPro ? {
       price: "$5.00",
       subtitle: "Monthly Stripe subscription",
       title: "Pro",
-      action: "Try Now",
+      action: actionLabel || "Try Now",
       perks: ["20 AI Credits Every Month", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1080p Quality Outputs", "Premium Giveaways", "Custom Chat Tag", "Animation Tool Included", "Textured UGCs Included", "Premium Looking Website Included"]
     } : {
       price: "$1.00",
       subtitle: "Monthly membership",
       title: "Plus",
-      action: "Try Now",
+      action: actionLabel || "Try Now",
       perks: ["Chat Tag Cosmetic", "Animation Tool", "Textured UGCs", "Bulk Downloads (1-5)", "Premium Looking Website"]
     };
     return [
@@ -4013,7 +4013,7 @@
         plan = nextPlan;
         if (timerId) window.clearTimeout(timerId);
         promo.classList.toggle("rblx-pro-promo", plan === "pro");
-        promo.innerHTML = buildMembershipPromoMarkup(plan);
+        promo.innerHTML = buildMembershipPromoMarkup(plan, document.body.classList.contains("rblx-home-page") ? "View" : "Try Now");
 
         var progress = promo.querySelector(".rblx-membership-promo-progress span");
         if (progress) {
