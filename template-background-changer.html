@@ -850,7 +850,7 @@
         </p>
 
         <div class="rblx-cleaner-plus-note">
-          Free users can restore unlimited templates 1 by 1. <span class="rblx-plus-word">Plus</span> users can restore 2-5 templates at a time. <span class="rblx-plus-word">Pro</span> users can restore 5-10 templates at a time.
+          Free users can restore unlimited templates 1 by 1. <span class="rblx-plus-word">Plus</span> users can restore 2-5 templates at a time. <span class="rblx-pro-word">Pro</span> users can restore 5-10 templates at a time.
         </div>
 
         <div class="rblx-cleaner-grid">
@@ -1551,7 +1551,7 @@
         updateEmptyPreviewState();
 
         if (files.length > 10) {
-          setStatus("<span class=\"rblx-plus-word\">Pro</span> users can restore up to 10 templates at a time.", "error");
+          setStatus("<span class=\"rblx-pro-word\">Pro</span> users can restore up to 10 templates at a time.", "error");
           renderEntryPreview();
           return;
         }
@@ -1564,7 +1564,7 @@
             return;
           }
           if (files.length > 5 && !accountIsPro) {
-            setStatus("<span class=\"rblx-plus-word\">Pro</span> users can restore up to 10 templates at a time. <a href=\"https://www.rblxtools.net/subscriptions\" target=\"_top\"><span class=\"rblx-plus-word\">Upgrade to Pro</span></a>", "error");
+            setStatus("<span class=\"rblx-pro-word\">Pro</span> users can restore up to 10 templates at a time. <a href=\"https://www.rblxtools.net/subscriptions\" target=\"_top\"><span class=\"rblx-pro-word\">Upgrade to Pro</span></a>", "error");
             renderEntryPreview();
             return;
           }

@@ -729,6 +729,22 @@
       text-transform: uppercase;
     }
 
+    .price-save {
+      display: none;
+      width: max-content;
+      max-width: 100%;
+      margin: 7px auto 0;
+      padding: 3px 7px;
+      border: 1px solid rgba(96, 242, 176, 0.42);
+      border-radius: 999px;
+      color: #8effc1;
+      background: rgba(39, 181, 105, 0.12);
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
     .section-kicker.free { color: #a6c2ff; }
     .section-kicker.plus { color: #ffaaaa; }
     .section-kicker.pro { color: #ffde9c; }
@@ -1249,7 +1265,13 @@
     .plans-grid { gap: 14px; }
     .side-plan { padding-block: 12px; }
     .plus-focus { transform: none; }
-    .card-inner { padding: 17px; }
+    .card-inner { box-sizing:border-box; padding: 17px; }
+    body.rblx-subscription-store .plans-grid .card-inner { box-sizing:border-box !important; }
+    body.rblx-subscription-store .plans-grid .plus-cta-group .robux-checkout-link {
+      display:inline-flex !important;
+      align-items:center;
+      justify-content:center;
+    }
     .pill-row:empty { display: none; }
     .plan-title { margin-top: 7px; font-size: clamp(28px, 2.55vw, 38px); line-height: .95; }
     .plan-subtitle { margin-top: 8px; line-height: 1.5; }
@@ -1427,6 +1449,7 @@
                 <div class="price-kicker">Current Price</div>
                 <div class="price-value" data-membership-price="plus">$1.00</div>
                 <div class="price-sub" data-membership-price-sub="plus">Per month</div>
+                <div class="price-save" data-membership-save="plus"></div>
               </div>
             </div>
 
@@ -1529,6 +1552,7 @@
                 <div class="price-kicker">Current Price</div>
                 <div class="price-value" data-membership-price="pro">$5.00</div>
                 <div class="price-sub" data-membership-price-sub="pro">Per month</div>
+                <div class="price-save" data-membership-save="pro"></div>
               </div>
             </div>
 
@@ -1686,6 +1710,7 @@
       var billingButtons = Array.prototype.slice.call(document.querySelectorAll("[data-billing]"));
       var priceValues = Array.prototype.slice.call(document.querySelectorAll("[data-membership-price]"));
       var priceSubtitles = Array.prototype.slice.call(document.querySelectorAll("[data-membership-price-sub]"));
+      var priceSavings = Array.prototype.slice.call(document.querySelectorAll("[data-membership-save]"));
       var billingInterval = "month";
       var membershipPricing = null;
         var loginRedirectTimer = 0;
@@ -1716,6 +1741,16 @@
           });
           priceSubtitles.forEach(function(element) {
             element.textContent = billingInterval === "year" ? "Per year" : "Per month";
+          });
+          priceSavings.forEach(function(element) {
+            var plan = element.getAttribute("data-membership-save");
+            var monthlyPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan].month;
+            var annualPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan].year;
+            var monthlyTotal = (Number(monthlyPrice && monthlyPrice.unitAmount) || 0) * 12;
+            var annualTotal = Number(annualPrice && annualPrice.unitAmount) || 0;
+            var savingPercent = monthlyTotal > annualTotal ? Math.round((1 - annualTotal / monthlyTotal) * 100) : 0;
+            element.textContent = savingPercent > 0 ? "Save " + savingPercent + "%" : "";
+            element.style.display = billingInterval === "year" && savingPercent > 0 ? "inline-block" : "none";
           });
         }
 

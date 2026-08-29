@@ -6331,6 +6331,11 @@ app.post("/chat/message", async (req, res) => {
     if (!text) return res.status(400).json({ error: "Enter a message first." });
 
     const room = cleanText(req.body?.room || defaultChatRoom, 40) || defaultChatRoom;
+    if (text.toLowerCase() === "/clear") {
+      if (!isAdminUser(user)) return res.status(403).json({ error: "Only admins can clear live chat." });
+      clearRoomMessages(room);
+      return res.json({ ok: true, cleared: true, history: [] });
+    }
     const profile = await buildChatMemberProfile(req.body || {}, user);
     const message = createChatRoomMessage(profile, { text, replyTo: req.body?.replyTo });
     pushRoomMessage(room, message);
@@ -8644,6 +8649,12 @@ function pushRoomMessage(room, message) {
   io.to(room).emit("chat-message", message);
 }
 
+function clearRoomMessages(room) {
+  recentMessages.delete(room);
+  persistRoomHistory(room);
+  io.to(room).emit("chat-history", []);
+}
+
 function emitSpecialAnnouncement(room, text) {
   const message = createChatRoomMessage({
     userId: "system",
@@ -9050,6 +9061,24 @@ io.on("connection", (socket) => {
 
     const cleanMessage = cleanText(payload.text, maxMessageLength);
     if (!cleanMessage) return;
+
+    if (cleanMessage.toLowerCase() === "/clear") {
+      if (!isAdminUser(authenticatedUser)) {
+        socket.emit("special-action-result", {
+          type: "chat-command",
+          ok: false,
+          error: "Only admins can use /clear.",
+        });
+        return;
+      }
+      clearRoomMessages(currentRoom);
+      socket.emit("special-action-result", {
+        type: "chat-command",
+        ok: true,
+        message: "Live chat cleared.",
+      });
+      return;
+    }
 
     memberProfile = syncChatMemberProfile(memberProfile, payload);
     addUser(currentRoom, socket.id, memberProfile);
