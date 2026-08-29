@@ -3473,6 +3473,20 @@ body.rblx-shell-ready .rblx-shell-page .rblx-tool-stat strong { display: block; 
   animation: rblxPlusTextShine 3.8s linear infinite;
 }
 
+/* Pro uses the same always-on wordmark treatment, with its own gold identity. */
+.rblx-pro-word {
+  display: inline-block;
+  color: #ffd66f;
+  font-weight: 900;
+  background: linear-gradient(110deg, #a96c16 0%, #fff3bb 22%, #efb440 45%, #fff6c8 67%, #bb761a 100%);
+  background-size: 230% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 13px rgba(255, 191, 63, .36);
+  animation: rblxProTextShine 3.45s linear infinite;
+}
+
 /* Older pages wrap Plus in a span without surrounding whitespace. */
 .plus-word:not(.rblx-plus-word) {
   display: inline-block;
@@ -3485,9 +3499,88 @@ body.rblx-shell-ready .rblx-shell-page .rblx-tool-stat strong { display: block; 
   to { background-position: 230% 50%; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .rblx-plus-word { animation: none; }
+@keyframes rblxProTextShine {
+  from { background-position: 0% 50%; }
+  to { background-position: 230% 50%; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .rblx-plus-word, .rblx-pro-word { animation: none; }
+}
+
+/* Existing homepage and tool membership promos rotate between their two tiers. */
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo),
+body.rblx-home-page .home-grid-top > .plus-card:not(.rblx-pro-promo) {
+  border-color: rgba(226, 235, 247, .58) !important;
+  background:
+    linear-gradient(116deg, rgba(255, 255, 255, .22), transparent 23%, rgba(221, 231, 244, .12) 44%, transparent 63%),
+    radial-gradient(circle at 87% 12%, rgba(255, 255, 255, .18), transparent 29%),
+    linear-gradient(145deg, #263144, #101927 72%, #586474) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .52), 0 20px 46px rgba(150, 164, 188, .19) !important;
+}
+
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::before,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::after {
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
+}
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-pro-promo,
+body.rblx-home-page .home-grid-top > .plus-card.rblx-pro-promo {
+  border-color: rgba(255, 205, 89, .76) !important;
+  background:
+    linear-gradient(116deg, rgba(255, 244, 188, .18), transparent 25%, rgba(255, 196, 68, .1) 47%, transparent 68%),
+    radial-gradient(circle at 84% 12%, rgba(255, 207, 88, .3), transparent 28%),
+    linear-gradient(145deg, #4d3512, #17130e 74%, #6d4914) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 245, 191, .45), 0 22px 48px rgba(172, 109, 18, .28) !important;
+}
+
+.rblx-pro-promo {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex !important;
+  flex-direction: column;
+  min-height: 100%;
+  padding: clamp(18px, 2vw, 28px) !important;
+  border: 1px solid rgba(255, 205, 89, .76) !important;
+  border-radius: 20px;
+  background:
+    linear-gradient(116deg, rgba(255, 244, 188, .18), transparent 25%, rgba(255, 196, 68, .1) 47%, transparent 68%),
+    radial-gradient(circle at 84% 12%, rgba(255, 207, 88, .3), transparent 28%),
+    linear-gradient(145deg, #4d3512, #17130e 74%, #6d4914) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 245, 191, .45), 0 22px 48px rgba(172, 109, 18, .28) !important;
+  animation: rblxProPromoPulse 4.8s ease-in-out infinite;
+}
+
+.rblx-pro-promo::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -35% auto -35% -42%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 246, 192, .68), transparent);
+  transform: rotate(11deg);
+  animation: rblxProPromoSweep 5.8s ease-in-out infinite;
+}
+
+.rblx-membership-promo-topline,
+.rblx-membership-promo-perks,
+.rblx-membership-promo-action,
+.rblx-membership-promo-title,
+.rblx-membership-promo-copy { position: relative; z-index: 1; }
+.rblx-membership-promo-topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rblx-membership-promo-badge { border: 1px solid rgba(255, 224, 128, .7); border-radius: 999px; padding: 5px 9px; color: #fff1bb; background: rgba(79, 50, 7, .5); font-size: 10px; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+.rblx-membership-promo-price { color: #fff0b5; font-size: 12px; font-weight: 900; }
+.rblx-membership-promo-title { margin: 18px 0 8px !important; color: #fff8d8 !important; font-size: clamp(27px, 3vw, 42px) !important; line-height: .94 !important; letter-spacing: -1.3px; }
+.rblx-membership-promo-copy { margin: 0 !important; color: #f3e5bd !important; font-size: 12px !important; font-weight: 700; line-height: 1.5; }
+.rblx-membership-promo-perks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 16px; }
+.rblx-membership-promo-perks span { min-height: 34px; display: flex; align-items: center; padding: 7px 9px; border: 1px solid rgba(255, 224, 134, .26); border-radius: 10px; color: #fff6d9; background: rgba(32, 23, 8, .38); font-size: 10px; font-weight: 800; line-height: 1.2; }
+.rblx-membership-promo-action { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; margin-top: auto; padding: 0 16px; border-radius: 12px; color: #1e1506 !important; background: linear-gradient(135deg, #fff0a4, #e5a72f 55%, #ffda69) !important; box-shadow: 0 12px 24px rgba(211, 144, 23, .28); font-size: 12px; font-weight: 950; text-decoration: none; }
+.rblx-membership-promo-action:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+@keyframes rblxProPromoSweep { 0%, 20% { transform: translateX(-170%) rotate(11deg); opacity: 0; } 45% { opacity: .92; } 72%, 100% { transform: translateX(410%) rotate(11deg); opacity: 0; } }
+@keyframes rblxProPromoPulse { 0%, 100% { box-shadow: inset 0 1px 0 rgba(255, 245, 191, .45), 0 22px 48px rgba(172, 109, 18, .28); } 50% { box-shadow: inset 0 1px 0 rgba(255, 245, 191, .6), 0 26px 56px rgba(218, 151, 30, .4), 0 0 0 1px rgba(255, 221, 122, .18); } }
+
+@media (max-width: 620px) { .rblx-membership-promo-perks { grid-template-columns: 1fr; } .rblx-membership-promo-perks span { min-height: 30px; } }
 
 /* Site-wide visual system: one quiet midnight surface, with red reserved for actions. */
 :root {
@@ -3970,4 +4063,18 @@ body.rblx-shell-ready .rblx-shell-page .share-copy-btn { margin-top: 15px !impor
   body.rblx-shell-ready .rblx-shell-page .share-card { padding: 16px !important; border-radius: 18px !important; }
   body.rblx-shell-ready .rblx-shell-page .showcase-layout { grid-template-columns: 1fr !important; }
   body.rblx-shell-ready .rblx-shell-page .logo-preview { height: 174px !important; }
+}
+
+/* Keep old per-page red promo styles from winning over the shared silver Plus tier. */
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo) {
+  border-color: rgba(226, 235, 247, .58) !important;
+  background:
+    linear-gradient(116deg, rgba(255, 255, 255, .22), transparent 23%, rgba(221, 231, 244, .12) 44%, transparent 63%),
+    radial-gradient(circle at 87% 12%, rgba(255, 255, 255, .18), transparent 29%),
+    linear-gradient(145deg, #263144, #101927 72%, #586474) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .52), 0 20px 46px rgba(150, 164, 188, .19) !important;
+}
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::before,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::after {
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
 }

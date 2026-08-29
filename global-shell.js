@@ -3930,10 +3930,10 @@
     observer.observe(pageHost, { childList: true, subtree: true });
   }
 
-  function decoratePlusText(root) {
+  function decorateMembershipText(root) {
     if (!root || !document.createTreeWalker) return;
-    var matcher = /\bplus\b/gi;
-    var ignoredSelector = ".rblx-plus-word, script, style, textarea, select, option, input, pre, code";
+    var matcher = /\b(plus|pro)\b/gi;
+    var ignoredSelector = ".rblx-plus-word, .rblx-pro-word, script, style, textarea, select, option, input, pre, code";
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function (node) {
         if (!matcher.test(node.nodeValue || "")) return NodeFilter.FILTER_REJECT;
@@ -3955,7 +3955,7 @@
       while ((match = matcher.exec(value))) {
         if (match.index > cursor) fragment.appendChild(document.createTextNode(value.slice(cursor, match.index)));
         var word = document.createElement("span");
-        word.className = "rblx-plus-word";
+        word.className = match[0].toLowerCase() === "pro" ? "rblx-pro-word" : "rblx-plus-word";
         word.textContent = match[0];
         fragment.appendChild(word);
         cursor = match.index + match[0].length;
@@ -3965,17 +3965,47 @@
     });
   }
 
-  function initPlusTextTreatment() {
-    decoratePlusText(document.body);
+  function initMembershipTextTreatment() {
+    decorateMembershipText(document.body);
     var observer = new MutationObserver(function (records) {
       records.forEach(function (record) {
         Array.prototype.forEach.call(record.addedNodes, function (node) {
-          if (node.nodeType === 3) decoratePlusText(node.parentNode);
-          else if (node.nodeType === 1 && !node.classList.contains("rblx-plus-word")) decoratePlusText(node);
+          if (node.nodeType === 3) decorateMembershipText(node.parentNode);
+          else if (node.nodeType === 1 && !node.classList.contains("rblx-plus-word") && !node.classList.contains("rblx-pro-word")) decorateMembershipText(node);
         });
       });
     });
     observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  function buildProPromoMarkup() {
+    return [
+      '<div class="rblx-membership-promo-topline"><span class="rblx-membership-promo-badge">Best Value</span><span class="rblx-membership-promo-price">$5 / month</span></div>',
+      '<h3 class="rblx-membership-promo-title">Build more with Pro</h3>',
+      '<p class="rblx-membership-promo-copy">Every Plus benefit, upgraded with creator-focused Pro tools and 20 AI credits every month.</p>',
+      '<div class="rblx-membership-promo-perks"><span>No Annoying Ads</span><span>Bulk Downloads (5-10)</span><span>6 AI Thumbnail Attachments</span><span>All Aspect Ratios</span><span>1080p Quality Outputs</span><span>Premium Giveaways</span><span>Custom Chat Tag</span><span>20 AI Credits Every Month</span><span>Includes All Plus Benefits</span></div>',
+      '<a class="rblx-membership-promo-action" href="./subscriptions">Explore Pro</a>'
+    ].join("");
+  }
+
+  function initMembershipPromoRotation() {
+    var selector = ".plus-promo, body.rblx-home-page .home-grid-top > .plus-card";
+    Array.prototype.slice.call(document.querySelectorAll(selector)).forEach(function (promo) {
+      if (promo.dataset.rblxPromoRotationBound === "true") return;
+      promo.dataset.rblxPromoRotationBound = "true";
+      var plusMarkup = promo.innerHTML;
+      var showPro = false;
+
+      function render() {
+        promo.classList.toggle("rblx-pro-promo", showPro);
+        promo.innerHTML = showPro ? buildProPromoMarkup() : plusMarkup;
+      }
+
+      window.setInterval(function () {
+        showPro = !showPro;
+        render();
+      }, 30000);
+    });
   }
 
   function initShell() {
@@ -4006,7 +4036,8 @@
     initSharedToolShowcase();
     initSharedToolStats();
     document.body.classList.add("rblx-shell-ready");
-    initPlusTextTreatment();
+    initMembershipTextTreatment();
+    initMembershipPromoRotation();
     shellState.deviceId = getDeviceId();
     applyCollapsedState(document.body);
     initProfileOverlay();
