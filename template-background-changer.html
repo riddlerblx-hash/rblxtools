@@ -850,7 +850,7 @@
         </p>
 
         <div class="rblx-cleaner-plus-note">
-          Free users can restore unlimited templates 1 by 1. <span class="rblx-plus-word">Plus</span> users can restore 2-5 templates at a time.
+          Free users can restore unlimited templates 1 by 1. <span class="rblx-plus-word">Plus</span> users can restore 2-5 templates at a time. <span class="rblx-plus-word">Pro</span> users can restore 5-10 templates at a time.
         </div>
 
         <div class="rblx-cleaner-grid">
@@ -1078,6 +1078,7 @@
       var currentPreviewIndex = 0;
       var templateCache = {};
       var accountHasPlus = false;
+      var accountIsPro = false;
       var plusStatusPromise = null;
       var hasInteracted = false;
 
@@ -1115,6 +1116,19 @@
           payload.subscription === "plus" ||
           payload.plan === "plus" ||
           payload.tier === "plus"
+        ) || isProFromPayload(payload);
+      }
+
+      function isProFromPayload(payload) {
+        if (!payload || typeof payload !== "object") return false;
+        var source = payload.user && typeof payload.user === "object" ? payload.user : payload;
+        return Boolean(
+          source.isPro === true ||
+          source.hasPro === true ||
+          source.proActive === true ||
+          String(source.plan || "").toLowerCase() === "pro" ||
+          String(source.subscription || "").toLowerCase() === "pro" ||
+          String(source.tier || "").toLowerCase() === "pro"
         );
       }
 
@@ -1139,6 +1153,15 @@
         }
       }
 
+      function readCachedProStatus() {
+        try {
+          var cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
+          return isProFromPayload(cachedUser);
+        } catch (_error) {
+          return false;
+        }
+      }
+
       function writeCachedPlusStatus(isPlus) {
         try {
           localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
@@ -1158,6 +1181,7 @@
         var token = getStoredToken();
         if (!token) {
           clearCachedPlusStatus();
+          accountIsPro = false;
           return false;
         }
 
@@ -1165,6 +1189,7 @@
         if (!settings.force) {
           var cachedStatus = readCachedPlusStatus();
           if (cachedStatus !== null) {
+            accountIsPro = readCachedProStatus();
             window.setTimeout(function () {
               fetchPlusStatus({ force: true, background: true });
             }, 0);
@@ -1179,6 +1204,7 @@
 
           if (premiumResponse.ok) {
             var premiumPayload = await premiumResponse.json().catch(function () { return null; });
+            accountIsPro = isProFromPayload(premiumPayload);
             var hasPlus = hasPlusFromPayload(premiumPayload);
             writeCachedPlusStatus(hasPlus);
             return hasPlus;
@@ -1186,6 +1212,7 @@
 
           if (premiumResponse.status === 401 || premiumResponse.status === 403) {
             clearCachedPlusStatus();
+            accountIsPro = false;
             return false;
           }
 
@@ -1195,11 +1222,13 @@
 
           if (!response.ok) return readCachedPlusStatus() === true;
           var payload = await response.json().catch(function () { return null; });
+          accountIsPro = isProFromPayload(payload);
           var hasPlus = hasPlusFromPayload(payload);
           writeCachedPlusStatus(hasPlus);
           return hasPlus;
         } catch (_error3) {
           var cachedStatus = readCachedPlusStatus();
+          accountIsPro = readCachedProStatus();
           return cachedStatus === true;
         }
       }
@@ -1521,8 +1550,8 @@
         hasInteracted = true;
         updateEmptyPreviewState();
 
-        if (files.length > 5) {
-          setStatus("<span class=\"rblx-plus-word\">Plus</span> users can restore up to 5 templates at a time.", "error");
+        if (files.length > 10) {
+          setStatus("<span class=\"rblx-plus-word\">Pro</span> users can restore up to 10 templates at a time.", "error");
           renderEntryPreview();
           return;
         }
@@ -1531,6 +1560,11 @@
           var hasPlus = await fetchPlusStatus();
           if (!hasPlus) {
             setStatus("Must be a <span class=\"rblx-plus-word\">Plus</span> subscriber to restore multiple templates at the same time. <a href=\"https://www.rblxtools.net/subscriptions\" target=\"_top\"><span class=\"rblx-plus-word\">Upgrade to Plus</span></a>", "error");
+            renderEntryPreview();
+            return;
+          }
+          if (files.length > 5 && !accountIsPro) {
+            setStatus("<span class=\"rblx-plus-word\">Pro</span> users can restore up to 10 templates at a time. <a href=\"https://www.rblxtools.net/subscriptions\" target=\"_top\"><span class=\"rblx-plus-word\">Upgrade to Pro</span></a>", "error");
             renderEntryPreview();
             return;
           }
