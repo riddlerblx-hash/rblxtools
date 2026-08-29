@@ -608,6 +608,7 @@
     }
 
     #rbtools-account-overview .acct-plus-tag.hidden { display: none; }
+    #rbtools-account-overview .acct-card.is-plus { border-color:rgba(224,230,240,.56); box-shadow:0 20px 54px rgba(168,181,201,.14); }
     #rbtools-account-overview .acct-card.is-pro { border-color:rgba(255,194,67,.58); box-shadow:0 20px 54px rgba(177,111,17,.20); }
     #rbtools-account-overview .acct-card.is-pro::before { background:radial-gradient(circle at 18% 12%,rgba(255,214,92,.22),transparent 30%),radial-gradient(circle at 84% 82%,rgba(194,121,18,.18),transparent 30%); }
     #rbtools-account-overview .acct-pill-value.is-pro { display:inline-flex; align-items:center; gap:7px; font-size:15px; line-height:1; }
@@ -1163,6 +1164,16 @@
     #rbtools-account-overview .acct-card.is-plus .acct-profile-header::after {
       content: ""; position: absolute; inset: -70% -32%; z-index: 0; pointer-events: none;
       background: linear-gradient(112deg, transparent 42%, rgba(255,255,255,.42) 50%, transparent 58%);
+      animation: acctProfileGlare 5.8s ease-in-out infinite;
+    }
+    #rbtools-account-overview .acct-card.is-pro .acct-profile-header {
+      border-color: rgba(255, 199, 71, .66);
+      background: linear-gradient(130deg, rgba(33, 27, 16, .96), rgba(116, 78, 20, .52) 47%, rgba(25, 22, 16, .96));
+      box-shadow: inset 0 1px 0 rgba(255,237,176,.28), 0 18px 36px rgba(56, 34, 4, .34);
+    }
+    #rbtools-account-overview .acct-card.is-pro .acct-profile-header::after {
+      content: ""; position: absolute; inset: -70% -32%; z-index: 0; pointer-events: none;
+      background: linear-gradient(112deg, transparent 42%, rgba(255,212,96,.46) 50%, transparent 58%);
       animation: acctProfileGlare 5.8s ease-in-out infinite;
     }
     #rbtools-account-overview .acct-profile-header .acct-profile,
@@ -2010,7 +2021,7 @@
         syncBioCount();
         els.acctAvatarFallback.textContent = getInitials(displayName);
         els.acctPlusCosmetic.classList.toggle("hidden", !(state.user && state.user.premiumActive));
-        els.acctPlusCosmetic.innerHTML = currentPlan === "pro" ? '<div class="acct-pro-mark">&#127959;&#128296;</div><div class="acct-pro-name">Pro Member</div>' : '<div class="acct-plus-mark">+</div><div class="acct-plus-name">Plus Member</div>';
+        els.acctPlusCosmetic.innerHTML = currentPlan === "pro" ? '<div class="acct-pro-mark">&#128736;</div><div class="acct-pro-name">Pro Member</div>' : '<div class="acct-plus-mark">+</div><div class="acct-plus-name">Plus Member</div>';
         els.acctCard.classList.toggle("is-plus", currentPlan === "plus");
         els.acctCard.classList.toggle("is-pro", currentPlan === "pro");
         els.acctDropzone.style.setProperty("--acct-avatar-scale", String(avatarScale));
@@ -2066,7 +2077,7 @@
         if (displayPlan === "plus") {
           els.acctPlan.innerHTML = '<span class="acct-pill-plus-mark">+</span><span class="acct-pill-plus-text">plus</span>';
         } else if (displayPlan === "pro") {
-          els.acctPlan.innerHTML = '<span class="acct-pro-mark">&#127959;&#128296;</span><span class="acct-pro-name">pro</span>';
+          els.acctPlan.innerHTML = '<span class="acct-pro-mark">&#128736;</span><span class="acct-pro-name">pro</span>';
         } else {
           els.acctPlan.textContent = displayPlan;
         }

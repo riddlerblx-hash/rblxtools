@@ -235,6 +235,11 @@ body.rblx-shell-ready {
   animation: shellProfileCardGlare 4.8s ease-in-out infinite;
 }
 
+.rblx-shell-profile-card.is-plus {
+  border-color: rgba(224, 230, 240, 0.68);
+  box-shadow: 0 14px 30px rgba(13, 18, 28, 0.34), 0 0 20px rgba(222, 229, 241, 0.12);
+}
+
 .rblx-shell-profile-card.is-pro {
   border-color: rgba(255, 194, 67, 0.72);
   background: radial-gradient(circle at top left, rgba(255, 209, 87, 0.26), transparent 36%), radial-gradient(circle at bottom right, rgba(184, 101, 12, 0.25), transparent 32%), linear-gradient(180deg, rgba(92, 55, 10, 0.66), rgba(35, 24, 8, 0.82));
@@ -1760,6 +1765,24 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   z-index: 0;
 }
 
+.rblx-shell-profile-modal.is-plus {
+  border-color: rgba(224, 230, 240, 0.68);
+  box-shadow: 0 26px 64px rgba(0,0,0,0.42), 0 0 26px rgba(218, 226, 240, 0.12);
+}
+
+.rblx-shell-profile-modal.is-pro::after {
+  content: "";
+  position: absolute;
+  inset: -35% -45%;
+  background: linear-gradient(120deg, transparent 42%, rgba(255, 206, 79, 0.10) 48%, rgba(255, 230, 141, 0.42) 50%, rgba(255, 196, 50, 0.10) 52%, transparent 58%);
+  transform: translateX(-55%) skewX(-18deg);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.84;
+  animation: shellProfileGlare 4.8s ease-in-out infinite;
+  z-index: 0;
+}
+
 .rblx-shell-profile-pluses {
   position: absolute;
   inset: 0;
@@ -1771,7 +1794,8 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   z-index: 0;
 }
 
-.rblx-shell-profile-modal.is-plus .rblx-shell-profile-pluses {
+.rblx-shell-profile-modal.is-plus .rblx-shell-profile-pluses,
+.rblx-shell-profile-modal.is-pro .rblx-shell-profile-pluses {
   opacity: 1;
 }
 
@@ -2478,7 +2502,7 @@ body.rblx-shell-modal-open {
   gap: 8px;
 }
 .rblx-shell-profile-plan.is-pro { display:inline-flex; align-items:center; gap:8px; color:#ffe39c; }
-.rblx-shell-profile-modal.is-pro { border-color:rgba(255,194,67,.65); box-shadow:0 24px 64px rgba(194,128,18,.28); }
+.rblx-shell-profile-modal.is-pro { border-color:rgba(255,194,67,.72); box-shadow:0 26px 64px rgba(0,0,0,.42),0 0 28px rgba(222,156,28,.26); }
 .rblx-shell-profile-pro-float { color:rgba(255,215,96,var(--float-opacity)) !important; filter:drop-shadow(0 0 9px rgba(255,188,45,.5)); }
 
 .rblx-shell-profile-badge.is-plus {

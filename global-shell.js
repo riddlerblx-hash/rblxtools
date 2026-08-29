@@ -1310,9 +1310,8 @@
 
   function buildHeaderProfileProMarkup() {
     var specs = [["16%", "62%", "10px", "-0.8s", "0.32"], ["34%", "24%", "12px", "-2.0s", "0.42"], ["57%", "68%", "9px", "-1.2s", "0.28"], ["78%", "28%", "11px", "-2.8s", "0.36"]];
-    return specs.map(function (spec, index) {
-      var icon = index % 2 ? "&#128296;" : "&#127959;";
-      return '<span class="rblx-shell-profile-card-plus rblx-shell-profile-card-pro" style="--profile-card-plus-left:' + spec[0] + ';--profile-card-plus-top:' + spec[1] + ';--profile-card-plus-size:' + spec[2] + ';--profile-card-plus-delay:' + spec[3] + ';--profile-card-plus-opacity:' + spec[4] + ';">' + icon + '</span>';
+    return specs.map(function (spec) {
+      return '<span class="rblx-shell-profile-card-plus rblx-shell-profile-card-pro" style="--profile-card-plus-left:' + spec[0] + ';--profile-card-plus-top:' + spec[1] + ';--profile-card-plus-size:' + spec[2] + ';--profile-card-plus-delay:' + spec[3] + ';--profile-card-plus-opacity:' + spec[4] + ';">&#128736;</span>';
     }).join("");
   }
 
@@ -1677,7 +1676,7 @@
             '<div class="rblx-shell-chat-name">' +
               '<button class="rblx-shell-chat-name-button" type="button" data-chat-action="profile" data-chat-index="' + index + '">' +
                 badgeMarkup +
-                (isPro ? '<span class="rblx-shell-chat-plus-mark is-pro">&#127959;&#128296;</span>' : (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "")) +
+                (isPro ? '<span class="rblx-shell-chat-plus-mark is-pro">&#128736;</span>' : (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "")) +
                 '<span' + nameClass + '>' + escapeHtml(profile.displayName) + "</span>" +
               "</button>" +
             "</div>" +
@@ -1704,7 +1703,7 @@
       var textValue = escapeHtml(String((message && message.text) || ''));
       var isPro = String((message && message.plan) || '').toLowerCase() === 'pro';
       var isPlus = String((message && message.plan) || '').toLowerCase() === 'plus' || (!isPro && Boolean(message && message.isPlus));
-      var badgeMarkup = isPro ? '<span class="rblx-shell-chat-plus-mark is-pro">&#127959;&#128296;</span>' : (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "");
+      var badgeMarkup = isPro ? '<span class="rblx-shell-chat-plus-mark is-pro">&#128736;</span>' : (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "");
       return '<article class="rblx-shell-chat-message">' +
         '<div class="rblx-shell-chat-avatar-button"><span class="rblx-shell-chat-avatar"><span class="rblx-shell-chat-avatar-fallback">' + name.charAt(0).toUpperCase() + '</span></span></div>' +
         '<div><div class="rblx-shell-chat-name">' + badgeMarkup + '<span class="rblx-shell-chat-name-text' + (isPro ? ' is-pro' : (isPlus ? ' is-plus' : '')) + '">' + name + '</span></div><div class="rblx-shell-chat-text">' + textValue + '</div></div>' +
@@ -1759,7 +1758,7 @@
   }
 
   function buildProfileProFloats() {
-    return buildProfilePlusFloats().replaceAll('rblx-shell-profile-plus-float', 'rblx-shell-profile-plus-float rblx-shell-profile-pro-float').replaceAll('>+</span>', function (_match, offset) { return offset % 2 ? '>&#128296;</span>' : '>&#127959;</span>'; });
+    return buildProfilePlusFloats().replaceAll('rblx-shell-profile-plus-float', 'rblx-shell-profile-plus-float rblx-shell-profile-pro-float').replaceAll('>+</span>', '>&#128736;</span>');
   }
 
   function openProfileModal(message, anchorEl) {
@@ -1800,7 +1799,7 @@
     }
     var profileFloats = shellState.profileModal && shellState.profileModal.querySelector(".rblx-shell-profile-pluses");
     if (profileFloats) profileFloats.innerHTML = isPro ? buildProfileProFloats() : buildProfilePlusFloats();
-    if (shellState.profilePlusMark) shellState.profilePlusMark.innerHTML = isPro ? "&#127959;&#128296;" : "+";
+    if (shellState.profilePlusMark) shellState.profilePlusMark.innerHTML = isPro ? "&#128736;" : "+";
     shellState.profileName.textContent = profile.displayName || "Profile";
     shellState.profileUserId.textContent = profile.userId || "-";
     shellState.profileDisplayName.textContent = profile.displayName || "-";
