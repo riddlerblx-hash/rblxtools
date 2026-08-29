@@ -136,8 +136,6 @@ body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-perks,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-perks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:16px; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-perks span,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-perks span { min-height:34px; display:flex; align-items:center; gap:7px; padding:7px 9px; border:1px solid var(--promo-line, rgba(239,246,255,.28)); border-radius:10px; color:var(--promo-ink, #f5f9ff); background:var(--promo-chip, rgba(7,14,25,.45)); font-size:10px; font-weight:850; line-height:1.15; }
-body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-perks .rblx-membership-promo-included,
-body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-perks .rblx-membership-promo-included { justify-content:center; padding:7px 3px; border:0; border-radius:0; color:var(--promo-ink, #f5f9ff); background:transparent; font-weight:900; text-align:center; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-perks b,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-perks b { color:var(--promo-marker, #eaf3ff); font-size:16px; line-height:1; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-footer,
