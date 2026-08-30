@@ -4386,6 +4386,8 @@
     var floatingMark = isPro ? "&#128736;" : "+";
     var config = isPro ? {
       price: "$2.50",
+      originalPrice: "$5.00",
+      discount: "50% off",
       subtitle: "With code PROCREATOR",
       title: "Pro",
       action: actionLabel || "Try Now",
@@ -4400,7 +4402,7 @@
     return [
       '<div class="rblx-membership-promo-floaters ' + (isPro ? 'is-pro' : 'is-plus') + '" aria-hidden="true"><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span></div>',
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
-      '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price">' + config.price + '</span><small>' + config.subtitle + '</small></div>',
+      '<div class="rblx-membership-promo-price-box' + (isPro ? ' is-discounted' : '') + '">' + (isPro ? '<span class="rblx-membership-promo-discount">' + config.discount + '</span><div class="rblx-membership-promo-price-row"><s>' + config.originalPrice + '</s><span class="rblx-membership-promo-price">' + config.price + '</span></div>' : '<span class="rblx-membership-promo-price">' + config.price + '</span>') + '<small>' + config.subtitle + '</small></div>',
       '<div class="rblx-membership-promo-perks">' + config.perks.map(function (perk) { return perk === "Includes All Plus Benefits" ? '<span class="rblx-membership-promo-included"><b>+</b>Includes All Plus Benefits</span>' : '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous membership plan"></button><div class="rblx-membership-promo-progress" aria-label="Membership plan rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next membership plan"></button></div><a class="rblx-membership-promo-action" href="./subscriptions">' + config.action + '</a></div>'
     ].join("");

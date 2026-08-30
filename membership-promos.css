@@ -128,6 +128,14 @@ body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-copy,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-copy { margin:0 !important; color:var(--promo-copy, #d8e1ed) !important; font-size:12px !important; font-weight:750; line-height:1.5; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price-box,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-price-box { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:69px; margin-bottom:14px; border:1px solid var(--promo-line, rgba(239,246,255,.36)); border-radius:14px; background:var(--promo-chip, rgba(7,14,25,.45)); }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price-box.is-discounted,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-price-box.is-discounted { position:relative; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-discount,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-discount { position:absolute; top:7px; right:8px; padding:3px 5px; border:1px solid rgba(255,156,114,.48); border-radius:999px; color:#ffe0bd; background:rgba(112,47,15,.48); font-size:7px; font-weight:950; letter-spacing:.05em; text-transform:uppercase; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price-row,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-price-row { display:flex; align-items:baseline; justify-content:center; gap:7px; }
+body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price-row s,
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-price-row s { color:#ffaaa2; font-size:14px; font-weight:900; text-decoration:line-through 2px #ff5b58; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-price { color:var(--promo-ink, #f5f9ff); font-size:28px; font-weight:950; line-height:1; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price-box small,

@@ -2021,6 +2021,24 @@
         return payload;
       }
 
+      async function getCheckoutAuthToken() {
+        var token = getToken();
+        if (token) return token;
+        // A valid HttpOnly cookie is enough for checkout even when localStorage was cleared.
+        try {
+          var response = await fetch(API_BASE + "/auth/me", { method: "GET", credentials: "include" });
+          return response.ok ? "" : null;
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      function buildCheckoutHeaders(token) {
+        var headers = { "Content-Type": "application/json" };
+        if (token) headers.Authorization = "Bearer " + token;
+        return headers;
+      }
+
       function applyPlanState(plan) {
         var isPlus = plan === "plus";
         var isPro = plan === "pro";
@@ -2105,9 +2123,9 @@
       }
 
       async function startCheckout() {
-        var token = getToken();
+        var token = await getCheckoutAuthToken();
 
-        if (!token) {
+        if (token === null) {
           setStatus(plusStatusEl, "You need an account first so Plus can be attached to the right profile.");
           openLoginRedirectPopup();
           return;
@@ -2124,10 +2142,7 @@
         try {
           var result = await apiRequest("/auth/create-checkout-session", {
             method: "POST",
-            headers: {
-              Authorization: "Bearer " + token,
-              "Content-Type": "application/json"
-            },
+            headers: buildCheckoutHeaders(token),
             body: JSON.stringify({ billingInterval: billingInterval })
           });
 
@@ -2153,8 +2168,8 @@
 
       if (proCheckoutBtn) {
         proCheckoutBtn.addEventListener("click", async function () {
-          var token = getToken();
-          if (!token) {
+          var token = await getCheckoutAuthToken();
+          if (token === null) {
             setStatus(proStatusEl, "You need an account first so Pro can be attached to the right profile.");
             openLoginRedirectPopup();
             return;
@@ -2168,7 +2183,7 @@
           try {
             var result = await apiRequest("/auth/create-pro-checkout-session", {
               method: "POST",
-              headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+              headers: buildCheckoutHeaders(token),
               body: JSON.stringify({ billingInterval: billingInterval })
             });
             if (!result || !result.url) throw new Error("Stripe did not return a checkout URL.");
