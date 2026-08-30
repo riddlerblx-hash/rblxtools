@@ -1979,6 +1979,9 @@
       }
 
       function prepareTemplateSource(sourceImage) {
+        // Preview exactly the server-generated PNG; never alter alpha or extend pixels.
+        return sourceImage || null;
+
         if (!sourceImage) return null;
         if (preparedTemplateSourceCache && preparedTemplateSourceCache.has(sourceImage)) {
           return preparedTemplateSourceCache.get(sourceImage);
