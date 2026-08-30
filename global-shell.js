@@ -4582,13 +4582,15 @@
     };
   }
 
-  function setRewardFeedbackRating(stars, rating) {
+  function setRewardFeedbackRating(stars, rating, previewRating) {
     if (!stars) return;
     var selected = Math.max(0, Math.min(5, Number(rating) || 0));
+    var preview = Math.max(0, Math.min(5, Number(previewRating) || selected));
     stars.dataset.rating = String(selected);
     Array.prototype.forEach.call(stars.querySelectorAll("[data-reward-rating]"), function (button) {
       var value = Number(button.getAttribute("data-reward-rating")) || 0;
-      button.classList.toggle("is-selected", value <= selected);
+      button.classList.toggle("is-selected", value === selected);
+      button.classList.toggle("is-preview", value <= preview);
       button.setAttribute("aria-checked", value === selected ? "true" : "false");
     });
   }
@@ -4618,8 +4620,11 @@
       if (!nodes.panel || hasFeedback) return;
       nodes.panel.hidden = false;
       Array.prototype.forEach.call(nodes.stars.querySelectorAll("[data-reward-rating]"), function (button) {
+        button.onmouseenter = function () { setRewardFeedbackRating(nodes.stars, nodes.stars.dataset.rating, button.getAttribute("data-reward-rating")); };
+        button.onfocus = function () { setRewardFeedbackRating(nodes.stars, nodes.stars.dataset.rating, button.getAttribute("data-reward-rating")); };
         button.onclick = function () { setRewardFeedbackRating(nodes.stars, button.getAttribute("data-reward-rating")); };
       });
+      nodes.stars.onmouseleave = function () { setRewardFeedbackRating(nodes.stars, nodes.stars.dataset.rating); };
       if (nodes.submit) nodes.submit.onclick = async function () {
         var rating = Number(nodes.stars && nodes.stars.dataset.rating || 0);
         var title = String(nodes.title && nodes.title.value || "").trim();
