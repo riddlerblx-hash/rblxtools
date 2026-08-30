@@ -197,6 +197,39 @@ function cleanAIClothingText(value, maxLength = 1200) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
+async function buildAIClothingReferenceMask({ blankTemplateBuffer, referenceTemplateBuffer }) {
+  const sharp = getSharp();
+  const resizeOptions = {
+    fit: "fill",
+    kernel: "nearest",
+  };
+  const [blank, reference] = await Promise.all([
+    sharp(blankTemplateBuffer)
+      .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, resizeOptions)
+      .ensureAlpha()
+      .raw()
+      .toBuffer(),
+    sharp(referenceTemplateBuffer)
+      .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, resizeOptions)
+      .ensureAlpha()
+      .raw()
+      .toBuffer(),
+  ]);
+  const alpha = Buffer.alloc(AI_CLOTHING_OUTPUT_WIDTH * AI_CLOTHING_OUTPUT_HEIGHT);
+
+  for (let pixel = 0; pixel < alpha.length; pixel += 1) {
+    const offset = pixel * 4;
+    const blankIsPanel = blank[offset] > 245 && blank[offset + 1] > 245 && blank[offset + 2] > 245;
+    const referenceIsPink = reference[offset] > 220 && reference[offset + 1] < 120 && reference[offset + 2] > 180;
+    const referenceIsBackground = Math.abs(reference[offset] - reference[offset + 1]) < 6
+      && Math.abs(reference[offset + 1] - reference[offset + 2]) < 6
+      && reference[offset] > 180;
+    alpha[pixel] = blankIsPanel && !referenceIsPink && !referenceIsBackground ? 255 : 0;
+  }
+
+  return alpha;
+}
+
 function assertAIThumbnailConfigured() {
   if (!OPENAI_API_KEY) {
     const error = new Error("AI thumbnail generation is not configured yet.");
@@ -550,10 +583,17 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     ? AI_SLEEVE_REFERENCE_PATHS[resolvedSleeveReferenceKey]
     : AI_PANTS_REFERENCE_PATHS[resolvedPantsReferenceKey];
   const blankTemplateName = "Blank Template.png";
+  const blankTemplatePath = path.join(__dirname, "assets", "ai-rig", blankTemplateName);
   const { toFile } = getOpenAIUploadHelpers();
-  await fs.promises.access(referenceTemplatePath, fs.constants.R_OK);
+  await Promise.all([
+    fs.promises.access(blankTemplatePath, fs.constants.R_OK),
+    fs.promises.access(referenceTemplatePath, fs.constants.R_OK),
+  ]);
   const sharp = getSharp();
-  const referenceTemplateBuffer = await fs.promises.readFile(referenceTemplatePath);
+  const [blankTemplateBuffer, referenceTemplateBuffer] = await Promise.all([
+    fs.promises.readFile(blankTemplatePath),
+    fs.promises.readFile(referenceTemplatePath),
+  ]);
   // OpenAI receives a blank transparent canvas. The colored sleeve/pants
   // reference remains the only visible UV guide, avoiding copied white borders.
   const cleanedApplyTemplateBuffer = await sharp({
@@ -599,12 +639,25 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   }
 
   const generatedBuffer = Buffer.from(generatedBase64, "base64");
+  const referenceMask = await buildAIClothingReferenceMask({
+    blankTemplateBuffer,
+    referenceTemplateBuffer,
+  });
   const finalArtBuffer = await sharp(generatedBuffer)
+    .ensureAlpha()
     .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
       fit: "fill",
-      kernel: "lanczos3",
+      // Avoid blending transparent source pixels into UV island edges.
+      kernel: "nearest",
     })
-    .ensureAlpha()
+    .removeAlpha()
+    .joinChannel(referenceMask, {
+      raw: {
+        width: AI_CLOTHING_OUTPUT_WIDTH,
+        height: AI_CLOTHING_OUTPUT_HEIGHT,
+        channels: 1,
+      },
+    })
     .png()
     .toBuffer();
   return {
