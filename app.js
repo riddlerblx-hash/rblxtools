@@ -872,6 +872,41 @@ async function rebuildAIClothingPanelsOnBlankTemplate(generatedBuffer, blankTemp
     .toBuffer();
 }
 
+async function applyAIClothingTransparentGuide(panelBuffer, referenceTemplateBuffer, templateType) {
+  const sharp = getSharp();
+  const alignedReferenceBuffer = await alignAIClothingReferenceToOutput(referenceTemplateBuffer);
+  const [panelRaw, referenceRaw] = await Promise.all([
+    sharp(panelBuffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
+    sharp(alignedReferenceBuffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
+  ]);
+
+  for (let offset = 0; offset < referenceRaw.data.length; offset += 4) {
+    const pixelIndex = offset / 4;
+    const x = pixelIndex % AI_CLOTHING_OUTPUT_WIDTH;
+    const y = Math.floor(pixelIndex / AI_CLOTHING_OUTPUT_WIDTH);
+    if (!isInsideAIClothingPanel(templateType, x, y)) continue;
+
+    const red = referenceRaw.data[offset];
+    const green = referenceRaw.data[offset + 1];
+    const blue = referenceRaw.data[offset + 2];
+    const alpha = referenceRaw.data[offset + 3];
+    const isTransparentMarker = alpha > 0 && red >= 235 && green <= 105 && blue >= 225;
+    if (isTransparentMarker) {
+      panelRaw.data[offset + 3] = 0;
+    }
+  }
+
+  return sharp(panelRaw.data, {
+    raw: {
+      width: panelRaw.info.width,
+      height: panelRaw.info.height,
+      channels: 4,
+    },
+  })
+    .png()
+    .toBuffer();
+}
+
 async function applyAIClothingSkinGuide(
   panelBuffer,
   referenceTemplateBuffer,
@@ -1159,7 +1194,7 @@ function buildAIClothingPrompt(input = {}) {
       includesTop && includesPants
         ? "Generate a coordinated shirt texture and pants texture for one complete Roblox outfit."
         : (includesTop ? "Generate one wearable Roblox shirt texture." : "Generate one wearable Roblox pants texture."),
-      "Keep all no-garment guide zones transparent.",
+      "The pink #FF30F8 guide markers are transparency-only zones: leave them completely empty.",
       `Design brief: ${userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
       style ? `Art direction: ${style}.` : "",
       palette ? `Color palette: ${palette}.` : "",
@@ -1178,7 +1213,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     `Return only a wearable clothing texture at exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
     `The working image may be generated at ${AI_CLOTHING_GENERATION_SIZE}, but the final design must map cleanly back into the supplied panel layout size.`,
     "Input image 1 is Blank Template.png: this is the exact final Roblox UV canvas to build on.",
-    `Input image 2 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference: it identifies the allowed garment panels and no-garment zones.`,
+    `Input image 2 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference: it identifies the allowed garment panels and pink #FF30F8 transparency-only zones.`,
     `Clothing option: ${basePrompt.templateLabel}.`,
     `Gender styling: ${basePrompt.gender}.`,
     basePrompt.templateInstruction,
@@ -1186,7 +1221,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
       ? "Torso panels are only: top (230,7,130,66), right (165,74,65,128), front (230,74,130,129), left (360,74,66,128), back (426,74,129,128), and bottom (230,203,130,66). Arm panels are only the twelve lower islands: arm 1 around x 19-281 and arm 2 around x 307-570, y 289-550. Do not confuse the lower arm islands with torso front or torso back."
       : "This is a lower-body texture. The upper torso islands are not pants. Every mapped lower island represents a face of the two Roblox legs: front, back, left, right, top, and bottom. Keep all upper torso islands empty and map the design only to the lower-leg islands.",
     "DO NOT draw white outlines, white gutters, white panel borders, white divider lines, white backgrounds, guide boxes, template labels, helper diagrams, mannequins, mockups, or any template artwork.",
-    "DO NOT put fabric, material, graphics, shadows, seams, cuffs, or accessories over the neck opening or unused transparent guide space.",
+    "Pink #FF30F8 is not a color to render. Keep every pink-marked zone fully transparent, with no fabric, material, graphics, shadows, seams, cuffs, or accessories.",
     "DO NOT overflow artwork across a UV island boundary. Keep the canvas outside mapped panels transparent and keep each garment panel filled only with its intended clothing artwork.",
     "Make this a catalog-ready Roblox texture, with readable panels, seam-safe edges, and a cohesive front and back.",
     `Design brief: ${basePrompt.userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
@@ -1266,7 +1301,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: [blankTemplateUpload, sleeveGuideUpload],
-    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, only as the matching garment-panel reference. Keep all no-garment areas transparent. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
+    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the matching garment-panel reference. Pink #FF30F8 markings are transparency-only zones and must remain empty. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -1290,6 +1325,11 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
       .png()
       .toBuffer(),
     cleanedApplyTemplateBuffer,
+    normalizedTemplateType
+  );
+  const transparentGuideBuffer = await applyAIClothingTransparentGuide(
+    panelMappedBuffer,
+    cleanedReferenceTemplateBuffer,
     normalizedTemplateType
   );
   const templateRaw = await sharp(cleanedApplyTemplateBuffer)
@@ -1321,7 +1361,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   })
     .png()
     .toBuffer();
-  const maskedOutput = await sharp(panelMappedBuffer)
+  const maskedOutput = await sharp(transparentGuideBuffer)
     .ensureAlpha()
     .composite([{ input: maskImageBuffer, blend: "dest-in" }])
     .raw()
