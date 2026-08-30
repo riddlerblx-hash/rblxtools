@@ -925,6 +925,50 @@ async function applyAIClothingTransparentGuide(panelBuffer, referenceTemplateBuf
     .toBuffer();
 }
 
+async function repairAIClothingGuideSeams(panelBuffer, templateType) {
+  const sharp = getSharp();
+  const normalizedTemplateType = templateType === "pants" ? "pants" : "shirt";
+  const panels = AI_CLOTHING_PANEL_PARTS[normalizedTemplateType] || AI_CLOTHING_PANEL_PARTS.shirt;
+  const panelRaw = await sharp(panelBuffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const source = Buffer.from(panelRaw.data);
+  const isNearWhite = (offset) =>
+    source[offset + 3] > 8 &&
+    source[offset] >= 238 &&
+    source[offset + 1] >= 238 &&
+    source[offset + 2] >= 238;
+
+  panels.forEach((panel) => {
+    for (let localY = 0; localY < panel.h; localY += 1) {
+      for (let localX = 0; localX < panel.w; localX += 1) {
+        const isEdge = localX < 2 || localY < 2 || localX >= panel.w - 2 || localY >= panel.h - 2;
+        if (!isEdge) continue;
+        const x = panel.x + localX;
+        const y = panel.y + localY;
+        const offset = ((y * AI_CLOTHING_OUTPUT_WIDTH) + x) * 4;
+        if (!isNearWhite(offset)) continue;
+
+        const innerX = Math.min(Math.max(localX, 3), panel.w - 4);
+        const innerY = Math.min(Math.max(localY, 3), panel.h - 4);
+        const innerOffset = (((panel.y + innerY) * AI_CLOTHING_OUTPUT_WIDTH) + panel.x + innerX) * 4;
+        if (source[innerOffset + 3] <= 8 || isNearWhite(innerOffset)) continue;
+        panelRaw.data[offset] = source[innerOffset];
+        panelRaw.data[offset + 1] = source[innerOffset + 1];
+        panelRaw.data[offset + 2] = source[innerOffset + 2];
+      }
+    }
+  });
+
+  return sharp(panelRaw.data, {
+    raw: {
+      width: panelRaw.info.width,
+      height: panelRaw.info.height,
+      channels: 4,
+    },
+  })
+    .png()
+    .toBuffer();
+}
+
 async function applyAIClothingSkinGuide(
   panelBuffer,
   referenceTemplateBuffer,
@@ -1351,6 +1395,10 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     cleanedReferenceTemplateBuffer,
     normalizedTemplateType
   );
+  const seamRepairedBuffer = await repairAIClothingGuideSeams(
+    transparentGuideBuffer,
+    normalizedTemplateType
+  );
   const templateRaw = await sharp(cleanedApplyTemplateBuffer)
     .ensureAlpha()
     .raw()
@@ -1380,7 +1428,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   })
     .png()
     .toBuffer();
-  const maskedOutput = await sharp(transparentGuideBuffer)
+  const maskedOutput = await sharp(seamRepairedBuffer)
     .ensureAlpha()
     .composite([{ input: maskImageBuffer, blend: "dest-in" }])
     .raw()

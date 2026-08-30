@@ -1805,6 +1805,7 @@
       var RIG_MODEL_URL = "/assets/ai-rig/MappedRig.obj?v=20260616-rigfix1";
       var RIG_COLORS = {
         head: 0xdedee2,
+        skin: 0xb8c1cf,
         shirt: 0xf2f3f5,
         pants: 0x202631
       };
@@ -2096,6 +2097,13 @@
 
       function replacePartMaterials(mesh, materials) {
         if (!mesh) return;
+        var previousUnderlay = mesh.getObjectByName ? mesh.getObjectByName("rblxtoolsRigUnderlay") : null;
+        if (previousUnderlay) {
+          mesh.remove(previousUnderlay);
+          if (previousUnderlay.material && typeof previousUnderlay.material.dispose === "function") {
+            previousUnderlay.material.dispose();
+          }
+        }
         if (Array.isArray(mesh.material)) {
           mesh.material.forEach(function (material) {
             if (material && typeof material.dispose === "function") {
@@ -2106,6 +2114,16 @@
           mesh.material.dispose();
         }
         mesh.material = materials;
+      }
+
+      function applyTexturedPartWithRigUnderlay(mesh, textureMaterial, rigColor) {
+        if (!mesh || !window.THREE) return;
+        replacePartMaterials(mesh, textureMaterial);
+        var underlay = new window.THREE.Mesh(mesh.geometry, cloneBaseMaterial(rigColor));
+        underlay.name = "rblxtoolsRigUnderlay";
+        underlay.scale.setScalar(0.998);
+        underlay.renderOrder = -1;
+        mesh.add(underlay);
       }
 
       function createTemplateTexture(sourceImage, options) {
@@ -2214,8 +2232,8 @@
         if (!rigPreview3D.parts) return;
         replacePartMaterials(rigPreview3D.parts.head, cloneBaseMaterial(RIG_COLORS.head));
         replacePartMaterials(rigPreview3D.parts.torso, cloneBaseMaterial(RIG_COLORS.shirt));
-        replacePartMaterials(rigPreview3D.parts.rightArm, cloneBaseMaterial(RIG_COLORS.shirt));
-        replacePartMaterials(rigPreview3D.parts.leftArm, cloneBaseMaterial(RIG_COLORS.shirt));
+        replacePartMaterials(rigPreview3D.parts.rightArm, cloneBaseMaterial(RIG_COLORS.skin));
+        replacePartMaterials(rigPreview3D.parts.leftArm, cloneBaseMaterial(RIG_COLORS.skin));
         replacePartMaterials(rigPreview3D.parts.rightLeg, cloneBaseMaterial(RIG_COLORS.pants));
         replacePartMaterials(rigPreview3D.parts.leftLeg, cloneBaseMaterial(RIG_COLORS.pants));
       }
@@ -2750,6 +2768,8 @@
         };
 
         var mannequinAccentColor = "#d9d4cc";
+        fillRoundedRect(ctx, rig.leftArm.x, rig.leftArm.y, rig.leftArm.w, rig.leftArm.h, 18, mannequinAccentColor);
+        fillRoundedRect(ctx, rig.rightArm.x, rig.rightArm.y, rig.rightArm.w, rig.rightArm.h, 18, mannequinAccentColor);
         fillRoundedRect(ctx, rig.leftHand.x, rig.leftHand.y, rig.leftHand.w, rig.leftHand.h, 18, mannequinAccentColor);
         fillRoundedRect(ctx, rig.rightHand.x, rig.rightHand.y, rig.rightHand.w, rig.rightHand.h, 18, mannequinAccentColor);
         fillRoundedRect(ctx, rig.leftFoot.x, rig.leftFoot.y, rig.leftFoot.w, rig.leftFoot.h, 14, "#dcdcdc");
@@ -2859,9 +2879,9 @@
           if (previewSet.shirtUrl) {
             var shirtImage = await loadPreviewImage(previewSet.shirtUrl);
             var shirtMaterial = createTemplateMaterial(shirtImage, RIG_COLORS.shirt);
-            replacePartMaterials(rigPreview3D.parts.torso, shirtMaterial.clone());
-            replacePartMaterials(rigPreview3D.parts.rightArm, shirtMaterial.clone());
-            replacePartMaterials(rigPreview3D.parts.leftArm, shirtMaterial.clone());
+            applyTexturedPartWithRigUnderlay(rigPreview3D.parts.torso, shirtMaterial.clone(), RIG_COLORS.shirt);
+            applyTexturedPartWithRigUnderlay(rigPreview3D.parts.rightArm, shirtMaterial.clone(), RIG_COLORS.skin);
+            applyTexturedPartWithRigUnderlay(rigPreview3D.parts.leftArm, shirtMaterial.clone(), RIG_COLORS.skin);
           }
           return true;
         } catch (_error) {
