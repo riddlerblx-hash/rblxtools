@@ -705,7 +705,7 @@ function buildAIClothingGenerationPlan(basePrompt) {
   ];
 }
 
-async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, references = [] }) {
+async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, references = [], preserveWhite = false }) {
   assertAIClothingConfigured();
   const promptText = cleanAIClothingText(enhancedPrompt, 6000);
   if (!promptText) {
@@ -778,10 +778,11 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     })
     .raw()
     .toBuffer();
+  const finalPixels = removeAIClothingWhiteArtifacts(generatedPixels, referenceMask, preserveWhite);
   for (let pixel = 0; pixel < referenceMask.length; pixel += 1) {
-    generatedPixels[pixel * 4 + 3] = referenceMask[pixel];
+    finalPixels[pixel * 4 + 3] = referenceMask[pixel];
   }
-  const finalArtBuffer = await sharp(generatedPixels, {
+  const finalArtBuffer = await sharp(finalPixels, {
     raw: {
       width: AI_CLOTHING_OUTPUT_WIDTH,
       height: AI_CLOTHING_OUTPUT_HEIGHT,
@@ -6089,6 +6090,7 @@ app.post("/ai/generate-clothing", async (req, res) => {
 
     const built = buildAIClothingPrompt(promptPayload);
     const generationPlan = buildAIClothingGenerationPlan(built);
+    const preserveWhite = /\bwhite\b/i.test(`${built.userPrompt || ""} ${built.palette || ""}`);
     const timestamp = Date.now();
     const outputs = [];
     for (let index = 0; index < generationPlan.length; index += 1) {
@@ -6100,6 +6102,7 @@ app.post("/ai/generate-clothing", async (req, res) => {
         sleeveLength: built.sleeveLength,
         pantsLength: built.pantsLength,
         references,
+        preserveWhite,
       });
       outputs.push({
         key: variant.key,
