@@ -4384,7 +4384,7 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  function buildMembershipPromoMarkup(plan, actionLabel) {
+  function buildMembershipPromoMarkup(plan, actionLabel, showBoxAd) {
     var isPro = plan === "pro";
     var floatingMark = isPro ? "&#128736;" : "+";
     var config = isPro ? {
@@ -4407,6 +4407,7 @@
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
       '<div class="rblx-membership-promo-price-box' + (isPro ? ' is-discounted' : '') + '">' + (isPro ? '<span class="rblx-membership-promo-discount">' + config.discount + '</span><div class="rblx-membership-promo-price-row"><s>' + config.originalPrice + '</s><span class="rblx-membership-promo-price">' + config.price + '</span></div>' : '<span class="rblx-membership-promo-price">' + config.price + '</span>') + '<small>' + config.subtitle + '</small></div>',
       '<div class="rblx-membership-promo-perks">' + config.perks.map(function (perk) { return perk === "Includes All Plus Benefits" ? '<span class="rblx-membership-promo-included"><b>+</b>Includes All Plus Benefits</span>' : '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
+      showBoxAd ? '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' : '',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous membership plan"></button><div class="rblx-membership-promo-progress" aria-label="Membership plan rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next membership plan"></button></div><a class="rblx-membership-promo-action" href="./subscriptions">' + config.action + '</a></div>'
     ].join("");
   }
@@ -4417,13 +4418,13 @@
       '<h3 class="rblx-token-promo-title">Keep creating<br><span>without waiting</span></h3>',
       '<p class="rblx-token-promo-copy">Power RBLXTools AI features with a token pack whenever you need more generations.</p>',
       '<div class="rblx-token-promo-pack"><div class="rblx-token-promo-coin">AI</div><strong>' + tokenPack.tokens + ' Tokens</strong><span>AI generation credits</span><b>' + tokenPack.price + '</b><small>' + tokenPack.note + '</small></div>',
-      '<div class="rblx-token-promo-ad" data-rblx-token-promo-ad aria-label="Advertisement"><span>Advertisement</span></div>',
+      '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad aria-label="Advertisement"><span>Advertisement</span></div>',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous offer"></button><div class="rblx-membership-promo-progress" aria-label="Offer rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next offer"></button></div><a class="rblx-membership-promo-action" href="./ai-tokens">Buy tokens</a></div>'
     ].join("");
   }
 
   function mountAiTokenPromoAd(promo) {
-    var host = promo.querySelector("[data-rblx-token-promo-ad]");
+    var host = promo.querySelector("[data-rblx-promo-box-ad]");
     if (!host) return;
 
     mountBoxAd(host);
@@ -4480,10 +4481,11 @@
         promo.classList.toggle("rblx-pro-promo", offer.type === "plan" && offer.plan === "pro");
         promo.classList.toggle("rblx-token-promo", offer.type === "token");
         if (promo.parentElement) promo.parentElement.classList.toggle("rblx-token-promo-card", offer.type === "token");
+        var showPromoBoxAd = !document.body.classList.contains("rblx-home-page") && !document.body.classList.contains("rblx-subscription-store") && !document.body.classList.contains("rblx-token-store-page");
         promo.innerHTML = offer.type === "token"
           ? buildAiTokenPromoMarkup(offer.pack)
-          : buildMembershipPromoMarkup(offer.plan, document.body.classList.contains("rblx-home-page") ? "View" : "Try Now");
-        if (offer.type === "token") mountAiTokenPromoAd(promo);
+          : buildMembershipPromoMarkup(offer.plan, document.body.classList.contains("rblx-home-page") ? "View" : "Try Now", showPromoBoxAd);
+        if (showPromoBoxAd) mountAiTokenPromoAd(promo);
 
         var progress = promo.querySelector(".rblx-membership-promo-progress span");
         var duration = offer.type === "token" ? 6500 : 30000;
