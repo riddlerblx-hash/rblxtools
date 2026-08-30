@@ -4431,18 +4431,16 @@
 
   function mountBoxAd(host) {
     if (!host || host.dataset.rblxBoxAdMounted === "true") return;
-    // The provider needs its options defined immediately before its loader script.
-    window.atOptions = {
-      key: "d0b55a0366cbbdb50c4c68fe13fa1e3f",
-      format: "iframe",
-      height: 250,
-      width: 300,
-      params: {}
-    };
-    var providerScript = document.createElement("script");
-    providerScript.src = "https://www.highrevenueformat.com/d0b55a0366cbbdb50c4c68fe13fa1e3f/invoke.js";
-    providerScript.async = false;
-    host.appendChild(providerScript);
+    // Isolate each provider call so one ad placement cannot overwrite another's options.
+    var adFrame = document.createElement("iframe");
+    adFrame.className = "rblx-box-ad-frame";
+    adFrame.title = "Advertisement";
+    adFrame.width = "300";
+    adFrame.height = "250";
+    adFrame.scrolling = "no";
+    adFrame.setAttribute("frameborder", "0");
+    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:300px;height:250px;margin:0;overflow:hidden}</style></head><body><script>var atOptions={key:"d0b55a0366cbbdb50c4c68fe13fa1e3f",format:"iframe",height:250,width:300,params:{}};</script><script src="https://www.highrevenueformat.com/d0b55a0366cbbdb50c4c68fe13fa1e3f/invoke.js"></script></body></html>';
+    host.appendChild(adFrame);
     host.dataset.rblxBoxAdMounted = "true";
   }
 

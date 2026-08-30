@@ -3203,11 +3203,12 @@ body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-panel-title {
   }
 
   .rblx-shell-box-ad {
-    display: grid;
+    display: flex;
     width: 300px;
-    min-height: 268px;
+    min-height: 278px;
     margin: 0 auto;
-    place-items: center;
+    flex-direction: column;
+    align-items: center;
     overflow: hidden;
     border: 1px solid rgba(113, 220, 255, .2);
     border-radius: 12px;
@@ -3215,17 +3216,12 @@ body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-panel-title {
   }
 
   .rblx-shell-box-ad > span {
-    align-self: start;
     padding: 5px 0 3px;
     color: #94aabd;
     font-size: 9px;
     font-weight: 800;
     letter-spacing: .1em;
     text-transform: uppercase;
-  }
-
-  .rblx-shell-box-ad > script + iframe {
-    margin-top: -14px;
   }
 }
 
@@ -3847,9 +3843,9 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-token-promo::
 .rblx-token-promo-pack span { color: #a9c5d7; font-size: 10px; font-weight: 800; }
 .rblx-token-promo-pack b { margin-top: 7px; color: #7df8ef; font-size: 19px; font-weight: 950; }
 .rblx-token-promo-pack small { min-height: 12px; margin-top: 3px; color: #9bf3c8; font-size: 9px; font-weight: 900; letter-spacing: .03em; }
-.rblx-token-promo-ad { display: grid; width: min(300px, 100%); min-height: 268px; margin: 16px auto 4px; place-items: center; overflow: hidden; border: 1px solid rgba(113, 220, 255, .2); border-radius: 12px; background: rgba(3, 15, 29, .3); }
-.rblx-token-promo-ad > span { align-self: start; padding: 5px 0 3px; color: #94aabd; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.rblx-token-promo-ad > script + iframe { margin-top: -14px; }
+.rblx-token-promo-ad { display: flex; width: min(300px, 100%); min-height: 278px; margin: 16px auto 4px; flex-direction: column; align-items: center; overflow: hidden; border: 1px solid rgba(113, 220, 255, .2); border-radius: 12px; background: rgba(3, 15, 29, .3); }
+.rblx-token-promo-ad > span { padding: 5px 0 3px; color: #94aabd; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.rblx-box-ad-frame { display: block; width: 300px; height: 250px; border: 0; }
 @keyframes rblxTokenPromoPulse { 0%,100% { transform:scale(.88); opacity:.42; } 50% { transform:scale(1.1); opacity:.82; } }
 
 /* One membership-aware atmosphere runs behind every shared-shell page. */
