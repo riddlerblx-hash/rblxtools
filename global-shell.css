@@ -816,6 +816,10 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   margin-top: auto;
 }
 
+.rblx-shell-box-ad {
+  display: none;
+}
+
 .rblx-shell-mini-banner {
   position: relative;
   isolation: isolate;
@@ -3137,6 +3141,7 @@ body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-panel-title,
 body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-nav-group-title,
 body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-nav-link > span:not(.rblx-shell-nav-icon):not(.rblx-shell-nav-tooltip),
 body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-token-banner,
+body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-box-ad,
 body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-mini-banner,
 body.rblx-shell-left-collapsed .rblx-shell-left .rblx-shell-socials {
   display: none;
@@ -3186,8 +3191,42 @@ body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-chat-card,
 body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-chat-specials,
 body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-chat-scroll,
 body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-chat-bottom,
+body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-box-ad,
 body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-panel-title {
   display: none;
+}
+
+@media (min-width: 1180px) {
+  :root {
+    --shell-left-width: 332px;
+    --shell-right-width: 332px;
+  }
+
+  .rblx-shell-box-ad {
+    display: grid;
+    width: 300px;
+    min-height: 268px;
+    margin: 0 auto;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid rgba(113, 220, 255, .2);
+    border-radius: 12px;
+    background: rgba(3, 15, 29, .3);
+  }
+
+  .rblx-shell-box-ad > span {
+    align-self: start;
+    padding: 5px 0 3px;
+    color: #94aabd;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  .rblx-shell-box-ad > script + iframe {
+    margin-top: -14px;
+  }
 }
 
 body.rblx-shell-right-collapsed .rblx-shell-right-inner {

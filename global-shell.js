@@ -1559,6 +1559,7 @@
               "</div>" +
               '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + "</div>" +
               '<div class="rblx-shell-left-foot">' +
+                '<div class="rblx-shell-box-ad" data-rblx-shell-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' +
                 '<div class="rblx-shell-token-banner" id="rblxShellTokenBanner" hidden><strong>AI Tokens</strong><span id="rblxShellTokenBalance">...</span><a class="rblx-shell-token-add" href="./ai-tokens" aria-label="Buy AI tokens" title="Buy AI tokens">+</a></div>' +
                 '<a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" href="./subscriptions"><strong>Pro Plan</strong><span>$5.00 / month</span></a>' +
                 '<a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span></a>' +
@@ -1601,8 +1602,9 @@
                 "</form>" +
                 '<div class="rblx-shell-chat-foot">' +
                   '<a class="rblx-shell-chat-rules" href="#" id="rblxShellRulesLink">Chat Rules</a>' +
-                  "</div>" +
+                "</div>" +
               "</div>" +
+              '<div class="rblx-shell-box-ad" data-rblx-shell-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' +
             "</div>" +
           "</aside>" +
         "</div>" +
@@ -4424,6 +4426,11 @@
     var host = promo.querySelector("[data-rblx-token-promo-ad]");
     if (!host) return;
 
+    mountBoxAd(host);
+  }
+
+  function mountBoxAd(host) {
+    if (!host || host.dataset.rblxBoxAdMounted === "true") return;
     // The provider needs its options defined immediately before its loader script.
     window.atOptions = {
       key: "d0b55a0366cbbdb50c4c68fe13fa1e3f",
@@ -4436,6 +4443,12 @@
     providerScript.src = "https://www.highrevenueformat.com/d0b55a0366cbbdb50c4c68fe13fa1e3f/invoke.js";
     providerScript.async = false;
     host.appendChild(providerScript);
+    host.dataset.rblxBoxAdMounted = "true";
+  }
+
+  function mountDesktopShellBoxAds() {
+    if (!window.matchMedia("(min-width: 1180px)").matches) return;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad]"), mountBoxAd);
   }
 
   function initMembershipPromoRotation() {
@@ -4613,6 +4626,8 @@
     document.body.classList.add("rblx-shell-ready");
     initMembershipTextTreatment();
     initMembershipPromoRotation();
+    mountDesktopShellBoxAds();
+    window.addEventListener("resize", mountDesktopShellBoxAds, { passive: true });
     initAnimationMembershipGate();
     window.addEventListener("rblxtools-membership-updated", function (event) {
       var detail = event && event.detail ? event.detail : {};
