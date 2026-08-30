@@ -4415,8 +4415,27 @@
       '<h3 class="rblx-token-promo-title">Keep creating<br><span>without waiting</span></h3>',
       '<p class="rblx-token-promo-copy">Power RBLXTools AI features with a token pack whenever you need more generations.</p>',
       '<div class="rblx-token-promo-pack"><div class="rblx-token-promo-coin">AI</div><strong>' + tokenPack.tokens + ' Tokens</strong><span>AI generation credits</span><b>' + tokenPack.price + '</b><small>' + tokenPack.note + '</small></div>',
+      '<div class="rblx-token-promo-ad" data-rblx-token-promo-ad aria-label="Advertisement"><span>Advertisement</span></div>',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous offer"></button><div class="rblx-membership-promo-progress" aria-label="Offer rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next offer"></button></div><a class="rblx-membership-promo-action" href="./ai-tokens">Buy tokens</a></div>'
     ].join("");
+  }
+
+  function mountAiTokenPromoAd(promo) {
+    var host = promo.querySelector("[data-rblx-token-promo-ad]");
+    if (!host) return;
+
+    // The provider needs its options defined immediately before its loader script.
+    window.atOptions = {
+      key: "d0b55a0366cbbdb50c4c68fe13fa1e3f",
+      format: "iframe",
+      height: 250,
+      width: 300,
+      params: {}
+    };
+    var providerScript = document.createElement("script");
+    providerScript.src = "https://www.highrevenueformat.com/d0b55a0366cbbdb50c4c68fe13fa1e3f/invoke.js";
+    providerScript.async = false;
+    host.appendChild(providerScript);
   }
 
   function initMembershipPromoRotation() {
@@ -4453,6 +4472,7 @@
         promo.innerHTML = offer.type === "token"
           ? buildAiTokenPromoMarkup(offer.pack)
           : buildMembershipPromoMarkup(offer.plan, document.body.classList.contains("rblx-home-page") ? "View" : "Try Now");
+        if (offer.type === "token") mountAiTokenPromoAd(promo);
 
         var progress = promo.querySelector(".rblx-membership-promo-progress span");
         var duration = offer.type === "token" ? 6500 : 30000;
