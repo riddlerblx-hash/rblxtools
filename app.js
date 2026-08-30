@@ -231,6 +231,32 @@ async function buildAIClothingReferenceMask({ blankTemplateBuffer, referenceTemp
   return alpha;
 }
 
+async function buildAIClothingCleanGuide(mask) {
+  const width = AI_CLOTHING_OUTPUT_WIDTH;
+  const height = AI_CLOTHING_OUTPUT_HEIGHT;
+  const pixels = Buffer.alloc(width * height * 4);
+
+  for (let pixel = 0; pixel < mask.length; pixel += 1) {
+    if (mask[pixel] !== 255) continue;
+    const offset = pixel * 4;
+    // A label-free, flat guide prevents the image model from copying UV labels or borders.
+    pixels[offset] = 70;
+    pixels[offset + 1] = 150;
+    pixels[offset + 2] = 220;
+    pixels[offset + 3] = 255;
+  }
+
+  return getSharp()({
+    raw: {
+      width,
+      height,
+      channels: 4,
+    },
+  })
+    .png()
+    .toBuffer();
+}
+
 function fillAIClothingUnrenderedWhiteAreas(pixels, mask) {
   const width = AI_CLOTHING_OUTPUT_WIDTH;
   const height = AI_CLOTHING_OUTPUT_HEIGHT;
@@ -684,6 +710,10 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     fs.promises.readFile(blankTemplatePath),
     fs.promises.readFile(referenceTemplatePath),
   ]);
+  const referenceMask = await buildAIClothingReferenceMask({
+    blankTemplateBuffer,
+    referenceTemplateBuffer,
+  });
   // OpenAI receives a blank transparent canvas. The colored sleeve/pants
   // reference remains the only visible UV guide, avoiding copied white borders.
   const cleanedApplyTemplateBuffer = await sharp({
@@ -696,14 +726,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   })
     .png()
     .toBuffer();
-  const cleanedReferenceTemplateBuffer = await sharp(referenceTemplateBuffer)
-    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
-      fit: "fill",
-      kernel: "nearest",
-    })
-    .ensureAlpha()
-    .png()
-    .toBuffer();
+  const cleanedReferenceTemplateBuffer = await buildAIClothingCleanGuide(referenceMask);
   const blankTemplateUpload = await toFile(Readable.from([cleanedApplyTemplateBuffer]), blankTemplateName, {
     type: "image/png",
   });
@@ -719,7 +742,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: [blankTemplateUpload, sleeveGuideUpload].concat(userReferenceUploads),
-    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the exact garment-panel and wrist-clearance reference.${normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "long" ? " This is Long Sleeve Reference.png and it is mandatory for this long-sleeve request." : ""}${userReferenceUploads.length ? " The remaining input images are user style references only: use their colors, motifs, materials, and overall aesthetic, but never copy their shape or layout over the Roblox UV guide." : ""} Every allowed garment island must be fully covered edge-to-edge with the generated fabric design: never leave white, empty, or unfinished patches inside an allowed island. Every transparent region and every pink #FF30F8 marking is a no-material zone and must remain empty. For shirts, never extend fabric into the wrist or hand zones outside the selected sleeve reference. Never copy guide colors, labels, borders, or seams into the artwork. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
+    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the exact label-free garment-panel and wrist-clearance map.${normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "long" ? " This clean map comes from Long Sleeve Reference.png and it is mandatory for this long-sleeve request." : ""}${userReferenceUploads.length ? " The remaining input images are user style references only: use their colors, motifs, materials, and overall aesthetic, but never copy their shape or layout over the Roblox UV guide." : ""} Every allowed garment island must be fully covered edge-to-edge with the generated fabric design: never leave white, empty, or unfinished patches inside an allowed island. Every transparent region and every pink #FF30F8 marking is a no-material zone and must remain empty. For shirts, never extend fabric into the wrist or hand zones outside the selected sleeve reference. Never create guide labels, orientation letters, borders, stripes, or seam marks. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -734,10 +757,6 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   }
 
   const generatedBuffer = Buffer.from(generatedBase64, "base64");
-  const referenceMask = await buildAIClothingReferenceMask({
-    blankTemplateBuffer,
-    referenceTemplateBuffer,
-  });
   const generatedPixels = await sharp(generatedBuffer)
     .ensureAlpha()
     .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
