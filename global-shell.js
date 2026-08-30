@@ -367,6 +367,11 @@
     return pieces;
   }
 
+  function buildModalAdRailsMarkup() {
+    return '<aside class="rblx-shell-modal-ad-rail is-left" data-rblx-modal-ad aria-label="Advertisement"><span>Advertisement</span></aside>' +
+      '<aside class="rblx-shell-modal-ad-rail is-right" data-rblx-modal-ad aria-label="Advertisement"><span>Advertisement</span></aside>';
+  }
+
   function buildAnimationMembershipGateMarkup() {
     return (
       '<div class="rblx-shell-membership-gate" id="rblxShellAnimationGate" aria-hidden="true">' +
@@ -376,6 +381,7 @@
           '<p>Choose a membership to unlock the animation tool and the creator benefits that come with it.</p>' +
           '<div class="rblx-shell-membership-gate-actions"><button class="rblx-shell-membership-gate-cancel" type="button" data-rblx-animation-gate-cancel="true">Cancel</button><a class="rblx-shell-membership-gate-button" href="./subscriptions">Compare Plans</a></div>' +
         '</div>' +
+        buildModalAdRailsMarkup() +
       '</div>'
     );
   }
@@ -393,6 +399,7 @@
     function showGate() {
       gate.classList.add("is-open");
       gate.setAttribute("aria-hidden", "false");
+      mountModalVerticalAds(gate);
     }
 
     var cancelButton = gate.querySelector("[data-rblx-animation-gate-cancel]");
@@ -1664,6 +1671,7 @@
             '<p class="rblx-shell-reward-wait" id="rblxShellRewardWait">Please take a moment to read this note.</p>' +
             '<button class="rblx-shell-btn is-primary rblx-shell-reward-claim" type="button" id="rblxShellRewardClaim" disabled>Claim reward</button>' +
           '</div>' +
+          buildModalAdRailsMarkup() +
         '</div>' +
         '<div class="rblx-shell-auth-overlay" id="rblxShellAuthOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-auth-modal" id="rblxShellAuthModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellAuthTitle">' +
@@ -1693,6 +1701,7 @@
             '</form>' +
             '<div class="rblx-shell-auth-switch" id="rblxShellAuthSwitchPrompt">New to RBLXTools? <button type="button" id="rblxShellAuthSwitchButton">Start here</button></div>' +
           '</div>' +
+          buildModalAdRailsMarkup() +
         '</div>' +
         '<div class="rblx-shell-support-overlay" id="rblxShellSupportOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-support-modal" id="rblxShellSupportModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellSupportTitle">' +
@@ -2169,6 +2178,7 @@
     shellState.authOverlay.setAttribute("aria-hidden", "false");
     shellState.authModal.classList.add("is-open");
     document.body.classList.add("rblx-shell-modal-open");
+    mountModalVerticalAds(shellState.authOverlay);
     if (shellState.authEmail && !shellState.authEmail.value) {
       var cachedUser = getCachedAuthUser();
       shellState.authEmail.value = String(cachedUser && cachedUser.email || "").trim();
@@ -4450,6 +4460,25 @@
     Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad]"), mountBoxAd);
   }
 
+  function mountVerticalAd(host) {
+    if (!host || host.dataset.rblxVerticalAdMounted === "true") return;
+    var adFrame = document.createElement("iframe");
+    adFrame.className = "rblx-vertical-ad-frame";
+    adFrame.title = "Advertisement";
+    adFrame.width = "160";
+    adFrame.height = "600";
+    adFrame.scrolling = "no";
+    adFrame.setAttribute("frameborder", "0");
+    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>var atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};</script><script src="https://www.highrevenueformat.com/c56a103ad60efdb3686d500b49552f97/invoke.js"></script></body></html>';
+    host.appendChild(adFrame);
+    host.dataset.rblxVerticalAdMounted = "true";
+  }
+
+  function mountModalVerticalAds(overlay) {
+    if (!overlay || !window.matchMedia("(min-width: 1280px) and (min-height: 740px)").matches) return;
+    Array.prototype.forEach.call(overlay.querySelectorAll("[data-rblx-modal-ad]"), mountVerticalAd);
+  }
+
   function initMembershipPromoRotation() {
     var selector = ".plus-promo, body.rblx-home-page .home-grid-top > .plus-card";
     Array.prototype.slice.call(document.querySelectorAll(selector)).forEach(function (promo) {
@@ -4554,6 +4583,7 @@
     value.textContent = getRewardValueLabel(reward);
     note.textContent = reward.note || "Enjoy your reward from the RBLXTools team.";
     overlay.classList.add("is-open"); overlay.setAttribute("aria-hidden", "false"); modal.classList.add("is-open"); document.body.classList.add("rblx-shell-modal-open");
+    mountModalVerticalAds(overlay);
     // The server sends the remaining delay so an inaccurate device clock cannot stretch five seconds into minutes.
     var unlockAt = Date.now() + Math.max(0, Number(reward.claimDelayMs) || 0);
     function updateClaimState() {

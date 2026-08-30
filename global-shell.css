@@ -2456,6 +2456,73 @@ body.rblx-shell-modal-open {
 .rblx-shell-reward-claim { width: 100%; justify-content: center; margin-top: 8px; color: #06101a; background: linear-gradient(135deg, #38e6e0, #6b9cff); box-shadow: 0 12px 28px rgba(56, 230, 224, 0.2); }
 .rblx-shell-reward-claim[disabled] { opacity: 0.6; cursor: wait; filter: saturate(0.75); }
 
+/* Access dialogs share depth and structure while each keeps its own accent color. */
+.rblx-shell-membership-gate-card,
+.rblx-shell-auth-modal,
+.rblx-shell-reward-modal {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-shadow: 0 34px 90px rgba(0, 0, 0, .62), inset 0 1px 0 rgba(255, 255, 255, .16);
+}
+
+.rblx-shell-membership-gate-card::before,
+.rblx-shell-auth-modal::before,
+.rblx-shell-reward-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(118deg, rgba(255, 255, 255, .1), transparent 24%, transparent 72%, rgba(255, 255, 255, .06));
+}
+
+.rblx-shell-membership-gate-card > *,
+.rblx-shell-auth-modal > *,
+.rblx-shell-reward-modal > * { position: relative; z-index: 1; }
+
+.rblx-shell-membership-gate { --rblx-modal-half: 235px; }
+.rblx-shell-auth-overlay { --rblx-modal-half: 280px; }
+.rblx-shell-reward-overlay { --rblx-modal-half: 260px; }
+.rblx-shell-modal-ad-rail { display: none; }
+.rblx-vertical-ad-frame { display: block; width: 160px; height: 600px; border: 0; }
+
+@media (min-width: 1280px) and (min-height: 740px) {
+  .rblx-shell-membership-gate.is-open .rblx-shell-modal-ad-rail,
+  .rblx-shell-auth-overlay.is-open .rblx-shell-modal-ad-rail,
+  .rblx-shell-reward-overlay.is-open .rblx-shell-modal-ad-rail {
+    position: absolute;
+    top: 50%;
+    z-index: 1;
+    display: flex;
+    width: 160px;
+    min-height: 626px;
+    flex-direction: column;
+    align-items: center;
+    transform: translateY(-50%);
+    overflow: hidden;
+    border: 1px solid rgba(120, 180, 255, .24);
+    border-radius: 14px;
+    background: rgba(3, 11, 24, .72);
+    box-shadow: 0 22px 48px rgba(0, 0, 0, .3);
+  }
+
+  .rblx-shell-modal-ad-rail.is-left { right: calc(50% + var(--rblx-modal-half) + 30px); }
+  .rblx-shell-modal-ad-rail.is-right { left: calc(50% + var(--rblx-modal-half) + 30px); }
+  .rblx-shell-modal-ad-rail > span {
+    padding: 5px 0 3px;
+    color: #94aabd;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  .rblx-shell-membership-gate-card,
+  .rblx-shell-auth-modal,
+  .rblx-shell-reward-modal { z-index: 2; }
+}
+
 .rblx-shell-checkout-modal {
   position: relative;
   width: min(560px, calc(100vw - 32px));
