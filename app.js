@@ -102,12 +102,6 @@ const AI_TOKEN_PACKAGES = [
   { key: "245", tokens: 245, priceCents: 2499, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_245 || "prod_V9YK5x1FI50wj2").trim() },
   { key: "500", tokens: 500, priceCents: 4799, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_500 || "prod_V9shFwrlWrEAqI").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_500 || "price_1U9YvtGrZOEMBkuuETfZlZaG").trim() },
 ];
-const AI_CLOTHING_SKIN_TONES = {
-  white: { hex: "#EFD2BF", r: 239, g: 210, b: 191, a: 255 },
-  lightskin: { hex: "#C99876", r: 201, g: 152, b: 118, a: 255 },
-  darkskin: { hex: "#5C4030", r: 92, g: 64, b: 48, a: 255 },
-  auto: { hex: "#DBB8A0", r: 219, g: 184, b: 160, a: 255 },
-};
 const AI_SLEEVE_REFERENCE_PATHS = {
   long: path.join(__dirname, "assets", "ai-rig", "Long Sleeve Reference.png"),
   short: path.join(__dirname, "assets", "ai-rig", "Short Sleeve Reference.png"),
@@ -268,80 +262,6 @@ function cleanAIClothingText(value, maxLength = 1200) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
-function normalizeAIClothingSkinTone(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  if (normalized === "none" || normalized === "white" || normalized === "lightskin" || normalized === "darkskin") {
-    return normalized;
-  }
-  return "auto";
-}
-
-function getAIClothingSkinToneColor(skinTone) {
-  return AI_CLOTHING_SKIN_TONES[skinTone] || null;
-}
-
-function getAIClothingSkinToneHex(skinTone) {
-  const tone = getAIClothingSkinToneColor(skinTone);
-  return tone ? tone.hex : "";
-}
-
-function expandAIClothingGuideMask(maskBuffer, width, height, radius = 0) {
-  if (!maskBuffer || !width || !height || radius <= 0) {
-    return Buffer.from(maskBuffer || []);
-  }
-
-  let source = Buffer.from(maskBuffer);
-  const totalPasses = Math.max(1, Math.floor(radius));
-
-  for (let pass = 0; pass < totalPasses; pass += 1) {
-    const target = Buffer.from(source);
-    for (let y = 0; y < height; y += 1) {
-      for (let x = 0; x < width; x += 1) {
-        const index = y * width + x;
-        if (source[index]) continue;
-        let shouldFill = false;
-        for (let offsetY = -1; offsetY <= 1 && !shouldFill; offsetY += 1) {
-          const sampleY = y + offsetY;
-          if (sampleY < 0 || sampleY >= height) continue;
-          for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
-            const sampleX = x + offsetX;
-            if (sampleX < 0 || sampleX >= width) continue;
-            if (!offsetX && !offsetY) continue;
-            if (source[sampleY * width + sampleX]) {
-              shouldFill = true;
-              break;
-            }
-          }
-        }
-        if (shouldFill) target[index] = 255;
-      }
-    }
-    source = target;
-  }
-
-  return source;
-}
-
-function shouldUseExpandedAIClothingSkinMask(templateType, sleeveLength, pantsLength, x, y) {
-  if (templateType === "shirt") {
-    if (sleeveLength === "sleeveless") {
-      return false;
-    }
-    if (sleeveLength === "short") {
-      return y >= 289;
-    }
-    return false;
-  }
-
-  if (templateType === "pants") {
-    if (pantsLength === "30" || pantsLength === "80") {
-      return y >= 289;
-    }
-  }
-
-  return false;
-}
-
 function isInsideAIClothingPanel(templateType, x, y) {
   const normalizedTemplateType = templateType === "pants" ? "pants" : "shirt";
   const panels = AI_CLOTHING_PANEL_PARTS[normalizedTemplateType] || AI_CLOTHING_PANEL_PARTS.shirt;
@@ -351,10 +271,6 @@ function isInsideAIClothingPanel(templateType, x, y) {
     y >= panel.y &&
     y < panel.y + panel.h
   );
-}
-
-function getAIClothingPixelLuma(red, green, blue) {
-  return (red * 0.299) + (green * 0.587) + (blue * 0.114);
 }
 
 function assertAIThumbnailConfigured() {
@@ -626,74 +542,6 @@ async function alignAIClothingReferenceToOutput(referenceTemplateBuffer) {
     })
     .png()
     .toBuffer();
-}
-
-async function buildAIClothingGenerationReference(
-  referenceTemplateBuffer,
-  blankTemplateBuffer,
-  templateType
-) {
-  const sharp = getSharp();
-  const blankTemplateRaw = await sharp(blankTemplateBuffer)
-    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
-      fit: "fill",
-      kernel: "nearest",
-    })
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const alignedReferenceTemplateBuffer = await alignAIClothingReferenceToOutput(referenceTemplateBuffer);
-  const referenceTemplateRaw = await sharp(alignedReferenceTemplateBuffer)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  const outputRaw = Buffer.from(blankTemplateRaw.data);
-
-  for (let offset = 0; offset < referenceTemplateRaw.data.length; offset += 4) {
-    const pixelIndex = offset / 4;
-    const x = pixelIndex % referenceTemplateRaw.info.width;
-    const y = Math.floor(pixelIndex / referenceTemplateRaw.info.width);
-    if (!isInsideAIClothingPanel(templateType, x, y)) continue;
-
-    const red = referenceTemplateRaw.data[offset];
-    const green = referenceTemplateRaw.data[offset + 1];
-    const blue = referenceTemplateRaw.data[offset + 2];
-    const alpha = referenceTemplateRaw.data[offset + 3];
-
-    if (templateType === "shirt" && alpha <= 16) {
-      // Give the model the same explicit #FF30F8 skin marker used by pants.
-      // The model, not post-processing, now renders the selected skin hex.
-      outputRaw[offset] = 255;
-      outputRaw[offset + 1] = 48;
-      outputRaw[offset + 2] = 248;
-      outputRaw[offset + 3] = 255;
-      continue;
-    }
-
-    outputRaw[offset] = red;
-    outputRaw[offset + 1] = green;
-    outputRaw[offset + 2] = blue;
-    outputRaw[offset + 3] = alpha > 0 ? 255 : outputRaw[offset + 3];
-  }
-
-  return sharp(outputRaw, {
-    raw: {
-      width: blankTemplateRaw.info.width,
-      height: blankTemplateRaw.info.height,
-      channels: 4,
-    },
-  })
-    .png()
-    .toBuffer();
-}
-
-function getAIClothingSkinToneInstruction(skinTone) {
-  if (skinTone === "none") {
-    return "#FF30F8 marks exposed-skin space. With No skin selected, keep every #FF30F8 marker transparent and clean.";
-  }
-  const selectedHex = getAIClothingSkinToneHex(skinTone) || AI_CLOTHING_SKIN_TONES.auto.hex;
-  return `#FF30F8 marks exposed Roblox avatar skin. Generate every #FF30F8 marker as flat exact skin color ${selectedHex}, with clean skin-only marker regions.`;
 }
 
 function expandAIClothingMask(maskBuffer, width, height, radius) {
@@ -1267,7 +1115,6 @@ function buildAIClothingPrompt(input = {}) {
   const userPrompt = cleanAIClothingText(input.userPrompt || input.prompt, 1200);
   const negativePrompt = cleanAIClothingText(input.negativePrompt, 700);
   const styleName = cleanAIClothingText(input.styleName, 60);
-  const skinTone = normalizeAIClothingSkinTone(input.skinTone);
   const requestedSleeveLength = String(input.resolvedSleeveLength || input.sleeveLength || "").trim().toLowerCase();
   const requestedPantsLength = String(input.resolvedPantsLength || input.pantsLength || "").trim();
   const resolvedSleeveLength = template.type === "shirt"
@@ -1283,8 +1130,6 @@ function buildAIClothingPrompt(input = {}) {
     templateInstruction: template.instruction,
     sleeveLength: resolvedSleeveLength,
     pantsLength: resolvedPantsLength,
-    skinTone,
-    skinToneHex: getAIClothingSkinToneHex(skinTone),
     style,
     palette,
     vibe,
@@ -1297,7 +1142,7 @@ function buildAIClothingPrompt(input = {}) {
       `Garment template: ${template.label}.`,
       template.instruction,
       `UV reference: ${template.type === "shirt" ? `${resolvedSleeveLength}-sleeve top` : `${resolvedPantsLength}% lower-body`} guide.`,
-      `Skin marker #FF30F8 uses ${getAIClothingSkinToneHex(skinTone) || AI_CLOTHING_SKIN_TONES.auto.hex}.`,
+      "Keep all no-garment guide zones transparent.",
       `Design brief: ${userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
       style ? `Art direction: ${style}.` : "",
       palette ? `Color palette: ${palette}.` : "",
@@ -1316,15 +1161,14 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     `Return only a wearable clothing texture at exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
     `The working image may be generated at ${AI_CLOTHING_GENERATION_SIZE}, but the final design must map cleanly back into the supplied panel layout size.`,
     "Input image 1 is Blank Template.png: this is the exact final Roblox UV canvas to build on.",
-    `Input image 2 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference: it identifies the allowed garment panels and #FF30F8 skin markers.`,
+    `Input image 2 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference: it identifies the allowed garment panels and no-garment zones.`,
     `Garment template: ${basePrompt.templateLabel}.`,
     basePrompt.templateInstruction,
     isTop
       ? "Torso panels are only: top (230,7,130,66), right (165,74,65,128), front (230,74,130,129), left (360,74,66,128), back (426,74,129,128), and bottom (230,203,130,66). Arm panels are only the twelve lower islands: arm 1 around x 19-281 and arm 2 around x 307-570, y 289-550. Do not confuse the lower arm islands with torso front or torso back."
       : "This is a lower-body texture. The upper torso islands are not pants. Every mapped lower island represents a face of the two Roblox legs: front, back, left, right, top, and bottom. Keep all upper torso islands empty and map the design only to the lower-leg islands.",
-    "#FF30F8 is a strict exposed-skin marker. Render that marker as the selected skin color only, without fabric, trim, shading, patterns, or graphics.",
     "DO NOT draw white outlines, white gutters, white panel borders, white divider lines, white backgrounds, guide boxes, template labels, helper diagrams, mannequins, mockups, or any template artwork.",
-    "DO NOT put fabric, material, graphics, shadows, seams, cuffs, or accessories over #FF30F8 skin markers, the neck opening, or unused transparent guide space.",
+    "DO NOT put fabric, material, graphics, shadows, seams, cuffs, or accessories over the neck opening or unused transparent guide space.",
     "DO NOT overflow artwork across a UV island boundary. Keep the canvas outside mapped panels transparent and keep each garment panel filled only with its intended clothing artwork.",
     "Make this a catalog-ready Roblox texture, with readable panels, seam-safe edges, and a cohesive front and back.",
     `Design brief: ${basePrompt.userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
@@ -1333,7 +1177,6 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     basePrompt.vibe ? `Target vibe: ${basePrompt.vibe}.` : "",
     basePrompt.footwear ? `Shoes / socks: ${basePrompt.footwear}. Apply this only to lower-leg and ankle regions.` : "",
     basePrompt.styleName ? `Preset style tag: ${basePrompt.styleName}.` : "",
-    getAIClothingSkinToneInstruction(basePrompt.skinTone),
     basePrompt.negativePrompt ? `Preferred exclusions: ${basePrompt.negativePrompt}.` : "",
   ].filter(Boolean).join(" ");
 }
@@ -1342,7 +1185,7 @@ function buildAIClothingGenerationPlan(basePrompt) {
   return [{ key: basePrompt.templateKey, label: basePrompt.templateLabel, templateType: basePrompt.garmentType }];
 }
 
-async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, skinTone }) {
+async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength }) {
   assertAIClothingConfigured();
   const promptText = cleanAIClothingText(enhancedPrompt, 6000);
   if (!promptText) {
@@ -1396,7 +1239,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: [blankTemplateUpload, sleeveGuideUpload],
-    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, only as the matching panel and pink skin-marker reference. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
+    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, only as the matching garment-panel reference. Keep all no-garment areas transparent. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -1421,18 +1264,6 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
       .toBuffer(),
     cleanedApplyTemplateBuffer,
     normalizedTemplateType
-  );
-  // The second reference image teaches the model where skin belongs. This
-  // final pass guarantees that its #FF30F8 markers never ship as white seams
-  // or fabric, even when the generated artwork ignores the guide.
-  const repairedArtBuffer = await applyAIClothingSkinGuide(
-    panelMappedBuffer,
-    cleanedReferenceTemplateBuffer,
-    skinTone,
-    normalizedTemplateType,
-    sleeveLength,
-    pantsLength,
-    /\btattoo(?:s)?\b/i.test(promptText)
   );
   const templateRaw = await sharp(cleanedApplyTemplateBuffer)
     .ensureAlpha()
@@ -1463,7 +1294,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   })
     .png()
     .toBuffer();
-  const maskedOutput = await sharp(repairedArtBuffer)
+  const maskedOutput = await sharp(panelMappedBuffer)
     .ensureAlpha()
     .composite([{ input: maskImageBuffer, blend: "dest-in" }])
     .raw()
@@ -6759,7 +6590,6 @@ app.post("/ai/generate-clothing", async (req, res) => {
       resolvedSleeveLength: req.body?.resolvedSleeveLength,
       pantsLength: req.body?.pantsLength,
       resolvedPantsLength: req.body?.resolvedPantsLength,
-      skinTone: req.body?.skinTone,
       styleDirection: req.body?.styleDirection,
       colorPalette: req.body?.colorPalette,
       audience: req.body?.audience,
@@ -6781,7 +6611,6 @@ app.post("/ai/generate-clothing", async (req, res) => {
         enhancedPrompt,
         sleeveLength: built.sleeveLength,
         pantsLength: built.pantsLength,
-        skinTone: built.skinTone,
       });
       outputs.push({
         key: variant.key,
@@ -6802,7 +6631,6 @@ app.post("/ai/generate-clothing", async (req, res) => {
       garmentType: built.garmentType,
       sleeveLength: built.sleeveLength,
       pantsLength: built.pantsLength,
-      skinTone: built.skinTone,
       templateType: primary ? primary.templateType : getAIBaseTemplateType(built.garmentType),
       enhancedPrompt: built.promptPreview,
       promptPreview: built.promptPreview,

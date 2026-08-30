@@ -1537,13 +1537,13 @@
           <span>Create Your Dream</span>
           <span>Roblox Clothing</span>
         </h1>
-        <p class="ai-copy">Type what you want in normal words. The system will quietly translate that into a smarter Roblox-template-aware prompt before it ever reaches the clothing model.</p>
+        <p class="ai-copy">Describe the clothing you want, choose a Roblox garment template, and generate. We translate your idea into a clean template-aware prompt behind the scenes.</p>
 
         <div class="ai-builder">
           <div class="ai-prompt-shell">
             <div class="ai-prompt-row">
-              <input class="ai-prompt-input" id="aiHeroPrompt" type="text" placeholder="Ex: dark cyber y2k jacket with glowing purple seams, layered chest logo, and sharp sleeve details" />
-              <button class="ai-generate-inline-btn" id="aiSendPromptButton" type="button" aria-label="Generate Clothing">✦</button>
+              <textarea class="ai-prompt-input" id="aiHeroPrompt" rows="2" placeholder="Describe your Roblox clothing idea: dark cyber Y2K jacket with glowing purple seams, a layered chest logo, and sharp sleeve details"></textarea>
+              <button class="ai-generate-inline-btn" id="aiSendPromptButton" type="button">Generate</button>
             </div>
           </div>
 
@@ -1597,17 +1597,6 @@
             </select>
           </div>
 
-          <div class="ai-control-group" id="aiSkinToneControlGroup">
-            <div class="ai-chip-heading">Visible Skin Tone:</div>
-            <div class="ai-goal-row" id="aiSkinToneRow" style="margin-top:10px;">
-              <button class="ai-goal-chip is-active" data-skin-tone="auto" type="button">Auto</button>
-              <button class="ai-goal-chip" data-skin-tone="none" type="button">No skin</button>
-              <button class="ai-goal-chip" data-skin-tone="white" type="button">White</button>
-              <button class="ai-goal-chip" data-skin-tone="lightskin" type="button">Lightskin</button>
-              <button class="ai-goal-chip" data-skin-tone="darkskin" type="button">Darkskin</button>
-            </div>
-          </div>
-
           <div class="ai-live-token-cost" id="aiLiveTokenCost">This generation will cost <strong>1 token</strong></div>
 
           <button class="ai-generate-btn" id="aiStartButton" type="button"><span>Generate Clothing <span aria-hidden="true">→</span></span></button>
@@ -1627,17 +1616,6 @@
 
         <div class="ai-form-grid">
           <input id="aiGarmentType" type="hidden" value="shirt" />
-
-          <div class="ai-field">
-            <label class="ai-label" for="aiSkinTone">Visible Skin Tone</label>
-            <select class="ai-select" id="aiSkinTone">
-              <option value="auto" selected>Auto</option>
-              <option value="none">No skin</option>
-              <option value="white">White</option>
-              <option value="lightskin">Lightskin</option>
-              <option value="darkskin">Darkskin</option>
-            </select>
-          </div>
 
           <div class="ai-field">
             <label class="ai-label" for="aiStyleDirection">Style Direction</label>
@@ -1810,9 +1788,6 @@
       var ratingFeedback = document.getElementById("aiRatingFeedback");
       var ratingButtons = Array.prototype.slice.call(document.querySelectorAll(".ai-star-btn"));
       var styleChips = Array.prototype.slice.call(document.querySelectorAll(".ai-style-chip"));
-      var goalChips = Array.prototype.slice.call(document.querySelectorAll(".ai-goal-chip"));
-      var skinTone = document.getElementById("aiSkinTone");
-      var skinToneChips = Array.prototype.slice.call(document.querySelectorAll("[data-skin-tone]"));
       var liveTokenCost = document.getElementById("aiLiveTokenCost");
       var tokenConfirmOverlay = document.getElementById("aiTokenConfirmOverlay");
       var tokenConfirmCopy = document.getElementById("aiTokenConfirmCopy");
@@ -2605,19 +2580,6 @@
         if (isPants && pantsLength && selectedTemplate.length) pantsLength.value = selectedTemplate.length;
       }
 
-      function setSkinTone(value) {
-        var normalized = String(value || "").trim().toLowerCase();
-        if (normalized !== "none" && normalized !== "white" && normalized !== "lightskin" && normalized !== "darkskin") {
-          normalized = "auto";
-        }
-        if (skinTone) {
-          skinTone.value = normalized;
-        }
-        skinToneChips.forEach(function (chip) {
-          chip.classList.toggle("is-active", chip.getAttribute("data-skin-tone") === normalized);
-        });
-      }
-
       function getGenerationCost() {
         return 1;
       }
@@ -2626,27 +2588,6 @@
         if (!liveTokenCost) return;
         var cost = getGenerationCost();
         liveTokenCost.innerHTML = "This generation will cost <strong>" + cost + " token" + (cost === 1 ? "" : "s") + "</strong>";
-      }
-
-      function formatSkinToneInstruction(value) {
-        var hexByTone = {
-          white: "#EFD2BF",
-          lightskin: "#C99876",
-          darkskin: "#5C4030"
-        };
-        if (value === "none") {
-          return "#FF30F8 marks exposed-skin space. With No skin selected, keep every marker transparent and clean.";
-        }
-        if (value === "white") {
-          return "Every #FF30F8 marker is exposed skin. Generate flat exact skin color " + hexByTone.white + " with clean skin-only regions.";
-        }
-        if (value === "lightskin") {
-          return "Every #FF30F8 marker is exposed skin. Generate flat exact skin color " + hexByTone.lightskin + " with clean skin-only regions.";
-        }
-        if (value === "darkskin") {
-          return "Every #FF30F8 marker is exposed skin. Generate flat exact skin color " + hexByTone.darkskin + " with clean skin-only regions.";
-        }
-        return "Every #FF30F8 marker is exposed skin. Generate flat exact skin color #DBB8A0 with clean skin-only regions.";
       }
 
       function syncVisiblePrompt() {
@@ -2676,7 +2617,6 @@
         syncVisiblePrompt();
 
         var selectedTemplate = getSelectedTemplate();
-        var selectedSkinTone = skinTone ? String(skinTone.value || "auto").trim().toLowerCase() : "auto";
         var style = activeStyle || String(styleDirection.value || "").trim();
         var palette = String(colorPalette.value || "").trim();
         var vibe = String(audience.value || "").trim();
@@ -2691,14 +2631,14 @@
           "Return only a wearable clothing texture at exactly 585 x 559 pixels.",
           "The working image may be generated at 832 x 800, but the final design must map cleanly back into the supplied panel layout size.",
           "Input image 1 is Blank Template.png: build the final Roblox texture directly on that canvas.",
-          "Input image 2 is the selected sleeve or lower-body reference: use it only to identify garment panels and #FF30F8 skin markers.",
+          "Input image 2 is the selected sleeve or lower-body reference: use it only to identify garment panels and no-garment zones.",
           "Garment template: " + selectedTemplate.label + ".",
           selectedTemplate.type === "shirt"
             ? "Use the " + selectedSleeveLength + " sleeve Roblox top guide. Torso panels are only the top six islands; the twelve lower islands are arm faces, never torso front or back."
-            : "Use the " + selectedPantsLength + "% lower-body Roblox guide. Every mapped panel in the bottom section belongs to the two legs: front, back, left, right, top, and bottom leg faces. Keep the upper torso section blank for this lower-body template. #FF30F8 maps exposed avatar skin.",
-          "#FF30F8 is a strict exposed-skin marker. Use only the selected skin color there, with no fabric, material, trim, seams, shadows, patterns, or graphics.",
+            : "Use the " + selectedPantsLength + "% lower-body Roblox guide. Every mapped panel in the bottom section belongs to the two legs: front, back, left, right, top, and bottom leg faces. Keep the upper torso section blank for this lower-body template.",
+          "Keep every no-garment guide zone transparent, with no fabric, material, trim, seams, shadows, patterns, or graphics.",
           "DO NOT draw white outlines, white gutters, white panel borders, white divider lines, white backgrounds, guide boxes, template labels, helper diagrams, mannequins, or mockups.",
-          "DO NOT put artwork over #FF30F8 skin markers, the neck opening, or unused transparent guide space. Do not cross a UV island boundary.",
+          "DO NOT put artwork over the neck opening or unused transparent guide space. Do not cross a UV island boundary.",
           "Make the result a catalog-ready Roblox texture with cohesive front and back panel details.",
           "Design brief: " + (userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, and sleeve or leg zones.") + "."
         ];
@@ -2715,7 +2655,6 @@
         if (selectedTemplate.type === "pants" && footwearValue) {
           lines.push("Shoes / socks: " + footwearValue + ". Apply that only to the lower-leg and ankle regions of the lower-body map.");
         }
-        lines.push(formatSkinToneInstruction(selectedSkinTone));
         if (avoidPrompt) {
           lines.push("Preferred exclusions: " + avoidPrompt + ".");
         }
@@ -2807,7 +2746,7 @@
         }
       }
 
-      function drawRigPreviewToCanvas(canvas, ctx, shirtImage, pantsImage, skinFill) {
+      function drawRigPreviewToCanvas(canvas, ctx, shirtImage, pantsImage) {
         if (!canvas || !ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawRigBackground(ctx, canvas.width, canvas.height);
@@ -2834,12 +2773,12 @@
           rightFoot: { x: 368, y: 504, w: 68, h: 26 }
         };
 
-        var visibleSkinColor = skinFill || "#e4d6ca";
-        fillRoundedRect(ctx, rig.leftHand.x, rig.leftHand.y, rig.leftHand.w, rig.leftHand.h, 18, visibleSkinColor);
-        fillRoundedRect(ctx, rig.rightHand.x, rig.rightHand.y, rig.rightHand.w, rig.rightHand.h, 18, visibleSkinColor);
+        var mannequinAccentColor = "#d9d4cc";
+        fillRoundedRect(ctx, rig.leftHand.x, rig.leftHand.y, rig.leftHand.w, rig.leftHand.h, 18, mannequinAccentColor);
+        fillRoundedRect(ctx, rig.rightHand.x, rig.rightHand.y, rig.rightHand.w, rig.rightHand.h, 18, mannequinAccentColor);
         fillRoundedRect(ctx, rig.leftFoot.x, rig.leftFoot.y, rig.leftFoot.w, rig.leftFoot.h, 14, "#dcdcdc");
         fillRoundedRect(ctx, rig.rightFoot.x, rig.rightFoot.y, rig.rightFoot.w, rig.rightFoot.h, 14, "#dcdcdc");
-        fillRoundedRect(ctx, rig.neck.x, rig.neck.y, rig.neck.w, rig.neck.h, 12, visibleSkinColor);
+        fillRoundedRect(ctx, rig.neck.x, rig.neck.y, rig.neck.w, rig.neck.h, 12, mannequinAccentColor);
         fillRoundedRect(ctx, rig.torso.x, rig.torso.y, rig.torso.w, rig.torso.h, 22, "#f8f8f8");
         fillRoundedRect(ctx, rig.leftLeg.x, rig.leftLeg.y, rig.leftLeg.w, rig.leftLeg.h, 18, "#191d24");
         fillRoundedRect(ctx, rig.rightLeg.x, rig.rightLeg.y, rig.rightLeg.w, rig.rightLeg.h, 18, "#191d24");
@@ -2877,15 +2816,7 @@
         var pantsImage = latestPreviewPayload && latestPreviewPayload.primary && latestPreviewPayload.primary.pantsImage
           ? latestPreviewPayload.primary.pantsImage
           : null;
-        drawRigPreviewToCanvas(rigCanvas, rigContext, shirtImage, pantsImage, resolveSkinToneColor());
-      }
-
-      function resolveSkinToneColor() {
-        var value = skinTone ? String(skinTone.value || "auto").trim().toLowerCase() : "auto";
-        if (value === "white") return "#EFD2BF";
-        if (value === "lightskin") return "#C99876";
-        if (value === "darkskin") return "#5C4030";
-        return "#DBB8A0";
+        drawRigPreviewToCanvas(rigCanvas, rigContext, shirtImage, pantsImage);
       }
 
       function loadPreviewImage(url) {
@@ -2912,7 +2843,6 @@
         clearMatchingPreviewGallery();
         if (!previews || !previews.length) return;
         previewGallery.classList.add("is-visible");
-        var skinColor = resolveSkinToneColor();
         for (var index = 0; index < previews.length; index += 1) {
           var preview = previews[index];
           var card = document.createElement("div");
@@ -2929,7 +2859,7 @@
           var ctx = canvas.getContext("2d");
           var shirtImage = await loadPreviewImage(preview.shirtUrl);
           var pantsImage = await loadPreviewImage(preview.pantsUrl);
-          drawRigPreviewToCanvas(canvas, ctx, shirtImage, pantsImage, skinColor);
+          drawRigPreviewToCanvas(canvas, ctx, shirtImage, pantsImage);
         }
       }
 
@@ -2954,14 +2884,8 @@
             var shirtImage = await loadPreviewImage(previewSet.shirtUrl);
             var shirtMaterial = createTemplateMaterial(shirtImage, RIG_COLORS.shirt);
             replacePartMaterials(rigPreview3D.parts.torso, shirtMaterial.clone());
-            if (previewSet.useSkinArms) {
-              var skinMaterial = createColorMaterial(previewSet.skinColor || resolveSkinToneColor());
-              replacePartMaterials(rigPreview3D.parts.rightArm, skinMaterial.clone());
-              replacePartMaterials(rigPreview3D.parts.leftArm, skinMaterial.clone());
-            } else {
-              replacePartMaterials(rigPreview3D.parts.rightArm, shirtMaterial.clone());
-              replacePartMaterials(rigPreview3D.parts.leftArm, shirtMaterial.clone());
-            }
+            replacePartMaterials(rigPreview3D.parts.rightArm, shirtMaterial.clone());
+            replacePartMaterials(rigPreview3D.parts.leftArm, shirtMaterial.clone());
           }
           return true;
         } catch (_error) {
@@ -3117,8 +3041,6 @@
       function buildPreviewPayloadFromResponse(payload) {
         var outputs = Array.isArray(payload && payload.outputs) ? payload.outputs : [];
         var mode = payload && payload.garmentType ? payload.garmentType : garmentType.value;
-        var useSkinArms = Boolean(payload && payload.templateType !== "pants" && payload.sleeveLength === "sleeveless");
-        var skinColor = resolveSkinToneColor();
         if (!outputs.length && payload && payload.imageDataUrl) {
           outputs = [{
             imageDataUrl: payload.imageDataUrl,
@@ -3135,8 +3057,6 @@
             ? {
                 shirtUrl: primaryOutput.templateType === "pants" ? "" : (primaryOutput.imageDataUrl || ""),
                 pantsUrl: primaryOutput.templateType === "pants" ? (primaryOutput.imageDataUrl || "") : "",
-                useSkinArms: useSkinArms,
-                skinColor: skinColor
               }
             : null,
           previews: [],
@@ -3157,8 +3077,6 @@
           resolvedSleeveLength: sleeveLength ? sleeveLength.value : (selectedTemplate.sleeve || "long"),
           pantsLength: pantsLength ? pantsLength.value : (selectedTemplate.length || "100"),
           resolvedPantsLength: pantsLength ? pantsLength.value : (selectedTemplate.length || "100"),
-          skinTone: skinTone ? skinTone.value : "auto",
-          skinToneHex: resolveSkinToneColor(),
           generationCost: getGenerationCost(),
           styleDirection: styleValue,
           colorPalette: colorPalette.value,
@@ -3277,7 +3195,6 @@
         if (footwear) footwear.value = "";
         setActiveStyle("");
         setTemplate("hoodie");
-        setSkinTone("auto");
         status.textContent = "Prompt form reset. Users can stay simple at the top bar, and power users can open Advanced Settings whenever they want more control.";
         resultImage.removeAttribute("src");
         latestPreviewPayload = null;
@@ -3303,16 +3220,6 @@
         });
       });
 
-      goalChips.forEach(function (chip) {
-        if (chip.hasAttribute("data-skin-tone")) {
-          chip.addEventListener("click", function () {
-            setSkinTone(chip.getAttribute("data-skin-tone"));
-            buildGeneratorPrompt();
-          });
-          return;
-        }
-      });
-
       if (templateKey) {
         templateKey.addEventListener("change", function () {
           setTemplate(templateKey.value);
@@ -3323,12 +3230,6 @@
       if (pantsLength) pantsLength.addEventListener("change", buildGeneratorPrompt);
       if (footwear) {
         footwear.addEventListener("change", buildGeneratorPrompt);
-      }
-      if (skinTone) {
-        skinTone.addEventListener("change", function () {
-          setSkinTone(skinTone.value);
-          buildGeneratorPrompt();
-        });
       }
       heroPrompt.addEventListener("input", buildGeneratorPrompt);
       prompt.addEventListener("input", buildGeneratorPrompt);
@@ -3400,7 +3301,6 @@
       });
 
       setTemplate("hoodie");
-      setSkinTone("auto");
       updateTemplateDependentControls();
       updateLiveTokenCost();
       buildGeneratorPrompt();
