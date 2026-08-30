@@ -940,15 +940,16 @@ async function repairAIClothingGuideSeams(panelBuffer, templateType) {
   panels.forEach((panel) => {
     for (let localY = 0; localY < panel.h; localY += 1) {
       for (let localX = 0; localX < panel.w; localX += 1) {
-        const isEdge = localX < 2 || localY < 2 || localX >= panel.w - 2 || localY >= panel.h - 2;
+        const seamInset = 6;
+        const isEdge = localX < seamInset || localY < seamInset || localX >= panel.w - seamInset || localY >= panel.h - seamInset;
         if (!isEdge) continue;
         const x = panel.x + localX;
         const y = panel.y + localY;
         const offset = ((y * AI_CLOTHING_OUTPUT_WIDTH) + x) * 4;
         if (!isNearWhite(offset)) continue;
 
-        const innerX = Math.min(Math.max(localX, 3), panel.w - 4);
-        const innerY = Math.min(Math.max(localY, 3), panel.h - 4);
+        const innerX = Math.min(Math.max(localX, seamInset + 2), panel.w - seamInset - 3);
+        const innerY = Math.min(Math.max(localY, seamInset + 2), panel.h - seamInset - 3);
         const innerOffset = (((panel.y + innerY) * AI_CLOTHING_OUTPUT_WIDTH) + panel.x + innerX) * 4;
         if (source[innerOffset + 3] <= 8 || isNearWhite(innerOffset)) continue;
         panelRaw.data[offset] = source[innerOffset];
@@ -1337,13 +1338,16 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   await fs.promises.access(applicationTemplatePath, fs.constants.R_OK);
   const sharp = getSharp();
   const referenceTemplateBuffer = await fs.promises.readFile(referenceTemplatePath);
-  const applyTemplateBuffer = await fs.promises.readFile(applicationTemplatePath);
-  const cleanedApplyTemplateBuffer = await sharp(applyTemplateBuffer)
-    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
-      fit: "fill",
-      kernel: "nearest",
-    })
-    .ensureAlpha()
+  // OpenAI receives a blank transparent canvas. The colored sleeve/pants
+  // reference remains the only visible UV guide, avoiding copied white borders.
+  const cleanedApplyTemplateBuffer = await sharp({
+    create: {
+      width: AI_CLOTHING_OUTPUT_WIDTH,
+      height: AI_CLOTHING_OUTPUT_HEIGHT,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
     .png()
     .toBuffer();
   const cleanedReferenceTemplateBuffer = await sharp(referenceTemplateBuffer)
@@ -1399,24 +1403,18 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     transparentGuideBuffer,
     normalizedTemplateType
   );
-  const templateRaw = await sharp(cleanedApplyTemplateBuffer)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
   const maskBuffer = Buffer.alloc(AI_CLOTHING_OUTPUT_WIDTH * AI_CLOTHING_OUTPUT_HEIGHT);
-  for (let index = 0; index < maskBuffer.length; index += 1) {
-    const offset = index * 4;
-    const red = templateRaw.data[offset];
-    const green = templateRaw.data[offset + 1];
-    const blue = templateRaw.data[offset + 2];
-    const alpha = templateRaw.data[offset + 3];
-    const looksLikeTemplateZone = alpha <= 8;
-    maskBuffer[index] = looksLikeTemplateZone ? 255 : 0;
-  }
+  const outputPanels = AI_CLOTHING_PANEL_PARTS[normalizedTemplateType] || AI_CLOTHING_PANEL_PARTS.shirt;
+  outputPanels.forEach((panel) => {
+    for (let y = panel.y; y < panel.y + panel.h; y += 1) {
+      for (let x = panel.x; x < panel.x + panel.w; x += 1) {
+        maskBuffer[(y * AI_CLOTHING_OUTPUT_WIDTH) + x] = 255;
+      }
+    }
+  });
   const maskRgbaBuffer = Buffer.alloc(AI_CLOTHING_OUTPUT_WIDTH * AI_CLOTHING_OUTPUT_HEIGHT * 4, 255);
   for (let index = 0; index < maskBuffer.length; index += 1) {
-    // Use only the actual transparent UV islands. Expanding this mask pulled
-    // the blank template's white guide border into downloaded textures.
+    // Keep only known UV panels; the output never inherits visible guide pixels.
     maskRgbaBuffer[index * 4 + 3] = maskBuffer[index];
   }
   const maskImageBuffer = await sharp(maskRgbaBuffer, {
