@@ -2587,7 +2587,7 @@ body.rblx-shell-modal-open {
 .rblx-shell-auth-modal > *,
 .rblx-shell-reward-modal > * { position: relative; z-index: 1; }
 
-.rblx-shell-membership-gate { --rblx-modal-half: 235px; }
+.rblx-shell-membership-gate { --rblx-modal-half: 300px; --rblx-modal-gap: 52px; }
 .rblx-shell-auth-overlay { --rblx-modal-half: 280px; }
 .rblx-shell-reward-overlay { --rblx-modal-half: 260px; }
 .rblx-shell-modal-ad-rail { display: none; }
@@ -2613,8 +2613,8 @@ body.rblx-shell-modal-open {
     box-shadow: 0 22px 48px rgba(0, 0, 0, .3);
   }
 
-  .rblx-shell-modal-ad-rail.is-left { right: calc(50% + var(--rblx-modal-half) + 30px); }
-  .rblx-shell-modal-ad-rail.is-right { left: calc(50% + var(--rblx-modal-half) + 30px); }
+  .rblx-shell-modal-ad-rail.is-left { right: calc(50% + var(--rblx-modal-half) + var(--rblx-modal-gap, 30px)); }
+  .rblx-shell-modal-ad-rail.is-right { left: calc(50% + var(--rblx-modal-half) + var(--rblx-modal-gap, 30px)); }
   .rblx-shell-modal-ad-rail > span {
     padding: 5px 0 3px;
     color: #94aabd;

@@ -376,10 +376,9 @@
     return (
       '<div class="rblx-shell-membership-gate" id="rblxShellAnimationGate" aria-hidden="true">' +
         '<div class="rblx-shell-membership-gate-card" role="dialog" aria-modal="true" aria-labelledby="rblxShellAnimationGateTitle">' +
-          '<div class="rblx-shell-membership-gate-kicker">Animations Access</div>' +
           '<h3 id="rblxShellAnimationGateTitle">Animations is available with <span class="rblx-shell-gate-plus">Plus</span> or <span class="rblx-shell-gate-pro">Pro</span>.</h3>' +
           '<p>Choose a membership to unlock the animation tool and the creator benefits that come with it.</p>' +
-          '<div class="rblx-shell-gate-benefits"><section><strong>Plus</strong><span>Animation Studio</span><span>Textured UGCs</span><span>1080p AI thumbnails</span></section><section><strong>Pro</strong><span>Everything in Plus</span><span>20 monthly AI credits</span><span>Ad-free creator tools</span></section></div>' +
+          '<div class="rblx-shell-gate-benefits"><section><strong>Plus</strong><span>Animation Studio</span><span>Custom Chat Tag</span><span>Bulk Downloads (1-5)</span><span>Much More To Offer</span></section><section><strong>Pro</strong><span>Everything in Plus</span><span>Custom Chat Tag</span><span>Premium Giveaways</span><span>Much More To Offer</span></section></div>' +
           '<div class="rblx-shell-membership-gate-actions"><button class="rblx-shell-membership-gate-cancel" type="button" data-rblx-animation-gate-cancel="true">Cancel</button><a class="rblx-shell-membership-gate-button" href="./subscriptions">View Plans</a></div>' +
         '</div>' +
         buildModalAdRailsMarkup() +
