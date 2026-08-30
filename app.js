@@ -670,7 +670,8 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     "Create a clean wearable Roblox clothing texture on the supplied Roblox character UV template.",
     `Return only a wearable clothing texture at exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
     `The working image may be generated at ${AI_CLOTHING_GENERATION_SIZE}, but the final design must map cleanly back into the supplied panel layout size.`,
-    `Input image 1 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference. Build the clothing directly from this selected reference and use it as the exact garment-panel map. Every pink #FF30F8 guide zone is a strict no-material area.`,
+    "Input image 1 is Blank Template.png. Build the completed Roblox clothing texture only inside its panel layout.",
+    `Input image 2 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference. Study it pixel-for-pixel to learn exactly which Blank Template panels should contain garment material. Every pink #FF30F8 guide zone is a strict no-material area.`,
     `Clothing option: ${basePrompt.templateLabel}.`,
     `Gender styling: ${basePrompt.gender}.`,
     basePrompt.templateInstruction,
@@ -678,7 +679,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
       ? "Follow the selected sleeve reference exactly for every torso and arm panel. The reference's garment boundary is final: fill only its shirt and sleeve islands, and leave its wrist, hand, and every pink or unmarked arm area completely transparent so the Roblox rig remains visible below the cuffs."
       : "Follow the selected lower-body reference exactly and leave all non-pants areas empty.",
     "Pink #FF30F8 is not a color to render. Keep every transparent or pink-marked zone fully transparent, with no fabric, material, graphics, shadows, cuffs, or accessories.",
-    "Build the artwork from the selected reference's colored garment zones only; do not use its guide colors as the clothing design.",
+    "Use the selected reference only to study garment coverage and transparency. Do not copy its guide colors, labels, or markings into the clothing design.",
     "DO NOT overflow artwork across a UV island boundary. Keep the canvas outside mapped panels transparent and keep each garment panel filled only with its intended clothing artwork.",
     "Do not leave white seams, white blocks, white spots, blank patches, guide letters, or direction labels anywhere in the generated garment zones unless the user explicitly asks for them.",
     "Make this a catalog-ready Roblox texture with readable panels and a cohesive front and back.",
@@ -705,7 +706,7 @@ function buildAIClothingGenerationPlan(basePrompt) {
   ];
 }
 
-async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, references = [], preserveWhite = false }) {
+async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, references = [] }) {
   assertAIClothingConfigured();
   const promptText = cleanAIClothingText(enhancedPrompt, 6000);
   if (!promptText) {
@@ -742,11 +743,10 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     blankTemplateBuffer,
     referenceTemplateBuffer,
   });
-  const selectedReferenceBuffer = await buildAIClothingCleanGuide({
-    referenceTemplateBuffer,
-    mask: referenceMask,
+  const blankTemplateUpload = await toFile(Readable.from([blankTemplateBuffer]), blankTemplateName, {
+    type: "image/png",
   });
-  const sleeveGuideUpload = await toFile(Readable.from([selectedReferenceBuffer]), path.basename(referenceTemplatePath), {
+  const sleeveGuideUpload = await toFile(Readable.from([referenceTemplateBuffer]), path.basename(referenceTemplatePath), {
     type: "image/png",
   });
   const userReferenceUploads = await Promise.all(references.map((reference) => toFile(
@@ -757,8 +757,8 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
 
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
-    image: [sleeveGuideUpload].concat(userReferenceUploads),
-    prompt: `${promptText} Build directly from input image 1, ${path.basename(referenceTemplatePath)}, which is the selected label-free garment-panel and wrist-clearance map.${normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "long" ? " This map is built from the selected Long Sleeve Reference.png and is mandatory for this long-sleeve request." : ""}${userReferenceUploads.length ? " The remaining input images are user style references only: use their colors, motifs, materials, and overall aesthetic, but never copy their shape or layout over the Roblox UV guide." : ""} Every colored garment island in the selected reference must receive the completed clothing design. Pink #FF30F8 marks no-material zones: keep those zones fully transparent with no fabric, material, graphics, shadows, cuffs, or accessories. Do not create white seams, white blocks, white spots, blank patches, guide letters, or direction labels in garment zones unless the user explicitly requests them. For shirts, never extend fabric into wrist or hand zones outside the selected sleeve reference. Return the completed Roblox ${normalizedTemplateType} texture following the selected reference map.`,
+    image: [blankTemplateUpload, sleeveGuideUpload].concat(userReferenceUploads),
+    prompt: `${promptText} Build the completed Roblox ${normalizedTemplateType} texture directly inside input image 1, Blank Template.png. Study input image 2, ${path.basename(referenceTemplatePath)}, pixel-for-pixel as the selected coverage and wrist-clearance reference.${normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "long" ? " Long Sleeve Reference.png is mandatory for this long-sleeve request." : ""}${userReferenceUploads.length ? " The remaining input images are user style references only: use their colors, motifs, materials, and overall aesthetic, but never copy their shape or layout over the Roblox UV guide." : ""} Paint garment material only into the matching Blank Template panels identified by the selected reference. Pink #FF30F8 in the reference means no material: keep those matching Blank Template zones fully transparent with no fabric, material, graphics, shadows, cuffs, or accessories. Do not copy reference guide colors, labels, or markings into the output. Do not create white seams, white blocks, white spots, blank patches, guide letters, or direction labels in garment zones unless the user explicitly requests them. Return the completed texture on the Blank Template canvas, not a copy of the selected reference.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -782,11 +782,10 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     })
     .raw()
     .toBuffer();
-  const finalPixels = removeAIClothingWhiteArtifacts(generatedPixels, referenceMask, preserveWhite);
   for (let pixel = 0; pixel < referenceMask.length; pixel += 1) {
-    finalPixels[pixel * 4 + 3] = referenceMask[pixel];
+    generatedPixels[pixel * 4 + 3] = referenceMask[pixel];
   }
-  const finalArtBuffer = await sharp(finalPixels, {
+  const finalArtBuffer = await sharp(generatedPixels, {
     raw: {
       width: AI_CLOTHING_OUTPUT_WIDTH,
       height: AI_CLOTHING_OUTPUT_HEIGHT,
@@ -6094,7 +6093,6 @@ app.post("/ai/generate-clothing", async (req, res) => {
 
     const built = buildAIClothingPrompt(promptPayload);
     const generationPlan = buildAIClothingGenerationPlan(built);
-    const preserveWhite = /\bwhite\b/i.test(`${built.userPrompt || ""} ${built.palette || ""}`);
     const timestamp = Date.now();
     const outputs = [];
     for (let index = 0; index < generationPlan.length; index += 1) {
@@ -6106,7 +6104,6 @@ app.post("/ai/generate-clothing", async (req, res) => {
         sleeveLength: built.sleeveLength,
         pantsLength: built.pantsLength,
         references,
-        preserveWhite,
       });
       outputs.push({
         key: variant.key,
