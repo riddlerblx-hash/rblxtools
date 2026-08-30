@@ -8777,7 +8777,9 @@ const favoriteToolLength = 32;
 const chatBioLength = 150;
 const defaultChatRoom = "rblxtools-main";
 
-const chatHistoryPath = path.join(__dirname, "chat-history.json");
+// Keep chat history outside the read-only LiteSpeed document root so clears and
+// 24-hour pruning persist across server restarts.
+const chatHistoryPath = path.join(RBLXTOOLS_STATE_DIR, "chat-history.json");
 const chatHistoryRetentionMs = 24 * 60 * 60 * 1000;
 const chatHistoryPruneIntervalMs = 5 * 60 * 1000;
 
@@ -8811,7 +8813,7 @@ function persistRecentMessages() {
           .filter(([, messages]) => messages.length)
       ),
     };
-    fs.writeFileSync(chatHistoryPath, JSON.stringify(payload, null, 2) + "\n", "utf8");
+    writeJsonFile(chatHistoryPath, payload);
   } catch (error) {
     console.error("[CHAT HISTORY] Could not persist chat history.", error);
   }
@@ -8830,7 +8832,7 @@ function persistRoomHistory(room) {
 function loadPersistedRecentMessages() {
   try {
     if (!fs.existsSync(chatHistoryPath)) {
-      fs.writeFileSync(chatHistoryPath, JSON.stringify({ updatedAt: null, rooms: {} }, null, 2) + "\n", "utf8");
+      writeJsonFile(chatHistoryPath, { updatedAt: null, clearedRooms: {}, rooms: {} });
       return;
     }
 
