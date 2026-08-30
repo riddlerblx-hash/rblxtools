@@ -670,8 +670,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     "Create a clean wearable Roblox clothing texture on the supplied Roblox character UV template.",
     `Return only a wearable clothing texture at exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
     `The working image may be generated at ${AI_CLOTHING_GENERATION_SIZE}, but the final design must map cleanly back into the supplied panel layout size.`,
-    "Input image 1 is Blank Template.png. Build the completed Roblox clothing texture only inside its panel layout.",
-    `Input image 2 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference. Study it pixel-for-pixel to learn exactly which Blank Template panels should contain garment material. Every pink #FF30F8 guide zone is a strict no-material area.`,
+    `Input image 1 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference. Study it pixel-for-pixel and build the completed 585 x 559 Roblox texture from its exact panel coverage. Every pink #FF30F8 guide zone is a strict no-material area.`,
     `Clothing option: ${basePrompt.templateLabel}.`,
     `Gender styling: ${basePrompt.gender}.`,
     basePrompt.templateInstruction,
@@ -743,9 +742,6 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     blankTemplateBuffer,
     referenceTemplateBuffer,
   });
-  const blankTemplateUpload = await toFile(Readable.from([blankTemplateBuffer]), blankTemplateName, {
-    type: "image/png",
-  });
   const sleeveGuideUpload = await toFile(Readable.from([referenceTemplateBuffer]), path.basename(referenceTemplatePath), {
     type: "image/png",
   });
@@ -757,8 +753,8 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
 
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
-    image: [blankTemplateUpload, sleeveGuideUpload].concat(userReferenceUploads),
-    prompt: `${promptText} Build the completed Roblox ${normalizedTemplateType} texture directly inside input image 1, Blank Template.png. Study input image 2, ${path.basename(referenceTemplatePath)}, pixel-for-pixel as the selected coverage and wrist-clearance reference.${normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "long" ? " Long Sleeve Reference.png is mandatory for this long-sleeve request." : ""}${userReferenceUploads.length ? " The remaining input images are user style references only: use their colors, motifs, materials, and overall aesthetic, but never copy their shape or layout over the Roblox UV guide." : ""} Paint garment material only into the matching Blank Template panels identified by the selected reference. Pink #FF30F8 in the reference means no material: keep those matching Blank Template zones fully transparent with no fabric, material, graphics, shadows, cuffs, or accessories. Do not copy reference guide colors, labels, or markings into the output. Do not create white seams, white blocks, white spots, blank patches, guide letters, or direction labels in garment zones unless the user explicitly requests them. Return the completed texture on the Blank Template canvas, not a copy of the selected reference.`,
+    image: [sleeveGuideUpload].concat(userReferenceUploads),
+    prompt: `${promptText} Study input image 1, ${path.basename(referenceTemplatePath)}, pixel-for-pixel as the selected coverage and wrist-clearance reference, then build the completed Roblox ${normalizedTemplateType} texture from that exact map at 585 x 559 pixels.${normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "long" ? " Long Sleeve Reference.png is mandatory for this long-sleeve request." : ""}${userReferenceUploads.length ? " The remaining input images are user style references only: use their colors, motifs, materials, and overall aesthetic, but never copy their shape or layout over the Roblox UV guide." : ""} Pink #FF30F8 in the selected reference means no material: keep those matching zones fully transparent with no fabric, material, graphics, shadows, cuffs, or accessories. Do not copy reference guide colors, labels, or markings into the output. Do not create white seams, white blocks, white spots, blank patches, guide letters, or direction labels in garment zones unless the user explicitly requests them. Return only the completed 585 x 559 Roblox texture based on the selected reference.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
