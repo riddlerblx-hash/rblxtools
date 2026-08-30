@@ -84,6 +84,7 @@ const AI_THUMBNAIL_OUTPUT_HEIGHT = 720;
 const AI_THUMBNAIL_GENERATION_SIZE = "1536x1024";
 const MAX_AI_THUMBNAIL_REFERENCE_IMAGES = 3;
 const MAX_AI_THUMBNAIL_REFERENCE_BYTES = 2 * 1024 * 1024;
+const MAX_AI_CLOTHING_REFERENCE_IMAGES = 3;
 const AI_TOKEN_DEFAULT_BALANCE = 0;
 const AI_THUMBNAIL_TOKEN_COST = 1;
 const AI_THUMBNAIL_FREE_REFERENCES = 3;
@@ -246,7 +247,7 @@ function cleanAIThumbnailText(value, maxLength = 240) {
     .slice(0, maxLength);
 }
 
-function parseAIThumbnailReferenceImages(rawReferences, maxReferences = AI_THUMBNAIL_FREE_REFERENCES) {
+function parseAIReferenceImages(rawReferences, maxReferences = AI_THUMBNAIL_FREE_REFERENCES, namePrefix = "reference") {
   if (!Array.isArray(rawReferences)) return [];
   if (rawReferences.length > maxReferences) {
     const error = new Error(`Use up to ${maxReferences} reference images.`);
@@ -268,7 +269,7 @@ function parseAIThumbnailReferenceImages(rawReferences, maxReferences = AI_THUMB
       throw error;
     }
     const extension = match[1].toLowerCase() === "image/png" ? "png" : match[1].toLowerCase() === "image/webp" ? "webp" : "jpg";
-    return { buffer, type: match[1].toLowerCase(), name: `thumbnail-reference-${index + 1}.${extension}` };
+    return { buffer, type: match[1].toLowerCase(), name: `${namePrefix}-${index + 1}.${extension}` };
   });
 }
 
@@ -281,9 +282,10 @@ async function generateAIThumbnail(payload) {
     throw error;
   }
   const isPro = Boolean(payload.isPro);
-  const references = parseAIThumbnailReferenceImages(
+  const references = parseAIReferenceImages(
     payload.references,
-    isPro ? AI_THUMBNAIL_PRO_REFERENCES : AI_THUMBNAIL_FREE_REFERENCES
+    isPro ? AI_THUMBNAIL_PRO_REFERENCES : AI_THUMBNAIL_FREE_REFERENCES,
+    "thumbnail-reference"
   );
   const aspectRatio = isPro ? String(payload.aspectRatio || "16:9") : "16:9";
   const outputQuality = isPro ? String(payload.outputQuality || "standard") : "standard";
@@ -561,7 +563,7 @@ function buildAIClothingGenerationPlan(basePrompt) {
   ];
 }
 
-async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength }) {
+async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, references = [] }) {
   assertAIClothingConfigured();
   const promptText = cleanAIClothingText(enhancedPrompt, 6000);
   if (!promptText) {
@@ -620,11 +622,16 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const sleeveGuideUpload = await toFile(Readable.from([cleanedReferenceTemplateBuffer]), path.basename(referenceTemplatePath), {
     type: "image/png",
   });
+  const userReferenceUploads = await Promise.all(references.map((reference) => toFile(
+    Readable.from([reference.buffer]),
+    reference.name,
+    { type: reference.type }
+  )));
 
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
-    image: [blankTemplateUpload, sleeveGuideUpload],
-    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the exact garment-panel and wrist-clearance reference.${normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "long" ? " This is Long Sleeve Reference.png and it is mandatory for this long-sleeve request." : ""} Every transparent region and every pink #FF30F8 marking is a no-material zone and must remain empty. For shirts, never extend fabric into the wrist or hand zones outside the selected sleeve reference. Never copy guide colors, labels, borders, or seams into the artwork. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
+    image: [blankTemplateUpload, sleeveGuideUpload].concat(userReferenceUploads),
+    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the exact garment-panel and wrist-clearance reference.${normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "long" ? " This is Long Sleeve Reference.png and it is mandatory for this long-sleeve request." : ""}${userReferenceUploads.length ? " The remaining input images are user style references only: use their colors, motifs, materials, and overall aesthetic, but never copy their shape or layout over the Roblox UV guide." : ""} Every transparent region and every pink #FF30F8 marking is a no-material zone and must remain empty. For shirts, never extend fabric into the wrist or hand zones outside the selected sleeve reference. Never copy guide colors, labels, borders, or seams into the artwork. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -5935,6 +5942,11 @@ app.post("/support/report", async (req, res) => {
 app.post("/ai/generate-clothing", async (req, res) => {
   try {
     await requireAdminUser(req);
+    const references = parseAIReferenceImages(
+      req.body?.references,
+      MAX_AI_CLOTHING_REFERENCE_IMAGES,
+      "clothing-reference"
+    );
     const promptPayload = {
       templateKey: req.body?.templateKey,
       garmentType: req.body?.garmentType,
@@ -5964,6 +5976,7 @@ app.post("/ai/generate-clothing", async (req, res) => {
         enhancedPrompt,
         sleeveLength: built.sleeveLength,
         pantsLength: built.pantsLength,
+        references,
       });
       outputs.push({
         key: variant.key,

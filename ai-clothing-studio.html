@@ -279,6 +279,16 @@
       align-items: stretch;
     }
 
+    .ai-reference-tools { display:flex; align-items:center; gap:10px; padding:10px 4px 0; flex-wrap:wrap; }
+    .ai-reference-add { display:inline-flex; align-items:center; gap:7px; min-height:34px; padding:0 12px; border:1px solid rgba(115,210,255,.38); border-radius:11px; background:rgba(56,120,196,.18); color:#dff4ff; font-size:12px; font-weight:800; cursor:pointer; }
+    .ai-reference-add:hover { background:rgba(56,120,196,.32); }
+    .ai-reference-add input { display:none; }
+    .ai-reference-count { color:rgba(229,239,255,.68); font-size:12px; font-weight:700; }
+    .ai-reference-row { display:flex; gap:8px; flex-wrap:wrap; }
+    .ai-reference-thumb { position:relative; width:48px; height:48px; overflow:hidden; border:1px solid rgba(118,206,255,.46); border-radius:10px; background:#101c31; }
+    .ai-reference-thumb img { width:100%; height:100%; object-fit:cover; }
+    .ai-reference-thumb button { position:absolute; top:2px; right:2px; width:18px; height:18px; padding:0; border:0; border-radius:50%; background:rgba(7,11,20,.86); color:#fff; font:700 15px/16px Arial,sans-serif; cursor:pointer; }
+
     .ai-prompt-input {
       width: 100%;
       min-height: 62px;
@@ -1545,6 +1555,11 @@
               <textarea class="ai-prompt-input" id="aiHeroPrompt" rows="2" placeholder="Describe your Roblox clothing idea: dark cyber Y2K jacket with glowing purple seams, a layered chest logo, and sharp sleeve details"></textarea>
               <button class="ai-generate-inline-btn" id="aiSendPromptButton" type="button">Generate</button>
             </div>
+            <div class="ai-reference-tools" id="aiReferenceTools">
+              <label class="ai-reference-add">+ Add photo references <input id="aiReferenceInput" type="file" accept="image/png,image/jpeg,image/webp" multiple /></label>
+              <span class="ai-reference-count" id="aiReferenceCount">0 / 3 photos</span>
+              <div class="ai-reference-row" id="aiReferenceRow" aria-live="polite"></div>
+            </div>
           </div>
 
           <div>
@@ -1780,7 +1795,14 @@
       var tokenConfirmDisable = document.getElementById("aiTokenConfirmDisable");
       var tokenConfirmButton = document.getElementById("aiTokenConfirmButton");
       var tokenCancelButton = document.getElementById("aiTokenCancelButton");
+      var referenceTools = document.getElementById("aiReferenceTools");
+      var referenceInput = document.getElementById("aiReferenceInput");
+      var referenceRow = document.getElementById("aiReferenceRow");
+      var referenceCount = document.getElementById("aiReferenceCount");
       var activeStyle = "";
+      var clothingReferences = [];
+      var MAX_CLOTHING_REFERENCES = 3;
+      var MAX_CLOTHING_REFERENCE_BYTES = 2 * 1024 * 1024;
       var generationInFlight = false;
       var currentRating = 0;
       var hoverRating = 0;
@@ -2590,6 +2612,75 @@
         }
       }
 
+      function renderClothingReferences() {
+        referenceRow.innerHTML = "";
+        clothingReferences.forEach(function (dataUrl, index) {
+          var item = document.createElement("div");
+          item.className = "ai-reference-thumb";
+          item.innerHTML = '<img alt="Style reference ' + (index + 1) + '"><button type="button" aria-label="Remove style reference">×</button>';
+          item.querySelector("img").src = dataUrl;
+          item.querySelector("button").addEventListener("click", function () {
+            clothingReferences.splice(index, 1);
+            renderClothingReferences();
+          });
+          referenceRow.appendChild(item);
+        });
+        referenceCount.textContent = clothingReferences.length + " / " + MAX_CLOTHING_REFERENCES + " photos";
+      }
+
+      function clothingFileToDataUrl(file) {
+        return new Promise(function (resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function () { resolve(reader.result); };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function clothingImageFromDataUrl(dataUrl) {
+        return new Promise(function (resolve, reject) {
+          var image = new Image();
+          image.onload = function () { resolve(image); };
+          image.onerror = reject;
+          image.src = dataUrl;
+        });
+      }
+
+      async function compressClothingReference(file) {
+        if (!/^image\/(png|jpeg|webp)$/i.test(file.type)) throw new Error("Use PNG, JPG, or WebP photos only.");
+        var image = await clothingImageFromDataUrl(await clothingFileToDataUrl(file));
+        var scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight));
+        var width = Math.max(1, Math.round(image.naturalWidth * scale));
+        var height = Math.max(1, Math.round(image.naturalHeight * scale));
+        var canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(image, 0, 0, width, height);
+        var quality = 0.88;
+        var dataUrl = canvas.toDataURL("image/jpeg", quality);
+        while (dataUrl.length * 0.75 > MAX_CLOTHING_REFERENCE_BYTES && quality > 0.42) {
+          quality -= 0.12;
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+        }
+        if (dataUrl.length * 0.75 > MAX_CLOTHING_REFERENCE_BYTES) throw new Error("That photo is too large. Use a smaller image.");
+        return dataUrl;
+      }
+
+      async function addClothingReferences(files) {
+        var incoming = Array.prototype.slice.call(files || []);
+        var available = MAX_CLOTHING_REFERENCES - clothingReferences.length;
+        if (!incoming.length) return;
+        if (available <= 0) { status.textContent = "You can attach up to three photo references."; return; }
+        try {
+          var prepared = await Promise.all(incoming.slice(0, available).map(compressClothingReference));
+          clothingReferences = clothingReferences.concat(prepared);
+          renderClothingReferences();
+          status.textContent = incoming.length > available ? "Only the first " + available + " photo(s) were added." : "Photo references added. They will guide the clothing style.";
+        } catch (error) {
+          status.textContent = error.message || "Could not read that photo.";
+        }
+      }
+
       function openAdvancedSettings() {
         bottomGrid.classList.add("is-open");
         if (advancedToggleButton) {
@@ -3085,7 +3176,8 @@
           footwear: "",
           userPrompt: prompt.value,
           negativePrompt: negativePrompt.value,
-          styleName: styleValue
+          styleName: styleValue,
+          references: clothingReferences.slice()
         };
       }
 
@@ -3193,6 +3285,8 @@
         styleDirection.value = "";
         colorPalette.value = "";
         audience.value = "";
+        clothingReferences = [];
+        renderClothingReferences();
         setActiveStyle("");
         setTemplate("shirt");
         if (gender) gender.value = "male";
@@ -3230,6 +3324,36 @@
       }
       if (gender) gender.addEventListener("change", buildGeneratorPrompt);
       if (sleeveLength) sleeveLength.addEventListener("change", buildGeneratorPrompt);
+      if (referenceInput) {
+        referenceInput.addEventListener("change", function () {
+          addClothingReferences(referenceInput.files);
+          referenceInput.value = "";
+        });
+      }
+      if (referenceTools) {
+        referenceTools.addEventListener("dragover", function (event) {
+          event.preventDefault();
+          referenceTools.classList.add("is-dragging");
+        });
+        referenceTools.addEventListener("dragleave", function () {
+          referenceTools.classList.remove("is-dragging");
+        });
+        referenceTools.addEventListener("drop", function (event) {
+          event.preventDefault();
+          referenceTools.classList.remove("is-dragging");
+          addClothingReferences(event.dataTransfer.files);
+        });
+      }
+      heroPrompt.addEventListener("paste", function (event) {
+        var files = Array.prototype.slice.call(event.clipboardData.items || [])
+          .filter(function (item) { return item.type.indexOf("image/") === 0; })
+          .map(function (item) { return item.getAsFile(); })
+          .filter(Boolean);
+        if (files.length) {
+          event.preventDefault();
+          addClothingReferences(files);
+        }
+      });
       heroPrompt.addEventListener("input", buildGeneratorPrompt);
       prompt.addEventListener("input", buildGeneratorPrompt);
       styleDirection.addEventListener("input", buildGeneratorPrompt);
