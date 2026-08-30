@@ -526,7 +526,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     `Return only a wearable clothing texture at exactly ${AI_CLOTHING_OUTPUT_WIDTH} x ${AI_CLOTHING_OUTPUT_HEIGHT} pixels.`,
     `The working image may be generated at ${AI_CLOTHING_GENERATION_SIZE}, but the final design must map cleanly back into the supplied panel layout size.`,
     "Input image 1 is Blank Template.png: this is the exact final Roblox UV canvas to build on.",
-    `Input image 2 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference: it identifies the allowed garment panels and pink #FF30F8 transparency-only zones.`,
+    `Input image 2 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference: it identifies the only allowed garment panels. Every transparent area and every pink #FF30F8 guide zone is a strict no-material area.`,
     `Clothing option: ${basePrompt.templateLabel}.`,
     `Gender styling: ${basePrompt.gender}.`,
     basePrompt.templateInstruction,
@@ -534,7 +534,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
       ? "Follow the selected sleeve reference exactly for every torso and arm panel. The reference's garment boundary is final: fill only its shirt and sleeve islands, and leave its wrist, hand, and every pink or unmarked arm area completely transparent so the Roblox rig remains visible below the cuffs."
       : "Follow the selected lower-body reference exactly and leave all non-pants areas empty.",
     "DO NOT draw outlines, gutters, panel borders, divider lines, or seam strokes in white, black, or any other contrasting color. Keep the artwork continuous to each allowed UV island edge, without artificial edge strips or boxed outlines.",
-    "Pink #FF30F8 is not a color to render. Keep every pink-marked zone fully transparent, with no fabric, material, graphics, shadows, seams, cuffs, or accessories.",
+    "Pink #FF30F8 is not a color to render. Keep every transparent or pink-marked zone fully transparent, with no fabric, material, graphics, shadows, seams, cuffs, or accessories.",
     "Do not copy any guide colors, labels, white borders, or blank-template pixels into the garment artwork.",
     "DO NOT overflow artwork across a UV island boundary. Keep the canvas outside mapped panels transparent and keep each garment panel filled only with its intended clothing artwork.",
     "Make this a catalog-ready Roblox texture, with readable panels, seam-safe edges, and a cohesive front and back.",
@@ -624,7 +624,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: [blankTemplateUpload, sleeveGuideUpload],
-    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the exact garment-panel and wrist-clearance reference. Pink #FF30F8 markings are transparency-only zones and must remain empty. For shirts, never extend fabric into the wrist or hand zones outside the selected sleeve reference. Never copy guide colors, labels, borders, or seams into the artwork. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
+    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the exact garment-panel and wrist-clearance reference.${normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "long" ? " This is Long Sleeve Reference.png and it is mandatory for this long-sleeve request." : ""} Every transparent region and every pink #FF30F8 marking is a no-material zone and must remain empty. For shirts, never extend fabric into the wrist or hand zones outside the selected sleeve reference. Never copy guide colors, labels, borders, or seams into the artwork. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
