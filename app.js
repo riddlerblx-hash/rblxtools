@@ -246,7 +246,7 @@ async function buildAIClothingCleanGuide(mask) {
     pixels[offset + 3] = 255;
   }
 
-  return getSharp()({
+  return getSharp()(pixels, {
     raw: {
       width,
       height,
