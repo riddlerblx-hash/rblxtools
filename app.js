@@ -498,9 +498,9 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     `Gender styling: ${basePrompt.gender}.`,
     basePrompt.templateInstruction,
     isTop
-      ? "Follow the selected sleeve reference exactly for every torso and arm panel."
+      ? "Follow the selected sleeve reference exactly for every torso and arm panel. The reference's garment boundary is final: fill only its shirt and sleeve islands, and leave its wrist, hand, and every pink or unmarked arm area completely transparent so the Roblox rig remains visible below the cuffs."
       : "Follow the selected lower-body reference exactly and leave all non-pants areas empty.",
-    "DO NOT draw white outlines, white gutters, white panel borders, white divider lines, white backgrounds, guide boxes, template labels, helper diagrams, mannequins, mockups, or any template artwork.",
+    "DO NOT draw outlines, gutters, panel borders, divider lines, or seam strokes in white, black, or any other contrasting color. Keep the artwork continuous to each allowed UV island edge, without artificial edge strips or boxed outlines.",
     "Pink #FF30F8 is not a color to render. Keep every pink-marked zone fully transparent, with no fabric, material, graphics, shadows, seams, cuffs, or accessories.",
     "Do not copy any guide colors, labels, white borders, or blank-template pixels into the garment artwork.",
     "DO NOT overflow artwork across a UV island boundary. Keep the canvas outside mapped panels transparent and keep each garment panel filled only with its intended clothing artwork.",
@@ -584,7 +584,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: [blankTemplateUpload, sleeveGuideUpload],
-    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the matching garment-panel reference. Pink #FF30F8 markings are transparency-only zones and must remain empty. Never copy guide colors, labels, or white borders into the artwork. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
+    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the exact garment-panel and wrist-clearance reference. Pink #FF30F8 markings are transparency-only zones and must remain empty. For shirts, never extend fabric into the wrist or hand zones outside the selected sleeve reference. Never copy guide colors, labels, borders, or seams into the artwork. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
