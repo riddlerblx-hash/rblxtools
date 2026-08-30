@@ -1280,10 +1280,11 @@
     .pro-price-original { color:#ff9a96; font-size:15px; font-weight:900; text-decoration:line-through 2px #ff5454; }
     .pro-price-discounted { color:#fff; font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1; }
     .pro-discount-badge { display:none; }
-    .pro-creator-offer { display:flex; align-items:center; justify-content:flex-end; gap:5px; margin-top:7px; }
-    .pro-creator-label { color:#e8cc86; font-size:8px; font-weight:900; letter-spacing:.05em; text-transform:uppercase; white-space:nowrap; }
-    .pro-creator-offer-code { width:91px; min-width:0; height:27px; border:1px solid rgba(255,224,145,.56); border-right:0; border-radius:7px 0 0 7px; padding:0 7px; color:#fff4d5; background:rgba(43,30,10,.5); font-size:8px; font-weight:900; letter-spacing:.06em; outline:none; }
-    .pro-creator-copy { display:grid; width:29px; height:27px; place-items:center; border:1px solid rgba(255,229,158,.68); border-radius:0 7px 7px 0; color:#2b1900; background:linear-gradient(135deg,#fff0b0,#e9b43f); cursor:pointer; font-size:12px; }
+    .pro-creator-offer { display:grid; justify-items:center; gap:4px; margin-top:10px; padding:2px 0 6px; }
+    .pro-creator-label { color:#e8cc86; font-size:8px; font-weight:850; letter-spacing:.04em; white-space:nowrap; }
+    .pro-creator-code-row { display:flex; align-items:center; }
+    .pro-creator-offer-code { width:84px; min-width:0; height:26px; border:1px solid rgba(255,224,145,.56); border-right:0; border-radius:7px 0 0 7px; padding:0 7px; color:#fff4d5; background:rgba(43,30,10,.5); font-size:8px; font-weight:900; letter-spacing:.06em; outline:none; }
+    .pro-creator-copy { display:grid; width:26px; height:26px; place-items:center; border:1px solid rgba(255,229,158,.68); border-radius:0 7px 7px 0; color:#2b1900; background:linear-gradient(135deg,#fff0b0,#e9b43f); cursor:pointer; font-size:11px; }
     .pro-creator-copy:active { transform:translateY(1px); }
     .pill-row:empty { display: none; }
     .plan-title { margin-top: 7px; font-size: clamp(28px, 2.55vw, 38px); line-height: .95; }
@@ -1570,9 +1571,8 @@
                 <div class="price-save" data-membership-save="pro"></div>
               </div>
               <div class="pro-creator-offer">
-                <span class="pro-creator-label">Discount code</span>
-                <input class="pro-creator-offer-code" id="proCreatorOfferCode" type="text" value="PROCREATOR" readonly aria-label="Pro promo code" />
-                <button class="pro-creator-copy" id="proCreatorCopyButton" type="button" title="Copy promo code" aria-label="Copy promo code">📋</button>
+                <span class="pro-creator-label">(Discount code)</span>
+                <div class="pro-creator-code-row"><input class="pro-creator-offer-code" id="proCreatorOfferCode" type="text" value="PROCREATOR" readonly aria-label="Pro promo code" /><button class="pro-creator-copy" id="proCreatorCopyButton" type="button" title="Copy promo code" aria-label="Copy promo code">📋</button></div>
               </div>
               </div>
             </div>
