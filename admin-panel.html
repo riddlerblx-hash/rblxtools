@@ -1021,13 +1021,13 @@
         <div class="admin-card-head">
           <div>
             <h2 class="admin-card-title">Taster Package Plus Giveaway</h2>
-            <p class="admin-card-copy">Only paid Taster Package purchases appear here. Choose the winner, then use Complimentary Grants to award Plus.</p>
+            <p class="admin-card-copy">Only paid $1 Taster Package purchases for this offer appear here. Choose five winners, then use Complimentary Grants to award Plus.</p>
           </div>
           <span class="admin-pill live">Paid Entries</span>
         </div>
         <div class="admin-triple">
           <div class="admin-member-box"><div class="admin-member-key">Giveaway Entries</div><div class="admin-member-value" id="tasterGiveawayEntryCount">-</div></div>
-          <div class="admin-member-box"><div class="admin-member-key">Pending Checkouts</div><div class="admin-member-value" id="tasterGiveawayPendingCount">-</div></div>
+          <div class="admin-member-box"><div class="admin-member-key">Plus Winners</div><div class="admin-member-value" id="tasterGiveawayWinnerCount">5</div></div>
           <div class="admin-member-box"><div class="admin-member-key">Offer Ends</div><div class="admin-member-value" id="tasterGiveawayEndsAt">-</div></div>
         </div>
         <div class="admin-buttons"><button class="admin-btn blue" id="refreshTasterGiveawayButton" type="button">Refresh Entrants</button></div>
@@ -1500,7 +1500,7 @@
           var payload = await fetchJson(API_BASE + "/admin/taster-package-giveaway", { headers: {} });
           var stats = payload.stats || {};
           document.getElementById("tasterGiveawayEntryCount").textContent = String(stats.giveawayEntries || 0);
-          document.getElementById("tasterGiveawayPendingCount").textContent = String(stats.pendingCheckouts || 0);
+          document.getElementById("tasterGiveawayWinnerCount").textContent = String(stats.giveawayWinners || 5);
           document.getElementById("tasterGiveawayEndsAt").textContent = payload.offer && payload.offer.endsAt ? new Date(payload.offer.endsAt).toLocaleString() : "-";
           var entries = Array.isArray(payload.entries) ? payload.entries : [];
           list.innerHTML = "";
