@@ -298,6 +298,82 @@ async function buildAIClothingCleanGuide({ referenceTemplateBuffer, mask }) {
     .toBuffer();
 }
 
+function removeAIClothingWhiteArtifacts(pixels, mask, preserveWhite) {
+  if (preserveWhite) return pixels;
+  const width = AI_CLOTHING_OUTPUT_WIDTH;
+  const height = AI_CLOTHING_OUTPUT_HEIGHT;
+  const total = width * height;
+  const white = new Uint8Array(total);
+  const repair = new Uint8Array(total);
+  const visited = new Uint8Array(total);
+  const neighbours = (pixel, visit) => {
+    const x = pixel % width;
+    if (x > 0) visit(pixel - 1);
+    if (x < width - 1) visit(pixel + 1);
+    if (pixel >= width) visit(pixel - width);
+    if (pixel < total - width) visit(pixel + width);
+  };
+
+  for (let pixel = 0; pixel < total; pixel += 1) {
+    const offset = pixel * 4;
+    white[pixel] = mask[pixel] === 255
+      && pixels[offset + 3] > 8
+      && pixels[offset] > 238
+      && pixels[offset + 1] > 238
+      && pixels[offset + 2] > 238 ? 1 : 0;
+  }
+
+  for (let start = 0; start < total; start += 1) {
+    if (!white[start] || visited[start]) continue;
+    const component = [];
+    const queue = [start];
+    visited[start] = 1;
+    for (let cursor = 0; cursor < queue.length; cursor += 1) {
+      const pixel = queue[cursor];
+      component.push(pixel);
+      neighbours(pixel, (next) => {
+        if (!white[next] || visited[next]) return;
+        visited[next] = 1;
+        queue.push(next);
+      });
+    }
+    if (component.length >= 48) component.forEach((pixel) => { repair[pixel] = 1; });
+  }
+
+  if (!repair.some(Boolean)) return pixels;
+  const source = new Int32Array(total);
+  source.fill(-1);
+  const queue = new Int32Array(total);
+  let head = 0;
+  let tail = 0;
+  let fallback = -1;
+  for (let pixel = 0; pixel < total; pixel += 1) {
+    if (mask[pixel] !== 255 || white[pixel]) continue;
+    source[pixel] = pixel;
+    queue[tail++] = pixel;
+    if (fallback < 0) fallback = pixel;
+  }
+  while (head < tail) {
+    const pixel = queue[head++];
+    neighbours(pixel, (next) => {
+      if (mask[next] !== 255 || source[next] >= 0) return;
+      source[next] = source[pixel];
+      queue[tail++] = next;
+    });
+  }
+  for (let pixel = 0; pixel < total; pixel += 1) {
+    if (!repair[pixel]) continue;
+    const nearest = source[pixel] >= 0 ? source[pixel] : fallback;
+    if (nearest < 0) continue;
+    const target = pixel * 4;
+    const origin = nearest * 4;
+    pixels[target] = pixels[origin];
+    pixels[target + 1] = pixels[origin + 1];
+    pixels[target + 2] = pixels[origin + 2];
+  }
+  return pixels;
+}
+
 function assertAIThumbnailConfigured() {
   if (!OPENAI_API_KEY) {
     const error = new Error("AI thumbnail generation is not configured yet.");
@@ -629,7 +705,7 @@ function buildAIClothingGenerationPlan(basePrompt) {
   ];
 }
 
-async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, references = [] }) {
+async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength, references = [], preserveWhite = false }) {
   assertAIClothingConfigured();
   const promptText = cleanAIClothingText(enhancedPrompt, 6000);
   if (!promptText) {
@@ -706,10 +782,11 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     })
     .raw()
     .toBuffer();
+  const finalPixels = removeAIClothingWhiteArtifacts(generatedPixels, referenceMask, preserveWhite);
   for (let pixel = 0; pixel < referenceMask.length; pixel += 1) {
-    generatedPixels[pixel * 4 + 3] = referenceMask[pixel];
+    finalPixels[pixel * 4 + 3] = referenceMask[pixel];
   }
-  const finalArtBuffer = await sharp(generatedPixels, {
+  const finalArtBuffer = await sharp(finalPixels, {
     raw: {
       width: AI_CLOTHING_OUTPUT_WIDTH,
       height: AI_CLOTHING_OUTPUT_HEIGHT,
@@ -6017,6 +6094,7 @@ app.post("/ai/generate-clothing", async (req, res) => {
 
     const built = buildAIClothingPrompt(promptPayload);
     const generationPlan = buildAIClothingGenerationPlan(built);
+    const preserveWhite = /\bwhite\b/i.test(`${built.userPrompt || ""} ${built.palette || ""}`);
     const timestamp = Date.now();
     const outputs = [];
     for (let index = 0; index < generationPlan.length; index += 1) {
@@ -6028,6 +6106,7 @@ app.post("/ai/generate-clothing", async (req, res) => {
         sleeveLength: built.sleeveLength,
         pantsLength: built.pantsLength,
         references,
+        preserveWhite,
       });
       outputs.push({
         key: variant.key,
