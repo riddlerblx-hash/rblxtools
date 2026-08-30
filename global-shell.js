@@ -1609,6 +1609,7 @@
         '<div class="rblx-mobile-dock" id="rblxMobileDock">' +
           '<button class="rblx-mobile-dock-btn" type="button" id="rblxMobileNavButton">Menu</button>' +
           '<a class="rblx-mobile-dock-link" href="./index">Home</a>' +
+          '<a class="rblx-mobile-dock-link is-store" href="./ai-tokens">Tokens</a>' +
           '<button class="rblx-mobile-dock-btn" type="button" id="rblxMobileChatButton">Chat</button>' +
           buildMobileAccountMarkup() +
         '</div>' +
