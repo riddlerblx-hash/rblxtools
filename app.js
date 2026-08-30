@@ -254,6 +254,10 @@ function normalizeAIClothingGarmentType(value) {
   return "shirt";
 }
 
+function normalizeAIClothingGender(value) {
+  return String(value || "").trim().toLowerCase() === "female" ? "female" : "male";
+}
+
 function getAIBaseTemplateType(garmentType) {
   return normalizeAIClothingGarmentType(garmentType) === "pants" ? "pants" : "shirt";
 }
@@ -1106,8 +1110,16 @@ async function enforceAIClothingPantsCropGuide(panelBuffer, referenceTemplateBuf
 }
 
 function buildAIClothingPrompt(input = {}) {
-  const templateKey = String(input.templateKey || "").trim().toLowerCase();
-  const template = AI_CLOTHING_TEMPLATE_CONFIG[templateKey] || AI_CLOTHING_TEMPLATE_CONFIG.hoodie;
+  const garmentType = normalizeAIClothingGarmentType(input.garmentType || input.templateKey);
+  const gender = normalizeAIClothingGender(input.gender);
+  const optionLabel = {
+    shirt: "Shirts",
+    pants: "Pants",
+    full_outfit: "Full Outfit",
+    matching_outfits: "Matching Outfit",
+  }[garmentType];
+  const includesTop = garmentType !== "pants";
+  const includesPants = garmentType !== "shirt";
   const style = cleanAIClothingText(input.styleDirection, 160);
   const palette = cleanAIClothingText(input.colorPalette, 200);
   const vibe = cleanAIClothingText(input.audience, 200);
@@ -1117,17 +1129,20 @@ function buildAIClothingPrompt(input = {}) {
   const styleName = cleanAIClothingText(input.styleName, 60);
   const requestedSleeveLength = String(input.resolvedSleeveLength || input.sleeveLength || "").trim().toLowerCase();
   const requestedPantsLength = String(input.resolvedPantsLength || input.pantsLength || "").trim();
-  const resolvedSleeveLength = template.type === "shirt"
-    ? (["long", "short", "sleeveless"].includes(requestedSleeveLength) ? requestedSleeveLength : template.sleeve)
-    : "";
-  const resolvedPantsLength = template.type === "pants"
-    ? (["30", "80", "100"].includes(requestedPantsLength) ? requestedPantsLength : template.length)
-    : "";
+  const resolvedSleeveLength = includesTop && ["long", "short", "sleeveless"].includes(requestedSleeveLength)
+    ? requestedSleeveLength
+    : "long";
+  const resolvedPantsLength = includesPants && ["30", "80", "100"].includes(requestedPantsLength)
+    ? requestedPantsLength
+    : "100";
   return {
-    garmentType: template.type,
-    templateKey: AI_CLOTHING_TEMPLATE_CONFIG[templateKey] ? templateKey : "hoodie",
-    templateLabel: template.label,
-    templateInstruction: template.instruction,
+    garmentType,
+    gender,
+    templateKey: garmentType,
+    templateLabel: optionLabel,
+    templateInstruction: includesTop && includesPants
+      ? "Create coordinated shirt and pants textures that read as one complete outfit."
+      : (includesTop ? "Create a wearable shirt texture with a cohesive torso and sleeves." : "Create a wearable pants texture with cohesive lower-body panels."),
     sleeveLength: resolvedSleeveLength,
     pantsLength: resolvedPantsLength,
     style,
@@ -1139,9 +1154,11 @@ function buildAIClothingPrompt(input = {}) {
     styleName,
     promptPreview: [
       "Create a wearable Roblox clothing texture for the supplied Roblox character UV template.",
-      `Garment template: ${template.label}.`,
-      template.instruction,
-      `UV reference: ${template.type === "shirt" ? `${resolvedSleeveLength}-sleeve top` : `${resolvedPantsLength}% lower-body`} guide.`,
+      `Clothing option: ${optionLabel}.`,
+      `Gender styling: ${gender}.`,
+      includesTop && includesPants
+        ? "Generate a coordinated shirt texture and pants texture for one complete Roblox outfit."
+        : (includesTop ? "Generate one wearable Roblox shirt texture." : "Generate one wearable Roblox pants texture."),
       "Keep all no-garment guide zones transparent.",
       `Design brief: ${userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
       style ? `Art direction: ${style}.` : "",
@@ -1162,7 +1179,8 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
     `The working image may be generated at ${AI_CLOTHING_GENERATION_SIZE}, but the final design must map cleanly back into the supplied panel layout size.`,
     "Input image 1 is Blank Template.png: this is the exact final Roblox UV canvas to build on.",
     `Input image 2 is the selected ${isTop ? `${basePrompt.sleeveLength}-sleeve` : `${basePrompt.pantsLength}% lower-body`} reference: it identifies the allowed garment panels and no-garment zones.`,
-    `Garment template: ${basePrompt.templateLabel}.`,
+    `Clothing option: ${basePrompt.templateLabel}.`,
+    `Gender styling: ${basePrompt.gender}.`,
     basePrompt.templateInstruction,
     isTop
       ? "Torso panels are only: top (230,7,130,66), right (165,74,65,128), front (230,74,130,129), left (360,74,66,128), back (426,74,129,128), and bottom (230,203,130,66). Arm panels are only the twelve lower islands: arm 1 around x 19-281 and arm 2 around x 307-570, y 289-550. Do not confuse the lower arm islands with torso front or torso back."
@@ -1182,7 +1200,16 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
 }
 
 function buildAIClothingGenerationPlan(basePrompt) {
-  return [{ key: basePrompt.templateKey, label: basePrompt.templateLabel, templateType: basePrompt.garmentType }];
+  if (basePrompt.garmentType === "shirt") {
+    return [{ key: "shirt", label: "Shirt", templateType: "shirt" }];
+  }
+  if (basePrompt.garmentType === "pants") {
+    return [{ key: "pants", label: "Pants", templateType: "pants" }];
+  }
+  return [
+    { key: "shirt", label: "Matching Shirt", templateType: "shirt" },
+    { key: "pants", label: "Matching Pants", templateType: "pants" },
+  ];
 }
 
 async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLength, pantsLength }) {
@@ -6586,6 +6613,7 @@ app.post("/ai/generate-clothing", async (req, res) => {
     const promptPayload = {
       templateKey: req.body?.templateKey,
       garmentType: req.body?.garmentType,
+      gender: req.body?.gender,
       sleeveLength: req.body?.sleeveLength,
       resolvedSleeveLength: req.body?.resolvedSleeveLength,
       pantsLength: req.body?.pantsLength,

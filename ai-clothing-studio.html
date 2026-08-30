@@ -1562,38 +1562,20 @@
             </div>
 
           <div class="ai-control-group">
-            <label class="ai-chip-heading" for="aiTemplateKey">Choose A Garment Template:</label>
+            <label class="ai-chip-heading" for="aiTemplateKey">Clothing Option:</label>
             <select class="ai-select" id="aiTemplateKey" style="margin-top:10px;">
-              <option value="hoodie">Tops: Hoodie</option><option value="tshirt">Tops: T-shirt</option><option value="button_down">Tops: Button-down Shirt</option><option value="blouse">Tops: Blouse</option><option value="cardigan">Tops: Cardigan</option><option value="polo">Tops: Polo Shirt</option><option value="crop_top">Tops: Crop Top</option><option value="henley">Tops: Henley Top</option><option value="camisole">Tops: Camisole</option><option value="sweater">Tops: Sweater</option><option value="pullover_sweatshirt">Tops: Pullover Sweatshirt</option><option value="vest">Tops: Vest</option>
-              <option value="jeans">Bottoms: Jeans</option><option value="shorts">Bottoms: Shorts</option><option value="pants">Bottoms: Pants / Trousers</option><option value="skirt">Bottoms: Skirt</option><option value="leggings">Bottoms: Leggings</option><option value="capri_pants">Bottoms: Capri Pants</option>
-              <option value="jacket">Outerwear: Jacket</option><option value="coat">Outerwear: Coat</option><option value="blazer">Outerwear: Blazer</option><option value="parka">Outerwear: Parka</option><option value="duster">Outerwear: Duster</option>
-              <option value="bodysuit">Other: Bodysuit</option><option value="corset">Other: Corset</option><option value="dashiki">Other: Dashiki</option><option value="halter_top">Other: Halter Top</option><option value="peplum_top">Other: Peplum Top</option><option value="peter_pan_collar">Other: Peter Pan Collar Top</option><option value="turtleneck">Other: Turtleneck</option>
-              <option value="pullover_hoodie">Hoodie Variation: Pullover</option><option value="zip_up_hoodie">Hoodie Variation: Zip-up</option><option value="half_zip_hoodie">Hoodie Variation: Half-zip</option><option value="fleece_hoodie">Hoodie Variation: Fleece</option><option value="french_terry_hoodie">Hoodie Variation: French Terry</option><option value="oversized_hoodie">Hoodie Variation: Oversized</option><option value="sleeveless_hoodie">Hoodie Variation: Sleeveless</option><option value="cropped_hoodie">Hoodie Variation: Cropped</option>
+              <option value="shirt">Shirts</option>
+              <option value="pants">Pants</option>
+              <option value="full_outfit">Full Outfit</option>
+              <option value="matching_outfit">Matching Outfit</option>
             </select>
           </div>
 
-          <div class="ai-control-group" id="aiSleeveLengthGroup">
-            <label class="ai-chip-heading" for="aiSleeveLength">Sleeve Length:</label>
-            <select class="ai-select" id="aiSleeveLength" style="margin-top:10px;">
-              <option value="long">Long sleeves</option>
-              <option value="short">Short sleeves</option>
-              <option value="sleeveless">Sleeveless</option>
-            </select>
-          </div>
-
-          <div class="ai-control-group is-hidden" id="aiPantsLengthGroup">
-            <label class="ai-chip-heading" for="aiPantsLength">Pants Length:</label>
-            <select class="ai-select" id="aiPantsLength" style="margin-top:10px;">
-              <option value="100">Full length</option>
-              <option value="80">Capri / cropped</option>
-              <option value="30">Shorts / cropped</option>
-            </select>
-          </div>
-
-          <div class="ai-control-group is-hidden" id="aiFootwearGroup">
-            <label class="ai-chip-heading" for="aiFootwear">Shoes / Socks:</label>
-            <select class="ai-select" id="aiFootwear" style="margin-top:10px;">
-              <option value="">None</option><option value="low socks">Low socks</option><option value="crew socks">Crew socks</option><option value="thigh-high socks">Thigh-high socks</option><option value="sneakers">Sneakers</option><option value="boots">Boots</option><option value="sandals">Sandals</option><option value="sneakers with socks">Sneakers with socks</option><option value="boots with socks">Boots with socks</option>
+          <div class="ai-control-group">
+            <label class="ai-chip-heading" for="aiGender">Gender:</label>
+            <select class="ai-select" id="aiGender" style="margin-top:10px;">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
             </select>
           </div>
 
@@ -1615,8 +1597,6 @@
         <p class="ai-note">The top bar is still the user's main prompt. Everything below just helps tighten how that prompt gets translated before it is eventually sent to the AI.</p>
 
         <div class="ai-form-grid">
-          <input id="aiGarmentType" type="hidden" value="shirt" />
-
           <div class="ai-field">
             <label class="ai-label" for="aiStyleDirection">Style Direction</label>
             <input class="ai-input" id="aiStyleDirection" type="text" placeholder="Ex: cyberpunk streetwear, premium fantasy armor, soft anime boutique, dark Y2K" />
@@ -1739,10 +1719,10 @@
       var TOKEN_KEY = "rblxtools_auth_token";
       var TOKEN_CONFIRM_SUPPRESS_KEY = "rblxtools_ai_skip_token_confirm";
       var TEMPLATE_CONFIG = {
-        hoodie: { label: "Hoodie", type: "shirt", sleeve: "long" }, tshirt: { label: "T-shirt", type: "shirt", sleeve: "short" }, button_down: { label: "Button-down Shirt", type: "shirt", sleeve: "long" }, blouse: { label: "Blouse", type: "shirt", sleeve: "short" }, cardigan: { label: "Cardigan", type: "shirt", sleeve: "long" }, polo: { label: "Polo Shirt", type: "shirt", sleeve: "short" }, crop_top: { label: "Crop Top", type: "shirt", sleeve: "short" }, henley: { label: "Henley Top", type: "shirt", sleeve: "long" }, camisole: { label: "Camisole", type: "shirt", sleeve: "sleeveless" }, sweater: { label: "Sweater", type: "shirt", sleeve: "long" }, pullover_sweatshirt: { label: "Pullover Sweatshirt", type: "shirt", sleeve: "long" }, vest: { label: "Vest", type: "shirt", sleeve: "sleeveless" },
-        jacket: { label: "Jacket", type: "shirt", sleeve: "long" }, coat: { label: "Coat", type: "shirt", sleeve: "long" }, blazer: { label: "Blazer", type: "shirt", sleeve: "long" }, parka: { label: "Parka", type: "shirt", sleeve: "long" }, duster: { label: "Duster", type: "shirt", sleeve: "long" }, bodysuit: { label: "Bodysuit", type: "shirt", sleeve: "short" }, corset: { label: "Corset", type: "shirt", sleeve: "sleeveless" }, dashiki: { label: "Dashiki", type: "shirt", sleeve: "short" }, halter_top: { label: "Halter Top", type: "shirt", sleeve: "sleeveless" }, peplum_top: { label: "Peplum Top", type: "shirt", sleeve: "short" }, peter_pan_collar: { label: "Peter Pan Collar Top", type: "shirt", sleeve: "short" }, turtleneck: { label: "Turtleneck", type: "shirt", sleeve: "long" },
-        pullover_hoodie: { label: "Pullover Hoodie", type: "shirt", sleeve: "long" }, zip_up_hoodie: { label: "Zip-up Hoodie", type: "shirt", sleeve: "long" }, half_zip_hoodie: { label: "Half-zip Hoodie", type: "shirt", sleeve: "long" }, fleece_hoodie: { label: "Fleece Hoodie", type: "shirt", sleeve: "long" }, french_terry_hoodie: { label: "French Terry Hoodie", type: "shirt", sleeve: "long" }, oversized_hoodie: { label: "Oversized Hoodie", type: "shirt", sleeve: "long" }, sleeveless_hoodie: { label: "Sleeveless Hoodie", type: "shirt", sleeve: "sleeveless" }, cropped_hoodie: { label: "Cropped Hoodie", type: "shirt", sleeve: "long" },
-        jeans: { label: "Jeans", type: "pants", length: "100" }, shorts: { label: "Shorts", type: "pants", length: "30" }, pants: { label: "Pants / Trousers", type: "pants", length: "100" }, skirt: { label: "Skirt", type: "pants", length: "30" }, leggings: { label: "Leggings", type: "pants", length: "100" }, capri_pants: { label: "Capri Pants", type: "pants", length: "80" }
+        shirt: { label: "Shirts", type: "shirt", sleeve: "long", length: "100" },
+        pants: { label: "Pants", type: "pants", sleeve: "long", length: "100" },
+        full_outfit: { label: "Full Outfit", type: "full_outfit", sleeve: "long", length: "100" },
+        matching_outfit: { label: "Matching Outfit", type: "matching_outfits", sleeve: "long", length: "100" }
       };
       var gate = document.getElementById("aiAccessGate");
       var gateStatus = document.getElementById("aiGateStatus");
@@ -1759,13 +1739,7 @@
       var builtPrompt = document.getElementById("aiBuiltPrompt");
       var negativePrompt = document.getElementById("aiNegativePrompt");
       var templateKey = document.getElementById("aiTemplateKey");
-      var sleeveLength = document.getElementById("aiSleeveLength");
-      var pantsLength = document.getElementById("aiPantsLength");
-      var sleeveLengthGroup = document.getElementById("aiSleeveLengthGroup");
-      var pantsLengthGroup = document.getElementById("aiPantsLengthGroup");
-      var footwearGroup = document.getElementById("aiFootwearGroup");
-      var footwear = document.getElementById("aiFootwear");
-      var garmentType = document.getElementById("aiGarmentType");
+      var gender = document.getElementById("aiGender");
       var styleDirection = document.getElementById("aiStyleDirection");
       var colorPalette = document.getElementById("aiColorPalette");
       var audience = document.getElementById("aiAudience");
@@ -2558,26 +2532,13 @@
       }
 
       function getSelectedTemplate() {
-        return TEMPLATE_CONFIG[templateKey && templateKey.value] || TEMPLATE_CONFIG.hoodie;
+        return TEMPLATE_CONFIG[templateKey && templateKey.value] || TEMPLATE_CONFIG.shirt;
       }
 
       function setTemplate(value) {
-        var normalized = TEMPLATE_CONFIG[value] ? value : "hoodie";
+        var normalized = TEMPLATE_CONFIG[value] ? value : "shirt";
         if (templateKey) templateKey.value = normalized;
-        if (garmentType) garmentType.value = TEMPLATE_CONFIG[normalized].type;
-        updateTemplateDependentControls();
         updateLiveTokenCost();
-      }
-
-      function updateTemplateDependentControls() {
-        var selectedTemplate = getSelectedTemplate();
-        var isPants = selectedTemplate.type === "pants";
-        if (sleeveLengthGroup) sleeveLengthGroup.classList.toggle("is-hidden", isPants);
-        if (pantsLengthGroup) pantsLengthGroup.classList.toggle("is-hidden", !isPants);
-        if (footwearGroup) footwearGroup.classList.toggle("is-hidden", !isPants);
-        if (!isPants && footwear) footwear.value = "";
-        if (!isPants && sleeveLength && selectedTemplate.sleeve) sleeveLength.value = selectedTemplate.sleeve;
-        if (isPants && pantsLength && selectedTemplate.length) pantsLength.value = selectedTemplate.length;
       }
 
       function getGenerationCost() {
@@ -2617,25 +2578,27 @@
         syncVisiblePrompt();
 
         var selectedTemplate = getSelectedTemplate();
+        var selectedGender = gender ? String(gender.value || "male").trim().toLowerCase() : "male";
         var style = activeStyle || String(styleDirection.value || "").trim();
         var palette = String(colorPalette.value || "").trim();
         var vibe = String(audience.value || "").trim();
         var userPrompt = String(prompt.value || "").trim();
         var avoidPrompt = String(negativePrompt.value || "").trim();
-        var footwearValue = footwear ? String(footwear.value || "").trim() : "";
-        var selectedSleeveLength = sleeveLength ? String(sleeveLength.value || selectedTemplate.sleeve || "long").trim() : selectedTemplate.sleeve;
-        var selectedPantsLength = pantsLength ? String(pantsLength.value || selectedTemplate.length || "100").trim() : selectedTemplate.length;
+        var makesTop = selectedTemplate.type !== "pants";
+        var makesPants = selectedTemplate.type !== "shirt";
 
         var lines = [
           "Create a clean wearable Roblox clothing texture for the supplied Roblox character UV template.",
           "Return only a wearable clothing texture at exactly 585 x 559 pixels.",
           "The working image may be generated at 832 x 800, but the final design must map cleanly back into the supplied panel layout size.",
           "Input image 1 is Blank Template.png: build the final Roblox texture directly on that canvas.",
-          "Input image 2 is the selected sleeve or lower-body reference: use it only to identify garment panels and no-garment zones.",
-          "Garment template: " + selectedTemplate.label + ".",
-          selectedTemplate.type === "shirt"
-            ? "Use the " + selectedSleeveLength + " sleeve Roblox top guide. Torso panels are only the top six islands; the twelve lower islands are arm faces, never torso front or back."
-            : "Use the " + selectedPantsLength + "% lower-body Roblox guide. Every mapped panel in the bottom section belongs to the two legs: front, back, left, right, top, and bottom leg faces. Keep the upper torso section blank for this lower-body template.",
+          "Clothing option: " + selectedTemplate.label + ".",
+          "Gender styling: " + selectedGender + ".",
+          makesTop && makesPants
+            ? "Create a coordinated top texture and a matching pants texture as one complete Roblox outfit."
+            : (makesTop
+              ? "Create a wearable Roblox shirt texture with clean torso and arm panels."
+              : "Create a wearable Roblox pants texture with clean lower-body panels."),
           "Keep every no-garment guide zone transparent, with no fabric, material, trim, seams, shadows, patterns, or graphics.",
           "DO NOT draw white outlines, white gutters, white panel borders, white divider lines, white backgrounds, guide boxes, template labels, helper diagrams, mannequins, or mockups.",
           "DO NOT put artwork over the neck opening or unused transparent guide space. Do not cross a UV island boundary.",
@@ -2651,9 +2614,6 @@
         }
         if (vibe) {
           lines.push("Target vibe: " + vibe + ".");
-        }
-        if (selectedTemplate.type === "pants" && footwearValue) {
-          lines.push("Shoes / socks: " + footwearValue + ". Apply that only to the lower-leg and ankle regions of the lower-body map.");
         }
         if (avoidPrompt) {
           lines.push("Preferred exclusions: " + avoidPrompt + ".");
@@ -3040,7 +3000,7 @@
 
       function buildPreviewPayloadFromResponse(payload) {
         var outputs = Array.isArray(payload && payload.outputs) ? payload.outputs : [];
-        var mode = payload && payload.garmentType ? payload.garmentType : garmentType.value;
+        var mode = payload && payload.garmentType ? payload.garmentType : getSelectedTemplate().type;
         if (!outputs.length && payload && payload.imageDataUrl) {
           outputs = [{
             imageDataUrl: payload.imageDataUrl,
@@ -3051,19 +3011,23 @@
         }
 
         var primaryOutput = outputs[0] || null;
+        var shirtOutput = outputs.find(function (output) { return output.templateType !== "pants"; }) || null;
+        var pantsOutput = outputs.find(function (output) { return output.templateType === "pants"; }) || null;
         return {
           mode: mode,
           primary: primaryOutput
             ? {
-                shirtUrl: primaryOutput.templateType === "pants" ? "" : (primaryOutput.imageDataUrl || ""),
-                pantsUrl: primaryOutput.templateType === "pants" ? (primaryOutput.imageDataUrl || "") : "",
+                shirtUrl: shirtOutput ? (shirtOutput.imageDataUrl || "") : "",
+                pantsUrl: pantsOutput ? (pantsOutput.imageDataUrl || "") : "",
               }
             : null,
           previews: [],
-          downloads: primaryOutput ? [{
-            url: primaryOutput.imageDataUrl || "",
-            fileName: primaryOutput.downloadFileName || "rblxtools-ai-clothing.png"
-          }] : []
+          downloads: outputs.map(function (output) {
+            return {
+              url: output.imageDataUrl || "",
+              fileName: output.downloadFileName || "rblxtools-ai-clothing.png"
+            };
+          })
         };
       }
 
@@ -3071,17 +3035,18 @@
         var styleValue = activeStyle || String(styleDirection.value || "").trim();
         var selectedTemplate = getSelectedTemplate();
         return {
-          templateKey: templateKey ? templateKey.value : "hoodie",
           garmentType: selectedTemplate.type,
-          sleeveLength: sleeveLength ? sleeveLength.value : (selectedTemplate.sleeve || "long"),
-          resolvedSleeveLength: sleeveLength ? sleeveLength.value : (selectedTemplate.sleeve || "long"),
-          pantsLength: pantsLength ? pantsLength.value : (selectedTemplate.length || "100"),
-          resolvedPantsLength: pantsLength ? pantsLength.value : (selectedTemplate.length || "100"),
+          templateKey: templateKey ? templateKey.value : "shirt",
+          gender: gender ? gender.value : "male",
+          sleeveLength: "long",
+          resolvedSleeveLength: "long",
+          pantsLength: "100",
+          resolvedPantsLength: "100",
           generationCost: getGenerationCost(),
           styleDirection: styleValue,
           colorPalette: colorPalette.value,
           audience: audience.value,
-          footwear: selectedTemplate.type === "pants" && footwear ? footwear.value : "",
+          footwear: "",
           userPrompt: prompt.value,
           negativePrompt: negativePrompt.value,
           styleName: styleValue
@@ -3192,9 +3157,9 @@
         styleDirection.value = "";
         colorPalette.value = "";
         audience.value = "";
-        if (footwear) footwear.value = "";
         setActiveStyle("");
-        setTemplate("hoodie");
+        setTemplate("shirt");
+        if (gender) gender.value = "male";
         status.textContent = "Prompt form reset. Users can stay simple at the top bar, and power users can open Advanced Settings whenever they want more control.";
         resultImage.removeAttribute("src");
         latestPreviewPayload = null;
@@ -3226,11 +3191,7 @@
           buildGeneratorPrompt();
         });
       }
-      if (sleeveLength) sleeveLength.addEventListener("change", buildGeneratorPrompt);
-      if (pantsLength) pantsLength.addEventListener("change", buildGeneratorPrompt);
-      if (footwear) {
-        footwear.addEventListener("change", buildGeneratorPrompt);
-      }
+      if (gender) gender.addEventListener("change", buildGeneratorPrompt);
       heroPrompt.addEventListener("input", buildGeneratorPrompt);
       prompt.addEventListener("input", buildGeneratorPrompt);
       styleDirection.addEventListener("input", buildGeneratorPrompt);
@@ -3300,8 +3261,7 @@
         }
       });
 
-      setTemplate("hoodie");
-      updateTemplateDependentControls();
+      setTemplate("shirt");
       updateLiveTokenCost();
       buildGeneratorPrompt();
       resetRatingState();
