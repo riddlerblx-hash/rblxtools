@@ -785,19 +785,12 @@ function extendAIClothingGutterBleed(rgbaBuffer, width, height, gutterMaskBuffer
   return source;
 }
 
-async function rebuildAIClothingPanelsOnBlankTemplate(generatedBuffer, blankTemplateBuffer, templateType) {
+async function rebuildAIClothingPanelsOnBlankTemplate(generatedBuffer, referenceTemplateBuffer, templateType) {
   const sharp = getSharp();
   const normalizedTemplateType = templateType === "pants" ? "pants" : "shirt";
   const panels = AI_CLOTHING_PANEL_PARTS[normalizedTemplateType] || AI_CLOTHING_PANEL_PARTS.shirt;
-  const baseTemplate = await sharp(blankTemplateBuffer)
-    .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
-      fit: "fill",
-      kernel: "nearest",
-    })
-    .ensureAlpha()
-    .png()
-    .toBuffer();
-  const baseTemplateRaw = await sharp(baseTemplate)
+  const alignedReferenceBuffer = await alignAIClothingReferenceToOutput(referenceTemplateBuffer);
+  const referenceTemplateRaw = await sharp(alignedReferenceBuffer)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -828,9 +821,13 @@ async function rebuildAIClothingPanelsOnBlankTemplate(generatedBuffer, blankTemp
     const panelMaskRaw = Buffer.alloc(panel.w * panel.h * 4, 0);
     for (let y = 0; y < panel.h; y += 1) {
       for (let x = 0; x < panel.w; x += 1) {
-        const sourceIndex = ((panel.y + y) * baseTemplateRaw.info.width + (panel.x + x)) * 4;
-        const alpha = baseTemplateRaw.data[sourceIndex + 3];
-        if (alpha > 8) continue;
+        const sourceIndex = ((panel.y + y) * referenceTemplateRaw.info.width + (panel.x + x)) * 4;
+        const red = referenceTemplateRaw.data[sourceIndex];
+        const green = referenceTemplateRaw.data[sourceIndex + 1];
+        const blue = referenceTemplateRaw.data[sourceIndex + 2];
+        const alpha = referenceTemplateRaw.data[sourceIndex + 3];
+        const isPinkTransparencyMarker = alpha > 0 && red >= 235 && green <= 105 && blue >= 225;
+        if (isPinkTransparencyMarker) continue;
         const targetIndex = (y * panel.w + x) * 4;
         panelMaskRaw[targetIndex] = 255;
         panelMaskRaw[targetIndex + 1] = 255;
@@ -880,6 +877,7 @@ async function applyAIClothingTransparentGuide(panelBuffer, referenceTemplateBuf
     sharp(alignedReferenceBuffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
   ]);
 
+  const transparentMarkers = Buffer.alloc(AI_CLOTHING_OUTPUT_WIDTH * AI_CLOTHING_OUTPUT_HEIGHT, 0);
   for (let offset = 0; offset < referenceRaw.data.length; offset += 4) {
     const pixelIndex = offset / 4;
     const x = pixelIndex % AI_CLOTHING_OUTPUT_WIDTH;
@@ -890,9 +888,29 @@ async function applyAIClothingTransparentGuide(panelBuffer, referenceTemplateBuf
     const green = referenceRaw.data[offset + 1];
     const blue = referenceRaw.data[offset + 2];
     const alpha = referenceRaw.data[offset + 3];
-    const isTransparentMarker = alpha > 0 && red >= 235 && green <= 105 && blue >= 225;
-    if (isTransparentMarker) {
-      panelRaw.data[offset + 3] = 0;
+    if (alpha > 0 && red >= 235 && green <= 105 && blue >= 225) transparentMarkers[pixelIndex] = 255;
+  }
+
+  // Expand by one pixel to remove the white fringe the image model can leave
+  // beside a pink guide boundary while preserving the intended garment panels.
+  for (let y = 0; y < AI_CLOTHING_OUTPUT_HEIGHT; y += 1) {
+    for (let x = 0; x < AI_CLOTHING_OUTPUT_WIDTH; x += 1) {
+      const pixelIndex = y * AI_CLOTHING_OUTPUT_WIDTH + x;
+      let shouldClear = transparentMarkers[pixelIndex] > 0;
+      for (let offsetY = -1; offsetY <= 1 && !shouldClear; offsetY += 1) {
+        for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+          const nextX = x + offsetX;
+          const nextY = y + offsetY;
+          if (nextX < 0 || nextY < 0 || nextX >= AI_CLOTHING_OUTPUT_WIDTH || nextY >= AI_CLOTHING_OUTPUT_HEIGHT) continue;
+          if (transparentMarkers[nextY * AI_CLOTHING_OUTPUT_WIDTH + nextX]) {
+            shouldClear = true;
+            break;
+          }
+        }
+      }
+      if (shouldClear && isInsideAIClothingPanel(templateType, x, y)) {
+        panelRaw.data[pixelIndex * 4 + 3] = 0;
+      }
     }
   }
 
@@ -1222,6 +1240,7 @@ function buildAIClothingVariantPrompt(basePrompt, variant = {}) {
       : "This is a lower-body texture. The upper torso islands are not pants. Every mapped lower island represents a face of the two Roblox legs: front, back, left, right, top, and bottom. Keep all upper torso islands empty and map the design only to the lower-leg islands.",
     "DO NOT draw white outlines, white gutters, white panel borders, white divider lines, white backgrounds, guide boxes, template labels, helper diagrams, mannequins, mockups, or any template artwork.",
     "Pink #FF30F8 is not a color to render. Keep every pink-marked zone fully transparent, with no fabric, material, graphics, shadows, seams, cuffs, or accessories.",
+    "Do not copy any guide colors, labels, white borders, or blank-template pixels into the garment artwork.",
     "DO NOT overflow artwork across a UV island boundary. Keep the canvas outside mapped panels transparent and keep each garment panel filled only with its intended clothing artwork.",
     "Make this a catalog-ready Roblox texture, with readable panels, seam-safe edges, and a cohesive front and back.",
     `Design brief: ${basePrompt.userPrompt || "Create a polished, high-detail Roblox clothing design with readable front, back, sleeve, and leg zones."}.`,
@@ -1301,7 +1320,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: [blankTemplateUpload, sleeveGuideUpload],
-    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the matching garment-panel reference. Pink #FF30F8 markings are transparency-only zones and must remain empty. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
+    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the matching garment-panel reference. Pink #FF30F8 markings are transparency-only zones and must remain empty. Never copy guide colors, labels, or white borders into the artwork. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -1324,7 +1343,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
       })
       .png()
       .toBuffer(),
-    cleanedApplyTemplateBuffer,
+    cleanedReferenceTemplateBuffer,
     normalizedTemplateType
   );
   const transparentGuideBuffer = await applyAIClothingTransparentGuide(
