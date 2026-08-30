@@ -1579,6 +1579,15 @@
             </select>
           </div>
 
+          <div class="ai-control-group" id="aiSleeveLengthGroup">
+            <label class="ai-chip-heading" for="aiSleeveLength">Sleeve Length:</label>
+            <select class="ai-select" id="aiSleeveLength" style="margin-top:10px;">
+              <option value="long">Long Sleeves</option>
+              <option value="short">Short Sleeves</option>
+              <option value="sleeveless">Sleeveless</option>
+            </select>
+          </div>
+
           <div class="ai-live-token-cost" id="aiLiveTokenCost">This generation will cost <strong>1 token</strong></div>
 
           <button class="ai-generate-btn" id="aiStartButton" type="button"><span>Generate Clothing <span aria-hidden="true">→</span></span></button>
@@ -1740,6 +1749,8 @@
       var negativePrompt = document.getElementById("aiNegativePrompt");
       var templateKey = document.getElementById("aiTemplateKey");
       var gender = document.getElementById("aiGender");
+      var sleeveLength = document.getElementById("aiSleeveLength");
+      var sleeveLengthGroup = document.getElementById("aiSleeveLengthGroup");
       var styleDirection = document.getElementById("aiStyleDirection");
       var colorPalette = document.getElementById("aiColorPalette");
       var audience = document.getElementById("aiAudience");
@@ -2538,6 +2549,9 @@
       function setTemplate(value) {
         var normalized = TEMPLATE_CONFIG[value] ? value : "shirt";
         if (templateKey) templateKey.value = normalized;
+        if (sleeveLengthGroup) {
+          sleeveLengthGroup.classList.toggle("is-hidden", TEMPLATE_CONFIG[normalized].type === "pants");
+        }
         updateLiveTokenCost();
       }
 
@@ -2579,6 +2593,7 @@
 
         var selectedTemplate = getSelectedTemplate();
         var selectedGender = gender ? String(gender.value || "male").trim().toLowerCase() : "male";
+        var selectedSleeveLength = sleeveLength ? String(sleeveLength.value || "long").trim().toLowerCase() : "long";
         var style = activeStyle || String(styleDirection.value || "").trim();
         var palette = String(colorPalette.value || "").trim();
         var vibe = String(audience.value || "").trim();
@@ -2594,6 +2609,7 @@
           "Input image 1 is Blank Template.png: build the final Roblox texture directly on that canvas.",
           "Clothing option: " + selectedTemplate.label + ".",
           "Gender styling: " + selectedGender + ".",
+          makesTop ? "Sleeve length: " + selectedSleeveLength + "." : "",
           makesTop && makesPants
             ? "Create a coordinated top texture and a matching pants texture as one complete Roblox outfit."
             : (makesTop
@@ -3038,8 +3054,8 @@
           garmentType: selectedTemplate.type,
           templateKey: templateKey ? templateKey.value : "shirt",
           gender: gender ? gender.value : "male",
-          sleeveLength: "long",
-          resolvedSleeveLength: "long",
+          sleeveLength: sleeveLength ? sleeveLength.value : "long",
+          resolvedSleeveLength: sleeveLength ? sleeveLength.value : "long",
           pantsLength: "100",
           resolvedPantsLength: "100",
           generationCost: getGenerationCost(),
@@ -3160,6 +3176,7 @@
         setActiveStyle("");
         setTemplate("shirt");
         if (gender) gender.value = "male";
+        if (sleeveLength) sleeveLength.value = "long";
         status.textContent = "Prompt form reset. Users can stay simple at the top bar, and power users can open Advanced Settings whenever they want more control.";
         resultImage.removeAttribute("src");
         latestPreviewPayload = null;
@@ -3192,6 +3209,7 @@
         });
       }
       if (gender) gender.addEventListener("change", buildGeneratorPrompt);
+      if (sleeveLength) sleeveLength.addEventListener("change", buildGeneratorPrompt);
       heroPrompt.addEventListener("input", buildGeneratorPrompt);
       prompt.addEventListener("input", buildGeneratorPrompt);
       styleDirection.addEventListener("input", buildGeneratorPrompt);
