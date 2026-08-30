@@ -231,6 +231,94 @@ async function buildAIClothingReferenceMask({ blankTemplateBuffer, referenceTemp
   return alpha;
 }
 
+function fillAIClothingUnrenderedWhiteAreas(pixels, mask) {
+  const width = AI_CLOTHING_OUTPUT_WIDTH;
+  const height = AI_CLOTHING_OUTPUT_HEIGHT;
+  const total = width * height;
+  const isNearWhite = (pixel) => {
+    const offset = pixel * 4;
+    return pixels[offset + 3] > 8
+      && pixels[offset] > 238
+      && pixels[offset + 1] > 238
+      && pixels[offset + 2] > 238;
+  };
+  const white = new Uint8Array(total);
+  const repair = new Uint8Array(total);
+  const visited = new Uint8Array(total);
+  const minimumEmptyArea = 48;
+
+  for (let pixel = 0; pixel < total; pixel += 1) {
+    white[pixel] = mask[pixel] === 255 && isNearWhite(pixel) ? 1 : 0;
+  }
+
+  const neighbours = (pixel, visit) => {
+    const x = pixel % width;
+    if (x > 0) visit(pixel - 1);
+    if (x < width - 1) visit(pixel + 1);
+    if (pixel >= width) visit(pixel - width);
+    if (pixel < total - width) visit(pixel + width);
+  };
+
+  for (let start = 0; start < total; start += 1) {
+    if (!white[start] || visited[start]) continue;
+    const component = [];
+    const queue = [start];
+    visited[start] = 1;
+    for (let cursor = 0; cursor < queue.length; cursor += 1) {
+      const pixel = queue[cursor];
+      component.push(pixel);
+      neighbours(pixel, (next) => {
+        if (!white[next] || visited[next]) return;
+        visited[next] = 1;
+        queue.push(next);
+      });
+    }
+    if (component.length >= minimumEmptyArea) {
+      component.forEach((pixel) => { repair[pixel] = 1; });
+    }
+  }
+
+  if (!repair.some(Boolean)) return pixels;
+
+  const nearestSource = new Int32Array(total);
+  nearestSource.fill(-1);
+  const queue = new Int32Array(total);
+  let head = 0;
+  let tail = 0;
+  let fallbackSource = -1;
+  for (let pixel = 0; pixel < total; pixel += 1) {
+    if (mask[pixel] !== 255 || white[pixel]) continue;
+    nearestSource[pixel] = pixel;
+    queue[tail] = pixel;
+    tail += 1;
+    if (fallbackSource < 0) fallbackSource = pixel;
+  }
+
+  while (head < tail) {
+    const pixel = queue[head];
+    head += 1;
+    neighbours(pixel, (next) => {
+      if (mask[next] !== 255 || nearestSource[next] >= 0) return;
+      nearestSource[next] = nearestSource[pixel];
+      queue[tail] = next;
+      tail += 1;
+    });
+  }
+
+  for (let pixel = 0; pixel < total; pixel += 1) {
+    if (!repair[pixel]) continue;
+    const source = nearestSource[pixel] >= 0 ? nearestSource[pixel] : fallbackSource;
+    if (source < 0) continue;
+    const targetOffset = pixel * 4;
+    const sourceOffset = source * 4;
+    pixels[targetOffset] = pixels[sourceOffset];
+    pixels[targetOffset + 1] = pixels[sourceOffset + 1];
+    pixels[targetOffset + 2] = pixels[sourceOffset + 2];
+  }
+
+  return pixels;
+}
+
 function assertAIThumbnailConfigured() {
   if (!OPENAI_API_KEY) {
     const error = new Error("AI thumbnail generation is not configured yet.");
@@ -631,7 +719,7 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
   const generation = await getOpenAIClient().images.edit({
     model: AI_CLOTHING_MODEL,
     image: [blankTemplateUpload, sleeveGuideUpload].concat(userReferenceUploads),
-    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the exact garment-panel and wrist-clearance reference.${normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "long" ? " This is Long Sleeve Reference.png and it is mandatory for this long-sleeve request." : ""}${userReferenceUploads.length ? " The remaining input images are user style references only: use their colors, motifs, materials, and overall aesthetic, but never copy their shape or layout over the Roblox UV guide." : ""} Every transparent region and every pink #FF30F8 marking is a no-material zone and must remain empty. For shirts, never extend fabric into the wrist or hand zones outside the selected sleeve reference. Never copy guide colors, labels, borders, or seams into the artwork. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
+    prompt: `${promptText} Build directly on input image 1, Blank Template.png. Use input image 2, ${path.basename(referenceTemplatePath)}, as the exact garment-panel and wrist-clearance reference.${normalizedTemplateType === "shirt" && resolvedSleeveReferenceKey === "long" ? " This is Long Sleeve Reference.png and it is mandatory for this long-sleeve request." : ""}${userReferenceUploads.length ? " The remaining input images are user style references only: use their colors, motifs, materials, and overall aesthetic, but never copy their shape or layout over the Roblox UV guide." : ""} Every allowed garment island must be fully covered edge-to-edge with the generated fabric design: never leave white, empty, or unfinished patches inside an allowed island. Every transparent region and every pink #FF30F8 marking is a no-material zone and must remain empty. For shirts, never extend fabric into the wrist or hand zones outside the selected sleeve reference. Never copy guide colors, labels, borders, or seams into the artwork. Return the completed Roblox ${normalizedTemplateType} texture on the Blank Template canvas, not a copy of the guide image.`,
     size: AI_CLOTHING_GENERATION_SIZE,
   });
 
@@ -650,21 +738,26 @@ async function generateAIClothingImage({ templateType, enhancedPrompt, sleeveLen
     blankTemplateBuffer,
     referenceTemplateBuffer,
   });
-  const finalArtBuffer = await sharp(generatedBuffer)
+  const generatedPixels = await sharp(generatedBuffer)
     .ensureAlpha()
     .resize(AI_CLOTHING_OUTPUT_WIDTH, AI_CLOTHING_OUTPUT_HEIGHT, {
       fit: "fill",
       // Avoid blending transparent source pixels into UV island edges.
       kernel: "nearest",
     })
-    .removeAlpha()
-    .joinChannel(referenceMask, {
-      raw: {
-        width: AI_CLOTHING_OUTPUT_WIDTH,
-        height: AI_CLOTHING_OUTPUT_HEIGHT,
-        channels: 1,
-      },
-    })
+    .raw()
+    .toBuffer();
+  const repairedPixels = fillAIClothingUnrenderedWhiteAreas(generatedPixels, referenceMask);
+  for (let pixel = 0; pixel < referenceMask.length; pixel += 1) {
+    repairedPixels[pixel * 4 + 3] = referenceMask[pixel];
+  }
+  const finalArtBuffer = await sharp(repairedPixels, {
+    raw: {
+      width: AI_CLOTHING_OUTPUT_WIDTH,
+      height: AI_CLOTHING_OUTPUT_HEIGHT,
+      channels: 4,
+    },
+  })
     .png()
     .toBuffer();
   return {
