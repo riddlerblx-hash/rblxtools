@@ -379,7 +379,8 @@
           '<div class="rblx-shell-membership-gate-kicker">Animations Access</div>' +
           '<h3 id="rblxShellAnimationGateTitle">Animations is available with <span class="rblx-shell-gate-plus">Plus</span> or <span class="rblx-shell-gate-pro">Pro</span>.</h3>' +
           '<p>Choose a membership to unlock the animation tool and the creator benefits that come with it.</p>' +
-          '<div class="rblx-shell-membership-gate-actions"><button class="rblx-shell-membership-gate-cancel" type="button" data-rblx-animation-gate-cancel="true">Cancel</button><a class="rblx-shell-membership-gate-button" href="./subscriptions">Compare Plans</a></div>' +
+          '<div class="rblx-shell-gate-benefits"><section><strong>Plus</strong><span>Animation Studio</span><span>Textured UGCs</span><span>1080p AI thumbnails</span></section><section><strong>Pro</strong><span>Everything in Plus</span><span>20 monthly AI credits</span><span>Ad-free creator tools</span></section></div>' +
+          '<div class="rblx-shell-membership-gate-actions"><button class="rblx-shell-membership-gate-cancel" type="button" data-rblx-animation-gate-cancel="true">Cancel</button><a class="rblx-shell-membership-gate-button" href="./subscriptions">View Plans</a></div>' +
         '</div>' +
         buildModalAdRailsMarkup() +
       '</div>'
@@ -1670,13 +1671,13 @@
             '<div class="rblx-shell-reward-note"><span>Moderator note</span><p id="rblxShellRewardNote"></p></div>' +
             '<p class="rblx-shell-reward-wait" id="rblxShellRewardWait">Please take a moment to read this note.</p>' +
             '<button class="rblx-shell-btn is-primary rblx-shell-reward-claim" type="button" id="rblxShellRewardClaim" disabled>Claim reward</button>' +
+            '<section class="rblx-shell-reward-feedback" id="rblxShellRewardFeedback" hidden><div class="rblx-shell-reward-feedback-head"><strong>Enjoying RBLXTools?</strong><span>Write a review</span></div><div class="rblx-shell-reward-stars" id="rblxShellRewardStars" role="radiogroup" aria-label="Rate RBLXTools from 1 to 5 stars"><button type="button" data-reward-rating="1" aria-label="1 star">★</button><button type="button" data-reward-rating="2" aria-label="2 stars">★</button><button type="button" data-reward-rating="3" aria-label="3 stars">★</button><button type="button" data-reward-rating="4" aria-label="4 stars">★</button><button type="button" data-reward-rating="5" aria-label="5 stars">★</button></div><label class="rblx-shell-reward-feedback-field"><span>Review title</span><input id="rblxShellRewardFeedbackTitle" type="text" maxlength="140" placeholder="What stood out?" /></label><label class="rblx-shell-reward-feedback-field"><span>Review</span><textarea id="rblxShellRewardFeedbackBody" maxlength="1200" placeholder="Tell us what you like or what we should improve."></textarea></label><p class="rblx-shell-reward-feedback-status" id="rblxShellRewardFeedbackStatus" aria-live="polite"></p><button class="rblx-shell-btn rblx-shell-reward-feedback-submit" type="button" id="rblxShellRewardFeedbackSubmit">Post feedback</button></section>' +
           '</div>' +
           buildModalAdRailsMarkup() +
         '</div>' +
         '<div class="rblx-shell-auth-overlay" id="rblxShellAuthOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-auth-modal" id="rblxShellAuthModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellAuthTitle">' +
             '<button class="rblx-shell-auth-close" type="button" id="rblxShellAuthClose" aria-label="Close login">×</button>' +
-            '<div class="rblx-shell-auth-kicker">RBLXTools Account</div>' +
             '<h3 class="rblx-shell-auth-title" id="rblxShellAuthTitle">Welcome back - sign in</h3>' +
             '<p class="rblx-shell-auth-copy" id="rblxShellAuthCopy">Sign in to keep your tools, membership, and account access connected.</p>' +
             '<div class="rblx-shell-auth-google hidden" id="rblxShellAuthGoogleSection">' +
@@ -4475,7 +4476,7 @@
   }
 
   function mountModalVerticalAds(overlay) {
-    if (!overlay || !window.matchMedia("(min-width: 1280px) and (min-height: 740px)").matches) return;
+    if (!overlay || !window.matchMedia("(min-width: 1280px) and (min-height: 820px)").matches) return;
     Array.prototype.forEach.call(overlay.querySelectorAll("[data-rblx-modal-ad]"), mountVerticalAd);
   }
 
@@ -4570,6 +4571,86 @@
     return "You have been granted " + (reward && reward.rewardType === "pro" ? "Pro" : "Plus") + " for " + amount + " days.";
   }
 
+  function getRewardFeedbackNodes() {
+    return {
+      panel: document.getElementById("rblxShellRewardFeedback"),
+      stars: document.getElementById("rblxShellRewardStars"),
+      title: document.getElementById("rblxShellRewardFeedbackTitle"),
+      body: document.getElementById("rblxShellRewardFeedbackBody"),
+      status: document.getElementById("rblxShellRewardFeedbackStatus"),
+      submit: document.getElementById("rblxShellRewardFeedbackSubmit")
+    };
+  }
+
+  function setRewardFeedbackRating(stars, rating) {
+    if (!stars) return;
+    var selected = Math.max(0, Math.min(5, Number(rating) || 0));
+    stars.dataset.rating = String(selected);
+    Array.prototype.forEach.call(stars.querySelectorAll("[data-reward-rating]"), function (button) {
+      var value = Number(button.getAttribute("data-reward-rating")) || 0;
+      button.classList.toggle("is-selected", value <= selected);
+      button.setAttribute("aria-checked", value === selected ? "true" : "false");
+    });
+  }
+
+  function resetRewardFeedback() {
+    var nodes = getRewardFeedbackNodes();
+    if (!nodes.panel) return;
+    nodes.panel.hidden = true;
+    if (nodes.title) nodes.title.value = "";
+    if (nodes.body) nodes.body.value = "";
+    if (nodes.status) nodes.status.textContent = "";
+    if (nodes.submit) { nodes.submit.disabled = false; nodes.submit.textContent = "Post feedback"; }
+    setRewardFeedbackRating(nodes.stars, 0);
+  }
+
+  async function maybeShowRewardFeedback(overlay) {
+    var userId = String(shellState.currentUser && shellState.currentUser.userId || "").trim();
+    if (!overlay || !userId) return;
+    try {
+      var response = await fetch(API_BASE + "/api/community-posts?filter=feedback", { credentials: "include", cache: "no-store" });
+      var payload = await response.json().catch(function () { return null; });
+      if (!response.ok || !payload || !Array.isArray(payload.posts) || !overlay.classList.contains("is-open")) return;
+      var hasFeedback = payload.posts.some(function (post) {
+        return String(post && post.category || "") === "feedback" && String(post && post.authorId || "") === userId;
+      });
+      var nodes = getRewardFeedbackNodes();
+      if (!nodes.panel || hasFeedback) return;
+      nodes.panel.hidden = false;
+      Array.prototype.forEach.call(nodes.stars.querySelectorAll("[data-reward-rating]"), function (button) {
+        button.onclick = function () { setRewardFeedbackRating(nodes.stars, button.getAttribute("data-reward-rating")); };
+      });
+      if (nodes.submit) nodes.submit.onclick = async function () {
+        var rating = Number(nodes.stars && nodes.stars.dataset.rating || 0);
+        var title = String(nodes.title && nodes.title.value || "").trim();
+        var body = String(nodes.body && nodes.body.value || "").trim();
+        if (!rating) { if (nodes.status) nodes.status.textContent = "Choose a rating from 1 to 5 stars."; return; }
+        if (!title || !body) { if (nodes.status) nodes.status.textContent = "Add a review title and a short description."; return; }
+        nodes.submit.disabled = true;
+        nodes.submit.textContent = "Posting...";
+        if (nodes.status) nodes.status.textContent = "";
+        try {
+          var submitResponse = await fetch(API_BASE + "/api/community-posts/member-posts", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: title, body: body, category: "feedback", rating: rating, plan: String(shellState.currentUser && shellState.currentUser.plan || "free") })
+          });
+          var submitPayload = await submitResponse.json().catch(function () { return null; });
+          if (!submitResponse.ok) throw new Error(submitPayload && submitPayload.error || "Could not post feedback.");
+          if (nodes.status) nodes.status.textContent = "Thanks. Your feedback was posted to the community.";
+          nodes.submit.textContent = "Feedback posted";
+        } catch (error) {
+          nodes.submit.disabled = false;
+          nodes.submit.textContent = "Post feedback";
+          if (nodes.status) nodes.status.textContent = error.message || "Could not post feedback.";
+        }
+      };
+    } catch (_error) {
+      // Do not show a review form if feedback history cannot be verified.
+    }
+  }
+
   function showMemberReward(reward) {
     var overlay = document.getElementById("rblxShellRewardOverlay");
     var modal = document.getElementById("rblxShellRewardModal");
@@ -4582,8 +4663,10 @@
     title.textContent = reward.title || "You've received a RBLXTools reward!";
     value.textContent = getRewardValueLabel(reward);
     note.textContent = reward.note || "Enjoy your reward from the RBLXTools team.";
+    resetRewardFeedback();
     overlay.classList.add("is-open"); overlay.setAttribute("aria-hidden", "false"); modal.classList.add("is-open"); document.body.classList.add("rblx-shell-modal-open");
     mountModalVerticalAds(overlay);
+    maybeShowRewardFeedback(overlay);
     // The server sends the remaining delay so an inaccurate device clock cannot stretch five seconds into minutes.
     var unlockAt = Date.now() + Math.max(0, Number(reward.claimDelayMs) || 0);
     function updateClaimState() {
