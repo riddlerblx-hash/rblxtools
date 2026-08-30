@@ -302,6 +302,17 @@ function normalizeCommunityAttachment(attachment) {
   return { name: name || "attachment", type, dataUrl };
 }
 
+function cleanCommunityBody(value, maxLength) {
+  return String(value || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[\t\f\v ]+/g, " ").trimEnd())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, maxLength);
+}
+
 function normalizePostForStorage(post) {
   const likes = Array.isArray(post?.likes) ? post.likes.map((value) => String(value || "").trim()).filter(Boolean) : [];
   const comments = Array.isArray(post?.comments) ? post.comments.map(normalizeCommunityComment).filter((comment) => comment.body) : [];
@@ -462,7 +473,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       }
       const isFeedback = requestedCategory === "feedback";
       const title = cleanText(req.body?.title, 140);
-      const body = cleanText(req.body?.body, 6000);
+      const body = cleanCommunityBody(req.body?.body, 6000);
       const rating = Number.parseInt(req.body?.rating, 10);
       if (!title) return res.status(400).json({ error: isFeedback ? "A feedback title is required." : requestedCategory === "q-and-a" ? "A question title is required." : "A bug-report title is required." });
       if (!body) return res.status(400).json({ error: isFeedback ? "Write your feedback before submitting it." : requestedCategory === "q-and-a" ? "Write your question before submitting it." : "Describe the bug before submitting it." });
@@ -508,7 +519,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
     try {
       const adminUser = await requireAdminUser(req);
       const title = cleanText(req.body?.title, 140);
-      const body = cleanText(req.body?.body, 6000);
+      const body = cleanCommunityBody(req.body?.body, 6000);
       const category = normalizeCategory(req.body?.category);
       const pinned = Boolean(req.body?.pinned);
       const linkLabel = cleanText(req.body?.linkLabel, 60);
@@ -573,7 +584,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       if (!isOwnMemberPost) return res.status(403).json({ error: "You can only edit your own bug reports, feedback, or Q&A posts." });
 
       const title = cleanText(req.body?.title, 140);
-      const body = cleanText(req.body?.body, 6000);
+      const body = cleanCommunityBody(req.body?.body, 6000);
       if (!title) return res.status(400).json({ error: "A title is required." });
       if (!body) return res.status(400).json({ error: "A post body is required." });
 
@@ -633,7 +644,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const hasBugStatus = Object.prototype.hasOwnProperty.call(req.body || {}, "bugStatus");
       const hasKnownIssue = Object.prototype.hasOwnProperty.call(req.body || {}, "knownIssue");
       const title = hasTitle ? cleanText(req.body?.title, 140) : String(existing.title || "");
-      const body = hasBody ? cleanText(req.body?.body, 6000) : String(existing.body || "");
+      const body = hasBody ? cleanCommunityBody(req.body?.body, 6000) : String(existing.body || "");
       const category = hasCategory ? normalizeCategory(req.body?.category) : normalizeCategory(existing.category);
       const pinned = hasPinned ? Boolean(req.body?.pinned) : Boolean(existing.pinned);
       const linkLabel = hasLinkLabel ? cleanText(req.body?.linkLabel, 60) : String(existing.linkLabel || "");
@@ -743,7 +754,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const comment = post.comments.find((entry) => String(entry.id || "") === commentId);
       if (!comment) return res.status(404).json({ error: "That comment could not be found." });
       if (String(comment.userId || "") !== userId) return res.status(403).json({ error: "You can only edit your own comments." });
-      const body = cleanText(req.body?.body, 800);
+      const body = cleanCommunityBody(req.body?.body, 800);
       if (!body) return res.status(400).json({ error: "A comment cannot be empty." });
       comment.body = body;
       post.updatedAt = new Date().toISOString();
@@ -810,7 +821,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
       const userId = String(user?.id || "").trim();
       if (!userId) return res.status(401).json({ error: "Log in first." });
 
-      const body = cleanText(req.body?.body, 800);
+      const body = cleanCommunityBody(req.body?.body, 800);
       if (!body) return res.status(400).json({ error: "Write a comment first." });
 
       const postId = String(req.params?.postId || "").trim();
@@ -865,7 +876,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
   app.post("/api/community-posts/:postId/comments/:commentId/replies", async (req, res) => {
     try {
       const user = await requireAuthenticatedUser(req);
-      const body = cleanText(req.body?.body, 800);
+      const body = cleanCommunityBody(req.body?.body, 800);
       if (!body) return res.status(400).json({ error: "Write a reply first." });
       const posts = readCommunityPosts(baseDir); const post = posts.find((entry) => String(entry.id || "") === String(req.params?.postId || ""));
       if (!post) return res.status(404).json({ error: "That post could not be found." });
