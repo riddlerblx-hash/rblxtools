@@ -4,7 +4,7 @@
 
   var API_BASE = window.location.origin;
   var ADSENSE_CLIENT = "ca-pub-1298532626039613";
-  var ADSTERRA_POPUNDER_SRC = "https://pl31060691.profitableratecpmnetwork.com/db/b2/3c/dbb23c04482ce596492b26e928c44986.js";
+  var ADSTERRA_POPUNDER_SRC = "https://professionalsusceptible.com/db/b2/3c/dbb23c04482ce596492b26e928c44986.js";
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
