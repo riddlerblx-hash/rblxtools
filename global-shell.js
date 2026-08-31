@@ -4656,7 +4656,7 @@
     control.id = "rblxProPageEditor";
     control.hidden = true;
     control.innerHTML = '<button type="button" class="rblx-pro-page-editor-trigger" aria-pressed="false">Edit Page <span>Pro</span></button>';
-    center.appendChild(control);
+    pageHost.insertBefore(control, pageHost.firstChild);
 
     var trigger = control.querySelector(".rblx-pro-page-editor-trigger");
     function saveLayout() { try { localStorage.setItem(storageKey, JSON.stringify(layout)); } catch (_error) {} }
@@ -4733,7 +4733,7 @@
     });
     function syncEditorVisibility(state) {
       var plan = String(state && state.plan || shellState.currentUser && shellState.currentUser.plan || "").toLowerCase();
-      control.hidden = plan !== "pro";
+      control.hidden = plan !== "pro" && !document.body.classList.contains("rblx-shell-pro-user");
       if (control.hidden && isEditing) { isEditing = false; renderAll(); }
     }
     window.addEventListener("rblxtools-membership-updated", function (event) { syncEditorVisibility(event && event.detail); });

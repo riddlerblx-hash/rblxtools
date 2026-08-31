@@ -4257,10 +4257,12 @@ body.rblx-shell-ready .rblx-shell-center > .rblx-shell-footer {
 
 /* Pro members can customize supported tool-page slots without changing the underlying page. */
 .rblx-pro-page-editor {
-  position: fixed;
-  top: calc(var(--shell-header-height) + 15px);
-  right: calc(var(--shell-right-width) + 26px);
-  z-index: 26;
+  position: relative;
+  z-index: 8;
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin: 0 0 12px;
 }
 .rblx-pro-page-editor[hidden] { display: none !important; }
 .rblx-pro-page-editor-trigger {
@@ -4373,7 +4375,7 @@ body.rblx-shell-ready .rblx-shell-center > .rblx-shell-footer {
 .rblx-pro-tool-widget p { max-width: 34ch; margin: 0 0 17px; color: #b6cbd5; font-size: 12px; font-weight: 700; line-height: 1.45; }
 .rblx-pro-tool-widget a { width: fit-content; padding: 10px 13px; border-radius: 9px; background: linear-gradient(135deg, #49d9cf, #4c8eff); color: #07131c; font: 900 11px/1 Arial, sans-serif; text-decoration: none; }
 .rblx-pro-tool-widget button { position: absolute; top: 10px; right: 10px; }
-@media (max-width: 900px) {
+@media (max-width: 700px) {
   .rblx-pro-page-editor { display: none !important; }
 }
 
