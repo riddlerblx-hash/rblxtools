@@ -249,6 +249,9 @@
     .community-layout { display: grid; grid-template-columns: minmax(0, 1.85fr) minmax(280px, 0.9fr); gap: 22px; margin-top: 24px; align-items: start; }
     .community-feed,
     .community-side { display: grid; gap: 18px; min-width: 0; }
+    .community-side { align-self: stretch; grid-template-rows: auto auto 1fr; }
+    .community-rail-ad { display:none; }
+    @media (min-width: 1320px) { .community-rail-ad { position:sticky; top:calc(var(--shell-header-height) + 20px); display:grid; width:160px; min-height:618px; align-self:start; justify-self:center; overflow:hidden; border:1px solid rgba(103,177,255,.3); border-radius:12px; background:#07101d; } .community-rail-ad > span { padding:5px 0 3px; color:#94aabd; font-size:9px; font-weight:800; letter-spacing:.1em; text-align:center; text-transform:uppercase; } .community-rail-ad iframe { display:block; width:160px; height:600px; border:0; } }
     .community-empty,
     .community-post,
     .community-card { padding: 24px; }
@@ -565,10 +568,21 @@
             This page is for official updates, not personal tickets.
           </p>
         </section>
+        <section class="community-rail-ad" id="communityRailAd" aria-label="Advertisement"><span>Advertisement</span></section>
       </aside>
     </section>
   </main>
 
   <script src="./community-page.js"></script>
+  <script>
+    (function () {
+      var rail = document.getElementById('communityRailAd');
+      var cachedUser = null; try { cachedUser = JSON.parse(localStorage.getItem('rblxtools_auth_user') || 'null'); } catch (_error) {}
+      if (!rail || !window.matchMedia('(min-width: 1320px)').matches || document.body.classList.contains('rblx-pro-ad-free') || String(cachedUser && cachedUser.plan || '').toLowerCase() === 'pro') return;
+      var frame = document.createElement('iframe'); frame.title = 'Advertisement'; frame.width = '160'; frame.height = '600'; frame.scrolling = 'no'; frame.setAttribute('frameborder', '0');
+      frame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>var atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};<\/script><script src="https://www.highrevenueformat.com/c56a103ad60efdb3686d500b49552f97/invoke.js"><\/script></body></html>';
+      rail.appendChild(frame);
+    }());
+  </script>
 </body>
 </html>

@@ -1588,8 +1588,7 @@
               '<div class="rblx-shell-left-foot">' +
                 '<div class="rblx-shell-box-ad" data-rblx-shell-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' +
                 '<div class="rblx-shell-token-banner" id="rblxShellTokenBanner" hidden><strong>AI Tokens</strong><span id="rblxShellTokenBalance">...</span><a class="rblx-shell-token-add" href="./ai-tokens" aria-label="Buy AI tokens" title="Buy AI tokens">+</a></div>' +
-                '<a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" href="./subscriptions"><strong>Pro Plan</strong><span>$5.00 / month</span></a>' +
-                '<a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span></a>' +
+                '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span><s>$5.00</s> $2.50 <em>50% off</em></span></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span></a></div>' +
                 '<div class="rblx-shell-socials">' +
                   '<a href="https://x.com/Reese28575571" target="_blank" rel="noreferrer" aria-label="X">' + getSocialIcon("x") + '</a>' +
                   '<a href="https://www.youtube.com/@ItzReeseRBLX" target="_blank" rel="noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + '</a>' +
@@ -4565,6 +4564,20 @@
     });
   }
 
+  function initSidebarPlanRotation() {
+    var rotator = document.getElementById("rblxShellPlanRotator");
+    if (!rotator) return;
+    function sync() {
+      var activePlan = Math.floor(Date.now() / 30000) % 2 === 0 ? "pro" : "plus";
+      rotator.dataset.activePlan = activePlan;
+      Array.prototype.forEach.call(rotator.querySelectorAll("[data-rblx-plan-slide]"), function (slide) {
+        slide.classList.toggle("is-active", slide.getAttribute("data-rblx-plan-slide") === activePlan);
+      });
+    }
+    sync();
+    window.setInterval(sync, 1000);
+  }
+
   function removePageFaqs(pageHost) {
     if (!pageHost) return;
     var sections = Array.prototype.slice.call(pageHost.querySelectorAll("section"));
@@ -4766,6 +4779,7 @@
     document.body.classList.add("rblx-shell-ready");
     initMembershipTextTreatment();
     initMembershipPromoRotation();
+    initSidebarPlanRotation();
     mountDesktopShellBoxAds();
     window.addEventListener("resize", mountDesktopShellBoxAds, { passive: true });
     initAnimationMembershipGate();
