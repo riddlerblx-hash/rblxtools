@@ -8,6 +8,15 @@
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
+  var REFERRAL_CODE_KEY = "rblxtools_referral_code";
+  function getReferralCode() {
+    try { return String(localStorage.getItem(REFERRAL_CODE_KEY) || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20); } catch (_error) { return ""; }
+  }
+  try {
+    var incomingReferralCode = new URLSearchParams(window.location.search || "").get("ref");
+    if (incomingReferralCode) localStorage.setItem(REFERRAL_CODE_KEY, String(incomingReferralCode).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20));
+  } catch (_error) {}
+  window.RBLXToolsReferral = { getCode: getReferralCode };
   // Keep a verified identity available while the cookie session is checked on a
   // new page.  A navigation must never briefly render a signed-in member as a
   // guest just because that background request has not completed yet.
@@ -1392,6 +1401,7 @@
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
+          '<a class="rblx-shell-referral-balance" href="./account-overview" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small><b>+</b></a>' +
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
             '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
               '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 10.5a6 6 0 0 0-12 0c0 7-2.5 7-2.5 8.5h17C20.5 17.5 18 17.5 18 10.5ZM9.5 21h5"></path></svg>' +
@@ -3720,6 +3730,14 @@
       mobileAccountLink.classList.toggle("is-primary", !state.loggedIn);
     }
     auth.innerHTML = buildAuthMarkup().replace('<div class="rblx-shell-auth" id="rblxShellAuth">', "").replace(/<\/div>$/, "");
+    if (state.loggedIn) {
+      fetch(API_BASE + "/referrals/me", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } })
+        .then(function (response) { return response.ok ? response.json() : null; })
+        .then(function (payload) {
+          var balance = document.getElementById("rblxShellReferralBalance");
+          if (balance && payload && payload.referral) balance.textContent = "$" + ((Number(payload.referral.availableCents) || 0) / 100).toFixed(2);
+        }).catch(function () {});
+    }
     refreshCommunityNotifications();
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.hidden = !shellState.isAdmin;

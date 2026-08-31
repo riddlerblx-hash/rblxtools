@@ -41,6 +41,10 @@ const RBLXTOOLS_STATE_DIR = String(process.env.RBLXTOOLS_STATE_DIR || path.join(
 const TASTER_PACKAGE_OFFER_PATH = path.join(RBLXTOOLS_STATE_DIR, "taster-package-offer.json");
 const TASTER_PACKAGE_GIVEAWAY_PATH = path.join(RBLXTOOLS_STATE_DIR, "taster-package-giveaway.json");
 const MEMBER_REWARDS_PATH = path.join(RBLXTOOLS_STATE_DIR, "member-rewards.json");
+const REFERRAL_PROGRAM_PATH = path.join(RBLXTOOLS_STATE_DIR, "referral-program.json");
+const REFERRAL_COMMISSION_RATE = 0.05;
+const REFERRAL_PENDING_MS = 14 * 24 * 60 * 60 * 1000;
+const REFERRAL_MINIMUM_PAYOUT_CENTS = 1000;
 const TASTER_PACKAGE_DURATION_MS = 14 * 24 * 60 * 60 * 1000;
 const TASTER_PACKAGE_PENDING_MS = 24 * 60 * 60 * 1000;
 const TASTER_PACKAGE_OFFER_VERSION = "taster-usd-100-five-plus-winners";
@@ -867,6 +871,10 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
             });
           }
         }
+
+        if (session.payment_status === "paid") {
+          recordReferralCommissionFromCheckout(session);
+        }
         break;
       }
 
@@ -1132,6 +1140,98 @@ function writeJsonFile(filePath, value) {
   const tempPath = filePath + ".tmp";
   fs.writeFileSync(tempPath, JSON.stringify(value, null, 2) + "\n", "utf8");
   fs.renameSync(tempPath, filePath);
+}
+
+function readReferralProgram() {
+  const state = readJsonFile(REFERRAL_PROGRAM_PATH, { referrals: [], attributions: [], commissions: [], payoutRequests: [] });
+  return {
+    referrals: Array.isArray(state.referrals) ? state.referrals : [],
+    attributions: Array.isArray(state.attributions) ? state.attributions : [],
+    commissions: Array.isArray(state.commissions) ? state.commissions : [],
+    payoutRequests: Array.isArray(state.payoutRequests) ? state.payoutRequests : [],
+  };
+}
+
+function writeReferralProgram(state) {
+  writeJsonFile(REFERRAL_PROGRAM_PATH, {
+    referrals: (state.referrals || []).slice(-10000),
+    attributions: (state.attributions || []).slice(-25000),
+    commissions: (state.commissions || []).slice(-25000),
+    payoutRequests: (state.payoutRequests || []).slice(-10000),
+  });
+}
+
+function normalizeReferralCode(value) {
+  return String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20);
+}
+
+function getOrCreateReferral(state, userId) {
+  const normalizedUserId = String(userId || "").trim();
+  let referral = state.referrals.find((entry) => String(entry.userId || "") === normalizedUserId);
+  if (referral) return referral;
+  let code = "";
+  do { code = "RBLX" + randomBytes(4).toString("hex").toUpperCase(); }
+  while (state.referrals.some((entry) => entry.code === code));
+  referral = { id: randomUUID(), userId: normalizedUserId, code, createdAt: new Date().toISOString() };
+  state.referrals.push(referral);
+  return referral;
+}
+
+function refreshReferralCommissionAvailability(state, now = Date.now()) {
+  let changed = false;
+  state.commissions.forEach((commission) => {
+    if (commission.status !== "pending" || !commission.availableAt) return;
+    if (Date.parse(commission.availableAt) <= now) { commission.status = "available"; changed = true; }
+  });
+  return changed;
+}
+
+function getReferralDashboard(userId) {
+  const state = readReferralProgram();
+  const now = Date.now();
+  const hadReferral = state.referrals.some((entry) => String(entry.userId || "") === String(userId || ""));
+  const referral = getOrCreateReferral(state, userId);
+  const changed = refreshReferralCommissionAvailability(state, now);
+  if (changed || !hadReferral) writeReferralProgram(state);
+  const commissions = state.commissions.filter((entry) => String(entry.referrerUserId || "") === String(userId || ""));
+  const sum = (status) => commissions.filter((entry) => entry.status === status).reduce((total, entry) => total + Math.max(0, Number(entry.amountCents) || 0), 0);
+  const referrals = state.attributions.filter((entry) => String(entry.referrerUserId || "") === String(userId || "")).length;
+  const availableCents = sum("available");
+  return {
+    code: referral.code,
+    link: getSanitizedAppBaseUrl() + "/?ref=" + encodeURIComponent(referral.code),
+    commissionRate: REFERRAL_COMMISSION_RATE * 100,
+    referredMembers: referrals,
+    pendingCents: sum("pending"),
+    availableCents,
+    requestedCents: sum("requested"),
+    paidCents: sum("paid"),
+    minimumPayoutCents: REFERRAL_MINIMUM_PAYOUT_CENTS,
+    payoutRequests: state.payoutRequests.filter((entry) => String(entry.userId || "") === String(userId || "")).slice(-8).reverse(),
+  };
+}
+
+function recordReferralCommissionFromCheckout(session) {
+  const code = normalizeReferralCode(session?.metadata?.referralCode);
+  const buyerUserId = String(session?.metadata?.appUserId || session?.client_reference_id || "").trim();
+  const checkoutSessionId = String(session?.id || "").trim();
+  const amountCents = Math.max(0, Number(session?.amount_total) || 0);
+  if (!code || !buyerUserId || !checkoutSessionId || !amountCents) return null;
+  const state = readReferralProgram();
+  if (state.commissions.some((entry) => String(entry.checkoutSessionId || "") === checkoutSessionId)) return null;
+  if (state.attributions.some((entry) => String(entry.buyerUserId || "") === buyerUserId)) return null;
+  const referral = state.referrals.find((entry) => entry.code === code);
+  if (!referral || String(referral.userId || "") === buyerUserId) return null;
+  const now = Date.now();
+  const commission = {
+    id: randomUUID(), checkoutSessionId, buyerUserId, referrerUserId: referral.userId, code,
+    amountCents: Math.round(amountCents * REFERRAL_COMMISSION_RATE), currency: String(session?.currency || "usd").toLowerCase(),
+    status: "pending", createdAt: new Date(now).toISOString(), availableAt: new Date(now + REFERRAL_PENDING_MS).toISOString(),
+  };
+  state.attributions.push({ id: randomUUID(), buyerUserId, referrerUserId: referral.userId, code, createdAt: commission.createdAt });
+  state.commissions.push(commission);
+  writeReferralProgram(state);
+  return commission;
 }
 
 function readMemberRewards() {
@@ -5759,6 +5859,38 @@ app.get("/auth/google/config", (_req, res) => {
   });
 });
 
+app.get("/referrals/me", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    return res.json({ ok: true, referral: getReferralDashboard(user.id) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load referral details." });
+  }
+});
+
+app.post("/referrals/request-payout", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const state = readReferralProgram();
+    refreshReferralCommissionAvailability(state);
+    const available = state.commissions.filter((entry) => String(entry.referrerUserId || "") === String(user.id) && entry.status === "available");
+    const availableCents = available.reduce((total, entry) => total + Math.max(0, Number(entry.amountCents) || 0), 0);
+    if (availableCents < REFERRAL_MINIMUM_PAYOUT_CENTS) {
+      return res.status(400).json({ error: "A $10.00 available balance is required before requesting a payout." });
+    }
+    if (state.payoutRequests.some((entry) => String(entry.userId || "") === String(user.id) && entry.status === "requested")) {
+      return res.status(409).json({ error: "You already have a payout request waiting for review." });
+    }
+    const request = { id: randomUUID(), userId: user.id, amountCents: availableCents, currency: "usd", status: "requested", createdAt: new Date().toISOString() };
+    available.forEach((entry) => { entry.status = "requested"; entry.payoutRequestId = request.id; });
+    state.payoutRequests.push(request);
+    writeReferralProgram(state);
+    return res.json({ ok: true, request, referral: getReferralDashboard(user.id) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not request a payout." });
+  }
+});
+
 app.post("/auth/signup", async (req, res) => {
   try {
     assertAuthStorageConfigured();
@@ -7300,6 +7432,7 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
 
     const customerId = await getOrCreateStripeCustomerForUser(user);
     const priceId = await resolveAITokenPackagePrice(packageDefinition);
+    const referralCode = normalizeReferralCode(req.body?.referralCode);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
       customer: customerId,
@@ -7314,6 +7447,7 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
         aiTokenQuantity: String(packageDefinition.tokens),
         tasterReservationId: tasterReservation ? tasterReservation.id : "",
         tasterOfferVersion: tasterReservation ? getTasterPackageOffer().version : "",
+        referralCode,
       },
     });
 
@@ -7374,6 +7508,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
     const customerId = await getOrCreateStripeCustomerForUser(user);
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
     const priceId = await resolvePlusRecurringPrice(billingInterval);
+    const referralCode = normalizeReferralCode(req.body?.referralCode);
 
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
@@ -7391,6 +7526,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
       metadata: {
         appUserId: user.id,
         billingInterval,
+        referralCode,
       },
       subscription_data: {
         metadata: {
@@ -7418,6 +7554,7 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
     const customerId = await getOrCreateStripeCustomerForUser(user);
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
     const priceId = await resolveRecurringProductPrice(STRIPE_PRO_PRODUCT_ID, billingInterval);
+    const referralCode = normalizeReferralCode(req.body?.referralCode);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
@@ -7426,7 +7563,7 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
       cancel_url: getSafeCheckoutCancelUrl(),
       allow_promotion_codes: true,
       client_reference_id: user.id,
-      metadata: { appUserId: user.id, plan: "pro", billingInterval },
+      metadata: { appUserId: user.id, plan: "pro", billingInterval, referralCode },
       subscription_data: { metadata: { appUserId: user.id, plan: "pro", billingInterval } },
     });
     return res.json({ ok: true, url: checkoutSession.url });

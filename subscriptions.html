@@ -2146,7 +2146,7 @@
           var result = await apiRequest("/auth/create-checkout-session", {
             method: "POST",
             headers: buildCheckoutHeaders(token),
-            body: JSON.stringify({ billingInterval: billingInterval })
+            body: JSON.stringify({ billingInterval: billingInterval, referralCode: window.RBLXToolsReferral ? window.RBLXToolsReferral.getCode() : "" })
           });
 
           if (!result || !result.url) {
@@ -2187,7 +2187,7 @@
             var result = await apiRequest("/auth/create-pro-checkout-session", {
               method: "POST",
               headers: buildCheckoutHeaders(token),
-              body: JSON.stringify({ billingInterval: billingInterval })
+              body: JSON.stringify({ billingInterval: billingInterval, referralCode: window.RBLXToolsReferral ? window.RBLXToolsReferral.getCode() : "" })
             });
             if (!result || !result.url) throw new Error("Stripe did not return a checkout URL.");
             if (window.top && window.top !== window) window.top.location.href = result.url;

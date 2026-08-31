@@ -297,6 +297,26 @@ body.rblx-shell-ready {
   gap: 12px;
 }
 
+.rblx-shell-referral-balance {
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas: "amount add" "label add";
+  align-content: center;
+  column-gap: 10px;
+  padding: 7px 9px 7px 13px;
+  border: 1px solid rgba(82, 215, 189, .42);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(24, 113, 108, .34), rgba(13, 32, 46, .8));
+  color: #f2fffc;
+  text-decoration: none;
+  box-shadow: 0 10px 22px rgba(8, 65, 70, .22);
+}
+.rblx-shell-referral-balance span { grid-area: amount; font-size: 14px; font-weight: 900; line-height: 1; }
+.rblx-shell-referral-balance small { grid-area: label; margin-top: 3px; color: #b4d8d5; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.rblx-shell-referral-balance b { grid-area: add; display: grid; width: 29px; height: 29px; place-items: center; border-radius: 9px; background: linear-gradient(135deg, #ffbd34, #ff8d23); color: #241605; font-size: 22px; line-height: 1; }
+.rblx-shell-referral-balance:hover { transform: translateY(-1px); border-color: rgba(111, 255, 225, .8); }
+
 .rblx-shell-profile-card-link {
   color: inherit;
   text-decoration: none;
