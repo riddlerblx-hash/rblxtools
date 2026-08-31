@@ -1401,7 +1401,7 @@
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-          '<a class="rblx-shell-referral-balance" href="./account-overview" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small><b>+</b></a>' +
+          '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
             '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
               '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 10.5a6 6 0 0 0-12 0c0 7-2.5 7-2.5 8.5h17C20.5 17.5 18 17.5 18 10.5ZM9.5 21h5"></path></svg>' +
