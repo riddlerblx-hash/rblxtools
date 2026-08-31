@@ -2652,7 +2652,7 @@
       }
 
       function mountAccountCenterAd(host) {
-        if (!host || host.dataset.adMounted === "true" || !state.user || String(state.user.plan || "").toLowerCase() === "pro") return;
+        if (!host || host.dataset.adMounted === "true" || (state.user && String(state.user.plan || "").toLowerCase() === "pro")) return;
         if (window.innerWidth < 1100) return;
         var frame = document.createElement("iframe");
         frame.title = "Advertisement";
@@ -2841,6 +2841,12 @@
       els.acctGateLoginButton.addEventListener("click", function () { if (!openAccountAuthModal()) redirectTop(LOGIN_PAGE_URL); });
       els.acctGatePlansButton.addEventListener("click", function () { redirectTop(PLANS_PAGE_URL); });
 
+      loadToken();
+      if (!state.token) {
+        window.setTimeout(function () {
+          if (!state.user) openAccountAuthModal();
+        }, 120);
+      }
       loadCurrentUser();
     }());
   </script>
