@@ -26,7 +26,6 @@
   var GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
   var AUTH_PENDING_OPEN_KEY = "rblxtools_auth_modal_pending";
   var AUTH_PENDING_MODE_KEY = "rblxtools_auth_modal_pending_mode";
-  var IS_TOOL_WIDGET_FRAME = /(?:^|[?&])widget=1(?:&|$)/.test(String(window.location.search || ""));
   var shellState = {
     chatMessages: [],
     chatList: null,
@@ -292,7 +291,6 @@
       delete host.dataset.rblxVerticalAdMounted;
     });
     if (!hideAds) mountDesktopShellBoxAds();
-    syncProToolWidget(state);
   }
 
   function ensureGoogleAnalyticsSetup() {
@@ -4616,63 +4614,6 @@
     window.setInterval(sync, 1000);
   }
 
-  function getProWidgetTools() {
-    var currentPath = String(window.location.pathname || "").split("/").pop().replace(/\.html$/i, "");
-    return [
-      { key: "template-downloader", label: "Clothing Downloader", href: "./template-downloader" },
-      { key: "template-background-changer", label: "Background Changer", href: "./template-background-changer" },
-      { key: "ugc-downloader", label: "UGC Downloader", href: "./ugc-downloader" },
-      { key: "media-downloader", label: "Media Downloader", href: "./media-downloader" },
-      { key: "audio-downloader", label: "Audio Downloader", href: "./audio-downloader" },
-      { key: "animation-spoofer", label: "Animations", href: "./animation-spoofer" },
-      { key: "ai-clothing-studio", label: "AI Clothing Studio", href: "./ai-clothing-studio" }
-    ].filter(function (tool) { return tool.key !== currentPath; });
-  }
-
-  function syncProToolWidget(state) {
-    if (IS_TOOL_WIDGET_FRAME) return;
-    var existing = document.getElementById("rblxProToolWidget");
-    var pageHost = document.getElementById("rblxShellPage");
-    if (!isProMember(state)) { if (existing) existing.remove(); if (pageHost) { pageHost.classList.remove("rblx-pro-split-active", "rblx-pro-split-left"); var stalePane = pageHost.querySelector(".rblx-pro-split-pane"); if (stalePane) stalePane.remove(); } return; }
-    if (existing) return;
-    var tools = getProWidgetTools();
-    if (!tools.length || !pageHost) return;
-    var savedKey = ""; try { savedKey = sessionStorage.getItem("rblxtools_pro_tool_widget") || ""; } catch (_error) {}
-    var selected = tools.filter(function (tool) { return tool.key === savedKey; })[0] || tools[0];
-    var host = document.createElement("section");
-    host.id = "rblxProToolWidget";
-    host.className = "rblx-pro-tool-widget";
-    host.innerHTML = '<button class="rblx-pro-tool-widget-launch" type="button" aria-expanded="false">+ Split tool</button><div class="rblx-pro-tool-widget-picker" hidden><small>PRO SPLIT WORKSPACE</small><strong>Open a second tool</strong><select></select><div><button type="button" data-rblx-split-side="left">Add left</button><button type="button" data-rblx-split-side="right">Add right</button></div></div>';
-    document.body.appendChild(host);
-    var launch = host.querySelector(".rblx-pro-tool-widget-launch");
-    var picker = host.querySelector(".rblx-pro-tool-widget-picker");
-    var select = host.querySelector("select");
-    tools.forEach(function (tool) { var option = document.createElement("option"); option.value = tool.key; option.textContent = tool.label; select.appendChild(option); });
-    select.value = selected.key;
-    function loadTool(key, side) {
-      var tool = tools.filter(function (item) { return item.key === key; })[0] || tools[0];
-      var oldPane = pageHost.querySelector(".rblx-pro-split-pane");
-      if (oldPane) oldPane.remove();
-      var pane = document.createElement("aside");
-      pane.className = "rblx-pro-split-pane";
-      pane.innerHTML = '<header><div><small>PRO SPLIT TOOL</small><strong></strong></div><label><span>Tool</span><select></select></label><button type="button" data-rblx-split-swap title="Move tool to the other side">↔</button><button type="button" data-rblx-split-close aria-label="Close split tool">×</button></header><iframe title="Pro split tool" loading="lazy"></iframe>';
-      var paneSelect = pane.querySelector("select");
-      tools.forEach(function (item) { var option = document.createElement("option"); option.value = item.key; option.textContent = item.label; paneSelect.appendChild(option); });
-      paneSelect.value = tool.key;
-      pane.querySelector("strong").textContent = tool.label;
-      pane.querySelector("iframe").src = tool.href + "?widget=1";
-      pageHost.classList.add("rblx-pro-split-active");
-      pageHost.classList.toggle("rblx-pro-split-left", side === "left");
-      pageHost.appendChild(pane);
-      paneSelect.addEventListener("change", function () { loadTool(paneSelect.value, pageHost.classList.contains("rblx-pro-split-left") ? "left" : "right"); });
-      pane.querySelector("[data-rblx-split-swap]").addEventListener("click", function () { loadTool(paneSelect.value, pageHost.classList.contains("rblx-pro-split-left") ? "right" : "left"); });
-      pane.querySelector("[data-rblx-split-close]").addEventListener("click", function () { pane.remove(); pageHost.classList.remove("rblx-pro-split-active", "rblx-pro-split-left"); });
-      try { sessionStorage.setItem("rblxtools_pro_tool_widget", tool.key); } catch (_error) {}
-    }
-    launch.addEventListener("click", function () { picker.hidden = !picker.hidden; launch.setAttribute("aria-expanded", String(!picker.hidden)); });
-    Array.prototype.forEach.call(picker.querySelectorAll("[data-rblx-split-side]"), function (button) { button.addEventListener("click", function () { loadTool(select.value, button.getAttribute("data-rblx-split-side")); picker.hidden = true; launch.setAttribute("aria-expanded", "false"); }); });
-  }
-
   function removePageFaqs(pageHost) {
     if (!pageHost) return;
     var sections = Array.prototype.slice.call(pageHost.querySelectorAll("section"));
@@ -4853,7 +4794,6 @@
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
-    if (IS_TOOL_WIDGET_FRAME) document.body.classList.add("rblx-tool-widget-frame");
     shellState.renderedCommunityUnreadCount = shellState.communityUnreadCount;
     ensureSitePlusBackdrop();
     applyPlanAtmosphere(initialState.plan);
@@ -4876,7 +4816,6 @@
     initMembershipTextTreatment();
     initMembershipPromoRotation();
     initSidebarPlanRotation();
-    syncProToolWidget(initialState);
     mountDesktopShellBoxAds();
     window.addEventListener("resize", mountDesktopShellBoxAds, { passive: true });
     initAnimationMembershipGate();
