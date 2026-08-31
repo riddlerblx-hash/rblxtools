@@ -1181,15 +1181,33 @@
     #rbtools-account-overview .acct-tab-panel[hidden] { display: none; }
     #rbtools-account-overview .acct-tab-panel .acct-block { margin: 0; }
     #rbtools-account-overview .acct-account-details { margin: 14px 0; }
+    #rbtools-account-overview .acct-referral-hero { border-color: rgba(63, 231, 201, .34); background: radial-gradient(circle at top right, rgba(51, 233, 202, .13), transparent 38%), linear-gradient(180deg, rgba(16, 53, 66, .38), rgba(11, 19, 33, .62)); }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-block { min-width: 0; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-section-title { margin: 3px 0 8px; font-size: clamp(22px, 2.1vw, 29px); line-height: 1.03; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-section-copy { min-height: 54px; margin: 0; font-size: 12px; line-height: 1.45; }
+    #rbtools-account-overview .acct-referral-balance-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 16px 0; }
+    #rbtools-account-overview .acct-referral-balance-grid div { min-width: 0; padding: 10px; border: 1px solid rgba(96, 226, 210, .2); border-radius: 12px; background: rgba(5, 18, 30, .45); }
+    #rbtools-account-overview .acct-referral-balance-grid span { display: block; color: #9ac3c4; font-size: 10px; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; }
+    #rbtools-account-overview .acct-referral-balance-grid strong { display: block; margin-top: 5px; color: #8ffff0; font-size: clamp(16px, 1.6vw, 20px); overflow-wrap: anywhere; }
+    #rbtools-account-overview .acct-referral-link-row { display: flex; gap: 8px; margin: 7px 0 8px; }
+    #rbtools-account-overview .acct-referral-link-row .acct-input { min-width: 0; flex: 1; }
+    #rbtools-account-overview .acct-referral-link-row .acct-button { flex: 0 0 auto; }
+    #rbtools-account-overview .acct-referral-request-list { display: grid; gap: 8px; margin-top: 14px; }
+    #rbtools-account-overview .acct-referral-request, #rbtools-account-overview .acct-referral-empty { padding: 12px; border: 1px solid rgba(111, 146, 205, .2); border-radius: 12px; background: rgba(8, 16, 28, .52); color: #b7c7dd; font-size: 12px; font-weight: 700; }
+    #rbtools-account-overview .acct-referral-request strong { color: #ecf8ff; }
     @media (max-width: 700px) { main { padding: 26px 12px 38px; } .hero { text-align: center; } .hero p { margin-left: auto; } }
     @keyframes acctProfileGlare { 0%, 38% { transform: translateX(-42%); opacity: 0; } 48% { opacity: 1; } 62%, 100% { transform: translateX(42%); opacity: 0; } }
     @media (max-width: 1040px) {
       #rbtools-account-overview .acct-tab-panel { grid-template-columns: 1fr; }
+      #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: 1fr; }
     }
     @media (max-width: 760px) {
       #rbtools-account-overview .acct-profile-header { align-items: flex-start; flex-wrap: wrap; }
       #rbtools-account-overview .acct-tab-panel { grid-template-columns: 1fr; }
       #rbtools-account-overview .acct-tabs { flex-direction: column; }
+      #rbtools-account-overview .acct-referral-balance-grid { grid-template-columns: 1fr; }
+      #rbtools-account-overview .acct-referral-link-row { flex-direction: column; }
     }
   </style>
   <link rel="stylesheet" href="./mobile-overrides.css">
@@ -1297,6 +1315,7 @@
               <div class="acct-tabs" role="tablist" aria-label="Account sections">
                 <button class="acct-tab is-active" type="button" role="tab" aria-selected="true" data-account-tab="settings">Account Settings</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="billing">Payments &amp; Billing</button>
+                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="referrals">Referrals &amp; Earnings</button>
               </div>
 
               <div class="acct-grid">
@@ -1476,6 +1495,34 @@
                       <button id="acctDeleteAccountButton" class="acct-button danger" type="button">Delete Account</button>
                     </div>
                     <div id="acctDangerStatus" class="acct-status"></div>
+                  </section>
+                </div>
+
+                <div class="acct-stack">
+                  <section class="acct-block acct-referral-hero" data-account-section="referrals">
+                    <div class="acct-section-kicker">Referral Program</div>
+                    <h3 class="acct-section-title">Share &amp; earn 5%</h3>
+                    <p class="acct-section-copy">Share your link. If a new member buys through it, you earn 5%. Earnings unlock after 14 days.</p>
+                    <div class="acct-referral-balance-grid">
+                      <div><span>Available</span><strong id="acctReferralAvailable">$0.00</strong></div>
+                      <div><span>Pending</span><strong id="acctReferralPending">$0.00</strong></div>
+                      <div><span>Paid out</span><strong id="acctReferralPaid">$0.00</strong></div>
+                    </div>
+                    <div class="acct-field-label">Your referral link</div>
+                    <div class="acct-referral-link-row"><input id="acctReferralLink" class="acct-input" type="text" readonly value="Loading your link..."><button id="acctReferralCopyButton" class="acct-button secondary" type="button">Copy</button></div>
+                    <div class="acct-actions"><button id="acctReferralPayoutButton" class="acct-button plans" type="button" disabled>Withdraw earnings</button></div>
+                    <div id="acctReferralStatus" class="acct-status">Loading referral program...</div>
+                  </section>
+
+                  <section class="acct-block" data-account-section="referrals">
+                    <div class="acct-section-kicker">Payouts</div>
+                    <h3 class="acct-section-title">Withdrawal history</h3>
+                    <p class="acct-section-copy">Withdraw when your available balance reaches $10.00. We review each request before sending payment.</p>
+                    <div class="acct-info-grid">
+                      <div class="acct-pill-card"><div class="acct-pill-label">Members referred</div><div id="acctReferralMembers" class="acct-pill-value">0</div></div>
+                      <div class="acct-pill-card"><div class="acct-pill-label">In review</div><div id="acctReferralRequested" class="acct-pill-value">$0.00</div></div>
+                    </div>
+                    <div id="acctReferralRequestList" class="acct-referral-request-list"><div class="acct-referral-empty">No payout requests yet.</div></div>
                   </section>
                 </div>
               </div>
@@ -1727,7 +1774,17 @@
         acctDeleteModal: document.getElementById("acctDeleteModal"),
         acctDeleteTimer: document.getElementById("acctDeleteTimer"),
         acctDeleteCancelButton: document.getElementById("acctDeleteCancelButton"),
-        acctDeleteConfirmButton: document.getElementById("acctDeleteConfirmButton")
+        acctDeleteConfirmButton: document.getElementById("acctDeleteConfirmButton"),
+        acctReferralAvailable: document.getElementById("acctReferralAvailable"),
+        acctReferralPending: document.getElementById("acctReferralPending"),
+        acctReferralPaid: document.getElementById("acctReferralPaid"),
+        acctReferralRequested: document.getElementById("acctReferralRequested"),
+        acctReferralMembers: document.getElementById("acctReferralMembers"),
+        acctReferralLink: document.getElementById("acctReferralLink"),
+        acctReferralCopyButton: document.getElementById("acctReferralCopyButton"),
+        acctReferralPayoutButton: document.getElementById("acctReferralPayoutButton"),
+        acctReferralStatus: document.getElementById("acctReferralStatus"),
+        acctReferralRequestList: document.getElementById("acctReferralRequestList")
       };
 
       function setStatus(element, message, tone) {
@@ -1934,6 +1991,62 @@
         return payload;
       }
 
+      function formatReferralMoney(cents) {
+        return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((Number(cents) || 0) / 100);
+      }
+
+      function renderReferralDashboard(referral) {
+        if (!referral) return;
+        els.acctReferralAvailable.textContent = formatReferralMoney(referral.availableCents);
+        els.acctReferralPending.textContent = formatReferralMoney(referral.pendingCents);
+        els.acctReferralPaid.textContent = formatReferralMoney(referral.paidCents);
+        els.acctReferralRequested.textContent = formatReferralMoney(referral.requestedCents);
+        els.acctReferralMembers.textContent = String(referral.referredMembers || 0);
+        els.acctReferralLink.value = referral.link || "";
+        els.acctReferralPayoutButton.disabled = Number(referral.availableCents || 0) < Number(referral.minimumPayoutCents || 1000);
+        var requests = Array.isArray(referral.payoutRequests) ? referral.payoutRequests : [];
+        els.acctReferralRequestList.innerHTML = requests.length
+          ? requests.map(function (request) { var date = new Date(request.createdAt || ""); return '<div class="acct-referral-request"><strong>' + formatReferralMoney(request.amountCents) + '</strong> - ' + String(request.status || 'in review') + '<br><span>' + (Number.isNaN(date.getTime()) ? 'Withdrawal request' : date.toLocaleDateString()) + '</span></div>'; }).join("")
+          : '<div class="acct-referral-empty">Your withdrawal history will appear here.</div>';
+      }
+
+      async function loadReferralDashboard() {
+        if (!state.user || !state.user.id) return;
+        try {
+          var payload = await apiRequest("/referrals/me", { method: "GET" });
+          renderReferralDashboard(payload && payload.referral);
+          setStatus(els.acctReferralStatus, "Your earnings are held for 14 days before they become available.", "");
+        } catch (error) {
+          setStatus(els.acctReferralStatus, error.message || "Could not load referral details.", "error");
+        }
+      }
+
+      async function requestReferralPayout() {
+        els.acctReferralPayoutButton.disabled = true;
+        setStatus(els.acctReferralStatus, "Sending your payout request for review...", "");
+        try {
+          var payload = await apiRequest("/referrals/request-payout", { method: "POST" });
+          renderReferralDashboard(payload && payload.referral);
+          setStatus(els.acctReferralStatus, "Withdrawal requested. We will review it before sending payment.", "success");
+        } catch (error) {
+          setStatus(els.acctReferralStatus, error.message || "Could not request a payout.", "error");
+          await loadReferralDashboard();
+        }
+      }
+
+      async function copyReferralLink() {
+        var value = String(els.acctReferralLink.value || "");
+        if (!value) return;
+        try {
+          await navigator.clipboard.writeText(value);
+          setStatus(els.acctReferralStatus, "Referral link copied. Share it with new RBLXTools members.", "success");
+        } catch (_error) {
+          els.acctReferralLink.focus();
+          els.acctReferralLink.select();
+          setStatus(els.acctReferralStatus, "Select and copy the referral link above.", "");
+        }
+      }
+
       async function loadCheckoutSummary() {
         if (state.checkoutStatus !== "success") {
           return null;
@@ -2121,6 +2234,7 @@
 
             var loadedUser = result.user || null;
             renderUser(loadedUser);
+            loadReferralDashboard();
             var checkoutSummary = await loadCheckoutSummary();
             if (state.checkoutStatus === "success") {
               dispatchCheckoutCelebration(checkoutSummary, loadedUser);
@@ -2524,7 +2638,7 @@
         if (!grid || !tabs.length || grid.dataset.tabsReady === "true") return;
 
         var panels = {};
-        ["settings", "billing"].forEach(function (name) {
+        ["settings", "billing", "referrals"].forEach(function (name) {
           var panel = document.createElement("div");
           panel.className = "acct-tab-panel";
           panel.dataset.accountPanel = name;
@@ -2554,6 +2668,8 @@
         tabs.forEach(function (tab) {
           tab.addEventListener("click", function () { selectTab(tab.dataset.accountTab); });
         });
+        var requestedTab = new URLSearchParams(window.location.search || "").get("tab");
+        selectTab(requestedTab === "referrals" || requestedTab === "billing" ? requestedTab : "settings");
       }
 
       setupAccountTabs();
@@ -2574,6 +2690,8 @@
       if (els.acctOpenPlansButton) {
         els.acctOpenPlansButton.addEventListener("click", function () { redirectTop(PLANS_PAGE_URL); });
       }
+      if (els.acctReferralCopyButton) els.acctReferralCopyButton.addEventListener("click", copyReferralLink);
+      if (els.acctReferralPayoutButton) els.acctReferralPayoutButton.addEventListener("click", requestReferralPayout);
       if (els.acctChangePasswordButton) {
         els.acctChangePasswordButton.addEventListener("click", openChangePasswordModal);
       }
