@@ -1577,6 +1577,7 @@
             buildAuthMarkup() +
           "</div>" +
         "</header>" +
+        '<nav class="rblx-shell-tabs" id="rblxShellTabs" aria-label="Workspace tabs"></nav>' +
         '<div class="rblx-shell-body">' +
           '<aside class="rblx-shell-left">' +
             '<div class="rblx-shell-left-inner">' +
@@ -4614,6 +4615,41 @@
     window.setInterval(sync, 1000);
   }
 
+  function initWorkspaceTabs() {
+    var host = document.getElementById("rblxShellTabs");
+    if (!host) return;
+    var pages = [
+      { href: "./index", label: "Home" }, { href: "./template-downloader", label: "Clothing" },
+      { href: "./template-background-changer", label: "Background Changer" }, { href: "./ugc-downloader", label: "UGC" },
+      { href: "./media-downloader", label: "Media" }, { href: "./audio-downloader", label: "Audio" },
+      { href: "./robux-calculator", label: "Robux Calculator" }, { href: "./animation-spoofer", label: "Animations" },
+      { href: "./ai-clothing-studio", label: "AI Clothing Studio" }, { href: "./ai-thumbnail-studio", label: "AI Thumbnail Studio" },
+      { href: "./ai-tokens", label: "AI Tokens" }, { href: "./subscriptions", label: "Subscriptions" },
+      { href: "./community", label: "Community" }, { href: "./game-launcher", label: "Game Launcher" },
+      { href: "./account-overview", label: "Account" }, { href: "./login", label: "Log In" }, { href: "./signup", label: "Sign Up" },
+      { href: "./about-us", label: "About Us" }, { href: "./privacy-policy", label: "Privacy Policy" }, { href: "./terms-and-conditions", label: "Terms & Conditions" }
+    ];
+    var currentPath = String(window.location.pathname || "").split("/").pop().replace(/\.html$/i, "") || "index";
+    function normalize(href) { return String(href || "").replace(/^\.\//, "").replace(/\.html$/i, ""); }
+    var currentPage = pages.filter(function (page) { return normalize(page.href) === currentPath; })[0] || { href: "./" + currentPath, label: document.title.replace(/\s*-\s*RBLXTools.*/i, "") || "RBLXTools" };
+    var state = { tabs: [], activeId: "" };
+    try { state = JSON.parse(sessionStorage.getItem("rblxtools_workspace_tabs") || "null") || state; } catch (_error) {}
+    if (!Array.isArray(state.tabs)) state.tabs = [];
+    var active = state.tabs.filter(function (tab) { return normalize(tab.href) === currentPath; })[0];
+    if (!active) { active = { id: "tab-" + Date.now(), href: currentPage.href, label: currentPage.label }; state.tabs.push(active); }
+    state.activeId = active.id;
+    function save() { try { sessionStorage.setItem("rblxtools_workspace_tabs", JSON.stringify(state)); } catch (_error) {} }
+    function draw() {
+      host.innerHTML = '<div class="rblx-shell-tabs-scroll">' + state.tabs.map(function (tab) { return '<button type="button" class="rblx-shell-tab' + (tab.id === state.activeId ? ' is-active' : '') + '" data-rblx-tab-id="' + tab.id + '"><span>' + tab.label + '</span>' + (state.tabs.length > 1 ? '<i data-rblx-tab-close="' + tab.id + '" aria-label="Close ' + tab.label + '">×</i>' : '') + '</button>'; }).join('') + '</div><div class="rblx-shell-tabs-add"><button type="button" class="rblx-shell-tab-add" aria-label="Open another page" aria-expanded="false">+</button><div class="rblx-shell-tab-picker" hidden><strong>Open a page</strong><div>' + pages.map(function (page) { return '<button type="button" data-rblx-tab-page="' + page.href + '">' + page.label + '</button>'; }).join('') + '</div></div></div>';
+      Array.prototype.forEach.call(host.querySelectorAll("[data-rblx-tab-id]"), function (button) { button.addEventListener("click", function (event) { if (event.target.closest("[data-rblx-tab-close]")) return; var tab = state.tabs.filter(function (item) { return item.id === button.getAttribute("data-rblx-tab-id"); })[0]; if (tab) { state.activeId = tab.id; save(); window.location.href = tab.href; } }); });
+      Array.prototype.forEach.call(host.querySelectorAll("[data-rblx-tab-close]"), function (button) { button.addEventListener("click", function (event) { event.stopPropagation(); var id = button.getAttribute("data-rblx-tab-close"); var closingActive = id === state.activeId; state.tabs = state.tabs.filter(function (tab) { return tab.id !== id; }); var next = state.tabs[Math.max(0, state.tabs.length - 1)]; if (closingActive && next) { state.activeId = next.id; save(); window.location.href = next.href; return; } save(); draw(); }); });
+      var add = host.querySelector(".rblx-shell-tab-add"); var picker = host.querySelector(".rblx-shell-tab-picker");
+      add.addEventListener("click", function () { picker.hidden = !picker.hidden; add.setAttribute("aria-expanded", String(!picker.hidden)); });
+      Array.prototype.forEach.call(host.querySelectorAll("[data-rblx-tab-page]"), function (button) { button.addEventListener("click", function () { var href = button.getAttribute("data-rblx-tab-page"); var page = pages.filter(function (item) { return item.href === href; })[0]; var tab = state.tabs.filter(function (item) { return item.href === href; })[0]; if (!tab) { tab = { id: "tab-" + Date.now(), href: href, label: page.label }; state.tabs.push(tab); } state.activeId = tab.id; save(); window.location.href = href; }); });
+    }
+    save(); draw();
+  }
+
   function removePageFaqs(pageHost) {
     if (!pageHost) return;
     var sections = Array.prototype.slice.call(pageHost.querySelectorAll("section"));
@@ -4816,6 +4852,7 @@
     initMembershipTextTreatment();
     initMembershipPromoRotation();
     initSidebarPlanRotation();
+    initWorkspaceTabs();
     mountDesktopShellBoxAds();
     window.addEventListener("resize", mountDesktopShellBoxAds, { passive: true });
     initAnimationMembershipGate();
