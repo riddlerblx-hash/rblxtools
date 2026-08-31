@@ -6156,6 +6156,8 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
     const isPro = isProMember(user);
+    const membership = await resolveMembershipSnapshot(user);
+    const canSaveThumbnailHistory = membership.premiumActive;
     const aiTokens = await debitAITokens(user.id, AI_THUMBNAIL_TOKEN_COST);
     let result;
     try {
@@ -6177,15 +6179,17 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
     const imageDataUrl = `data:${result.outputMime};base64,${result.outputBase64}`;
     const downloadFileName = `rblxtools-ai-thumbnail-${timestamp}.png`;
     let historyItem = null;
-    try {
-      historyItem = await saveAIThumbnailHistory(user.id, {
-        prompt: req.body?.prompt,
-        references: req.body?.references,
-        imageDataUrl,
-        downloadFileName,
-      });
-    } catch (historyError) {
-      console.warn("Could not save AI thumbnail history:", historyError.message);
+    if (canSaveThumbnailHistory) {
+      try {
+        historyItem = await saveAIThumbnailHistory(user.id, {
+          prompt: req.body?.prompt,
+          references: req.body?.references,
+          imageDataUrl,
+          downloadFileName,
+        });
+      } catch (historyError) {
+        console.warn("Could not save AI thumbnail history:", historyError.message);
+      }
     }
     return res.json({
       ok: true,
@@ -6198,6 +6202,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
       imageDataUrl,
       downloadFileName,
       historyItem,
+      historyEnabled: canSaveThumbnailHistory,
       isPro,
     });
   } catch (error) {
@@ -6211,7 +6216,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
 
 app.get("/ai/thumbnail-history", async (req, res) => {
   try {
-    const user = await requireAuthenticatedUser(req);
+    const user = await requireActivePlusUser(req);
     const retentionCutoff = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)).toISOString();
     const localItems = getPersistentAIThumbnailHistory(user.id);
     // History is account-owned and retained for 30 days. Remove expired rows
@@ -6244,7 +6249,7 @@ app.get("/ai/thumbnail-history", async (req, res) => {
 
 app.patch("/ai/thumbnail-history/:historyId", async (req, res) => {
   try {
-    const user = await requireAuthenticatedUser(req);
+    const user = await requireActivePlusUser(req);
     const historyId = String(req.params.historyId || "").trim();
     const requestedFeedback = String(req.body?.feedback || "");
     const hasFeedback = ["like", "dislike"].includes(requestedFeedback);
@@ -6277,7 +6282,7 @@ app.patch("/ai/thumbnail-history/:historyId", async (req, res) => {
 
 app.delete("/ai/thumbnail-history/:historyId", async (req, res) => {
   try {
-    const user = await requireAuthenticatedUser(req);
+    const user = await requireActivePlusUser(req);
     const historyId = String(req.params.historyId || "").trim();
     if (!historyId) return res.status(400).json({ error: "A history item is required." });
     await supabaseRequest(
