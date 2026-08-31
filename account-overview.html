@@ -1878,6 +1878,18 @@
         els.acctCard.style.display = "block";
       }
 
+      function openAccountAuthModal() {
+        if (window.RBLXToolsAuthModal && typeof window.RBLXToolsAuthModal.open === "function") {
+          window.RBLXToolsAuthModal.open({
+            mode: "login",
+            returnTo: window.location.href,
+            message: "Log in or create an account to view your RBLXTools account overview."
+          });
+          return true;
+        }
+        return false;
+      }
+
       function getInitials(value) {
         var text = String(value || "").trim();
         if (!text) return "R";
@@ -2249,6 +2261,7 @@
           renderUser(null);
           setGateVisible(true);
           setStatus(els.acctGateStatus, error.message || "You need an account to access account overview.", "error");
+          if (error.status === 401 || error.status === 403) openAccountAuthModal();
         }
       }
 
@@ -2792,7 +2805,7 @@
         });
       });
       els.acctDropzone.addEventListener("drop", handleDrop);
-      els.acctGateLoginButton.addEventListener("click", function () { redirectTop(LOGIN_PAGE_URL); });
+      els.acctGateLoginButton.addEventListener("click", function () { if (!openAccountAuthModal()) redirectTop(LOGIN_PAGE_URL); });
       els.acctGatePlansButton.addEventListener("click", function () { redirectTop(PLANS_PAGE_URL); });
 
       loadCurrentUser();
