@@ -3692,11 +3692,6 @@
     statusText.textContent = state.message;
     applyPlanAtmosphere(state.plan);
     shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : null };
-    dispatchMembershipUpdate({
-      user: shellState.currentUser,
-      plan: shellState.currentUser.plan,
-      premiumActive: shellState.currentUser.plan === "plus" || shellState.currentUser.plan === "pro"
-    });
     syncAdsterraPopunderForMember(state);
     syncMemberAdVisibility(state);
     var tokenBanner = document.getElementById("rblxShellTokenBanner");
@@ -4619,129 +4614,6 @@
     window.setInterval(sync, 1000);
   }
 
-  function initProPageEditor() {
-    var currentPath = String(window.location.pathname || "").split("/").pop().replace(/\.html$/i, "") || "index";
-    var tools = [
-      { href: "./template-downloader", key: "template-downloader", label: "Clothing" },
-      { href: "./template-background-changer", key: "template-background-changer", label: "Background Changer" },
-      { href: "./ugc-downloader", key: "ugc-downloader", label: "UGC" },
-      { href: "./media-downloader", key: "media-downloader", label: "Media" },
-      { href: "./audio-downloader", key: "audio-downloader", label: "Audio" },
-      { href: "./animation-spoofer", key: "animation-spoofer", label: "Animations" },
-      { href: "./ai-thumbnail-studio", key: "ai-thumbnail-studio", label: "AI Thumbnail Studio" }
-    ];
-    if (!tools.some(function (tool) { return tool.key === currentPath; })) return;
-    var pageHost = document.getElementById("rblxShellPage");
-    var center = pageHost && pageHost.parentElement;
-    if (!pageHost || !center || document.getElementById("rblxProPageEditor")) return;
-
-    var slotSpecs = [
-      { id: "tutorial", label: "Video tutorial", selector: ".side-stack > .promo-card, .promo-card" },
-      { id: "promo", label: "Membership promo", selector: ".side-stack > .plus-card, .plus-card" },
-      { id: "other-tools", label: "Other tools", selector: ".showcase-card" },
-      { id: "share", label: "Share this tool", selector: ".share-card" },
-      { id: "thumbnail-workspace", label: "Thumbnail workspace", selector: ".prompt-card" }
-    ];
-    var slots = slotSpecs.map(function (spec) {
-      return { spec: spec, element: pageHost.querySelector(spec.selector) };
-    }).filter(function (slot) { return Boolean(slot.element); });
-    if (!slots.length) return;
-
-    var storageKey = "rblxtools_pro_page_layout_v1_" + currentPath;
-    var layout = {};
-    try { layout = JSON.parse(localStorage.getItem(storageKey) || "{}") || {}; } catch (_error) {}
-    var isEditing = false;
-
-    var control = document.createElement("div");
-    control.className = "rblx-pro-page-editor";
-    control.id = "rblxProPageEditor";
-    control.hidden = true;
-    control.innerHTML = '<button type="button" class="rblx-pro-page-editor-trigger" aria-pressed="false">Edit Page <span>Pro</span></button>';
-    pageHost.insertBefore(control, pageHost.firstChild);
-
-    var trigger = control.querySelector(".rblx-pro-page-editor-trigger");
-    function saveLayout() { try { localStorage.setItem(storageKey, JSON.stringify(layout)); } catch (_error) {} }
-    function getTool(key) { return tools.filter(function (tool) { return tool.key === key; })[0] || null; }
-    function setSlot(slot, value) {
-      if (value) layout[slot.spec.id] = value;
-      else delete layout[slot.spec.id];
-      saveLayout();
-      renderSlot(slot);
-    }
-    function makeWidget(tool, slot) {
-      var widget = document.createElement("section");
-      widget.className = "rblx-pro-tool-widget";
-      widget.innerHTML = '<span>Pro tool widget</span><h3>' + tool.label + '</h3><p>Add this tool to your custom workspace and jump back into it whenever you need it.</p><a href="' + tool.href + '">Open ' + tool.label + '</a><button type="button">Change widget</button>';
-      widget.querySelector("button").addEventListener("click", function () { setSlot(slot, { type: "empty" }); });
-      return widget;
-    }
-    function makeEditorControls(slot) {
-      var controls = document.createElement("div");
-      controls.className = "rblx-pro-slot-controls";
-      var value = layout[slot.spec.id];
-      if (value && value.type === "tool") {
-        controls.innerHTML = '<span>' + slot.spec.label + '</span><button type="button" data-action="restore">Restore</button><button type="button" data-action="change">Change</button>';
-      } else if (value && value.type === "empty") {
-        controls.innerHTML = '<span>' + slot.spec.label + '</span><button type="button" class="rblx-pro-slot-add" data-action="add">+</button>';
-      } else {
-        controls.innerHTML = '<span>' + slot.spec.label + '</span><button type="button" data-action="remove">Remove</button>';
-      }
-      controls.addEventListener("click", function (event) {
-        var button = event.target.closest("button[data-action]");
-        if (!button) return;
-        var action = button.getAttribute("data-action");
-        if (action === "restore") setSlot(slot, null);
-        if (action === "remove") setSlot(slot, { type: "empty" });
-        if (action === "add" || action === "change") showPicker(slot, controls);
-      });
-      return controls;
-    }
-    function showPicker(slot, controls) {
-      var oldPicker = slot.element.querySelector(".rblx-pro-slot-picker");
-      if (oldPicker) { oldPicker.remove(); return; }
-      var picker = document.createElement("div");
-      picker.className = "rblx-pro-slot-picker";
-      picker.innerHTML = '<strong>Add a tool widget</strong><p>This replaces only this page slot.</p><div>' + tools.filter(function (tool) { return tool.key !== currentPath; }).map(function (tool) { return '<button type="button" data-rblx-slot-tool="' + tool.key + '">' + tool.label + '</button>'; }).join("") + '</div>';
-      controls.appendChild(picker);
-      Array.prototype.forEach.call(picker.querySelectorAll("[data-rblx-slot-tool]"), function (button) {
-        button.addEventListener("click", function () { setSlot(slot, { type: "tool", key: button.getAttribute("data-rblx-slot-tool") }); });
-      });
-    }
-    function renderSlot(slot) {
-      var element = slot.element;
-      var value = layout[slot.spec.id];
-      Array.prototype.forEach.call(element.querySelectorAll(":scope > .rblx-pro-tool-widget, :scope > .rblx-pro-slot-controls"), function (node) { node.remove(); });
-      element.classList.add("rblx-pro-page-slot");
-      element.classList.remove("is-slot-empty", "is-slot-widget", "is-slot-editing");
-      if (value && value.type === "tool" && getTool(value.key)) {
-        element.classList.add("is-slot-widget");
-        element.appendChild(makeWidget(getTool(value.key), slot));
-      } else if (value && value.type === "empty") {
-        element.classList.add("is-slot-empty");
-      }
-      if (isEditing) {
-        element.classList.add("is-slot-editing");
-        element.appendChild(makeEditorControls(slot));
-      }
-    }
-    function renderAll() { slots.forEach(renderSlot); }
-    trigger.addEventListener("click", function () {
-      isEditing = !isEditing;
-      trigger.classList.toggle("is-active", isEditing);
-      trigger.setAttribute("aria-pressed", String(isEditing));
-      trigger.firstChild.nodeValue = isEditing ? "Done Editing " : "Edit Page ";
-      renderAll();
-    });
-    function syncEditorVisibility(state) {
-      var plan = String(state && state.plan || shellState.currentUser && shellState.currentUser.plan || "").toLowerCase();
-      control.hidden = plan !== "pro" && !document.body.classList.contains("rblx-shell-pro-user");
-      if (control.hidden && isEditing) { isEditing = false; renderAll(); }
-    }
-    window.addEventListener("rblxtools-membership-updated", function (event) { syncEditorVisibility(event && event.detail); });
-    syncEditorVisibility(shellState.currentUser);
-    renderAll();
-  }
-
   function removePageFaqs(pageHost) {
     if (!pageHost) return;
     var sections = Array.prototype.slice.call(pageHost.querySelectorAll("section"));
@@ -4944,7 +4816,6 @@
     initMembershipTextTreatment();
     initMembershipPromoRotation();
     initSidebarPlanRotation();
-    initProPageEditor();
     mountDesktopShellBoxAds();
     window.addEventListener("resize", mountDesktopShellBoxAds, { passive: true });
     initAnimationMembershipGate();
