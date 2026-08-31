@@ -963,6 +963,21 @@ body.rblx-pro-ad-free [data-rblx-modal-ad] {
   gap: 10px;
 }
 
+.rblx-pro-tool-widget { position:fixed; z-index:90; right:22px; bottom:22px; }
+.rblx-pro-tool-widget-launch { min-height:42px; padding:0 14px; border:1px solid rgba(255,211,106,.58); border-radius:12px; color:#fff2c7; background:linear-gradient(135deg,#765313,#2b1c05); box-shadow:0 12px 28px rgba(0,0,0,.35); font:900 12px/1 Arial,sans-serif; cursor:pointer; }
+.rblx-pro-tool-widget-panel { width:min(520px,calc(100vw - 36px)); height:min(680px,calc(100vh - 110px)); margin:0 0 10px auto; overflow:hidden; border:1px solid rgba(255,211,106,.45); border-radius:18px; background:#07101c; box-shadow:0 24px 70px rgba(0,0,0,.52); }
+.rblx-pro-tool-widget-panel header { display:flex; align-items:center; justify-content:space-between; padding:12px 14px 8px; background:linear-gradient(135deg,rgba(112,77,16,.68),rgba(18,28,43,.96)); }
+.rblx-pro-tool-widget-panel header small { display:block; color:#ffe29a; font-size:9px; font-weight:900; letter-spacing:.12em; }
+.rblx-pro-tool-widget-panel header strong { color:#fff; font-size:15px; }
+.rblx-pro-tool-widget-close { width:30px; height:30px; border:1px solid rgba(255,255,255,.16); border-radius:9px; color:#fff; background:rgba(255,255,255,.08); font-size:20px; cursor:pointer; }
+.rblx-pro-tool-widget-panel label { display:grid; gap:5px; padding:10px 14px; color:#b9c7da; font-size:10px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+.rblx-pro-tool-widget-panel select { width:100%; padding:9px 10px; border:1px solid rgba(255,211,106,.28); border-radius:9px; color:#eef5ff; background:#101b2d; font:800 12px Arial,sans-serif; }
+.rblx-pro-tool-widget-panel iframe { display:block; width:100%; height:calc(100% - 112px); border:0; background:#08101c; }
+body.rblx-tool-widget-frame .rblx-shell-header,body.rblx-tool-widget-frame .rblx-shell-left,body.rblx-tool-widget-frame .rblx-shell-right,body.rblx-tool-widget-frame .rblx-shell-footer,body.rblx-tool-widget-frame .rblx-pro-tool-widget { display:none !important; }
+body.rblx-tool-widget-frame .rblx-shell-body { display:block; min-height:0; }
+body.rblx-tool-widget-frame .rblx-shell-center,body.rblx-tool-widget-frame #rblxShellPage { min-width:0; padding:0; }
+@media (max-width:700px) { .rblx-pro-tool-widget { right:12px; bottom:12px; } .rblx-pro-tool-widget-panel { height:min(610px,calc(100vh - 82px)); } }
+
 .rblx-shell-socials a {
   min-height: 40px;
   border-radius: 12px;

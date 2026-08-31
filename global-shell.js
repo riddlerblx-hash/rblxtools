@@ -26,6 +26,7 @@
   var GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
   var AUTH_PENDING_OPEN_KEY = "rblxtools_auth_modal_pending";
   var AUTH_PENDING_MODE_KEY = "rblxtools_auth_modal_pending_mode";
+  var IS_TOOL_WIDGET_FRAME = /(?:^|[?&])widget=1(?:&|$)/.test(String(window.location.search || ""));
   var shellState = {
     chatMessages: [],
     chatList: null,
@@ -291,6 +292,7 @@
       delete host.dataset.rblxVerticalAdMounted;
     });
     if (!hideAds) mountDesktopShellBoxAds();
+    syncProToolWidget(state);
   }
 
   function ensureGoogleAnalyticsSetup() {
@@ -4614,6 +4616,52 @@
     window.setInterval(sync, 1000);
   }
 
+  function getProWidgetTools() {
+    var currentPath = String(window.location.pathname || "").split("/").pop().replace(/\.html$/i, "");
+    return [
+      { key: "template-downloader", label: "Clothing Downloader", href: "./template-downloader" },
+      { key: "template-background-changer", label: "Background Changer", href: "./template-background-changer" },
+      { key: "ugc-downloader", label: "UGC Downloader", href: "./ugc-downloader" },
+      { key: "media-downloader", label: "Media Downloader", href: "./media-downloader" },
+      { key: "audio-downloader", label: "Audio Downloader", href: "./audio-downloader" },
+      { key: "animation-spoofer", label: "Animations", href: "./animation-spoofer" },
+      { key: "ai-clothing-studio", label: "AI Clothing Studio", href: "./ai-clothing-studio" }
+    ].filter(function (tool) { return tool.key !== currentPath; });
+  }
+
+  function syncProToolWidget(state) {
+    if (IS_TOOL_WIDGET_FRAME) return;
+    var existing = document.getElementById("rblxProToolWidget");
+    if (!isProMember(state)) { if (existing) existing.remove(); return; }
+    if (existing) return;
+    var tools = getProWidgetTools();
+    if (!tools.length) return;
+    var savedKey = ""; try { savedKey = sessionStorage.getItem("rblxtools_pro_tool_widget") || ""; } catch (_error) {}
+    var selected = tools.filter(function (tool) { return tool.key === savedKey; })[0] || tools[0];
+    var host = document.createElement("section");
+    host.id = "rblxProToolWidget";
+    host.className = "rblx-pro-tool-widget";
+    host.innerHTML = '<button class="rblx-pro-tool-widget-launch" type="button" aria-expanded="false">+ Tool widget</button><div class="rblx-pro-tool-widget-panel" hidden><header><div><small>PRO WORKSPACE</small><strong>Second tool</strong></div><button type="button" class="rblx-pro-tool-widget-close" aria-label="Close tool widget">×</button></header><label>Choose a tool<select></select></label><iframe title="Pro tool widget" loading="lazy"></iframe></div>';
+    document.body.appendChild(host);
+    var launch = host.querySelector(".rblx-pro-tool-widget-launch");
+    var panel = host.querySelector(".rblx-pro-tool-widget-panel");
+    var close = host.querySelector(".rblx-pro-tool-widget-close");
+    var select = host.querySelector("select");
+    var frame = host.querySelector("iframe");
+    tools.forEach(function (tool) { var option = document.createElement("option"); option.value = tool.key; option.textContent = tool.label; select.appendChild(option); });
+    function loadTool(key) {
+      var tool = tools.filter(function (item) { return item.key === key; })[0] || tools[0];
+      select.value = tool.key;
+      frame.src = tool.href + "?widget=1";
+      try { sessionStorage.setItem("rblxtools_pro_tool_widget", tool.key); } catch (_error) {}
+    }
+    function setOpen(open) { panel.hidden = !open; host.classList.toggle("is-open", open); launch.setAttribute("aria-expanded", String(open)); if (open && !frame.src) loadTool(select.value); }
+    loadTool(selected.key);
+    launch.addEventListener("click", function () { setOpen(!host.classList.contains("is-open")); });
+    close.addEventListener("click", function () { setOpen(false); });
+    select.addEventListener("change", function () { loadTool(select.value); });
+  }
+
   function removePageFaqs(pageHost) {
     if (!pageHost) return;
     var sections = Array.prototype.slice.call(pageHost.querySelectorAll("section"));
@@ -4794,6 +4842,7 @@
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
+    if (IS_TOOL_WIDGET_FRAME) document.body.classList.add("rblx-tool-widget-frame");
     shellState.renderedCommunityUnreadCount = shellState.communityUnreadCount;
     ensureSitePlusBackdrop();
     applyPlanAtmosphere(initialState.plan);
@@ -4816,6 +4865,7 @@
     initMembershipTextTreatment();
     initMembershipPromoRotation();
     initSidebarPlanRotation();
+    syncProToolWidget(initialState);
     mountDesktopShellBoxAds();
     window.addEventListener("resize", mountDesktopShellBoxAds, { passive: true });
     initAnimationMembershipGate();
