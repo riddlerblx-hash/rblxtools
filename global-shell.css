@@ -2568,6 +2568,8 @@ body.rblx-shell-modal-open {
 .rblx-shell-reward-feedback-field textarea:focus { border-color: rgba(93, 215, 255, .6); box-shadow: 0 0 0 3px rgba(56, 230, 224, .1); }
 .rblx-shell-reward-feedback-status { min-height: 16px; margin: 0; color: #b7c8df; font-size: 11px; font-weight: 750; line-height: 1.35; }
 .rblx-shell-reward-feedback-submit { width: 100%; justify-content: center; min-height: 42px; color: #dffcff; background: rgba(56, 230, 224, .13); border-color: rgba(56, 230, 224, .32); }
+.rblx-shell-reward-feedback-thanks { display:grid; min-height:170px; place-items:center; margin:18px 0 0; padding:24px; border:1px solid rgba(94, 242, 154, .35); border-radius:17px; color:#9cffbd; background:rgba(38, 177, 91, .09); font-size:15px; font-weight:900; line-height:1.4; text-align:center; }
+.rblx-shell-reward-feedback-thanks[hidden] { display:none; }
 
 @media (max-width: 640px) {
   .rblx-shell-membership-gate-card,

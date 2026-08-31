@@ -1693,7 +1693,7 @@
             '<div class="rblx-shell-reward-note"><span>Moderator note</span><p id="rblxShellRewardNote"></p></div>' +
             '<p class="rblx-shell-reward-wait" id="rblxShellRewardWait">Please take a moment to read this note.</p>' +
             '<button class="rblx-shell-btn is-primary rblx-shell-reward-claim" type="button" id="rblxShellRewardClaim" disabled>Claim reward</button>' +
-            '<section class="rblx-shell-reward-feedback" id="rblxShellRewardFeedback" hidden><div class="rblx-shell-reward-feedback-head"><strong>Enjoying RBLXTools?</strong><span>Write a review</span></div><div class="rblx-shell-reward-stars" id="rblxShellRewardStars" role="radiogroup" aria-label="Rate RBLXTools from 1 to 5 stars"><button type="button" data-reward-rating="1" aria-label="1 star">★</button><button type="button" data-reward-rating="2" aria-label="2 stars">★</button><button type="button" data-reward-rating="3" aria-label="3 stars">★</button><button type="button" data-reward-rating="4" aria-label="4 stars">★</button><button type="button" data-reward-rating="5" aria-label="5 stars">★</button></div><label class="rblx-shell-reward-feedback-field"><span>Review title</span><input id="rblxShellRewardFeedbackTitle" type="text" maxlength="140" placeholder="What stood out?" /></label><label class="rblx-shell-reward-feedback-field"><span>Review</span><textarea id="rblxShellRewardFeedbackBody" maxlength="1200" placeholder="Tell us what you like or what we should improve."></textarea></label><p class="rblx-shell-reward-feedback-status" id="rblxShellRewardFeedbackStatus" aria-live="polite"></p><button class="rblx-shell-btn rblx-shell-reward-feedback-submit" type="button" id="rblxShellRewardFeedbackSubmit">Post feedback</button></section>' +
+            '<section class="rblx-shell-reward-feedback" id="rblxShellRewardFeedback" hidden><div class="rblx-shell-reward-feedback-head"><strong>Enjoying RBLXTools?</strong><span>Write a review</span></div><div class="rblx-shell-reward-stars" id="rblxShellRewardStars" role="radiogroup" aria-label="Rate RBLXTools from 1 to 5 stars"><button type="button" data-reward-rating="1" aria-label="1 star">★</button><button type="button" data-reward-rating="2" aria-label="2 stars">★</button><button type="button" data-reward-rating="3" aria-label="3 stars">★</button><button type="button" data-reward-rating="4" aria-label="4 stars">★</button><button type="button" data-reward-rating="5" aria-label="5 stars">★</button></div><label class="rblx-shell-reward-feedback-field"><span>Review title</span><input id="rblxShellRewardFeedbackTitle" type="text" maxlength="140" placeholder="What stood out?" /></label><label class="rblx-shell-reward-feedback-field"><span>Review</span><textarea id="rblxShellRewardFeedbackBody" maxlength="1200" placeholder="Tell us what you like or what we should improve."></textarea></label><p class="rblx-shell-reward-feedback-status" id="rblxShellRewardFeedbackStatus" aria-live="polite"></p><button class="rblx-shell-btn rblx-shell-reward-feedback-submit" type="button" id="rblxShellRewardFeedbackSubmit">Post feedback</button></section><p class="rblx-shell-reward-feedback-thanks" id="rblxShellRewardFeedbackThanks" hidden aria-live="polite">Your feedback has been documented. Thank you!</p>' +
           '</div>' +
           buildModalAdRailsMarkup() +
         '</div>' +
@@ -4428,13 +4428,13 @@
       subtitle: "With code PROCREATOR",
       title: "Pro",
       action: actionLabel || "Try Now",
-      perks: ["20 AI Credits Every Month", "Includes All Plus Benefits", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1440p - 4K AI Thumbnail Quality", "Premium Giveaways", "Custom Chat Tag", "Premium Looking Website Included"]
+      perks: ["20 AI Credits Every Month", "Includes All Plus Benefits", "30 Saved Thumbnail Chats", "No Annoying Ads", "Bulk Downloads (5-10)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1440p - 4K AI Thumbnail Quality", "Premium Giveaways", "Custom Chat Tag", "Premium Looking Website Included"]
     } : {
       price: "$1.00",
       subtitle: "Monthly membership",
       title: "Plus",
       action: actionLabel || "Try Now",
-      perks: ["Chat Tag Cosmetic", "Animation Tool", "Textured UGCs", "Bulk Downloads (1-5)", "1080p AI Thumbnail Quality", "Premium Looking Website"]
+      perks: ["Chat Tag Cosmetic", "Animation Tool", "Textured UGCs", "10 Saved Thumbnail Chats", "Bulk Downloads (1-5)", "1080p AI Thumbnail Quality", "Premium Looking Website"]
     };
     return [
       '<div class="rblx-membership-promo-floaters ' + (isPro ? 'is-pro' : 'is-plus') + '" aria-hidden="true"><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span></div>',
@@ -4601,7 +4601,8 @@
       title: document.getElementById("rblxShellRewardFeedbackTitle"),
       body: document.getElementById("rblxShellRewardFeedbackBody"),
       status: document.getElementById("rblxShellRewardFeedbackStatus"),
-      submit: document.getElementById("rblxShellRewardFeedbackSubmit")
+      submit: document.getElementById("rblxShellRewardFeedbackSubmit"),
+      thanks: document.getElementById("rblxShellRewardFeedbackThanks")
     };
   }
 
@@ -4622,6 +4623,7 @@
     var nodes = getRewardFeedbackNodes();
     if (!nodes.panel) return;
     nodes.panel.hidden = true;
+    if (nodes.thanks) nodes.thanks.hidden = true;
     if (nodes.title) nodes.title.value = "";
     if (nodes.body) nodes.body.value = "";
     if (nodes.status) nodes.status.textContent = "";
@@ -4666,8 +4668,8 @@
           });
           var submitPayload = await submitResponse.json().catch(function () { return null; });
           if (!submitResponse.ok) throw new Error(submitPayload && submitPayload.error || "Could not post feedback.");
-          if (nodes.status) nodes.status.textContent = "Thanks. Your feedback was posted to the community.";
-          nodes.submit.textContent = "Feedback posted";
+          nodes.panel.hidden = true;
+          if (nodes.thanks) nodes.thanks.hidden = false;
         } catch (error) {
           nodes.submit.disabled = false;
           nodes.submit.textContent = "Post feedback";

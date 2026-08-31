@@ -1093,6 +1093,10 @@ function isPlusPlan(plan) {
   return String(plan || "").trim().toLowerCase() === "plus";
 }
 
+function getAIThumbnailHistoryLimit(membership) {
+  return String(membership?.plan || "").toLowerCase() === "pro" ? 30 : membership?.premiumActive ? 10 : 3;
+}
+
 function getStripeSubscriptionPlan(subscription) {
   const metadataPlan = String(subscription?.metadata?.plan || "").trim().toLowerCase();
   const items = Array.isArray(subscription?.items?.data) ? subscription.items.data : [];
@@ -6157,7 +6161,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const isPro = isProMember(user);
     const membership = await resolveMembershipSnapshot(user);
-    const canSaveThumbnailHistory = membership.premiumActive;
+    const thumbnailHistoryLimit = getAIThumbnailHistoryLimit(membership);
     const aiTokens = await debitAITokens(user.id, AI_THUMBNAIL_TOKEN_COST);
     let result;
     try {
@@ -6179,17 +6183,15 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
     const imageDataUrl = `data:${result.outputMime};base64,${result.outputBase64}`;
     const downloadFileName = `rblxtools-ai-thumbnail-${timestamp}.png`;
     let historyItem = null;
-    if (canSaveThumbnailHistory) {
-      try {
-        historyItem = await saveAIThumbnailHistory(user.id, {
-          prompt: req.body?.prompt,
-          references: req.body?.references,
-          imageDataUrl,
-          downloadFileName,
-        });
-      } catch (historyError) {
-        console.warn("Could not save AI thumbnail history:", historyError.message);
-      }
+    try {
+      historyItem = await saveAIThumbnailHistory(user.id, {
+        prompt: req.body?.prompt,
+        references: req.body?.references,
+        imageDataUrl,
+        downloadFileName,
+      });
+    } catch (historyError) {
+      console.warn("Could not save AI thumbnail history:", historyError.message);
     }
     return res.json({
       ok: true,
@@ -6202,7 +6204,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
       imageDataUrl,
       downloadFileName,
       historyItem,
-      historyEnabled: canSaveThumbnailHistory,
+      historyLimit: thumbnailHistoryLimit,
       isPro,
     });
   } catch (error) {
@@ -6216,7 +6218,8 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
 
 app.get("/ai/thumbnail-history", async (req, res) => {
   try {
-    const user = await requireActivePlusUser(req);
+    const user = await requireAuthenticatedUser(req);
+    const historyLimit = getAIThumbnailHistoryLimit(await resolveMembershipSnapshot(user));
     const retentionCutoff = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)).toISOString();
     const localItems = getPersistentAIThumbnailHistory(user.id);
     // History is account-owned and retained for 30 days. Remove expired rows
@@ -6241,7 +6244,7 @@ app.get("/ai/thumbnail-history", async (req, res) => {
       const key = String(item.id);
       merged.set(key, { ...(merged.get(key) || {}), ...item });
     });
-    return res.json({ ok: true, items: pruneAIThumbnailHistory([...merged.values()]) });
+    return res.json({ ok: true, items: pruneAIThumbnailHistory([...merged.values()]).slice(0, historyLimit), historyLimit });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load thumbnail history." });
   }
@@ -6249,7 +6252,7 @@ app.get("/ai/thumbnail-history", async (req, res) => {
 
 app.patch("/ai/thumbnail-history/:historyId", async (req, res) => {
   try {
-    const user = await requireActivePlusUser(req);
+    const user = await requireAuthenticatedUser(req);
     const historyId = String(req.params.historyId || "").trim();
     const requestedFeedback = String(req.body?.feedback || "");
     const hasFeedback = ["like", "dislike"].includes(requestedFeedback);
@@ -6282,7 +6285,7 @@ app.patch("/ai/thumbnail-history/:historyId", async (req, res) => {
 
 app.delete("/ai/thumbnail-history/:historyId", async (req, res) => {
   try {
-    const user = await requireActivePlusUser(req);
+    const user = await requireAuthenticatedUser(req);
     const historyId = String(req.params.historyId || "").trim();
     if (!historyId) return res.status(400).json({ error: "A history item is required." });
     await supabaseRequest(
@@ -7177,7 +7180,7 @@ app.get("/coupon-status", async (req, res) => {
 
 app.get("/store/ai-token-packages", async (req, res) => {
   try {
-    const user = await requireAuthenticatedUser(req);
+    const user = await requireAuthenticatedUser(req).catch(() => null);
     res.setHeader("Cache-Control", "no-store");
     return res.json({ ok: true, packages: getPublicAITokenPackages(user) });
   } catch (error) {
