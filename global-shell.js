@@ -4639,7 +4639,8 @@
       { id: "tutorial", label: "Video tutorial", selector: ".side-stack > .promo-card, .promo-card" },
       { id: "promo", label: "Membership promo", selector: ".side-stack > .plus-card, .plus-card" },
       { id: "other-tools", label: "Other tools", selector: ".showcase-card" },
-      { id: "share", label: "Share this tool", selector: ".share-card" }
+      { id: "share", label: "Share this tool", selector: ".share-card" },
+      { id: "thumbnail-workspace", label: "Thumbnail workspace", selector: ".prompt-card" }
     ];
     var slots = slotSpecs.map(function (spec) {
       return { spec: spec, element: pageHost.querySelector(spec.selector) };
