@@ -1588,7 +1588,7 @@
               '<div class="rblx-shell-left-foot">' +
                 '<div class="rblx-shell-box-ad" data-rblx-shell-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' +
                 '<div class="rblx-shell-token-banner" id="rblxShellTokenBanner" hidden><strong>AI Tokens</strong><span id="rblxShellTokenBalance">...</span><a class="rblx-shell-token-add" href="./ai-tokens" aria-label="Buy AI tokens" title="Buy AI tokens">+</a></div>' +
-                '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span><s>$5.00</s> $2.50 <em>50% off</em></span></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span></a></div>' +
+                '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span><s>$5.00</s> $2.50 <em>50% off</em></span><i class="rblx-shell-plan-timer"><b></b></i></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a></div>' +
                 '<div class="rblx-shell-socials">' +
                   '<a href="https://x.com/Reese28575571" target="_blank" rel="noreferrer" aria-label="X">' + getSocialIcon("x") + '</a>' +
                   '<a href="https://www.youtube.com/@ItzReeseRBLX" target="_blank" rel="noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + '</a>' +
@@ -3697,8 +3697,8 @@
     var tokenBanner = document.getElementById("rblxShellTokenBanner");
     var tokenBalance = document.getElementById("rblxShellTokenBalance");
     if (tokenBanner && tokenBalance) {
-      tokenBanner.hidden = !state.loggedIn;
-      tokenBalance.textContent = shellState.currentUser.aiTokens == null ? "..." : String(shellState.currentUser.aiTokens);
+      tokenBanner.hidden = false;
+      tokenBalance.textContent = state.loggedIn && shellState.currentUser.aiTokens != null ? String(shellState.currentUser.aiTokens) : "0";
     }
     shellState.isAdmin = Boolean(state.isAdmin);
     shellState.authUiSignature = nextSignature;
@@ -4568,10 +4568,14 @@
     var rotator = document.getElementById("rblxShellPlanRotator");
     if (!rotator) return;
     function sync() {
-      var activePlan = Math.floor(Date.now() / 30000) % 2 === 0 ? "pro" : "plus";
+      var now = Date.now();
+      var activePlan = Math.floor(now / 30000) % 2 === 0 ? "pro" : "plus";
+      var progress = ((now % 30000) / 30000) * 100;
       rotator.dataset.activePlan = activePlan;
       Array.prototype.forEach.call(rotator.querySelectorAll("[data-rblx-plan-slide]"), function (slide) {
         slide.classList.toggle("is-active", slide.getAttribute("data-rblx-plan-slide") === activePlan);
+        var timer = slide.querySelector(".rblx-shell-plan-timer b");
+        if (timer) timer.style.width = progress.toFixed(2) + "%";
       });
     }
     sync();
