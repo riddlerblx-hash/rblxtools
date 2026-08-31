@@ -4507,6 +4507,7 @@
       var timerId = null;
       var activePlan = (shellState.currentUser && shellState.currentUser.plan) || "free";
       var offerIndex = 0;
+      var rotationKey = "rblxtools_membership_promo_started:" + activePlan;
       var tokenPacks = [
         { tokens: 20, price: "$3.79", note: "Great for a quick project" },
         { tokens: 45, price: "$5.99", note: "More room to experiment" },
@@ -4522,10 +4523,36 @@
         return [{ type: "plan", plan: "plus" }, { type: "plan", plan: "pro" }];
       }
 
-      function render(nextIndex) {
+      function getOfferDuration(offer) {
+        return offer && offer.type === "token" ? 6500 : 30000;
+      }
+
+      function getSavedRotationStart() {
+        var start = 0;
+        try { start = Number(sessionStorage.getItem(rotationKey)) || 0; } catch (_error) {}
+        if (!start || start > Date.now()) {
+          start = Date.now();
+          try { sessionStorage.setItem(rotationKey, String(start)); } catch (_error) {}
+        }
+        return start;
+      }
+
+      function getRotationSnapshot(offers) {
+        var total = offers.reduce(function (sum, offer) { return sum + getOfferDuration(offer); }, 0);
+        var elapsed = total ? (Date.now() - getSavedRotationStart()) % total : 0;
+        for (var index = 0; index < offers.length; index += 1) {
+          var duration = getOfferDuration(offers[index]);
+          if (elapsed < duration) return { index: index, elapsed: elapsed };
+          elapsed -= duration;
+        }
+        return { index: 0, elapsed: 0 };
+      }
+
+      function render(nextIndex, elapsedInOffer) {
         var offers = getOffers();
         offerIndex = (nextIndex + offers.length) % offers.length;
         var offer = offers[offerIndex];
+        var elapsed = Math.max(0, Math.min(getOfferDuration(offer) - 1, Number(elapsedInOffer) || 0));
         if (timerId) window.clearTimeout(timerId);
         promo.classList.toggle("rblx-pro-promo", offer.type === "plan" && offer.plan === "pro");
         promo.classList.toggle("rblx-token-promo", offer.type === "token");
@@ -4537,30 +4564,35 @@
         if (showPromoBoxAd) mountAiTokenPromoAd(promo);
 
         var progress = promo.querySelector(".rblx-membership-promo-progress span");
-        var duration = offer.type === "token" ? 6500 : 30000;
+        var duration = getOfferDuration(offer);
         if (progress) {
           progress.style.animation = "none";
           window.requestAnimationFrame(function () {
             progress.style.animation = "membershipPromoTimer " + duration + "ms linear forwards";
+            progress.style.animationDelay = "-" + elapsed + "ms";
           });
         }
         Array.prototype.forEach.call(promo.querySelectorAll("[data-membership-promo-prev], [data-membership-promo-next]"), function (button) {
           button.addEventListener("click", function () {
-            render(offerIndex + (button.hasAttribute("data-membership-promo-prev") ? -1 : 1));
+            try { sessionStorage.setItem(rotationKey, String(Date.now())); } catch (_error) {}
+            render(offerIndex + (button.hasAttribute("data-membership-promo-prev") ? -1 : 1), 0);
           });
         });
         timerId = window.setTimeout(function () {
-          render(offerIndex + 1);
-        }, duration);
+          render(offerIndex + 1, 0);
+        }, duration - elapsed);
       }
 
       promo._rblxSetMembershipPromoPlan = function (nextPlan) {
         var normalizedPlan = nextPlan === "pro" ? "pro" : nextPlan === "plus" ? "plus" : "free";
         if (normalizedPlan === activePlan) return;
         activePlan = normalizedPlan;
-        render(0);
+        rotationKey = "rblxtools_membership_promo_started:" + activePlan;
+        try { sessionStorage.setItem(rotationKey, String(Date.now())); } catch (_error) {}
+        render(0, 0);
       };
-      render(0);
+      var snapshot = getRotationSnapshot(getOffers());
+      render(snapshot.index, snapshot.elapsed);
     });
   }
 
