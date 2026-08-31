@@ -1180,6 +1180,11 @@
     #rbtools-account-overview .acct-tab-panel { display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(300px, .72fr); gap: 14px; }
     #rbtools-account-overview .acct-tab-panel[hidden] { display: none; }
     #rbtools-account-overview .acct-tab-panel .acct-block { margin: 0; }
+    #rbtools-account-overview .acct-tab-panel { position: relative; }
+    #rbtools-account-overview .acct-space-ad { position: absolute; z-index: 2; top: 0; right: 0; width: 160px; height: 322px; overflow: hidden; border: 1px solid rgba(111, 146, 205, .34); border-radius: 13px; background: #091321; box-shadow: 0 14px 30px rgba(0, 0, 0, .24); }
+    #rbtools-account-overview .acct-space-ad > span { display: block; height: 22px; color: #9dafc7; font-size: 9px; font-weight: 900; letter-spacing: .6px; line-height: 22px; text-align: center; text-transform: uppercase; }
+    #rbtools-account-overview .acct-space-ad iframe { display: block; width: 160px; height: 300px; border: 0; }
+    body.rblx-pro-ad-free #rbtools-account-overview .acct-space-ad { display: none !important; }
     #rbtools-account-overview .acct-account-details { margin: 14px 0; }
     #rbtools-account-overview .acct-referral-hero { border-color: rgba(63, 231, 201, .34); background: radial-gradient(circle at top right, rgba(51, 233, 202, .13), transparent 38%), linear-gradient(180deg, rgba(16, 53, 66, .38), rgba(11, 19, 33, .62)); }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
@@ -2206,6 +2211,7 @@
         els.acctUpsell.classList.toggle("hidden", Boolean(state.user.premiumActive));
         renderProfilePresentation();
         broadcastMembershipSnapshot(state.user);
+        layoutAccountCenterAds();
       }
 
       function clearMembershipPolling() {
@@ -2632,6 +2638,31 @@
         redirectTop(LOGIN_PAGE_URL);
       }
 
+      function mountAccountCenterSpaceAd(host) {
+        if (!host || host.dataset.adMounted === "true") return;
+        var frame = document.createElement("iframe");
+        frame.title = "Advertisement";
+        frame.loading = "lazy";
+        frame.setAttribute("scrolling", "no");
+        frame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:300px;margin:0;overflow:hidden}</style></head><body><script>var atOptions={key:"14ccbb8f6c6c429f7d7834750dc5c01c",format:"iframe",height:300,width:160,params:{}};</script><script src="https://professionalsusceptible.com/14ccbb8f6c6c429f7d7834750dc5c01c/invoke.js"><\\/script></body></html>';
+        host.appendChild(frame);
+        host.dataset.adMounted = "true";
+      }
+
+      function layoutAccountCenterAds() {
+        var isPro = state.user && String(state.user.plan || "").toLowerCase() === "pro";
+        Array.prototype.slice.call(document.querySelectorAll("[data-account-space-ad]")).forEach(function (host) {
+          var panel = host.closest(".acct-tab-panel");
+          if (!panel || panel.hidden || isPro || window.innerWidth < 1100) { host.hidden = true; return; }
+          var panelBox = panel.getBoundingClientRect();
+          var blocks = Array.prototype.slice.call(panel.querySelectorAll(":scope > .acct-block"));
+          var furthestBlockEdge = blocks.reduce(function (edge, block) { return Math.max(edge, block.getBoundingClientRect().right); }, panelBox.left);
+          if (panelBox.right - furthestBlockEdge < 172) { host.hidden = true; return; }
+          host.hidden = false;
+          mountAccountCenterSpaceAd(host);
+        });
+      }
+
       function setupAccountTabs() {
         var grid = els.acctCard && els.acctCard.querySelector(".acct-grid");
         var tabs = Array.prototype.slice.call(document.querySelectorAll("[data-account-tab]"));
@@ -2651,6 +2682,15 @@
           var target = panels[section.dataset.accountSection];
           if (target) target.appendChild(section);
         });
+        Object.keys(panels).forEach(function (name) {
+          var adHost = document.createElement("aside");
+          adHost.className = "acct-space-ad";
+          adHost.dataset.accountSpaceAd = "true";
+          adHost.setAttribute("aria-label", "Advertisement");
+          adHost.hidden = true;
+          adHost.innerHTML = "<span>Advertisement</span>";
+          panels[name].appendChild(adHost);
+        });
         Array.prototype.slice.call(grid.querySelectorAll(".acct-stack")).forEach(function (stack) { stack.remove(); });
         grid.dataset.tabsReady = "true";
 
@@ -2663,6 +2703,7 @@
           Object.keys(panels).forEach(function (panelName) {
             panels[panelName].hidden = panelName !== name;
           });
+          window.requestAnimationFrame(layoutAccountCenterAds);
         }
 
         tabs.forEach(function (tab) {
