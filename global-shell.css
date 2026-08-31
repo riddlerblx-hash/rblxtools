@@ -820,6 +820,13 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   display: none;
 }
 
+/* Pro is the site's ad-free membership tier, including promo and modal placements. */
+body.rblx-pro-ad-free [data-rblx-shell-box-ad],
+body.rblx-pro-ad-free [data-rblx-promo-box-ad],
+body.rblx-pro-ad-free [data-rblx-modal-ad] {
+  display: none !important;
+}
+
 .rblx-shell-mini-banner {
   position: relative;
   isolation: isolate;

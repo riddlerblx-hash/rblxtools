@@ -270,6 +270,29 @@
     ensureAdsterraPopunderSetup();
   }
 
+  function isProMember(state) {
+    var plan = state && state.plan != null ? state.plan : (shellState.currentUser && shellState.currentUser.plan);
+    return String(plan || "").toLowerCase() === "pro";
+  }
+
+  function shouldShowMemberAds() {
+    return !isProMember();
+  }
+
+  function syncMemberAdVisibility(state) {
+    var hideAds = isProMember(state);
+    document.body.classList.toggle("rblx-pro-ad-free", hideAds);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad], [data-rblx-promo-box-ad], [data-rblx-modal-ad]"), function (host) {
+      host.hidden = hideAds;
+      if (!hideAds) return;
+      // Remove any ad that was mounted before the account state was resolved.
+      host.textContent = "";
+      delete host.dataset.rblxBoxAdMounted;
+      delete host.dataset.rblxVerticalAdMounted;
+    });
+    if (!hideAds) mountDesktopShellBoxAds();
+  }
+
   function ensureGoogleAnalyticsSetup() {
     if (!GOOGLE_ANALYTICS_ID) return;
     var head = document.head || document.getElementsByTagName("head")[0];
@@ -3674,6 +3697,7 @@
     applyPlanAtmosphere(state.plan);
     shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : null };
     syncAdsterraPopunderForMember(state);
+    syncMemberAdVisibility(state);
     var tokenBanner = document.getElementById("rblxShellTokenBanner");
     var tokenBalance = document.getElementById("rblxShellTokenBalance");
     if (tokenBanner && tokenBalance) {
@@ -4428,20 +4452,20 @@
       '<h3 class="rblx-token-promo-title">Keep creating<br><span>without waiting</span></h3>',
       '<p class="rblx-token-promo-copy">Power RBLXTools AI features with a token pack whenever you need more generations.</p>',
       '<div class="rblx-token-promo-pack"><div class="rblx-token-promo-coin">AI</div><strong>' + tokenPack.tokens + ' Tokens</strong><span>AI generation credits</span><b>' + tokenPack.price + '</b><small>' + tokenPack.note + '</small></div>',
-      '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad aria-label="Advertisement"><span>Advertisement</span></div>',
+      shouldShowMemberAds() ? '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' : '',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous offer"></button><div class="rblx-membership-promo-progress" aria-label="Offer rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next offer"></button></div><a class="rblx-membership-promo-action" href="./ai-tokens">Buy tokens</a></div>'
     ].join("");
   }
 
   function mountAiTokenPromoAd(promo) {
     var host = promo.querySelector("[data-rblx-promo-box-ad]");
-    if (!host) return;
+    if (!host || !shouldShowMemberAds()) return;
 
     mountBoxAd(host);
   }
 
   function mountBoxAd(host) {
-    if (!host || host.dataset.rblxBoxAdMounted === "true") return;
+    if (!host || !shouldShowMemberAds() || host.dataset.rblxBoxAdMounted === "true") return;
     // Isolate each provider call so one ad placement cannot overwrite another's options.
     var adFrame = document.createElement("iframe");
     adFrame.className = "rblx-box-ad-frame";
@@ -4456,12 +4480,12 @@
   }
 
   function mountDesktopShellBoxAds() {
-    if (!window.matchMedia("(min-width: 1180px)").matches) return;
+    if (!shouldShowMemberAds() || !window.matchMedia("(min-width: 1180px)").matches) return;
     Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad]"), mountBoxAd);
   }
 
   function mountVerticalAd(host) {
-    if (!host || host.dataset.rblxVerticalAdMounted === "true") return;
+    if (!host || !shouldShowMemberAds() || host.dataset.rblxVerticalAdMounted === "true") return;
     var adFrame = document.createElement("iframe");
     adFrame.className = "rblx-vertical-ad-frame";
     adFrame.title = "Advertisement";
@@ -4475,7 +4499,7 @@
   }
 
   function mountModalVerticalAds(overlay) {
-    if (!overlay || !window.matchMedia("(min-width: 1280px) and (min-height: 820px)").matches) return;
+    if (!overlay || !shouldShowMemberAds() || !window.matchMedia("(min-width: 1280px) and (min-height: 820px)").matches) return;
     Array.prototype.forEach.call(overlay.querySelectorAll("[data-rblx-modal-ad]"), mountVerticalAd);
   }
 
@@ -4510,7 +4534,7 @@
         promo.classList.toggle("rblx-pro-promo", offer.type === "plan" && offer.plan === "pro");
         promo.classList.toggle("rblx-token-promo", offer.type === "token");
         if (promo.parentElement) promo.parentElement.classList.toggle("rblx-token-promo-card", offer.type === "token");
-        var showPromoBoxAd = !document.body.classList.contains("rblx-home-page") && !document.body.classList.contains("rblx-subscription-store") && !document.body.classList.contains("rblx-token-store-page");
+        var showPromoBoxAd = shouldShowMemberAds() && !document.body.classList.contains("rblx-home-page") && !document.body.classList.contains("rblx-subscription-store") && !document.body.classList.contains("rblx-token-store-page");
         promo.innerHTML = offer.type === "token"
           ? buildAiTokenPromoMarkup(offer.pack)
           : buildMembershipPromoMarkup(offer.plan, document.body.classList.contains("rblx-home-page") ? "View" : "Try Now", showPromoBoxAd);
@@ -4749,6 +4773,7 @@
     window.addEventListener("rblxtools-membership-updated", function (event) {
       var detail = event && event.detail ? event.detail : {};
       var plan = detail.plan === "pro" ? "pro" : detail.plan === "plus" ? "plus" : "free";
+      syncMemberAdVisibility({ plan: plan });
       Array.prototype.slice.call(document.querySelectorAll(".plus-promo, body.rblx-home-page .home-grid-top > .plus-card")).forEach(function (promo) {
         if (typeof promo._rblxSetMembershipPromoPlan === "function") promo._rblxSetMembershipPromoPlan(plan);
       });
