@@ -149,6 +149,7 @@
       title: "AI Tools",
       items: [
         { href: "./ai-clothing-studio", label: "AI Clothing Studio", icon: "ai", adminOnly: true },
+        { href: "./auto-rigger", label: "Auto Rigger", icon: "rig", adminOnly: true },
         { href: "./ai-thumbnail-studio", label: "AI Thumbnail Studio", icon: "spark" }
       ]
     },
