@@ -827,10 +827,6 @@ body.rblx-pro-ad-free [data-rblx-modal-ad] {
   display: none !important;
 }
 
-.rblx-shell-pro-ad-callout { display:grid; gap:2px; padding:10px 12px; border:1px solid rgba(255, 209, 98, .42); border-radius:13px; color:#ffe6a4; background:linear-gradient(135deg,rgba(122,75,12,.42),rgba(35,24,8,.55)); box-shadow:0 10px 22px rgba(0,0,0,.2); font-size:11px; font-weight:800; line-height:1.2; text-decoration:none; }
-.rblx-shell-pro-ad-callout strong { color:#fff4c7; font-size:14px; font-weight:950; }
-.rblx-shell-pro-ad-callout:hover { border-color:rgba(255,225,128,.86); transform:translateY(-1px); }
-body.rblx-pro-ad-free .rblx-shell-pro-ad-callout { display:none; }
 
 .rblx-shell-mini-banner {
   position: relative;

@@ -1588,7 +1588,6 @@
               '<div class="rblx-shell-left-foot">' +
                 '<div class="rblx-shell-box-ad" data-rblx-shell-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' +
                 '<div class="rblx-shell-token-banner" id="rblxShellTokenBanner" hidden><strong>AI Tokens</strong><span id="rblxShellTokenBalance">...</span><a class="rblx-shell-token-add" href="./ai-tokens" aria-label="Buy AI tokens" title="Buy AI tokens">+</a></div>' +
-                '<a class="rblx-shell-pro-ad-callout" href="./subscriptions">Hate annoying ads?<strong>Go Pro</strong></a>' +
                 '<a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" href="./subscriptions"><strong>Pro Plan</strong><span>$5.00 / month</span></a>' +
                 '<a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span></a>' +
                 '<div class="rblx-shell-socials">' +
