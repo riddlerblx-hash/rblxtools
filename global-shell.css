@@ -4373,7 +4373,7 @@ body.rblx-shell-ready .rblx-shell-center > .rblx-shell-footer {
 .rblx-pro-tool-widget p { max-width: 34ch; margin: 0 0 17px; color: #b6cbd5; font-size: 12px; font-weight: 700; line-height: 1.45; }
 .rblx-pro-tool-widget a { width: fit-content; padding: 10px 13px; border-radius: 9px; background: linear-gradient(135deg, #49d9cf, #4c8eff); color: #07131c; font: 900 11px/1 Arial, sans-serif; text-decoration: none; }
 .rblx-pro-tool-widget button { position: absolute; top: 10px; right: 10px; }
-@media (max-width: 1350px) {
+@media (max-width: 900px) {
   .rblx-pro-page-editor { display: none !important; }
 }
 

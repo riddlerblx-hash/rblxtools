@@ -3692,6 +3692,11 @@
     statusText.textContent = state.message;
     applyPlanAtmosphere(state.plan);
     shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : null };
+    dispatchMembershipUpdate({
+      user: shellState.currentUser,
+      plan: shellState.currentUser.plan,
+      premiumActive: shellState.currentUser.plan === "plus" || shellState.currentUser.plan === "pro"
+    });
     syncAdsterraPopunderForMember(state);
     syncMemberAdVisibility(state);
     var tokenBanner = document.getElementById("rblxShellTokenBanner");
@@ -4726,11 +4731,13 @@
       trigger.firstChild.nodeValue = isEditing ? "Done Editing " : "Edit Page ";
       renderAll();
     });
-    window.addEventListener("rblxtools-membership-updated", function (event) {
-      control.hidden = !event || !event.detail || event.detail.plan !== "pro";
+    function syncEditorVisibility(state) {
+      var plan = String(state && state.plan || shellState.currentUser && shellState.currentUser.plan || "").toLowerCase();
+      control.hidden = plan !== "pro";
       if (control.hidden && isEditing) { isEditing = false; renderAll(); }
-    });
-    control.hidden = !(shellState.currentUser && shellState.currentUser.plan === "pro");
+    }
+    window.addEventListener("rblxtools-membership-updated", function (event) { syncEditorVisibility(event && event.detail); });
+    syncEditorVisibility(shellState.currentUser);
     renderAll();
   }
 
