@@ -4632,34 +4632,45 @@
   function syncProToolWidget(state) {
     if (IS_TOOL_WIDGET_FRAME) return;
     var existing = document.getElementById("rblxProToolWidget");
-    if (!isProMember(state)) { if (existing) existing.remove(); return; }
+    var pageHost = document.getElementById("rblxShellPage");
+    if (!isProMember(state)) { if (existing) existing.remove(); if (pageHost) { pageHost.classList.remove("rblx-pro-split-active", "rblx-pro-split-left"); var stalePane = pageHost.querySelector(".rblx-pro-split-pane"); if (stalePane) stalePane.remove(); } return; }
     if (existing) return;
     var tools = getProWidgetTools();
-    if (!tools.length) return;
+    if (!tools.length || !pageHost) return;
     var savedKey = ""; try { savedKey = sessionStorage.getItem("rblxtools_pro_tool_widget") || ""; } catch (_error) {}
     var selected = tools.filter(function (tool) { return tool.key === savedKey; })[0] || tools[0];
     var host = document.createElement("section");
     host.id = "rblxProToolWidget";
     host.className = "rblx-pro-tool-widget";
-    host.innerHTML = '<button class="rblx-pro-tool-widget-launch" type="button" aria-expanded="false">+ Tool widget</button><div class="rblx-pro-tool-widget-panel" hidden><header><div><small>PRO WORKSPACE</small><strong>Second tool</strong></div><button type="button" class="rblx-pro-tool-widget-close" aria-label="Close tool widget">×</button></header><label>Choose a tool<select></select></label><iframe title="Pro tool widget" loading="lazy"></iframe></div>';
+    host.innerHTML = '<button class="rblx-pro-tool-widget-launch" type="button" aria-expanded="false">+ Split tool</button><div class="rblx-pro-tool-widget-picker" hidden><small>PRO SPLIT WORKSPACE</small><strong>Open a second tool</strong><select></select><div><button type="button" data-rblx-split-side="left">Add left</button><button type="button" data-rblx-split-side="right">Add right</button></div></div>';
     document.body.appendChild(host);
     var launch = host.querySelector(".rblx-pro-tool-widget-launch");
-    var panel = host.querySelector(".rblx-pro-tool-widget-panel");
-    var close = host.querySelector(".rblx-pro-tool-widget-close");
+    var picker = host.querySelector(".rblx-pro-tool-widget-picker");
     var select = host.querySelector("select");
-    var frame = host.querySelector("iframe");
     tools.forEach(function (tool) { var option = document.createElement("option"); option.value = tool.key; option.textContent = tool.label; select.appendChild(option); });
-    function loadTool(key) {
+    select.value = selected.key;
+    function loadTool(key, side) {
       var tool = tools.filter(function (item) { return item.key === key; })[0] || tools[0];
-      select.value = tool.key;
-      frame.src = tool.href + "?widget=1";
+      var oldPane = pageHost.querySelector(".rblx-pro-split-pane");
+      if (oldPane) oldPane.remove();
+      var pane = document.createElement("aside");
+      pane.className = "rblx-pro-split-pane";
+      pane.innerHTML = '<header><div><small>PRO SPLIT TOOL</small><strong></strong></div><label><span>Tool</span><select></select></label><button type="button" data-rblx-split-swap title="Move tool to the other side">↔</button><button type="button" data-rblx-split-close aria-label="Close split tool">×</button></header><iframe title="Pro split tool" loading="lazy"></iframe>';
+      var paneSelect = pane.querySelector("select");
+      tools.forEach(function (item) { var option = document.createElement("option"); option.value = item.key; option.textContent = item.label; paneSelect.appendChild(option); });
+      paneSelect.value = tool.key;
+      pane.querySelector("strong").textContent = tool.label;
+      pane.querySelector("iframe").src = tool.href + "?widget=1";
+      pageHost.classList.add("rblx-pro-split-active");
+      pageHost.classList.toggle("rblx-pro-split-left", side === "left");
+      pageHost.appendChild(pane);
+      paneSelect.addEventListener("change", function () { loadTool(paneSelect.value, pageHost.classList.contains("rblx-pro-split-left") ? "left" : "right"); });
+      pane.querySelector("[data-rblx-split-swap]").addEventListener("click", function () { loadTool(paneSelect.value, pageHost.classList.contains("rblx-pro-split-left") ? "right" : "left"); });
+      pane.querySelector("[data-rblx-split-close]").addEventListener("click", function () { pane.remove(); pageHost.classList.remove("rblx-pro-split-active", "rblx-pro-split-left"); });
       try { sessionStorage.setItem("rblxtools_pro_tool_widget", tool.key); } catch (_error) {}
     }
-    function setOpen(open) { panel.hidden = !open; host.classList.toggle("is-open", open); launch.setAttribute("aria-expanded", String(open)); if (open && !frame.src) loadTool(select.value); }
-    loadTool(selected.key);
-    launch.addEventListener("click", function () { setOpen(!host.classList.contains("is-open")); });
-    close.addEventListener("click", function () { setOpen(false); });
-    select.addEventListener("change", function () { loadTool(select.value); });
+    launch.addEventListener("click", function () { picker.hidden = !picker.hidden; launch.setAttribute("aria-expanded", String(!picker.hidden)); });
+    Array.prototype.forEach.call(picker.querySelectorAll("[data-rblx-split-side]"), function (button) { button.addEventListener("click", function () { loadTool(select.value, button.getAttribute("data-rblx-split-side")); picker.hidden = true; launch.setAttribute("aria-expanded", "false"); }); });
   }
 
   function removePageFaqs(pageHost) {
