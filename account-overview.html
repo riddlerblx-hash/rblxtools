@@ -1177,12 +1177,12 @@
     #rbtools-account-overview .acct-tab { flex: 1; border: 1px solid transparent; border-radius: 10px; padding: 11px 14px; background: transparent; color: #afbdd1; font: inherit; font-weight: 800; cursor: pointer; }
     #rbtools-account-overview .acct-tab:hover { color: #edf4ff; background: rgba(95, 133, 198, .12); }
     #rbtools-account-overview .acct-tab.is-active { color: #fff; border-color: rgba(119, 161, 241, .45); background: linear-gradient(135deg, rgba(69, 110, 184, .38), rgba(73, 36, 69, .36)); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
-    #rbtools-account-overview .acct-tab-panel { display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(300px, .72fr); gap: 14px; }
+    #rbtools-account-overview .acct-tab-panel { display: grid; grid-template-columns: minmax(250px, 1fr) minmax(250px, 1fr) 160px; gap: 14px; align-items: stretch; }
     #rbtools-account-overview .acct-tab-panel[hidden] { display: none; }
-    #rbtools-account-overview .acct-tab-panel .acct-block { margin: 0; }
+    #rbtools-account-overview .acct-tab-panel .acct-block { min-height: 300px; margin: 0; }
     #rbtools-account-overview .acct-account-details { margin: 14px 0; }
     #rbtools-account-overview .acct-referral-hero { border-color: rgba(63, 231, 201, .34); background: radial-gradient(circle at top right, rgba(51, 233, 202, .13), transparent 38%), linear-gradient(180deg, rgba(16, 53, 66, .38), rgba(11, 19, 33, .62)); }
-    #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: minmax(250px, 1fr) minmax(250px, 1fr) 160px; align-items: stretch; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-block { min-width: 0; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-section-title { margin: 3px 0 8px; font-size: clamp(22px, 2.1vw, 29px); line-height: 1.03; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-section-copy { min-height: 54px; margin: 0; font-size: 12px; line-height: 1.45; }
@@ -1196,11 +1196,16 @@
     #rbtools-account-overview .acct-referral-request-list { display: grid; gap: 8px; margin-top: 14px; }
     #rbtools-account-overview .acct-referral-request, #rbtools-account-overview .acct-referral-empty { padding: 12px; border: 1px solid rgba(111, 146, 205, .2); border-radius: 12px; background: rgba(8, 16, 28, .52); color: #b7c7dd; font-size: 12px; font-weight: 700; }
     #rbtools-account-overview .acct-referral-request strong { color: #ecf8ff; }
+    #rbtools-account-overview .acct-account-ad { display: none; width: 160px; height: 322px; align-self: start; overflow: hidden; border: 1px solid rgba(111, 146, 205, .34); border-radius: 13px; background: #091321; box-shadow: 0 14px 30px rgba(0, 0, 0, .24); }
+    #rbtools-account-overview .acct-account-ad > span { display: block; height: 22px; color: #9dafc7; font-size: 9px; font-weight: 900; letter-spacing: .6px; line-height: 22px; text-align: center; text-transform: uppercase; }
+    #rbtools-account-overview .acct-account-ad iframe { display: block; width: 160px; height: 300px; border: 0; }
+    @media (min-width: 1100px) { #rbtools-account-overview .acct-account-ad { display: block; } }
+    body.rblx-pro-ad-free #rbtools-account-overview .acct-account-ad { display: none !important; }
     @media (max-width: 700px) { main { padding: 26px 12px 38px; } .hero { text-align: center; } .hero p { margin-left: auto; } }
     @keyframes acctProfileGlare { 0%, 38% { transform: translateX(-42%); opacity: 0; } 48% { opacity: 1; } 62%, 100% { transform: translateX(42%); opacity: 0; } }
     @media (max-width: 1040px) {
-      #rbtools-account-overview .acct-tab-panel { grid-template-columns: 1fr; }
-      #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: 1fr; }
+      #rbtools-account-overview .acct-tab-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 760px) {
       #rbtools-account-overview .acct-profile-header { align-items: flex-start; flex-wrap: wrap; }
@@ -2246,6 +2251,7 @@
 
             var loadedUser = result.user || null;
             renderUser(loadedUser);
+            mountActiveAccountCenterAd();
             loadReferralDashboard();
             var checkoutSummary = await loadCheckoutSummary();
             if (state.checkoutStatus === "success") {
@@ -2645,6 +2651,24 @@
         redirectTop(LOGIN_PAGE_URL);
       }
 
+      function mountAccountCenterAd(host) {
+        if (!host || host.dataset.adMounted === "true" || !state.user || String(state.user.plan || "").toLowerCase() === "pro") return;
+        if (window.innerWidth < 1100) return;
+        var frame = document.createElement("iframe");
+        frame.title = "Advertisement";
+        frame.loading = "lazy";
+        frame.setAttribute("scrolling", "no");
+        frame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:300px;margin:0;overflow:hidden}</style></head><body><script>var atOptions={key:"14ccbb8f6c6c429f7d7834750dc5c01c",format:"iframe",height:300,width:160,params:{}};</script><script src="https://professionalsusceptible.com/14ccbb8f6c6c429f7d7834750dc5c01c/invoke.js"><\\/script></body></html>';
+        host.appendChild(frame);
+        host.dataset.adMounted = "true";
+      }
+
+      function mountActiveAccountCenterAd() {
+        Array.prototype.slice.call(document.querySelectorAll("[data-account-center-ad]"))
+          .filter(function (host) { return !host.closest("[hidden]"); })
+          .forEach(mountAccountCenterAd);
+      }
+
       function setupAccountTabs() {
         var grid = els.acctCard && els.acctCard.querySelector(".acct-grid");
         var tabs = Array.prototype.slice.call(document.querySelectorAll("[data-account-tab]"));
@@ -2664,6 +2688,14 @@
           var target = panels[section.dataset.accountSection];
           if (target) target.appendChild(section);
         });
+        Object.keys(panels).forEach(function (name) {
+          var adHost = document.createElement("aside");
+          adHost.className = "acct-account-ad";
+          adHost.dataset.accountCenterAd = "true";
+          adHost.setAttribute("aria-label", "Advertisement");
+          adHost.innerHTML = "<span>Advertisement</span>";
+          panels[name].appendChild(adHost);
+        });
         Array.prototype.slice.call(grid.querySelectorAll(".acct-stack")).forEach(function (stack) { stack.remove(); });
         grid.dataset.tabsReady = "true";
 
@@ -2676,6 +2708,7 @@
           Object.keys(panels).forEach(function (panelName) {
             panels[panelName].hidden = panelName !== name;
           });
+          mountActiveAccountCenterAd();
         }
 
         tabs.forEach(function (tab) {
