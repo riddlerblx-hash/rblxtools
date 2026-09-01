@@ -847,16 +847,19 @@ body {
   }
 
   body.rblx-mobile-shell .rblx-shell-left {
+    position: fixed !important;
     left: auto !important;
     right: 0 !important;
     top: 0 !important;
     bottom: 0 !important;
     width: min(340px, calc(100vw - 24px));
+    height: 100dvh !important;
     border-radius: 24px 0 0 24px;
     opacity: 1;
     transform: translateX(calc(100% + 18px));
     pointer-events: none;
     z-index: 2147483646;
+    box-shadow: none !important;
   }
 
   body.rblx-mobile-shell.rblx-mobile-nav-open .rblx-shell-left {
