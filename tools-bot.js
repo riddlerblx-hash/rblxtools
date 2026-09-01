@@ -12,7 +12,8 @@ const { claimDiscordLink, getDiscordLinkByUserId } = require("./discord-tools-li
 
 const token = String(process.env.RBLXTOOLS_TOOLS_BOT_TOKEN || "").trim();
 const clientId = String(process.env.RBLXTOOLS_TOOLS_DISCORD_CLIENT_ID || "").trim();
-const guildId = String(process.env.RBLXTOOLS_TOOLS_GUILD_ID || process.env.DISCORD_GUILD_ID || "1273360593318838382").trim();
+// Keep this app isolated from the existing support bot's Discord server configuration.
+const guildId = String(process.env.RBLXTOOLS_TOOLS_GUILD_ID || "1273360593318838382").trim();
 const supabaseUrl = String(process.env.SUPABASE_URL || "").trim().replace(/\/$/, "");
 const supabaseKey = String(process.env.SUPABASE_KEY || "").trim();
 const authUsersTable = String(process.env.AUTH_USERS_TABLE || "member_accounts").trim();
