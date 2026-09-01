@@ -1358,11 +1358,10 @@
         '<div class="rblx-shell-footer-top">' +
           '<section class="rblx-shell-footer-brand">' +
             '<div class="rblx-shell-footer-kicker">RBLXTools</div>' +
-            '<h2>Creator tools, cleaner workflows, and community support.</h2>' +
-            '<p>Browse the full site faster, jump between creator pages, and support future free updates from one place.</p>' +
+            '<h2>Creator tools, cleaner workflows, and more ways to earn.</h2>' +
+            '<p>Browse creator tools, discover affiliate earnings, and move between every part of RBLXTools from one place.</p>' +
             '<div class="rblx-shell-footer-actions">' +
               '<a class="rblx-shell-footer-action is-primary" href="./subscriptions">View Plans</a>' +
-              '<a class="rblx-shell-footer-action" href="https://ko-fi.com/rblxtools" target="_blank" rel="noopener noreferrer">Support RBLXTools</a>' +
             "</div>" +
           "</section>" +
           '<div class="rblx-shell-footer-grid">' +
@@ -1599,7 +1598,6 @@
             '<span class="rblx-shell-status-text" id="rblxShellStatusText">You are browsing this website as a guest.</span>' +
           "</div>" +
           '<div class="rblx-shell-header-actions">' +
-            '<div class="rblx-shell-support-wrap"><span class="rblx-shell-support-float one">$</span><span class="rblx-shell-support-float two">$</span><span class="rblx-shell-support-float three">$</span><span class="rblx-shell-support-float four">$</span><a class="rblx-shell-support-link" href="https://ko-fi.com/rblxtools" target="_blank" rel="noopener noreferrer">Support</a></div>' +
             buildAuthMarkup() +
           "</div>" +
         "</header>" +
@@ -4031,6 +4029,8 @@
       Array.prototype.slice.call(document.body.childNodes).forEach(function (node) {
         if (node !== document.getElementById("rblxShellRoot")) moveNode(node);
       });
+      // Content can arrive after the shell script; run the cleanup once parsing has completed too.
+      removePageFaqs(pageHost);
       placeSharedFooter(pageHost);
       revealSharedFooter();
     }, { once: true });
