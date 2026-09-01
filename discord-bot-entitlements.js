@@ -3,7 +3,8 @@ const path = require("path");
 const { tmpdir } = require("os");
 const { randomBytes } = require("crypto");
 
-const STATE_DIR = String(process.env.RBLXTOOLS_STATE_DIR || path.join(tmpdir(), "rblxtools-state")).trim();
+// Production state must survive OpenLiteSpeed and PM2 process restarts; local development can use the temporary directory.
+const STATE_DIR = String(process.env.RBLXTOOLS_STATE_DIR || (process.platform === "linux" ? "/usr/local/lsws/rblxtools-state" : path.join(tmpdir(), "rblxtools-state"))).trim();
 const STORE_PATH = path.join(STATE_DIR, "discord-bot-entitlements.json");
 const CLAIM_CODE_TTL_MS = 10 * 60 * 1000;
 const ACTIVITY_RETENTION_DAYS = 366;
