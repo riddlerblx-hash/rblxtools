@@ -8,13 +8,13 @@ const {
   Routes,
   SlashCommandBuilder,
   AttachmentBuilder,
+  PermissionFlagsBits,
 } = require("discord.js");
 const { claimDiscordLink, getDiscordLinkByUserId } = require("./discord-tools-links");
 
 const token = String(process.env.RBLXTOOLS_TOOLS_BOT_TOKEN || "").trim();
 const clientId = String(process.env.RBLXTOOLS_TOOLS_DISCORD_CLIENT_ID || "").trim();
 // Keep this app isolated from the existing support bot's Discord server configuration.
-const guildId = String(process.env.RBLXTOOLS_TOOLS_GUILD_ID || "1273360593318838382").trim();
 const supabaseUrl = String(process.env.SUPABASE_URL || "").trim().replace(/\/$/, "");
 const supabaseKey = String(process.env.SUPABASE_KEY || "").trim();
 const authUsersTable = String(process.env.AUTH_USERS_TABLE || "member_accounts").trim();
@@ -68,6 +68,10 @@ const commands = [
     .addStringOption((option) => option.setName("code").setDescription("Code generated in RBLXTools Account Overview").setRequired(true)),
   new SlashCommandBuilder().setName("status").setDescription("Check your RBLXTools Discord link and plan."),
   new SlashCommandBuilder().setName("tools").setDescription("View the RBLXTools Discord tools available to Pro members."),
+  new SlashCommandBuilder()
+    .setName("claim-server")
+    .setDescription("Claim this server for your purchased RBLXTools Bot uses.")
+    .addStringOption((option) => option.setName("code").setDescription("Claim code from RBLXTools Account Overview").setRequired(true)),
   robuxCommand,
   ...Object.entries(toolDefinitions).map(([name, definition]) => {
     const command = new SlashCommandBuilder()
@@ -130,10 +134,11 @@ function buildToolUrl(pathname, parameters) {
   return url.toString();
 }
 
-function getToolRequestHeaders(discordUserId) {
+function getToolRequestHeaders(discordUserId, guildId) {
   return {
     "X-RBLXTools-Tools-Secret": discordToolsServiceSecret,
     "X-RBLXTools-Discord-User-Id": String(discordUserId),
+    "X-RBLXTools-Discord-Guild-Id": String(guildId || ""),
   };
 }
 
@@ -143,8 +148,8 @@ function getAttachmentName(response, fallback) {
   return String(match ? match[1] : fallback).replace(/[\\/:*?"<>|]+/g, "-").slice(0, 180);
 }
 
-async function getDownloadAttachment(url, fallbackName, discordUserId) {
-  const response = await fetch(url, { headers: getToolRequestHeaders(discordUserId) });
+async function getDownloadAttachment(url, fallbackName, discordUserId, guildId) {
+  const response = await fetch(url, { headers: getToolRequestHeaders(discordUserId, guildId) });
   if (!response.ok) {
     let message = "The RBLXTools download could not be prepared.";
     try {
@@ -227,34 +232,53 @@ function calculateRobux(interaction) {
   throw new Error("That calculator option is not available yet.");
 }
 
-async function buildToolDownload(toolName, assetId, mediaType, discordUserId) {
+async function buildToolDownload(toolName, assetId, mediaType, discordUserId, guildId) {
   if (toolName === "clothing") {
-    return { content: "**Clothing template ready** for Roblox ID `" + assetId + "`.", files: [await getDownloadAttachment(buildToolUrl("/template", { id: assetId }), "roblox-template-" + assetId + ".png", discordUserId)] };
+    return { content: "**Clothing template ready** for Roblox ID `" + assetId + "`.", files: [await getDownloadAttachment(buildToolUrl("/template", { id: assetId }), "roblox-template-" + assetId + ".png", discordUserId, guildId)] };
   }
   if (toolName === "ugc") {
     const [model, texture] = await Promise.all([
-      getDownloadAttachment(buildToolUrl("/ugc-obj", { id: assetId, mode: "ugc" }), "rblxtools-ugc-" + assetId + ".obj", discordUserId),
-      getDownloadAttachment(buildToolUrl("/ugc-texture", { id: assetId }), "texture-" + assetId + ".png", discordUserId),
+      getDownloadAttachment(buildToolUrl("/ugc-obj", { id: assetId, mode: "ugc" }), "rblxtools-ugc-" + assetId + ".obj", discordUserId, guildId),
+      getDownloadAttachment(buildToolUrl("/ugc-texture", { id: assetId }), "texture-" + assetId + ".png", discordUserId, guildId),
     ]);
     return { content: "**UGC package ready** for Roblox ID `" + assetId + "`. Keep the OBJ and texture together when importing.", files: [model, texture] };
   }
   if (toolName === "media") {
     const kind = normalizeMediaType(mediaType);
-    return { content: "**Media ready** for Roblox ID `" + assetId + "` (`" + kind + "`).", files: [await getDownloadAttachment(buildToolUrl("/media", { input: assetId, kind, download: 1 }), "roblox-media-" + assetId + ".png", discordUserId)] };
+    return { content: "**Media ready** for Roblox ID `" + assetId + "` (`" + kind + "`).", files: [await getDownloadAttachment(buildToolUrl("/media", { input: assetId, kind, download: 1 }), "roblox-media-" + assetId + ".png", discordUserId, guildId)] };
   }
   if (toolName === "audio") {
-    return { content: "**Audio ready** for Roblox ID `" + assetId + "`.", files: [await getDownloadAttachment(buildToolUrl("/audio", { input: assetId, download: 1 }), "roblox-audio-" + assetId, discordUserId)] };
+    return { content: "**Audio ready** for Roblox ID `" + assetId + "`.", files: [await getDownloadAttachment(buildToolUrl("/audio", { input: assetId, download: 1 }), "roblox-audio-" + assetId, discordUserId, guildId)] };
   }
   if (toolName === "animations") {
-    return { content: "**Animation ready** for Roblox ID `" + assetId + "`.", files: [await getDownloadAttachment(buildToolUrl("/animation", { id: assetId, download: 1 }), "roblox-animation-" + assetId + ".rbxm", discordUserId)] };
+    return { content: "**Animation ready** for Roblox ID `" + assetId + "`.", files: [await getDownloadAttachment(buildToolUrl("/animation", { id: assetId, download: 1 }), "roblox-animation-" + assetId + ".rbxm", discordUserId, guildId)] };
   }
   throw new Error("That RBLXTools command is not available yet.");
 }
 
 async function registerCommands() {
   const rest = new REST({ version: "10" }).setToken(token);
-  await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
-  console.log("[tools-bot] registered commands in guild " + guildId);
+  await rest.put(Routes.applicationCommands(clientId), { body: commands });
+  console.log("[tools-bot] registered global commands");
+}
+
+async function callBotService(pathname, interaction, body) {
+  const response = await fetch(apiBaseUrl + pathname, {
+    method: "POST",
+    headers: Object.assign({ "Content-Type": "application/json" }, getToolRequestHeaders(interaction.user.id, interaction.guildId)),
+    body: JSON.stringify(body || {}),
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(payload?.error || "RBLXTools Bot could not verify this server.");
+  return payload || {};
+}
+
+async function claimGuild(interaction) {
+  if (!interaction.inGuild()) throw new Error("Run this command inside the Discord server you want to claim.");
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) throw new Error("You need the Manage Server permission to claim this Discord server.");
+  return callBotService("/discord-bot/service/claim-server", interaction, {
+    code: interaction.options.getString("code", true), guildId: interaction.guildId, guildName: interaction.guild?.name || "Discord server",
+  });
 }
 
 async function handleInteraction(interaction) {
@@ -264,8 +288,11 @@ async function handleInteraction(interaction) {
 
   if (toolDefinitions[interaction.commandName]) {
     try {
-      const member = await requirePro(interaction);
-      if (!member) return;
+      if (!interaction.inGuild()) {
+        await interaction.editReply("Run RBLXTools download commands in a server that has been claimed in the RBLXTools Bot dashboard.");
+        return;
+      }
+      await callBotService("/discord-bot/service/consume-use", interaction, { guildId: interaction.guildId });
 
       const assetId = String(interaction.options.getString("asset-id", true) || "").trim();
       if (!/^\d+$/.test(assetId)) {
@@ -274,7 +301,7 @@ async function handleInteraction(interaction) {
       }
 
       const mediaType = interaction.commandName === "media" ? interaction.options.getString("media-type") : "";
-      await interaction.editReply(await buildToolDownload(interaction.commandName, assetId, mediaType, interaction.user.id));
+      await interaction.editReply(await buildToolDownload(interaction.commandName, assetId, mediaType, interaction.user.id, interaction.guildId));
     } catch (error) {
       console.error("[tools-bot] tool download failed:", error);
       await interaction.editReply(error.message || "I could not prepare that RBLXTools download.");
@@ -289,6 +316,17 @@ async function handleInteraction(interaction) {
       console.log("[tools-bot] linked Discord " + interaction.user.id + " to RBLXTools " + link.appUserId);
     } catch (error) {
       await interaction.editReply(error.message || "That link code could not be used.");
+    }
+    return;
+  }
+
+  if (interaction.commandName === "claim-server") {
+    try {
+      var claimResult = await claimGuild(interaction);
+      var serverName = claimResult?.dashboard?.server?.guildName || interaction.guild?.name || "this server";
+      await interaction.editReply("Claimed **" + serverName + "**. Your server's RBLXTools Bot use balance is now active.");
+    } catch (error) {
+      await interaction.editReply(error.message || "This server could not be claimed.");
     }
     return;
   }

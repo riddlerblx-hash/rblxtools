@@ -33,11 +33,17 @@ const {
   unlinkDiscordAccount,
 } = require("./discord-tools-links");
 const {
+  claimDiscordServer,
+  consumeDiscordServerUse,
+  createServerClaimCode,
+  getBotDashboard,
+  getDiscordServerAccess,
   getUnlimitedSubscription,
   getPurchasedUses,
   grantPurchasedUses,
   isUnlimitedActive,
   setUnlimitedSubscription,
+  updateServerSettings,
 } = require("./discord-bot-entitlements");
 
 const app = express();
@@ -90,6 +96,7 @@ const DISCORD_SUPPORT_WEBHOOK_URL = String(process.env.DISCORD_SUPPORT_WEBHOOK_U
 const SUPPORT_BOT_ENDPOINT = String(process.env.SUPPORT_BOT_ENDPOINT || "").trim();
 const SUPPORT_BOT_SECRET = String(process.env.SUPPORT_BOT_SECRET || "").trim();
 const DISCORD_TOOLS_SERVICE_SECRET = String(process.env.DISCORD_TOOLS_SERVICE_SECRET || "").trim();
+const DISCORD_TOOLS_BOT_CLIENT_ID = String(process.env.RBLXTOOLS_TOOLS_DISCORD_CLIENT_ID || "").trim();
 const SUPPORT_STAFF_MENTION = String(process.env.SUPPORT_STAFF_MENTION || "").trim();
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || "").trim();
 const MAX_SUPPORT_ATTACHMENT_BYTES = 5 * 1024 * 1024;
@@ -3681,6 +3688,7 @@ async function requireAuthenticatedUser(req) {
 async function getDiscordToolsProMember(req) {
   const suppliedSecret = String(req.get("X-RBLXTools-Tools-Secret") || "").trim();
   const discordUserId = String(req.get("X-RBLXTools-Discord-User-Id") || "").trim();
+  const guildId = String(req.get("X-RBLXTools-Discord-Guild-Id") || "").trim();
   if (!suppliedSecret && !discordUserId) return null;
 
   if (!DISCORD_TOOLS_SERVICE_SECRET || !suppliedSecret || !/^\d+$/.test(discordUserId)) {
@@ -3697,6 +3705,22 @@ async function getDiscordToolsProMember(req) {
     throw error;
   }
 
+  if (guildId) {
+    const serverAccess = await getDiscordServerAccess(guildId);
+    if (!serverAccess.allowed) {
+      const error = new Error(serverAccess.reason || "This Discord server cannot use RBLXTools Bot yet.");
+      error.statusCode = 403;
+      throw error;
+    }
+    const owner = await getAuthUserById(serverAccess.appUserId);
+    if (!owner) {
+      const error = new Error("The RBLXTools account that owns this Discord server is unavailable.");
+      error.statusCode = 403;
+      throw error;
+    }
+    return owner;
+  }
+
   const link = await getDiscordLinkByUserId(discordUserId);
   const user = link ? await getAuthUserById(link.appUserId) : null;
   const membership = user ? await resolveMembershipSnapshot(user) : null;
@@ -3707,6 +3731,30 @@ async function getDiscordToolsProMember(req) {
   }
 
   return user;
+}
+
+async function requireDiscordToolsServiceIdentity(req) {
+  const suppliedSecret = String(req.get("X-RBLXTools-Tools-Secret") || "").trim();
+  const discordUserId = String(req.get("X-RBLXTools-Discord-User-Id") || "").trim();
+  if (!DISCORD_TOOLS_SERVICE_SECRET || !suppliedSecret || !/^\d+$/.test(discordUserId)) {
+    const error = new Error("Invalid Discord tools request.");
+    error.statusCode = 401;
+    throw error;
+  }
+  const expected = Buffer.from(DISCORD_TOOLS_SERVICE_SECRET);
+  const supplied = Buffer.from(suppliedSecret);
+  if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) {
+    const error = new Error("Invalid Discord tools request.");
+    error.statusCode = 401;
+    throw error;
+  }
+  const link = await getDiscordLinkByUserId(discordUserId);
+  if (!link?.appUserId) {
+    const error = new Error("Link your Discord account in RBLXTools before claiming a server.");
+    error.statusCode = 403;
+    throw error;
+  }
+  return { discordUserId, appUserId: String(link.appUserId) };
 }
 
 async function requireActivePlusUser(req) {
@@ -7737,6 +7785,58 @@ app.get("/store/discord-bot-unlimited-status", async (req, res) => {
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the Discord bot subscription." });
+  }
+});
+
+app.get("/discord-bot/dashboard", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const dashboard = await getBotDashboard(user.id);
+    const inviteUrl = /^\d+$/.test(DISCORD_TOOLS_BOT_CLIENT_ID)
+      ? `https://discord.com/oauth2/authorize?client_id=${DISCORD_TOOLS_BOT_CLIENT_ID}&scope=bot%20applications.commands&permissions=35840`
+      : null;
+    return res.json({ ok: true, dashboard, inviteUrl });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the RBLXTools Bot dashboard." });
+  }
+});
+
+app.post("/discord-bot/dashboard/claim-code", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    return res.json({ ok: true, ...(await createServerClaimCode(user.id)) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not create a server claim code." });
+  }
+});
+
+app.post("/discord-bot/dashboard/server-settings", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const dashboard = await updateServerSettings({ appUserId: user.id, guildId: req.body?.guildId, perUserDailyLimit: req.body?.perUserDailyLimit });
+    return res.json({ ok: true, dashboard });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not save Discord server settings." });
+  }
+});
+
+app.post("/discord-bot/service/claim-server", async (req, res) => {
+  try {
+    const identity = await requireDiscordToolsServiceIdentity(req);
+    const dashboard = await claimDiscordServer({ code: req.body?.code, appUserId: identity.appUserId, guildId: req.body?.guildId, guildName: req.body?.guildName });
+    return res.json({ ok: true, dashboard });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not claim this Discord server." });
+  }
+});
+
+app.post("/discord-bot/service/consume-use", async (req, res) => {
+  try {
+    await requireDiscordToolsServiceIdentity(req);
+    const usage = await consumeDiscordServerUse({ guildId: req.body?.guildId, discordUserId: req.get("X-RBLXTools-Discord-User-Id") });
+    return res.json({ ok: true, usage });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not use this Discord server entitlement." });
   }
 });
 
