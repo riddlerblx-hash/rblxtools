@@ -1335,7 +1335,7 @@
     @media (max-width:900px) { .subscriptions-main { display:block; min-height:0; padding:42px 14px 68px; } .plus-focus, .pro-focus { transform:none; } .plan-col.plus-focus { order:2; } .plan-col.pro-focus { order:3; } }
   </style>
 <link rel="stylesheet" href="./global-shell.css?v=20260829-5" />
-  <link rel="stylesheet" href="./mobile-overrides.css" />
+  <link rel="stylesheet" href="./mobile-overrides.css?v=20260831-1" />
 </head>
 <body class="rblx-shell-page rblx-tool-atmosphere rblx-subscription-store">
   <div class="bg-wrap">
@@ -1830,18 +1830,19 @@
           return window.matchMedia && window.matchMedia("(max-width: 820px)").matches;
         }
 
+        var mobilePlanTimer = 0;
+
         function updateMobilePlanArrows() {
           if (!mobilePlanPrev || !mobilePlanNext) return;
-          var maxIndex = Math.max(0, mobilePlanCols.length - 1);
-          mobilePlanPrev.disabled = mobilePlanIndex <= 0;
-          mobilePlanNext.disabled = mobilePlanIndex >= maxIndex;
+          mobilePlanPrev.disabled = mobilePlanCols.length < 2;
+          mobilePlanNext.disabled = mobilePlanCols.length < 2;
         }
 
         function updateMobilePlanClasses() {
           mobilePlanCols.forEach(function (col, index) {
-            col.classList.remove("is-active", "is-left", "is-right", "is-hidden");
+            col.classList.remove("is-active", "is-left", "is-right", "is-hidden", "is-mobile-active");
             if (index === mobilePlanIndex) {
-              col.classList.add("is-active");
+              col.classList.add("is-active", "is-mobile-active");
               return;
             }
             if (index === mobilePlanIndex - 1) {
@@ -1884,16 +1885,20 @@
 
         function centerMobilePlan(index, behavior) {
           if (!mobilePlanViewport || !plansGrid || !mobilePlanCols.length || !isMobilePlanViewport()) return;
-          var nextIndex = Math.max(0, Math.min(index, mobilePlanCols.length - 1));
+          var nextIndex = (index + mobilePlanCols.length) % mobilePlanCols.length;
           mobilePlanIndex = nextIndex;
-          var nextLeft = getMobilePlanOffset(nextIndex);
-          mobilePlanViewport.scrollTo({
-            left: nextLeft,
-            behavior: behavior === "auto" ? "auto" : "smooth"
-          });
           updateMobilePlanClasses();
           updateMobilePlanStageHeight();
           updateMobilePlanArrows();
+        }
+
+        function scheduleMobilePlanRotation() {
+          window.clearInterval(mobilePlanTimer);
+          if (isMobilePlanViewport() && mobilePlanCols.length > 1) {
+            mobilePlanTimer = window.setInterval(function () {
+              centerMobilePlan(mobilePlanIndex + 1, "auto");
+            }, 30000);
+          }
         }
 
         function syncInitialMobilePlan() {
@@ -1902,6 +1907,7 @@
           window.requestAnimationFrame(function () {
             window.requestAnimationFrame(function () {
               centerMobilePlan(1, "auto");
+              scheduleMobilePlanRotation();
             });
           });
         }
@@ -2223,12 +2229,14 @@
       if (mobilePlanPrev) {
         mobilePlanPrev.addEventListener("click", function () {
           centerMobilePlan(mobilePlanIndex - 1, "smooth");
+          scheduleMobilePlanRotation();
         });
       }
 
         if (mobilePlanNext) {
           mobilePlanNext.addEventListener("click", function () {
             centerMobilePlan(mobilePlanIndex + 1, "smooth");
+            scheduleMobilePlanRotation();
           });
         }
 
@@ -2242,6 +2250,7 @@
         window.addEventListener("resize", function () {
           if (isMobilePlanViewport()) {
             centerMobilePlan(mobilePlanIndex, "auto");
+            scheduleMobilePlanRotation();
             return;
           }
           if (plansGrid) {
@@ -2254,6 +2263,7 @@
           if (mobilePlanStage) {
             mobilePlanStage.style.minHeight = "";
           }
+          window.clearInterval(mobilePlanTimer);
         });
 
       window.setTimeout(function () {
