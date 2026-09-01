@@ -1488,14 +1488,6 @@
     window.location.href = "./index";
   }
 
-  function buildMobileAccountMarkup() {
-    var currentUser = shellState.currentUser || {};
-    if (currentUser.loggedIn) {
-      return '<a class="rblx-mobile-dock-link" href="./account-overview" id="rblxMobileAccountLink">Account</a>';
-    }
-    return '<a class="rblx-mobile-dock-link is-primary" href="./login" id="rblxMobileAccountLink">Login</a>';
-  }
-
   function buildStatusPlusMarkup() {
     var specs = [
       ["12%", "56%", "11px", "-0.4s", "0.18"],
@@ -1668,13 +1660,6 @@
             "</div>" +
           "</aside>" +
         "</div>" +
-        '<div class="rblx-mobile-dock" id="rblxMobileDock">' +
-          '<button class="rblx-mobile-dock-btn" type="button" id="rblxMobileNavButton">Menu</button>' +
-          '<a class="rblx-mobile-dock-link" href="./index">Home</a>' +
-          '<a class="rblx-mobile-dock-link is-store" href="./ai-tokens">Tokens</a>' +
-          '<button class="rblx-mobile-dock-btn" type="button" id="rblxMobileChatButton">Chat</button>' +
-          buildMobileAccountMarkup() +
-        '</div>' +
         '<button class="rblx-mobile-side-menu-button" type="button" id="rblxMobileSideMenuButton" aria-label="Open navigation"><i></i><i></i><i></i></button>' +
         '<button class="rblx-mobile-overlay" type="button" id="rblxMobileOverlay" hidden aria-label="Close mobile panel"></button>' +
         '<div class="rblx-shell-profile-overlay" id="rblxShellProfileOverlay" aria-hidden="true">' +
@@ -3493,28 +3478,8 @@
       });
     }
 
-    var mobileNavButton = document.getElementById("rblxMobileNavButton");
-    var mobileChatButton = document.getElementById("rblxMobileChatButton");
     var mobileSideMenuButton = document.getElementById("rblxMobileSideMenuButton");
     var mobileOverlay = document.getElementById("rblxMobileOverlay");
-    if (mobileNavButton) {
-      mobileNavButton.addEventListener("click", function () {
-        if (document.body.classList.contains("rblx-mobile-nav-open")) {
-          closeMobilePanels();
-          return;
-        }
-        openMobilePanel("nav");
-      });
-    }
-    if (mobileChatButton) {
-      mobileChatButton.addEventListener("click", function () {
-        if (document.body.classList.contains("rblx-mobile-chat-open")) {
-          closeMobilePanels();
-          return;
-        }
-        openMobilePanel("chat");
-      });
-    }
     if (mobileSideMenuButton) {
       mobileSideMenuButton.addEventListener("click", function () {
         if (document.body.classList.contains("rblx-mobile-nav-open")) {
@@ -3530,7 +3495,7 @@
     document.addEventListener("click", function (event) {
       var target = event.target;
       if (!target || !isMobileShellViewport()) return;
-      var actionLink = target.closest(".rblx-shell-left a, .rblx-shell-right a, .rblx-mobile-dock a");
+      var actionLink = target.closest(".rblx-shell-left a, .rblx-shell-right a");
       if (actionLink) {
         closeMobilePanels();
       }
@@ -3758,12 +3723,6 @@
     refreshCurrentProfile();
     syncChatIdentity();
     if (shellState.socket && shellState.socketReady) shellState.socket.emit("join-room", getSocketJoinPayload());
-    var mobileAccountLink = document.getElementById("rblxMobileAccountLink");
-    if (mobileAccountLink) {
-      mobileAccountLink.textContent = state.loggedIn ? "Account" : "Login";
-      mobileAccountLink.setAttribute("href", state.loggedIn ? "./account-overview" : "./login");
-      mobileAccountLink.classList.toggle("is-primary", !state.loggedIn);
-    }
     auth.innerHTML = buildAuthMarkup().replace('<div class="rblx-shell-auth" id="rblxShellAuth">', "").replace(/<\/div>$/, "");
     if (state.loggedIn) {
       fetch(API_BASE + "/referrals/me", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } })

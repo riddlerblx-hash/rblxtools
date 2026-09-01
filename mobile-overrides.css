@@ -658,7 +658,7 @@ body {
   :root { --rblx-mobile-dock-height: 76px; }
 
   body.rblx-mobile-shell {
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--rblx-mobile-dock-height) + 42px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
   }
 
   body.rblx-mobile-shell.rblx-mobile-nav-open,
@@ -724,7 +724,7 @@ body {
 
   /* Keep the fixed dock from covering the final footer line on every phone page. */
   body.rblx-mobile-shell .rblx-shell-footer {
-    margin-bottom: calc(var(--rblx-mobile-dock-height) + 28px) !important;
+    margin-bottom: 24px !important;
   }
 
   /* The generic mobile button rule must not stretch the small promo-code copy button. */
@@ -818,8 +818,8 @@ body {
   body.rblx-mobile-shell .rblx-shell-left {
     left: auto !important;
     right: 0 !important;
-    top: calc(env(safe-area-inset-top, 0px) + 102px) !important;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--rblx-mobile-dock-height) + 12px) !important;
+    top: 0 !important;
+    bottom: 0 !important;
     width: min(340px, calc(100vw - 24px));
     border-radius: 24px 0 0 24px;
     opacity: 1;
@@ -831,6 +831,10 @@ body {
   body.rblx-mobile-shell.rblx-mobile-nav-open .rblx-shell-left {
     transform: translateX(0);
     pointer-events: auto;
+  }
+
+  body.rblx-mobile-shell .rblx-shell-left-inner {
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 16px;
   }
 
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-header-actions {
@@ -868,6 +872,7 @@ body {
     background: linear-gradient(180deg, #1c5265, #103342);
     box-shadow: 0 12px 26px rgba(0, 0, 0, .28);
     transform: translateY(-50%);
+    transition: right .22s ease, opacity .18s ease;
   }
 
   body.rblx-mobile-shell .rblx-mobile-side-menu-button i {
@@ -879,7 +884,9 @@ body {
   }
 
   body.rblx-mobile-shell.rblx-mobile-nav-open .rblx-mobile-side-menu-button {
-    opacity: 0;
-    pointer-events: none;
+    right: min(340px, calc(100vw - 24px));
+    border-right: 1px solid rgba(56, 230, 224, .46);
+    border-left: 0;
+    border-radius: 0 12px 12px 0;
   }
 }
