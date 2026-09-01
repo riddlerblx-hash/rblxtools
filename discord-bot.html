@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Discord Bot Uses - RBLXTools</title>
+  <meta name="description" content="Purchase shared RBLXTools Discord bot uses for your server." />
+  <link rel="stylesheet" href="./global-shell.css?v=20260901-2" />
+  <link rel="stylesheet" href="./mobile-overrides.css?v=20260831-2" />
+  <style>
+    :root { --ink:#f6f8ff; --muted:#a6b4ca; --panel:#101b31; --line:rgba(129,169,255,.25); --aqua:#55e6dc; --blue:#71a5ff; --coral:#ff5c67; --gold:#ffd56d; }
+    * { box-sizing:border-box; }
+    body { min-width:0; margin:0; color:var(--ink); background:radial-gradient(circle at 15% 12%,rgba(73,119,255,.19),transparent 28%),radial-gradient(circle at 91% 68%,rgba(68,227,211,.13),transparent 31%),#070d18; font-family:Arial,sans-serif; }
+    .page { min-height:100vh; padding:58px 22px 94px; overflow:hidden; }
+    .wrap { width:min(1160px,100%); margin:auto; }
+    .hero { position:relative; max-width:760px; margin:0 auto 37px; text-align:center; }
+    .eyebrow { margin:0 0 12px; color:var(--aqua); font-size:11px; font-weight:900; letter-spacing:1.7px; text-transform:uppercase; }
+    h1 { margin:0; font:900 clamp(40px,7vw,76px)/.91 Georgia,serif; letter-spacing:-.06em; }
+    .hero p { max-width:620px; margin:17px auto 0; color:var(--muted); font-size:15px; font-weight:700; line-height:1.58; }
+    .store-grid { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.72fr); gap:18px; align-items:stretch; }
+    .builder, .summary, .how { border:1px solid var(--line); border-radius:25px; background:linear-gradient(150deg,rgba(25,40,68,.96),rgba(8,15,27,.98)); box-shadow:0 28px 68px rgba(0,0,0,.26); }
+    .builder { position:relative; min-height:448px; padding:clamp(24px,4vw,45px); overflow:hidden; }
+    .builder::after { position:absolute; right:-64px; bottom:-84px; width:280px; height:280px; border:1px solid rgba(95,230,221,.18); border-radius:50%; box-shadow:0 0 0 24px rgba(95,230,221,.035),0 0 0 48px rgba(95,230,221,.02); content:""; pointer-events:none; }
+    .builder-top { position:relative; z-index:1; display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
+    .builder h2, .summary h2, .how h2 { margin:0; font:900 clamp(26px,3.4vw,39px)/.96 Georgia,serif; letter-spacing:-.045em; }
+    .builder-top p { max-width:470px; margin:10px 0 0; color:var(--muted); font-size:13px; font-weight:700; line-height:1.5; }
+    .rate-chip { flex:0 0 auto; padding:9px 11px; border:1px solid rgba(85,230,220,.38); border-radius:999px; color:#c8fffa; background:rgba(29,107,108,.22); font-size:10px; font-weight:900; letter-spacing:.55px; text-transform:uppercase; white-space:nowrap; }
+    .slider-area { position:relative; z-index:1; margin-top:47px; }
+    .range-labels { display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:20px; }
+    .range-labels strong { color:#fff; font-size:clamp(28px,4vw,46px); letter-spacing:-.055em; }
+    .range-labels span { color:#8fa1ba; font-size:12px; font-weight:800; text-align:right; }
+    .range-shell { position:relative; padding:17px 0 15px; }
+    input[type="range"] { width:100%; height:12px; margin:0; appearance:none; border-radius:99px; outline:0; background:linear-gradient(90deg,var(--aqua) 0%,var(--blue) var(--range-progress),rgba(255,255,255,.09) var(--range-progress),rgba(255,255,255,.09) 100%); cursor:pointer; }
+    input[type="range"]::-webkit-slider-thumb { width:28px; height:28px; appearance:none; border:4px solid #e8fffe; border-radius:50%; background:linear-gradient(135deg,#46e5dc,#6593f4); box-shadow:0 0 0 7px rgba(85,230,220,.12),0 9px 21px rgba(0,0,0,.35); }
+    input[type="range"]::-moz-range-thumb { width:22px; height:22px; border:4px solid #e8fffe; border-radius:50%; background:linear-gradient(135deg,#46e5dc,#6593f4); box-shadow:0 0 0 7px rgba(85,230,220,.12),0 9px 21px rgba(0,0,0,.35); }
+    .ticks { display:flex; justify-content:space-between; margin-top:16px; color:#8190a7; font-size:10px; font-weight:900; }
+    .ticks span { position:relative; padding-top:13px; }
+    .ticks span::before { position:absolute; top:0; left:50%; width:1px; height:7px; background:rgba(198,224,255,.36); content:""; }
+    .quick-picks { display:flex; flex-wrap:wrap; gap:8px; margin-top:28px; }
+    .quick-picks button { min-width:66px; padding:9px 12px; border:1px solid rgba(122,162,244,.27); border-radius:10px; color:#c6d5e9; background:rgba(27,42,69,.78); font:800 11px Arial,sans-serif; cursor:pointer; transition:transform .18s ease,border-color .18s ease,color .18s ease; }
+    .quick-picks button:hover,.quick-picks button.is-active { border-color:rgba(85,230,220,.66); color:#eafffd; transform:translateY(-2px); }
+    .use-note { margin:30px 0 0; padding:12px 14px; border-left:3px solid var(--aqua); color:#b9cadf; background:rgba(5,16,31,.36); font-size:11px; font-weight:700; line-height:1.48; }
+    .summary { display:flex; flex-direction:column; padding:25px; background:radial-gradient(circle at 77% 0%,rgba(99,141,255,.24),transparent 38%),linear-gradient(155deg,rgba(24,38,66,.98),rgba(9,15,27,.99)); }
+    .summary-kicker { margin:0 0 8px; color:#abc4ff; font-size:10px; font-weight:900; letter-spacing:1px; text-transform:uppercase; }
+    .price { margin:27px 0 4px; font-size:clamp(49px,7vw,70px); font-weight:900; letter-spacing:-.075em; line-height:.9; }
+    .price small { color:#b7c6dd; font-size:18px; letter-spacing:0; }
+    .server-use { margin:8px 0 24px; color:#a8b7cf; font-size:12px; font-weight:800; }
+    .summary-list { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
+    .summary-list li { display:flex; align-items:flex-start; gap:9px; color:#cbd7e8; font-size:12px; font-weight:700; line-height:1.38; }
+    .summary-list b { display:grid; width:19px; height:19px; flex:0 0 19px; place-items:center; border-radius:50%; color:#07121b; background:var(--aqua); font-size:12px; }
+    .checkout { width:100%; margin-top:auto; padding:14px 13px; border:0; border-radius:13px; color:#07121a; background:linear-gradient(135deg,var(--aqua),var(--blue)); box-shadow:0 14px 26px rgba(65,170,249,.22); font:900 13px Arial,sans-serif; cursor:pointer; transition:transform .18s ease,filter .18s ease; }
+    .checkout:hover { filter:brightness(1.08); transform:translateY(-2px); }.checkout:disabled { cursor:wait; opacity:.7; }
+    .summary-foot { margin:11px 0 0; color:#8493ab; font-size:10px; font-weight:700; line-height:1.4; text-align:center; }
+    .unlimited { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:16px; align-items:center; margin-top:18px; padding:21px 25px; border:1px solid rgba(255,213,109,.34); border-radius:19px; background:linear-gradient(105deg,rgba(92,66,19,.72),rgba(31,35,50,.91) 48%,rgba(15,29,50,.9)); box-shadow:0 20px 46px rgba(0,0,0,.2); }
+    .unlimited h2 { margin:0; color:#ffdf8c; font-size:20px; }.unlimited p { margin:6px 0 0; color:#c7b886; font-size:12px; font-weight:700; line-height:1.45; }.unlimited strong { color:#fff1bc; font-size:29px; letter-spacing:-.05em; white-space:nowrap; }.unlimited button { padding:11px 13px; border:1px solid rgba(255,221,130,.45); border-radius:10px; color:#fff2c3; background:rgba(122,86,21,.22); font:900 11px Arial,sans-serif; cursor:pointer; }
+    .how { margin-top:18px; padding:26px; }.how h2 { font-size:27px; }.steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:21px; }.step { min-width:0; padding:14px; border:1px solid rgba(127,162,224,.16); border-radius:15px; background:rgba(7,16,30,.36); }.step span { display:grid; width:25px; height:25px; place-items:center; border-radius:8px; color:#06111a; background:linear-gradient(135deg,var(--aqua),var(--blue)); font-size:11px; font-weight:900; }.step h3 { margin:13px 0 5px; font-size:14px; }.step p { margin:0; color:var(--muted); font-size:11px; font-weight:700; line-height:1.5; }
+    .notice { position:fixed; bottom:25px; left:50%; z-index:10050; width:min(540px,calc(100vw - 28px)); padding:13px 18px; border:1px solid rgba(103,223,255,.42); border-radius:13px; color:#d9fffd; background:rgba(10,24,43,.97); box-shadow:0 18px 44px rgba(0,0,0,.34); font-size:12px; font-weight:800; line-height:1.4; text-align:center; transform:translate(-50%,20px); opacity:0; pointer-events:none; transition:opacity .18s ease,transform .18s ease; }.notice.show { opacity:1; transform:translate(-50%,0); }.notice.error { border-color:rgba(255,107,112,.58); color:#ffb7ba; }
+    @media (max-width:800px) { .page { padding:39px 14px 76px; }.store-grid { grid-template-columns:1fr; }.summary { min-height:330px; }.unlimited { grid-template-columns:1fr auto; }.unlimited button { grid-column:1/-1; }.steps { grid-template-columns:1fr; }.builder { min-height:0; }.rate-chip { display:none; } }
+    @media (max-width:480px) { .builder,.summary,.how { border-radius:19px; }.builder,.summary { padding:21px; }.range-labels strong { font-size:36px; }.ticks span:nth-child(2),.ticks span:nth-child(4) { display:none; }.unlimited { grid-template-columns:1fr; gap:11px; }.unlimited strong { font-size:26px; }.quick-picks button { flex:1; }.hero p { font-size:13px; } }
+  </style>
+</head>
+<body class="rblx-shell-page rblx-tool-atmosphere">
+  <main class="page"><div class="wrap">
+    <header class="hero"><p class="eyebrow">RBLXTools Store</p><h1>Discord bot uses, built for your server.</h1><p>Buy a shared pool of RBLXTools bot uses. Your server spends from one balance, so every member can use the tools without creating an extra account.</p></header>
+    <section class="store-grid" aria-label="Discord bot use builder">
+      <section class="builder"><div class="builder-top"><div><h2>Build your server pack</h2><p>Move the slider to choose a shared balance. Each step adds five bot uses for two cents.</p></div><span class="rate-chip">2 cents / 5 uses</span></div>
+        <div class="slider-area"><div class="range-labels"><strong><span id="useCount">250</span> uses</strong><span>Shared across<br>one Discord server</span></div><div class="range-shell"><input id="useSlider" type="range" min="5" max="5000" step="5" value="250" aria-label="Bot uses to purchase"></div><div class="ticks"><span>5</span><span>1,250</span><span>2,500</span><span>3,750</span><span>5,000</span></div></div>
+        <div class="quick-picks" aria-label="Quick use selections"><button type="button" data-uses="100">100 uses</button><button type="button" data-uses="250" class="is-active">250 uses</button><button type="button" data-uses="1000">1,000 uses</button><button type="button" data-uses="2500">2,500 uses</button></div>
+        <p class="use-note">Uses are assigned to one server after the account owner links Discord and verifies they can manage that server. Bot commands deduct from the server balance, not individual members.</p>
+      </section>
+      <aside class="summary"><p class="summary-kicker">Your server pack</p><h2 id="summaryUses">250 bot uses</h2><div class="price" id="price">$1.00</div><p class="server-use">One-time purchase for one Discord server.</p><ul class="summary-list"><li><b>1</b><span>Buy through your RBLXTools account.</span></li><li><b>2</b><span>Invite the bot to the Discord server you manage.</span></li><li><b>3</b><span>Run the claim command to attach this balance.</span></li></ul><button class="checkout" id="checkoutButton" type="button">Continue to secure checkout</button><p class="summary-foot">Server credit checkout is in preview. You will always review your use total before payment.</p></aside>
+    </section>
+    <section class="unlimited"><div><h2>Unlimited server plan</h2><p>For active communities that do not want to track a shared balance. Includes fair-use and abuse protections.</p></div><strong>$80 <small>/ month</small></strong><button id="unlimitedButton" type="button">Ask about unlimited</button></section>
+    <section class="how"><h2>How server credits work</h2><div class="steps"><article class="step"><span>01</span><h3>Buy the balance</h3><p>The buyer chooses a use count and checks out while logged in to RBLXTools.</p></article><article class="step"><span>02</span><h3>Claim a server</h3><p>After inviting the bot, the buyer verifies their linked Discord account and server permissions.</p></article><article class="step"><span>03</span><h3>Let members use it</h3><p>Every member can run allowed commands. The server’s balance updates securely on each use.</p></article></div></section>
+  </div></main>
+  <p class="notice" id="notice" role="status" aria-live="polite"></p>
+  <script src="./global-shell.js?v=20260901-2"></script>
+  <script>
+    (function(){
+      var slider=document.getElementById('useSlider'); var count=document.getElementById('useCount'); var summary=document.getElementById('summaryUses'); var price=document.getElementById('price'); var checkout=document.getElementById('checkoutButton'); var unlimited=document.getElementById('unlimitedButton'); var notice=document.getElementById('notice'); var timer=0;
+      function formatUses(value){return Number(value).toLocaleString('en-US');}
+      function update(){var uses=Number(slider.value)||5;var cents=(uses/5)*2;var progress=((uses-Number(slider.min))/(Number(slider.max)-Number(slider.min)))*100;count.textContent=formatUses(uses);summary.textContent=formatUses(uses)+' bot uses';price.textContent=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100);slider.style.setProperty('--range-progress',progress+'%');document.querySelectorAll('[data-uses]').forEach(function(button){button.classList.toggle('is-active',Number(button.dataset.uses)===uses);});}
+      function show(message,type){window.clearTimeout(timer);notice.textContent=message;notice.className='notice show'+(type?' '+type:'');timer=window.setTimeout(function(){notice.className='notice';},4700);}
+      function signedIn(){try{return Boolean(localStorage.getItem('rblxtools_auth_token'));}catch(_){return false;}}
+      slider.addEventListener('input',update);document.querySelectorAll('[data-uses]').forEach(function(button){button.addEventListener('click',function(){slider.value=button.dataset.uses;update();});});
+      checkout.addEventListener('click',function(){if(!signedIn()){if(window.RBLXToolsAuthModal)window.RBLXToolsAuthModal.open({mode:'login',message:'Log in first so your Discord server credit can be claimed securely.'});else window.location.href='./login';return;}show('Your '+formatUses(slider.value)+'-use server pack is ready. Secure server-credit checkout is the next backend step.');});
+      unlimited.addEventListener('click',function(){show('Unlimited server licensing is being finalized. For now, use a shared server pack.');}); update();
+    }());
+  </script>
+</body>
+</html>

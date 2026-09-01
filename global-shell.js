@@ -165,6 +165,7 @@
       title: "Store",
       items: [
         { href: "./ai-tokens", label: "AI Tokens", icon: "spark" },
+        { href: "./discord-bot", label: "Discord Bot", icon: "community" },
         { href: "./subscriptions", label: "Subscriptions", icon: "plan" }
       ]
     },
