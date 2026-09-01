@@ -1632,7 +1632,7 @@
                       <div class="acct-bot-metrics"><div><span>Plan</span><strong id="acctBotMode">Locked</strong></div><div><span>Used / owned</span><strong id="acctBotUses">0 / 0</strong></div><div><span>Server</span><strong id="acctBotServer">Not claimed</strong></div></div>
                       <div class="acct-bot-action-row"><div class="acct-actions"><button id="acctBotClaimCodeButton" class="acct-button plans" type="button">Generate server claim code</button></div><a id="acctBotInviteLink" class="acct-bot-invite" href="#" target="_blank" rel="noopener">Invite RBLXTools Bot to your server</a></div>
                       <div id="acctBotClaimCodeWrap" hidden><div class="acct-field-label">Server claim code</div><input id="acctBotClaimCode" class="acct-input" type="text" readonly value=""></div>
-                      <div class="acct-bot-setting"><div><div class="acct-field-label">Users Daily Command Use Limit</div><button id="acctBotDailyLimitEnabled" class="acct-bot-switch" type="button" role="switch" aria-checked="false"><span></span>Daily limit is off</button><input id="acctBotDailyLimit" class="acct-input" type="number" min="0" max="1000" value="0"><div class="acct-section-copy">Leave this off for no per-user daily limit. Everyone can then use commands freely, which can spend your purchased uses faster.</div></div><button id="acctBotSaveSettingsButton" class="acct-button secondary" type="button">Save limits</button></div>
+                      <div class="acct-bot-setting"><div><div class="acct-field-label">Users Daily Command Use Limit</div><button id="acctBotDailyLimitEnabled" class="acct-bot-switch" type="button" role="switch" aria-checked="false"><span></span>Daily limit is off</button><input id="acctBotDailyLimit" class="acct-input" type="number" min="0" max="1000" value="0"><div class="acct-section-copy">Leave this off for no per-user daily limit. Everyone can then use commands freely, which can spend your purchased uses faster.</div></div></div>
                       <div id="acctBotRoleLimitsContent"><div class="acct-field-label">User Daily Command Use by Discord Role</div><button id="acctBotRoleLimitsEnabled" class="acct-bot-switch" type="button" role="switch" aria-checked="false"><span></span>Role limits are off</button><div class="acct-bot-role-entry"><input id="acctBotRoleId" class="acct-input" type="text" inputmode="numeric" placeholder="Discord role ID"><input id="acctBotRoleLimit" class="acct-input" type="number" min="0" max="1000" value="0" aria-label="Role daily command use limit"><button id="acctBotAddRoleLimitButton" class="acct-button secondary" type="button">Add role</button></div><p class="acct-bot-role-help">Enable Discord Developer Mode, then right-click the role and choose Copy ID. A role can receive more uses than the general daily limit, which can spend your purchased uses faster.</p><div id="acctBotRoleLimitList" class="acct-bot-role-list"></div><div class="acct-field-label" style="margin-top:12px">Reset member daily use</div><div class="acct-bot-role-entry"><input id="acctBotResetMember" class="acct-input" placeholder="Discord user ID"><span></span><button id="acctBotResetMemberButton" class="acct-button secondary" type="button">Reset</button></div></div>
                       <div class="acct-bot-admin-grid"><div class="acct-bot-admin-card"><h4>Server controls</h4><p class="acct-bot-control-copy">Turn paid use-pack commands on or off for the whole server. When on, download commands use the credits you purchased.</p><button id="acctBotPaused" class="acct-bot-switch is-on" type="button" role="switch" aria-checked="true"><span></span>Commands are on</button><input id="acctBotCommandSearch" class="acct-input acct-bot-command-search" type="search" placeholder="Search commands to block"><div class="acct-bot-checks" id="acctBotCommandBlocks"><label><input type="checkbox" value="clothing"> Block /clothing</label><label><input type="checkbox" value="ugc"> Block /ugc</label><label><input type="checkbox" value="media"> Block /media</label><label><input type="checkbox" value="audio"> Block /audio</label><label><input type="checkbox" value="animations"> Block /animations</label><label><input type="checkbox" value="robux"> Block all /robux calculators</label></div><div class="acct-actions"><button id="acctBotSaveControls" class="acct-button secondary" type="button">Save controls</button><button id="acctBotUnclaim" class="acct-button danger" type="button">Transfer server</button></div></div><div class="acct-bot-admin-card"><h4>Usage alerts</h4><p class="acct-bot-control-copy">Send an alert to one server channel when use-pack usage reaches a selected percentage.</p><button id="acctBotAlertsEnabled" class="acct-bot-switch" type="button" role="switch" aria-checked="false"><span></span>Usage alerts are off</button><div class="acct-field-label" style="margin-top:12px">Alert channel</div><select id="acctBotAlertChannel" class="acct-input"><option value="">Choose a Discord channel</option></select><div class="acct-bot-checks" id="acctBotAlerts" style="margin-top:10px"><label><input type="checkbox" value="50"> 50%</label><label><input type="checkbox" value="75"> 75%</label><label><input type="checkbox" value="90"> 90%</label><label><input type="checkbox" value="100"> 100%</label></div></div><div class="acct-bot-admin-card"><h4>Server activity</h4><select id="acctBotChartRange" class="acct-input"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select><canvas id="acctBotActivityChart" class="acct-bot-chart"></canvas></div><div class="acct-bot-admin-card"><h4>Members & audit</h4><div id="acctBotLeaderboard" class="acct-bot-list"></div><div id="acctBotAuditLog" class="acct-bot-list" style="margin-top:10px"></div></div></div>
                     </div>
@@ -1949,7 +1949,6 @@
         acctBotClaimCodeButton: document.getElementById("acctBotClaimCodeButton"),
         acctBotInviteLink: document.getElementById("acctBotInviteLink"),
         acctBotDailyLimitEnabled: document.getElementById("acctBotDailyLimitEnabled"), acctBotDailyLimit: document.getElementById("acctBotDailyLimit"),
-        acctBotSaveSettingsButton: document.getElementById("acctBotSaveSettingsButton"),
         acctBotRoleLimitsEnabled: document.getElementById("acctBotRoleLimitsEnabled"), acctBotRoleId: document.getElementById("acctBotRoleId"),
         acctBotRoleLimit: document.getElementById("acctBotRoleLimit"),
         acctBotAddRoleLimitButton: document.getElementById("acctBotAddRoleLimitButton"),
@@ -2338,6 +2337,7 @@
         els.acctBotRoleId.value = "";
         els.acctBotRoleLimit.value = "0";
         renderBotRoleLimits();
+        queueBotSettingsSave();
       }
 
       function renderBotManagement(server) {
@@ -2418,18 +2418,22 @@
         finally { els.acctBotClaimCodeButton.disabled = false; }
       }
 
+      var botSettingsSaveTimer = null;
+      function queueBotSettingsSave() {
+        window.clearTimeout(botSettingsSaveTimer);
+        botSettingsSaveTimer = window.setTimeout(saveBotSettings, 450);
+      }
+
       async function saveBotSettings() {
         if (!state.botDashboard || !state.botDashboard.server) {
           setStatus(els.acctBotDashboardStatus, "Claim a Discord server before setting a member usage limit.", "error");
           return;
         }
-        els.acctBotSaveSettingsButton.disabled = true;
         try {
           var payload = await apiRequest("/discord-bot/dashboard/server-settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guildId: state.botDashboard.server.guildId, perUserDailyLimit: els.acctBotDailyLimit.value, dailyLimitEnabled: els.acctBotDailyLimitEnabled.dataset.enabled === "true", roleDailyLimits: state.botRoleDailyLimits, roleDailyLimitsEnabled: els.acctBotRoleLimitsEnabled.dataset.enabled === "true" }) });
           renderBotDashboard({ dashboard: payload.dashboard, inviteUrl: els.acctBotInviteLink.href });
-          setStatus(els.acctBotDashboardStatus, "Member daily command limit saved.", "success");
+          setStatus(els.acctBotDashboardStatus, "Member daily command limits saved automatically.", "success");
         } catch (error) { setStatus(els.acctBotDashboardStatus, error.message || "Could not save the member limit.", "error"); }
-        finally { els.acctBotSaveSettingsButton.disabled = false; }
       }
 
       async function requestReferralPayout() {
@@ -3130,9 +3134,9 @@
         if (event.key === "Escape") closeBotInfo();
       });
       if (els.acctBotClaimCodeButton) els.acctBotClaimCodeButton.addEventListener("click", createBotClaimCode);
-      if (els.acctBotSaveSettingsButton) els.acctBotSaveSettingsButton.addEventListener("click", saveBotSettings);
-      if (els.acctBotDailyLimitEnabled) els.acctBotDailyLimitEnabled.addEventListener("click", function () { toggleBotSwitch(els.acctBotDailyLimitEnabled, "Daily limit is on", "Daily limit is off"); updateBotLimitInputs(); });
-      if (els.acctBotRoleLimitsEnabled) els.acctBotRoleLimitsEnabled.addEventListener("click", function () { toggleBotSwitch(els.acctBotRoleLimitsEnabled, "Role limits are on", "Role limits are off"); updateBotLimitInputs(); });
+      if (els.acctBotDailyLimitEnabled) els.acctBotDailyLimitEnabled.addEventListener("click", function () { toggleBotSwitch(els.acctBotDailyLimitEnabled, "Daily limit is on", "Daily limit is off"); updateBotLimitInputs(); queueBotSettingsSave(); });
+      if (els.acctBotDailyLimit) els.acctBotDailyLimit.addEventListener("input", queueBotSettingsSave);
+      if (els.acctBotRoleLimitsEnabled) els.acctBotRoleLimitsEnabled.addEventListener("click", function () { toggleBotSwitch(els.acctBotRoleLimitsEnabled, "Role limits are on", "Role limits are off"); updateBotLimitInputs(); queueBotSettingsSave(); });
       if (els.acctBotAddRoleLimitButton) els.acctBotAddRoleLimitButton.addEventListener("click", addBotRoleLimit);
       if (els.acctBotPaused) els.acctBotPaused.addEventListener("click", function () { toggleBotSwitch(els.acctBotPaused, "Commands are on", "Commands are off"); });
       if (els.acctBotAlertsEnabled) els.acctBotAlertsEnabled.addEventListener("click", function () { toggleBotSwitch(els.acctBotAlertsEnabled, "Usage alerts are on", "Usage alerts are off"); });
@@ -3146,6 +3150,7 @@
         if (!roleId) return;
         state.botRoleDailyLimits = state.botRoleDailyLimits.filter(function (rule) { return String(rule.roleId) !== roleId; });
         renderBotRoleLimits();
+        queueBotSettingsSave();
       });
       if (els.acctChangePasswordButton) {
         els.acctChangePasswordButton.addEventListener("click", openChangePasswordModal);
