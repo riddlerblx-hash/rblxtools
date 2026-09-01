@@ -281,6 +281,12 @@ async function claimGuild(interaction) {
   });
 }
 
+function getInteractionRoleIds(interaction) {
+  const cachedRoles = interaction.member?.roles?.cache;
+  if (cachedRoles && typeof cachedRoles.keys === "function") return Array.from(cachedRoles.keys());
+  return Array.isArray(interaction.member?.roles) ? interaction.member.roles.map((roleId) => String(roleId || "")) : [];
+}
+
 async function handleInteraction(interaction) {
   if (!interaction.isChatInputCommand()) return;
   const isPrivateCommand = ["link", "status"].includes(interaction.commandName);
@@ -292,7 +298,7 @@ async function handleInteraction(interaction) {
         await interaction.editReply("Run RBLXTools download commands in a server that has been claimed in the RBLXTools Bot dashboard.");
         return;
       }
-      await callBotService("/discord-bot/service/consume-use", interaction, { guildId: interaction.guildId });
+      await callBotService("/discord-bot/service/consume-use", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction) });
 
       const assetId = String(interaction.options.getString("asset-id", true) || "").trim();
       if (!/^\d+$/.test(assetId)) {

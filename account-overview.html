@@ -1240,6 +1240,8 @@
     }
     #rbtools-account-overview .acct-bot-dashboard { display:flex; flex-direction:column; min-height: clamp(470px, 58vh, 680px); padding: clamp(22px, 3vw, 34px); border-color: rgba(100, 177, 255, .34); background: radial-gradient(circle at 92% 8%, rgba(102, 139, 255, .18), transparent 42%), linear-gradient(155deg, rgba(22, 34, 74, .78), rgba(9, 16, 29, .86)); }
     #rbtools-account-overview .acct-bot-dashboard .acct-bot-controls { display:grid; flex:1; align-content:start; gap:14px; margin-top:10px; }
+    #rbtools-account-overview .acct-bot-action-row { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
+    #rbtools-account-overview .acct-bot-action-row .acct-actions { margin:0; }
     #rbtools-account-overview .acct-bot-metrics { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin:14px 0; }
     #rbtools-account-overview .acct-bot-metrics div { padding:10px; border:1px solid rgba(118, 169, 255, .2); border-radius:11px; background:rgba(5, 15, 31, .34); }
     #rbtools-account-overview .acct-bot-metrics span { display:block; color:#9fb3d5; font-size:9px; font-weight:900; letter-spacing:.65px; text-transform:uppercase; }
@@ -1247,6 +1249,14 @@
     #rbtools-account-overview .acct-bot-setting { display:grid; grid-template-columns:minmax(0, 1fr) 95px; gap:8px; align-items:end; }
     #rbtools-account-overview .acct-bot-setting .acct-field-label { margin:0; }
     #rbtools-account-overview .acct-bot-invite { display:block; width:100%; padding:11px; border:1px solid rgba(106, 168, 255, .48); border-radius:10px; color:#e9f3ff; background:rgba(43, 89, 159, .35); font-size:11px; font-weight:900; text-align:center; text-decoration:none; }
+    #rbtools-account-overview .acct-bot-role-limits { padding:13px; border:1px solid rgba(118, 169, 255, .2); border-radius:13px; background:rgba(5, 15, 31, .28); }
+    #rbtools-account-overview .acct-bot-role-entry { display:grid; grid-template-columns:minmax(0, 1fr) 92px 78px; gap:8px; margin-top:8px; }
+    #rbtools-account-overview .acct-bot-role-help { margin:7px 0 0; color:#9fb3d5; font-size:10px; line-height:1.45; }
+    #rbtools-account-overview .acct-bot-role-list { display:grid; gap:7px; margin-top:10px; }
+    #rbtools-account-overview .acct-bot-role-rule { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 9px; border-radius:9px; background:rgba(7, 17, 35, .58); color:#dbeaff; font-size:11px; font-weight:800; }
+    #rbtools-account-overview .acct-bot-role-rule code { color:#8dceff; font-size:10px; }
+    #rbtools-account-overview .acct-bot-role-rule button { border:0; color:#ffadb8; background:transparent; font:inherit; font-size:10px; font-weight:900; cursor:pointer; }
+    #rbtools-account-overview .acct-bot-role-empty { color:#8494ad; font-size:10px; font-weight:700; }
     #rbtools-account-overview .acct-account-details { margin: 14px 0; }
     #rbtools-account-overview .acct-referral-hero { border-color: rgba(63, 231, 201, .34); background: radial-gradient(circle at top right, rgba(51, 233, 202, .13), transparent 38%), linear-gradient(180deg, rgba(16, 53, 66, .38), rgba(11, 19, 33, .62)); }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
@@ -1279,6 +1289,7 @@
       #rbtools-account-overview .acct-referral-link-row { flex-direction: column; }
       #rbtools-account-overview .acct-bot-metrics { grid-template-columns:1fr; }
       #rbtools-account-overview .acct-bot-setting { grid-template-columns:1fr; }
+      #rbtools-account-overview .acct-bot-action-row, #rbtools-account-overview .acct-bot-role-entry { grid-template-columns:1fr; }
     }
   </style>
   <link rel="stylesheet" href="./mobile-overrides.css">
@@ -1599,10 +1610,10 @@
                     <p class="acct-section-copy">Invite the bot, claim one Discord server, and decide whether individual members should have a daily command limit.</p>
                     <div class="acct-bot-controls">
                       <div class="acct-bot-metrics"><div><span>Plan</span><strong id="acctBotMode">Locked</strong></div><div><span>Used / owned</span><strong id="acctBotUses">0 / 0</strong></div><div><span>Server</span><strong id="acctBotServer">Not claimed</strong></div></div>
+                      <div class="acct-bot-action-row"><div class="acct-actions"><button id="acctBotClaimCodeButton" class="acct-button plans" type="button">Generate server claim code</button></div><a id="acctBotInviteLink" class="acct-bot-invite" href="#" target="_blank" rel="noopener">Invite RBLXTools Bot to your server</a></div>
                       <div id="acctBotClaimCodeWrap" hidden><div class="acct-field-label">Server claim code</div><input id="acctBotClaimCode" class="acct-input" type="text" readonly value=""></div>
-                      <div class="acct-actions"><button id="acctBotClaimCodeButton" class="acct-button plans" type="button">Generate server claim code</button></div>
-                      <a id="acctBotInviteLink" class="acct-bot-invite" href="#" target="_blank" rel="noopener">Invite RBLXTools Bot to your server</a>
-                      <div class="acct-bot-setting"><div><div class="acct-field-label">Per-user daily command limit</div><input id="acctBotDailyLimit" class="acct-input" type="number" min="0" max="1000" value="0"><div class="acct-section-copy">Use 0 for no individual daily limit.</div></div><button id="acctBotSaveSettingsButton" class="acct-button secondary" type="button">Save limit</button></div>
+                      <div class="acct-bot-setting"><div><div class="acct-field-label">Users Daily Command Use Limit</div><input id="acctBotDailyLimit" class="acct-input" type="number" min="0" max="1000" value="0"><div class="acct-section-copy">Use 0 for no individual daily limit.</div></div><button id="acctBotSaveSettingsButton" class="acct-button secondary" type="button">Save limits</button></div>
+                      <div class="acct-bot-role-limits"><div class="acct-field-label">User Daily Command Use by Discord Role</div><div class="acct-bot-role-entry"><input id="acctBotRoleId" class="acct-input" type="text" inputmode="numeric" placeholder="Discord role ID"><input id="acctBotRoleLimit" class="acct-input" type="number" min="0" max="1000" value="0" aria-label="Role daily command use limit"><button id="acctBotAddRoleLimitButton" class="acct-button secondary" type="button">Add role</button></div><p class="acct-bot-role-help">Enable Discord Developer Mode, then right-click the role and choose Copy ID. Members receive the highest matching role limit.</p><div id="acctBotRoleLimitList" class="acct-bot-role-list"></div></div>
                     </div>
                     <div id="acctBotDashboardStatus" class="acct-status">Checking Discord Bot access...</div>
                   </section>
@@ -1796,6 +1807,7 @@
         deleteCountdownTimer: null,
         membershipPollTimer: null,
         botDashboard: null,
+        botRoleDailyLimits: [],
         profile: {
           displayName: "",
           bio: "",
@@ -1915,6 +1927,10 @@
         acctBotInviteLink: document.getElementById("acctBotInviteLink"),
         acctBotDailyLimit: document.getElementById("acctBotDailyLimit"),
         acctBotSaveSettingsButton: document.getElementById("acctBotSaveSettingsButton"),
+        acctBotRoleId: document.getElementById("acctBotRoleId"),
+        acctBotRoleLimit: document.getElementById("acctBotRoleLimit"),
+        acctBotAddRoleLimitButton: document.getElementById("acctBotAddRoleLimitButton"),
+        acctBotRoleLimitList: document.getElementById("acctBotRoleLimitList"),
         acctBotDashboardStatus: document.getElementById("acctBotDashboardStatus")
       };
 
@@ -2215,6 +2231,8 @@
         els.acctBotUses.textContent = dashboard.mode === "unlimited" ? "Unlimited" : (Number(dashboard.usedUses || 0).toLocaleString() + " / " + Number(dashboard.totalUses || 0).toLocaleString());
         els.acctBotServer.textContent = dashboard.server ? dashboard.server.guildName : "Not claimed";
         els.acctBotDailyLimit.value = dashboard.server ? String(dashboard.server.perUserDailyLimit || 0) : "0";
+        state.botRoleDailyLimits = dashboard.server && Array.isArray(dashboard.server.roleDailyLimits) ? dashboard.server.roleDailyLimits.slice() : [];
+        renderBotRoleLimits();
         if (payload.inviteUrl) {
           els.acctBotInviteLink.href = payload.inviteUrl;
           els.acctBotInviteLink.removeAttribute("aria-disabled");
@@ -2245,6 +2263,48 @@
         els.acctBotInfoPopover.hidden = expanded;
       }
 
+      function renderBotRoleLimits() {
+        if (!els.acctBotRoleLimitList) return;
+        els.acctBotRoleLimitList.textContent = "";
+        if (!state.botRoleDailyLimits.length) {
+          var empty = document.createElement("div");
+          empty.className = "acct-bot-role-empty";
+          empty.textContent = "No role-specific limits yet.";
+          els.acctBotRoleLimitList.appendChild(empty);
+          return;
+        }
+        state.botRoleDailyLimits.forEach(function (rule) {
+          var item = document.createElement("div");
+          item.className = "acct-bot-role-rule";
+          var label = document.createElement("span");
+          label.innerHTML = "Role <code></code> - " + String(Number(rule.dailyLimit || 0)) + " uses/day";
+          label.querySelector("code").textContent = String(rule.roleId || "");
+          var remove = document.createElement("button");
+          remove.type = "button";
+          remove.dataset.roleId = String(rule.roleId || "");
+          remove.textContent = "Remove";
+          item.appendChild(label);
+          item.appendChild(remove);
+          els.acctBotRoleLimitList.appendChild(item);
+        });
+      }
+
+      function addBotRoleLimit() {
+        var roleId = String(els.acctBotRoleId.value || "").trim();
+        var dailyLimit = Number.parseInt(els.acctBotRoleLimit.value, 10);
+        if (!/^\d{15,22}$/.test(roleId) || !Number.isFinite(dailyLimit) || dailyLimit < 0 || dailyLimit > 1000) {
+          setStatus(els.acctBotDashboardStatus, "Enter a valid Discord role ID and a limit from 0 to 1,000.", "error");
+          return;
+        }
+        var existingIndex = state.botRoleDailyLimits.findIndex(function (rule) { return String(rule.roleId) === roleId; });
+        var rule = { roleId: roleId, dailyLimit: dailyLimit };
+        if (existingIndex === -1) state.botRoleDailyLimits.push(rule);
+        else state.botRoleDailyLimits[existingIndex] = rule;
+        els.acctBotRoleId.value = "";
+        els.acctBotRoleLimit.value = "0";
+        renderBotRoleLimits();
+      }
+
       function closeBotInfo() {
         if (!els.acctBotInfoButton || !els.acctBotInfoPopover) return;
         els.acctBotInfoButton.setAttribute("aria-expanded", "false");
@@ -2269,7 +2329,7 @@
         }
         els.acctBotSaveSettingsButton.disabled = true;
         try {
-          var payload = await apiRequest("/discord-bot/dashboard/server-settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guildId: state.botDashboard.server.guildId, perUserDailyLimit: els.acctBotDailyLimit.value }) });
+          var payload = await apiRequest("/discord-bot/dashboard/server-settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guildId: state.botDashboard.server.guildId, perUserDailyLimit: els.acctBotDailyLimit.value, roleDailyLimits: state.botRoleDailyLimits }) });
           renderBotDashboard({ dashboard: payload.dashboard, inviteUrl: els.acctBotInviteLink.href });
           setStatus(els.acctBotDashboardStatus, "Member daily command limit saved.", "success");
         } catch (error) { setStatus(els.acctBotDashboardStatus, error.message || "Could not save the member limit.", "error"); }
@@ -2974,6 +3034,13 @@
       });
       if (els.acctBotClaimCodeButton) els.acctBotClaimCodeButton.addEventListener("click", createBotClaimCode);
       if (els.acctBotSaveSettingsButton) els.acctBotSaveSettingsButton.addEventListener("click", saveBotSettings);
+      if (els.acctBotAddRoleLimitButton) els.acctBotAddRoleLimitButton.addEventListener("click", addBotRoleLimit);
+      if (els.acctBotRoleLimitList) els.acctBotRoleLimitList.addEventListener("click", function (event) {
+        var roleId = event.target && event.target.dataset ? String(event.target.dataset.roleId || "") : "";
+        if (!roleId) return;
+        state.botRoleDailyLimits = state.botRoleDailyLimits.filter(function (rule) { return String(rule.roleId) !== roleId; });
+        renderBotRoleLimits();
+      });
       if (els.acctChangePasswordButton) {
         els.acctChangePasswordButton.addEventListener("click", openChangePasswordModal);
       }

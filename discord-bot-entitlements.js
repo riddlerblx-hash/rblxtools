@@ -49,6 +49,15 @@ function toIsoFromUnix(value) { const seconds = Number(value || 0); return Numbe
 function isUnlimitedActive(entry) { return ["active", "trialing"].includes(String(entry?.status || "").toLowerCase()); }
 function purchasedUses(store, appUserId) { return Math.max(0, Number(store.useCreditsByAppUserId[String(appUserId || "").trim()] || 0)); }
 function getOwnerServer(store, appUserId) { const userId = String(appUserId || "").trim(); return Object.values(store.serversByGuildId).find((server) => String(server?.appUserId || "") === userId) || null; }
+function normalizeRoleDailyLimits(value) {
+  const byRoleId = new Map();
+  (Array.isArray(value) ? value : []).forEach((entry) => {
+    const roleId = String(entry?.roleId || "").trim();
+    const dailyLimit = Number.parseInt(entry?.dailyLimit, 10);
+    if (/^\d{15,22}$/.test(roleId) && Number.isFinite(dailyLimit) && dailyLimit >= 0 && dailyLimit <= 1000) byRoleId.set(roleId, dailyLimit);
+  });
+  return Array.from(byRoleId, ([roleId, dailyLimit]) => ({ roleId, dailyLimit }));
+}
 
 function buildDashboard(store, appUserId) {
   const userId = String(appUserId || "").trim();
@@ -59,7 +68,7 @@ function buildDashboard(store, appUserId) {
   return {
     access: totalUses > 0 || isUnlimitedActive(subscription), mode: isUnlimitedActive(subscription) ? "unlimited" : totalUses > 0 ? "uses" : "locked",
     totalUses, usedUses, remainingUses: Math.max(0, totalUses - usedUses), subscription,
-    server: server ? { guildId: server.guildId, guildName: server.guildName || "Discord server", claimedAt: server.claimedAt || null, perUserDailyLimit: Math.max(0, Number(server.perUserDailyLimit || 0)) } : null,
+    server: server ? { guildId: server.guildId, guildName: server.guildName || "Discord server", claimedAt: server.claimedAt || null, perUserDailyLimit: Math.max(0, Number(server.perUserDailyLimit || 0)), roleDailyLimits: normalizeRoleDailyLimits(server.roleDailyLimits) } : null,
   };
 }
 
@@ -107,15 +116,16 @@ async function claimDiscordServer({ code, appUserId, guildId, guildName }) {
     if (existing && existing.appUserId !== userId) { const error = new Error("This Discord server is already claimed by another RBLXTools account."); error.statusCode = 409; throw error; }
     if (dashboard.server && dashboard.server.guildId !== normalizedGuildId) { const error = new Error("This purchase is already assigned to another Discord server."); error.statusCode = 409; throw error; }
     const server = existing || { guildId: normalizedGuildId, appUserId: userId, usedUses: 0, dailyUserUseCounts: {} };
-    server.guildName = String(guildName || server.guildName || "Discord server").slice(0, 120); server.claimedAt = server.claimedAt || new Date().toISOString(); server.perUserDailyLimit = Math.max(0, Number(server.perUserDailyLimit || 0)); server.updatedAt = new Date().toISOString();
+    server.guildName = String(guildName || server.guildName || "Discord server").slice(0, 120); server.claimedAt = server.claimedAt || new Date().toISOString(); server.perUserDailyLimit = Math.max(0, Number(server.perUserDailyLimit || 0)); server.roleDailyLimits = normalizeRoleDailyLimits(server.roleDailyLimits); server.updatedAt = new Date().toISOString();
     store.serversByGuildId[normalizedGuildId] = server; delete store.claimCodesByCode[normalizedCode]; return buildDashboard(store, userId);
   });
 }
 
-async function updateServerSettings({ appUserId, guildId, perUserDailyLimit }) {
+async function updateServerSettings({ appUserId, guildId, perUserDailyLimit, roleDailyLimits }) {
   const userId = String(appUserId || "").trim(); const normalizedGuildId = String(guildId || "").trim(); const limit = Number.parseInt(perUserDailyLimit, 10);
   if (!/^\d+$/.test(normalizedGuildId) || !Number.isFinite(limit) || limit < 0 || limit > 1000) { const error = new Error("Choose a daily user limit from 0 to 1,000. Use 0 for no per-user limit."); error.statusCode = 400; throw error; }
-  return updateStore((store) => { const server = store.serversByGuildId[normalizedGuildId]; if (!server || server.appUserId !== userId) { const error = new Error("You do not manage that Discord server."); error.statusCode = 403; throw error; } server.perUserDailyLimit = limit; server.updatedAt = new Date().toISOString(); return buildDashboard(store, userId); });
+  if (!Array.isArray(roleDailyLimits) || roleDailyLimits.length > 25 || normalizeRoleDailyLimits(roleDailyLimits).length !== roleDailyLimits.length) { const error = new Error("Add up to 25 valid Discord role IDs with daily limits from 0 to 1,000."); error.statusCode = 400; throw error; }
+  return updateStore((store) => { const server = store.serversByGuildId[normalizedGuildId]; if (!server || server.appUserId !== userId) { const error = new Error("You do not manage that Discord server."); error.statusCode = 403; throw error; } server.perUserDailyLimit = limit; server.roleDailyLimits = normalizeRoleDailyLimits(roleDailyLimits); server.updatedAt = new Date().toISOString(); return buildDashboard(store, userId); });
 }
 
 async function getDiscordServerAccess(guildId) {
@@ -125,14 +135,14 @@ async function getDiscordServerAccess(guildId) {
   return dashboard.access ? { allowed: true, appUserId: server.appUserId, mode: dashboard.mode, server, dashboard } : { allowed: false, reason: "This server no longer has an active RBLXTools Bot entitlement." };
 }
 
-async function consumeDiscordServerUse({ guildId, discordUserId }) {
-  const normalizedGuildId = String(guildId || "").trim(); const memberId = String(discordUserId || "").trim();
+async function consumeDiscordServerUse({ guildId, discordUserId, discordRoleIds }) {
+  const normalizedGuildId = String(guildId || "").trim(); const memberId = String(discordUserId || "").trim(); const memberRoleIds = new Set((Array.isArray(discordRoleIds) ? discordRoleIds : []).map((roleId) => String(roleId || "").trim()).filter((roleId) => /^\d{15,22}$/.test(roleId)));
   if (!/^\d+$/.test(normalizedGuildId) || !/^\d+$/.test(memberId)) throw new Error("Invalid Discord use request.");
   return updateStore((store) => {
     const server = store.serversByGuildId[normalizedGuildId]; if (!server) { const error = new Error("This server has not been claimed in the RBLXTools Bot dashboard."); error.statusCode = 403; throw error; }
     const dashboard = buildDashboard(store, server.appUserId); if (!dashboard.access) { const error = new Error("This server no longer has an active RBLXTools Bot entitlement."); error.statusCode = 403; throw error; }
     const dateKey = new Date().toISOString().slice(0, 10); const dailyCounts = server.dailyUserUseCounts && typeof server.dailyUserUseCounts === "object" ? server.dailyUserUseCounts : {}; Object.keys(dailyCounts).forEach((key) => { if (key !== dateKey) delete dailyCounts[key]; });
-    const today = dailyCounts[dateKey] && typeof dailyCounts[dateKey] === "object" ? dailyCounts[dateKey] : {}; const alreadyUsed = Math.max(0, Number(today[memberId] || 0)); const limit = Math.max(0, Number(server.perUserDailyLimit || 0));
+    const today = dailyCounts[dateKey] && typeof dailyCounts[dateKey] === "object" ? dailyCounts[dateKey] : {}; const alreadyUsed = Math.max(0, Number(today[memberId] || 0)); const matchingRoleLimit = normalizeRoleDailyLimits(server.roleDailyLimits).filter((entry) => memberRoleIds.has(entry.roleId)).reduce((highest, entry) => Math.max(highest, entry.dailyLimit), 0); const limit = Math.max(0, Number(server.perUserDailyLimit || 0), matchingRoleLimit);
     if (limit > 0 && alreadyUsed >= limit) { const error = new Error("You reached this server's daily RBLXTools command limit."); error.statusCode = 429; throw error; }
     if (dashboard.mode !== "unlimited" && dashboard.remainingUses < 1) { const error = new Error("This server has used all of its RBLXTools Bot credits."); error.statusCode = 402; throw error; }
     today[memberId] = alreadyUsed + 1; dailyCounts[dateKey] = today; server.dailyUserUseCounts = dailyCounts; if (dashboard.mode !== "unlimited") server.usedUses = Math.max(0, Number(server.usedUses || 0)) + 1; server.updatedAt = new Date().toISOString();

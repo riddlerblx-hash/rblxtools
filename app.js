@@ -7819,7 +7819,7 @@ app.post("/discord-bot/dashboard/claim-code", async (req, res) => {
 app.post("/discord-bot/dashboard/server-settings", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    const dashboard = await updateServerSettings({ appUserId: user.id, guildId: req.body?.guildId, perUserDailyLimit: req.body?.perUserDailyLimit });
+    const dashboard = await updateServerSettings({ appUserId: user.id, guildId: req.body?.guildId, perUserDailyLimit: req.body?.perUserDailyLimit, roleDailyLimits: req.body?.roleDailyLimits });
     return res.json({ ok: true, dashboard });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not save Discord server settings." });
@@ -7839,7 +7839,7 @@ app.post("/discord-bot/service/claim-server", async (req, res) => {
 app.post("/discord-bot/service/consume-use", async (req, res) => {
   try {
     await requireDiscordToolsServiceIdentity(req);
-    const usage = await consumeDiscordServerUse({ guildId: req.body?.guildId, discordUserId: req.get("X-RBLXTools-Discord-User-Id") });
+    const usage = await consumeDiscordServerUse({ guildId: req.body?.guildId, discordUserId: req.get("X-RBLXTools-Discord-User-Id"), discordRoleIds: req.body?.discordRoleIds });
     return res.json({ ok: true, usage });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not use this Discord server entitlement." });
