@@ -283,3 +283,30 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-token-promo {
 }
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-token-promo::before,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo.rblx-token-promo::after { display: none !important; }
+
+/* Phone home page: keep the rotating membership offer as a quick, compact stripe. */
+@media (max-width: 820px) {
+  body.rblx-home-page .home-grid-top > .plus-card { min-height:0 !important; padding:10px 12px !important; border-radius:17px !important; }
+  body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-title,
+  body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-copy,
+  body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-perks,
+  body.rblx-home-page .home-grid-top > .plus-card .plus-benefits,
+  body.rblx-home-page .home-grid-top > .plus-card .plus-title,
+  body.rblx-home-page .home-grid-top > .plus-card .plus-copy,
+  body.rblx-home-page .home-grid-top > .plus-card .plus-price-wrap,
+  body.rblx-home-page .home-grid-top > .plus-card .plus-actions > :not(#plusSpotlightButton) { display:none !important; }
+  body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price-box { min-height:0 !important; margin:0 !important; padding:8px 10px !important; border-radius:10px !important; }
+  body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-price { font-size:20px !important; }
+  body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-footer { margin:8px 0 0 !important; padding:0 !important; }
+  body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-arrow { width:28px; height:28px; }
+  body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-arrow::before { top:8px; }
+  body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-action { min-height:32px; padding:0 11px; font-size:10px; }
+  body.rblx-home-page .hero-links { display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:8px !important; }
+  body.rblx-home-page .hero-links .btn { width:100% !important; min-height:52px !important; padding:0 !important; display:grid !important; place-items:center; }
+  body.rblx-home-page .hero-links .btn svg { width:20px; height:20px; }
+  body.rblx-home-page .social-grid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:8px !important; }
+  body.rblx-home-page .social-card { min-height:58px !important; padding:8px !important; display:grid !important; place-items:center; }
+  body.rblx-home-page .social-card > :not(.social-icon) { display:none !important; }
+  body.rblx-home-page .social-icon { width:34px; height:34px; border-radius:10px; }
+  body.rblx-home-page .social-icon svg { width:19px; height:19px; }
+}
