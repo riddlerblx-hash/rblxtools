@@ -7,7 +7,7 @@ const STORE_PATH = path.join(STATE_DIR, "discord-bot-entitlements.json");
 let writeQueue = Promise.resolve();
 
 function emptyStore() {
-  return { unlimitedByAppUserId: {} };
+  return { unlimitedByAppUserId: {}, useCreditsByAppUserId: {}, processedUseCheckoutIds: {} };
 }
 
 async function readStore() {
@@ -16,6 +16,12 @@ async function readStore() {
     return {
       unlimitedByAppUserId: parsed && parsed.unlimitedByAppUserId && typeof parsed.unlimitedByAppUserId === "object"
         ? parsed.unlimitedByAppUserId
+        : {},
+      useCreditsByAppUserId: parsed && parsed.useCreditsByAppUserId && typeof parsed.useCreditsByAppUserId === "object"
+        ? parsed.useCreditsByAppUserId
+        : {},
+      processedUseCheckoutIds: parsed && parsed.processedUseCheckoutIds && typeof parsed.processedUseCheckoutIds === "object"
+        ? parsed.processedUseCheckoutIds
         : {},
     };
   } catch (error) {
@@ -75,8 +81,33 @@ function isUnlimitedActive(entry) {
   return ["active", "trialing"].includes(String(entry?.status || "").toLowerCase());
 }
 
+async function grantPurchasedUses(session) {
+  const userId = String(session?.metadata?.appUserId || "").trim();
+  const sessionId = String(session?.id || "").trim();
+  const uses = Number.parseInt(session?.metadata?.discordBotUses, 10);
+  if (!userId || !sessionId || !Number.isFinite(uses) || uses < 5 || uses > 50000 || uses % 5 !== 0) {
+    throw new Error("Discord bot use checkout metadata is invalid.");
+  }
+  return updateStore((store) => {
+    if (store.processedUseCheckoutIds[sessionId]) return store.useCreditsByAppUserId[userId] || 0;
+    const total = Math.max(0, Number(store.useCreditsByAppUserId[userId] || 0)) + uses;
+    store.useCreditsByAppUserId[userId] = total;
+    store.processedUseCheckoutIds[sessionId] = { appUserId: userId, uses, processedAt: new Date().toISOString() };
+    return total;
+  });
+}
+
+async function getPurchasedUses(appUserId) {
+  const userId = String(appUserId || "").trim();
+  if (!userId) return 0;
+  const store = await readStore();
+  return Math.max(0, Number(store.useCreditsByAppUserId[userId] || 0));
+}
+
 module.exports = {
   getUnlimitedSubscription,
+  getPurchasedUses,
+  grantPurchasedUses,
   isUnlimitedActive,
   setUnlimitedSubscription,
 };

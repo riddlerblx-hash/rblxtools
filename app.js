@@ -34,6 +34,8 @@ const {
 } = require("./discord-tools-links");
 const {
   getUnlimitedSubscription,
+  getPurchasedUses,
+  grantPurchasedUses,
   isUnlimitedActive,
   setUnlimitedSubscription,
 } = require("./discord-bot-entitlements");
@@ -868,6 +870,10 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
           session.metadata?.aiTokenQuantity
         ) {
           await grantAITokensFromStripeCheckout(session);
+        }
+
+        if (session.mode === "payment" && session.payment_status === "paid" && session.metadata?.productType === "discord_bot_uses") {
+          await grantPurchasedUses(session);
         }
 
         if (session.mode === "subscription" && session.metadata && session.metadata.appUserId) {
@@ -7724,12 +7730,62 @@ app.get("/store/discord-bot-unlimited-status", async (req, res) => {
       ok: true,
       configured: Boolean(STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID),
       active: isUnlimitedActive(subscription),
+      unclaimedUses: await getPurchasedUses(user.id),
       status: subscription?.status || "none",
       currentPeriodEndAt: subscription?.currentPeriodEndAt || null,
       cancelAtPeriodEnd: Boolean(subscription?.cancelAtPeriodEnd),
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the Discord bot subscription." });
+  }
+});
+
+app.post("/store/create-discord-bot-use-checkout", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const uses = Number.parseInt(req.body?.uses, 10);
+    if (!Number.isFinite(uses) || uses < 5 || uses > 50000 || uses % 5 !== 0) {
+      return res.status(400).json({ error: "Choose between 5 and 50,000 uses in 5-use steps." });
+    }
+    const customerId = await getOrCreateStripeCustomerForUser(user);
+    const checkoutSession = await stripeClient.checkout.sessions.create({
+      mode: "payment",
+      customer: customerId,
+      line_items: [{
+        price_data: {
+          currency: "usd",
+          unit_amount: uses / 5,
+          product_data: { name: `RBLXTools Discord Bot - ${uses.toLocaleString("en-US")} Uses`, description: "Shared Discord server bot uses. Claim to one server after purchase." },
+        },
+        quantity: 1,
+      }],
+      success_url: `${getSanitizedAppBaseUrl()}/discord-bot?checkout=uses_success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: getSafeDiscordBotStoreCancelUrl(),
+      client_reference_id: user.id,
+      metadata: { appUserId: user.id, productType: "discord_bot_uses", discordBotUses: String(uses) },
+    });
+    return res.json({ ok: true, url: checkoutSession.url });
+  } catch (error) {
+    console.error("POST /store/create-discord-bot-use-checkout failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not create the Discord bot use checkout." });
+  }
+});
+
+app.post("/store/confirm-discord-bot-use-checkout", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const sessionId = String(req.body?.sessionId || "").trim();
+    const session = await stripeClient.checkout.sessions.retrieve(sessionId);
+    if (String(session?.metadata?.appUserId || "") !== user.id || session?.mode !== "payment" || session?.metadata?.productType !== "discord_bot_uses") {
+      return res.status(403).json({ error: "That checkout session does not belong to this account." });
+    }
+    if (session.payment_status !== "paid") return res.status(409).json({ error: "Stripe is still confirming this payment. Refresh in a moment." });
+    const unclaimedUses = await grantPurchasedUses(session);
+    return res.json({ ok: true, unclaimedUses, creditedUses: Number.parseInt(session.metadata.discordBotUses, 10) || 0 });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not confirm the Discord bot use purchase." });
   }
 });
 
