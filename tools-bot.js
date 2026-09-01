@@ -7,10 +7,6 @@ const {
   REST,
   Routes,
   SlashCommandBuilder,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  ActionRowBuilder,
   AttachmentBuilder,
 } = require("discord.js");
 const { claimDiscordLink, getDiscordLinkByUserId } = require("./discord-tools-links");
@@ -46,7 +42,22 @@ const commands = [
     .setDescription("Calculate Roblox marketplace fees and take-home Robux.")
     .addIntegerOption((option) => option.setName("amount").setDescription("Listed Robux amount").setMinValue(0).setRequired(true))
     .addNumberOption((option) => option.setName("fee").setDescription("Marketplace fee percentage").setMinValue(0).setMaxValue(100).setRequired(false)),
-  ...Object.entries(toolDefinitions).map(([name, definition]) => new SlashCommandBuilder().setName(name).setDescription(definition.description)),
+  ...Object.entries(toolDefinitions).map(([name, definition]) => {
+    const command = new SlashCommandBuilder()
+      .setName(name)
+      .setDescription(definition.description)
+      .addStringOption((option) => option
+        .setName("asset-id")
+        .setDescription("Put the Roblox asset ID here")
+        .setRequired(true));
+    if (name === "media") {
+      command.addStringOption((option) => option
+        .setName("media-type")
+        .setDescription("Optional: asset, game, badge, group, gamepass, bundle...")
+        .setRequired(false));
+    }
+    return command;
+  }),
 ].map((command) => command.toJSON());
 
 function assertConfiguration() {
@@ -82,33 +93,6 @@ async function requirePro(interaction) {
     return null;
   }
   return result.member;
-}
-
-function buildAssetModal(toolName) {
-  const modal = new ModalBuilder()
-    .setCustomId("rblxtools-tool:" + toolName)
-    .setTitle(toolDefinitions[toolName].label + " download");
-  const assetInput = new TextInputBuilder()
-    .setCustomId("asset-id")
-    .setLabel("Roblox asset ID")
-    .setPlaceholder("Example: 123456789")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-    .setMaxLength(32);
-  modal.addComponents(new ActionRowBuilder().addComponents(assetInput));
-
-  if (toolName === "media") {
-    modal.addComponents(new ActionRowBuilder().addComponents(
-      new TextInputBuilder()
-        .setCustomId("media-type")
-        .setLabel("Media type (optional)")
-        .setPlaceholder("asset, game, badge, group, gamepass, bundle...")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(false)
-        .setMaxLength(32)
-    ));
-  }
-  return modal;
 }
 
 function buildToolUrl(pathname, parameters) {
@@ -189,35 +173,28 @@ async function registerCommands() {
 }
 
 async function handleInteraction(interaction) {
-  if (interaction.isModalSubmit() && interaction.customId.startsWith("rblxtools-tool:")) {
-    const toolName = interaction.customId.slice("rblxtools-tool:".length);
-    await interaction.deferReply({ ephemeral: true });
+  if (!interaction.isChatInputCommand()) return;
+  await interaction.deferReply({ ephemeral: true });
+
+  if (toolDefinitions[interaction.commandName]) {
     try {
       const member = await requirePro(interaction);
       if (!member) return;
 
-      const assetId = String(interaction.fields.getTextInputValue("asset-id") || "").trim();
+      const assetId = String(interaction.options.getString("asset-id", true) || "").trim();
       if (!/^\d+$/.test(assetId)) {
         await interaction.editReply("Enter a valid numeric Roblox asset ID.");
         return;
       }
 
-      const mediaType = toolName === "media" ? interaction.fields.getTextInputValue("media-type") : "";
-      await interaction.editReply(await buildToolDownload(toolName, assetId, mediaType, interaction.user.id));
+      const mediaType = interaction.commandName === "media" ? interaction.options.getString("media-type") : "";
+      await interaction.editReply(await buildToolDownload(interaction.commandName, assetId, mediaType, interaction.user.id));
     } catch (error) {
       console.error("[tools-bot] tool download failed:", error);
       await interaction.editReply(error.message || "I could not prepare that RBLXTools download.");
     }
     return;
   }
-
-  if (!interaction.isChatInputCommand()) return;
-  if (toolDefinitions[interaction.commandName]) {
-    await interaction.showModal(buildAssetModal(interaction.commandName));
-    return;
-  }
-
-  await interaction.deferReply({ ephemeral: true });
 
   if (interaction.commandName === "link") {
     try {
