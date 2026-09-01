@@ -2228,7 +2228,7 @@
       async function loadBotDashboard() {
         if (!state.user || !state.user.id) return;
         try { renderBotDashboard(await apiRequest("/discord-bot/dashboard", { method: "GET" })); }
-        catch (_error) { setBotTabLocked(true); }
+        catch (_error) { setBotTabLocked(!Boolean(state.user.isAdmin)); }
       }
 
       function setBotTabLocked(locked) {
@@ -2422,9 +2422,11 @@
         state.user = user || null;
         if (!state.user) {
           els.acctCard.classList.remove("is-plus", "is-pro");
+          setBotTabLocked(true);
           return;
         }
 
+        setBotTabLocked(!Boolean(state.user.isAdmin));
         loadProfile();
         var planValue = String(state.user.plan || "free").toLowerCase();
         var displayPlan = planValue === "premium" ? "plus" : planValue;
