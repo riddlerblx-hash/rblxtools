@@ -1179,12 +1179,14 @@
     #rbtools-account-overview .acct-tab.is-active { color: #fff; border-color: rgba(119, 161, 241, .45); background: linear-gradient(135deg, rgba(69, 110, 184, .38), rgba(73, 36, 69, .36)); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
     #rbtools-account-overview .acct-bot-tab-wrap { position:relative; flex:1; min-width:0; }
     #rbtools-account-overview .acct-bot-tab-wrap .acct-tab { width:100%; }
-    #rbtools-account-overview .acct-bot-tab-wrap.is-locked .acct-tab { color:transparent; cursor:not-allowed; background:rgba(3, 8, 16, .72); border-color:rgba(0, 0, 0, .44); box-shadow:inset 0 0 22px rgba(0, 0, 0, .55); }
+    #rbtools-account-overview .acct-bot-tab-wrap.is-locked .acct-tab { color:rgba(175, 189, 209, .24); cursor:not-allowed; background:rgba(3, 8, 16, .58); border-color:rgba(0, 0, 0, .34); box-shadow:inset 0 0 18px rgba(0, 0, 0, .38); }
     #rbtools-account-overview .acct-bot-tab-lock { display:none; position:absolute; inset:0; align-items:center; justify-content:center; color:#6d7d96; font-size:17px; line-height:1; pointer-events:none; filter:grayscale(1); text-shadow:0 2px 9px rgba(0,0,0,.85); }
     #rbtools-account-overview .acct-bot-tab-wrap.is-locked .acct-bot-tab-lock { display:flex; }
     #rbtools-account-overview .acct-bot-info { position:absolute; top:5px; right:5px; z-index:2; width:20px; height:20px; padding:0; border:1px solid rgba(138, 158, 193, .4); border-radius:50%; color:#d7e3f7; background:rgba(18, 31, 53, .92); font:700 12px/1 Arial, Helvetica, sans-serif; cursor:pointer; }
     #rbtools-account-overview .acct-bot-info:hover, #rbtools-account-overview .acct-bot-info[aria-expanded="true"] { border-color:rgba(152, 191, 255, .78); color:#fff; background:#294773; }
     #rbtools-account-overview .acct-bot-info-popover { position:absolute; z-index:4; top:calc(100% + 10px); right:0; width:min(300px, 78vw); padding:12px 14px; border:1px solid rgba(115, 162, 240, .38); border-radius:12px; color:#d9e7fc; background:#101b2f; box-shadow:0 16px 30px rgba(0, 0, 0, .42); font-size:11px; font-weight:700; line-height:1.5; }
+    #rbtools-account-overview .acct-bot-info-popover a { display:inline-flex; margin-top:9px; color:#9dc8ff; font-weight:900; text-decoration:none; }
+    #rbtools-account-overview .acct-bot-info-popover a:hover { color:#fff; text-decoration:underline; }
     #rbtools-account-overview .acct-tab-panel { display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(300px, .72fr); gap: 14px; }
     #rbtools-account-overview .acct-tab-panel[hidden] { display: none; }
     #rbtools-account-overview .acct-tab-panel .acct-block { margin: 0; }
@@ -1389,7 +1391,7 @@
                   <button id="acctBotTab" class="acct-tab" type="button" role="tab" aria-selected="false" aria-disabled="true" data-account-tab="bot">RBLXTools Bot</button>
                   <span class="acct-bot-tab-lock" aria-hidden="true">&#128274;</span>
                   <button id="acctBotInfoButton" class="acct-bot-info" type="button" aria-label="About RBLXTools Bot access" aria-expanded="false" aria-controls="acctBotInfoPopover">!</button>
-                  <div id="acctBotInfoPopover" class="acct-bot-info-popover" role="status" hidden>Purchase a Bot use pack or Discord Bot Unlimited to unlock server claiming, shared credits, and member command limits.</div>
+                  <div id="acctBotInfoPopover" class="acct-bot-info-popover" role="status" hidden>Purchase a Bot use pack or Discord Bot Unlimited to unlock server claiming, shared credits, and member command limits.<br><a href="./discord-bot">View Bot packs</a></div>
                 </div>
               </div>
 
@@ -2243,6 +2245,12 @@
         els.acctBotInfoPopover.hidden = expanded;
       }
 
+      function closeBotInfo() {
+        if (!els.acctBotInfoButton || !els.acctBotInfoPopover) return;
+        els.acctBotInfoButton.setAttribute("aria-expanded", "false");
+        els.acctBotInfoPopover.hidden = true;
+      }
+
       async function createBotClaimCode() {
         els.acctBotClaimCodeButton.disabled = true;
         try {
@@ -2956,6 +2964,12 @@
       if (els.acctDiscordLinkButton) els.acctDiscordLinkButton.addEventListener("click", createDiscordLinkCode);
       if (els.acctDiscordUnlinkButton) els.acctDiscordUnlinkButton.addEventListener("click", unlinkDiscordAccount);
       if (els.acctBotInfoButton) els.acctBotInfoButton.addEventListener("click", toggleBotInfo);
+      document.addEventListener("click", function (event) {
+        if (els.acctBotTabWrap && !els.acctBotTabWrap.contains(event.target)) closeBotInfo();
+      });
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") closeBotInfo();
+      });
       if (els.acctBotClaimCodeButton) els.acctBotClaimCodeButton.addEventListener("click", createBotClaimCode);
       if (els.acctBotSaveSettingsButton) els.acctBotSaveSettingsButton.addEventListener("click", saveBotSettings);
       if (els.acctChangePasswordButton) {
