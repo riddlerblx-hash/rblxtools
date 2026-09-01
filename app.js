@@ -32,6 +32,11 @@ const {
   getDiscordLinkByUserId,
   unlinkDiscordAccount,
 } = require("./discord-tools-links");
+const {
+  getUnlimitedSubscription,
+  isUnlimitedActive,
+  setUnlimitedSubscription,
+} = require("./discord-bot-entitlements");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -64,6 +69,7 @@ const AUTH_JWT_SECRET = String(process.env.AUTH_JWT_SECRET || "");
 const STRIPE_SECRET_KEY = String(process.env.STRIPE_SECRET_KEY || "");
 const STRIPE_PRICE_ID = String(process.env.STRIPE_PRICE_ID || "");
 const STRIPE_PRO_PRODUCT_ID = String(process.env.STRIPE_PRO_PRODUCT_ID || "prod_V9rw4G9vIzpnZb").trim();
+const STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID = String(process.env.STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID || "").trim();
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "");
 const APP_BASE_URL = String(process.env.APP_BASE_URL || "https://www.rblxtools.net");
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
@@ -896,12 +902,20 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
-        await syncSubscriptionStateFromStripeSubscription(event.data.object);
+        const subscription = event.data.object;
+        if (isDiscordBotUnlimitedSubscription(subscription)) {
+          await setUnlimitedSubscription(subscription);
+        } else {
+          await syncSubscriptionStateFromStripeSubscription(subscription);
+        }
         break;
       }
 
       case "invoice.paid": {
         const invoice = event.data.object;
+        if (isDiscordBotUnlimitedInvoice(invoice)) {
+          break;
+        }
         const customerId =
           typeof invoice.customer === "string"
             ? invoice.customer
@@ -926,6 +940,9 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
 
       case "invoice.payment_failed": {
         const invoice = event.data.object;
+        if (isDiscordBotUnlimitedInvoice(invoice)) {
+          break;
+        }
         const customerId =
           typeof invoice.customer === "string"
             ? invoice.customer
@@ -1060,6 +1077,14 @@ function getSafeAiTokenStoreCancelUrl() {
   return `${getSanitizedAppBaseUrl()}/ai-tokens?checkout=cancelled`;
 }
 
+function getSafeDiscordBotStoreSuccessUrl() {
+  return `${getSanitizedAppBaseUrl()}/discord-bot?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+}
+
+function getSafeDiscordBotStoreCancelUrl() {
+  return `${getSanitizedAppBaseUrl()}/discord-bot?checkout=cancelled`;
+}
+
 function assertStripePortalConfigured() {
   if (!STRIPE_SECRET_KEY || !stripeClient) {
     const error = new Error("Stripe customer portal is not configured.");
@@ -1074,6 +1099,15 @@ function assertStripeCheckoutConfigured() {
   if (!STRIPE_PRICE_ID) {
     const error = new Error("Stripe checkout is not configured.");
     error.statusCode = 500;
+    throw error;
+  }
+}
+
+function assertDiscordBotUnlimitedCheckoutConfigured() {
+  assertStripePortalConfigured();
+  if (!STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID) {
+    const error = new Error("The Discord Bot Unlimited Stripe price is not configured yet.");
+    error.statusCode = 503;
     throw error;
   }
 }
@@ -2412,7 +2446,7 @@ async function getStripeMembershipFromSubscriptions(customerId) {
     return null;
   }
 
-  const rankedItems = items.filter(Boolean).sort(rankStripeSubscription);
+  const rankedItems = items.filter(Boolean).filter((subscription) => !isDiscordBotUnlimitedSubscription(subscription)).sort(rankStripeSubscription);
   const subscription = rankedItems[0];
   if (!subscription) {
     return null;
@@ -2452,7 +2486,7 @@ async function getStripeMembershipFromInvoices(customerId) {
   const paidInvoices = items
     .filter((invoice) => {
       const paid = invoice?.paid === true || String(invoice?.status || "").toLowerCase() === "paid";
-      return paid;
+      return paid && !isDiscordBotUnlimitedInvoice(invoice);
     })
     .sort((left, right) => {
       const leftTime = Number(left?.status_transitions?.paid_at || left?.created || 0);
@@ -2842,6 +2876,23 @@ async function grantAITokensFromStripeCheckout(session) {
 function getStripePriceProductId(price) {
   const product = price?.product;
   return typeof product === "string" ? product : String(product?.id || "").trim();
+}
+
+function getStripePriceId(price) {
+  return String(price?.id || "").trim();
+}
+
+function isDiscordBotUnlimitedSubscription(subscription) {
+  if (String(subscription?.metadata?.discordBotUnlimited || "").toLowerCase() === "true") {
+    return true;
+  }
+  const items = Array.isArray(subscription?.items?.data) ? subscription.items.data : [];
+  return Boolean(STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID) && items.some((item) => getStripePriceId(item?.price) === STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID);
+}
+
+function isDiscordBotUnlimitedInvoice(invoice) {
+  const lines = Array.isArray(invoice?.lines?.data) ? invoice.lines.data : [];
+  return Boolean(STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID) && lines.some((line) => getStripePriceId(line?.price) === STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID);
 }
 
 function invoiceContainsProSubscription(invoice) {
@@ -3377,7 +3428,7 @@ async function syncLatestStripeSubscriptionForCustomer(customerId, debug = null)
     limit: 10,
   });
 
-  const items = Array.isArray(subscriptions?.data) ? subscriptions.data.filter(Boolean) : [];
+  const items = Array.isArray(subscriptions?.data) ? subscriptions.data.filter(Boolean).filter((subscription) => !isDiscordBotUnlimitedSubscription(subscription)) : [];
   if (!items.length) {
     if (debug) {
       debug.subscriptionSyncResult = "no_subscriptions";
@@ -3413,7 +3464,7 @@ async function getPrimaryStripeSubscriptionForCustomer(customerId, options = {})
     status: "all",
     limit: 25,
   });
-  const items = Array.isArray(subscriptions?.data) ? subscriptions.data.filter(Boolean) : [];
+  const items = Array.isArray(subscriptions?.data) ? subscriptions.data.filter(Boolean).filter((subscription) => !isDiscordBotUnlimitedSubscription(subscription)) : [];
   const filtered = includeCanceled
     ? items
     : items.filter((subscription) => {
@@ -7662,6 +7713,79 @@ app.post("/store/confirm-ai-token-checkout", async (req, res) => {
   } catch (error) {
     console.error("POST /store/confirm-ai-token-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not confirm the AI token purchase." });
+  }
+});
+
+app.get("/store/discord-bot-unlimited-status", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const subscription = await getUnlimitedSubscription(user.id);
+    return res.json({
+      ok: true,
+      configured: Boolean(STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID),
+      active: isUnlimitedActive(subscription),
+      status: subscription?.status || "none",
+      currentPeriodEndAt: subscription?.currentPeriodEndAt || null,
+      cancelAtPeriodEnd: Boolean(subscription?.cancelAtPeriodEnd),
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the Discord bot subscription." });
+  }
+});
+
+app.post("/store/create-discord-bot-unlimited-checkout", async (req, res) => {
+  try {
+    assertDiscordBotUnlimitedCheckoutConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const existingSubscription = await getUnlimitedSubscription(user.id);
+    if (isUnlimitedActive(existingSubscription)) {
+      return res.status(409).json({ error: "This account already has an active Discord Bot Unlimited subscription." });
+    }
+
+    const customerId = await getOrCreateStripeCustomerForUser(user);
+    const checkoutSession = await stripeClient.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      line_items: [{ price: STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID, quantity: 1 }],
+      success_url: getSafeDiscordBotStoreSuccessUrl(),
+      cancel_url: getSafeDiscordBotStoreCancelUrl(),
+      allow_promotion_codes: true,
+      client_reference_id: user.id,
+      metadata: { appUserId: user.id, productType: "discord_bot_unlimited" },
+      subscription_data: { metadata: { appUserId: user.id, discordBotUnlimited: "true", productType: "discord_bot_unlimited" } },
+    });
+    return res.json({ ok: true, url: checkoutSession.url });
+  } catch (error) {
+    console.error("POST /store/create-discord-bot-unlimited-checkout failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not create the Discord Bot Unlimited checkout." });
+  }
+});
+
+app.post("/store/confirm-discord-bot-unlimited-checkout", async (req, res) => {
+  try {
+    assertDiscordBotUnlimitedCheckoutConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const sessionId = String(req.body?.sessionId || "").trim();
+    if (!sessionId) return res.status(400).json({ error: "A checkout session ID is required." });
+    const session = await stripeClient.checkout.sessions.retrieve(sessionId);
+    const customerId = typeof session?.customer === "string" ? session.customer : String(session?.customer?.id || "").trim();
+    const belongsToUser = Boolean(
+      (user.stripe_customer_id && customerId && user.stripe_customer_id === customerId) ||
+      String(session?.client_reference_id || "") === user.id ||
+      String(session?.metadata?.appUserId || "") === user.id
+    );
+    if (!belongsToUser) return res.status(403).json({ error: "That checkout session does not belong to this account." });
+    if (session?.mode !== "subscription" || session?.metadata?.productType !== "discord_bot_unlimited") {
+      return res.status(400).json({ error: "That checkout session is not a Discord Bot Unlimited purchase." });
+    }
+    const subscriptionId = typeof session?.subscription === "string" ? session.subscription : String(session?.subscription?.id || "").trim();
+    if (!subscriptionId) return res.status(409).json({ error: "Stripe is still creating this subscription. Refresh in a moment." });
+    const subscription = await stripeClient.subscriptions.retrieve(subscriptionId);
+    const entitlement = await setUnlimitedSubscription(subscription, user.id);
+    return res.json({ ok: true, active: isUnlimitedActive(entitlement), status: entitlement.status, currentPeriodEndAt: entitlement.currentPeriodEndAt });
+  } catch (error) {
+    console.error("POST /store/confirm-discord-bot-unlimited-checkout failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not confirm the Discord Bot Unlimited subscription." });
   }
 });
 
