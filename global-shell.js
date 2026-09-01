@@ -207,7 +207,6 @@
   function closeMobilePanels() {
     document.body.classList.remove("rblx-mobile-nav-open");
     document.body.classList.remove("rblx-mobile-chat-open");
-    document.body.classList.remove("rblx-mobile-more-open");
     var overlay = document.getElementById("rblxMobileOverlay");
     if (overlay) {
       overlay.hidden = true;
@@ -217,7 +216,6 @@
   function openMobilePanel(kind) {
     if (!isMobileShellViewport()) return;
     var overlay = document.getElementById("rblxMobileOverlay");
-    document.body.classList.remove("rblx-mobile-more-open");
     document.body.classList.toggle("rblx-mobile-nav-open", kind === "nav");
     document.body.classList.toggle("rblx-mobile-chat-open", kind === "chat");
     if (overlay) {
@@ -225,16 +223,26 @@
     }
   }
 
-  function openMobileMoreMenu() {
-    if (!isMobileShellViewport()) return;
-    document.body.classList.remove("rblx-mobile-nav-open");
-    document.body.classList.remove("rblx-mobile-chat-open");
-    document.body.classList.add("rblx-mobile-more-open");
-    var overlay = document.getElementById("rblxMobileOverlay");
-    if (overlay) overlay.hidden = false;
+  function syncMobileHeaderActions() {
+    var actions = document.querySelector(".rblx-shell-header-actions");
+    var header = document.querySelector(".rblx-shell-header");
+    var navInner = document.querySelector(".rblx-shell-left-inner");
+    if (!actions || !header || !navInner) return;
+
+    if (isMobileShellViewport()) {
+      if (actions.parentElement !== navInner) {
+        navInner.insertBefore(actions, navInner.firstChild);
+      }
+      return;
+    }
+
+    if (actions.parentElement !== header) {
+      header.appendChild(actions);
+    }
   }
 
   function syncMobileShellState() {
+    syncMobileHeaderActions();
     if (isMobileShellViewport()) {
       document.body.classList.add("rblx-mobile-shell");
       document.body.classList.remove("rblx-shell-left-collapsed");
@@ -1593,7 +1601,6 @@
               '<span class="rblx-shell-brand-subtitle">Roblox creator toolkit</span>' +
             "</span>" +
           "</a>" +
-          '<button class="rblx-mobile-more-button" type="button" id="rblxMobileMoreButton" aria-label="Open account and support menu">More</button>' +
           '<div class="rblx-shell-status" id="rblxShellStatus" data-plan="guest">' +
             '<span class="rblx-shell-status-pluses" aria-hidden="true">' + buildStatusPlusMarkup() + '</span>' +
             '<span class="rblx-shell-status-dot"></span>' +
@@ -1668,6 +1675,7 @@
           '<button class="rblx-mobile-dock-btn" type="button" id="rblxMobileChatButton">Chat</button>' +
           buildMobileAccountMarkup() +
         '</div>' +
+        '<button class="rblx-mobile-side-menu-button" type="button" id="rblxMobileSideMenuButton" aria-label="Open navigation"><i></i><i></i><i></i></button>' +
         '<button class="rblx-mobile-overlay" type="button" id="rblxMobileOverlay" hidden aria-label="Close mobile panel"></button>' +
         '<div class="rblx-shell-profile-overlay" id="rblxShellProfileOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-profile-modal" id="rblxShellProfileModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellProfileName">' +
@@ -3487,7 +3495,7 @@
 
     var mobileNavButton = document.getElementById("rblxMobileNavButton");
     var mobileChatButton = document.getElementById("rblxMobileChatButton");
-    var mobileMoreButton = document.getElementById("rblxMobileMoreButton");
+    var mobileSideMenuButton = document.getElementById("rblxMobileSideMenuButton");
     var mobileOverlay = document.getElementById("rblxMobileOverlay");
     if (mobileNavButton) {
       mobileNavButton.addEventListener("click", function () {
@@ -3507,13 +3515,13 @@
         openMobilePanel("chat");
       });
     }
-    if (mobileMoreButton) {
-      mobileMoreButton.addEventListener("click", function () {
-        if (document.body.classList.contains("rblx-mobile-more-open")) {
+    if (mobileSideMenuButton) {
+      mobileSideMenuButton.addEventListener("click", function () {
+        if (document.body.classList.contains("rblx-mobile-nav-open")) {
           closeMobilePanels();
           return;
         }
-        openMobileMoreMenu();
+        openMobilePanel("nav");
       });
     }
     if (mobileOverlay) {
