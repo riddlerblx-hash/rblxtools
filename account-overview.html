@@ -1244,6 +1244,7 @@
     #rbtools-account-overview .acct-account-details { margin: 14px 0; }
     #rbtools-account-overview .acct-referral-hero { border-color: rgba(63, 231, 201, .34); background: radial-gradient(circle at top right, rgba(51, 233, 202, .13), transparent 38%), linear-gradient(180deg, rgba(16, 53, 66, .38), rgba(11, 19, 33, .62)); }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] { grid-template-columns: minmax(0, 1fr); }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-block { min-width: 0; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-section-title { margin: 3px 0 8px; font-size: clamp(22px, 2.1vw, 29px); line-height: 1.03; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-section-copy { min-height: 54px; margin: 0; font-size: 12px; line-height: 1.45; }
@@ -1380,6 +1381,7 @@
                 <button class="acct-tab is-active" type="button" role="tab" aria-selected="true" data-account-tab="settings">Account Settings</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="billing">Payments &amp; Billing</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="referrals">Referrals &amp; Earnings</button>
+                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="bot">RBLXTools Bot</button>
               </div>
 
               <div class="acct-grid">
@@ -1580,7 +1582,7 @@
                     <div id="acctDiscordLinkStatus" class="acct-status">Checking Discord link...</div>
                   </section>
 
-                  <section id="acctBotDashboard" class="acct-block acct-bot-dashboard is-locked" data-account-section="settings">
+                  <section id="acctBotDashboard" class="acct-block acct-bot-dashboard is-locked" data-account-section="bot">
                     <div class="acct-section-kicker">RBLXTools Bot</div>
                     <h3 class="acct-section-title">Bot Dashboard</h3>
                     <p class="acct-section-copy">Invite the bot, claim one Discord server, and decide whether individual members should have a daily command limit.</p>
@@ -2852,7 +2854,7 @@
         if (!grid || !tabs.length || grid.dataset.tabsReady === "true") return;
 
         var panels = {};
-        ["settings", "billing", "referrals"].forEach(function (name) {
+        ["settings", "billing", "referrals", "bot"].forEach(function (name) {
           var panel = document.createElement("div");
           panel.className = "acct-tab-panel";
           panel.dataset.accountPanel = name;
@@ -2892,7 +2894,7 @@
           tab.addEventListener("click", function () { selectTab(tab.dataset.accountTab); });
         });
         var requestedTab = new URLSearchParams(window.location.search || "").get("tab");
-        selectTab(requestedTab === "referrals" || requestedTab === "billing" ? requestedTab : "settings");
+        selectTab(["settings", "billing", "referrals", "bot"].includes(requestedTab) ? requestedTab : "settings");
       }
 
       setupAccountTabs();
