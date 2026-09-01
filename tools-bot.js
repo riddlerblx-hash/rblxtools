@@ -7,6 +7,11 @@ const {
   REST,
   Routes,
   SlashCommandBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ActionRowBuilder,
+  AttachmentBuilder,
 } = require("discord.js");
 const { claimDiscordLink, getDiscordLinkByUserId } = require("./discord-tools-links");
 
@@ -17,6 +22,17 @@ const guildId = String(process.env.RBLXTOOLS_TOOLS_GUILD_ID || "1273360593318838
 const supabaseUrl = String(process.env.SUPABASE_URL || "").trim().replace(/\/$/, "");
 const supabaseKey = String(process.env.SUPABASE_KEY || "").trim();
 const authUsersTable = String(process.env.AUTH_USERS_TABLE || "member_accounts").trim();
+const apiBaseUrl = String(process.env.RBLXTOOLS_TOOLS_API_BASE_URL || process.env.APP_BASE_URL || "https://www.rblxtools.net").trim().replace(/\/$/, "");
+const discordToolsServiceSecret = String(process.env.DISCORD_TOOLS_SERVICE_SECRET || "").trim();
+const MAX_DISCORD_DOWNLOAD_BYTES = 8 * 1024 * 1024;
+
+const toolDefinitions = {
+  clothing: { label: "Clothing", description: "Download a classic Roblox shirt or pants template." },
+  ugc: { label: "UGC", description: "Download a Roblox UGC item as OBJ plus texture." },
+  media: { label: "Media", description: "Download Roblox media for an asset ID." },
+  audio: { label: "Audio", description: "Download a Roblox audio asset." },
+  animations: { label: "Animations", description: "Download a Roblox animation asset." },
+};
 
 const commands = [
   new SlashCommandBuilder()
@@ -30,6 +46,7 @@ const commands = [
     .setDescription("Calculate Roblox marketplace fees and take-home Robux.")
     .addIntegerOption((option) => option.setName("amount").setDescription("Listed Robux amount").setMinValue(0).setRequired(true))
     .addNumberOption((option) => option.setName("fee").setDescription("Marketplace fee percentage").setMinValue(0).setMaxValue(100).setRequired(false)),
+  ...Object.entries(toolDefinitions).map(([name, definition]) => new SlashCommandBuilder().setName(name).setDescription(definition.description)),
 ].map((command) => command.toJSON());
 
 function assertConfiguration() {
@@ -38,6 +55,7 @@ function assertConfiguration() {
   if (!clientId) missing.push("RBLXTOOLS_TOOLS_DISCORD_CLIENT_ID");
   if (!supabaseUrl) missing.push("SUPABASE_URL");
   if (!supabaseKey) missing.push("SUPABASE_KEY");
+  if (!discordToolsServiceSecret) missing.push("DISCORD_TOOLS_SERVICE_SECRET");
   if (missing.length) throw new Error("Missing environment variables: " + missing.join(", "));
 }
 
@@ -66,6 +84,104 @@ async function requirePro(interaction) {
   return result.member;
 }
 
+function buildAssetModal(toolName) {
+  const modal = new ModalBuilder()
+    .setCustomId("rblxtools-tool:" + toolName)
+    .setTitle(toolDefinitions[toolName].label + " download");
+  const assetInput = new TextInputBuilder()
+    .setCustomId("asset-id")
+    .setLabel("Roblox asset ID")
+    .setPlaceholder("Example: 123456789")
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+    .setMaxLength(32);
+  modal.addComponents(new ActionRowBuilder().addComponents(assetInput));
+
+  if (toolName === "media") {
+    modal.addComponents(new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("media-type")
+        .setLabel("Media type (optional)")
+        .setPlaceholder("asset, game, badge, group, gamepass, bundle...")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(false)
+        .setMaxLength(32)
+    ));
+  }
+  return modal;
+}
+
+function buildToolUrl(pathname, parameters) {
+  const url = new URL(apiBaseUrl + pathname);
+  Object.entries(parameters || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value) !== "") url.searchParams.set(key, String(value));
+  });
+  return url.toString();
+}
+
+function getToolRequestHeaders(discordUserId) {
+  return {
+    "X-RBLXTools-Tools-Secret": discordToolsServiceSecret,
+    "X-RBLXTools-Discord-User-Id": String(discordUserId),
+  };
+}
+
+function getAttachmentName(response, fallback) {
+  const disposition = String(response.headers.get("content-disposition") || "");
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  return String(match ? match[1] : fallback).replace(/[\\/:*?"<>|]+/g, "-").slice(0, 180);
+}
+
+async function getDownloadAttachment(url, fallbackName, discordUserId) {
+  const response = await fetch(url, { headers: getToolRequestHeaders(discordUserId) });
+  if (!response.ok) {
+    let message = "The RBLXTools download could not be prepared.";
+    try {
+      const payload = await response.json();
+      if (payload && payload.error) message = payload.error;
+    } catch (_error) {}
+    throw new Error(message);
+  }
+
+  const declaredLength = Number(response.headers.get("content-length") || 0);
+  if (declaredLength > MAX_DISCORD_DOWNLOAD_BYTES) throw new Error("This file is too large for Discord. Download it from the RBLXTools website instead.");
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (!bytes.length) throw new Error("RBLXTools returned an empty download.");
+  if (bytes.length > MAX_DISCORD_DOWNLOAD_BYTES) throw new Error("This file is too large for Discord. Download it from the RBLXTools website instead.");
+  return new AttachmentBuilder(bytes, { name: getAttachmentName(response, fallbackName) });
+}
+
+function normalizeMediaType(value) {
+  const type = String(value || "asset").trim().toLowerCase().replace(/[^a-z]/g, "");
+  const allowed = new Set(["asset", "game", "badge", "developerproduct", "gamepass", "group", "bundle", "outfit", "user"]);
+  if (!allowed.has(type)) throw new Error("Media type must be asset, game, badge, developerproduct, gamepass, group, bundle, outfit, or user.");
+  return type;
+}
+
+async function buildToolDownload(toolName, assetId, mediaType, discordUserId) {
+  if (toolName === "clothing") {
+    return { content: "**Clothing template ready** for Roblox ID `" + assetId + "`.", files: [await getDownloadAttachment(buildToolUrl("/template", { id: assetId }), "roblox-template-" + assetId + ".png", discordUserId)] };
+  }
+  if (toolName === "ugc") {
+    const [model, texture] = await Promise.all([
+      getDownloadAttachment(buildToolUrl("/ugc-obj", { id: assetId, mode: "ugc" }), "rblxtools-ugc-" + assetId + ".obj", discordUserId),
+      getDownloadAttachment(buildToolUrl("/ugc-texture", { id: assetId }), "texture-" + assetId + ".png", discordUserId),
+    ]);
+    return { content: "**UGC package ready** for Roblox ID `" + assetId + "`. Keep the OBJ and texture together when importing.", files: [model, texture] };
+  }
+  if (toolName === "media") {
+    const kind = normalizeMediaType(mediaType);
+    return { content: "**Media ready** for Roblox ID `" + assetId + "` (`" + kind + "`).", files: [await getDownloadAttachment(buildToolUrl("/media", { input: assetId, kind, download: 1 }), "roblox-media-" + assetId + ".png", discordUserId)] };
+  }
+  if (toolName === "audio") {
+    return { content: "**Audio ready** for Roblox ID `" + assetId + "`.", files: [await getDownloadAttachment(buildToolUrl("/audio", { input: assetId, download: 1 }), "roblox-audio-" + assetId, discordUserId)] };
+  }
+  if (toolName === "animations") {
+    return { content: "**Animation ready** for Roblox ID `" + assetId + "`.", files: [await getDownloadAttachment(buildToolUrl("/animation", { id: assetId, download: 1 }), "roblox-animation-" + assetId + ".rbxm", discordUserId)] };
+  }
+  throw new Error("That RBLXTools command is not available yet.");
+}
+
 async function registerCommands() {
   const rest = new REST({ version: "10" }).setToken(token);
   await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
@@ -73,7 +189,34 @@ async function registerCommands() {
 }
 
 async function handleInteraction(interaction) {
+  if (interaction.isModalSubmit() && interaction.customId.startsWith("rblxtools-tool:")) {
+    const toolName = interaction.customId.slice("rblxtools-tool:".length);
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const member = await requirePro(interaction);
+      if (!member) return;
+
+      const assetId = String(interaction.fields.getTextInputValue("asset-id") || "").trim();
+      if (!/^\d+$/.test(assetId)) {
+        await interaction.editReply("Enter a valid numeric Roblox asset ID.");
+        return;
+      }
+
+      const mediaType = toolName === "media" ? interaction.fields.getTextInputValue("media-type") : "";
+      await interaction.editReply(await buildToolDownload(toolName, assetId, mediaType, interaction.user.id));
+    } catch (error) {
+      console.error("[tools-bot] tool download failed:", error);
+      await interaction.editReply(error.message || "I could not prepare that RBLXTools download.");
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
+  if (toolDefinitions[interaction.commandName]) {
+    await interaction.showModal(buildAssetModal(interaction.commandName));
+    return;
+  }
+
   await interaction.deferReply({ ephemeral: true });
 
   if (interaction.commandName === "link") {
@@ -96,7 +239,7 @@ async function handleInteraction(interaction) {
       return;
     }
     if (interaction.commandName === "tools") {
-      await interaction.editReply("Available now: `/robux`. More RBLXTools commands will be added here as each website tool gets a Discord-safe workflow.");
+      await interaction.editReply("Available: `/robux`, `/clothing`, `/ugc`, `/media`, `/audio`, and `/animations`. Each download command opens an asset-ID form, then sends the same downloadable output used by RBLXTools.");
       return;
     }
     if (interaction.commandName === "robux") {

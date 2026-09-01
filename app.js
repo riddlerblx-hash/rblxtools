@@ -29,6 +29,7 @@ const { installSiteOpsFeature } = require("./site-ops-feature");
 const {
   createDiscordLinkCode,
   getDiscordLinkByAppUserId,
+  getDiscordLinkByUserId,
   unlinkDiscordAccount,
 } = require("./discord-tools-links");
 
@@ -80,6 +81,7 @@ const OWNER_STRIPE_PIN = "0212";
 const DISCORD_SUPPORT_WEBHOOK_URL = String(process.env.DISCORD_SUPPORT_WEBHOOK_URL || process.env.SUPPORT_DISCORD_WEBHOOK_URL || "").trim();
 const SUPPORT_BOT_ENDPOINT = String(process.env.SUPPORT_BOT_ENDPOINT || "").trim();
 const SUPPORT_BOT_SECRET = String(process.env.SUPPORT_BOT_SECRET || "").trim();
+const DISCORD_TOOLS_SERVICE_SECRET = String(process.env.DISCORD_TOOLS_SERVICE_SECRET || "").trim();
 const SUPPORT_STAFF_MENTION = String(process.env.SUPPORT_STAFF_MENTION || "").trim();
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || "").trim();
 const MAX_SUPPORT_ATTACHMENT_BYTES = 5 * 1024 * 1024;
@@ -3615,7 +3617,41 @@ async function requireAuthenticatedUser(req) {
   return user;
 }
 
+async function getDiscordToolsProMember(req) {
+  const suppliedSecret = String(req.get("X-RBLXTools-Tools-Secret") || "").trim();
+  const discordUserId = String(req.get("X-RBLXTools-Discord-User-Id") || "").trim();
+  if (!suppliedSecret && !discordUserId) return null;
+
+  if (!DISCORD_TOOLS_SERVICE_SECRET || !suppliedSecret || !/^\d+$/.test(discordUserId)) {
+    const error = new Error("Invalid Discord tools request.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const expected = Buffer.from(DISCORD_TOOLS_SERVICE_SECRET);
+  const supplied = Buffer.from(suppliedSecret);
+  if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) {
+    const error = new Error("Invalid Discord tools request.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const link = await getDiscordLinkByUserId(discordUserId);
+  const user = link ? await getAuthUserById(link.appUserId) : null;
+  const membership = user ? await resolveMembershipSnapshot(user) : null;
+  if (!user || !membership?.premiumActive || String(user.plan || "").toLowerCase() !== "pro") {
+    const error = new Error("This Discord tool requires a linked, active RBLXTools Pro account.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return user;
+}
+
 async function requireActivePlusUser(req) {
+  const discordMember = await getDiscordToolsProMember(req);
+  if (discordMember) return discordMember;
+
   const user = await requireAuthenticatedUser(req);
   const membership = await resolveMembershipSnapshot(user);
   if (!membership.premiumActive) {
@@ -3628,6 +3664,12 @@ async function requireActivePlusUser(req) {
 
 async function requireToolAccount(req, res, next) {
   try {
+    const discordMember = await getDiscordToolsProMember(req);
+    if (discordMember) {
+      req.toolAccount = discordMember;
+      return next();
+    }
+
     req.toolAccount = await requireAuthenticatedUser(req);
     return next();
   } catch (error) {
