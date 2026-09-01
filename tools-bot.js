@@ -276,9 +276,26 @@ async function callBotService(pathname, interaction, body) {
 async function claimGuild(interaction) {
   if (!interaction.inGuild()) throw new Error("Run this command inside the Discord server you want to claim.");
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) throw new Error("You need the Manage Server permission to claim this Discord server.");
+  const alertChannels = getAlertChannels(interaction.guild);
   return callBotService("/discord-bot/service/claim-server", interaction, {
-    code: interaction.options.getString("code", true), guildId: interaction.guildId, guildName: interaction.guild?.name || "Discord server",
+    code: interaction.options.getString("code", true), guildId: interaction.guildId, guildName: interaction.guild?.name || "Discord server", alertChannels,
   });
+}
+
+function getAlertChannels(guild) {
+  return Array.from(guild?.channels?.cache?.values?.() || []).filter((channel) => channel?.isTextBased?.()).map((channel) => ({ id: channel.id, name: "#" + channel.name }));
+}
+
+async function syncAlertChannels(guild) {
+  if (!guild) return;
+  await callBotService("/discord-bot/service/sync-alert-channels", { user: { id: "0" }, guildId: guild.id }, { guildId: guild.id, alertChannels: getAlertChannels(guild) }).catch(() => null);
+}
+
+async function sendUsageAlert(interaction, usage) {
+  if (!usage?.alertThreshold || !usage?.alertChannelId || !interaction.guild) return;
+  const channel = await interaction.guild.channels.fetch(usage.alertChannelId).catch(() => null);
+  if (!channel?.isTextBased?.()) return;
+  await channel.send("RBLXTools Bot usage alert: this server has used **" + usage.alertThreshold + "%** of its available use pack.").catch(() => null);
 }
 
 function getInteractionRoleIds(interaction) {
@@ -298,7 +315,8 @@ async function handleInteraction(interaction) {
         await interaction.editReply("Run RBLXTools download commands in a server that has been claimed in the RBLXTools Bot dashboard.");
         return;
       }
-      await callBotService("/discord-bot/service/consume-use", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction), commandName: interaction.commandName });
+      const usage = await callBotService("/discord-bot/service/consume-use", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction), commandName: interaction.commandName });
+      await sendUsageAlert(interaction, usage.usage);
 
       const assetId = String(interaction.options.getString("asset-id", true) || "").trim();
       if (!/^\d+$/.test(assetId)) {
@@ -362,7 +380,7 @@ async function main() {
   assertConfiguration();
   await registerCommands();
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-  client.once(Events.ClientReady, (readyClient) => console.log("[tools-bot] ready as " + readyClient.user.tag));
+  client.once(Events.ClientReady, (readyClient) => { console.log("[tools-bot] ready as " + readyClient.user.tag); readyClient.guilds.cache.forEach((guild) => { syncAlertChannels(guild); }); });
   client.on(Events.InteractionCreate, handleInteraction);
   await client.login(token);
 }

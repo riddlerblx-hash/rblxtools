@@ -45,6 +45,7 @@ const {
   setUnlimitedSubscription,
   updateServerSettings,
   updateServerControls,
+  syncDiscordServerChannels,
   resetMemberDailyUse,
   unclaimServer,
 } = require("./discord-bot-entitlements");
@@ -3736,10 +3737,9 @@ async function getDiscordToolsProMember(req) {
   return user;
 }
 
-async function requireDiscordToolsServiceIdentity(req) {
+function requireDiscordToolsServiceSecret(req) {
   const suppliedSecret = String(req.get("X-RBLXTools-Tools-Secret") || "").trim();
-  const discordUserId = String(req.get("X-RBLXTools-Discord-User-Id") || "").trim();
-  if (!DISCORD_TOOLS_SERVICE_SECRET || !suppliedSecret || !/^\d+$/.test(discordUserId)) {
+  if (!DISCORD_TOOLS_SERVICE_SECRET || !suppliedSecret) {
     const error = new Error("Invalid Discord tools request.");
     error.statusCode = 401;
     throw error;
@@ -3747,6 +3747,16 @@ async function requireDiscordToolsServiceIdentity(req) {
   const expected = Buffer.from(DISCORD_TOOLS_SERVICE_SECRET);
   const supplied = Buffer.from(suppliedSecret);
   if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) {
+    const error = new Error("Invalid Discord tools request.");
+    error.statusCode = 401;
+    throw error;
+  }
+}
+
+async function requireDiscordToolsServiceIdentity(req) {
+  requireDiscordToolsServiceSecret(req);
+  const discordUserId = String(req.get("X-RBLXTools-Discord-User-Id") || "").trim();
+  if (!/^\d+$/.test(discordUserId)) {
     const error = new Error("Invalid Discord tools request.");
     error.statusCode = 401;
     throw error;
@@ -7830,7 +7840,7 @@ app.post("/discord-bot/dashboard/server-settings", async (req, res) => {
 });
 
 app.post("/discord-bot/dashboard/server-controls", async (req, res) => {
-  try { const user = await requireAuthenticatedUser(req); return res.json({ ok: true, dashboard: await updateServerControls({ appUserId: user.id, guildId: req.body?.guildId, paused: req.body?.paused, blockedCommands: req.body?.blockedCommands, alertThresholds: req.body?.alertThresholds }) }); }
+  try { const user = await requireAuthenticatedUser(req); return res.json({ ok: true, dashboard: await updateServerControls({ appUserId: user.id, guildId: req.body?.guildId, paused: req.body?.paused, blockedCommands: req.body?.blockedCommands, alertsEnabled: req.body?.alertsEnabled, alertThresholds: req.body?.alertThresholds, alertChannelId: req.body?.alertChannelId }) }); }
   catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save bot controls." }); }
 });
 
@@ -7847,10 +7857,20 @@ app.post("/discord-bot/dashboard/unclaim-server", async (req, res) => {
 app.post("/discord-bot/service/claim-server", async (req, res) => {
   try {
     const identity = await requireDiscordToolsServiceIdentity(req);
-    const dashboard = await claimDiscordServer({ code: req.body?.code, appUserId: identity.appUserId, guildId: req.body?.guildId, guildName: req.body?.guildName });
+    const dashboard = await claimDiscordServer({ code: req.body?.code, appUserId: identity.appUserId, guildId: req.body?.guildId, guildName: req.body?.guildName, alertChannels: req.body?.alertChannels });
     return res.json({ ok: true, dashboard });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not claim this Discord server." });
+  }
+});
+
+app.post("/discord-bot/service/sync-alert-channels", async (req, res) => {
+  try {
+    requireDiscordToolsServiceSecret(req);
+    await syncDiscordServerChannels({ guildId: req.body?.guildId, alertChannels: req.body?.alertChannels });
+    return res.json({ ok: true });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not sync Discord channels." });
   }
 });
 
