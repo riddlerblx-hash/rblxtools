@@ -124,7 +124,7 @@ async function claimDiscordServer({ code, appUserId, guildId, guildName }) {
 async function updateServerSettings({ appUserId, guildId, perUserDailyLimit, roleDailyLimits }) {
   const userId = String(appUserId || "").trim(); const normalizedGuildId = String(guildId || "").trim(); const limit = Number.parseInt(perUserDailyLimit, 10);
   if (!/^\d+$/.test(normalizedGuildId) || !Number.isFinite(limit) || limit < 0 || limit > 1000) { const error = new Error("Choose a daily user limit from 0 to 1,000. Use 0 for no per-user limit."); error.statusCode = 400; throw error; }
-  if (!Array.isArray(roleDailyLimits) || roleDailyLimits.length > 25 || normalizeRoleDailyLimits(roleDailyLimits).length !== roleDailyLimits.length) { const error = new Error("Add up to 25 valid Discord role IDs with daily limits from 0 to 1,000."); error.statusCode = 400; throw error; }
+  if (!Array.isArray(roleDailyLimits) || roleDailyLimits.length > 6 || normalizeRoleDailyLimits(roleDailyLimits).length !== roleDailyLimits.length) { const error = new Error("Add up to 6 valid Discord role IDs with daily limits from 0 to 1,000."); error.statusCode = 400; throw error; }
   return updateStore((store) => { const server = store.serversByGuildId[normalizedGuildId]; if (!server || server.appUserId !== userId) { const error = new Error("You do not manage that Discord server."); error.statusCode = 403; throw error; } server.perUserDailyLimit = limit; server.roleDailyLimits = normalizeRoleDailyLimits(roleDailyLimits); server.updatedAt = new Date().toISOString(); return buildDashboard(store, userId); });
 }
 
