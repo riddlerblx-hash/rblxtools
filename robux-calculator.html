@@ -886,6 +886,38 @@
     body { background: radial-gradient(circle at 10% 88%, rgba(181,49,68,.13), transparent 29%), radial-gradient(circle at 88% 9%, rgba(68,108,177,.13), transparent 25%), #0b111d; }
     .calc-hero, .calc-shell, .calc-side-card, .calc-footer-card, .hero-info-card, .hero-point, .calc-panel, .result-card, .chart-card { border-color: rgba(94,139,224,.28) !important; background: radial-gradient(circle at top right, rgba(65,103,174,.12), transparent 32%), linear-gradient(180deg, rgba(21,34,57,.97), rgba(10,17,30,.98)) !important; box-shadow: 0 18px 40px rgba(3,8,18,.28) !important; }
     .calc-input, .calc-select, .calc-textarea { border-color: rgba(94,139,224,.35) !important; background: #101a2c !important; }
+    .calc-page { padding: 36px 24px 72px; }
+    .calc-stack { max-width: 1320px; gap: 18px; }
+    .calc-hero { padding: clamp(26px, 4vw, 46px); }
+    .calc-hero-simple { max-width: 720px; }
+    .calc-hero-simple h1 { margin: 8px 0 10px; font-size: clamp(38px, 5vw, 66px); line-height: .96; letter-spacing: -.06em; }
+    .calc-hero-simple h1 .accent { color: #71e6df; }
+    .calc-hero-simple p { max-width: 54ch; margin: 0; color: #b9c5da; font: 700 15px/1.55 Arial, sans-serif; }
+    .tool-topbar { min-height: 82px; padding: 16px 20px; }
+    .tool-brand-copy, .tool-pills, .main-card .section-head > p { display: none !important; }
+    .tool-brand-title { font-size: 19px; }
+    .main-card .section-head { margin-bottom: 18px; }
+    .main-card .section-head h2 { margin-bottom: 0; }
+    .calculator-grid { gap: 18px; }
+    .calc-side { display: block; }
+    .calc-side-card { position: sticky; top: calc(var(--shell-header-height) + 22px); padding: 18px; }
+    .chart-wrap { min-height: 250px; }
+    @media (max-width: 820px) {
+      .calc-page { padding: 20px 12px 58px; }
+      .calc-hero { padding: 26px 20px; border-radius: 22px; }
+      .calc-hero-simple h1 { font-size: 42px; }
+      .calc-hero-simple p { font-size: 13px; }
+      .tool-topbar { min-height: 68px; padding: 13px 15px; }
+      .tool-brand-kicker { display: none; }
+      .tool-brand-title { font-size: 16px; }
+      .tool-brand-mark { width:38px; height:38px; font-size:13px; }
+      .tab-row { gap: 7px; padding-bottom: 4px; overflow-x: auto; scrollbar-width: none; }
+      .tab-row::-webkit-scrollbar { display: none; }
+      .tab-btn { flex: 0 0 auto; }
+      .main-card { padding: 16px 13px; }
+      .calc-side-card { position: static; margin-top: 4px; }
+      .chart-wrap { min-height: 200px; }
+    }
   </style>
 </head>
 <body>
@@ -893,53 +925,10 @@
   <main class="calc-page">
     <div class="calc-stack">
       <section class="calc-hero">
-        <div class="hero-grid">
-          <div>
-            <span class="eyebrow">Robux Calculator</span>
-            <h1 class="hero-title">
-              Plan Robux
-              <span class="accent">Cleaner</span>
-            </h1>
-            <p class="hero-copy">
-              This upgraded RBLX Tools calculator brings Roblox marketplace fee planning, DevEx estimates, price breakdowns, split tools, goal tracking, commission pricing, and reseller math into one cleaner creator page. It is built for players, group owners, artists, developers, sellers, and anyone trying to make smarter Robux decisions without bouncing between random scammy calculators.
-            </p>
-
-            <div class="hero-points">
-              <div class="hero-point">
-                <strong>Creator ready</strong>
-                <span>Use after-tax pricing, commission rates, group splits, and payout planning without guessing.</span>
-              </div>
-              <div class="hero-point">
-                <strong>Safer utility hub</strong>
-                <span>Built to keep Roblox-related tools in one cleaner place instead of sending users to sketchy pages.</span>
-              </div>
-              <div class="hero-point">
-                <strong>Faster decisions</strong>
-                <span>Jump between tax, DevEx, package value, goals, and resale math with the same workflow and style.</span>
-              </div>
-            </div>
-          </div>
-
-          <aside class="hero-info-card">
-            <span class="mini-eyebrow">What This Covers</span>
-            <div class="hero-info-grid">
-              <div class="hero-info-item">
-                <div class="hero-info-label">Marketplace Math</div>
-                <div class="hero-info-value">Tax estimates, exact before-tax pricing, and profit checks for shirts, passes, commissions, and sales.</div>
-              </div>
-              <div class="hero-info-item">
-                <div class="hero-info-label">Creator Payout Planning</div>
-                <div class="hero-info-value">DevEx conversions, threshold tracking, payout comparisons, and savings goals for larger creator plans.</div>
-              </div>
-              <div class="hero-info-item">
-                <div class="hero-info-label">Trading And Utility Tools</div>
-                <div class="hero-info-value">Reseller break-even math, ROI, group splits, premium package value, and cleaner sharing for your results.</div>
-              </div>
-            </div>
-            <div class="hero-note">
-              <strong>Good to know:</strong> this page is meant for planning and estimate work. Roblox can still change fees, package values, Premium bonuses, or DevEx requirements later, so always treat results like a polished helper instead of an official Roblox statement.
-            </div>
-          </aside>
+        <div class="calc-hero-simple">
+          <span class="eyebrow">RBLXTools</span>
+          <h1>Robux <span class="accent">Calculator</span></h1>
+          <p>Fast tax, pricing, DevEx, split, goal, and trade math for Roblox creators.</p>
         </div>
       </section>
 
@@ -950,14 +939,7 @@
             <div>
               <div class="tool-brand-kicker">Creator Toolkit</div>
               <div class="tool-brand-title">RBLX Tools Robux Calculator</div>
-              <div class="tool-brand-copy">One page for Roblox tax tools, DevEx planning, split math, price checks, and reseller estimates.</div>
             </div>
-          </div>
-
-          <div class="tool-pills">
-            <div class="tool-pill">6 Core Tools</div>
-            <div class="tool-pill">Fast Switching</div>
-            <div class="tool-pill good">Creator Focused</div>
           </div>
         </div>
 
@@ -1416,29 +1398,6 @@
               </div>
             </section>
 
-            <section class="calc-side-card">
-              <h3>Calculator FAQs</h3>
-              <p class="side-copy">Short answers for the active tab so users can understand what each result is actually showing.</p>
-              <div class="faq-grid" id="rblx-hub-faq"></div>
-            </section>
-
-            <section class="calc-side-card">
-              <h3>Why this page matters</h3>
-              <div class="footer-grid">
-                <div class="footer-mini">
-                  <strong>Less guessing</strong>
-                  <span>Get faster answers for tax, pricing, DevEx, and flip math without using random Roblox calculators.</span>
-                </div>
-                <div class="footer-mini">
-                  <strong>Better planning</strong>
-                  <span>Check goals, creator take-home, package value, and split numbers before you publish or buy.</span>
-                </div>
-                <div class="footer-mini">
-                  <strong>Safer utility hub</strong>
-                  <span>RBLX Tools is being built as a cleaner place for Roblox-related workflows, accounts, and subscriber tools.</span>
-                </div>
-              </div>
-            </section>
           </aside>
         </div>
       </section>
@@ -2184,11 +2143,7 @@
         drawChart();
       }
 
-      function renderFaq() {
-        qs("rblx-hub-faq").innerHTML = faqs[activeTab].map(function (item) {
-          return '<div class="faq-item"><strong>' + item[0] + '</strong><span>' + item[1] + '</span></div>';
-        }).join("");
-      }
+      function renderFaq() {}
 
       function drawChart() {
         var canvas = qs("rblx-hub-chart");
