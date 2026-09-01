@@ -1496,6 +1496,21 @@
                     </div>
                     <div id="acctDangerStatus" class="acct-status"></div>
                   </section>
+
+                  <section class="acct-block" data-account-section="settings">
+                    <div class="acct-section-kicker">Discord Tools</div>
+                    <h3 class="acct-section-title">Link Discord</h3>
+                    <p class="acct-section-copy">Generate a one-time code, then use <strong>/link</strong> with that code in the RBLXTools Discord server.</p>
+                    <div id="acctDiscordLinkCodeWrap" hidden>
+                      <div class="acct-field-label">One-time Discord code</div>
+                      <input id="acctDiscordLinkCode" class="acct-input" type="text" readonly value="">
+                    </div>
+                    <div class="acct-actions">
+                      <button id="acctDiscordLinkButton" class="acct-button plans" type="button">Generate link code</button>
+                      <button id="acctDiscordUnlinkButton" class="acct-button secondary" type="button" hidden>Unlink Discord</button>
+                    </div>
+                    <div id="acctDiscordLinkStatus" class="acct-status">Checking Discord link...</div>
+                  </section>
                 </div>
 
                 <div class="acct-stack">
@@ -1784,7 +1799,12 @@
         acctReferralCopyButton: document.getElementById("acctReferralCopyButton"),
         acctReferralPayoutButton: document.getElementById("acctReferralPayoutButton"),
         acctReferralStatus: document.getElementById("acctReferralStatus"),
-        acctReferralRequestList: document.getElementById("acctReferralRequestList")
+        acctReferralRequestList: document.getElementById("acctReferralRequestList"),
+        acctDiscordLinkButton: document.getElementById("acctDiscordLinkButton"),
+        acctDiscordUnlinkButton: document.getElementById("acctDiscordUnlinkButton"),
+        acctDiscordLinkCodeWrap: document.getElementById("acctDiscordLinkCodeWrap"),
+        acctDiscordLinkCode: document.getElementById("acctDiscordLinkCode"),
+        acctDiscordLinkStatus: document.getElementById("acctDiscordLinkStatus")
       };
 
       function setStatus(element, message, tone) {
@@ -2021,6 +2041,51 @@
         }
       }
 
+      async function loadDiscordLinkStatus() {
+        if (!state.user || !state.user.id || !els.acctDiscordLinkStatus) return;
+        try {
+          var payload = await apiRequest("/discord-tools/link-status", { method: "GET" });
+          var linked = Boolean(payload && payload.linked);
+          els.acctDiscordUnlinkButton.hidden = !linked;
+          if (linked) {
+            setStatus(els.acctDiscordLinkStatus, "Linked to Discord as " + (payload.discordUsername || "Discord member") + ".", "success");
+          } else {
+            setStatus(els.acctDiscordLinkStatus, "Not linked yet. Generate a code, then run /link in Discord.", "");
+          }
+        } catch (error) {
+          setStatus(els.acctDiscordLinkStatus, error.message || "Could not check your Discord link.", "error");
+        }
+      }
+
+      async function createDiscordLinkCode() {
+        els.acctDiscordLinkButton.disabled = true;
+        try {
+          var payload = await apiRequest("/discord-tools/link-code", { method: "POST" });
+          els.acctDiscordLinkCode.value = payload.code || "";
+          els.acctDiscordLinkCodeWrap.hidden = !payload.code;
+          setStatus(els.acctDiscordLinkStatus, "In Discord, run /link code:" + (payload.code || "") + ". This code expires in 10 minutes.", "success");
+        } catch (error) {
+          setStatus(els.acctDiscordLinkStatus, error.message || "Could not create a Discord link code.", "error");
+        } finally {
+          els.acctDiscordLinkButton.disabled = false;
+        }
+      }
+
+      async function unlinkDiscordAccount() {
+        els.acctDiscordUnlinkButton.disabled = true;
+        try {
+          await apiRequest("/discord-tools/link", { method: "DELETE" });
+          els.acctDiscordLinkCodeWrap.hidden = true;
+          els.acctDiscordLinkCode.value = "";
+          setStatus(els.acctDiscordLinkStatus, "Discord has been unlinked.", "success");
+          await loadDiscordLinkStatus();
+        } catch (error) {
+          setStatus(els.acctDiscordLinkStatus, error.message || "Could not unlink Discord.", "error");
+        } finally {
+          els.acctDiscordUnlinkButton.disabled = false;
+        }
+      }
+
       async function requestReferralPayout() {
         els.acctReferralPayoutButton.disabled = true;
         setStatus(els.acctReferralStatus, "Sending your payout request for review...", "");
@@ -2235,6 +2300,7 @@
             var loadedUser = result.user || null;
             renderUser(loadedUser);
             loadReferralDashboard();
+            loadDiscordLinkStatus();
             var checkoutSummary = await loadCheckoutSummary();
             if (state.checkoutStatus === "success") {
               dispatchCheckoutCelebration(checkoutSummary, loadedUser);
@@ -2692,6 +2758,8 @@
       }
       if (els.acctReferralCopyButton) els.acctReferralCopyButton.addEventListener("click", copyReferralLink);
       if (els.acctReferralPayoutButton) els.acctReferralPayoutButton.addEventListener("click", requestReferralPayout);
+      if (els.acctDiscordLinkButton) els.acctDiscordLinkButton.addEventListener("click", createDiscordLinkCode);
+      if (els.acctDiscordUnlinkButton) els.acctDiscordUnlinkButton.addEventListener("click", unlinkDiscordAccount);
       if (els.acctChangePasswordButton) {
         els.acctChangePasswordButton.addEventListener("click", openChangePasswordModal);
       }

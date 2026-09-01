@@ -4,7 +4,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "support-bot": "node support-bot.js"
+    "support-bot": "node support-bot.js",
+    "tools-bot": "node tools-bot.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

@@ -26,6 +26,11 @@ let openaiUploadHelpers = null;
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 const { installSiteOpsFeature } = require("./site-ops-feature");
+const {
+  createDiscordLinkCode,
+  getDiscordLinkByAppUserId,
+  unlinkDiscordAccount,
+} = require("./discord-tools-links");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -9430,6 +9435,41 @@ app.use((error, req, res, next) => {
     return next(error);
   }
   return next(error);
+});
+
+app.post("/discord-tools/link-code", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const linkCode = await createDiscordLinkCode(user.id);
+    return res.json({ ok: true, code: linkCode.code, expiresAt: linkCode.expiresAt });
+  } catch (error) {
+    return res.status(error.statusCode || 401).json({ error: error.message || "Could not create a Discord link code." });
+  }
+});
+
+app.get("/discord-tools/link-status", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const link = await getDiscordLinkByAppUserId(user.id);
+    return res.json({
+      ok: true,
+      linked: Boolean(link),
+      discordUsername: link ? link.discordUsername : null,
+      linkedAt: link ? link.linkedAt : null,
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 401).json({ error: error.message || "Could not read Discord link status." });
+  }
+});
+
+app.delete("/discord-tools/link", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const removed = await unlinkDiscordAccount(user.id);
+    return res.json({ ok: true, removed });
+  } catch (error) {
+    return res.status(error.statusCode || 401).json({ error: error.message || "Could not unlink Discord." });
+  }
 });
 
 app.get(["/ai-tokens", "/ai-tokens.html"], async (req, res) => {
