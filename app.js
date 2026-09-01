@@ -44,6 +44,9 @@ const {
   isUnlimitedActive,
   setUnlimitedSubscription,
   updateServerSettings,
+  updateServerControls,
+  resetMemberDailyUse,
+  unclaimServer,
 } = require("./discord-bot-entitlements");
 
 const app = express();
@@ -7826,6 +7829,21 @@ app.post("/discord-bot/dashboard/server-settings", async (req, res) => {
   }
 });
 
+app.post("/discord-bot/dashboard/server-controls", async (req, res) => {
+  try { const user = await requireAuthenticatedUser(req); return res.json({ ok: true, dashboard: await updateServerControls({ appUserId: user.id, guildId: req.body?.guildId, paused: req.body?.paused, blockedCommands: req.body?.blockedCommands, alertThresholds: req.body?.alertThresholds }) }); }
+  catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save bot controls." }); }
+});
+
+app.post("/discord-bot/dashboard/reset-member", async (req, res) => {
+  try { const user = await requireAuthenticatedUser(req); return res.json({ ok: true, dashboard: await resetMemberDailyUse({ appUserId: user.id, guildId: req.body?.guildId, discordUserId: req.body?.discordUserId }) }); }
+  catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not reset member usage." }); }
+});
+
+app.post("/discord-bot/dashboard/unclaim-server", async (req, res) => {
+  try { const user = await requireAuthenticatedUser(req); return res.json({ ok: true, dashboard: await unclaimServer({ appUserId: user.id, guildId: req.body?.guildId }) }); }
+  catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not unclaim this server." }); }
+});
+
 app.post("/discord-bot/service/claim-server", async (req, res) => {
   try {
     const identity = await requireDiscordToolsServiceIdentity(req);
@@ -7839,7 +7857,7 @@ app.post("/discord-bot/service/claim-server", async (req, res) => {
 app.post("/discord-bot/service/consume-use", async (req, res) => {
   try {
     await requireDiscordToolsServiceIdentity(req);
-    const usage = await consumeDiscordServerUse({ guildId: req.body?.guildId, discordUserId: req.get("X-RBLXTools-Discord-User-Id"), discordRoleIds: req.body?.discordRoleIds });
+    const usage = await consumeDiscordServerUse({ guildId: req.body?.guildId, discordUserId: req.get("X-RBLXTools-Discord-User-Id"), discordRoleIds: req.body?.discordRoleIds, commandName: req.body?.commandName });
     return res.json({ ok: true, usage });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not use this Discord server entitlement." });

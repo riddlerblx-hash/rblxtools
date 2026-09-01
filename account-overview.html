@@ -1258,6 +1258,13 @@
     #rbtools-account-overview .acct-bot-role-rule code { color:#8dceff; font-size:10px; }
     #rbtools-account-overview .acct-bot-role-rule button { width:22px; height:22px; padding:0; border:1px solid rgba(255, 140, 154, .28); border-radius:7px; color:#ffadb8; background:rgba(135, 39, 52, .14); font:900 13px/1 Arial, Helvetica, sans-serif; cursor:pointer; }
     #rbtools-account-overview .acct-bot-role-empty { color:#8494ad; font-size:10px; font-weight:700; }
+    #rbtools-account-overview .acct-bot-admin-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    #rbtools-account-overview .acct-bot-admin-card { padding:13px; border:1px solid rgba(118,169,255,.2); border-radius:13px; background:rgba(5,15,31,.28); }
+    #rbtools-account-overview .acct-bot-admin-card h4 { margin:0 0 8px; font-size:13px; }
+    #rbtools-account-overview .acct-bot-checks { display:flex; flex-wrap:wrap; gap:8px; }
+    #rbtools-account-overview .acct-bot-checks label { color:#cbd9ed; font-size:10px; font-weight:800; }
+    #rbtools-account-overview .acct-bot-chart { width:100%; height:190px; margin-top:8px; border-radius:9px; background:rgba(4,12,25,.45); }
+    #rbtools-account-overview .acct-bot-list { display:grid; gap:7px; max-height:170px; overflow:auto; color:#cbd9ed; font-size:10px; font-weight:700; }
     #rbtools-account-overview .acct-account-details { margin: 14px 0; }
     #rbtools-account-overview .acct-referral-hero { border-color: rgba(63, 231, 201, .34); background: radial-gradient(circle at top right, rgba(51, 233, 202, .13), transparent 38%), linear-gradient(180deg, rgba(16, 53, 66, .38), rgba(11, 19, 33, .62)); }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
@@ -1615,6 +1622,7 @@
                       <div id="acctBotClaimCodeWrap" hidden><div class="acct-field-label">Server claim code</div><input id="acctBotClaimCode" class="acct-input" type="text" readonly value=""></div>
                       <div class="acct-bot-setting"><div><div class="acct-field-label">Users Daily Command Use Limit</div><input id="acctBotDailyLimit" class="acct-input" type="number" min="0" max="1000" value="0"><div class="acct-section-copy">Use 0 for no individual daily limit.</div></div><button id="acctBotSaveSettingsButton" class="acct-button secondary" type="button">Save limits</button></div>
                       <div id="acctBotRoleLimitsContent"><div class="acct-field-label">User Daily Command Use by Discord Role</div><div class="acct-bot-role-entry"><input id="acctBotRoleId" class="acct-input" type="text" inputmode="numeric" placeholder="Discord role ID"><input id="acctBotRoleLimit" class="acct-input" type="number" min="0" max="1000" value="0" aria-label="Role daily command use limit"><button id="acctBotAddRoleLimitButton" class="acct-button secondary" type="button">Add role</button></div><p class="acct-bot-role-help">Enable Discord Developer Mode, then right-click the role and choose Copy ID. Members receive the highest matching role limit.</p><div id="acctBotRoleLimitList" class="acct-bot-role-list"></div></div>
+                      <div class="acct-bot-admin-grid"><div class="acct-bot-admin-card"><h4>Server controls</h4><div class="acct-bot-checks"><label><input id="acctBotPaused" type="checkbox"> Pause downloads</label></div><div class="acct-bot-checks" id="acctBotCommandBlocks"><label><input type="checkbox" value="clothing"> Clothing</label><label><input type="checkbox" value="ugc"> UGC</label><label><input type="checkbox" value="media"> Media</label><label><input type="checkbox" value="audio"> Audio</label><label><input type="checkbox" value="animations"> Animations</label></div><div class="acct-actions"><button id="acctBotSaveControls" class="acct-button secondary" type="button">Save controls</button><button id="acctBotUnclaim" class="acct-button danger" type="button">Transfer server</button></div></div><div class="acct-bot-admin-card"><h4>Usage alerts</h4><div class="acct-bot-checks" id="acctBotAlerts"><label><input type="checkbox" value="50"> 50%</label><label><input type="checkbox" value="75"> 75%</label><label><input type="checkbox" value="90"> 90%</label><label><input type="checkbox" value="100"> 100%</label></div><div class="acct-field-label" style="margin-top:12px">Reset member daily use</div><div class="acct-bot-role-entry"><input id="acctBotResetMember" class="acct-input" placeholder="Discord user ID"><span></span><button id="acctBotResetMemberButton" class="acct-button secondary" type="button">Reset</button></div></div><div class="acct-bot-admin-card"><h4>Server activity</h4><select id="acctBotChartRange" class="acct-input"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select><canvas id="acctBotActivityChart" class="acct-bot-chart"></canvas></div><div class="acct-bot-admin-card"><h4>Members & audit</h4><div id="acctBotLeaderboard" class="acct-bot-list"></div><div id="acctBotAuditLog" class="acct-bot-list" style="margin-top:10px"></div></div></div>
                     </div>
                     <div id="acctBotDashboardStatus" class="acct-status">Checking Discord Bot access...</div>
                   </section>
@@ -1932,6 +1940,7 @@
         acctBotRoleLimit: document.getElementById("acctBotRoleLimit"),
         acctBotAddRoleLimitButton: document.getElementById("acctBotAddRoleLimitButton"),
         acctBotRoleLimitList: document.getElementById("acctBotRoleLimitList"),
+        acctBotPaused: document.getElementById("acctBotPaused"), acctBotCommandBlocks: document.getElementById("acctBotCommandBlocks"), acctBotAlerts: document.getElementById("acctBotAlerts"), acctBotSaveControls: document.getElementById("acctBotSaveControls"), acctBotUnclaim: document.getElementById("acctBotUnclaim"), acctBotResetMember: document.getElementById("acctBotResetMember"), acctBotResetMemberButton: document.getElementById("acctBotResetMemberButton"), acctBotChartRange: document.getElementById("acctBotChartRange"), acctBotActivityChart: document.getElementById("acctBotActivityChart"), acctBotLeaderboard: document.getElementById("acctBotLeaderboard"), acctBotAuditLog: document.getElementById("acctBotAuditLog"),
         acctBotDashboardStatus: document.getElementById("acctBotDashboardStatus")
       };
 
@@ -2234,6 +2243,7 @@
         els.acctBotDailyLimit.value = dashboard.server ? String(dashboard.server.perUserDailyLimit || 0) : "0";
         state.botRoleDailyLimits = dashboard.server && Array.isArray(dashboard.server.roleDailyLimits) ? dashboard.server.roleDailyLimits.slice() : [];
         renderBotRoleLimits();
+        renderBotManagement(dashboard.server);
         if (payload.inviteUrl) {
           els.acctBotInviteLink.href = payload.inviteUrl;
           els.acctBotInviteLink.removeAttribute("aria-disabled");
@@ -2310,6 +2320,26 @@
         els.acctBotRoleLimit.value = "0";
         renderBotRoleLimits();
       }
+
+      function renderBotManagement(server) {
+        if (!server || !els.acctBotPaused) return;
+        els.acctBotPaused.checked = Boolean(server.paused);
+        Array.prototype.forEach.call(els.acctBotCommandBlocks.querySelectorAll("input"), function (input) { input.checked = (server.blockedCommands || []).includes(input.value); });
+        Array.prototype.forEach.call(els.acctBotAlerts.querySelectorAll("input"), function (input) { input.checked = (server.alertThresholds || []).map(String).includes(input.value); });
+        var activity = server.activityByDate || {}, users = {};
+        Object.keys(activity).forEach(function (day) { Object.keys(activity[day].users || {}).forEach(function (id) { users[id] = (users[id] || 0) + Number(activity[day].users[id] || 0); }); });
+        els.acctBotLeaderboard.textContent = Object.keys(users).sort(function(a,b){return users[b]-users[a];}).slice(0,8).map(function(id){return id + " - " + users[id] + " uses";}).join("\n") || "No member activity yet.";
+        els.acctBotAuditLog.textContent = (server.auditLog || []).slice(0,8).map(function(item){return new Date(item.at).toLocaleDateString() + " - " + item.action.replace(/_/g," ");}).join("\n") || "No audit entries yet.";
+        drawBotChart(activity);
+      }
+
+      function drawBotChart(activity) {
+        var canvas = els.acctBotActivityChart; if (!canvas) return; var range = els.acctBotChartRange ? els.acctBotChartRange.value : "daily", buckets = {}; Object.keys(activity || {}).forEach(function(day){var key=range==="daily"?day:range==="monthly"?day.slice(0,7):range==="yearly"?day.slice(0,4):day.slice(0,8)+String(Math.ceil(Number(day.slice(8,10))/7)); buckets[key]=(buckets[key]||0)+Number(activity[day].uses||0);}); var keys=Object.keys(buckets).sort().slice(range==="daily"?-30:range==="weekly"?-16:range==="monthly"?-12:-5), canvas = els.acctBotActivityChart, context = canvas.getContext("2d"), width = canvas.clientWidth || 600, height = canvas.clientHeight || 190; canvas.width=width*devicePixelRatio; canvas.height=height*devicePixelRatio; context.scale(devicePixelRatio,devicePixelRatio); context.clearRect(0,0,width,height); var values=keys.map(function(key){return buckets[key];}), max=Math.max(1,Math.max.apply(null,values)); context.strokeStyle="#75b4ff"; context.lineWidth=2; context.beginPath(); values.forEach(function(value,index){var x=values.length<2?width/2:12+index*(width-24)/(values.length-1),y=height-16-value/max*(height-32); index?context.lineTo(x,y):context.moveTo(x,y);}); context.stroke(); context.fillStyle="#9fb3d5"; context.font="10px Arial"; context.fillText((values.reduce(function(sum,value){return sum+value;},0))+" uses",12,14);
+      }
+
+      async function saveBotControls() { if (!state.botDashboard || !state.botDashboard.server) return; var blocks = Array.prototype.slice.call(els.acctBotCommandBlocks.querySelectorAll("input:checked")).map(function(input){return input.value;}), alerts = Array.prototype.slice.call(els.acctBotAlerts.querySelectorAll("input:checked")).map(function(input){return Number(input.value);}); try { var payload = await apiRequest("/discord-bot/dashboard/server-controls", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({guildId:state.botDashboard.server.guildId,paused:els.acctBotPaused.checked,blockedCommands:blocks,alertThresholds:alerts}) }); renderBotDashboard({dashboard:payload.dashboard,inviteUrl:els.acctBotInviteLink.href}); setStatus(els.acctBotDashboardStatus,"Server controls saved.","success"); } catch(error){setStatus(els.acctBotDashboardStatus,error.message,"error");} }
+      async function resetBotMember() { if (!state.botDashboard?.server) return; try { var payload=await apiRequest("/discord-bot/dashboard/reset-member",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guildId:state.botDashboard.server.guildId,discordUserId:els.acctBotResetMember.value})}); renderBotDashboard({dashboard:payload.dashboard,inviteUrl:els.acctBotInviteLink.href}); setStatus(els.acctBotDashboardStatus,"Member usage reset.","success"); } catch(error){setStatus(els.acctBotDashboardStatus,error.message,"error");} }
+      async function unclaimBotServer() { if (!state.botDashboard?.server || !confirm("Unclaim this server? Downloads stop until another server is claimed.")) return; try { var payload=await apiRequest("/discord-bot/dashboard/unclaim-server",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guildId:state.botDashboard.server.guildId})}); renderBotDashboard({dashboard:payload.dashboard,inviteUrl:els.acctBotInviteLink.href}); } catch(error){setStatus(els.acctBotDashboardStatus,error.message,"error");} }
 
       function closeBotInfo() {
         if (!els.acctBotInfoButton || !els.acctBotInfoPopover) return;
@@ -3041,6 +3071,10 @@
       if (els.acctBotClaimCodeButton) els.acctBotClaimCodeButton.addEventListener("click", createBotClaimCode);
       if (els.acctBotSaveSettingsButton) els.acctBotSaveSettingsButton.addEventListener("click", saveBotSettings);
       if (els.acctBotAddRoleLimitButton) els.acctBotAddRoleLimitButton.addEventListener("click", addBotRoleLimit);
+      if (els.acctBotSaveControls) els.acctBotSaveControls.addEventListener("click", saveBotControls);
+      if (els.acctBotResetMemberButton) els.acctBotResetMemberButton.addEventListener("click", resetBotMember);
+      if (els.acctBotUnclaim) els.acctBotUnclaim.addEventListener("click", unclaimBotServer);
+      if (els.acctBotChartRange) els.acctBotChartRange.addEventListener("change", function () { drawBotChart(state.botDashboard?.server?.activityByDate || {}); });
       if (els.acctBotRoleLimitList) els.acctBotRoleLimitList.addEventListener("click", function (event) {
         var roleId = event.target && event.target.dataset ? String(event.target.dataset.roleId || "") : "";
         if (!roleId) return;

@@ -298,7 +298,7 @@ async function handleInteraction(interaction) {
         await interaction.editReply("Run RBLXTools download commands in a server that has been claimed in the RBLXTools Bot dashboard.");
         return;
       }
-      await callBotService("/discord-bot/service/consume-use", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction) });
+      await callBotService("/discord-bot/service/consume-use", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction), commandName: interaction.commandName });
 
       const assetId = String(interaction.options.getString("asset-id", true) || "").trim();
       if (!/^\d+$/.test(assetId)) {
