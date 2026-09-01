@@ -236,6 +236,11 @@
     closeMobilePanels();
   }
 
+  // Safari can restore a page from its back-forward cache with a stale overlay state.
+  window.addEventListener("pageshow", function () {
+    closeMobilePanels();
+  });
+
   function ensureAdSenseSetup() {
     var head = document.head || document.getElementsByTagName("head")[0];
     if (!head) return;
