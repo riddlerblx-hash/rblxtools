@@ -1182,6 +1182,51 @@
     #rbtools-account-overview .acct-tab-panel .acct-block { margin: 0; }
     #rbtools-account-overview .acct-settings-stack { display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); align-self: stretch; gap: 14px; min-width: 0; }
     #rbtools-account-overview .acct-settings-stack .acct-block { min-height: 0; }
+    #rbtools-account-overview .acct-discord-block {
+      border-color: rgba(82, 213, 255, .36);
+      background: radial-gradient(circle at 88% 10%, rgba(85, 211, 255, .16), transparent 42%), linear-gradient(155deg, rgba(15, 51, 70, .58), rgba(11, 19, 33, .82));
+    }
+    #rbtools-account-overview .acct-discord-steps { display: grid; gap: 7px; margin: 13px 0 12px; }
+    #rbtools-account-overview .acct-discord-steps > div {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 9px;
+      border: 1px solid rgba(119, 211, 255, .16);
+      border-radius: 10px;
+      background: rgba(5, 16, 29, .28);
+      color: #dcecff;
+      font-size: 10px;
+    }
+    #rbtools-account-overview .acct-discord-steps span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 19px;
+      height: 19px;
+      flex: 0 0 19px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #55e0ff, #4f86ec);
+      color: #06121f;
+      font-size: 10px;
+      font-weight: 900;
+    }
+    #rbtools-account-overview .acct-discord-steps code { color: #7ceaff; font-size: 10px; }
+    #rbtools-account-overview .acct-discord-block #acctDiscordLinkCodeWrap {
+      margin: 0 0 10px;
+      padding: 10px;
+      border: 1px solid rgba(115, 221, 255, .22);
+      border-radius: 11px;
+      background: rgba(3, 14, 26, .38);
+    }
+    #rbtools-account-overview .acct-discord-block #acctDiscordLinkCode {
+      margin-top: 6px;
+      border-color: rgba(99, 217, 255, .34);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-align: center;
+    }
     #rbtools-account-overview .acct-account-details { margin: 14px 0; }
     #rbtools-account-overview .acct-referral-hero { border-color: rgba(63, 231, 201, .34); background: radial-gradient(circle at top right, rgba(51, 233, 202, .13), transparent 38%), linear-gradient(180deg, rgba(16, 53, 66, .38), rgba(11, 19, 33, .62)); }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
@@ -1500,10 +1545,14 @@
                     <div id="acctDangerStatus" class="acct-status"></div>
                   </section>
 
-                  <section class="acct-block" data-account-section="settings">
+                  <section class="acct-block acct-discord-block" data-account-section="settings">
                     <div class="acct-section-kicker">Discord Tools</div>
-                    <h3 class="acct-section-title">Link Discord</h3>
-                    <p class="acct-section-copy">Generate a one-time code, then use <strong>/link</strong> with that code in the RBLXTools Discord server.</p>
+                    <h3 class="acct-section-title">Connect your Discord</h3>
+                    <p class="acct-section-copy">Link once to unlock your RBLXTools Discord tools and membership access.</p>
+                    <div class="acct-discord-steps" aria-label="Discord linking steps">
+                      <div><span>1</span><strong>Generate a secure code</strong></div>
+                      <div><span>2</span><strong>Run <code>/link</code> in Discord</strong></div>
+                    </div>
                     <div id="acctDiscordLinkCodeWrap" hidden>
                       <div class="acct-field-label">One-time Discord code</div>
                       <input id="acctDiscordLinkCode" class="acct-input" type="text" readonly value="">
@@ -1920,7 +1969,8 @@
         var source = String(value || "").trim().toLowerCase();
         if (!source || source === "none") return "none";
         if (source === "stripe") return "stripe";
-        if (source === "complimentary") return "complimentary";
+        if (source === "complimentary" || source === "complimentary pro" || source === "stripe + complimentary") return source.replace(/complimentary/g, "robux purchase");
+        if (source.indexOf("complimentary grant") !== -1) return source.replace(/complimentary grant/g, "complimentary");
         if (source === "account") return "account";
         return source;
       }

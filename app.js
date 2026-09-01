@@ -2010,7 +2010,9 @@ function buildCombinedMembershipSnapshot(stripeMembership, complimentaryMembersh
   const stripe = stripeMembership || buildMembershipBreakdownEntry({ active: false, totalDays: null, daysLeft: 0, status: row?.stripe_subscription_status || null });
   const complimentary = complimentaryMembership || buildMembershipBreakdownEntry({ active: false, totalDays: null, daysLeft: 0, status: "complimentary" });
   const resolvedPlan = normalizeMembershipPlan(row?.plan);
-  const isComplimentaryPro = resolvedPlan === "pro" && String(row?.membership_source || "").toLowerCase().includes("complimentary pro");
+  const storedSource = String(row?.membership_source || "").toLowerCase();
+  const timedGrantSource = storedSource.includes("complimentary grant") ? "complimentary" : "robux purchase";
+  const isComplimentaryPro = resolvedPlan === "pro" && (storedSource.includes("complimentary pro") || storedSource.includes("complimentary grant pro") || storedSource.includes("robux purchase pro"));
   const hasStripeData = Boolean(stripe.status || stripe.currentPeriodEndAt || stripe.currentPeriodStartAt || stripe.totalDays != null);
   const hasComplimentaryData = Boolean(
     complimentary.totalDays != null ||
@@ -2038,13 +2040,13 @@ function buildCombinedMembershipSnapshot(stripeMembership, complimentaryMembersh
   );
   const premiumActive = Boolean(stripe.active || complimentary.active || plusDaysLeft > 0 || manualPlusFallback);
   const membershipSource = resolvedPlan === "pro"
-    ? (isComplimentaryPro ? "complimentary pro" : "stripe")
+    ? (isComplimentaryPro ? timedGrantSource : "stripe")
     : hasStripeData && hasComplimentaryData
-    ? "stripe + complimentary"
+    ? "stripe + " + timedGrantSource
     : hasStripeData
       ? "stripe"
       : hasComplimentaryData
-        ? "complimentary"
+      ? timedGrantSource
         : "none";
   const combinedExpiresAt = durationMembership
     ? (durationMembership.expiresAt || durationMembership.currentPeriodEndAt || null)
@@ -3297,6 +3299,8 @@ function buildStripeMembershipStorageFields(snapshot = {}) {
 async function syncSubscriptionStateForUser(userId, customerId, subscriptionStatus, membershipFields = {}) {
     const currentUser = await getAuthUserById(userId);
     const complimentaryMembership = getStoredComplimentaryMembership(currentUser);
+  const storedMembershipSource = String(currentUser?.membership_source || "").toLowerCase();
+  const timedGrantSource = storedMembershipSource.includes("complimentary grant") ? "complimentary" : "robux purchase";
   const hasComplimentaryData = Boolean(
     complimentaryMembership &&
     (complimentaryMembership.totalDays != null ||
@@ -3309,11 +3313,11 @@ async function syncSubscriptionStateForUser(userId, customerId, subscriptionStat
   const keepExistingPro = isProMember(currentUser) && normalizeMembershipPlan(membershipFields.plan) !== "pro";
   const resolvedPlan = premiumActive ? (keepExistingPro ? "pro" : normalizeMembershipPlan(membershipFields.plan)) : "free";
     const membershipSource = stripeActive && hasComplimentaryData
-      ? "stripe + complimentary"
+      ? "stripe + " + timedGrantSource
       : stripeActive
         ? "stripe"
         : hasComplimentaryData
-          ? "complimentary"
+          ? timedGrantSource
           : "none";
     const hasStripeSnapshotData = membershipFields &&
       (membershipFields.stripeDaysTotal != null ||
@@ -3566,7 +3570,7 @@ async function syncSubscriptionStateFromStripeSubscription(subscription) {
       plus_active: Boolean(complimentaryMembership && complimentaryMembership.active && !isProMember(user)),
       plan: complimentaryMembership && complimentaryMembership.active ? (isProMember(user) ? "pro" : "plus") : "free",
       stripe_subscription_status: subscription.status || null,
-      membership_source: complimentaryMembership ? (isProMember(user) ? "complimentary pro" : "complimentary") : "none",
+      membership_source: complimentaryMembership ? ((String(user.membership_source || "").toLowerCase().includes("complimentary grant") ? "complimentary grant" : "robux purchase") + (isProMember(user) ? " pro" : "")) : "none",
       ...buildStripeMembershipStorageFields({
         stripeDaysTotal: null,
         stripeCurrentPeriodStartAt: null,
@@ -3905,7 +3909,11 @@ async function getAuthUserByIdentifier(identifier) {
   return getAuthUserById(raw);
 }
 
-async function grantComplimentaryPlusToUser(userId, days) {
+function normalizeMembershipGrantSource(value) {
+  return String(value || "robux").trim().toLowerCase() === "complimentary" ? "complimentary" : "robux";
+}
+
+async function grantComplimentaryPlusToUser(userId, days, grantSource) {
   const targetUser = await getAuthUserByIdentifier(userId);
   if (!targetUser) {
     const error = new Error("No member account was found for that Plus grant.");
@@ -3928,19 +3936,20 @@ async function grantComplimentaryPlusToUser(userId, days) {
   ) + safeDays;
   const currentPeriodStartAt = new Date().toISOString();
   const hasStripeAccess = isPremiumStatus(targetUser.stripe_subscription_status);
+  const sourceLabel = normalizeMembershipGrantSource(grantSource) === "complimentary" ? "complimentary grant" : "robux purchase";
 
   const updatedUser = await updateAuthUserFields(targetUser.id, {
     premium_active: true,
     plus_active: !isProMember(targetUser),
     plan: isProMember(targetUser) ? "pro" : "plus",
-    membership_source: isProMember(targetUser) ? "complimentary pro" : (hasStripeAccess ? "stripe + complimentary" : "complimentary"),
+    membership_source: isProMember(targetUser) ? sourceLabel + " pro" : (hasStripeAccess ? "stripe + " + sourceLabel : sourceLabel),
     plus_days_total: totalDays,
     plus_expires_at: expiresAt,
     plus_current_period_start_at: currentPeriodStartAt,
     plus_current_period_end_at: expiresAt,
   });
   if (!updatedUser) {
-    const error = new Error("Could not save the complimentary Plus grant.");
+    const error = new Error("Could not save the Plus access grant.");
     error.statusCode = 500;
     throw error;
   }
@@ -3953,7 +3962,7 @@ async function grantComplimentaryPlusToUser(userId, days) {
   };
 }
 
-async function grantComplimentaryProToUser(userId, days) {
+async function grantComplimentaryProToUser(userId, days, grantSource) {
   const targetUser = await getAuthUserByIdentifier(userId);
   if (!targetUser) {
     const error = new Error("No member account was found for that Pro grant.");
@@ -3968,14 +3977,14 @@ async function grantComplimentaryProToUser(userId, days) {
     premium_active: true,
     plus_active: false,
     plan: "pro",
-    membership_source: "complimentary pro",
+    membership_source: (normalizeMembershipGrantSource(grantSource) === "complimentary" ? "complimentary grant" : "robux purchase") + " pro",
     plus_days_total: totalDays,
     plus_expires_at: expiresAt,
     plus_current_period_start_at: new Date().toISOString(),
     plus_current_period_end_at: expiresAt,
   });
   if (!updatedUser) {
-    const error = new Error("Could not save the complimentary Pro grant.");
+    const error = new Error("Could not save the Pro access grant.");
     error.statusCode = 500;
     throw error;
   }
@@ -4044,7 +4053,7 @@ async function removeComplimentaryMembershipDays(userId, plan, days) {
     throw error;
   }
   if (normalizeMembershipPlan(targetUser.plan) !== requestedPlan) {
-    const error = new Error("This member does not currently have complimentary " + (requestedPlan === "pro" ? "Pro" : "Plus") + " time to remove.");
+    const error = new Error("This member does not currently have timed " + (requestedPlan === "pro" ? "Pro" : "Plus") + " access to remove.");
     error.statusCode = 409;
     throw error;
   }
@@ -4053,7 +4062,7 @@ async function removeComplimentaryMembershipDays(userId, plan, days) {
   const expiry = parseIsoDate(complimentary?.expiresAt || complimentary?.currentPeriodEndAt);
   const now = Date.now();
   if (!expiry || expiry.getTime() <= now) {
-    const error = new Error("This member has no active complimentary time to remove.");
+    const error = new Error("This member has no active timed access to remove.");
     error.statusCode = 409;
     throw error;
   }
@@ -6824,7 +6833,7 @@ app.post("/admin/grant-plus", async (req, res) => {
       return res.status(400).json({ error: "A user ID or email is required." });
     }
     if (!note) {
-      return res.status(400).json({ error: "A note is required before complimentary Plus can be granted." });
+      return res.status(400).json({ error: "A note is required before Plus access can be granted." });
     }
 
     const targetUser = await getAuthUserByIdentifier(targetIdentifier);
@@ -6832,9 +6841,10 @@ app.post("/admin/grant-plus", async (req, res) => {
       return res.status(404).json({ error: "No member was found for that ID or email." });
     }
 
-    const grantResult = await grantComplimentaryPlusToUser(targetUser.id, days);
+    const grantSource = normalizeMembershipGrantSource(req.body?.grantSource);
+    const grantResult = await grantComplimentaryPlusToUser(targetUser.id, days, grantSource);
     const updatedUser = grantResult.user;
-    await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: "complimentary_plus", note, expiresAt: grantResult.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
+    await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: grantSource === "complimentary" ? "complimentary_plus" : "robux_purchase_plus", note, expiresAt: grantResult.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
     const reward = createMemberReward({ userId: targetUser.id, title: req.body?.title, note, rewardType: "plus", amount: grantResult.days, adminUser });
 
     console.log(
@@ -6853,10 +6863,10 @@ app.post("/admin/grant-plus", async (req, res) => {
 
     await refreshMembershipStateForConnectedUser(updatedUser || targetUser);
     emitToUserInRoom(defaultChatRoom, targetUser.id, "member-reward-ready", reward);
-    emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.days + " days of complimentary Plus.");
+    emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.days + " days of " + (grantSource === "complimentary" ? "complimentary" : "Robux purchase") + " Plus.");
     return res.json({
       ok: true,
-      message: "Complimentary Plus granted for " + grantResult.days + " days.",
+      message: (grantSource === "complimentary" ? "Complimentary" : "Robux purchase") + " Plus granted for " + grantResult.days + " days.",
       member: await buildResolvedPublicUser(updatedUser || targetUser),
       days: grantResult.days,
       expiresAt: grantResult.expiresAt,
@@ -6867,7 +6877,7 @@ app.post("/admin/grant-plus", async (req, res) => {
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
-      error: error.message || "Could not grant complimentary Plus.",
+      error: error.message || "Could not grant Plus access.",
     });
   }
 });
@@ -6905,7 +6915,7 @@ app.post("/admin/remove-plus", async (req, res) => {
     );
 
     await refreshMembershipStateForConnectedUser(updatedUser || targetUser);
-    emitModerationLog(defaultChatRoom, "Complimentary Plus was removed from " + getActionTargetLabel(targetUser) + ".");
+    emitModerationLog(defaultChatRoom, "Plus access was removed from " + getActionTargetLabel(targetUser) + ".");
     return res.json({
       ok: true,
       message: "Plus access removed successfully.",
@@ -6946,17 +6956,17 @@ app.post("/admin/remove-complimentary-membership-days", async (req, res) => {
       adminEmail: adminUser.email,
     });
     await refreshMembershipStateForConnectedUser(adjustment.user || targetUser);
-    emitModerationLog(defaultChatRoom, adjustment.removedDays + " complimentary " + (plan === "pro" ? "Pro" : "Plus") + " day(s) were removed from " + getActionTargetLabel(targetUser) + ".");
+    emitModerationLog(defaultChatRoom, adjustment.removedDays + " timed " + (plan === "pro" ? "Pro" : "Plus") + " day(s) were removed from " + getActionTargetLabel(targetUser) + ".");
     return res.json({
       ok: true,
-      message: adjustment.removedDays + " " + (plan === "pro" ? "Pro" : "Plus") + " day(s) removed. " + adjustment.remainingDays + " complimentary day(s) remain.",
+      message: adjustment.removedDays + " " + (plan === "pro" ? "Pro" : "Plus") + " day(s) removed. " + adjustment.remainingDays + " timed day(s) remain.",
       member: await buildResolvedPublicUser(adjustment.user || targetUser),
       removedDays: adjustment.removedDays,
       remainingDays: adjustment.remainingDays,
       expiresAt: adjustment.expiresAt,
     });
   } catch (error) {
-    return res.status(error.statusCode || 500).json({ error: error.message || "Could not remove complimentary membership days." });
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not remove membership days." });
   }
 });
 
@@ -7525,16 +7535,17 @@ app.post("/admin/grant-pro", async (req, res) => {
     const note = cleanText(req.body?.note, 500);
     const days = Math.max(1, Math.min(Number.parseInt(req.body?.days, 10) || DEFAULT_COMPLIMENTARY_PLUS_DAYS, MAX_COMPLIMENTARY_PLUS_DAYS));
     if (!targetUser) return res.status(404).json({ error: "No member account was found for that Pro grant." });
-    if (!note) return res.status(400).json({ error: "A note is required before complimentary Pro can be granted." });
-    const grantResult = await grantComplimentaryProToUser(targetUser.id, days);
-    await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: "complimentary_pro", note, expiresAt: grantResult.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
+    if (!note) return res.status(400).json({ error: "A note is required before Pro access can be granted." });
+    const grantSource = normalizeMembershipGrantSource(req.body?.grantSource);
+    const grantResult = await grantComplimentaryProToUser(targetUser.id, days, grantSource);
+    await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: grantSource === "complimentary" ? "complimentary_pro" : "robux_purchase_pro", note, expiresAt: grantResult.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
     const reward = createMemberReward({ userId: targetUser.id, title: req.body?.title, note, rewardType: "pro", amount: grantResult.days, adminUser });
     await refreshMembershipStateForConnectedUser(grantResult.user);
     emitToUserInRoom(defaultChatRoom, targetUser.id, "member-reward-ready", reward);
-    emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.days + " days of complimentary Pro.");
-    return res.json({ ok: true, message: "Complimentary Pro granted for " + grantResult.days + " days.", member: buildPublicUser(grantResult.user), days: grantResult.days, expiresAt: grantResult.expiresAt, grantedBy: { id: adminUser.id, email: adminUser.email } });
+    emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.days + " days of " + (grantSource === "complimentary" ? "complimentary" : "Robux purchase") + " Pro.");
+    return res.json({ ok: true, message: (grantSource === "complimentary" ? "Complimentary" : "Robux purchase") + " Pro granted for " + grantResult.days + " days.", member: buildPublicUser(grantResult.user), days: grantResult.days, expiresAt: grantResult.expiresAt, grantedBy: { id: adminUser.id, email: adminUser.email } });
   } catch (error) {
-    return res.status(error.statusCode || 500).json({ error: error.message || "Could not grant complimentary Pro." });
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not grant Pro access." });
   }
 });
 
