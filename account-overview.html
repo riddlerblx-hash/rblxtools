@@ -1388,7 +1388,7 @@
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="billing">Payments &amp; Billing</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="referrals">Referrals &amp; Earnings</button>
                 <div id="acctBotTabWrap" class="acct-bot-tab-wrap is-locked" role="presentation">
-                  <button id="acctBotTab" class="acct-tab" type="button" role="tab" aria-selected="false" aria-disabled="true" data-account-tab="bot">RBLXTools Bot</button>
+                  <button id="acctBotTab" class="acct-tab" type="button" role="tab" aria-selected="false" aria-disabled="true" data-account-tab="bot">Bot Dashboard</button>
                   <span class="acct-bot-tab-lock" aria-hidden="true">&#128274;</span>
                   <button id="acctBotInfoButton" class="acct-bot-info" type="button" aria-label="About RBLXTools Bot access" aria-expanded="false" aria-controls="acctBotInfoPopover">!</button>
                   <div id="acctBotInfoPopover" class="acct-bot-info-popover" role="status" hidden>Purchase a Bot use pack or Discord Bot Unlimited to unlock server claiming, shared credits, and member command limits.<br><a href="./discord-bot">View Bot packs</a></div>
@@ -2211,7 +2211,7 @@
         setBotTabLocked(!unlocked);
         if (!unlocked) return;
         if (new URLSearchParams(window.location.search || "").get("tab") === "bot" && els.acctBotTab) els.acctBotTab.click();
-        els.acctBotMode.textContent = dashboard.mode === "unlimited" ? "Unlimited" : "Use pack";
+        els.acctBotMode.textContent = dashboard.mode === "unlimited" ? "Unlimited" : dashboard.mode === "admin" ? "Admin view" : "Use pack";
         els.acctBotUses.textContent = dashboard.mode === "unlimited" ? "Unlimited" : (Number(dashboard.usedUses || 0).toLocaleString() + " / " + Number(dashboard.totalUses || 0).toLocaleString());
         els.acctBotServer.textContent = dashboard.server ? dashboard.server.guildName : "Not claimed";
         els.acctBotDailyLimit.value = dashboard.server ? String(dashboard.server.perUserDailyLimit || 0) : "0";
@@ -2222,7 +2222,7 @@
           els.acctBotInviteLink.href = "#";
           els.acctBotInviteLink.setAttribute("aria-disabled", "true");
         }
-        setStatus(els.acctBotDashboardStatus, dashboard.server ? "Server claimed. Changes apply to new bot commands immediately." : "Invite the bot, then generate a claim code and run /claim-server in that Discord server.", "success");
+        setStatus(els.acctBotDashboardStatus, dashboard.mode === "admin" ? "Admin dashboard access is enabled. Purchase an entitlement before assigning a server." : dashboard.server ? "Server claimed. Changes apply to new bot commands immediately." : "Invite the bot, then generate a claim code and run /claim-server in that Discord server.", "success");
       }
 
       async function loadBotDashboard() {

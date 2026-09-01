@@ -7792,6 +7792,12 @@ app.get("/discord-bot/dashboard", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
     const dashboard = await getBotDashboard(user.id);
+    // Site admins can inspect the dashboard without receiving a free bot entitlement.
+    if (isAdminUser(user) && !dashboard.access) {
+      dashboard.access = true;
+      dashboard.mode = "admin";
+      dashboard.adminAccess = true;
+    }
     const inviteUrl = /^\d+$/.test(DISCORD_TOOLS_BOT_CLIENT_ID)
       ? `https://discord.com/oauth2/authorize?client_id=${DISCORD_TOOLS_BOT_CLIENT_ID}&scope=bot%20applications.commands&permissions=35840`
       : null;
