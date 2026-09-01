@@ -259,7 +259,8 @@ async function registerCommands() {
 
 async function handleInteraction(interaction) {
   if (!interaction.isChatInputCommand()) return;
-  await interaction.deferReply({ ephemeral: true });
+  const isPrivateCommand = ["link", "status"].includes(interaction.commandName);
+  await interaction.deferReply({ ephemeral: isPrivateCommand });
 
   if (toolDefinitions[interaction.commandName]) {
     try {
