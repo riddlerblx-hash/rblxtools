@@ -4133,7 +4133,7 @@
     if (showcaseViewport.dataset.sharedShowcaseBound === "true") return;
     showcaseViewport.dataset.sharedShowcaseBound = "true";
 
-    var SHOWCASE_INTERVAL_MS = 45000;
+    var SHOWCASE_INTERVAL_MS = window.matchMedia && window.matchMedia("(max-width: 820px)").matches ? 30000 : 45000;
     var showcaseTimer = null;
     var showcaseProgressTimer = null;
     var activeToolIndex = 0;
@@ -4237,11 +4237,23 @@
         if (event.target && event.target.id === "plusGate") hidePlusGate();
       });
     }
-    showcaseViewport.addEventListener("mouseenter", function () {
-      if (showcaseTimer) clearInterval(showcaseTimer);
-      if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
+    // Touch browsers can emit synthetic hover events, which used to pause this slider forever.
+    var supportsHoverPause = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (supportsHoverPause) {
+      showcaseViewport.addEventListener("mouseenter", function () {
+        if (showcaseTimer) clearInterval(showcaseTimer);
+        if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
+      });
+      showcaseViewport.addEventListener("mouseleave", restartShowcaseTimer);
+    }
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) {
+        if (showcaseTimer) clearInterval(showcaseTimer);
+        if (showcaseProgressTimer) clearInterval(showcaseProgressTimer);
+        return;
+      }
+      restartShowcaseTimer();
     });
-    showcaseViewport.addEventListener("mouseleave", restartShowcaseTimer);
 
     renderToolSlide();
     restartShowcaseTimer();
@@ -4632,12 +4644,14 @@
     sections.forEach(function (section) {
       var heading = section.querySelector("h1, h2, h3");
       var hasFaqContent = section.matches(".faq-wrap, .faq-card, .faq-section") ||
-        Boolean(heading && /\bfaqs?\b/i.test(String(heading.textContent || "")));
+        Boolean(section.querySelector(".faq-wrap, .faq-card, .faq-section, #rblx-hub-faq")) ||
+        Boolean(heading && /\b(faqs?|frequently asked questions)\b/i.test(String(heading.textContent || "")));
       if (hasFaqContent) section.remove();
     });
 
     Array.prototype.slice.call(pageHost.querySelectorAll(".faq-wrap, .faq-card, .faq-section")).forEach(function (faq) {
-      faq.remove();
+      var section = faq.closest("section");
+      (section || faq).remove();
     });
 
     Array.prototype.slice.call(pageHost.querySelectorAll("#rblx-hub-faq")).forEach(function (faq) {

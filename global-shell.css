@@ -3626,7 +3626,8 @@ body.rblx-shell-left-collapsed #rblxShellLeftToggle { right: -20px; }
 .rblx-shell-footer-brand p{margin:0;max-width:520px;color:rgba(232,236,249,.76);font-size:14px;line-height:1.7;font-weight:600}
 .rblx-shell-footer-actions{display:flex;flex-wrap:wrap;gap:12px}
 .rblx-shell-footer-action{min-height:46px;padding:0 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#eef3ff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:900}
-.rblx-shell-footer-action.is-primary{border-color:rgba(255,111,111,.34);background:linear-gradient(180deg,rgba(255,74,74,.96),rgba(211,28,28,.96));color:#fff7f7;box-shadow:0 16px 34px rgba(183,33,33,.28)}
+.rblx-shell-footer-action.is-primary{border-color:rgba(110,255,157,.54);background:linear-gradient(180deg,#3be17f,#168b49);color:#f4fff8;box-shadow:0 14px 30px rgba(26,196,93,.36),inset 0 1px 0 rgba(255,255,255,.3);animation:rblx-footer-support-pulse 1.8s ease-in-out infinite}
+@keyframes rblx-footer-support-pulse{0%,100%{transform:translateY(0);filter:brightness(1);box-shadow:0 14px 30px rgba(26,196,93,.36),inset 0 1px 0 rgba(255,255,255,.3)}50%{transform:translateY(-2px);filter:brightness(1.12);box-shadow:0 0 0 5px rgba(65,239,127,.12),0 18px 40px rgba(26,196,93,.6),inset 0 1px 0 rgba(255,255,255,.38)}}
 .rblx-shell-footer-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
 .rblx-shell-footer-group{min-width:0;padding:18px;border-radius:20px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.025)}
 .rblx-shell-footer-title{margin:0 0 12px;color:#fff;font-size:13px;font-weight:900;letter-spacing:.05em;text-transform:uppercase}
@@ -4023,6 +4024,22 @@ body.rblx-home-page .home-grid-top > .plus-card:not(.rblx-pro-promo) {
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::before,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::after {
   background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
+}
+
+/* Mobile pages must keep the document as the scroll surface; fixed overlays handle their own state. */
+@media (max-width:820px){
+  html{overflow-x:hidden;overscroll-behavior-y:auto}
+  body.rblx-mobile-shell{height:auto !important;min-height:100%;overflow-x:hidden;overflow-y:auto !important;touch-action:pan-y pinch-zoom;-webkit-overflow-scrolling:touch}
+  body.rblx-mobile-shell .rblx-shell,
+  body.rblx-mobile-shell .rblx-shell-body,
+  body.rblx-mobile-shell .rblx-shell-center,
+  body.rblx-mobile-shell .rblx-shell-page{min-height:0;overflow:visible !important;touch-action:pan-y pinch-zoom}
+  body.rblx-mobile-shell .rblx-mobile-overlay[hidden]{display:none !important;pointer-events:none;touch-action:none}
+
+  /* Authentication is a true modal on phones, not content behind the fixed shell header. */
+  body.rblx-shell-modal-open .rblx-shell-header{z-index:0 !important}
+  body.rblx-shell-modal-open .rblx-shell-auth-overlay{position:fixed !important;inset:0 !important;z-index:2147483647 !important;display:grid !important;place-items:center !important;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom)) !important;overflow-y:auto;background:rgba(3,7,16,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  body.rblx-shell-modal-open .rblx-shell-auth-modal{position:relative !important;width:min(420px,calc(100vw - 32px)) !important;max-height:calc(100dvh - 32px);margin:auto !important;overflow-y:auto}
 }
 
 /* Keep header account actions visually aligned after all legacy button rules load. */
