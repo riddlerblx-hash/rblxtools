@@ -3982,6 +3982,74 @@ async function removePlusFromUser(userId) {
   return updatedUser;
 }
 
+async function removeComplimentaryMembershipDays(userId, plan, days) {
+  const targetUser = await getAuthUserByIdentifier(userId);
+  if (!targetUser) {
+    const error = new Error("No member account was found for this membership adjustment.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const requestedPlan = normalizeMembershipPlan(plan);
+  if (requestedPlan !== "plus" && requestedPlan !== "pro") {
+    const error = new Error("Choose either Plus or Pro for this membership adjustment.");
+    error.statusCode = 400;
+    throw error;
+  }
+  if (normalizeMembershipPlan(targetUser.plan) !== requestedPlan) {
+    const error = new Error("This member does not currently have complimentary " + (requestedPlan === "pro" ? "Pro" : "Plus") + " time to remove.");
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const complimentary = getStoredComplimentaryMembership(targetUser);
+  const expiry = parseIsoDate(complimentary?.expiresAt || complimentary?.currentPeriodEndAt);
+  const now = Date.now();
+  if (!expiry || expiry.getTime() <= now) {
+    const error = new Error("This member has no active complimentary time to remove.");
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const safeDays = Math.max(1, Math.min(Number.parseInt(days, 10) || 0, MAX_COMPLIMENTARY_PLUS_DAYS));
+  const dayMs = 24 * 60 * 60 * 1000;
+  const remainingDays = Math.ceil((expiry.getTime() - now) / dayMs);
+  const removedDays = Math.min(safeDays, remainingDays);
+  const nextExpiryMs = expiry.getTime() - removedDays * dayMs;
+  const hasStripeAccess = isPremiumStatus(targetUser.stripe_subscription_status);
+  const grantEndsNow = nextExpiryMs <= now;
+  const nextTotalDays = Math.max(0, (Number(complimentary?.totalDays) || remainingDays) - removedDays);
+
+  const updatedUser = await updateAuthUserFields(targetUser.id, grantEndsNow
+    ? {
+        premium_active: hasStripeAccess,
+        plus_active: hasStripeAccess,
+        plan: hasStripeAccess ? "plus" : "free",
+        membership_source: hasStripeAccess ? "stripe" : "none",
+        plus_days_total: null,
+        plus_expires_at: null,
+        plus_current_period_start_at: null,
+        plus_current_period_end_at: null,
+      }
+    : {
+        plus_days_total: nextTotalDays,
+        plus_expires_at: new Date(nextExpiryMs).toISOString(),
+        plus_current_period_end_at: new Date(nextExpiryMs).toISOString(),
+      });
+  if (!updatedUser) {
+    const error = new Error("Could not save the membership day adjustment.");
+    error.statusCode = 500;
+    throw error;
+  }
+
+  return {
+    user: updatedUser,
+    removedDays,
+    remainingDays: Math.max(0, remainingDays - removedDays),
+    expiresAt: grantEndsNow ? null : new Date(nextExpiryMs).toISOString(),
+  };
+}
+
 function normalizeCouponCode(value) {
   return String(value || "").trim().toUpperCase();
 }
@@ -6804,6 +6872,44 @@ app.post("/admin/remove-plus", async (req, res) => {
     return res.status(error.statusCode || 500).json({
       error: error.message || "Could not remove Plus access.",
     });
+  }
+});
+
+app.post("/admin/remove-complimentary-membership-days", async (req, res) => {
+  try {
+    const adminUser = await requireAdminUser(req);
+    const targetIdentifier = String(req.body?.userId || req.body?.email || req.body?.target || "").trim();
+    const plan = normalizeMembershipPlan(req.body?.plan);
+    const note = cleanText(req.body?.note, 160);
+    const days = Number.parseInt(String(req.body?.days || "0"), 10);
+    if (!targetIdentifier) return res.status(400).json({ error: "A user ID or email is required." });
+    if (!note) return res.status(400).json({ error: "A staff note is required before days can be removed." });
+    if (plan !== "plus" && plan !== "pro") return res.status(400).json({ error: "Choose Plus or Pro." });
+
+    const targetUser = await getAuthUserByIdentifier(targetIdentifier);
+    if (!targetUser) return res.status(404).json({ error: "No member was found for that ID or email." });
+    const adjustment = await removeComplimentaryMembershipDays(targetUser.id, plan, days);
+    await createModerationAction({
+      userId: targetUser.id,
+      userEmail: targetUser.email,
+      actionType: "complimentary_" + plan + "_days_removed",
+      note,
+      expiresAt: adjustment.expiresAt,
+      adminUserId: adminUser.id,
+      adminEmail: adminUser.email,
+    });
+    await refreshMembershipStateForConnectedUser(adjustment.user || targetUser);
+    emitModerationLog(defaultChatRoom, adjustment.removedDays + " complimentary " + (plan === "pro" ? "Pro" : "Plus") + " day(s) were removed from " + getActionTargetLabel(targetUser) + ".");
+    return res.json({
+      ok: true,
+      message: adjustment.removedDays + " " + (plan === "pro" ? "Pro" : "Plus") + " day(s) removed. " + adjustment.remainingDays + " complimentary day(s) remain.",
+      member: await buildResolvedPublicUser(adjustment.user || targetUser),
+      removedDays: adjustment.removedDays,
+      remainingDays: adjustment.remainingDays,
+      expiresAt: adjustment.expiresAt,
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not remove complimentary membership days." });
   }
 });
 
