@@ -38,6 +38,7 @@ const {
   createServerClaimCode,
   getBotDashboard,
   getDiscordServerAccess,
+  getDiscordServerCommandPolicy,
   getUnlimitedSubscription,
   getPurchasedUses,
   grantPurchasedUses,
@@ -7881,6 +7882,15 @@ app.post("/discord-bot/service/consume-use", async (req, res) => {
     return res.json({ ok: true, usage });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not use this Discord server entitlement." });
+  }
+});
+
+app.post("/discord-bot/service/command-policy", async (req, res) => {
+  try {
+    await requireDiscordToolsServiceIdentity(req);
+    return res.json({ ok: true, ...(await getDiscordServerCommandPolicy({ guildId: req.body?.guildId, commandName: req.body?.commandName })) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not check this server command." });
   }
 });
 

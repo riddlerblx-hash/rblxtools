@@ -368,6 +368,13 @@ async function handleInteraction(interaction) {
       return;
     }
     if (interaction.commandName === "robux") {
+      if (interaction.inGuild()) {
+        const policy = await callBotService("/discord-bot/service/command-policy", interaction, { guildId: interaction.guildId, commandName: "robux" });
+        if (policy.blocked) {
+          await interaction.editReply("The /robux calculators have been disabled for this server by its RBLXTools Bot manager.");
+          return;
+        }
+      }
       await interaction.editReply(calculateRobux(interaction));
     }
   } catch (error) {

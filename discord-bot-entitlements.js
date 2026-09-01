@@ -7,7 +7,7 @@ const STATE_DIR = String(process.env.RBLXTOOLS_STATE_DIR || path.join(tmpdir(), 
 const STORE_PATH = path.join(STATE_DIR, "discord-bot-entitlements.json");
 const CLAIM_CODE_TTL_MS = 10 * 60 * 1000;
 const ACTIVITY_RETENTION_DAYS = 366;
-const BOT_COMMANDS = ["clothing", "ugc", "media", "audio", "animations"];
+const BOT_COMMANDS = ["clothing", "ugc", "media", "audio", "animations", "robux"];
 let writeQueue = Promise.resolve();
 
 function emptyStore() {
@@ -155,6 +155,13 @@ async function getDiscordServerAccess(guildId) {
   return dashboard.access ? { allowed: true, appUserId: server.appUserId, mode: dashboard.mode, server, dashboard } : { allowed: false, reason: "This server no longer has an active RBLXTools Bot entitlement." };
 }
 
+async function getDiscordServerCommandPolicy({ guildId, commandName }) {
+  const normalizedGuildId = String(guildId || "").trim(); const command = String(commandName || "").trim().toLowerCase();
+  if (!/^\d+$/.test(normalizedGuildId) || !BOT_COMMANDS.includes(command)) return { blocked: false };
+  const server = (await readStore()).serversByGuildId[normalizedGuildId];
+  return { blocked: Boolean(server && !server.unclaimedAt && normalizeBlockedCommands(server.blockedCommands).includes(command)) };
+}
+
 async function consumeDiscordServerUse({ guildId, discordUserId, discordRoleIds, commandName }) {
   const normalizedGuildId = String(guildId || "").trim(); const memberId = String(discordUserId || "").trim(); const memberRoleIds = new Set((Array.isArray(discordRoleIds) ? discordRoleIds : []).map((roleId) => String(roleId || "").trim()).filter((roleId) => /^\d{15,22}$/.test(roleId)));
   if (!/^\d+$/.test(normalizedGuildId) || !/^\d+$/.test(memberId)) throw new Error("Invalid Discord use request.");
@@ -171,4 +178,4 @@ async function consumeDiscordServerUse({ guildId, discordUserId, discordRoleIds,
   });
 }
 
-module.exports = { claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getBotDashboard, getDiscordServerAccess, getPurchasedUses, getUnlimitedSubscription, grantPurchasedUses, isUnlimitedActive, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, resetMemberDailyUse, unclaimServer };
+module.exports = { claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getPurchasedUses, getUnlimitedSubscription, grantPurchasedUses, isUnlimitedActive, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, resetMemberDailyUse, unclaimServer };
