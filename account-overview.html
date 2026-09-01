@@ -1177,6 +1177,14 @@
     #rbtools-account-overview .acct-tab { flex: 1; border: 1px solid transparent; border-radius: 10px; padding: 11px 14px; background: transparent; color: #afbdd1; font: inherit; font-weight: 800; cursor: pointer; }
     #rbtools-account-overview .acct-tab:hover { color: #edf4ff; background: rgba(95, 133, 198, .12); }
     #rbtools-account-overview .acct-tab.is-active { color: #fff; border-color: rgba(119, 161, 241, .45); background: linear-gradient(135deg, rgba(69, 110, 184, .38), rgba(73, 36, 69, .36)); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+    #rbtools-account-overview .acct-bot-tab-wrap { position:relative; flex:1; min-width:0; }
+    #rbtools-account-overview .acct-bot-tab-wrap .acct-tab { width:100%; }
+    #rbtools-account-overview .acct-bot-tab-wrap.is-locked .acct-tab { color:transparent; cursor:not-allowed; background:rgba(3, 8, 16, .72); border-color:rgba(0, 0, 0, .44); box-shadow:inset 0 0 22px rgba(0, 0, 0, .55); }
+    #rbtools-account-overview .acct-bot-tab-lock { display:none; position:absolute; inset:0; align-items:center; justify-content:center; color:#6d7d96; font-size:17px; line-height:1; pointer-events:none; filter:grayscale(1); text-shadow:0 2px 9px rgba(0,0,0,.85); }
+    #rbtools-account-overview .acct-bot-tab-wrap.is-locked .acct-bot-tab-lock { display:flex; }
+    #rbtools-account-overview .acct-bot-info { position:absolute; top:5px; right:5px; z-index:2; width:20px; height:20px; padding:0; border:1px solid rgba(138, 158, 193, .4); border-radius:50%; color:#d7e3f7; background:rgba(18, 31, 53, .92); font:700 12px/1 Arial, Helvetica, sans-serif; cursor:pointer; }
+    #rbtools-account-overview .acct-bot-info:hover, #rbtools-account-overview .acct-bot-info[aria-expanded="true"] { border-color:rgba(152, 191, 255, .78); color:#fff; background:#294773; }
+    #rbtools-account-overview .acct-bot-info-popover { position:absolute; z-index:4; top:calc(100% + 10px); right:0; width:min(300px, 78vw); padding:12px 14px; border:1px solid rgba(115, 162, 240, .38); border-radius:12px; color:#d9e7fc; background:#101b2f; box-shadow:0 16px 30px rgba(0, 0, 0, .42); font-size:11px; font-weight:700; line-height:1.5; }
     #rbtools-account-overview .acct-tab-panel { display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(300px, .72fr); gap: 14px; }
     #rbtools-account-overview .acct-tab-panel[hidden] { display: none; }
     #rbtools-account-overview .acct-tab-panel .acct-block { margin: 0; }
@@ -1229,11 +1237,7 @@
       text-align: center;
     }
     #rbtools-account-overview .acct-bot-dashboard { display:flex; flex-direction:column; min-height: clamp(470px, 58vh, 680px); padding: clamp(22px, 3vw, 34px); border-color: rgba(100, 177, 255, .34); background: radial-gradient(circle at 92% 8%, rgba(102, 139, 255, .18), transparent 42%), linear-gradient(155deg, rgba(22, 34, 74, .78), rgba(9, 16, 29, .86)); }
-    #rbtools-account-overview .acct-bot-dashboard.is-locked { filter: saturate(.55); }
-    #rbtools-account-overview .acct-bot-dashboard .acct-bot-lock { display:none; margin:13px 0; padding:10px 12px; border:1px solid rgba(255, 202, 98, .32); border-radius:11px; color:#ffe3a1; background:rgba(93, 60, 16, .25); font-size:11px; font-weight:800; line-height:1.45; }
-    #rbtools-account-overview .acct-bot-dashboard.is-locked .acct-bot-lock { display:block; }
     #rbtools-account-overview .acct-bot-dashboard .acct-bot-controls { display:grid; flex:1; align-content:start; gap:14px; margin-top:10px; }
-    #rbtools-account-overview .acct-bot-dashboard.is-locked .acct-bot-controls { display:none; }
     #rbtools-account-overview .acct-bot-metrics { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin:14px 0; }
     #rbtools-account-overview .acct-bot-metrics div { padding:10px; border:1px solid rgba(118, 169, 255, .2); border-radius:11px; background:rgba(5, 15, 31, .34); }
     #rbtools-account-overview .acct-bot-metrics span { display:block; color:#9fb3d5; font-size:9px; font-weight:900; letter-spacing:.65px; text-transform:uppercase; }
@@ -1381,7 +1385,12 @@
                 <button class="acct-tab is-active" type="button" role="tab" aria-selected="true" data-account-tab="settings">Account Settings</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="billing">Payments &amp; Billing</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="referrals">Referrals &amp; Earnings</button>
-                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="bot">RBLXTools Bot</button>
+                <div id="acctBotTabWrap" class="acct-bot-tab-wrap is-locked" role="presentation">
+                  <button id="acctBotTab" class="acct-tab" type="button" role="tab" aria-selected="false" aria-disabled="true" data-account-tab="bot">RBLXTools Bot</button>
+                  <span class="acct-bot-tab-lock" aria-hidden="true">&#128274;</span>
+                  <button id="acctBotInfoButton" class="acct-bot-info" type="button" aria-label="About RBLXTools Bot access" aria-expanded="false" aria-controls="acctBotInfoPopover">!</button>
+                  <div id="acctBotInfoPopover" class="acct-bot-info-popover" role="status" hidden>Purchase a Bot use pack or Discord Bot Unlimited to unlock server claiming, shared credits, and member command limits.</div>
+                </div>
               </div>
 
               <div class="acct-grid">
@@ -1582,11 +1591,10 @@
                     <div id="acctDiscordLinkStatus" class="acct-status">Checking Discord link...</div>
                   </section>
 
-                  <section id="acctBotDashboard" class="acct-block acct-bot-dashboard is-locked" data-account-section="bot">
+                  <section id="acctBotDashboard" class="acct-block acct-bot-dashboard" data-account-section="bot">
                     <div class="acct-section-kicker">RBLXTools Bot</div>
                     <h3 class="acct-section-title">Bot Dashboard</h3>
                     <p class="acct-section-copy">Invite the bot, claim one Discord server, and decide whether individual members should have a daily command limit.</p>
-                    <div class="acct-bot-lock">Locked until this account owns a Discord Bot use pack or an active Discord Bot Unlimited plan.</div>
                     <div class="acct-bot-controls">
                       <div class="acct-bot-metrics"><div><span>Plan</span><strong id="acctBotMode">Locked</strong></div><div><span>Used / owned</span><strong id="acctBotUses">0 / 0</strong></div><div><span>Server</span><strong id="acctBotServer">Not claimed</strong></div></div>
                       <div id="acctBotClaimCodeWrap" hidden><div class="acct-field-label">Server claim code</div><input id="acctBotClaimCode" class="acct-input" type="text" readonly value=""></div>
@@ -1891,6 +1899,10 @@
         acctDiscordLinkCodeWrap: document.getElementById("acctDiscordLinkCodeWrap"),
         acctDiscordLinkCode: document.getElementById("acctDiscordLinkCode"),
         acctDiscordLinkStatus: document.getElementById("acctDiscordLinkStatus"),
+        acctBotTabWrap: document.getElementById("acctBotTabWrap"),
+        acctBotTab: document.getElementById("acctBotTab"),
+        acctBotInfoButton: document.getElementById("acctBotInfoButton"),
+        acctBotInfoPopover: document.getElementById("acctBotInfoPopover"),
         acctBotDashboard: document.getElementById("acctBotDashboard"),
         acctBotMode: document.getElementById("acctBotMode"),
         acctBotUses: document.getElementById("acctBotUses"),
@@ -2194,8 +2206,10 @@
         state.botDashboard = dashboard;
         if (!dashboard || !els.acctBotDashboard) return;
         var unlocked = Boolean(dashboard.access);
-        els.acctBotDashboard.classList.toggle("is-locked", !unlocked);
-        els.acctBotMode.textContent = unlocked ? (dashboard.mode === "unlimited" ? "Unlimited" : "Use pack") : "Locked";
+        setBotTabLocked(!unlocked);
+        if (!unlocked) return;
+        if (new URLSearchParams(window.location.search || "").get("tab") === "bot" && els.acctBotTab) els.acctBotTab.click();
+        els.acctBotMode.textContent = dashboard.mode === "unlimited" ? "Unlimited" : "Use pack";
         els.acctBotUses.textContent = dashboard.mode === "unlimited" ? "Unlimited" : (Number(dashboard.usedUses || 0).toLocaleString() + " / " + Number(dashboard.totalUses || 0).toLocaleString());
         els.acctBotServer.textContent = dashboard.server ? dashboard.server.guildName : "Not claimed";
         els.acctBotDailyLimit.value = dashboard.server ? String(dashboard.server.perUserDailyLimit || 0) : "0";
@@ -2206,13 +2220,27 @@
           els.acctBotInviteLink.href = "#";
           els.acctBotInviteLink.setAttribute("aria-disabled", "true");
         }
-        setStatus(els.acctBotDashboardStatus, unlocked ? (dashboard.server ? "Server claimed. Changes apply to new bot commands immediately." : "Invite the bot, then generate a claim code and run /claim-server in that Discord server.") : "Buy server uses or Discord Bot Unlimited to unlock this dashboard.", unlocked ? "success" : "");
+        setStatus(els.acctBotDashboardStatus, dashboard.server ? "Server claimed. Changes apply to new bot commands immediately." : "Invite the bot, then generate a claim code and run /claim-server in that Discord server.", "success");
       }
 
       async function loadBotDashboard() {
         if (!state.user || !state.user.id) return;
         try { renderBotDashboard(await apiRequest("/discord-bot/dashboard", { method: "GET" })); }
-        catch (error) { setStatus(els.acctBotDashboardStatus, error.message || "Could not load the RBLXTools Bot dashboard.", "error"); }
+        catch (_error) { setBotTabLocked(true); }
+      }
+
+      function setBotTabLocked(locked) {
+        if (!els.acctBotTabWrap || !els.acctBotTab) return;
+        els.acctBotTabWrap.classList.toggle("is-locked", locked);
+        els.acctBotTab.setAttribute("aria-disabled", String(locked));
+        els.acctBotTab.dataset.locked = String(locked);
+      }
+
+      function toggleBotInfo() {
+        if (!els.acctBotInfoButton || !els.acctBotInfoPopover) return;
+        var expanded = els.acctBotInfoButton.getAttribute("aria-expanded") === "true";
+        els.acctBotInfoButton.setAttribute("aria-expanded", String(!expanded));
+        els.acctBotInfoPopover.hidden = expanded;
       }
 
       async function createBotClaimCode() {
@@ -2896,10 +2924,13 @@
         }
 
         tabs.forEach(function (tab) {
-          tab.addEventListener("click", function () { selectTab(tab.dataset.accountTab); });
+          tab.addEventListener("click", function () {
+            if (tab.dataset.accountTab === "bot" && tab.dataset.locked === "true") return;
+            selectTab(tab.dataset.accountTab);
+          });
         });
         var requestedTab = new URLSearchParams(window.location.search || "").get("tab");
-        selectTab(["settings", "billing", "referrals", "bot"].includes(requestedTab) ? requestedTab : "settings");
+        selectTab(["settings", "billing", "referrals"].includes(requestedTab) ? requestedTab : "settings");
       }
 
       setupAccountTabs();
@@ -2924,6 +2955,7 @@
       if (els.acctReferralPayoutButton) els.acctReferralPayoutButton.addEventListener("click", requestReferralPayout);
       if (els.acctDiscordLinkButton) els.acctDiscordLinkButton.addEventListener("click", createDiscordLinkCode);
       if (els.acctDiscordUnlinkButton) els.acctDiscordUnlinkButton.addEventListener("click", unlinkDiscordAccount);
+      if (els.acctBotInfoButton) els.acctBotInfoButton.addEventListener("click", toggleBotInfo);
       if (els.acctBotClaimCodeButton) els.acctBotClaimCodeButton.addEventListener("click", createBotClaimCode);
       if (els.acctBotSaveSettingsButton) els.acctBotSaveSettingsButton.addEventListener("click", saveBotSettings);
       if (els.acctChangePasswordButton) {
