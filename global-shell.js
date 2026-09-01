@@ -1341,7 +1341,8 @@
   function buildFooterLinkGroupMarkup(title, items) {
     if (!Array.isArray(items) || !items.length) return "";
     var links = items.map(function (item) {
-      return '<a href="' + item.href + '">' + escapeHtml(item.label) + "</a>";
+      var externalAttrs = item.external ? ' target="_blank" rel="noopener noreferrer"' : "";
+      return '<a href="' + item.href + '"' + externalAttrs + ">" + escapeHtml(item.label) + "</a>";
     }).join("");
     return (
       '<section class="rblx-shell-footer-group">' +
@@ -1378,6 +1379,7 @@
             buildFooterLinkGroupMarkup("Account", [
               { href: "./subscriptions", label: "Subscriptions" },
               { href: "./account-overview", label: "Account Overview" },
+              { href: "https://discord.gg/TMmBQgYK32", label: "Discord", external: true },
               { href: "./login", label: "Login / Sign Up" }
             ]) +
             buildFooterLinkGroupMarkup("Info", [
