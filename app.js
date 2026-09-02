@@ -6173,6 +6173,19 @@ app.post("/auth/signup", async (req, res) => {
 
     const existingUser = await getAuthUserByEmail(email);
     if (existingUser) {
+      // Lets a safe browser retry finish a signup whose first response was lost during a server restart.
+      if (verifyPassword(password, existingUser.password_hash)) {
+        await updateAuthUserLoginStamp(existingUser.id);
+        const freshUser = (await getAuthUserById(existingUser.id)) || existingUser;
+        const token = createAuthToken(freshUser);
+        setAuthCookie(req, res, token);
+        return res.json({
+          ok: true,
+          token,
+          user: await buildResolvedPublicUser(freshUser),
+          recoveredSignup: true,
+        });
+      }
       return res.status(409).json({ error: "An account already exists for that email." });
     }
 

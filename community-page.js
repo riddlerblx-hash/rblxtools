@@ -328,6 +328,25 @@
     return '<span class="community-feedback-rating" aria-label="' + rating + ' out of 5 stars">' + stars + '<span>' + rating + '/5</span></span>';
   }
 
+  function formatPostBody(value) {
+    return escapeHtml(value || "").replace(/\n/g, "<br>");
+  }
+
+  function buildPostBody(post) {
+    var body = String(post && post.body || "");
+    var previewLimit = 620;
+    if (body.length <= previewLimit) return '<p>' + formatPostBody(body) + "</p>";
+
+    var preview = body.slice(0, previewLimit).replace(/\s+\S*$/, "").trim();
+    return (
+      '<div class="community-post-body is-collapsed">' +
+        '<p class="community-post-body-preview">' + formatPostBody(preview) + "..." + "</p>" +
+        '<p class="community-post-body-full" hidden>' + formatPostBody(body) + "</p>" +
+        '<button class="community-read-more" type="button" data-community-toggle-body="true" aria-expanded="false">Read more</button>' +
+      "</div>"
+    );
+  }
+
   function isMemberBugReport(post) {
     return String(post && post.category || "") === "bug-report" && !post.authorIsAdmin;
   }
@@ -477,7 +496,7 @@
             buildAdminPostMenu(post) +
           "</div>" +
           "<h2>" + escapeHtml(post.title || "Untitled update") + "</h2>" +
-          "<p>" + escapeHtml(post.body || "").replace(/\n/g, "<br>") + "</p>" +
+          buildPostBody(post) +
           attachmentMarkup +
           '<div class="community-meta">' + authorBits.map(function (bit) {
             return "<span>" + bit + "</span>";
@@ -1082,6 +1101,20 @@
         var menu = menuToggle.closest(".community-post-menu");
         document.querySelectorAll(".community-post-menu.is-open").forEach(function (node) { if (node !== menu) node.classList.remove("is-open"); });
         menu.classList.toggle("is-open");
+        return;
+      }
+
+      var bodyToggle = target.closest("[data-community-toggle-body]");
+      if (bodyToggle) {
+        var body = bodyToggle.closest(".community-post-body");
+        if (!body) return;
+        var expanded = body.classList.toggle("is-expanded");
+        var preview = body.querySelector(".community-post-body-preview");
+        var full = body.querySelector(".community-post-body-full");
+        if (preview) preview.hidden = expanded;
+        if (full) full.hidden = !expanded;
+        bodyToggle.textContent = expanded ? "Show less" : "Read more";
+        bodyToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
         return;
       }
 

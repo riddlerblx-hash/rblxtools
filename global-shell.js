@@ -2277,22 +2277,49 @@
     }, 350);
   }
 
+  function waitForAuthRetry(delay) {
+    return new Promise(function (resolve) { window.setTimeout(resolve, delay); });
+  }
+
+  function isTemporaryAuthStatus(status) {
+    return status === 429 || status === 502 || status === 503 || status === 504;
+  }
+
   async function authApiRequest(path, options) {
-    var response = await fetch(API_BASE + path, Object.assign({ credentials: "include" }, options || {}));
-    var contentType = response.headers.get("content-type") || "";
-    var payload = null;
+    var requestOptions = Object.assign({ credentials: "include" }, options || {});
 
-    if (contentType.indexOf("application/json") !== -1) {
-      payload = await response.json().catch(function () { return null; });
-    } else {
-      var text = await response.text().catch(function () { return ""; });
-      payload = text ? { error: text } : null;
+    // A brief retry covers a cold/restarting app server without showing a false failed login.
+    for (var attempt = 0; attempt < 2; attempt += 1) {
+      var response;
+      try {
+        response = await fetch(API_BASE + path, requestOptions);
+      } catch (_error) {
+        if (attempt === 0) {
+          await waitForAuthRetry(600);
+          continue;
+        }
+        throw new Error("The sign-in service is temporarily unavailable. Please try again in a moment.");
+      }
+
+      var contentType = response.headers.get("content-type") || "";
+      var payload = contentType.indexOf("application/json") !== -1
+        ? await response.json().catch(function () { return null; })
+        : null;
+
+      if (response.ok) return payload || {};
+
+      if (isTemporaryAuthStatus(response.status) && attempt === 0) {
+        await waitForAuthRetry(600);
+        continue;
+      }
+
+      if (payload && payload.error) throw new Error(payload.error);
+      throw new Error(isTemporaryAuthStatus(response.status)
+        ? "The sign-in service is temporarily unavailable. Please try again in a moment."
+        : "We could not complete that request. Please check your details and try again.");
     }
 
-    if (!response.ok) {
-      throw new Error((payload && payload.error) || ("Request failed with status " + response.status));
-    }
-    return payload;
+    throw new Error("The sign-in service is temporarily unavailable. Please try again in a moment.");
   }
 
   async function handleAuthSubmit(event) {
