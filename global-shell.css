@@ -4025,7 +4025,8 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
   background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
 }
 
-.rblx-tool-banner-ad {
+.rblx-tool-banner-ad,
+.rblx-store-footer-banner-ad {
   display: flex;
   justify-content: center;
   margin: 14px 0;

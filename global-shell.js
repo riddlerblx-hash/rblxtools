@@ -4042,6 +4042,8 @@
       // Content can arrive after the shell script; run the cleanup once parsing has completed too.
       removePageFaqs(pageHost);
       placeSharedFooter(pageHost);
+      initSharedToolBannerAd();
+      initSharedStoreFooterBannerAd();
       revealSharedFooter();
     }, { once: true });
   }
@@ -4108,20 +4110,9 @@
     return icons[kind] || icons.spark;
   }
 
-  function initSharedToolBannerAd() {
-    var showcaseCard = document.querySelector(".showcase-card");
-    var shareCard = document.querySelector(".share-card");
-    if (!showcaseCard || !shareCard || document.getElementById("rblxToolBannerAd")) return;
-
-    var banner = document.createElement("section");
-    banner.id = "rblxToolBannerAd";
-    banner.className = "rblx-tool-banner-ad";
-    banner.setAttribute("aria-label", "Advertisement");
-
-    var slot = document.createElement("div");
-    slot.className = "rblx-tool-banner-ad-slot";
-    banner.appendChild(slot);
-    shareCard.parentNode.insertBefore(banner, shareCard);
+  function mountSharedBannerAd(slot) {
+    if (!slot || slot.dataset.rblxBannerLoaded === "true") return;
+    slot.dataset.rblxBannerLoaded = "true";
 
     window.atOptions = {
       key: "fb95715336abfc09031edf4e6ef208c5",
@@ -4135,6 +4126,54 @@
     script.async = true;
     script.src = "https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js";
     slot.appendChild(script);
+  }
+
+  function initSharedToolBannerAd() {
+    if (document.readyState === "loading") {
+      if (!window.__rblxToolBannerQueued) {
+        window.__rblxToolBannerQueued = true;
+        document.addEventListener("DOMContentLoaded", function () {
+          window.__rblxToolBannerQueued = false;
+          initSharedToolBannerAd();
+        }, { once: true });
+      }
+      return;
+    }
+
+    var showcaseCard = document.querySelector(".showcase-card");
+    var shareCard = document.querySelector(".share-card");
+    if (!showcaseCard || !shareCard || document.getElementById("rblxToolBannerAd")) return;
+
+    var banner = document.createElement("section");
+    banner.id = "rblxToolBannerAd";
+    banner.className = "rblx-tool-banner-ad";
+    banner.setAttribute("aria-label", "Advertisement");
+
+    var slot = document.createElement("div");
+    slot.className = "rblx-tool-banner-ad-slot";
+    banner.appendChild(slot);
+    shareCard.parentNode.insertBefore(banner, shareCard);
+    mountSharedBannerAd(slot);
+  }
+
+  function initSharedStoreFooterBannerAd() {
+    var currentPath = String(window.location.pathname || "/").replace(/\/+$/g, "").replace(/^\//, "").replace(/\.html$/i, "");
+    var storePages = ["subscriptions", "discord-bot", "ai-tokens"];
+    if (storePages.indexOf(currentPath) === -1 || document.getElementById("rblxStoreFooterBannerAd")) return;
+
+    var footer = document.querySelector(".rblx-shell-footer");
+    if (!footer || !footer.parentNode) return;
+
+    var banner = document.createElement("section");
+    banner.id = "rblxStoreFooterBannerAd";
+    banner.className = "rblx-store-footer-banner-ad";
+    banner.setAttribute("aria-label", "Advertisement");
+
+    var slot = document.createElement("div");
+    slot.className = "rblx-tool-banner-ad-slot";
+    banner.appendChild(slot);
+    footer.parentNode.insertBefore(banner, footer);
+    mountSharedBannerAd(slot);
   }
 
   function initSharedToolShowcase() {
@@ -4870,6 +4909,7 @@
     captureStreamingPageContent(pageHost);
     window.setTimeout(function () {
       placeSharedFooter(pageHost);
+      initSharedStoreFooterBannerAd();
       if (document.readyState !== "loading") revealSharedFooter();
     }, 0);
     syncMobileShellState();
