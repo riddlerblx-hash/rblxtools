@@ -6277,16 +6277,21 @@ app.get("/auth/me", async (req, res) => {
     if (deviceId) {
       await linkDeviceToUser(resolvedUser, deviceId).catch(() => null);
     }
-    const moderation = await summarizeModerationForTarget(resolvedUser, deviceId);
-    const botDashboard = applyDashboardAdminAccess(await getBotDashboard(resolvedUser.id), resolvedUser);
-    botDashboard.discordLinked = Boolean(await getDiscordLinkByAppUserId(resolvedUser.id));
+    const [moderation, rawBotDashboard, discordLink, publicUser] = await Promise.all([
+      summarizeModerationForTarget(resolvedUser, deviceId),
+      getBotDashboard(resolvedUser.id),
+      getDiscordLinkByAppUserId(resolvedUser.id),
+      buildResolvedPublicUser(resolvedUser),
+    ]);
+    const botDashboard = applyDashboardAdminAccess(rawBotDashboard, resolvedUser);
+    botDashboard.discordLinked = Boolean(discordLink);
     const botInviteUrl = /^\d+$/.test(DISCORD_TOOLS_BOT_CLIENT_ID)
       ? `https://discord.com/oauth2/authorize?client_id=${DISCORD_TOOLS_BOT_CLIENT_ID}&scope=bot%20applications.commands&permissions=35856`
       : null;
     return res.json({
       ok: true,
       chatToken: createAuthToken(resolvedUser),
-      user: await buildResolvedPublicUser(resolvedUser),
+      user: publicUser,
       moderation,
       botDashboard,
       botInviteUrl,

@@ -1432,8 +1432,8 @@
                 <button class="acct-tab is-active" type="button" role="tab" aria-selected="true" data-account-tab="settings">Account Settings</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="billing">Payments &amp; Billing</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="referrals">Referrals &amp; Earnings</button>
-                <div id="acctBotTabWrap" class="acct-bot-tab-wrap is-locked" role="presentation">
-                  <button id="acctBotTab" class="acct-tab" type="button" role="tab" aria-selected="false" aria-disabled="true" data-account-tab="bot">Bot Dashboard</button>
+                <div id="acctBotTabWrap" class="acct-bot-tab-wrap" role="presentation">
+                  <button id="acctBotTab" class="acct-tab" type="button" role="tab" aria-selected="false" aria-disabled="false" data-account-tab="bot">Bot Dashboard</button>
                   <span class="acct-bot-tab-lock" aria-hidden="true">&#128274;</span>
                   <button id="acctBotInfoButton" class="acct-bot-info" type="button" aria-label="About RBLXTools Bot access" aria-expanded="false" aria-controls="acctBotInfoPopover">!</button>
                   <div id="acctBotInfoPopover" class="acct-bot-info-popover" role="status" hidden>Purchase a Bot use pack or Discord Bot Unlimited to unlock server claiming, shared credits, and member command limits.<br><a href="./discord-bot">View Bot packs</a></div>
@@ -1829,6 +1829,7 @@
       var API_BASE = window.location.origin;
       var TOKEN_KEY = "rblxtools_auth_token";
       var PROFILE_KEY = "rblxtools_profile_overview";
+      var BOT_ACCESS_CACHE_PREFIX = "rblxtools_bot_dashboard_access:";
       var LOGIN_PAGE_URL = "./login";
       var PLANS_PAGE_URL = "./subscriptions";
 
@@ -2275,6 +2276,7 @@
         }
         state.botDashboard = dashboard;
         var unlocked = Boolean(dashboard.access);
+        writeBotAccessCache(state.user && state.user.id, unlocked);
         setBotTabLocked(!unlocked);
         if (!unlocked) return;
         if ((new URLSearchParams(window.location.search || "").get("tab") === "bot" || state.savedAccountTab === "bot") && els.acctBotTab) els.acctBotTab.click();
@@ -2316,7 +2318,10 @@
       async function loadBotDashboard() {
         if (!state.user || !state.user.id) return;
         try { renderBotDashboard(await apiRequest("/discord-bot/dashboard", { method: "GET" })); }
-        catch (_error) { setBotTabLocked(!Boolean(state.user.isAdmin)); }
+        catch (_error) {
+          // Keep confirmed access visible when a background refresh is temporarily unavailable.
+          if (state.user?.isAdmin || readBotAccessCache(state.user?.id)) setBotTabLocked(false);
+        }
       }
 
       async function loadAccountTabPreference() {
@@ -2342,6 +2347,22 @@
         els.acctBotTabWrap.classList.toggle("is-locked", locked);
         els.acctBotTab.setAttribute("aria-disabled", String(locked));
         els.acctBotTab.dataset.locked = String(locked);
+      }
+
+      function readBotAccessCache(userId) {
+        try {
+          return localStorage.getItem(BOT_ACCESS_CACHE_PREFIX + String(userId || "")) === "true";
+        } catch (_error) {
+          return false;
+        }
+      }
+
+      function writeBotAccessCache(userId, access) {
+        if (!userId) return;
+        try {
+          if (access) localStorage.setItem(BOT_ACCESS_CACHE_PREFIX + String(userId), "true");
+          else localStorage.removeItem(BOT_ACCESS_CACHE_PREFIX + String(userId));
+        } catch (_error) {}
       }
 
       function toggleBotInfo() {
@@ -2657,7 +2678,8 @@
           return;
         }
 
-        setBotTabLocked(!Boolean(state.user.isAdmin));
+        // Entitlements resolve in the background; never flash a lock before that response arrives.
+        setBotTabLocked(false);
         loadProfile();
         var planValue = String(state.user.plan || "free").toLowerCase();
         var displayPlan = planValue === "premium" ? "plus" : planValue;
