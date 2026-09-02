@@ -4196,7 +4196,7 @@
     if (!slot || slot.dataset.rblxMobileBannerLoaded === "true") return;
     slot.dataset.rblxMobileBannerLoaded = "true";
 
-    // Isolate the provider because it writes its iframe from a global atOptions value.
+    // Let the provider run from a normal same-site document rather than about:srcdoc.
     var adFrame = document.createElement("iframe");
     adFrame.className = "rblx-mobile-banner-ad-frame";
     adFrame.title = "Advertisement";
@@ -4204,7 +4204,7 @@
     adFrame.height = "50";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:320px;height:50px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"4f3f88a3c4de39df646d1819202a769b",format:"iframe",height:50,width:320,params:{}};<\/script><script src="https://professionalsusceptible.com/4f3f88a3c4de39df646d1819202a769b/invoke.js"><\/script></body></html>';
+    adFrame.src = "/mobile-ad-banner.html";
     slot.appendChild(adFrame);
   }
 
