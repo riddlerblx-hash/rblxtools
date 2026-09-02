@@ -52,6 +52,7 @@ const {
   updateServerSettings,
   updateServerControls,
   syncDiscordServerChannels,
+  setDiscordServerUsageCounter,
   resetMemberDailyUse,
   unclaimServer,
 } = require("./discord-bot-entitlements");
@@ -7847,7 +7848,7 @@ app.get("/discord-bot/dashboard", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const dashboard = applyDashboardAdminAccess(await getBotDashboard(user.id), user);
     const inviteUrl = /^\d+$/.test(DISCORD_TOOLS_BOT_CLIENT_ID)
-      ? `https://discord.com/oauth2/authorize?client_id=${DISCORD_TOOLS_BOT_CLIENT_ID}&scope=bot%20applications.commands&permissions=35840`
+      ? `https://discord.com/oauth2/authorize?client_id=${DISCORD_TOOLS_BOT_CLIENT_ID}&scope=bot%20applications.commands&permissions=35856`
       : null;
     return res.json({ ok: true, dashboard, inviteUrl });
   } catch (error) {
@@ -7952,6 +7953,15 @@ app.post("/discord-bot/service/usage-summary", async (req, res) => {
     return res.json({ ok: true, usage: await getDiscordServerUsageSummary({ guildId: req.body?.guildId, discordUserId: req.get("X-RBLXTools-Discord-User-Id"), discordRoleIds: req.body?.discordRoleIds }) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not check this server's usage." });
+  }
+});
+
+app.post("/discord-bot/service/usage-counter", async (req, res) => {
+  try {
+    await requireDiscordToolsServiceIdentity(req);
+    return res.json({ ok: true, dashboard: await setDiscordServerUsageCounter({ guildId: req.body?.guildId, channelId: req.body?.channelId }) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not configure the usage counter." });
   }
 });
 

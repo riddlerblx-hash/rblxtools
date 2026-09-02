@@ -8,6 +8,7 @@ const {
   Routes,
   SlashCommandBuilder,
   AttachmentBuilder,
+  ChannelType,
   PermissionFlagsBits,
 } = require("discord.js");
 const { claimDiscordLink, getDiscordLinkByUserId } = require("./discord-tools-links");
@@ -69,6 +70,7 @@ const commands = [
     .addStringOption((option) => option.setName("code").setDescription("Code generated in RBLXTools Account Overview").setRequired(true)),
   new SlashCommandBuilder().setName("status").setDescription("Check your RBLXTools Discord link and plan."),
   new SlashCommandBuilder().setName("check").setDescription("Check this server's RBLXTools Bot usage.").addSubcommand((subcommand) => subcommand.setName("usage").setDescription("Show remaining shared uses and your active limits.")),
+  new SlashCommandBuilder().setName("setup").setDescription("Configure this server's RBLXTools Bot display.").addSubcommand((subcommand) => subcommand.setName("usage-counter").setDescription("Create or refresh a live used / owned counter channel.")),
   new SlashCommandBuilder().setName("tools").setDescription("View the RBLXTools Discord tools available in this server."),
   new SlashCommandBuilder()
     .setName("claim-server")
@@ -300,6 +302,31 @@ async function sendUsageAlert(interaction, usage) {
   await channel.send("RBLXTools Bot usage alert: this server has used **" + usage.alertThreshold + "%** of its available use pack.").catch(() => null);
 }
 
+function usageCounterName(usage) {
+  return usage?.mode === "unlimited" ? "RBLXTools Uses: Unlimited" : "RBLXTools Uses: " + Number(usage?.usedUses || 0) + " / " + Number(usage?.totalUses || 0);
+}
+
+async function updateUsageCounter(guild, usage) {
+  const channelId = String(usage?.usageCounterChannelId || "").trim();
+  if (!guild || !channelId) return;
+  const channel = await guild.channels.fetch(channelId).catch(() => null);
+  if (!channel || channel.name === usageCounterName(usage)) return;
+  await channel.setName(usageCounterName(usage), "RBLXTools Bot usage updated");
+}
+
+async function setupUsageCounter(interaction) {
+  if (!interaction.inGuild()) throw new Error("Run `/setup usage-counter` inside a claimed Discord server.");
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) throw new Error("You need the Manage Server permission to set up a usage counter.");
+  if (!interaction.guild.members.me?.permissions?.has(PermissionFlagsBits.ManageChannels)) throw new Error("Re-invite the RBLXTools Bot with Manage Channels permission, then run this command again.");
+  const payload = await callBotService("/discord-bot/service/usage-summary", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction) });
+  const usage = payload.usage || {}; let channel = usage.usageCounterChannelId ? await interaction.guild.channels.fetch(usage.usageCounterChannelId).catch(() => null) : null;
+  if (!channel) channel = await interaction.guild.channels.create({ name: usageCounterName(usage), type: ChannelType.GuildVoice, reason: "RBLXTools Bot live usage counter" });
+  await channel.setPosition(0).catch(() => null);
+  await callBotService("/discord-bot/service/usage-counter", interaction, { guildId: interaction.guildId, channelId: channel.id });
+  await updateUsageCounter(interaction.guild, usage);
+  return channel;
+}
+
 function getInteractionRoleIds(interaction) {
   const cachedRoles = interaction.member?.roles?.cache;
   if (cachedRoles && typeof cachedRoles.keys === "function") return Array.from(cachedRoles.keys());
@@ -308,7 +335,7 @@ function getInteractionRoleIds(interaction) {
 
 async function handleInteraction(interaction) {
   if (!interaction.isChatInputCommand()) return;
-  const isPrivateCommand = ["link", "status", "check"].includes(interaction.commandName);
+  const isPrivateCommand = ["link", "status", "check", "setup"].includes(interaction.commandName);
   await interaction.deferReply({ ephemeral: isPrivateCommand });
 
   if (toolDefinitions[interaction.commandName]) {
@@ -319,6 +346,7 @@ async function handleInteraction(interaction) {
       }
       const usage = await callBotService("/discord-bot/service/consume-use", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction), commandName: interaction.commandName });
       await sendUsageAlert(interaction, usage.usage);
+      await updateUsageCounter(interaction.guild, usage.usage).catch((error) => console.warn("[tools-bot] usage counter update failed:", error.message || error));
 
       const assetId = String(interaction.options.getString("asset-id", true) || "").trim();
       if (!/^\d+$/.test(assetId)) {
@@ -357,6 +385,16 @@ async function handleInteraction(interaction) {
     return;
   }
 
+  if (interaction.commandName === "setup") {
+    try {
+      const channel = await setupUsageCounter(interaction);
+      await interaction.editReply("Live usage counter ready in " + channel.toString() + ". It shows used / owned uses and updates after each paid bot command.");
+    } catch (error) {
+      await interaction.editReply(error.message || "Could not set up the usage counter.");
+    }
+    return;
+  }
+
   try {
     const requiresPro = interaction.guildId === PRO_ONLY_GUILD_ID;
     if (requiresPro) {
@@ -371,7 +409,7 @@ async function handleInteraction(interaction) {
       }
       const payload = await callBotService("/discord-bot/service/usage-summary", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction) });
       const usage = payload.usage || {};
-      const shared = usage.mode === "unlimited" ? "Unlimited" : String(Number(usage.remainingUses || 0)) + " / " + String(Number(usage.totalUses || 0)) + " shared uses remaining";
+      const shared = usage.mode === "unlimited" ? "Unlimited" : String(Number(usage.usedUses || 0)) + " / " + String(Number(usage.totalUses || 0)) + " used / owned";
       const limitLine = (label, limit) => limit ? "\n" + label + ": **" + limit.used + " / " + limit.limit + "** this " + limit.period : "";
       await interaction.editReply("**RBLXTools Bot usage**\nShared balance: **" + shared + "**" + limitLine("Your user limit", usage.userLimit) + limitLine("Your role limit", usage.roleLimit));
       return;
@@ -397,7 +435,7 @@ async function handleInteraction(interaction) {
     }
   } catch (error) {
     console.error("[tools-bot] command failed:", error);
-    await interaction.editReply("I could not check your RBLXTools membership right now. Try again in a moment.");
+    await interaction.editReply(error.message || "I could not complete that RBLXTools Bot request right now.");
   }
 }
 
