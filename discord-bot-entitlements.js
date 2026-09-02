@@ -12,7 +12,7 @@ const BOT_COMMANDS = ["clothing", "ugc", "media", "audio", "animations", "robux"
 let writeQueue = Promise.resolve();
 
 function emptyStore() {
-  return { unlimitedByAppUserId: {}, useCreditsByAppUserId: {}, processedUseCheckoutIds: {}, claimCodesByCode: {}, serversByGuildId: {} };
+  return { unlimitedByAppUserId: {}, useCreditsByAppUserId: {}, processedUseCheckoutIds: {}, claimCodesByCode: {}, serversByGuildId: {}, dashboardDraftsByAppUserId: {} };
 }
 
 function normalizeStore(parsed) {
@@ -23,6 +23,7 @@ function normalizeStore(parsed) {
     processedUseCheckoutIds: source.processedUseCheckoutIds && typeof source.processedUseCheckoutIds === "object" ? source.processedUseCheckoutIds : {},
     claimCodesByCode: source.claimCodesByCode && typeof source.claimCodesByCode === "object" ? source.claimCodesByCode : {},
     serversByGuildId: source.serversByGuildId && typeof source.serversByGuildId === "object" ? source.serversByGuildId : {},
+    dashboardDraftsByAppUserId: source.dashboardDraftsByAppUserId && typeof source.dashboardDraftsByAppUserId === "object" ? source.dashboardDraftsByAppUserId : {},
   };
 }
 
@@ -68,17 +69,20 @@ function normalizeUsagePeriod(value) { return ["daily", "weekly", "monthly"].inc
 function addAudit(server, action, detail) { const audit = Array.isArray(server.auditLog) ? server.auditLog : []; audit.unshift({ action, detail: String(detail || "").slice(0, 180), at: new Date().toISOString() }); server.auditLog = audit.slice(0, 60); }
 function trimActivity(server) { const activity = server.activityByDate && typeof server.activityByDate === "object" ? server.activityByDate : {}; const cutoff = new Date(Date.now() - ACTIVITY_RETENTION_DAYS * 86400000).toISOString().slice(0, 10); Object.keys(activity).forEach((day) => { if (day < cutoff) delete activity[day]; }); server.activityByDate = activity; return activity; }
 function periodUseCount(activity, dateKey, memberId, period) { const current = new Date(dateKey + "T00:00:00Z"); let start = dateKey; if (period === "week") { current.setUTCDate(current.getUTCDate() - ((current.getUTCDay() + 6) % 7)); start = current.toISOString().slice(0, 10); } if (period === "month") start = dateKey.slice(0, 7) + "-01"; return Object.keys(activity || {}).filter((day) => day >= start && day <= dateKey).reduce((total, day) => total + Math.max(0, Number(activity[day]?.users?.[memberId] || 0)), 0); }
+function dashboardDraft(source) { const value = source && typeof source === "object" ? source : {}; return { perUserLimit: Math.max(0, Number(value.perUserLimit ?? value.perUserDailyLimit ?? 0)), userLimitEnabled: Boolean(value.userLimitEnabled ?? value.dailyLimitEnabled), userLimitPeriod: normalizeUsagePeriod(value.userLimitPeriod), roleDailyLimits: normalizeRoleDailyLimits(value.roleDailyLimits), roleDailyLimitsEnabled: Boolean(value.roleDailyLimitsEnabled), roleLimitPeriod: normalizeUsagePeriod(value.roleLimitPeriod), paused: Boolean(value.paused), blockedCommands: normalizeBlockedCommands(value.blockedCommands), alertsEnabled: Boolean(value.alertsEnabled), alertThresholds: normalizeAlertThresholds(value.alertThresholds), alertChannelId: String(value.alertChannelId || "") }; }
 
 function buildDashboard(store, appUserId) {
   const userId = String(appUserId || "").trim();
   const subscription = store.unlimitedByAppUserId[userId] || null;
   const totalUses = purchasedUses(store, userId);
   const server = getOwnerServer(store, userId);
+  const draftSettings = dashboardDraft(store.dashboardDraftsByAppUserId[userId]);
   const usedUses = Math.max(0, Number(server?.usedUses || 0));
   return {
     access: totalUses > 0 || isUnlimitedActive(subscription), mode: isUnlimitedActive(subscription) ? "unlimited" : totalUses > 0 ? "uses" : "locked",
     totalUses, usedUses, remainingUses: Math.max(0, totalUses - usedUses), subscription,
-    server: server ? { guildId: server.guildId, guildName: server.guildName || "Discord server", claimedAt: server.claimedAt || null, perUserLimit: Math.max(0, Number(server.perUserLimit ?? server.perUserDailyLimit ?? 0)), userLimitEnabled: Boolean(server.userLimitEnabled ?? server.dailyLimitEnabled), userLimitPeriod: normalizeUsagePeriod(server.userLimitPeriod), roleDailyLimits: normalizeRoleDailyLimits(server.roleDailyLimits), roleDailyLimitsEnabled: Boolean(server.roleDailyLimitsEnabled), roleLimitPeriod: normalizeUsagePeriod(server.roleLimitPeriod), paused: Boolean(server.paused), blockedCommands: normalizeBlockedCommands(server.blockedCommands), alertsEnabled: Boolean(server.alertsEnabled), alertThresholds: normalizeAlertThresholds(server.alertThresholds), alertChannelId: String(server.alertChannelId || ""), alertChannels: normalizeAlertChannels(server.alertChannels), activityByDate: trimActivity(server), auditLog: Array.isArray(server.auditLog) ? server.auditLog.slice(0, 30) : [], dailyUserUseCounts: server.dailyUserUseCounts || {} } : null,
+    server: server ? { guildId: server.guildId, guildName: server.guildName || "Discord server", claimedAt: server.claimedAt || null, ...dashboardDraft(server), alertChannels: normalizeAlertChannels(server.alertChannels), activityByDate: trimActivity(server), auditLog: Array.isArray(server.auditLog) ? server.auditLog.slice(0, 30) : [], dailyUserUseCounts: server.dailyUserUseCounts || {} } : null,
+    draftSettings,
   };
 }
 
@@ -125,7 +129,7 @@ async function claimDiscordServer({ code, appUserId, guildId, guildName, alertCh
     const existing = store.serversByGuildId[normalizedGuildId];
     if (existing && existing.appUserId !== userId) { const error = new Error("This Discord server is already claimed by another RBLXTools account."); error.statusCode = 409; throw error; }
     if (dashboard.server && dashboard.server.guildId !== normalizedGuildId) { const error = new Error("This purchase is already assigned to another Discord server."); error.statusCode = 409; throw error; }
-    const server = existing || { guildId: normalizedGuildId, appUserId: userId, usedUses: 0, dailyUserUseCounts: {} };
+    const server = existing || { guildId: normalizedGuildId, appUserId: userId, usedUses: 0, dailyUserUseCounts: {}, ...dashboardDraft(store.dashboardDraftsByAppUserId[userId]) };
     server.guildName = String(guildName || server.guildName || "Discord server").slice(0, 120); server.claimedAt = server.claimedAt || new Date().toISOString(); server.unclaimedAt = null; server.perUserDailyLimit = Math.max(0, Number(server.perUserDailyLimit || 0)); server.roleDailyLimits = normalizeRoleDailyLimits(server.roleDailyLimits); server.alertChannels = normalizeAlertChannels(alertChannels); if (!server.alertChannels.some((channel) => channel.id === String(server.alertChannelId || ""))) server.alertChannelId = ""; addAudit(server, "claimed", "Server claimed"); server.updatedAt = new Date().toISOString();
     store.serversByGuildId[normalizedGuildId] = server; delete store.claimCodesByCode[normalizedCode]; return buildDashboard(store, userId);
   });
@@ -133,15 +137,16 @@ async function claimDiscordServer({ code, appUserId, guildId, guildName, alertCh
 
 async function updateServerSettings({ appUserId, guildId, perUserLimit, userLimitEnabled, userLimitPeriod, roleDailyLimits, roleDailyLimitsEnabled, roleLimitPeriod }) {
   const userId = String(appUserId || "").trim(); const normalizedGuildId = String(guildId || "").trim(); const limit = Number.parseInt(perUserLimit, 10);
-  if (!/^\d+$/.test(normalizedGuildId) || !Number.isFinite(limit) || limit < 0 || limit > 1000) { const error = new Error("Choose a user limit from 0 to 1,000."); error.statusCode = 400; throw error; }
+  if (!userId || !Number.isFinite(limit) || limit < 0 || limit > 1000) { const error = new Error("Choose a user limit from 0 to 1,000."); error.statusCode = 400; throw error; }
   if (!Array.isArray(roleDailyLimits) || roleDailyLimits.length > 6 || normalizeRoleDailyLimits(roleDailyLimits).length !== roleDailyLimits.length) { const error = new Error("Add up to 6 valid Discord role IDs with daily limits from 0 to 1,000."); error.statusCode = 400; throw error; }
+  if (!normalizedGuildId) return updateStore((store) => { store.dashboardDraftsByAppUserId[userId] = { ...dashboardDraft(store.dashboardDraftsByAppUserId[userId]), perUserLimit: limit, userLimitEnabled: Boolean(userLimitEnabled), userLimitPeriod: normalizeUsagePeriod(userLimitPeriod), roleDailyLimits: normalizeRoleDailyLimits(roleDailyLimits), roleDailyLimitsEnabled: Boolean(roleDailyLimitsEnabled), roleLimitPeriod: normalizeUsagePeriod(roleLimitPeriod) }; return buildDashboard(store, userId); });
   return updateStore((store) => { const server = store.serversByGuildId[normalizedGuildId]; if (!server || server.appUserId !== userId || server.unclaimedAt) { const error = new Error("You do not manage that Discord server."); error.statusCode = 403; throw error; } server.perUserLimit = limit; server.userLimitEnabled = Boolean(userLimitEnabled); server.userLimitPeriod = normalizeUsagePeriod(userLimitPeriod); server.roleDailyLimits = normalizeRoleDailyLimits(roleDailyLimits); server.roleDailyLimitsEnabled = Boolean(roleDailyLimitsEnabled); server.roleLimitPeriod = normalizeUsagePeriod(roleLimitPeriod); addAudit(server, "limits_updated", "Usage limits updated"); server.updatedAt = new Date().toISOString(); return buildDashboard(store, userId); });
 }
 
 async function updateServerControls({ appUserId, guildId, paused, blockedCommands, alertsEnabled, alertThresholds, alertChannelId }) {
   const userId = String(appUserId || "").trim(); const normalizedGuildId = String(guildId || "").trim();
-  if (!/^\d+$/.test(normalizedGuildId) || !Array.isArray(blockedCommands) || !Array.isArray(alertThresholds) || normalizeBlockedCommands(blockedCommands).length !== blockedCommands.length) { const error = new Error("Invalid bot controls."); error.statusCode = 400; throw error; }
-  return updateStore((store) => { const server = store.serversByGuildId[normalizedGuildId]; if (!server || server.appUserId !== userId || server.unclaimedAt) { const error = new Error("You do not manage that Discord server."); error.statusCode = 403; throw error; } const selectedChannelId = String(alertChannelId || "").trim(); const channels = normalizeAlertChannels(server.alertChannels); if (selectedChannelId && !channels.some((channel) => channel.id === selectedChannelId)) { const error = new Error("Choose a valid alert channel for this server."); error.statusCode = 400; throw error; } server.paused = Boolean(paused); server.blockedCommands = normalizeBlockedCommands(blockedCommands); server.alertsEnabled = Boolean(alertsEnabled); server.alertThresholds = normalizeAlertThresholds(alertThresholds); server.alertChannelId = server.alertsEnabled ? selectedChannelId : ""; addAudit(server, server.paused ? "paused" : "resumed", server.paused ? "Downloads paused" : "Downloads resumed"); addAudit(server, "alerts_updated", server.alertsEnabled ? "Usage alerts enabled" : "Usage alerts disabled"); server.updatedAt = new Date().toISOString(); return buildDashboard(store, userId); });
+  if (!userId || (normalizedGuildId && !/^\d+$/.test(normalizedGuildId)) || !Array.isArray(blockedCommands) || !Array.isArray(alertThresholds) || normalizeBlockedCommands(blockedCommands).length !== blockedCommands.length) { const error = new Error("Invalid bot controls."); error.statusCode = 400; throw error; }
+  return updateStore((store) => { if (!normalizedGuildId) { store.dashboardDraftsByAppUserId[userId] = { ...dashboardDraft(store.dashboardDraftsByAppUserId[userId]), paused: Boolean(paused), blockedCommands: normalizeBlockedCommands(blockedCommands), alertsEnabled: Boolean(alertsEnabled), alertThresholds: normalizeAlertThresholds(alertThresholds), alertChannelId: "" }; return buildDashboard(store, userId); } const server = store.serversByGuildId[normalizedGuildId]; if (!server || server.appUserId !== userId || server.unclaimedAt) { const error = new Error("You do not manage that Discord server."); error.statusCode = 403; throw error; } const selectedChannelId = String(alertChannelId || "").trim(); const channels = normalizeAlertChannels(server.alertChannels); if (selectedChannelId && !channels.some((channel) => channel.id === selectedChannelId)) { const error = new Error("Choose a valid alert channel for this server."); error.statusCode = 400; throw error; } server.paused = Boolean(paused); server.blockedCommands = normalizeBlockedCommands(blockedCommands); server.alertsEnabled = Boolean(alertsEnabled); server.alertThresholds = normalizeAlertThresholds(alertThresholds); server.alertChannelId = server.alertsEnabled ? selectedChannelId : ""; addAudit(server, server.paused ? "paused" : "resumed", server.paused ? "Downloads paused" : "Downloads resumed"); addAudit(server, "alerts_updated", server.alertsEnabled ? "Usage alerts enabled" : "Usage alerts disabled"); server.updatedAt = new Date().toISOString(); return buildDashboard(store, userId); });
 }
 async function syncDiscordServerChannels({ guildId, alertChannels }) {
   const normalizedGuildId = String(guildId || "").trim();

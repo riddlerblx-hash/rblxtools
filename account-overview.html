@@ -2257,19 +2257,20 @@
         var unlocked = Boolean(dashboard.access);
         setBotTabLocked(!unlocked);
         if (!unlocked) return;
-        if (new URLSearchParams(window.location.search || "").get("tab") === "bot" && els.acctBotTab) els.acctBotTab.click();
-        els.acctBotMode.textContent = dashboard.mode === "unlimited" ? "Unlimited" : dashboard.mode === "admin" ? "Admin view" : "Use pack";
+        if ((new URLSearchParams(window.location.search || "").get("tab") === "bot" || window.localStorage.getItem("rblxtools-account-tab") === "bot") && els.acctBotTab) els.acctBotTab.click();
+        var settings = dashboard.server || dashboard.draftSettings || {};
+        els.acctBotMode.textContent = dashboard.mode === "unlimited" ? "Unlimited Uses" : dashboard.mode === "admin" ? "Admin view" : "Pay by usage";
         els.acctBotUses.textContent = dashboard.mode === "unlimited" ? "Unlimited" : (Number(dashboard.usedUses || 0).toLocaleString() + " / " + Number(dashboard.totalUses || 0).toLocaleString());
         els.acctBotServer.textContent = dashboard.server ? dashboard.server.guildName : "Not claimed";
-        els.acctBotUserLimit.value = dashboard.server ? String(dashboard.server.perUserLimit || 0) : "0";
-        els.acctBotUserLimitPeriod.value = dashboard.server?.userLimitPeriod || "daily";
-        setBotSwitch(els.acctBotUserLimitEnabled, Boolean(dashboard.server?.userLimitEnabled), "User limit is on", "User limit is off");
-        setBotSwitch(els.acctBotRoleLimitsEnabled, Boolean(dashboard.server?.roleDailyLimitsEnabled), "Role limits are on", "Role limits are off");
-        els.acctBotRoleLimitPeriod.value = dashboard.server?.roleLimitPeriod || "daily";
+        els.acctBotUserLimit.value = String(settings.perUserLimit || 0);
+        els.acctBotUserLimitPeriod.value = settings.userLimitPeriod || "daily";
+        setBotSwitch(els.acctBotUserLimitEnabled, Boolean(settings.userLimitEnabled), "User limit is on", "User limit is off");
+        setBotSwitch(els.acctBotRoleLimitsEnabled, Boolean(settings.roleDailyLimitsEnabled), "Role limits are on", "Role limits are off");
+        els.acctBotRoleLimitPeriod.value = settings.roleLimitPeriod || "daily";
         updateBotLimitInputs();
-        state.botRoleDailyLimits = dashboard.server && Array.isArray(dashboard.server.roleDailyLimits) ? dashboard.server.roleDailyLimits.slice() : [];
+        state.botRoleDailyLimits = Array.isArray(settings.roleDailyLimits) ? settings.roleDailyLimits.slice() : [];
         renderBotRoleLimits();
-        renderBotManagement(dashboard.server);
+        renderBotManagement(settings);
         if (payload.inviteUrl) {
           els.acctBotInviteLink.href = payload.inviteUrl;
           els.acctBotInviteLink.removeAttribute("aria-disabled");
@@ -2413,7 +2414,7 @@
 
       var botControlsSaveTimer = null;
       function queueBotControlsSave() { window.clearTimeout(botControlsSaveTimer); botControlsSaveTimer = window.setTimeout(saveBotControls, 350); }
-      async function saveBotControls() { if (!state.botDashboard || !state.botDashboard.server) return; var blocks = Array.prototype.slice.call(els.acctBotCommandBlocks.querySelectorAll("input:checked")).map(function(input){return input.value;}), alerts = Array.prototype.slice.call(els.acctBotAlerts.querySelectorAll("input:checked")).map(function(input){return Number(input.value);}), alertsEnabled = els.acctBotAlertsEnabled.dataset.enabled === "true"; try { var payload = await apiRequest("/discord-bot/dashboard/server-controls", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({guildId:state.botDashboard.server.guildId,paused:els.acctBotPaused.dataset.enabled !== "true",blockedCommands:blocks,alertsEnabled:alertsEnabled,alertThresholds:alerts,alertChannelId:els.acctBotAlertChannel.value}) }); renderBotDashboard({dashboard:payload.dashboard,inviteUrl:els.acctBotInviteLink.href}); setStatus(els.acctBotDashboardStatus,"Server controls saved automatically.","success"); } catch(error){setStatus(els.acctBotDashboardStatus,error.message,"error");} }
+      async function saveBotControls() { if (!state.botDashboard) return; var blocks = Array.prototype.slice.call(els.acctBotCommandBlocks.querySelectorAll("input:checked")).map(function(input){return input.value;}), alerts = Array.prototype.slice.call(els.acctBotAlerts.querySelectorAll("input:checked")).map(function(input){return Number(input.value);}), alertsEnabled = els.acctBotAlertsEnabled.dataset.enabled === "true"; try { var payload = await apiRequest("/discord-bot/dashboard/server-controls", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({guildId:state.botDashboard.server?.guildId,paused:els.acctBotPaused.dataset.enabled !== "true",blockedCommands:blocks,alertsEnabled:alertsEnabled,alertThresholds:alerts,alertChannelId:els.acctBotAlertChannel.value}) }); renderBotDashboard({dashboard:payload.dashboard,inviteUrl:els.acctBotInviteLink.href}); setStatus(els.acctBotDashboardStatus,"Server controls saved automatically.","success"); } catch(error){setStatus(els.acctBotDashboardStatus,error.message,"error");} }
       async function resetBotMember() { if (!state.botDashboard?.server) return; try { var payload=await apiRequest("/discord-bot/dashboard/reset-member",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guildId:state.botDashboard.server.guildId,discordUserId:els.acctBotResetMember.value})}); renderBotDashboard({dashboard:payload.dashboard,inviteUrl:els.acctBotInviteLink.href}); setStatus(els.acctBotDashboardStatus,"Member usage reset.","success"); } catch(error){setStatus(els.acctBotDashboardStatus,error.message,"error");} }
       async function unclaimBotServer() { if (!state.botDashboard?.server || !confirm("Unclaim this server? Downloads stop until another server is claimed.")) return; try { var payload=await apiRequest("/discord-bot/dashboard/unclaim-server",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guildId:state.botDashboard.server.guildId})}); renderBotDashboard({dashboard:payload.dashboard,inviteUrl:els.acctBotInviteLink.href}); } catch(error){setStatus(els.acctBotDashboardStatus,error.message,"error");} }
 
@@ -2441,12 +2442,9 @@
       }
 
       async function saveBotSettings() {
-        if (!state.botDashboard || !state.botDashboard.server) {
-          setStatus(els.acctBotDashboardStatus, "Claim a Discord server before setting a member usage limit.", "error");
-          return;
-        }
+        if (!state.botDashboard) return;
         try {
-          var payload = await apiRequest("/discord-bot/dashboard/server-settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guildId: state.botDashboard.server.guildId, perUserLimit: els.acctBotUserLimit.value, userLimitEnabled: els.acctBotUserLimitEnabled.dataset.enabled === "true", userLimitPeriod: els.acctBotUserLimitPeriod.value, roleDailyLimits: state.botRoleDailyLimits, roleDailyLimitsEnabled: els.acctBotRoleLimitsEnabled.dataset.enabled === "true", roleLimitPeriod: els.acctBotRoleLimitPeriod.value }) });
+          var payload = await apiRequest("/discord-bot/dashboard/server-settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guildId: state.botDashboard.server?.guildId, perUserLimit: els.acctBotUserLimit.value, userLimitEnabled: els.acctBotUserLimitEnabled.dataset.enabled === "true", userLimitPeriod: els.acctBotUserLimitPeriod.value, roleDailyLimits: state.botRoleDailyLimits, roleDailyLimitsEnabled: els.acctBotRoleLimitsEnabled.dataset.enabled === "true", roleLimitPeriod: els.acctBotRoleLimitPeriod.value }) });
           renderBotDashboard({ dashboard: payload.dashboard, inviteUrl: els.acctBotInviteLink.href });
           setStatus(els.acctBotDashboardStatus, "Member daily command limits saved automatically.", "success");
         } catch (error) { setStatus(els.acctBotDashboardStatus, error.message || "Could not save the member limit.", "error"); }
@@ -3107,6 +3105,7 @@
           Object.keys(panels).forEach(function (panelName) {
             panels[panelName].hidden = panelName !== name;
           });
+          try { window.localStorage.setItem("rblxtools-account-tab", name); } catch (_error) { /* Storage can be unavailable in private browsing. */ }
           if (name === "bot") requestAnimationFrame(function () { drawBotChart(state.botDashboard?.server?.activityByDate || {}); });
         }
 
@@ -3116,8 +3115,9 @@
             selectTab(tab.dataset.accountTab);
           });
         });
-        var requestedTab = new URLSearchParams(window.location.search || "").get("tab");
-        selectTab(["settings", "billing", "referrals"].includes(requestedTab) ? requestedTab : "settings");
+        var requestedTab = new URLSearchParams(window.location.search || "").get("tab"), storedTab = "";
+        try { storedTab = window.localStorage.getItem("rblxtools-account-tab") || ""; } catch (_error) { storedTab = ""; }
+        selectTab(["settings", "billing", "referrals"].includes(requestedTab) ? requestedTab : ["settings", "billing", "referrals"].includes(storedTab) ? storedTab : "settings");
       }
 
       setupAccountTabs();
