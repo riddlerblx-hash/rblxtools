@@ -2256,8 +2256,15 @@
 
       function renderBotDashboard(payload) {
         var dashboard = payload && payload.dashboard ? payload.dashboard : null;
-        state.botDashboard = dashboard;
         if (!dashboard || !els.acctBotDashboard) return;
+        // /auth/me is cookie-authenticated and already provides the site's verified admin flag.
+        // Keep dashboard drafts usable if the separate bot entitlement response is still locked.
+        if (state.user?.isAdmin && !dashboard.access) {
+          dashboard.access = true;
+          dashboard.mode = "admin";
+          dashboard.adminAccess = true;
+        }
+        state.botDashboard = dashboard;
         var unlocked = Boolean(dashboard.access);
         setBotTabLocked(!unlocked);
         if (!unlocked) return;
