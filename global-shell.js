@@ -327,6 +327,13 @@
       host.hidden = hideAds;
       if (!hideAds) return;
       // Remove any ad that was mounted before the account state was resolved.
+      if (host.hasAttribute("data-rblx-banner-ad")) {
+        Array.prototype.forEach.call(host.querySelectorAll(".rblx-tool-banner-ad-slot"), function (slot) {
+          slot.textContent = "";
+          delete slot.dataset.rblxBannerLoaded;
+        });
+        return;
+      }
       host.textContent = "";
       delete host.dataset.rblxBoxAdMounted;
       delete host.dataset.rblxVerticalAdMounted;
@@ -4129,18 +4136,17 @@
     if (!slot || slot.dataset.rblxBannerLoaded === "true") return;
     slot.dataset.rblxBannerLoaded = "true";
 
-    window.atOptions = {
-      key: "fb95715336abfc09031edf4e6ef208c5",
-      format: "iframe",
-      height: 90,
-      width: 728,
-      params: {}
-    };
-
-    var script = document.createElement("script");
-    script.async = true;
-    script.src = "https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js";
-    slot.appendChild(script);
+    // This provider writes its iframe while its script is parsed. Isolate it in
+    // a document so each slot loads reliably without competing global options.
+    var adFrame = document.createElement("iframe");
+    adFrame.className = "rblx-banner-ad-frame";
+    adFrame.title = "Advertisement";
+    adFrame.width = "728";
+    adFrame.height = "90";
+    adFrame.scrolling = "no";
+    adFrame.setAttribute("frameborder", "0");
+    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:728px;height:90px;margin:0;overflow:hidden}</style></head><body><script>var atOptions={key:"fb95715336abfc09031edf4e6ef208c5",format:"iframe",height:90,width:728,params:{}};<\/script><script src="https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js"><\/script></body></html>';
+    slot.appendChild(adFrame);
   }
 
   function mountInlineBannerAds(root) {

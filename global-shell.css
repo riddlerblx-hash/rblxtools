@@ -4071,6 +4071,14 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
   margin: 0 auto;
 }
 
+.rblx-banner-ad-frame {
+  display: block;
+  width: 728px;
+  max-width: 100%;
+  height: 90px;
+  border: 0;
+}
+
 .rblx-inline-banner-ad {
   width: 100%;
   margin: 16px 0;
