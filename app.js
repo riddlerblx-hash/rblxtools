@@ -88,7 +88,9 @@ const AUTH_JWT_SECRET = String(process.env.AUTH_JWT_SECRET || "");
 const STRIPE_SECRET_KEY = String(process.env.STRIPE_SECRET_KEY || "");
 const STRIPE_PRICE_ID = String(process.env.STRIPE_PRICE_ID || "");
 const STRIPE_PRO_PRODUCT_ID = String(process.env.STRIPE_PRO_PRODUCT_ID || "prod_V9rw4G9vIzpnZb").trim();
-const STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID = String(process.env.STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID || "").trim();
+const STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID = String(process.env.STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID || "price_1UB5KVGrZOEMBkuuQa6uAinu").trim();
+const STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID = String(process.env.STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID || "price_1UB5LIGrZOEMBkuu1Efjvd9T").trim();
+const STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS = new Set([STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID, STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID].filter(Boolean));
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "");
 const APP_BASE_URL = String(process.env.APP_BASE_URL || "https://www.rblxtools.net");
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
@@ -1129,7 +1131,7 @@ function assertStripeCheckoutConfigured() {
 
 function assertDiscordBotUnlimitedCheckoutConfigured() {
   assertStripePortalConfigured();
-  if (!STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID) {
+  if (!STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS.size) {
     const error = new Error("The Discord Bot Unlimited Stripe price is not configured yet.");
     error.statusCode = 503;
     throw error;
@@ -2911,12 +2913,12 @@ function isDiscordBotUnlimitedSubscription(subscription) {
     return true;
   }
   const items = Array.isArray(subscription?.items?.data) ? subscription.items.data : [];
-  return Boolean(STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID) && items.some((item) => getStripePriceId(item?.price) === STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID);
+  return items.some((item) => STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS.has(getStripePriceId(item?.price)));
 }
 
 function isDiscordBotUnlimitedInvoice(invoice) {
   const lines = Array.isArray(invoice?.lines?.data) ? invoice.lines.data : [];
-  return Boolean(STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID) && lines.some((line) => getStripePriceId(line?.price) === STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID);
+  return lines.some((line) => STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS.has(getStripePriceId(line?.price)));
 }
 
 function invoiceContainsProSubscription(invoice) {
@@ -7831,7 +7833,7 @@ app.get("/store/discord-bot-unlimited-status", async (req, res) => {
     const subscription = await getUnlimitedSubscription(user.id);
     return res.json({
       ok: true,
-      configured: Boolean(STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID),
+      configured: Boolean(STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS.size),
       active: isUnlimitedActive(subscription),
       unclaimedUses: await getPurchasedUses(user.id),
       status: subscription?.status || "none",
@@ -7970,8 +7972,8 @@ app.post("/store/create-discord-bot-use-checkout", async (req, res) => {
     assertStripePortalConfigured();
     const user = await requireAuthenticatedUser(req);
     const uses = Number.parseInt(req.body?.uses, 10);
-    if (!Number.isFinite(uses) || uses < 5 || uses > 50000 || uses % 5 !== 0) {
-      return res.status(400).json({ error: "Choose between 5 and 50,000 uses in 5-use steps." });
+    if (!Number.isFinite(uses) || uses < 10 || uses > 50000 || uses % 10 !== 0) {
+      return res.status(400).json({ error: "Choose between 10 and 50,000 uses in 10-use steps." });
     }
     const customerId = await getOrCreateStripeCustomerForUser(user);
     const checkoutSession = await stripeClient.checkout.sessions.create({
@@ -7980,7 +7982,7 @@ app.post("/store/create-discord-bot-use-checkout", async (req, res) => {
       line_items: [{
         price_data: {
           currency: "usd",
-          unit_amount: uses / 5,
+          unit_amount: uses / 10,
           product_data: { name: `RBLXTools Discord Bot - ${uses.toLocaleString("en-US")} Uses`, description: "Shared Discord server bot uses. Claim to one server after purchase." },
         },
         quantity: 1,
@@ -8023,17 +8025,20 @@ app.post("/store/create-discord-bot-unlimited-checkout", async (req, res) => {
       return res.status(409).json({ error: "This account already has an active Discord Bot Unlimited subscription." });
     }
 
+    const billingPeriod = String(req.body?.billingPeriod || "monthly").trim().toLowerCase();
+    const priceId = billingPeriod === "annual" ? STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID : billingPeriod === "monthly" ? STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID : "";
+    if (!priceId) return res.status(400).json({ error: "Choose the monthly or annual Unlimited plan." });
     const customerId = await getOrCreateStripeCustomerForUser(user);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: STRIPE_DISCORD_BOT_UNLIMITED_PRICE_ID, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: getSafeDiscordBotStoreSuccessUrl(),
       cancel_url: getSafeDiscordBotStoreCancelUrl(),
       allow_promotion_codes: true,
       client_reference_id: user.id,
-      metadata: { appUserId: user.id, productType: "discord_bot_unlimited" },
-      subscription_data: { metadata: { appUserId: user.id, discordBotUnlimited: "true", productType: "discord_bot_unlimited" } },
+      metadata: { appUserId: user.id, productType: "discord_bot_unlimited", billingPeriod },
+      subscription_data: { metadata: { appUserId: user.id, discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod } },
     });
     return res.json({ ok: true, url: checkoutSession.url });
   } catch (error) {

@@ -122,7 +122,7 @@ async function grantComplimentaryUses({ appUserId, uses }) {
 }
 async function grantPurchasedUses(session) {
   const userId = String(session?.metadata?.appUserId || "").trim(); const sessionId = String(session?.id || "").trim(); const uses = Number.parseInt(session?.metadata?.discordBotUses, 10);
-  if (!userId || !sessionId || !Number.isFinite(uses) || uses < 5 || uses > 50000 || uses % 5 !== 0) throw new Error("Discord bot use checkout metadata is invalid.");
+  if (!userId || !sessionId || !Number.isFinite(uses) || uses < 10 || uses > 50000 || uses % 10 !== 0) throw new Error("Discord bot use checkout metadata is invalid.");
   return updateStore((store) => { if (store.processedUseCheckoutIds[sessionId]) return purchasedUses(store, userId); store.useCreditsByAppUserId[userId] = purchasedUses(store, userId) + uses; store.processedUseCheckoutIds[sessionId] = { appUserId: userId, uses, processedAt: new Date().toISOString() }; return purchasedUses(store, userId); });
 }
 async function getPurchasedUses(appUserId) { const userId = String(appUserId || "").trim(); return userId ? purchasedUses(await readStore(), userId) : 0; }
