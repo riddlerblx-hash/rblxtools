@@ -2263,7 +2263,7 @@
         if (!unlocked) return;
         if ((new URLSearchParams(window.location.search || "").get("tab") === "bot" || state.savedAccountTab === "bot") && els.acctBotTab) els.acctBotTab.click();
         var settings = dashboard.server || dashboard.draftSettings || {};
-        els.acctBotMode.textContent = dashboard.mode === "unlimited" ? "Unlimited Uses" : dashboard.mode === "admin" ? "Admin view" : "Pay by usage";
+        els.acctBotMode.textContent = dashboard.mode === "unlimited" ? "Unlimited Uses" : dashboard.mode === "admin" || dashboard.adminAccess ? "Admin preview" : "Pay by usage";
         els.acctBotUses.textContent = dashboard.mode === "unlimited" ? "Unlimited" : (Number(dashboard.usedUses || 0).toLocaleString() + " / " + Number(dashboard.totalUses || 0).toLocaleString());
         els.acctBotServer.textContent = dashboard.server ? dashboard.server.guildName : "Not claimed";
         els.acctBotUserLimit.value = String(settings.perUserLimit || 0);

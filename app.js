@@ -3980,6 +3980,18 @@ function isAdminUser(user) {
   );
 }
 
+function applyDashboardAdminAccess(dashboard, user) {
+  if (!dashboard || !isAdminUser(user) || dashboard.access) {
+    return dashboard;
+  }
+
+  // Admins can configure and preview their own dashboard drafts without a paid bot plan.
+  dashboard.access = true;
+  dashboard.mode = "admin";
+  dashboard.adminAccess = true;
+  return dashboard;
+}
+
 async function requireAdminUser(req) {
     const user = await requireAuthenticatedUser(req);
 
@@ -7807,13 +7819,7 @@ app.get("/store/discord-bot-unlimited-status", async (req, res) => {
 app.get("/discord-bot/dashboard", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    const dashboard = await getBotDashboard(user.id);
-    // Site admins can inspect the dashboard without receiving a free bot entitlement.
-    if (isAdminUser(user) && !dashboard.access) {
-      dashboard.access = true;
-      dashboard.mode = "admin";
-      dashboard.adminAccess = true;
-    }
+    const dashboard = applyDashboardAdminAccess(await getBotDashboard(user.id), user);
     const inviteUrl = /^\d+$/.test(DISCORD_TOOLS_BOT_CLIENT_ID)
       ? `https://discord.com/oauth2/authorize?client_id=${DISCORD_TOOLS_BOT_CLIENT_ID}&scope=bot%20applications.commands&permissions=35840`
       : null;
@@ -7853,7 +7859,7 @@ app.post("/discord-bot/dashboard/claim-code", async (req, res) => {
 app.post("/discord-bot/dashboard/server-settings", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    const dashboard = await updateServerSettings({ appUserId: user.id, guildId: req.body?.guildId, perUserLimit: req.body?.perUserLimit, userLimitEnabled: req.body?.userLimitEnabled, userLimitPeriod: req.body?.userLimitPeriod, roleDailyLimits: req.body?.roleDailyLimits, roleDailyLimitsEnabled: req.body?.roleDailyLimitsEnabled, roleLimitPeriod: req.body?.roleLimitPeriod });
+    const dashboard = applyDashboardAdminAccess(await updateServerSettings({ appUserId: user.id, guildId: req.body?.guildId, perUserLimit: req.body?.perUserLimit, userLimitEnabled: req.body?.userLimitEnabled, userLimitPeriod: req.body?.userLimitPeriod, roleDailyLimits: req.body?.roleDailyLimits, roleDailyLimitsEnabled: req.body?.roleDailyLimitsEnabled, roleLimitPeriod: req.body?.roleLimitPeriod }), user);
     return res.json({ ok: true, dashboard });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not save Discord server settings." });
@@ -7861,7 +7867,7 @@ app.post("/discord-bot/dashboard/server-settings", async (req, res) => {
 });
 
 app.post("/discord-bot/dashboard/server-controls", async (req, res) => {
-  try { const user = await requireAuthenticatedUser(req); return res.json({ ok: true, dashboard: await updateServerControls({ appUserId: user.id, guildId: req.body?.guildId, paused: req.body?.paused, blockedCommands: req.body?.blockedCommands, alertsEnabled: req.body?.alertsEnabled, alertThresholds: req.body?.alertThresholds, alertChannelId: req.body?.alertChannelId }) }); }
+  try { const user = await requireAuthenticatedUser(req); return res.json({ ok: true, dashboard: applyDashboardAdminAccess(await updateServerControls({ appUserId: user.id, guildId: req.body?.guildId, paused: req.body?.paused, blockedCommands: req.body?.blockedCommands, alertsEnabled: req.body?.alertsEnabled, alertThresholds: req.body?.alertThresholds, alertChannelId: req.body?.alertChannelId }), user) }); }
   catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save bot controls." }); }
 });
 
