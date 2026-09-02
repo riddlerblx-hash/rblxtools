@@ -4655,7 +4655,7 @@
     adFrame.height = "250";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:300px;height:250px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"d0b55a0366cbbdb50c4c68fe13fa1e3f",format:"iframe",height:250,width:300,params:{}};</script><script src="https://www.highrevenueformat.com/d0b55a0366cbbdb50c4c68fe13fa1e3f/invoke.js"></script></body></html>';
+    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:300px;height:250px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"d0b55a0366cbbdb50c4c68fe13fa1e3f",format:"iframe",height:250,width:300,params:{}};</script><script src="https://professionalsusceptible.com/d0b55a0366cbbdb50c4c68fe13fa1e3f/invoke.js"></script></body></html>';
     host.appendChild(adFrame);
     host.dataset.rblxBoxAdMounted = "true";
   }
