@@ -12,6 +12,14 @@ const {
   PermissionFlagsBits,
 } = require("discord.js");
 const { claimDiscordLink, getDiscordLinkByUserId } = require("./discord-tools-links");
+const {
+  claimDiscordServer,
+  consumeDiscordServerUse,
+  getDiscordServerCommandPolicy,
+  getDiscordServerUsageSummary,
+  setDiscordServerUsageCounter,
+  syncDiscordServerChannels,
+} = require("./discord-bot-entitlements");
 
 const token = String(process.env.RBLXTOOLS_TOOLS_BOT_TOKEN || "").trim();
 const clientId = String(process.env.RBLXTOOLS_TOOLS_DISCORD_CLIENT_ID || "").trim();
@@ -20,7 +28,6 @@ const supabaseUrl = String(process.env.SUPABASE_URL || "").trim().replace(/\/$/,
 const supabaseKey = String(process.env.SUPABASE_KEY || "").trim();
 const authUsersTable = String(process.env.AUTH_USERS_TABLE || "member_accounts").trim();
 const apiBaseUrl = String(process.env.RBLXTOOLS_TOOLS_API_BASE_URL || process.env.APP_BASE_URL || "https://www.rblxtools.net").trim().replace(/\/$/, "");
-const canonicalApiBaseUrl = "https://www.rblxtools.net";
 const discordToolsServiceSecret = String(process.env.DISCORD_TOOLS_SERVICE_SECRET || "").trim();
 const PRO_ONLY_GUILD_ID = "1273360593318838382";
 const MAX_DISCORD_DOWNLOAD_BYTES = 8 * 1024 * 1024;
@@ -267,33 +274,12 @@ async function registerCommands() {
   console.log("[tools-bot] registered global commands");
 }
 
-async function callBotService(pathname, interaction, body) {
-  async function request(baseUrl) {
-    const response = await fetch(baseUrl + pathname, {
-      method: "POST",
-      headers: Object.assign({ "Content-Type": "application/json" }, getToolRequestHeaders(interaction.user.id, interaction.guildId)),
-      body: JSON.stringify(body || {}),
-    });
-    const responseText = await response.text();
-    let payload = null;
-    try { payload = responseText ? JSON.parse(responseText) : null; } catch (_error) {}
-    return { response, payload };
-  }
-
-  let { response, payload } = await request(apiBaseUrl);
-  // A custom API base can lag behind the public website. Retry the canonical live app on a missing route.
-  if (response.status === 404 && apiBaseUrl !== canonicalApiBaseUrl) ({ response, payload } = await request(canonicalApiBaseUrl));
-  if (!response.ok) throw new Error(payload?.error || "RBLXTools website API returned HTTP " + response.status + ". Deploy the matching website backend, then retry.");
-  return payload || {};
-}
-
 async function claimGuild(interaction) {
   if (!interaction.inGuild()) throw new Error("Run this command inside the Discord server you want to claim.");
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) throw new Error("You need the Manage Server permission to claim this Discord server.");
-  const alertChannels = getAlertChannels(interaction.guild);
-  return callBotService("/discord-bot/service/claim-server", interaction, {
-    code: interaction.options.getString("code", true), guildId: interaction.guildId, guildName: interaction.guild?.name || "Discord server", alertChannels,
-  });
+  const link = await getDiscordLinkByUserId(interaction.user.id);
+  if (!link?.appUserId) throw new Error("Link your RBLXTools account first, then run `/claim-server` again.");
+  return { dashboard: await claimDiscordServer({ code: interaction.options.getString("code", true), appUserId: link.appUserId, guildId: interaction.guildId, guildName: interaction.guild?.name || "Discord server", alertChannels: getAlertChannels(interaction.guild) }) };
 }
 
 function getAlertChannels(guild) {
@@ -302,7 +288,7 @@ function getAlertChannels(guild) {
 
 async function syncAlertChannels(guild) {
   if (!guild) return;
-  await callBotService("/discord-bot/service/sync-alert-channels", { user: { id: "0" }, guildId: guild.id }, { guildId: guild.id, alertChannels: getAlertChannels(guild) }).catch(() => null);
+  await syncDiscordServerChannels({ guildId: guild.id, alertChannels: getAlertChannels(guild) }).catch(() => null);
 }
 
 async function sendUsageAlert(interaction, usage) {
@@ -328,11 +314,10 @@ async function setupUsageCounter(interaction) {
   if (!interaction.inGuild()) throw new Error("Run `/setup usage-counter` inside a claimed Discord server.");
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) throw new Error("You need the Manage Server permission to set up a usage counter.");
   if (!interaction.guild.members.me?.permissions?.has(PermissionFlagsBits.ManageChannels)) throw new Error("Re-invite the RBLXTools Bot with Manage Channels permission, then run this command again.");
-  const payload = await callBotService("/discord-bot/service/usage-summary", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction) });
-  const usage = payload.usage || {}; let channel = usage.usageCounterChannelId ? await interaction.guild.channels.fetch(usage.usageCounterChannelId).catch(() => null) : null;
+  const usage = await getDiscordServerUsageSummary({ guildId: interaction.guildId, discordUserId: interaction.user.id, discordRoleIds: getInteractionRoleIds(interaction) }); let channel = usage.usageCounterChannelId ? await interaction.guild.channels.fetch(usage.usageCounterChannelId).catch(() => null) : null;
   if (!channel) channel = await interaction.guild.channels.create({ name: usageCounterName(usage), type: ChannelType.GuildVoice, reason: "RBLXTools Bot live usage counter" });
   await channel.setPosition(0).catch(() => null);
-  await callBotService("/discord-bot/service/usage-counter", interaction, { guildId: interaction.guildId, channelId: channel.id });
+  await setDiscordServerUsageCounter({ guildId: interaction.guildId, channelId: channel.id });
   await updateUsageCounter(interaction.guild, usage);
   return channel;
 }
@@ -354,9 +339,9 @@ async function handleInteraction(interaction) {
         await interaction.editReply("Run RBLXTools download commands in a server that has been claimed in the RBLXTools Bot dashboard.");
         return;
       }
-      const usage = await callBotService("/discord-bot/service/consume-use", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction), commandName: interaction.commandName });
-      await sendUsageAlert(interaction, usage.usage);
-      await updateUsageCounter(interaction.guild, usage.usage).catch((error) => console.warn("[tools-bot] usage counter update failed:", error.message || error));
+      const usage = await consumeDiscordServerUse({ guildId: interaction.guildId, discordUserId: interaction.user.id, discordRoleIds: getInteractionRoleIds(interaction), commandName: interaction.commandName });
+      await sendUsageAlert(interaction, usage);
+      await updateUsageCounter(interaction.guild, usage).catch((error) => console.warn("[tools-bot] usage counter update failed:", error.message || error));
 
       const assetId = String(interaction.options.getString("asset-id", true) || "").trim();
       if (!/^\d+$/.test(assetId)) {
@@ -417,8 +402,7 @@ async function handleInteraction(interaction) {
         await interaction.editReply("Run `/check usage` in a server that has been claimed in the RBLXTools Bot dashboard.");
         return;
       }
-      const payload = await callBotService("/discord-bot/service/usage-summary", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction) });
-      const usage = payload.usage || {};
+      const usage = await getDiscordServerUsageSummary({ guildId: interaction.guildId, discordUserId: interaction.user.id, discordRoleIds: getInteractionRoleIds(interaction) });
       const shared = usage.mode === "unlimited" ? "Unlimited" : String(Number(usage.usedUses || 0)) + " / " + String(Number(usage.totalUses || 0)) + " used / owned";
       const limitLine = (label, limit) => limit ? "\n" + label + ": **" + limit.used + " / " + limit.limit + "** this " + limit.period : "";
       await interaction.editReply("**RBLXTools Bot usage**\nShared balance: **" + shared + "**" + limitLine("Your user limit", usage.userLimit) + limitLine("Your role limit", usage.roleLimit));
@@ -435,7 +419,7 @@ async function handleInteraction(interaction) {
     }
     if (interaction.commandName === "robux") {
       if (interaction.inGuild()) {
-        const policy = await callBotService("/discord-bot/service/command-policy", interaction, { guildId: interaction.guildId, commandName: "robux" });
+        const policy = await getDiscordServerCommandPolicy({ guildId: interaction.guildId, commandName: "robux" });
         if (policy.blocked) {
           await interaction.editReply("The /robux calculators have been disabled for this server by its RBLXTools Bot manager.");
           return;
