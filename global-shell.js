@@ -286,8 +286,15 @@
 
   ensureAdSenseSetup();
 
+  function isMobileViewer() {
+    var userAgentData = navigator.userAgentData;
+    if (userAgentData && userAgentData.mobile) return true;
+    if (/Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent || "")) return true;
+    return Boolean(window.matchMedia && window.matchMedia("(max-width: 1024px) and (any-pointer: coarse) and (any-hover: none)").matches);
+  }
+
   function ensureAdsterraPopunderSetup() {
-    if (!ADSTERRA_POPUNDER_SRC || window.__rblxAdsterraPopunderLoaded) return;
+    if (!ADSTERRA_POPUNDER_SRC || window.__rblxAdsterraPopunderLoaded || isMobileViewer()) return;
     var head = document.head || document.getElementsByTagName("head")[0];
     if (!head || document.querySelector('script[data-rblxtools-adsterra-popunder="true"]')) return;
 
