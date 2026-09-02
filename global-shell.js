@@ -481,6 +481,7 @@
       gate.setAttribute("aria-hidden", "false");
       mountModalVerticalAds(gate);
       mountInlineBannerAds(gate);
+      layoutPopupExteriorBanners(gate);
     }
 
     var cancelButton = gate.querySelector("[data-rblx-animation-gate-cancel]");
@@ -2250,6 +2251,7 @@
     document.body.classList.add("rblx-shell-modal-open");
     mountModalVerticalAds(shellState.authOverlay);
     mountInlineBannerAds(shellState.authOverlay);
+    layoutPopupExteriorBanners(shellState.authOverlay);
     if (shellState.authEmail && !shellState.authEmail.value) {
       var cachedUser = getCachedAuthUser();
       shellState.authEmail.value = String(cachedUser && cachedUser.email || "").trim();
@@ -4228,6 +4230,67 @@
     mountSharedBannerAd(ad.slot);
   }
 
+  function initSharedHomeBannerAds() {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initSharedHomeBannerAds, { once: true });
+      return;
+    }
+
+    var currentPath = String(window.location.pathname || "/").replace(/\/+$/g, "").replace(/^\//, "").replace(/\.html$/i, "");
+    if (currentPath !== "" && currentPath !== "index") return;
+
+    var homeTop = document.querySelector("#rblxShellPage .home-grid-top");
+    var toolsSection = document.getElementById("tools-section");
+    if (homeTop && toolsSection && !document.getElementById("rblxHomeToolsBannerAd")) {
+      var toolsAd = createSharedBannerAd("rblxHomeToolsBannerAd", "rblx-home-banner-ad");
+      toolsSection.parentNode.insertBefore(toolsAd.banner, toolsSection);
+      mountSharedBannerAd(toolsAd.slot);
+    }
+
+    var socialGrid = document.querySelector("#rblxShellPage .social-grid");
+    var socialSection = socialGrid && socialGrid.closest("section");
+    if (socialSection && !document.getElementById("rblxHomeFooterBannerAd")) {
+      var footerAd = createSharedBannerAd("rblxHomeFooterBannerAd", "rblx-home-banner-ad");
+      socialSection.insertAdjacentElement("afterend", footerAd.banner);
+      mountSharedBannerAd(footerAd.slot);
+    }
+  }
+
+  function movePopupBannersOutsideCard(overlay, card, prefix) {
+    if (!overlay || !card || overlay.dataset.rblxPopupBannersMoved === prefix) return;
+    var top = card.querySelector('[data-rblx-banner-placement="' + prefix + '-top"]');
+    var bottom = card.querySelector('[data-rblx-banner-placement="' + prefix + '-bottom"]');
+    if (!top || !bottom) return;
+
+    top.classList.add("rblx-popup-exterior-banner", "is-top");
+    bottom.classList.add("rblx-popup-exterior-banner", "is-bottom");
+    overlay.insertBefore(top, card);
+    overlay.insertBefore(bottom, card.nextSibling);
+    overlay.dataset.rblxPopupBannersMoved = prefix;
+  }
+
+  function layoutPopupExteriorBanners(overlay) {
+    if (!overlay || !window.matchMedia("(min-width: 1024px)").matches) return;
+    var card = overlay.querySelector(".rblx-shell-membership-gate-card, .rblx-shell-auth-modal, .rblx-shell-reward-modal");
+    if (!card) return;
+
+    window.requestAnimationFrame(function () {
+      var cardRect = card.getBoundingClientRect();
+      Array.prototype.forEach.call(overlay.querySelectorAll(".rblx-popup-exterior-banner"), function (banner) {
+        var isTop = banner.classList.contains("is-top");
+        var bannerHeight = banner.offsetHeight || 106;
+        banner.style.left = Math.max(16, (window.innerWidth - Math.min(760, window.innerWidth - 32)) / 2) + "px";
+        banner.style.top = Math.max(12, isTop ? cardRect.top - bannerHeight - 16 : cardRect.bottom + 16) + "px";
+      });
+    });
+  }
+
+  function initSharedPopupBannerPlacement() {
+    movePopupBannersOutsideCard(document.getElementById("rblxShellAnimationGate"), document.querySelector(".rblx-shell-membership-gate-card"), "membership");
+    movePopupBannersOutsideCard(document.getElementById("rblxShellAuthOverlay"), document.getElementById("rblxShellAuthModal"), "auth");
+    movePopupBannersOutsideCard(document.getElementById("rblxShellRewardOverlay"), document.getElementById("rblxShellRewardModal"), "reward");
+  }
+
   function initSharedPopupBannerAds() {
     [
       { selector: "#rblxShellProfileModal", name: "profile" },
@@ -4919,6 +4982,7 @@
     overlay.classList.add("is-open"); overlay.setAttribute("aria-hidden", "false"); modal.classList.add("is-open"); document.body.classList.add("rblx-shell-modal-open");
     mountModalVerticalAds(overlay);
     mountInlineBannerAds(overlay);
+    layoutPopupExteriorBanners(overlay);
     maybeShowRewardFeedback(overlay);
     // The server sends the remaining delay so an inaccurate device clock cannot stretch five seconds into minutes.
     var unlockAt = Date.now() + Math.max(0, Number(reward.claimDelayMs) || 0);
@@ -4990,6 +5054,7 @@
     initFaqAccordions();
     initSharedToolBannerAd();
     initSharedToolHeaderBannerAd();
+    initSharedHomeBannerAds();
     initSharedToolShowcase();
     initSharedToolStats();
     document.body.classList.add("rblx-shell-ready");
@@ -5018,6 +5083,7 @@
     initSupportModal();
     setupAuthModal();
     initSharedPopupBannerAds();
+    initSharedPopupBannerPlacement();
     mountInlineBannerAds(document);
     initLoginRequiredNavigation();
     document.addEventListener("click", function (event) {

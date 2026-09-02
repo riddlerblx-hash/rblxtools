@@ -4028,7 +4028,8 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
 .rblx-tool-banner-ad,
 .rblx-tool-header-banner-ad,
 .rblx-store-footer-banner-ad,
-.rblx-inline-banner-ad {
+.rblx-inline-banner-ad,
+.rblx-home-banner-ad {
   display: flex;
   width: min(100%, 760px);
   justify-content: center;
@@ -4045,7 +4046,8 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
 
 .rblx-tool-banner-ad,
 .rblx-tool-header-banner-ad,
-.rblx-store-footer-banner-ad { margin-inline: auto; }
+.rblx-store-footer-banner-ad,
+.rblx-home-banner-ad { margin-inline: auto; }
 
 .rblx-banner-ad-label,
 .rblx-inline-banner-ad > span {
@@ -4084,13 +4086,32 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
   margin: 16px 0;
 }
 
+.rblx-home-banner-ad { margin-block: 20px; }
+
+.rblx-popup-exterior-banner { display: none; }
+
 body.rblx-pro-ad-free [data-rblx-banner-ad] { display: none !important; }
+
+@media (min-width: 1024px) {
+  .rblx-popup-exterior-banner {
+    position: absolute;
+    z-index: 4;
+    display: flex;
+    width: min(760px, calc(100vw - 32px));
+    margin: 0;
+  }
+}
+
+@media (max-width: 1023px) {
+  [data-rblx-banner-ad] { display: none !important; }
+}
 
 @media (max-width: 640px) {
   .rblx-tool-banner-ad,
   .rblx-tool-header-banner-ad,
   .rblx-store-footer-banner-ad,
-  .rblx-inline-banner-ad { padding-inline: 8px; }
+  .rblx-inline-banner-ad,
+  .rblx-home-banner-ad { padding-inline: 8px; }
 }
 
 /* Mobile pages must keep the document as the scroll surface; fixed overlays handle their own state. */
