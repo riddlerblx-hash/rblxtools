@@ -109,6 +109,8 @@ const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || "").trim();
 // Keep the Meshy credential exclusively on the server. Never send it to a browser.
 const MESHY_API_KEY = String(process.env.MESHY_API_KEY || "").trim();
 const MESHY_API_BASE_URL = "https://api.meshy.ai/openapi";
+const UGC_SOURCE_IMAGE_TTL_MS = 60 * 60 * 1000;
+const ugcSourceImages = new Map();
 const MAX_SUPPORT_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MAX_CHAT_TIMEOUT_SECONDS = 3650 * 24 * 60 * 60;
 const AI_CLOTHING_OUTPUT_WIDTH = 585;
@@ -216,12 +218,34 @@ async function requestMeshy(pathname, options = {}) {
   if (!response.ok) {
     const error = new Error(
       (payload && (payload.message || payload.error?.message || payload.error)) ||
-      "Meshy could not process this request."
+      "The 3D generation service could not process this request."
     );
     error.statusCode = response.status === 401 || response.status === 403 ? 502 : response.status;
     throw error;
   }
   return payload || {};
+}
+
+function storeUGCSourceImage(dataUrl) {
+  const match = String(dataUrl || "").trim().match(/^data:(image\/(?:png|jpeg|webp));base64,([a-z0-9+/=]+)$/i);
+  if (!match) {
+    const error = new Error("Upload a PNG, JPG, or WebP image.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const buffer = Buffer.from(match[2], "base64");
+  if (!buffer.length || buffer.length > 5 * 1024 * 1024) {
+    const error = new Error("The UGC reference image must be 5 MB or smaller.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const id = randomUUID();
+  const expiresAt = Date.now() + UGC_SOURCE_IMAGE_TTL_MS;
+  ugcSourceImages.set(id, { buffer, type: match[1].toLowerCase(), expiresAt });
+  for (const [key, entry] of ugcSourceImages) {
+    if (!entry || Number(entry.expiresAt || 0) <= Date.now()) ugcSourceImages.delete(key);
+  }
+  return `${APP_BASE_URL}/ai/ugc/source/${encodeURIComponent(id)}`;
 }
 
 function getOpenAIUploadHelpers() {
@@ -6476,14 +6500,14 @@ app.post("/ai/ugc/preview", async (req, res) => {
   try {
     await requireAdminUser(req);
     const prompt = cleanText(req.body?.prompt, 800);
-    if (!prompt) return res.status(400).json({ error: "Describe the UGC item you want to create." });
+    const sourceImageUrl = req.body?.imageDataUrl ? storeUGCSourceImage(req.body.imageDataUrl) : "";
+    if (!prompt && !sourceImageUrl) return res.status(400).json({ error: "Describe the UGC item or add a reference image." });
     const modelType = String(req.body?.modelType || "standard") === "smart-topology" ? "smart-topology" : "standard";
     const targetPolycount = Math.max(500, Math.min(200000, Number.parseInt(req.body?.targetPolycount, 10) || 30000));
-    const task = await requestMeshy("/v2/text-to-3d", {
-      method: "POST",
-      body: { mode: "preview", prompt, model_type: modelType, ai_model: "latest", should_remesh: modelType === "standard", target_polycount: targetPolycount, target_formats: ["glb"], alpha_thumbnail: true, moderation: true },
-    });
-    return res.json({ ok: true, taskId: task.result || task.id });
+    const task = sourceImageUrl
+      ? await requestMeshy("/v1/image-to-3d", { method: "POST", body: { image_url: sourceImageUrl, target_formats: ["glb"], alpha_thumbnail: true } })
+      : await requestMeshy("/v2/text-to-3d", { method: "POST", body: { mode: "preview", prompt, model_type: modelType, ai_model: "latest", should_remesh: modelType === "standard", target_polycount: targetPolycount, target_formats: ["glb"], alpha_thumbnail: true, moderation: true } });
+    return res.json({ ok: true, taskId: task.result || task.id, taskType: sourceImageUrl ? "image" : "text" });
   } catch (error) {
     console.error("POST /ai/ugc/preview failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not start the UGC preview." });
@@ -6510,12 +6534,27 @@ app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
   try {
     await requireAdminUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
-    const task = await requestMeshy("/v2/text-to-3d/" + encodeURIComponent(taskId));
+    const taskType = String(req.query.type || "text") === "image" ? "image" : "text";
+    const task = await requestMeshy((taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/") + encodeURIComponent(taskId));
     return res.json({ ok: true, task: { id: task.id, status: task.status, progress: Number(task.progress || 0), prompt: task.prompt || "", thumbnailUrl: task.alpha_thumbnail_url || task.thumbnail_url || "", modelUrls: task.model_urls || {}, textureUrls: Array.isArray(task.texture_urls) ? task.texture_urls : [], consumedCredits: task.consumed_credits, error: task.task_error && task.task_error.message ? task.task_error.message : "" } });
   } catch (error) {
     console.error("GET /ai/ugc/tasks failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the UGC task." });
   }
+});
+
+// Meshy fetches this short-lived, random URL directly while creating an
+// image-to-3D task. It intentionally has no member session requirement.
+app.get("/ai/ugc/source/:sourceId", (req, res) => {
+  const sourceId = String(req.params.sourceId || "");
+  const source = ugcSourceImages.get(sourceId);
+  if (!source || Number(source.expiresAt || 0) <= Date.now()) {
+    ugcSourceImages.delete(sourceId);
+    return res.status(404).end();
+  }
+  res.setHeader("Cache-Control", "private, max-age=3600");
+  res.type(source.type);
+  return res.send(source.buffer);
 });
 
 // Fast page gate: avoids a live Stripe refresh when a tool only needs identity and entitlements.
