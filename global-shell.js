@@ -4223,10 +4223,12 @@
       return;
     }
 
-    var header = document.querySelector(".rblx-shell-header");
-    if (header && !document.getElementById("rblxMobileHeaderBannerAd")) {
+    var pageHost = document.getElementById("rblxShellPage");
+    if (pageHost && pageHost.parentNode && !document.getElementById("rblxMobileHeaderBannerAd")) {
       var headerAd = createMobileBannerAd("rblxMobileHeaderBannerAd", "rblx-mobile-header-banner-ad");
-      header.insertAdjacentElement("afterend", headerAd.banner);
+      // The header is a shell-grid row. Keep this in the center page flow so it
+      // sits below the header instead of becoming an overlapping grid child.
+      pageHost.parentNode.insertBefore(headerAd.banner, pageHost);
       mountMobileBannerAd(headerAd.slot);
     }
 
