@@ -4026,11 +4026,36 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
 }
 
 .rblx-tool-banner-ad,
-.rblx-store-footer-banner-ad {
+.rblx-tool-header-banner-ad,
+.rblx-store-footer-banner-ad,
+.rblx-inline-banner-ad {
   display: flex;
+  width: min(100%, 760px);
   justify-content: center;
+  flex-direction: column;
+  align-items: center;
   margin: 14px 0;
+  padding: 5px 14px 10px;
+  border: 1px solid rgba(113, 220, 255, .25);
+  border-radius: 14px;
+  background: rgba(3, 15, 29, .5);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .05);
   overflow: hidden;
+}
+
+.rblx-tool-banner-ad,
+.rblx-tool-header-banner-ad,
+.rblx-store-footer-banner-ad { margin-inline: auto; }
+
+.rblx-banner-ad-label,
+.rblx-inline-banner-ad > span {
+  display: block;
+  padding: 1px 0 5px;
+  color: #94aabd;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
 }
 
 .rblx-tool-banner-ad-slot {
@@ -4044,6 +4069,20 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
   display: block;
   max-width: 100%;
   margin: 0 auto;
+}
+
+.rblx-inline-banner-ad {
+  width: 100%;
+  margin: 16px 0;
+}
+
+body.rblx-pro-ad-free [data-rblx-banner-ad] { display: none !important; }
+
+@media (max-width: 640px) {
+  .rblx-tool-banner-ad,
+  .rblx-tool-header-banner-ad,
+  .rblx-store-footer-banner-ad,
+  .rblx-inline-banner-ad { padding-inline: 8px; }
 }
 
 /* Mobile pages must keep the document as the scroll surface; fixed overlays handle their own state. */
