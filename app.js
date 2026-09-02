@@ -68,17 +68,11 @@ const AUTH_USERS_TABLE = process.env.AUTH_USERS_TABLE || "member_accounts";
 const AI_TOKEN_PURCHASES_TABLE = process.env.AI_TOKEN_PURCHASES_TABLE || "ai_token_purchases";
 // LiteSpeed serves the site directory read-only. Keep small application state outside it.
 const RBLXTOOLS_STATE_DIR = String(process.env.RBLXTOOLS_STATE_DIR || path.join(tmpdir(), "rblxtools-state")).trim();
-const TASTER_PACKAGE_OFFER_PATH = path.join(RBLXTOOLS_STATE_DIR, "taster-package-offer.json");
-const TASTER_PACKAGE_GIVEAWAY_PATH = path.join(RBLXTOOLS_STATE_DIR, "taster-package-giveaway.json");
 const MEMBER_REWARDS_PATH = path.join(RBLXTOOLS_STATE_DIR, "member-rewards.json");
 const REFERRAL_PROGRAM_PATH = path.join(RBLXTOOLS_STATE_DIR, "referral-program.json");
 const REFERRAL_COMMISSION_RATE = 0.05;
 const REFERRAL_PENDING_MS = 14 * 24 * 60 * 60 * 1000;
 const REFERRAL_MINIMUM_PAYOUT_CENTS = 1000;
-const TASTER_PACKAGE_DURATION_MS = 14 * 24 * 60 * 60 * 1000;
-const TASTER_PACKAGE_PENDING_MS = 24 * 60 * 60 * 1000;
-const TASTER_PACKAGE_OFFER_VERSION = "taster-usd-100-five-plus-winners";
-const TASTER_PACKAGE_GIVEAWAY_WINNERS = 5;
 const AI_THUMBNAIL_HISTORY_TABLE = process.env.AI_THUMBNAIL_HISTORY_TABLE || "ai_thumbnail_history";
 const AI_THUMBNAIL_HISTORY_PATH = path.join(__dirname, "ai-thumbnail-history.json");
 const AI_THUMBNAIL_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -131,7 +125,6 @@ const AI_THUMBNAIL_PRO_REFERENCES = 6;
 const PRO_MONTHLY_AI_TOKEN_CREDITS = 20;
 const PRO_ANNUAL_AI_TOKEN_CREDITS = 240;
 const AI_TOKEN_PACKAGES = [
-  { key: "taster", title: "Taster Package", description: "Limited-time starter pack with entry for five Plus winners.", tokens: 5, priceCents: 100, currency: "usd", productId: String(process.env.STRIPE_AI_TASTER_PRODUCT || "prod_VAHlBLxrEVQJo9").trim(), priceId: String(process.env.STRIPE_AI_TASTER_PRICE || "price_1U9xCSGrZOEMBkuuTOeIfZHw").trim(), limited: true, onePerAccount: true, giveawayEntry: true },
   { key: "20", tokens: 20, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9siwVVdZ6u716").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_20 || "price_1U9YwwGrZOEMBkuuGypX9VtO").trim() },
   { key: "45", tokens: 45, priceCents: 599, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
   { key: "130", tokens: 130, priceCents: 1449, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_130 || "prod_V9YGsNXs9IXcrX").trim() },
@@ -917,14 +910,6 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
         break;
       }
 
-      case "checkout.session.expired": {
-        const session = event.data.object;
-        if (session?.metadata?.aiTokenPackage === "taster") {
-          releaseTasterPackageCheckout(session.metadata?.tasterReservationId, session.id);
-        }
-        break;
-      }
-
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
@@ -1356,123 +1341,7 @@ function claimMemberReward(userId, rewardId) {
   reward.claimedAt = new Date().toISOString(); writeMemberRewards(state); return buildMemberReward(reward);
 }
 
-function getTasterPackageOffer() {
-  const now = Date.now();
-  const stored = readJsonFile(TASTER_PACKAGE_OFFER_PATH, {});
-  const startsAt = Date.parse(stored.startsAt || "");
-  const endsAt = Date.parse(stored.endsAt || "");
-  if (stored.version === TASTER_PACKAGE_OFFER_VERSION && Number.isFinite(startsAt) && Number.isFinite(endsAt) && endsAt > startsAt) {
-    return { version: stored.version, startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString(), giveawayWinners: TASTER_PACKAGE_GIVEAWAY_WINNERS, active: now >= startsAt && now < endsAt };
-  }
-
-  const offer = {
-    version: TASTER_PACKAGE_OFFER_VERSION,
-    startsAt: new Date(now).toISOString(),
-    endsAt: new Date(now + TASTER_PACKAGE_DURATION_MS).toISOString(),
-  };
-  writeJsonFile(TASTER_PACKAGE_OFFER_PATH, offer);
-  return Object.assign({}, offer, { giveawayWinners: TASTER_PACKAGE_GIVEAWAY_WINNERS, active: true });
-}
-
-function readTasterPackageGiveawayState() {
-  const state = readJsonFile(TASTER_PACKAGE_GIVEAWAY_PATH, { entries: [] });
-  return { entries: Array.isArray(state.entries) ? state.entries : [] };
-}
-
-function writeTasterPackageGiveawayState(state) {
-  writeJsonFile(TASTER_PACKAGE_GIVEAWAY_PATH, { entries: Array.isArray(state?.entries) ? state.entries : [] });
-}
-
-function getTasterPackageEntryForUser(state, userId) {
-  const now = Date.now();
-  return state.entries.find((entry) => {
-    if (String(entry?.userId || "") !== String(userId || "")) return false;
-    if (entry.status === "paid") return true;
-    return entry.status === "pending" && Date.parse(entry.pendingExpiresAt || "") > now;
-  }) || null;
-}
-
-function reserveTasterPackageCheckout(user) {
-  const offer = getTasterPackageOffer();
-  if (!offer.active) {
-    const error = new Error("The Taster Package offer has ended.");
-    error.statusCode = 410;
-    throw error;
-  }
-
-  const now = Date.now();
-  const state = readTasterPackageGiveawayState();
-  state.entries.forEach((entry) => {
-    if (entry.status === "pending" && Date.parse(entry.pendingExpiresAt || "") <= now) entry.status = "expired";
-  });
-  const existing = getTasterPackageEntryForUser(state, user.id);
-  if (existing?.status === "paid") {
-    const error = new Error("You have already purchased the one-per-account Taster Package.");
-    error.statusCode = 409;
-    throw error;
-  }
-  // An abandoned Stripe Checkout session must not consume the limited offer.
-  if (existing) return existing;
-
-  const reservation = {
-    id: randomUUID(),
-    userId: String(user.id || ""),
-    email: String(user.email || "").trim().toLowerCase(),
-    displayName: String(user.display_name || user.username || "Member").trim() || "Member",
-    status: "pending",
-    reservedAt: new Date(now).toISOString(),
-    pendingExpiresAt: new Date(now + TASTER_PACKAGE_PENDING_MS).toISOString(),
-    checkoutSessionId: "",
-    paidAt: null,
-    offerVersion: offer.version,
-  };
-  state.entries.push(reservation);
-  writeTasterPackageGiveawayState(state);
-  return reservation;
-}
-
-function attachTasterPackageCheckoutSession(reservationId, sessionId) {
-  const state = readTasterPackageGiveawayState();
-  const entry = state.entries.find((item) => String(item?.id || "") === String(reservationId || ""));
-  if (!entry) throw new Error("The Taster Package reservation could not be saved.");
-  entry.checkoutSessionId = String(sessionId || "");
-  writeTasterPackageGiveawayState(state);
-}
-
-function releaseTasterPackageCheckout(reservationId, sessionId) {
-  const state = readTasterPackageGiveawayState();
-  const entry = state.entries.find((item) =>
-    (reservationId && String(item?.id || "") === String(reservationId)) ||
-    (sessionId && String(item?.checkoutSessionId || "") === String(sessionId))
-  );
-  if (!entry || entry.status === "paid") return;
-  entry.status = "expired";
-  entry.expiredAt = new Date().toISOString();
-  writeTasterPackageGiveawayState(state);
-}
-
-function recordTasterPackageGiveawayEntry(session, user) {
-  const sessionId = String(session?.id || "").trim();
-  const userId = String(session?.metadata?.appUserId || user?.id || "").trim();
-  if (!sessionId || !userId) throw new Error("The Taster Package giveaway entry is missing checkout details.");
-  const state = readTasterPackageGiveawayState();
-  let entry = state.entries.find((item) => String(item?.checkoutSessionId || "") === sessionId) || getTasterPackageEntryForUser(state, userId);
-  if (!entry) {
-    entry = { id: randomUUID(), userId, email: String(user?.email || "").trim().toLowerCase(), displayName: String(user?.display_name || user?.username || "Member").trim() || "Member", reservedAt: new Date().toISOString(), pendingExpiresAt: null, checkoutSessionId: sessionId, offerVersion: String(session?.metadata?.tasterOfferVersion || "") };
-    state.entries.push(entry);
-  }
-  entry.userId = userId;
-  entry.checkoutSessionId = sessionId;
-  entry.offerVersion = String(session?.metadata?.tasterOfferVersion || entry.offerVersion || "");
-  entry.status = "paid";
-  entry.paidAt = entry.paidAt || new Date().toISOString();
-  writeTasterPackageGiveawayState(state);
-  return entry;
-}
-
-function getPublicAITokenPackages(user) {
-  const offer = getTasterPackageOffer();
-  const tasterEntry = user ? getTasterPackageEntryForUser(readTasterPackageGiveawayState(), user.id) : null;
+function getPublicAITokenPackages() {
   return AI_TOKEN_PACKAGES.map((item) => ({
     key: item.key,
     title: item.title || "",
@@ -1481,13 +1350,8 @@ function getPublicAITokenPackages(user) {
     priceCents: item.priceCents,
     currency: item.currency || "usd",
     configured: Boolean(item.productId),
-    limited: Boolean(item.limited),
-    giveawayEntry: Boolean(item.giveawayEntry),
-    giveawayWinners: item.giveawayEntry ? TASTER_PACKAGE_GIVEAWAY_WINNERS : 0,
-    onePerAccount: Boolean(item.onePerAccount),
-    endsAt: item.limited ? offer.endsAt : null,
-    available: !item.limited || (offer.active && tasterEntry?.status !== "paid"),
-    unavailableReason: item.limited && tasterEntry?.status === "paid" ? "Already claimed" : item.limited && !offer.active ? "Offer ended" : "",
+    available: true,
+    unavailableReason: "",
   }));
 }
 
@@ -2890,11 +2754,6 @@ async function grantAITokensFromStripeCheckout(session) {
       p_tokens: tokens,
     }),
   });
-
-  if (packageDefinition.giveawayEntry) {
-    const user = await getAuthUserById(userId).catch(() => null);
-    recordTasterPackageGiveawayEntry(session, user);
-  }
 
   return Number.parseInt(rows, 10) || 0;
 }
@@ -7690,31 +7549,6 @@ app.post("/member-rewards/claim", async (req, res) => {
   }
 });
 
-app.get("/admin/taster-package-giveaway", async (req, res) => {
-  try {
-    await requireAdminUser(req);
-    const offer = getTasterPackageOffer();
-    const entries = readTasterPackageGiveawayState().entries
-      .filter((entry) => entry.status === "paid" && String(entry.offerVersion || "") === offer.version)
-      .sort((left, right) => Date.parse(right.paidAt || "") - Date.parse(left.paidAt || ""));
-    const pendingCount = readTasterPackageGiveawayState().entries.filter((entry) => entry.status === "pending").length;
-    return res.json({
-      ok: true,
-      offer,
-      stats: { giveawayEntries: entries.length, pendingCheckouts: pendingCount, giveawayWinners: TASTER_PACKAGE_GIVEAWAY_WINNERS },
-      entries: entries.map((entry) => ({
-        userId: String(entry.userId || ""),
-        displayName: String(entry.displayName || "Member"),
-        email: String(entry.email || ""),
-        checkoutSessionId: String(entry.checkoutSessionId || ""),
-        purchasedAt: entry.paidAt || null,
-      })),
-    });
-  } catch (error) {
-    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load Taster Package giveaway entries." });
-  }
-});
-
 app.post("/admin/grant-pro", async (req, res) => {
   try {
     const adminUser = await requireAdminUser(req);
@@ -7788,7 +7622,6 @@ app.get("/admin/staff-notes", async (req, res) => {
 });
 
 app.post("/store/create-ai-token-checkout", async (req, res) => {
-  let tasterReservation = null;
   try {
     assertStripePortalConfigured();
     const user = await requireAuthenticatedUser(req);
@@ -7798,10 +7631,6 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
     }
     if (!packageDefinition.productId) {
       return res.status(503).json({ error: "This AI token package is not configured yet." });
-    }
-
-    if (packageDefinition.onePerAccount) {
-      tasterReservation = reserveTasterPackageCheckout(user);
     }
 
     const customerId = await getOrCreateStripeCustomerForUser(user);
@@ -7819,17 +7648,12 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
         appUserId: user.id,
         aiTokenPackage: packageDefinition.key,
         aiTokenQuantity: String(packageDefinition.tokens),
-        tasterReservationId: tasterReservation ? tasterReservation.id : "",
-        tasterOfferVersion: tasterReservation ? getTasterPackageOffer().version : "",
         referralCode,
       },
     });
 
-    if (tasterReservation) attachTasterPackageCheckoutSession(tasterReservation.id, checkoutSession.id);
-
     return res.json({ ok: true, url: checkoutSession.url });
   } catch (error) {
-    if (tasterReservation) releaseTasterPackageCheckout(tasterReservation.id);
     console.error("POST /store/create-ai-token-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({
       error: error.message || "Could not create the AI token checkout session.",
