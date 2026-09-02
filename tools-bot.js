@@ -330,8 +330,7 @@ function getInteractionRoleIds(interaction) {
 
 async function handleInteraction(interaction) {
   if (!interaction.isChatInputCommand()) return;
-  const isPrivateCommand = ["link", "status", "check", "setup"].includes(interaction.commandName);
-  await interaction.deferReply({ ephemeral: isPrivateCommand });
+  await interaction.deferReply();
 
   if (toolDefinitions[interaction.commandName]) {
     try {
@@ -403,9 +402,9 @@ async function handleInteraction(interaction) {
         return;
       }
       const usage = await getDiscordServerUsageSummary({ guildId: interaction.guildId, discordUserId: interaction.user.id, discordRoleIds: getInteractionRoleIds(interaction) });
-      const shared = usage.mode === "unlimited" ? "Unlimited" : String(Number(usage.usedUses || 0)) + " / " + String(Number(usage.totalUses || 0)) + " used / owned";
-      const limitLine = (label, limit) => limit ? "\n" + label + ": **" + limit.used + " / " + limit.limit + "** this " + limit.period : "";
-      await interaction.editReply("**RBLXTools Bot usage**\nShared balance: **" + shared + "**" + limitLine("Your user limit", usage.userLimit) + limitLine("Your role limit", usage.roleLimit));
+      const serverUses = usage.mode === "unlimited" ? "Unlimited" : String(Number(usage.remainingUses || 0));
+      const limitLine = usage.userLimit ? "\nYour User Limit: **" + usage.userLimit.remaining + " / " + usage.userLimit.limit + " " + usage.userLimit.period + "**" : "";
+      await interaction.editReply("Server uses: **" + serverUses + "**" + limitLine);
       return;
     }
 

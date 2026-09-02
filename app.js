@@ -7886,7 +7886,7 @@ app.post("/discord-bot/dashboard/claim-code", async (req, res) => {
 app.post("/discord-bot/dashboard/server-settings", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    const dashboard = applyDashboardAdminAccess(await updateServerSettings({ appUserId: user.id, guildId: req.body?.guildId, perUserLimit: req.body?.perUserLimit, userLimitEnabled: req.body?.userLimitEnabled, userLimitPeriod: req.body?.userLimitPeriod, roleDailyLimits: req.body?.roleDailyLimits, roleDailyLimitsEnabled: req.body?.roleDailyLimitsEnabled, roleLimitPeriod: req.body?.roleLimitPeriod }), user);
+    const dashboard = applyDashboardAdminAccess(await updateServerSettings({ appUserId: user.id, guildId: req.body?.guildId, perUserLimit: req.body?.perUserLimit, userLimitEnabled: req.body?.userLimitEnabled, userLimitPeriod: req.body?.userLimitPeriod, userLimitStackingEnabled: req.body?.userLimitStackingEnabled, roleDailyLimits: req.body?.roleDailyLimits, roleDailyLimitsEnabled: req.body?.roleDailyLimitsEnabled, roleLimitPeriod: req.body?.roleLimitPeriod }), user);
     return res.json({ ok: true, dashboard });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not save Discord server settings." });
