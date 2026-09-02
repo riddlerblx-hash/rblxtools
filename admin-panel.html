@@ -125,7 +125,7 @@
         rgba(11, 15, 21, 0.94);
       box-shadow: var(--admin-shadow);
     }
-    .admin-topbar{display:none}.admin-actions-grid .admin-card:has(#grantPlusButton),.admin-actions-grid .admin-card:has(#grantProButton){display:none}.admin-unified{border-color:rgba(56,230,224,.26);background:radial-gradient(circle at top right,rgba(56,230,224,.13),transparent 34%),var(--admin-surface)}.admin-note-log{display:grid;gap:8px;max-height:340px;overflow:auto}.admin-note-entry{padding:10px;border:1px solid var(--admin-line);border-radius:12px;background:rgba(0,0,0,.16);font-size:12px;line-height:1.45}.admin-note-entry strong{color:#76fff4}
+    .admin-actions-grid .admin-card:has(#grantPlusButton),.admin-actions-grid .admin-card:has(#grantProButton){display:none}.admin-unified{border-color:rgba(56,230,224,.26);background:radial-gradient(circle at top right,rgba(56,230,224,.13),transparent 34%),var(--admin-surface)}.admin-note-log{display:grid;gap:8px;max-height:340px;overflow:auto}.admin-note-entry{padding:10px;border:1px solid var(--admin-line);border-radius:12px;background:rgba(0,0,0,.16);font-size:12px;line-height:1.45}.admin-note-entry strong{color:#76fff4}
 
     .admin-title-wrap {
       min-width: 0;
@@ -513,6 +513,104 @@
       word-break: break-word;
     }
 
+    .admin-member-box.emphasis {
+      background: linear-gradient(135deg, rgba(110,169,255,.14), rgba(83,223,136,.08));
+      border-color: rgba(110,169,255,.24);
+    }
+
+    .admin-entitlement {
+      padding: 14px;
+      border-radius: 17px;
+      border: 1px solid rgba(83,223,136,.24);
+      background:
+        radial-gradient(circle at right top, rgba(83,223,136,.13), transparent 38%),
+        rgba(5, 12, 16, .46);
+    }
+
+    .admin-entitlement.wide {
+      grid-column: 1 / -1;
+    }
+
+    .admin-entitlement-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .admin-entitlement-title {
+      margin: 0;
+      color: #f5fffa;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: -.25px;
+    }
+
+    .admin-entitlement-copy {
+      margin: 4px 0 0;
+      color: var(--admin-muted);
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .admin-entitlement-state {
+      flex: 0 0 auto;
+      min-height: 26px;
+      padding: 0 10px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      color: #8ff7b5;
+      border: 1px solid rgba(83,223,136,.3);
+      background: rgba(83,223,136,.1);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+    }
+
+    .admin-entitlement-state.off {
+      color: #b9c4d4;
+      border-color: var(--admin-line);
+      background: rgba(255,255,255,.04);
+    }
+
+    .admin-entitlement-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .admin-entitlement-stat {
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.07);
+      min-width: 0;
+    }
+
+    .admin-entitlement-stat strong {
+      display: block;
+      color: #fff;
+      font-size: 15px;
+      line-height: 1.1;
+      font-weight: 900;
+      letter-spacing: -.35px;
+      word-break: break-word;
+    }
+
+    .admin-entitlement-stat span {
+      display: block;
+      margin-top: 5px;
+      color: #9eacc0;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: .65px;
+      text-transform: uppercase;
+    }
+
     .admin-preview-feed {
       max-height: 300px;
       overflow: auto;
@@ -642,6 +740,10 @@
       .admin-triple {
         grid-template-columns: 1fr;
       }
+
+      .admin-entitlement-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
   </style>
   <link rel="stylesheet" href="./mobile-overrides.css">
@@ -651,9 +753,9 @@
   <div class="admin-panel">
     <section class="admin-topbar">
       <div class="admin-title-wrap">
-        <div class="admin-kicker">Moderation Console</div>
-        <h1 class="admin-title">Admin Panel</h1>
-        <p class="admin-copy">Compact controls for membership access, website locks, chat punishment tools, and live chat events. Every member action below has its own target field so moderators can work one action at a time.</p>
+        <div class="admin-kicker">RBLXTools Internal</div>
+        <h1 class="admin-title">Command Center</h1>
+        <p class="admin-copy">A clear workspace for member access, Discord Bot entitlements, safety controls, and live community operations. Every action stays scoped to its own member target.</p>
       </div>
       <div class="admin-badges">
         <span class="admin-pill live">Admin Approved</span>
@@ -752,10 +854,6 @@
                 <div class="admin-member-key">Devices</div>
                 <div class="admin-member-value" id="memberDevices">-</div>
               </div>
-              <div class="admin-member-box wide">
-                <div class="admin-member-key">Effective Plus Expires</div>
-                <div class="admin-member-value" id="memberExpiry">-</div>
-              </div>
               <div class="admin-member-box">
                 <div class="admin-member-key">Membership Source</div>
                 <div class="admin-member-value" id="memberSource">-</div>
@@ -764,21 +862,26 @@
                 <div class="admin-member-key">Plus Days Left</div>
                 <div class="admin-member-value" id="memberPlusDaysLeft">-</div>
               </div>
-              <div class="admin-member-box">
-                <div class="admin-member-key">Stripe Days Total</div>
-                <div class="admin-member-value" id="memberStripeDaysTotal">-</div>
+              <div class="admin-member-box emphasis wide">
+                <div class="admin-member-key">Website Membership Ends</div>
+                <div class="admin-member-value" id="memberExpiry">-</div>
               </div>
-              <div class="admin-member-box">
-                <div class="admin-member-key">Stripe Days Left</div>
-                <div class="admin-member-value" id="memberStripeDaysLeft">-</div>
-              </div>
-              <div class="admin-member-box">
-                <div class="admin-member-key">Timed Access Days Total</div>
-                <div class="admin-member-value" id="memberComplimentaryDaysTotal">-</div>
-              </div>
-              <div class="admin-member-box">
-                <div class="admin-member-key">Timed Access Days Left</div>
-                <div class="admin-member-value" id="memberComplimentaryDaysLeft">-</div>
+              <div class="admin-entitlement wide">
+                <div class="admin-entitlement-head">
+                  <div>
+                    <h3 class="admin-entitlement-title">RBLXTools Discord Bot</h3>
+                    <p class="admin-entitlement-copy">Actual command credits and Unlimited access for this member.</p>
+                  </div>
+                  <div class="admin-entitlement-state off" id="memberBotAccess">No access</div>
+                </div>
+                <div class="admin-entitlement-grid">
+                  <div class="admin-entitlement-stat"><strong id="memberBotUsesTotal">0 cmds</strong><span>Bot Uses Total</span></div>
+                  <div class="admin-entitlement-stat"><strong id="memberBotUsesUsed">0 cmds</strong><span>Uses Used</span></div>
+                  <div class="admin-entitlement-stat"><strong id="memberBotUsesLeft">0 cmds</strong><span>Uses Left</span></div>
+                  <div class="admin-entitlement-stat"><strong id="memberBotUnlimited">Not active</strong><span>Unlimited Plan</span></div>
+                  <div class="admin-entitlement-stat"><strong id="memberBotUnlimitedDays">-</strong><span>Unlimited Days Left</span></div>
+                  <div class="admin-entitlement-stat"><strong id="memberBotServer">Not claimed</strong><span>Linked Server</span></div>
+                </div>
               </div>
               <div class="admin-member-box wide">
                 <div class="admin-member-key">Moderation</div>
@@ -1098,10 +1201,13 @@
         memberExpiry: document.getElementById("memberExpiry"),
         memberSource: document.getElementById("memberSource"),
         memberPlusDaysLeft: document.getElementById("memberPlusDaysLeft"),
-        memberStripeDaysTotal: document.getElementById("memberStripeDaysTotal"),
-        memberStripeDaysLeft: document.getElementById("memberStripeDaysLeft"),
-        memberComplimentaryDaysTotal: document.getElementById("memberComplimentaryDaysTotal"),
-        memberComplimentaryDaysLeft: document.getElementById("memberComplimentaryDaysLeft"),
+        memberBotAccess: document.getElementById("memberBotAccess"),
+        memberBotUsesTotal: document.getElementById("memberBotUsesTotal"),
+        memberBotUsesUsed: document.getElementById("memberBotUsesUsed"),
+        memberBotUsesLeft: document.getElementById("memberBotUsesLeft"),
+        memberBotUnlimited: document.getElementById("memberBotUnlimited"),
+        memberBotUnlimitedDays: document.getElementById("memberBotUnlimitedDays"),
+        memberBotServer: document.getElementById("memberBotServer"),
         memberModeration: document.getElementById("memberModeration")};
       function buildAdminFetchOptions(options) {
         var next = Object.assign({ credentials: "include" }, options || {});
@@ -1263,6 +1369,9 @@
           if (payload.deviceCount != null) {
             nextMember.deviceCount = payload.deviceCount;
           }
+          if (payload.botDashboard) {
+            nextMember.botDashboard = payload.botDashboard;
+          }
         }
         return nextMember;
       }
@@ -1297,6 +1406,17 @@
         var date = new Date(value);
         if (isNaN(date.getTime())) return "Not set";
         return date.toLocaleString();
+      }
+
+      function formatBotUses(value) {
+        return Math.max(0, Number(value || 0)) + " cmds";
+      }
+
+      function formatUnlimitedDays(subscription) {
+        if (!subscription || !["active", "trialing"].includes(String(subscription.status || "").toLowerCase())) return "-";
+        if (!subscription.currentPeriodEndAt) return "No expiry";
+        var remaining = Math.max(0, Math.ceil((new Date(subscription.currentPeriodEndAt).getTime() - Date.now()) / 86400000));
+        return remaining + (remaining === 1 ? " day" : " days");
       }
 
       function clearMemberPolling() {
@@ -1337,10 +1457,18 @@
         refs.memberExpiry.textContent = formatMemberExpiry(member);
         refs.memberSource.textContent = formatMembershipSource(member.membershipSource);
         refs.memberPlusDaysLeft.textContent = member.plusDaysLeft != null ? String(member.plusDaysLeft) : "0";
-        refs.memberStripeDaysTotal.textContent = formatDayCount(getMembershipBreakdown(member, "stripe") && getMembershipBreakdown(member, "stripe").totalDays, "-");
-        refs.memberStripeDaysLeft.textContent = formatDayCount(getMembershipBreakdown(member, "stripe") && getMembershipBreakdown(member, "stripe").daysLeft, "0");
-        refs.memberComplimentaryDaysTotal.textContent = formatDayCount(getMembershipBreakdown(member, "complimentary") && getMembershipBreakdown(member, "complimentary").totalDays, "-");
-        refs.memberComplimentaryDaysLeft.textContent = formatDayCount(getMembershipBreakdown(member, "complimentary") && getMembershipBreakdown(member, "complimentary").daysLeft, "0");
+        var bot = member.botDashboard || {};
+        var unlimited = bot.subscription || null;
+        var unlimitedActive = ["active", "trialing"].includes(String(unlimited && unlimited.status || "").toLowerCase());
+        var botAccess = Boolean(bot.access);
+        refs.memberBotAccess.textContent = botAccess ? (unlimitedActive ? "Unlimited active" : "Credits active") : "No access";
+        refs.memberBotAccess.className = "admin-entitlement-state" + (botAccess ? "" : " off");
+        refs.memberBotUsesTotal.textContent = formatBotUses(bot.totalUses);
+        refs.memberBotUsesUsed.textContent = formatBotUses(bot.usedUses);
+        refs.memberBotUsesLeft.textContent = unlimitedActive ? "Unlimited" : formatBotUses(bot.remainingUses);
+        refs.memberBotUnlimited.textContent = unlimitedActive ? "Active" : "Not active";
+        refs.memberBotUnlimitedDays.textContent = formatUnlimitedDays(unlimited);
+        refs.memberBotServer.textContent = bot.server && bot.server.guildName ? bot.server.guildName : "Not claimed";
         refs.memberModeration.textContent = formatModeration(member);
         startMemberPolling();
       }

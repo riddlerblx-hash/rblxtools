@@ -6856,16 +6856,38 @@ app.get("/admin/member-lookup", async (req, res) => {
       return res.status(404).json({ error: "No member was found for that ID or email." });
     }
     const freshTargetUser = await refreshStripeMembershipForUserIfNeeded(targetUser);
-    const moderation = await summarizeModerationForTarget(freshTargetUser || targetUser);
-    const deviceLinks = await getDeviceLinksForUser((freshTargetUser || targetUser).id);
+    const resolvedTargetUser = freshTargetUser || targetUser;
+    const [moderation, deviceLinks, rawBotDashboard] = await Promise.all([
+      summarizeModerationForTarget(resolvedTargetUser),
+      getDeviceLinksForUser(resolvedTargetUser.id),
+      getBotDashboard(resolvedTargetUser.id),
+    ]);
+    const botDashboard = {
+      access: Boolean(rawBotDashboard.access),
+      mode: rawBotDashboard.mode,
+      totalUses: rawBotDashboard.totalUses,
+      usedUses: rawBotDashboard.usedUses,
+      remainingUses: rawBotDashboard.remainingUses,
+      subscription: rawBotDashboard.subscription ? {
+        status: rawBotDashboard.subscription.status,
+        source: rawBotDashboard.subscription.source || null,
+        currentPeriodEndAt: rawBotDashboard.subscription.currentPeriodEndAt || null,
+      } : null,
+      server: rawBotDashboard.server ? {
+        guildId: rawBotDashboard.server.guildId,
+        guildName: rawBotDashboard.server.guildName,
+        claimedAt: rawBotDashboard.server.claimedAt || null,
+      } : null,
+    };
 
       return res.json({
         ok: true,
         admin: await buildResolvedPublicUser(adminUser),
-        member: await buildResolvedPublicUser(freshTargetUser || targetUser),
-        stripeSyncDebug: (freshTargetUser || targetUser)?.__stripeSyncDebug || null,
+        member: await buildResolvedPublicUser(resolvedTargetUser),
+        stripeSyncDebug: resolvedTargetUser?.__stripeSyncDebug || null,
         moderation,
         deviceCount: deviceLinks.length,
+        botDashboard,
       });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
