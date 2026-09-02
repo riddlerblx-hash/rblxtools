@@ -272,8 +272,10 @@ async function callBotService(pathname, interaction, body) {
     headers: Object.assign({ "Content-Type": "application/json" }, getToolRequestHeaders(interaction.user.id, interaction.guildId)),
     body: JSON.stringify(body || {}),
   });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(payload?.error || "RBLXTools Bot could not verify this server.");
+  const responseText = await response.text();
+  let payload = null;
+  try { payload = responseText ? JSON.parse(responseText) : null; } catch (_error) {}
+  if (!response.ok) throw new Error(payload?.error || "RBLXTools website API returned HTTP " + response.status + ". Deploy the matching website backend, then retry.");
   return payload || {};
 }
 
