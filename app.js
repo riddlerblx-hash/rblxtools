@@ -111,6 +111,9 @@ const MESHY_API_KEY = String(process.env.MESHY_API_KEY || "").trim();
 const MESHY_API_BASE_URL = "https://api.meshy.ai/openapi";
 const UGC_SOURCE_IMAGE_TTL_MS = 60 * 60 * 1000;
 const ugcSourceImages = new Map();
+// Preview tasks are short-lived. Keep the paid generation settings here so a
+// refinement cannot be requested for a different account or without textures.
+const ugcGenerationCharges = new Map();
 const MAX_SUPPORT_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MAX_CHAT_TIMEOUT_SECONDS = 3650 * 24 * 60 * 60;
 const AI_CLOTHING_OUTPUT_WIDTH = 585;
@@ -201,6 +204,21 @@ function cleanMeshyTaskId(value) {
     throw error;
   }
   return taskId;
+}
+
+function getUGCGenerationTokenCost({ assetType, inputMode, withTexture }) {
+  // RBLXTools uses a 3x multiplier over the provider credit cost.
+  const isGameAsset = assetType === "game";
+  const isImageInput = inputMode === "image";
+  const baseCost = isImageInput ? 15 : isGameAsset ? 30 : 15;
+  return baseCost + (withTexture ? 30 : 0);
+}
+
+async function restoreAITokens(userId, amount) {
+  const latestUser = await getAuthUserById(userId).catch(() => null);
+  return updateAuthUserFields(userId, {
+    ai_token_balance: getAITokenBalance(latestUser) + Math.max(0, Number.parseInt(amount, 10) || 0),
+  });
 }
 
 async function requestMeshy(pathname, options = {}) {
@@ -6532,22 +6550,34 @@ app.post("/ai/generate-clothing", async (req, res) => {
 // Admin-only Meshy proxy. Task URLs are short-lived Meshy signed URLs and the
 // provider key never leaves this process.
 app.post("/ai/ugc/preview", async (req, res) => {
+  let user;
+  let tokenCost = 0;
+  let tokensDebited = false;
   try {
-    await requireAdminUser(req);
+    user = await requireAdminUser(req);
+    const inputMode = String(req.body?.inputMode || "text") === "image" ? "image" : "text";
     const prompt = cleanText(req.body?.prompt, 800);
-    const sourceImageUrl = req.body?.imageDataUrl ? storeUGCSourceImage(req.body.imageDataUrl) : "";
-    if (!prompt && !sourceImageUrl) return res.status(400).json({ error: "Describe the UGC item or add a reference image." });
+    const sourceImageUrl = inputMode === "image" && req.body?.imageDataUrl ? storeUGCSourceImage(req.body.imageDataUrl) : "";
+    if (inputMode === "image" && !sourceImageUrl) return res.status(400).json({ error: "Add a reference image before creating an image-to-model asset." });
+    if (inputMode === "text" && !prompt) return res.status(400).json({ error: "Describe the asset before creating a text-to-model asset." });
     const assetType = String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc";
     const isUgcAsset = assetType === "ugc";
+    const withTexture = Boolean(req.body?.withTexture);
     const modelType = isUgcAsset ? "smart-topology" : "standard";
     const maxTriangles = isUgcAsset ? 4000 : 10000;
     const targetPolycount = Math.max(100, Math.min(maxTriangles, Number.parseInt(req.body?.targetPolycount, 10) || maxTriangles));
     const textureResolution = ["2k", "4k"].includes(String(req.body?.textureResolution || "")) ? String(req.body.textureResolution) : "2k";
+    tokenCost = getUGCGenerationTokenCost({ assetType, inputMode, withTexture });
+    const aiTokens = await debitAITokens(user.id, tokenCost);
+    tokensDebited = true;
     const task = sourceImageUrl
-      ? await requestMeshy("/v1/image-to-3d", { method: "POST", body: { image_url: sourceImageUrl, model_type: modelType, ai_model: isUgcAsset ? "meshy-t2" : "latest", should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: Boolean(req.body?.enablePbr), target_formats: ["glb"], alpha_thumbnail: true } })
+      ? await requestMeshy("/v1/image-to-3d", { method: "POST", body: { image_url: sourceImageUrl, model_type: modelType, ai_model: isUgcAsset ? "meshy-t2" : "latest", should_texture: withTexture, should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: withTexture && Boolean(req.body?.enablePbr), target_formats: ["glb"], alpha_thumbnail: true } })
       : await requestMeshy("/v2/text-to-3d", { method: "POST", body: { mode: "preview", prompt, model_type: modelType, ai_model: "latest", should_remesh: modelType === "standard", target_polycount: targetPolycount, target_formats: ["glb"], alpha_thumbnail: true, moderation: true } });
-    return res.json({ ok: true, taskId: task.result || task.id, taskType: sourceImageUrl ? "image" : "text", assetType, targetPolycount, textureResolution });
+    const taskId = task.result || task.id;
+    ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, withTexture, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? 30 : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+    return res.json({ ok: true, taskId, taskType: inputMode, assetType, targetPolycount, textureResolution, withTexture, tokenCost, aiTokens });
   } catch (error) {
+    if (user && tokensDebited) await restoreAITokens(user.id, tokenCost).catch(() => null);
     console.error("POST /ai/ugc/preview failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not start the UGC preview." });
   }
@@ -6555,15 +6585,18 @@ app.post("/ai/ugc/preview", async (req, res) => {
 
 app.post("/ai/ugc/refine", async (req, res) => {
   try {
-    await requireAdminUser(req);
+    const user = await requireAdminUser(req);
     const previewTaskId = cleanMeshyTaskId(req.body?.previewTaskId);
-    const assetType = String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc";
+    const charge = ugcGenerationCharges.get(previewTaskId);
+    if (!charge || charge.userId !== user.id || !charge.withTexture || charge.inputMode !== "text") {
+      return res.status(409).json({ error: "This preview is not eligible for a texture pass. Start a new textured generation." });
+    }
     const textureResolution = ["2k", "4k"].includes(String(req.body?.textureResolution || "")) ? String(req.body.textureResolution) : "2k";
     const task = await requestMeshy("/v2/text-to-3d", {
       method: "POST",
       body: { mode: "refine", preview_task_id: previewTaskId, enable_pbr: Boolean(req.body?.enablePbr), texture_resolution: textureResolution, target_formats: ["glb"], alpha_thumbnail: true },
     });
-    return res.json({ ok: true, taskId: task.result || task.id });
+    return res.json({ ok: true, taskId: task.result || task.id, aiTokens: getAITokenBalance(await getAuthUserById(user.id)) });
   } catch (error) {
     console.error("POST /ai/ugc/refine failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not start texture generation." });
