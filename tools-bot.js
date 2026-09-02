@@ -20,6 +20,7 @@ const supabaseKey = String(process.env.SUPABASE_KEY || "").trim();
 const authUsersTable = String(process.env.AUTH_USERS_TABLE || "member_accounts").trim();
 const apiBaseUrl = String(process.env.RBLXTOOLS_TOOLS_API_BASE_URL || process.env.APP_BASE_URL || "https://www.rblxtools.net").trim().replace(/\/$/, "");
 const discordToolsServiceSecret = String(process.env.DISCORD_TOOLS_SERVICE_SECRET || "").trim();
+const PRO_ONLY_GUILD_ID = "1273360593318838382";
 const MAX_DISCORD_DOWNLOAD_BYTES = 8 * 1024 * 1024;
 
 const toolDefinitions = {
@@ -67,7 +68,7 @@ const commands = [
     .setDescription("Link your RBLXTools account with a one-time website code.")
     .addStringOption((option) => option.setName("code").setDescription("Code generated in RBLXTools Account Overview").setRequired(true)),
   new SlashCommandBuilder().setName("status").setDescription("Check your RBLXTools Discord link and plan."),
-  new SlashCommandBuilder().setName("tools").setDescription("View the RBLXTools Discord tools available to Pro members."),
+  new SlashCommandBuilder().setName("tools").setDescription("View the RBLXTools Discord tools available in this server."),
   new SlashCommandBuilder()
     .setName("claim-server")
     .setDescription("Claim this server for your purchased RBLXTools Bot uses.")
@@ -336,7 +337,7 @@ async function handleInteraction(interaction) {
   if (interaction.commandName === "link") {
     try {
       const link = await claimDiscordLink(interaction.options.getString("code", true), interaction.user);
-      await interaction.editReply("Linked to RBLXTools successfully. Your Discord tools unlock automatically whenever this account has Pro.");
+      await interaction.editReply("Linked to RBLXTools successfully. Each server manages its own RBLXTools Bot access.");
       console.log("[tools-bot] linked Discord " + interaction.user.id + " to RBLXTools " + link.appUserId);
     } catch (error) {
       await interaction.editReply(error.message || "That link code could not be used.");
@@ -356,11 +357,14 @@ async function handleInteraction(interaction) {
   }
 
   try {
-    const member = await requirePro(interaction);
-    if (!member) return;
+    const requiresPro = interaction.guildId === PRO_ONLY_GUILD_ID;
+    if (requiresPro) {
+      const member = await requirePro(interaction);
+      if (!member) return;
+    }
 
     if (interaction.commandName === "status") {
-      await interaction.editReply("Your Discord is linked to an active RBLXTools Pro account. Discord tools are ready.");
+      await interaction.editReply(requiresPro ? "Your Discord is linked to an active RBLXTools Pro account. Discord tools are ready." : "This server does not require an individual Pro plan. Server access and use limits are managed by its RBLXTools Bot dashboard.");
       return;
     }
     if (interaction.commandName === "tools") {
