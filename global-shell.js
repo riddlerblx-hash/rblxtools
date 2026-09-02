@@ -1707,7 +1707,6 @@
         '<div class="rblx-shell-checkout-overlay" id="rblxShellCheckoutOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-checkout-modal" id="rblxShellCheckoutModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellCheckoutTitle">' +
             '<div class="rblx-shell-checkout-confetti" aria-hidden="true">' + buildCheckoutConfetti() + '</div>' +
-            buildInlineBannerAdMarkup("checkout-top") +
             '<div class="rblx-shell-checkout-kicker">Purchase Successful</div>' +
             '<h3 class="rblx-shell-checkout-title" id="rblxShellCheckoutTitle">Thanks for supporting RBLXTools</h3>' +
             '<p class="rblx-shell-checkout-copy" id="rblxShellCheckoutCopy">Your order went through and your account is being updated now.</p>' +
@@ -1717,7 +1716,6 @@
             '</div>' +
             '<div class="rblx-shell-checkout-thankyou">Thank you for supporting the tools, updates, and everything we are building next.</div>' +
             '<button class="rblx-shell-btn is-primary rblx-shell-checkout-button" type="button" id="rblxShellCheckoutClose" disabled>Back To Account (10)</button>' +
-            buildInlineBannerAdMarkup("checkout-bottom") +
           '</div>' +
         '</div>' +
         '<div class="rblx-shell-reward-overlay" id="rblxShellRewardOverlay" aria-hidden="true">' +
