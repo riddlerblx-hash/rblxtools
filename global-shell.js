@@ -4182,6 +4182,21 @@
     return { banner: banner, slot: slot };
   }
 
+  function mountMobileHomeBannerAd(slot) {
+    if (!slot || !shouldShowMemberAds() || slot.dataset.rblxMobileBannerLoaded === "true") return;
+    slot.dataset.rblxMobileBannerLoaded = "true";
+
+    var adFrame = document.createElement("iframe");
+    adFrame.className = "rblx-mobile-home-banner-ad-frame";
+    adFrame.title = "Advertisement";
+    adFrame.width = "320";
+    adFrame.height = "50";
+    adFrame.scrolling = "no";
+    adFrame.setAttribute("frameborder", "0");
+    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:320px;height:50px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"4f3f88a3c4de39df646d1819202a769b",format:"iframe",height:50,width:320,params:{}};<\/script><script src="https://professionalsusceptible.com/4f3f88a3c4de39df646d1819202a769b/invoke.js"><\/script></body></html>';
+    slot.appendChild(adFrame);
+  }
+
   function initSharedToolBannerAd() {
     if (document.readyState === "loading") {
       if (!window.__rblxToolBannerQueued) {
@@ -4245,6 +4260,15 @@
 
     var homeTop = document.querySelector("#rblxShellPage .home-grid-top");
     var toolsSection = document.getElementById("tools-section");
+    if (homeTop && toolsSection && !document.getElementById("rblxHomeMobileBannerAd")) {
+      var mobileAd = document.createElement("section");
+      mobileAd.id = "rblxHomeMobileBannerAd";
+      mobileAd.className = "rblx-home-mobile-banner-ad";
+      mobileAd.setAttribute("aria-label", "Advertisement");
+      mobileAd.innerHTML = '<span class="rblx-banner-ad-label">Advertisement</span><div class="rblx-home-mobile-banner-ad-slot"></div>';
+      homeTop.insertAdjacentElement("afterend", mobileAd);
+      mountMobileHomeBannerAd(mobileAd.querySelector(".rblx-home-mobile-banner-ad-slot"));
+    }
     if (homeTop && toolsSection && !document.getElementById("rblxHomeToolsBannerAd")) {
       var toolsAd = createSharedBannerAd("rblxHomeToolsBannerAd", "rblx-home-banner-ad");
       toolsSection.parentNode.insertBefore(toolsAd.banner, toolsSection);
