@@ -4232,6 +4232,13 @@
       mountMobileBannerAd(headerAd.slot);
     }
 
+    var planRotator = document.getElementById("rblxShellPlanRotator");
+    if (planRotator && planRotator.parentNode && !document.getElementById("rblxMobileNavBannerAd")) {
+      var navAd = createMobileBannerAd("rblxMobileNavBannerAd", "rblx-mobile-nav-banner-ad");
+      planRotator.parentNode.insertBefore(navAd.banner, planRotator);
+      mountMobileBannerAd(navAd.slot);
+    }
+
     var showcaseCard = document.querySelector("#rblxShellPage .showcase-card");
     var toolPromo = document.querySelector("#rblxShellPage .plus-card");
     var tutorialCard = toolPromo && toolPromo.previousElementSibling;

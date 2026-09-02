@@ -4121,6 +4121,17 @@ body.rblx-pro-ad-free [data-rblx-banner-ad] { display: none !important; }
     height: 50px;
     border: 0;
   }
+
+  /* The mobile navigation uses its plan-promo footprint for an ad instead. */
+  body.rblx-mobile-shell .rblx-shell-plan-rotator {
+    display: none;
+  }
+
+  body.rblx-mobile-shell .rblx-mobile-nav-banner-ad {
+    width: 100%;
+    min-height: 70px;
+    margin: 0;
+  }
 }
 
 @media (max-width: 1023px) {
