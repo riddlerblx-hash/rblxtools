@@ -4282,6 +4282,17 @@
   }
 
   function initSharedToolFooterBannerAd() {
+    if (document.readyState === "loading") {
+      if (!window.__rblxToolFooterBannerQueued) {
+        window.__rblxToolFooterBannerQueued = true;
+        document.addEventListener("DOMContentLoaded", function () {
+          window.__rblxToolFooterBannerQueued = false;
+          window.setTimeout(initSharedToolFooterBannerAd, 0);
+        }, { once: true });
+      }
+      return;
+    }
+
     if (!document.querySelector("#rblxShellPage .showcase-card") || document.getElementById("rblxToolFooterBannerAd")) return;
 
     var footer = document.querySelector(".rblx-shell-footer");
