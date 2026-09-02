@@ -299,7 +299,7 @@ async function sendUsageAlert(interaction, usage) {
 }
 
 function usageCounterName(usage) {
-  return usage?.mode === "unlimited" ? "RBLXTools Uses: Unlimited" : "RBLXTools Uses: " + Number(usage?.usedUses || 0) + " / " + Number(usage?.totalUses || 0);
+  return usage?.mode === "unlimited" ? "RBLXTools Uses: Unlimited" : "RBLXTools Uses: " + Number(usage?.remainingUses || 0) + " cmds left";
 }
 
 async function updateUsageCounter(guild, usage) {
@@ -382,7 +382,7 @@ async function handleInteraction(interaction) {
   if (interaction.commandName === "setup") {
     try {
       const channel = await setupUsageCounter(interaction);
-      await interaction.editReply("Live usage counter ready in " + channel.toString() + ". It shows used / owned uses and updates after each paid bot command.");
+      await interaction.editReply("Live usage counter ready in " + channel.toString() + ". It shows remaining commands and updates after each paid bot command.");
     } catch (error) {
       await interaction.editReply(error.message || "Could not set up the usage counter.");
     }
@@ -403,8 +403,8 @@ async function handleInteraction(interaction) {
       }
       const usage = await getDiscordServerUsageSummary({ guildId: interaction.guildId, discordUserId: interaction.user.id, discordRoleIds: getInteractionRoleIds(interaction) });
       const serverUses = usage.mode === "unlimited" ? "Unlimited" : String(Number(usage.remainingUses || 0));
-      const limitLine = usage.userLimit ? "\nYour User Limit: **" + usage.userLimit.remaining + " / " + usage.userLimit.limit + " " + usage.userLimit.period + "**" : "";
-      await interaction.editReply("Server uses: **" + serverUses + "**" + limitLine);
+      const limitLine = usage.userLimit ? "\nYour User Limit: **" + usage.userLimit.remaining + " / " + usage.userLimit.limit + " cmds " + usage.userLimit.period + "**" : "";
+      await interaction.editReply("Server Usage: **" + serverUses + (usage.mode === "unlimited" ? "" : " cmds") + "**" + limitLine);
       return;
     }
 

@@ -6272,16 +6272,24 @@ app.get("/auth/me", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
     const freshUser = await refreshStripeMembershipForUserIfNeeded(user);
+    const resolvedUser = freshUser || user;
     const deviceId = getRequestDeviceId(req);
     if (deviceId) {
-      await linkDeviceToUser(freshUser || user, deviceId).catch(() => null);
+      await linkDeviceToUser(resolvedUser, deviceId).catch(() => null);
     }
-    const moderation = await summarizeModerationForTarget(freshUser || user, deviceId);
+    const moderation = await summarizeModerationForTarget(resolvedUser, deviceId);
+    const botDashboard = applyDashboardAdminAccess(await getBotDashboard(resolvedUser.id), resolvedUser);
+    botDashboard.discordLinked = Boolean(await getDiscordLinkByAppUserId(resolvedUser.id));
+    const botInviteUrl = /^\d+$/.test(DISCORD_TOOLS_BOT_CLIENT_ID)
+      ? `https://discord.com/oauth2/authorize?client_id=${DISCORD_TOOLS_BOT_CLIENT_ID}&scope=bot%20applications.commands&permissions=35856`
+      : null;
     return res.json({
       ok: true,
-      chatToken: createAuthToken(freshUser || user),
-      user: await buildResolvedPublicUser(freshUser || user),
+      chatToken: createAuthToken(resolvedUser),
+      user: await buildResolvedPublicUser(resolvedUser),
       moderation,
+      botDashboard,
+      botInviteUrl,
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
@@ -9937,12 +9945,7 @@ app.delete("/discord-tools/link", async (req, res) => {
 });
 
 app.get(["/ai-tokens", "/ai-tokens.html"], async (req, res) => {
-  try {
-    await requireAuthenticatedUser(req);
-    return res.sendFile(path.join(STATIC_ROOT, "ai-tokens.html"));
-  } catch (_error) {
-    return res.redirect(302, "/login");
-  }
+  return res.sendFile(path.join(STATIC_ROOT, "ai-tokens.html"));
 });
 
 app.use(express.static(STATIC_ROOT, {
