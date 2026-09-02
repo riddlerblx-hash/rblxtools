@@ -127,6 +127,21 @@ async function grantPurchasedUses(session) {
 }
 async function getPurchasedUses(appUserId) { const userId = String(appUserId || "").trim(); return userId ? purchasedUses(await readStore(), userId) : 0; }
 async function getBotDashboard(appUserId) { return buildDashboard(await readStore(), appUserId); }
+async function getUsageCounterSnapshots() {
+  const store = await readStore();
+  return Object.values(store.serversByGuildId || {}).map((server) => {
+    const channelId = String(server?.usageCounterChannelId || "").trim();
+    if (!server || server.unclaimedAt || !/^\d{15,22}$/.test(channelId)) return null;
+    const subscription = store.unlimitedByAppUserId[String(server.appUserId || "")] || null;
+    const totalUses = purchasedUses(store, server.appUserId);
+    return {
+      guildId: String(server.guildId || ""),
+      usageCounterChannelId: channelId,
+      mode: isUnlimitedActive(subscription) ? "unlimited" : "uses",
+      remainingUses: Math.max(0, totalUses - Math.max(0, Number(server.usedUses || 0))),
+    };
+  }).filter(Boolean);
+}
 function accountOverviewTab(value) { return ["settings", "billing", "referrals", "bot"].includes(String(value || "").trim()) ? String(value).trim() : "settings"; }
 async function getAccountOverviewPreference(appUserId) { const userId = String(appUserId || "").trim(); if (!userId) return { selectedTab: "settings" }; const value = (await readStore()).accountOverviewPreferencesByAppUserId[userId]; return { selectedTab: accountOverviewTab(value?.selectedTab) }; }
 async function setAccountOverviewPreference({ appUserId, selectedTab }) { const userId = String(appUserId || "").trim(); if (!userId) { const error = new Error("An account is required."); error.statusCode = 401; throw error; } return updateStore((store) => { store.accountOverviewPreferencesByAppUserId[userId] = { selectedTab: accountOverviewTab(selectedTab), updatedAt: new Date().toISOString() }; return { selectedTab: store.accountOverviewPreferencesByAppUserId[userId].selectedTab }; }); }
@@ -233,4 +248,4 @@ async function consumeDiscordServerUse({ guildId, discordUserId, discordRoleIds,
   });
 }
 
-module.exports = { claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getAccountOverviewPreference, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getDiscordServerUsageSummary, getPurchasedUses, getUnlimitedSubscription, grantComplimentaryUnlimited, grantComplimentaryUses, grantPurchasedUses, isUnlimitedActive, setAccountOverviewPreference, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, setDiscordServerUsageCounter, resetMemberDailyUse, unclaimServer };
+module.exports = { claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getAccountOverviewPreference, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getDiscordServerUsageSummary, getPurchasedUses, getUnlimitedSubscription, getUsageCounterSnapshots, grantComplimentaryUnlimited, grantComplimentaryUses, grantPurchasedUses, isUnlimitedActive, setAccountOverviewPreference, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, setDiscordServerUsageCounter, resetMemberDailyUse, unclaimServer };

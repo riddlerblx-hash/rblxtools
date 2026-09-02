@@ -18,6 +18,7 @@ const {
   consumeDiscordServerUse,
   getDiscordServerCommandPolicy,
   getDiscordServerUsageSummary,
+  getUsageCounterSnapshots,
   setDiscordServerUsageCounter,
   syncDiscordServerChannels,
 } = require("./discord-bot-entitlements");
@@ -32,6 +33,7 @@ const apiBaseUrl = String(process.env.RBLXTOOLS_TOOLS_API_BASE_URL || process.en
 const discordToolsServiceSecret = String(process.env.DISCORD_TOOLS_SERVICE_SECRET || "").trim();
 const PRO_ONLY_GUILD_ID = "1273360593318838382";
 const MAX_DISCORD_DOWNLOAD_BYTES = 8 * 1024 * 1024;
+const USAGE_COUNTER_REFRESH_MS = 15000;
 
 const toolDefinitions = {
   clothing: { label: "Clothing", description: "Download a classic Roblox shirt or pants template." },
@@ -395,6 +397,21 @@ async function updateUsageCounter(guild, usage) {
   await channel.setName(usageCounterName(usage), "RBLXTools Bot usage updated");
 }
 
+let usageCounterRefreshInFlight = false;
+async function refreshUsageCounters(client) {
+  if (usageCounterRefreshInFlight) return;
+  usageCounterRefreshInFlight = true;
+  try {
+    const counters = await getUsageCounterSnapshots();
+    for (const usage of counters) {
+      const guild = client.guilds.cache.get(usage.guildId) || await client.guilds.fetch(usage.guildId).catch(() => null);
+      await updateUsageCounter(guild, usage).catch((error) => console.warn("[tools-bot] usage counter refresh failed:", error.message || error));
+    }
+  } finally {
+    usageCounterRefreshInFlight = false;
+  }
+}
+
 async function setupUsageCounter(interaction) {
   if (!interaction.inGuild()) throw new Error("Run `/setup usage-counter` inside a claimed Discord server.");
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) throw new Error("You need the Manage Server permission to set up a usage counter.");
@@ -527,6 +544,8 @@ async function main() {
       syncAlertChannels(guild);
       syncGuildCommands(guild);
     });
+    refreshUsageCounters(readyClient);
+    setInterval(() => { refreshUsageCounters(readyClient); }, USAGE_COUNTER_REFRESH_MS).unref();
   });
   client.on(Events.GuildCreate, (guild) => {
     syncAlertChannels(guild);
