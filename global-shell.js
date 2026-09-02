@@ -4108,6 +4108,35 @@
     return icons[kind] || icons.spark;
   }
 
+  function initSharedToolBannerAd() {
+    var showcaseCard = document.querySelector(".showcase-card");
+    var shareCard = document.querySelector(".share-card");
+    if (!showcaseCard || !shareCard || document.getElementById("rblxToolBannerAd")) return;
+
+    var banner = document.createElement("section");
+    banner.id = "rblxToolBannerAd";
+    banner.className = "rblx-tool-banner-ad";
+    banner.setAttribute("aria-label", "Advertisement");
+
+    var slot = document.createElement("div");
+    slot.className = "rblx-tool-banner-ad-slot";
+    banner.appendChild(slot);
+    shareCard.parentNode.insertBefore(banner, shareCard);
+
+    window.atOptions = {
+      key: "fb95715336abfc09031edf4e6ef208c5",
+      format: "iframe",
+      height: 90,
+      width: 728,
+      params: {}
+    };
+
+    var script = document.createElement("script");
+    script.async = true;
+    script.src = "https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js";
+    slot.appendChild(script);
+  }
+
   function initSharedToolShowcase() {
     var currentPath = String(window.location.pathname || "/").replace(/\/+$|^\/+|\.html$/g, "");
     if (currentPath === "" || currentPath === "template-downloader") return;
@@ -4846,6 +4875,7 @@
     syncMobileShellState();
     closeMobilePanels();
     initFaqAccordions();
+    initSharedToolBannerAd();
     initSharedToolShowcase();
     initSharedToolStats();
     document.body.classList.add("rblx-shell-ready");

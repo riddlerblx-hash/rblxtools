@@ -4025,6 +4025,26 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
   background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
 }
 
+.rblx-tool-banner-ad {
+  display: flex;
+  justify-content: center;
+  margin: 14px 0;
+  overflow: hidden;
+}
+
+.rblx-tool-banner-ad-slot {
+  width: 728px;
+  max-width: 100%;
+  min-height: 90px;
+  text-align: center;
+}
+
+.rblx-tool-banner-ad-slot iframe {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
 /* Mobile pages must keep the document as the scroll surface; fixed overlays handle their own state. */
 @media (max-width:820px){
   html{overflow-x:hidden;overscroll-behavior-y:auto}
