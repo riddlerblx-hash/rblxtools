@@ -36,6 +36,7 @@ const {
   claimDiscordServer,
   consumeDiscordServerUse,
   createServerClaimCode,
+  getAccountOverviewPreference,
   getBotDashboard,
   getDiscordServerAccess,
   getDiscordServerCommandPolicy,
@@ -43,6 +44,7 @@ const {
   getPurchasedUses,
   grantPurchasedUses,
   isUnlimitedActive,
+  setAccountOverviewPreference,
   setUnlimitedSubscription,
   updateServerSettings,
   updateServerControls,
@@ -7818,6 +7820,24 @@ app.get("/discord-bot/dashboard", async (req, res) => {
     return res.json({ ok: true, dashboard, inviteUrl });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the RBLXTools Bot dashboard." });
+  }
+});
+
+app.get("/account-overview/preference", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    return res.json({ ok: true, ...(await getAccountOverviewPreference(user.id)) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the account preference." });
+  }
+});
+
+app.post("/account-overview/preference", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    return res.json({ ok: true, ...(await setAccountOverviewPreference({ appUserId: user.id, selectedTab: req.body?.selectedTab })) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not save the account preference." });
   }
 });
 

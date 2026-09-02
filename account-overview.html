@@ -1834,6 +1834,10 @@
         deleteCountdownTimer: null,
         membershipPollTimer: null,
         botDashboard: null,
+        selectedAccountTab: "settings",
+        savedAccountTab: "",
+        accountTabPreferenceLoaded: false,
+        selectAccountTab: null,
         discordLinked: false,
         botRoleDailyLimits: [],
         profile: {
@@ -2257,7 +2261,7 @@
         var unlocked = Boolean(dashboard.access);
         setBotTabLocked(!unlocked);
         if (!unlocked) return;
-        if ((new URLSearchParams(window.location.search || "").get("tab") === "bot" || window.localStorage.getItem("rblxtools-account-tab") === "bot") && els.acctBotTab) els.acctBotTab.click();
+        if ((new URLSearchParams(window.location.search || "").get("tab") === "bot" || state.savedAccountTab === "bot") && els.acctBotTab) els.acctBotTab.click();
         var settings = dashboard.server || dashboard.draftSettings || {};
         els.acctBotMode.textContent = dashboard.mode === "unlimited" ? "Unlimited Uses" : dashboard.mode === "admin" ? "Admin view" : "Pay by usage";
         els.acctBotUses.textContent = dashboard.mode === "unlimited" ? "Unlimited" : (Number(dashboard.usedUses || 0).toLocaleString() + " / " + Number(dashboard.totalUses || 0).toLocaleString());
@@ -2285,6 +2289,24 @@
         if (!state.user || !state.user.id) return;
         try { renderBotDashboard(await apiRequest("/discord-bot/dashboard", { method: "GET" })); }
         catch (_error) { setBotTabLocked(!Boolean(state.user.isAdmin)); }
+      }
+
+      async function loadAccountTabPreference() {
+        if (!state.user || !state.user.id || !state.selectAccountTab) return;
+        try {
+          var preference = await apiRequest("/account-overview/preference", { method: "GET" });
+          var selectedTab = ["settings", "billing", "referrals", "bot"].includes(preference.selectedTab) ? preference.selectedTab : "settings";
+          state.savedAccountTab = selectedTab;
+          state.accountTabPreferenceLoaded = true;
+          if (selectedTab !== "bot" || els.acctBotTab?.dataset.locked !== "true") state.selectAccountTab(selectedTab, false);
+        } catch (_error) {
+          state.accountTabPreferenceLoaded = true;
+        }
+      }
+
+      function saveAccountTabPreference(selectedTab) {
+        if (!state.user || !state.user.id || !state.accountTabPreferenceLoaded) return;
+        apiRequest("/account-overview/preference", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ selectedTab: selectedTab }) }).catch(function () {});
       }
 
       function setBotTabLocked(locked) {
@@ -2665,6 +2687,7 @@
 
             var loadedUser = result.user || null;
             renderUser(loadedUser);
+            loadAccountTabPreference();
             loadReferralDashboard();
             loadDiscordLinkStatus();
             loadBotDashboard();
@@ -3096,7 +3119,8 @@
         Array.prototype.slice.call(grid.querySelectorAll(".acct-stack")).forEach(function (stack) { stack.remove(); });
         grid.dataset.tabsReady = "true";
 
-        function selectTab(name) {
+        function selectTab(name, persist) {
+          if (!Object.prototype.hasOwnProperty.call(panels, name)) return;
           tabs.forEach(function (tab) {
             var active = tab.dataset.accountTab === name;
             tab.classList.toggle("is-active", active);
@@ -3106,18 +3130,22 @@
             panels[panelName].hidden = panelName !== name;
           });
           try { window.localStorage.setItem("rblxtools-account-tab", name); } catch (_error) { /* Storage can be unavailable in private browsing. */ }
+          state.selectedAccountTab = name;
+          if (persist !== false) saveAccountTabPreference(name);
           if (name === "bot") requestAnimationFrame(function () { drawBotChart(state.botDashboard?.server?.activityByDate || {}); });
         }
+
+        state.selectAccountTab = selectTab;
 
         tabs.forEach(function (tab) {
           tab.addEventListener("click", function () {
             if (tab.dataset.accountTab === "bot" && tab.dataset.locked === "true") return;
-            selectTab(tab.dataset.accountTab);
+            selectTab(tab.dataset.accountTab, true);
           });
         });
         var requestedTab = new URLSearchParams(window.location.search || "").get("tab"), storedTab = "";
         try { storedTab = window.localStorage.getItem("rblxtools-account-tab") || ""; } catch (_error) { storedTab = ""; }
-        selectTab(["settings", "billing", "referrals"].includes(requestedTab) ? requestedTab : ["settings", "billing", "referrals"].includes(storedTab) ? storedTab : "settings");
+        selectTab(["settings", "billing", "referrals"].includes(requestedTab) ? requestedTab : ["settings", "billing", "referrals"].includes(storedTab) ? storedTab : "settings", false);
       }
 
       setupAccountTabs();

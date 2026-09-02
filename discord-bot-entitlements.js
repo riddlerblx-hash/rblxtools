@@ -12,7 +12,7 @@ const BOT_COMMANDS = ["clothing", "ugc", "media", "audio", "animations", "robux"
 let writeQueue = Promise.resolve();
 
 function emptyStore() {
-  return { unlimitedByAppUserId: {}, useCreditsByAppUserId: {}, processedUseCheckoutIds: {}, claimCodesByCode: {}, serversByGuildId: {}, dashboardDraftsByAppUserId: {} };
+  return { unlimitedByAppUserId: {}, useCreditsByAppUserId: {}, processedUseCheckoutIds: {}, claimCodesByCode: {}, serversByGuildId: {}, dashboardDraftsByAppUserId: {}, accountOverviewPreferencesByAppUserId: {} };
 }
 
 function normalizeStore(parsed) {
@@ -24,6 +24,7 @@ function normalizeStore(parsed) {
     claimCodesByCode: source.claimCodesByCode && typeof source.claimCodesByCode === "object" ? source.claimCodesByCode : {},
     serversByGuildId: source.serversByGuildId && typeof source.serversByGuildId === "object" ? source.serversByGuildId : {},
     dashboardDraftsByAppUserId: source.dashboardDraftsByAppUserId && typeof source.dashboardDraftsByAppUserId === "object" ? source.dashboardDraftsByAppUserId : {},
+    accountOverviewPreferencesByAppUserId: source.accountOverviewPreferencesByAppUserId && typeof source.accountOverviewPreferencesByAppUserId === "object" ? source.accountOverviewPreferencesByAppUserId : {},
   };
 }
 
@@ -108,6 +109,9 @@ async function grantPurchasedUses(session) {
 }
 async function getPurchasedUses(appUserId) { const userId = String(appUserId || "").trim(); return userId ? purchasedUses(await readStore(), userId) : 0; }
 async function getBotDashboard(appUserId) { return buildDashboard(await readStore(), appUserId); }
+function accountOverviewTab(value) { return ["settings", "billing", "referrals", "bot"].includes(String(value || "").trim()) ? String(value).trim() : "settings"; }
+async function getAccountOverviewPreference(appUserId) { const userId = String(appUserId || "").trim(); if (!userId) return { selectedTab: "settings" }; const value = (await readStore()).accountOverviewPreferencesByAppUserId[userId]; return { selectedTab: accountOverviewTab(value?.selectedTab) }; }
+async function setAccountOverviewPreference({ appUserId, selectedTab }) { const userId = String(appUserId || "").trim(); if (!userId) { const error = new Error("An account is required."); error.statusCode = 401; throw error; } return updateStore((store) => { store.accountOverviewPreferencesByAppUserId[userId] = { selectedTab: accountOverviewTab(selectedTab), updatedAt: new Date().toISOString() }; return { selectedTab: store.accountOverviewPreferencesByAppUserId[userId].selectedTab }; }); }
 
 async function createServerClaimCode(appUserId) {
   const userId = String(appUserId || "").trim();
@@ -187,4 +191,4 @@ async function consumeDiscordServerUse({ guildId, discordUserId, discordRoleIds,
   });
 }
 
-module.exports = { claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getPurchasedUses, getUnlimitedSubscription, grantPurchasedUses, isUnlimitedActive, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, resetMemberDailyUse, unclaimServer };
+module.exports = { claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getAccountOverviewPreference, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getPurchasedUses, getUnlimitedSubscription, grantPurchasedUses, isUnlimitedActive, setAccountOverviewPreference, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, resetMemberDailyUse, unclaimServer };
