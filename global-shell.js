@@ -1369,19 +1369,9 @@
     );
   }
 
-  function buildMobileBannerAdMarkup(id, className) {
-    return (
-      '<section id="' + id + '" class="rblx-mobile-banner-ad ' + className + '" data-rblx-mobile-banner-ad aria-label="Advertisement">' +
-        '<span class="rblx-mobile-banner-ad-label">Advertisement</span>' +
-        '<div class="rblx-mobile-banner-ad-slot" data-rblx-mobile-banner-ad-slot></div>' +
-      '</section>'
-    );
-  }
-
   function buildFooterMarkup() {
     var year = new Date().getFullYear();
     return (
-      buildMobileBannerAdMarkup("rblxMobileFooterBannerAd", "rblx-mobile-footer-banner-ad") +
       '<footer class="rblx-shell-footer">' +
         '<div class="rblx-shell-footer-top">' +
           '<section class="rblx-shell-footer-brand">' +
@@ -1630,7 +1620,6 @@
             buildAuthMarkup() +
           "</div>" +
         "</header>" +
-        buildMobileBannerAdMarkup("rblxMobileHeaderBannerAd", "rblx-mobile-header-banner-ad") +
         '<div class="rblx-shell-body">' +
           '<aside class="rblx-shell-left">' +
             '<div class="rblx-shell-left-inner">' +
@@ -4192,63 +4181,6 @@
     return { banner: banner, slot: slot };
   }
 
-  function mountMobileBannerAd(slot) {
-    if (!slot || slot.dataset.rblxMobileBannerLoaded === "true") return;
-    slot.dataset.rblxMobileBannerLoaded = "true";
-
-    // Let the provider run from a normal same-site document rather than about:srcdoc.
-    var adFrame = document.createElement("iframe");
-    adFrame.className = "rblx-mobile-banner-ad-frame";
-    adFrame.title = "Advertisement";
-    adFrame.width = "320";
-    adFrame.height = "50";
-    adFrame.scrolling = "no";
-    adFrame.setAttribute("frameborder", "0");
-    adFrame.src = "/mobile-ad-banner.html";
-    slot.appendChild(adFrame);
-  }
-
-  function createMobileBannerAd(id, className) {
-    var wrapper = document.createElement("div");
-    wrapper.innerHTML = buildMobileBannerAdMarkup(id, className);
-    var banner = wrapper.firstChild;
-    return { banner: banner, slot: banner.querySelector("[data-rblx-mobile-banner-ad-slot]") };
-  }
-
-  function initSharedMobileBannerAds() {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initSharedMobileBannerAds, { once: true });
-      return;
-    }
-
-    var currentPath = String(window.location.pathname || "/").replace(/\/+$/g, "").replace(/^\//, "").replace(/\.html$/i, "");
-    if ((currentPath === "" || currentPath === "index") && !document.getElementById("rblxMobileHomeToolsBannerAd")) {
-      var toolsSection = document.getElementById("tools-section");
-      if (toolsSection && toolsSection.parentNode) {
-        var homeAd = createMobileBannerAd("rblxMobileHomeToolsBannerAd", "rblx-mobile-home-banner-ad");
-        toolsSection.parentNode.insertBefore(homeAd.banner, toolsSection);
-      }
-    }
-
-    var toolPages = ["template-downloader", "template-background-changer", "ugc-downloader", "media-downloader", "audio-downloader", "robux-calculator", "animation-spoofer", "ai-thumbnail-studio", "ai-clothing-studio", "game-launcher"];
-    if (toolPages.indexOf(currentPath) !== -1 && !document.getElementById("rblxMobileToolPromoBannerAd")) {
-      var showcaseCard = document.querySelector(".showcase-card");
-      if (showcaseCard && showcaseCard.parentNode) {
-        var toolAd = createMobileBannerAd("rblxMobileToolPromoBannerAd", "rblx-mobile-tool-banner-ad");
-        showcaseCard.parentNode.insertBefore(toolAd.banner, showcaseCard);
-      } else if (!window.__rblxMobileToolBannerRetryQueued) {
-        // Some tool pages build the showcase after the shared shell has initialized.
-        window.__rblxMobileToolBannerRetryQueued = true;
-        window.setTimeout(function () {
-          window.__rblxMobileToolBannerRetryQueued = false;
-          initSharedMobileBannerAds();
-        }, 300);
-      }
-    }
-
-    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-mobile-banner-ad-slot]"), mountMobileBannerAd);
-  }
-
   function initSharedToolBannerAd() {
     if (document.readyState === "loading") {
       if (!window.__rblxToolBannerQueued) {
@@ -5069,7 +5001,6 @@
     initSharedToolBannerAd();
     initSharedToolHeaderBannerAd();
     initSharedHomeBannerAds();
-    initSharedMobileBannerAds();
     initSharedToolShowcase();
     initSharedToolStats();
     document.body.classList.add("rblx-shell-ready");
