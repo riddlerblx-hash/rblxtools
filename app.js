@@ -40,6 +40,7 @@ const {
   getBotDashboard,
   getDiscordServerAccess,
   getDiscordServerCommandPolicy,
+  getDiscordServerUsageSummary,
   getUnlimitedSubscription,
   getPurchasedUses,
   grantComplimentaryUnlimited,
@@ -7942,6 +7943,15 @@ app.post("/discord-bot/service/command-policy", async (req, res) => {
     return res.json({ ok: true, ...(await getDiscordServerCommandPolicy({ guildId: req.body?.guildId, commandName: req.body?.commandName })) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not check this server command." });
+  }
+});
+
+app.post("/discord-bot/service/usage-summary", async (req, res) => {
+  try {
+    await requireDiscordToolsServiceIdentity(req);
+    return res.json({ ok: true, usage: await getDiscordServerUsageSummary({ guildId: req.body?.guildId, discordUserId: req.get("X-RBLXTools-Discord-User-Id"), discordRoleIds: req.body?.discordRoleIds }) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not check this server's usage." });
   }
 });
 

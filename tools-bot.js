@@ -68,6 +68,7 @@ const commands = [
     .setDescription("Link your RBLXTools account with a one-time website code.")
     .addStringOption((option) => option.setName("code").setDescription("Code generated in RBLXTools Account Overview").setRequired(true)),
   new SlashCommandBuilder().setName("status").setDescription("Check your RBLXTools Discord link and plan."),
+  new SlashCommandBuilder().setName("check").setDescription("Check this server's RBLXTools Bot usage.").addSubcommand((subcommand) => subcommand.setName("usage").setDescription("Show remaining shared uses and your active limits.")),
   new SlashCommandBuilder().setName("tools").setDescription("View the RBLXTools Discord tools available in this server."),
   new SlashCommandBuilder()
     .setName("claim-server")
@@ -307,7 +308,7 @@ function getInteractionRoleIds(interaction) {
 
 async function handleInteraction(interaction) {
   if (!interaction.isChatInputCommand()) return;
-  const isPrivateCommand = ["link", "status"].includes(interaction.commandName);
+  const isPrivateCommand = ["link", "status", "check"].includes(interaction.commandName);
   await interaction.deferReply({ ephemeral: isPrivateCommand });
 
   if (toolDefinitions[interaction.commandName]) {
@@ -361,6 +362,19 @@ async function handleInteraction(interaction) {
     if (requiresPro) {
       const member = await requirePro(interaction);
       if (!member) return;
+    }
+
+    if (interaction.commandName === "check") {
+      if (!interaction.inGuild()) {
+        await interaction.editReply("Run `/check usage` in a server that has been claimed in the RBLXTools Bot dashboard.");
+        return;
+      }
+      const payload = await callBotService("/discord-bot/service/usage-summary", interaction, { guildId: interaction.guildId, discordRoleIds: getInteractionRoleIds(interaction) });
+      const usage = payload.usage || {};
+      const shared = usage.mode === "unlimited" ? "Unlimited" : String(Number(usage.remainingUses || 0)) + " / " + String(Number(usage.totalUses || 0)) + " shared uses remaining";
+      const limitLine = (label, limit) => limit ? "\n" + label + ": **" + limit.used + " / " + limit.limit + "** this " + limit.period : "";
+      await interaction.editReply("**RBLXTools Bot usage**\nShared balance: **" + shared + "**" + limitLine("Your user limit", usage.userLimit) + limitLine("Your role limit", usage.roleLimit));
+      return;
     }
 
     if (interaction.commandName === "status") {
