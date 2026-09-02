@@ -4222,7 +4222,7 @@
       return;
     }
 
-    var toolPages = ["template-downloader", "template-background-changer", "ugc-downloader", "media-downloader", "audio-downloader", "robux-calculator", "animation-spoofer", "ai-thumbnail-studio", "ai-clothing-studio", "game-launcher"];
+    var toolPages = ["template-downloader", "template-background-changer", "ugc-downloader", "media-downloader", "audio-downloader", "robux-calculator", "animation-spoofer", "ai-clothing-studio", "game-launcher"];
     var currentPath = String(window.location.pathname || "/").replace(/\/+$/g, "").replace(/^\//, "").replace(/\.html$/i, "");
     if (toolPages.indexOf(currentPath) === -1 || document.getElementById("rblxToolHeaderBannerAd")) return;
 
