@@ -20,6 +20,7 @@ const supabaseUrl = String(process.env.SUPABASE_URL || "").trim().replace(/\/$/,
 const supabaseKey = String(process.env.SUPABASE_KEY || "").trim();
 const authUsersTable = String(process.env.AUTH_USERS_TABLE || "member_accounts").trim();
 const apiBaseUrl = String(process.env.RBLXTOOLS_TOOLS_API_BASE_URL || process.env.APP_BASE_URL || "https://www.rblxtools.net").trim().replace(/\/$/, "");
+const canonicalApiBaseUrl = "https://www.rblxtools.net";
 const discordToolsServiceSecret = String(process.env.DISCORD_TOOLS_SERVICE_SECRET || "").trim();
 const PRO_ONLY_GUILD_ID = "1273360593318838382";
 const MAX_DISCORD_DOWNLOAD_BYTES = 8 * 1024 * 1024;
@@ -267,14 +268,21 @@ async function registerCommands() {
 }
 
 async function callBotService(pathname, interaction, body) {
-  const response = await fetch(apiBaseUrl + pathname, {
-    method: "POST",
-    headers: Object.assign({ "Content-Type": "application/json" }, getToolRequestHeaders(interaction.user.id, interaction.guildId)),
-    body: JSON.stringify(body || {}),
-  });
-  const responseText = await response.text();
-  let payload = null;
-  try { payload = responseText ? JSON.parse(responseText) : null; } catch (_error) {}
+  async function request(baseUrl) {
+    const response = await fetch(baseUrl + pathname, {
+      method: "POST",
+      headers: Object.assign({ "Content-Type": "application/json" }, getToolRequestHeaders(interaction.user.id, interaction.guildId)),
+      body: JSON.stringify(body || {}),
+    });
+    const responseText = await response.text();
+    let payload = null;
+    try { payload = responseText ? JSON.parse(responseText) : null; } catch (_error) {}
+    return { response, payload };
+  }
+
+  let { response, payload } = await request(apiBaseUrl);
+  // A custom API base can lag behind the public website. Retry the canonical live app on a missing route.
+  if (response.status === 404 && apiBaseUrl !== canonicalApiBaseUrl) ({ response, payload } = await request(canonicalApiBaseUrl));
   if (!response.ok) throw new Error(payload?.error || "RBLXTools website API returned HTTP " + response.status + ". Deploy the matching website backend, then retry.");
   return payload || {};
 }
