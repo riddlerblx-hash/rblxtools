@@ -323,7 +323,7 @@
   function syncMemberAdVisibility(state) {
     var hideAds = isProMember(state);
     document.body.classList.toggle("rblx-pro-ad-free", hideAds);
-    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad], [data-rblx-promo-box-ad], [data-rblx-modal-ad], [data-rblx-banner-ad]"), function (host) {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad], [data-rblx-promo-box-ad], [data-rblx-modal-ad], [data-rblx-vertical-ad], [data-rblx-banner-ad]"), function (host) {
       host.hidden = hideAds;
       if (!hideAds) return;
       // Remove any ad that was mounted before the account state was resolved.
@@ -340,6 +340,7 @@
     });
     if (!hideAds) {
       mountDesktopShellBoxAds();
+      mountDesktopVerticalAds();
     }
   }
 
@@ -4674,7 +4675,7 @@
     adFrame.height = "600";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};</script><script src="https://www.highrevenueformat.com/c56a103ad60efdb3686d500b49552f97/invoke.js"></script></body></html>';
+    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};</script><script src="https://professionalsusceptible.com/c56a103ad60efdb3686d500b49552f97/invoke.js"></script></body></html>';
     host.appendChild(adFrame);
     host.dataset.rblxVerticalAdMounted = "true";
   }
@@ -4682,6 +4683,11 @@
   function mountModalVerticalAds(overlay) {
     if (!overlay || !shouldShowMemberAds() || !window.matchMedia("(min-width: 1280px) and (min-height: 820px)").matches) return;
     Array.prototype.forEach.call(overlay.querySelectorAll("[data-rblx-modal-ad]"), mountVerticalAd);
+  }
+
+  function mountDesktopVerticalAds() {
+    if (!shouldShowMemberAds() || !window.matchMedia("(min-width: 1180px)").matches) return;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-vertical-ad]"), mountVerticalAd);
   }
 
   function initMembershipPromoRotation() {
@@ -5008,7 +5014,9 @@
     initMembershipPromoRotation();
     initSidebarPlanRotation();
     mountDesktopShellBoxAds();
+    mountDesktopVerticalAds();
     window.addEventListener("resize", mountDesktopShellBoxAds, { passive: true });
+    window.addEventListener("resize", mountDesktopVerticalAds, { passive: true });
     initAnimationMembershipGate();
     window.addEventListener("rblxtools-membership-updated", function (event) {
       var detail = event && event.detail ? event.detail : {};
