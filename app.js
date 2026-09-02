@@ -226,6 +226,41 @@ async function requestMeshy(pathname, options = {}) {
   return payload || {};
 }
 
+async function prepareRobloxGLBDownload(glbBuffer, maxTriangles, maxTextureSize) {
+  const { NodeIO } = require("@gltf-transform/core");
+  const io = new NodeIO();
+  const document = await io.readBinary(glbBuffer);
+  let largestMeshTriangles = 0;
+  for (const mesh of document.getRoot().listMeshes()) {
+    let meshTriangles = 0;
+    for (const primitive of mesh.listPrimitives()) {
+      const indices = primitive.getIndices();
+      const positions = primitive.getAttribute("POSITION");
+      const pointCount = indices ? indices.getCount() : positions ? positions.getCount() : 0;
+      meshTriangles += Math.floor(pointCount / 3);
+    }
+    largestMeshTriangles = Math.max(largestMeshTriangles, meshTriangles);
+  }
+  if (largestMeshTriangles > maxTriangles) {
+    const error = new Error(`This model has ${largestMeshTriangles.toLocaleString()} triangles in one mesh, above the Roblox ${maxTriangles.toLocaleString()} triangle limit. Generate another version before downloading.`);
+    error.statusCode = 422;
+    throw error;
+  }
+  const sharp = getSharp();
+  for (const texture of document.getRoot().listTextures()) {
+    const image = texture.getImage();
+    if (!image) continue;
+    const metadata = await sharp(image).metadata();
+    if ((metadata.width || 0) <= maxTextureSize && (metadata.height || 0) <= maxTextureSize) continue;
+    const resized = await sharp(image)
+      .resize({ width: maxTextureSize, height: maxTextureSize, fit: "inside", withoutEnlargement: true })
+      .png()
+      .toBuffer();
+    texture.setImage(resized).setMimeType("image/png");
+  }
+  return { buffer: Buffer.from(await io.writeBinary(document)), largestMeshTriangles };
+}
+
 function storeUGCSourceImage(dataUrl) {
   const match = String(dataUrl || "").trim().match(/^data:(image\/(?:png|jpeg|webp));base64,([a-z0-9+/=]+)$/i);
   if (!match) {
@@ -6502,12 +6537,16 @@ app.post("/ai/ugc/preview", async (req, res) => {
     const prompt = cleanText(req.body?.prompt, 800);
     const sourceImageUrl = req.body?.imageDataUrl ? storeUGCSourceImage(req.body.imageDataUrl) : "";
     if (!prompt && !sourceImageUrl) return res.status(400).json({ error: "Describe the UGC item or add a reference image." });
-    const modelType = String(req.body?.modelType || "standard") === "smart-topology" ? "smart-topology" : "standard";
-    const targetPolycount = Math.max(500, Math.min(200000, Number.parseInt(req.body?.targetPolycount, 10) || 30000));
+    const assetType = String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc";
+    const isUgcAsset = assetType === "ugc";
+    const modelType = isUgcAsset ? "smart-topology" : "standard";
+    const maxTriangles = isUgcAsset ? 4000 : 10000;
+    const targetPolycount = Math.max(100, Math.min(maxTriangles, Number.parseInt(req.body?.targetPolycount, 10) || maxTriangles));
+    const textureResolution = ["2k", "4k"].includes(String(req.body?.textureResolution || "")) ? String(req.body.textureResolution) : "2k";
     const task = sourceImageUrl
-      ? await requestMeshy("/v1/image-to-3d", { method: "POST", body: { image_url: sourceImageUrl, target_formats: ["glb"], alpha_thumbnail: true } })
+      ? await requestMeshy("/v1/image-to-3d", { method: "POST", body: { image_url: sourceImageUrl, model_type: modelType, ai_model: isUgcAsset ? "meshy-t2" : "latest", should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: Boolean(req.body?.enablePbr), target_formats: ["glb"], alpha_thumbnail: true } })
       : await requestMeshy("/v2/text-to-3d", { method: "POST", body: { mode: "preview", prompt, model_type: modelType, ai_model: "latest", should_remesh: modelType === "standard", target_polycount: targetPolycount, target_formats: ["glb"], alpha_thumbnail: true, moderation: true } });
-    return res.json({ ok: true, taskId: task.result || task.id, taskType: sourceImageUrl ? "image" : "text" });
+    return res.json({ ok: true, taskId: task.result || task.id, taskType: sourceImageUrl ? "image" : "text", assetType, targetPolycount, textureResolution });
   } catch (error) {
     console.error("POST /ai/ugc/preview failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not start the UGC preview." });
@@ -6518,7 +6557,8 @@ app.post("/ai/ugc/refine", async (req, res) => {
   try {
     await requireAdminUser(req);
     const previewTaskId = cleanMeshyTaskId(req.body?.previewTaskId);
-    const textureResolution = ["1k", "2k", "4k"].includes(String(req.body?.textureResolution || "")) ? String(req.body.textureResolution) : "2k";
+    const assetType = String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc";
+    const textureResolution = ["2k", "4k"].includes(String(req.body?.textureResolution || "")) ? String(req.body.textureResolution) : "2k";
     const task = await requestMeshy("/v2/text-to-3d", {
       method: "POST",
       body: { mode: "refine", preview_task_id: previewTaskId, enable_pbr: Boolean(req.body?.enablePbr), texture_resolution: textureResolution, target_formats: ["glb"], alpha_thumbnail: true },
@@ -6555,6 +6595,31 @@ app.get("/ai/ugc/source/:sourceId", (req, res) => {
   res.setHeader("Cache-Control", "private, max-age=3600");
   res.type(source.type);
   return res.send(source.buffer);
+});
+
+app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    const taskType = String(req.query.type || "text") === "image" ? "image" : "text";
+    const assetType = String(req.query.assetType || "ugc") === "game" ? "game" : "ugc";
+    const task = await requestMeshy((taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/") + encodeURIComponent(taskId));
+    if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) {
+      return res.status(409).json({ error: "The GLB is not ready to download yet." });
+    }
+    const modelResponse = await fetch(task.model_urls.glb);
+    if (!modelResponse.ok) throw new Error("Could not retrieve the finished GLB.");
+    const modelBuffer = Buffer.from(await modelResponse.arrayBuffer());
+    const limit = assetType === "ugc" ? 4000 : 10000;
+    const prepared = await prepareRobloxGLBDownload(modelBuffer, limit, assetType === "ugc" ? 1024 : 4096);
+    res.setHeader("Content-Type", "model/gltf-binary");
+    res.setHeader("Content-Disposition", `attachment; filename="rblxtools-${assetType}-${taskId}.glb"`);
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(prepared.buffer);
+  } catch (error) {
+    console.error("GET /ai/ugc/tasks/download failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not prepare the Roblox-safe GLB." });
+  }
 });
 
 // Fast page gate: avoids a live Stripe refresh when a tool only needs identity and entitlements.
