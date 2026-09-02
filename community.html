@@ -585,7 +585,7 @@
       var cachedUser = null; try { cachedUser = JSON.parse(localStorage.getItem('rblxtools_auth_user') || 'null'); } catch (_error) {}
       if (!rail || !window.matchMedia('(min-width: 1320px)').matches || document.body.classList.contains('rblx-pro-ad-free') || String(cachedUser && cachedUser.plan || '').toLowerCase() === 'pro') return;
       var frame = document.createElement('iframe'); frame.title = 'Advertisement'; frame.width = '160'; frame.height = '600'; frame.scrolling = 'no'; frame.setAttribute('frameborder', '0');
-      frame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>window.atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};<\/script><script src="https://www.highrevenueformat.com/c56a103ad60efdb3686d500b49552f97/invoke.js"><\/script></body></html>';
+      frame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};<\/script><script src="https://www.highrevenueformat.com/c56a103ad60efdb3686d500b49552f97/invoke.js"><\/script></body></html>';
       rail.appendChild(frame);
     }());
   </script>

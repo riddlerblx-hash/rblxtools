@@ -4092,6 +4092,17 @@ body.rblx-pro-ad-free [data-rblx-banner-ad] { display: none !important; }
     grid-template-rows: var(--shell-header-height) auto minmax(0, 1fr);
   }
 
+  /* The fixed header no longer participates in auto-placement, so reserve its row explicitly. */
+  body.rblx-mobile-shell .rblx-mobile-header-banner-ad {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  body.rblx-mobile-shell .rblx-shell-body {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
   body.rblx-mobile-shell .rblx-mobile-banner-ad {
     display: flex;
     width: min(100% - 28px, 344px);
@@ -4132,9 +4143,7 @@ body.rblx-pro-ad-free [data-rblx-banner-ad] { display: none !important; }
     margin-bottom: 0;
   }
 
-  body.rblx-mobile-shell .rblx-shell-body {
-    padding: 0 12px;
-  }
+  body.rblx-mobile-shell .rblx-shell-body { padding: 0 12px; }
 
   body.rblx-mobile-shell .rblx-mobile-home-banner-ad,
   body.rblx-mobile-shell .rblx-mobile-tool-banner-ad {
