@@ -457,7 +457,7 @@
           buildInlineBannerAdMarkup("membership-top") +
           '<h3 id="rblxShellAnimationGateTitle">Animations is available with <span class="rblx-shell-gate-plus">Plus</span> or <span class="rblx-shell-gate-pro">Pro</span>.</h3>' +
           '<p>Choose a membership to unlock the animation tool and the creator benefits that come with it.</p>' +
-          '<div class="rblx-shell-gate-benefits"><section><strong>Plus</strong><span>Animation Studio</span><span>Custom Chat Tag</span><span>Bulk Downloads (1-5)</span><span>Much More To Offer</span></section><section><strong>Pro</strong><span>Everything in Plus</span><span>Custom Chat Tag</span><span>Premium Giveaways</span><span>Much More To Offer</span></section></div>' +
+          '<div class="rblx-shell-gate-benefits"><section><strong>Plus</strong><span>Animation Studio</span><span>Texture Baker</span><span>Bulk Downloads (1-5)</span><span>Much More</span></section><section><strong>Pro</strong><span>Everything from Plus</span><span>Cool AI Features</span><span>No Annoying Ads</span><span>RBLXTools Discord Bot Access</span><span>Bulk Downloads (5-10)</span><span>Much More to Offer</span></section></div>' +
           '<div class="rblx-shell-membership-gate-actions"><button class="rblx-shell-membership-gate-cancel" type="button" data-rblx-animation-gate-cancel="true">Cancel</button><a class="rblx-shell-membership-gate-button" href="./subscriptions">View Plans</a></div>' +
           buildInlineBannerAdMarkup("membership-bottom") +
           '</div>' +
@@ -480,6 +480,7 @@
       gate.classList.add("is-open");
       gate.setAttribute("aria-hidden", "false");
       mountModalVerticalAds(gate);
+      mountInlineBannerAds(gate);
     }
 
     var cancelButton = gate.querySelector("[data-rblx-animation-gate-cancel]");
@@ -2248,6 +2249,7 @@
     shellState.authModal.classList.add("is-open");
     document.body.classList.add("rblx-shell-modal-open");
     mountModalVerticalAds(shellState.authOverlay);
+    mountInlineBannerAds(shellState.authOverlay);
     if (shellState.authEmail && !shellState.authEmail.value) {
       var cachedUser = getCachedAuthUser();
       shellState.authEmail.value = String(cachedUser && cachedUser.email || "").trim();
@@ -2556,6 +2558,7 @@
     toggleSupportTargetField();
     setSupportStatus("", "");
     shellState.supportOverlay.classList.add("is-open");
+    mountInlineBannerAds(shellState.supportOverlay);
     shellState.supportOverlay.setAttribute("aria-hidden", "false");
   }
 
@@ -3438,6 +3441,7 @@
     shellState.checkoutSuccessOverlay.classList.add("is-open");
     shellState.checkoutSuccessOverlay.setAttribute("aria-hidden", "false");
     shellState.checkoutSuccessModal.classList.add("is-open");
+    mountInlineBannerAds(shellState.checkoutSuccessOverlay);
     clearCheckoutSuccessTimer();
     shellState.checkoutSuccessTimer = setInterval(function () {
       shellState.checkoutSuccessCountdown -= 1;
@@ -4914,6 +4918,7 @@
     resetRewardFeedback();
     overlay.classList.add("is-open"); overlay.setAttribute("aria-hidden", "false"); modal.classList.add("is-open"); document.body.classList.add("rblx-shell-modal-open");
     mountModalVerticalAds(overlay);
+    mountInlineBannerAds(overlay);
     maybeShowRewardFeedback(overlay);
     // The server sends the remaining delay so an inaccurate device clock cannot stretch five seconds into minutes.
     var unlockAt = Date.now() + Math.max(0, Number(reward.claimDelayMs) || 0);
