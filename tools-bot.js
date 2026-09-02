@@ -8,6 +8,7 @@ const {
   Routes,
   SlashCommandBuilder,
   AttachmentBuilder,
+  EmbedBuilder,
   ChannelType,
   PermissionFlagsBits,
 } = require("discord.js");
@@ -34,7 +35,7 @@ const MAX_DISCORD_DOWNLOAD_BYTES = 8 * 1024 * 1024;
 
 const toolDefinitions = {
   clothing: { label: "Clothing", description: "Download a classic Roblox shirt or pants template." },
-  ugc: { label: "UGC", description: "Download a Roblox UGC item as OBJ plus texture." },
+  ugc: { label: "UGC", description: "Download a Roblox UGC item as a textured GLB." },
   media: { label: "Media", description: "Download Roblox media for an asset ID." },
   audio: { label: "Audio", description: "Download a Roblox audio asset." },
   animations: { label: "Animations", description: "Download a Roblox animation asset." },
@@ -179,6 +180,60 @@ async function getDownloadAttachment(url, fallbackName, discordUserId, guildId) 
   return new AttachmentBuilder(bytes, { name: getAttachmentName(response, fallbackName) });
 }
 
+async function getToolDownloadText(url, discordUserId, guildId) {
+  const response = await fetch(url, { headers: getToolRequestHeaders(discordUserId, guildId) });
+  if (!response.ok) {
+    let message = "The RBLXTools download could not be prepared.";
+    try {
+      const payload = await response.json();
+      if (payload && payload.error) message = payload.error;
+    } catch (_error) {}
+    throw new Error(message);
+  }
+  return response.text();
+}
+
+async function postToolDownloadAttachment(url, body, fallbackName, discordUserId, guildId) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: Object.assign({ "Content-Type": "application/json" }, getToolRequestHeaders(discordUserId, guildId)),
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    let message = "The RBLXTools download could not be prepared.";
+    try {
+      const payload = await response.json();
+      if (payload && payload.error) message = payload.error;
+    } catch (_error) {}
+    throw new Error(message);
+  }
+
+  const declaredLength = Number(response.headers.get("content-length") || 0);
+  if (declaredLength > MAX_DISCORD_DOWNLOAD_BYTES) throw new Error("This textured GLB is too large for Discord. Download it from the RBLXTools website instead.");
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (!bytes.length) throw new Error("RBLXTools returned an empty textured GLB.");
+  if (bytes.length > MAX_DISCORD_DOWNLOAD_BYTES) throw new Error("This textured GLB is too large for Discord. Download it from the RBLXTools website instead.");
+  return new AttachmentBuilder(bytes, { name: getAttachmentName(response, fallbackName) });
+}
+
+async function getRobloxCatalogThumbnail(assetId) {
+  try {
+    const url = new URL("https://thumbnails.roblox.com/v1/assets");
+    url.searchParams.set("assetIds", String(assetId));
+    url.searchParams.set("returnPolicy", "PlaceHolder");
+    url.searchParams.set("size", "420x420");
+    url.searchParams.set("format", "Png");
+    url.searchParams.set("isCircular", "false");
+    const response = await fetch(url);
+    if (!response.ok) return "";
+    const payload = await response.json();
+    const imageUrl = payload && Array.isArray(payload.data) && payload.data[0] && payload.data[0].imageUrl;
+    return typeof imageUrl === "string" && /^https:\/\//i.test(imageUrl) ? imageUrl : "";
+  } catch (_error) {
+    return "";
+  }
+}
+
 function normalizeMediaType(value) {
   const type = String(value || "asset").trim().toLowerCase().replace(/[^a-z]/g, "");
   const allowed = new Set(["asset", "game", "badge", "developerproduct", "gamepass", "group", "bundle", "outfit", "user"]);
@@ -249,11 +304,27 @@ async function buildToolDownload(toolName, assetId, mediaType, discordUserId, gu
     return { content: "**Clothing template ready** for Roblox ID `" + assetId + "`.", files: [await getDownloadAttachment(buildToolUrl("/template", { id: assetId }), "roblox-template-" + assetId + ".png", discordUserId, guildId)] };
   }
   if (toolName === "ugc") {
-    const [model, texture] = await Promise.all([
-      getDownloadAttachment(buildToolUrl("/ugc-obj", { id: assetId, mode: "ugc" }), "rblxtools-ugc-" + assetId + ".obj", discordUserId, guildId),
-      getDownloadAttachment(buildToolUrl("/ugc-texture", { id: assetId }), "texture-" + assetId + ".png", discordUserId, guildId),
+    const [objText, thumbnailUrl] = await Promise.all([
+      getToolDownloadText(buildToolUrl("/ugc-obj", { id: assetId, mode: "ugc" }), discordUserId, guildId),
+      getRobloxCatalogThumbnail(assetId),
     ]);
-    return { content: "**UGC package ready** for Roblox ID `" + assetId + "`. Keep the OBJ and texture together when importing.", files: [model, texture] };
+    const model = await postToolDownloadAttachment(
+      buildToolUrl("/ugc-bake-glb"),
+      { assetId, objText, fileName: "rblxtools-ugc-" + assetId, displayName: "Discord UGC download" },
+      "rblxtools-ugc-" + assetId + "-textured.glb",
+      discordUserId,
+      guildId
+    );
+    const embed = new EmbedBuilder()
+      .setColor(0x4f8df7)
+      .setTitle("Roblox UGC " + assetId)
+      .setDescription("This UGC is textured. The attached GLB has its material and texture embedded.");
+    if (thumbnailUrl) embed.setImage(thumbnailUrl);
+    return {
+      content: "**Textured UGC GLB ready** for Roblox ID `" + assetId + "`.\nThis UGC is textured.",
+      files: [model],
+      embeds: [embed],
+    };
   }
   if (toolName === "media") {
     const kind = normalizeMediaType(mediaType);
@@ -272,6 +343,20 @@ async function registerCommands() {
   const rest = new REST({ version: "10" }).setToken(token);
   await rest.put(Routes.applicationCommands(clientId), { body: commands });
   console.log("[tools-bot] registered global commands");
+}
+
+async function registerGuildCommands(guildId) {
+  const rest = new REST({ version: "10" }).setToken(token);
+  await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
+  console.log("[tools-bot] registered commands for guild " + guildId);
+}
+
+async function syncGuildCommands(guild) {
+  try {
+    await registerGuildCommands(guild.id);
+  } catch (error) {
+    console.warn("[tools-bot] could not register commands for guild " + guild.id + ":", error.message || error);
+  }
 }
 
 async function claimGuild(interaction) {
@@ -436,7 +521,17 @@ async function main() {
   assertConfiguration();
   await registerCommands();
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-  client.once(Events.ClientReady, (readyClient) => { console.log("[tools-bot] ready as " + readyClient.user.tag); readyClient.guilds.cache.forEach((guild) => { syncAlertChannels(guild); }); });
+  client.once(Events.ClientReady, (readyClient) => {
+    console.log("[tools-bot] ready as " + readyClient.user.tag);
+    readyClient.guilds.cache.forEach((guild) => {
+      syncAlertChannels(guild);
+      syncGuildCommands(guild);
+    });
+  });
+  client.on(Events.GuildCreate, (guild) => {
+    syncAlertChannels(guild);
+    syncGuildCommands(guild);
+  });
   client.on(Events.InteractionCreate, handleInteraction);
   await client.login(token);
 }
