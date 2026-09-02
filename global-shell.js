@@ -4234,6 +4234,12 @@
 
     var showcaseCard = document.querySelector("#rblxShellPage .showcase-card");
     var toolPromo = document.querySelector("#rblxShellPage .plus-card");
+    var tutorialCard = toolPromo && toolPromo.previousElementSibling;
+    if (toolPromo && tutorialCard && tutorialCard.querySelector("video") && !document.getElementById("rblxMobileToolTutorialBannerAd")) {
+      var tutorialAd = createMobileBannerAd("rblxMobileToolTutorialBannerAd", "rblx-mobile-tool-tutorial-banner-ad");
+      toolPromo.parentNode.insertBefore(tutorialAd.banner, toolPromo);
+      mountMobileBannerAd(tutorialAd.slot);
+    }
     if (showcaseCard && toolPromo && !document.getElementById("rblxMobileToolPromoBannerAd")) {
       var toolAd = createMobileBannerAd("rblxMobileToolPromoBannerAd", "rblx-mobile-tool-promo-banner-ad");
       showcaseCard.parentNode.insertBefore(toolAd.banner, showcaseCard);
