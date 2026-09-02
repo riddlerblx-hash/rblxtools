@@ -42,6 +42,8 @@ const {
   getDiscordServerCommandPolicy,
   getUnlimitedSubscription,
   getPurchasedUses,
+  grantComplimentaryUnlimited,
+  grantComplimentaryUses,
   grantPurchasedUses,
   isUnlimitedActive,
   setAccountOverviewPreference,
@@ -7697,6 +7699,29 @@ app.post("/admin/grant-ai-tokens", async (req, res) => {
     return res.json({ ok: true, message: grantResult.amount + " AI tokens granted.", member: buildPublicUser(grantResult.user), amount: grantResult.amount, grantedBy: { id: adminUser.id, email: adminUser.email } });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not grant AI tokens." });
+  }
+});
+
+app.post("/admin/grant-discord-bot-access", async (req, res) => {
+  try {
+    const adminUser = await requireAdminUser(req);
+    const targetUser = await getAuthUserByIdentifier(req.body?.userId);
+    const note = cleanText(req.body?.note, 500);
+    const grantType = String(req.body?.grantType || "").trim().toLowerCase();
+    if (!targetUser) return res.status(404).json({ error: "No member account was found for that bot grant." });
+    if (!note) return res.status(400).json({ error: "A staff note is required before bot access can be granted." });
+    if (!["unlimited", "uses"].includes(grantType)) return res.status(400).json({ error: "Choose Unlimited Uses or Pay by usage." });
+
+    // This is an admin-only complimentary entitlement. Stripe remains the sole customer purchase path.
+    const result = grantType === "unlimited"
+      ? await grantComplimentaryUnlimited(targetUser.id)
+      : await grantComplimentaryUses({ appUserId: targetUser.id, uses: req.body?.uses });
+    const amount = grantType === "unlimited" ? "Unlimited Uses" : `${Number.parseInt(req.body?.uses, 10)} uses`;
+    await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: grantType === "unlimited" ? "discord_bot_unlimited_grant" : "discord_bot_uses_grant", reason: amount, note, adminUserId: adminUser.id, adminEmail: adminUser.email });
+    emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received complimentary Discord Bot " + amount + ".");
+    return res.json({ ok: true, message: grantType === "unlimited" ? "Complimentary Unlimited Uses granted." : "Complimentary Pay by usage credited: " + result + " total uses.", member: buildPublicUser(targetUser), totalUses: grantType === "uses" ? result : null });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not grant Discord Bot access." });
   }
 });
 

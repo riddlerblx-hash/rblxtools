@@ -102,6 +102,20 @@ async function setUnlimitedSubscription(subscription, appUserId) {
 }
 
 async function getUnlimitedSubscription(appUserId) { const userId = String(appUserId || "").trim(); return userId ? (await readStore()).unlimitedByAppUserId[userId] || null : null; }
+async function grantComplimentaryUnlimited(appUserId) {
+  const userId = String(appUserId || "").trim();
+  if (!userId) throw new Error("A RBLXTools account is required for the Unlimited grant.");
+  return updateStore((store) => {
+    const entry = { appUserId: userId, status: "active", source: "admin_complimentary", grantedAt: new Date().toISOString(), currentPeriodEndAt: null, cancelAtPeriodEnd: false, updatedAt: new Date().toISOString() };
+    store.unlimitedByAppUserId[userId] = entry;
+    return entry;
+  });
+}
+async function grantComplimentaryUses({ appUserId, uses }) {
+  const userId = String(appUserId || "").trim(); const amount = Number.parseInt(uses, 10);
+  if (!userId || !Number.isFinite(amount) || amount < 1 || amount > 50000) throw new Error("Choose a use amount from 1 to 50,000.");
+  return updateStore((store) => { store.useCreditsByAppUserId[userId] = purchasedUses(store, userId) + amount; return purchasedUses(store, userId); });
+}
 async function grantPurchasedUses(session) {
   const userId = String(session?.metadata?.appUserId || "").trim(); const sessionId = String(session?.id || "").trim(); const uses = Number.parseInt(session?.metadata?.discordBotUses, 10);
   if (!userId || !sessionId || !Number.isFinite(uses) || uses < 5 || uses > 50000 || uses % 5 !== 0) throw new Error("Discord bot use checkout metadata is invalid.");
@@ -191,4 +205,4 @@ async function consumeDiscordServerUse({ guildId, discordUserId, discordRoleIds,
   });
 }
 
-module.exports = { claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getAccountOverviewPreference, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getPurchasedUses, getUnlimitedSubscription, grantPurchasedUses, isUnlimitedActive, setAccountOverviewPreference, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, resetMemberDailyUse, unclaimServer };
+module.exports = { claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getAccountOverviewPreference, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getPurchasedUses, getUnlimitedSubscription, grantComplimentaryUnlimited, grantComplimentaryUses, grantPurchasedUses, isUnlimitedActive, setAccountOverviewPreference, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, resetMemberDailyUse, unclaimServer };
