@@ -7849,6 +7849,7 @@ app.get("/discord-bot/dashboard", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
     const dashboard = applyDashboardAdminAccess(await getBotDashboard(user.id), user);
+    dashboard.discordLinked = Boolean(await getDiscordLinkByAppUserId(user.id));
     const inviteUrl = /^\d+$/.test(DISCORD_TOOLS_BOT_CLIENT_ID)
       ? `https://discord.com/oauth2/authorize?client_id=${DISCORD_TOOLS_BOT_CLIENT_ID}&scope=bot%20applications.commands&permissions=35856`
       : null;
