@@ -290,7 +290,12 @@
     var userAgentData = navigator.userAgentData;
     if (userAgentData && userAgentData.mobile) return true;
     if (/Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent || "")) return true;
-    return Boolean(window.matchMedia && window.matchMedia("(max-width: 1024px) and (any-pointer: coarse) and (any-hover: none)").matches);
+    // Mobile browsers can request a desktop user agent or report mouse-like
+    // capabilities. Treat compact screens and small touch-only devices as mobile
+    // so a popunder is never loaded on a phone in desktop-site mode.
+    if (window.matchMedia && window.matchMedia("(max-width: 820px)").matches) return true;
+    var shortestScreenSide = Math.min(Number(window.screen && window.screen.width) || 0, Number(window.screen && window.screen.height) || 0);
+    return Boolean(navigator.maxTouchPoints > 0 && shortestScreenSide > 0 && shortestScreenSide <= 1024);
   }
 
   function ensureAdsterraPopunderSetup() {
@@ -4197,6 +4202,50 @@
     slot.appendChild(adFrame);
   }
 
+  function createMobileBannerAd(id, className) {
+    var banner = document.createElement("section");
+    banner.id = id;
+    banner.className = "rblx-mobile-banner-ad " + className;
+    banner.setAttribute("data-rblx-mobile-banner-ad", "");
+    banner.setAttribute("aria-label", "Advertisement");
+    banner.innerHTML = '<span class="rblx-banner-ad-label">Advertisement</span><div class="rblx-home-mobile-banner-ad-slot"></div>';
+    return { banner: banner, slot: banner.querySelector(".rblx-home-mobile-banner-ad-slot") };
+  }
+
+  function mountMobileBannerAd(slot) {
+    if (!shouldShowMemberAds()) return;
+    mountMobileHomeBannerAd(slot);
+  }
+
+  function initSharedMobileBannerAds() {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initSharedMobileBannerAds, { once: true });
+      return;
+    }
+
+    var header = document.querySelector(".rblx-shell-header");
+    if (header && !document.getElementById("rblxMobileHeaderBannerAd")) {
+      var headerAd = createMobileBannerAd("rblxMobileHeaderBannerAd", "rblx-mobile-header-banner-ad");
+      header.insertAdjacentElement("afterend", headerAd.banner);
+      mountMobileBannerAd(headerAd.slot);
+    }
+
+    var showcaseCard = document.querySelector("#rblxShellPage .showcase-card");
+    var toolPromo = document.querySelector("#rblxShellPage .plus-card");
+    if (showcaseCard && toolPromo && !document.getElementById("rblxMobileToolPromoBannerAd")) {
+      var toolAd = createMobileBannerAd("rblxMobileToolPromoBannerAd", "rblx-mobile-tool-promo-banner-ad");
+      showcaseCard.parentNode.insertBefore(toolAd.banner, showcaseCard);
+      mountMobileBannerAd(toolAd.slot);
+    }
+
+    var footer = document.querySelector(".rblx-shell-footer");
+    if (footer && !document.getElementById("rblxMobileFooterBannerAd")) {
+      var footerAd = createMobileBannerAd("rblxMobileFooterBannerAd", "rblx-mobile-footer-banner-ad");
+      footer.parentNode.insertBefore(footerAd.banner, footer);
+      mountMobileBannerAd(footerAd.slot);
+    }
+  }
+
   function initSharedToolBannerAd() {
     if (document.readyState === "loading") {
       if (!window.__rblxToolBannerQueued) {
@@ -5031,6 +5080,7 @@
     initSharedToolBannerAd();
     initSharedToolHeaderBannerAd();
     initSharedHomeBannerAds();
+    initSharedMobileBannerAds();
     initSharedToolShowcase();
     initSharedToolStats();
     document.body.classList.add("rblx-shell-ready");
