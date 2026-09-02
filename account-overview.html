@@ -1829,6 +1829,8 @@
       var API_BASE = window.location.origin;
       var TOKEN_KEY = "rblxtools_auth_token";
       var PROFILE_KEY = "rblxtools_profile_overview";
+      var ACCOUNT_SNAPSHOT_KEY = "rblxtools_account_overview_snapshot";
+      var ACCOUNT_SNAPSHOT_MAX_AGE = 5 * 60 * 1000;
       var BOT_ACCESS_CACHE_PREFIX = "rblxtools_bot_dashboard_access:";
       var LOGIN_PAGE_URL = "./login";
       var PLANS_PAGE_URL = "./subscriptions";
@@ -2092,6 +2094,37 @@
         return source;
       }
 
+      function readAccountSnapshot() {
+        try {
+          var parsed = JSON.parse(localStorage.getItem(ACCOUNT_SNAPSHOT_KEY) || "null");
+          if (!parsed || !parsed.user || Date.now() - Number(parsed.savedAt || 0) > ACCOUNT_SNAPSHOT_MAX_AGE) return null;
+          var cachedIdentity = JSON.parse(localStorage.getItem("rblxtools_auth_user") || localStorage.getItem("rblxtools_verified_session_snapshot") || "null");
+          var cachedUser = cachedIdentity && cachedIdentity.user ? cachedIdentity.user : cachedIdentity;
+          var snapshotUserId = String(parsed.user.id || parsed.user.userId || "");
+          var cachedUserId = String(cachedUser && (cachedUser.id || cachedUser.userId) || "");
+          if (!snapshotUserId || !cachedUserId || snapshotUserId !== cachedUserId) return null;
+          return parsed;
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      function writeAccountSnapshot(result) {
+        if (!result || !result.user) return;
+        try {
+          localStorage.setItem(ACCOUNT_SNAPSHOT_KEY, JSON.stringify({
+            savedAt: Date.now(),
+            user: result.user,
+            botDashboard: result.botDashboard || null,
+            botInviteUrl: result.botInviteUrl || ""
+          }));
+        } catch (_error) {}
+      }
+
+      function clearAccountSnapshot() {
+        try { localStorage.removeItem(ACCOUNT_SNAPSHOT_KEY); } catch (_error) {}
+      }
+
       function formatPlusExpiry(value) {
         if (!value) return "Not set";
         var date = new Date(value);
@@ -2275,6 +2308,7 @@
           dashboard.adminAccess = true;
         }
         state.botDashboard = dashboard;
+        if (state.user) writeAccountSnapshot({ user: state.user, botDashboard: dashboard, botInviteUrl: payload && payload.inviteUrl || "" });
         var unlocked = Boolean(dashboard.access);
         writeBotAccessCache(state.user && state.user.id, unlocked);
         setBotTabLocked(!unlocked);
@@ -2735,7 +2769,7 @@
 
       async function loadCurrentUser() {
         setGateVisible(false);
-        setStatus(els.acctMembershipStatus, "Loading account overview...", "");
+        if (!state.user) setStatus(els.acctMembershipStatus, "Loading account overview...", "");
 
           try {
             var result = await apiRequest("/auth/me", {
@@ -2743,6 +2777,7 @@
             });
 
             var loadedUser = result.user || null;
+            writeAccountSnapshot(result);
             renderUser(loadedUser);
             if (result.botDashboard) renderBotDashboard({ dashboard: result.botDashboard, inviteUrl: result.botInviteUrl });
             loadAccountTabPreference();
@@ -2758,10 +2793,18 @@
             startMembershipPolling();
           } catch (error) {
           clearMembershipPolling();
-          saveToken("");
-          renderUser(null);
-          setGateVisible(true);
-          setStatus(els.acctGateStatus, error.message || "You need an account to access account overview.", "error");
+          if (error && (error.status === 401 || error.status === 403)) {
+            saveToken("");
+            clearAccountSnapshot();
+            renderUser(null);
+            setGateVisible(true);
+            setStatus(els.acctGateStatus, error.message || "You need an account to access account overview.", "error");
+          } else if (state.user) {
+            setStatus(els.acctMembershipStatus, "Showing saved account details while the latest refresh is unavailable.", "");
+          } else {
+            setGateVisible(true);
+            setStatus(els.acctGateStatus, error.message || "Could not load account overview.", "error");
+          }
         }
       }
 
@@ -3122,6 +3165,7 @@
           };
           broadcastProfileUpdate();
           saveToken("");
+          clearAccountSnapshot();
           closeDeleteModal();
           setStatus(els.acctDangerStatus, "Account deleted. Redirecting to login...", "success");
           setTimeout(function () {
@@ -3142,6 +3186,7 @@
         } catch (_error) {
         }
         saveToken("");
+        clearAccountSnapshot();
         redirectTop(LOGIN_PAGE_URL);
       }
 
@@ -3208,7 +3253,13 @@
       setupAccountTabs();
       loadProfile();
       syncBioCount();
-      renderUser(null);
+      var cachedAccount = readAccountSnapshot();
+      if (cachedAccount) {
+        renderUser(cachedAccount.user);
+        if (cachedAccount.botDashboard) renderBotDashboard({ dashboard: cachedAccount.botDashboard, inviteUrl: cachedAccount.botInviteUrl });
+      } else {
+        renderUser(null);
+      }
 
       els.acctPortalButton.addEventListener("click", function () {
         openPortal(els.acctPortalButton, els.acctMembershipStatus);

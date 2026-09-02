@@ -4498,6 +4498,11 @@ body.rblx-shell-ready .rblx-shell-page #plusNotice {
   color: #dbe8ff !important;
   line-height: 1.5 !important;
 }
+
+/* Store notices should not leave an empty styled box once their message closes. */
+body.rblx-shell-ready .rblx-shell-page #notice:not(.show) {
+  display: none !important;
+}
 body.rblx-shell-ready .rblx-shell-page .notice .plus-word,
 body.rblx-shell-ready .rblx-shell-page #plusNotice .plus-word,
 body.rblx-shell-ready .rblx-shell-page #plusNotice .plusWord {
