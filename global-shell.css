@@ -4087,6 +4087,11 @@ body.rblx-pro-ad-free [data-rblx-banner-ad] { display: none !important; }
 .rblx-mobile-banner-ad { display: none; }
 
 @media (max-width: 820px) {
+  /* The mobile header ad is a separate shell grid row between the header and page content. */
+  body.rblx-mobile-shell .rblx-shell {
+    grid-template-rows: var(--shell-header-height) auto minmax(0, 1fr);
+  }
+
   body.rblx-mobile-shell .rblx-mobile-banner-ad {
     display: flex;
     width: min(100% - 28px, 344px);
@@ -4123,12 +4128,12 @@ body.rblx-pro-ad-free [data-rblx-banner-ad] { display: none !important; }
   }
 
   body.rblx-mobile-shell .rblx-mobile-header-banner-ad {
-    margin-top: calc(env(safe-area-inset-top, 0px) + 102px);
-    margin-bottom: 8px;
+    margin-top: 10px;
+    margin-bottom: 0;
   }
 
   body.rblx-mobile-shell .rblx-shell-body {
-    padding-top: 8px;
+    padding: 0 12px;
   }
 
   body.rblx-mobile-shell .rblx-mobile-home-banner-ad,

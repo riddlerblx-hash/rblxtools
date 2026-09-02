@@ -4170,7 +4170,7 @@
     adFrame.height = "90";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:728px;height:90px;margin:0;overflow:hidden}</style></head><body><script>var atOptions={key:"fb95715336abfc09031edf4e6ef208c5",format:"iframe",height:90,width:728,params:{}};<\/script><script src="https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js"><\/script></body></html>';
+    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:728px;height:90px;margin:0;overflow:hidden}</style></head><body><script>window.atOptions={key:"fb95715336abfc09031edf4e6ef208c5",format:"iframe",height:90,width:728,params:{}};<\/script><script src="https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js"><\/script></body></html>';
     slot.appendChild(adFrame);
   }
 
@@ -4204,7 +4204,7 @@
     adFrame.height = "50";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:320px;height:50px;margin:0;overflow:hidden}</style></head><body><script>var atOptions={key:"4f3f88a3c4de39df646d1819202a769b",format:"iframe",height:50,width:320,params:{}};<\/script><script src="https://professionalsusceptible.com/4f3f88a3c4de39df646d1819202a769b/invoke.js"><\/script></body></html>';
+    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:320px;height:50px;margin:0;overflow:hidden}</style></head><body><script>window.atOptions={key:"4f3f88a3c4de39df646d1819202a769b",format:"iframe",height:50,width:320,params:{}};<\/script><script src="https://professionalsusceptible.com/4f3f88a3c4de39df646d1819202a769b/invoke.js"><\/script></body></html>';
     slot.appendChild(adFrame);
   }
 
@@ -4236,6 +4236,13 @@
       if (showcaseCard && showcaseCard.parentNode) {
         var toolAd = createMobileBannerAd("rblxMobileToolPromoBannerAd", "rblx-mobile-tool-banner-ad");
         showcaseCard.parentNode.insertBefore(toolAd.banner, showcaseCard);
+      } else if (!window.__rblxMobileToolBannerRetryQueued) {
+        // Some tool pages build the showcase after the shared shell has initialized.
+        window.__rblxMobileToolBannerRetryQueued = true;
+        window.setTimeout(function () {
+          window.__rblxMobileToolBannerRetryQueued = false;
+          initSharedMobileBannerAds();
+        }, 300);
       }
     }
 
@@ -4716,7 +4723,7 @@
     adFrame.height = "250";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:300px;height:250px;margin:0;overflow:hidden}</style></head><body><script>var atOptions={key:"d0b55a0366cbbdb50c4c68fe13fa1e3f",format:"iframe",height:250,width:300,params:{}};</script><script src="https://www.highrevenueformat.com/d0b55a0366cbbdb50c4c68fe13fa1e3f/invoke.js"></script></body></html>';
+    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:300px;height:250px;margin:0;overflow:hidden}</style></head><body><script>window.atOptions={key:"d0b55a0366cbbdb50c4c68fe13fa1e3f",format:"iframe",height:250,width:300,params:{}};</script><script src="https://www.highrevenueformat.com/d0b55a0366cbbdb50c4c68fe13fa1e3f/invoke.js"></script></body></html>';
     host.appendChild(adFrame);
     host.dataset.rblxBoxAdMounted = "true";
   }
@@ -4735,7 +4742,7 @@
     adFrame.height = "600";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>var atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};</script><script src="https://www.highrevenueformat.com/c56a103ad60efdb3686d500b49552f97/invoke.js"></script></body></html>';
+    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>window.atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};</script><script src="https://www.highrevenueformat.com/c56a103ad60efdb3686d500b49552f97/invoke.js"></script></body></html>';
     host.appendChild(adFrame);
     host.dataset.rblxVerticalAdMounted = "true";
   }
