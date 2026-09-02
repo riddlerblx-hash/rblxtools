@@ -340,7 +340,6 @@
     });
     if (!hideAds) {
       mountDesktopShellBoxAds();
-      mountInlineBannerAds(document);
     }
   }
 
@@ -446,20 +445,14 @@
       '<aside class="rblx-shell-modal-ad-rail is-right" data-rblx-modal-ad aria-label="Advertisement"><span>Advertisement</span></aside>';
   }
 
-  function buildInlineBannerAdMarkup(placement) {
-    return '<section class="rblx-inline-banner-ad" data-rblx-banner-ad data-rblx-banner-placement="' + placement + '" aria-label="Advertisement"><span>Advertisement</span><div class="rblx-tool-banner-ad-slot"></div></section>';
-  }
-
   function buildAnimationMembershipGateMarkup() {
     return (
       '<div class="rblx-shell-membership-gate" id="rblxShellAnimationGate" aria-hidden="true">' +
         '<div class="rblx-shell-membership-gate-card" role="dialog" aria-modal="true" aria-labelledby="rblxShellAnimationGateTitle">' +
-          buildInlineBannerAdMarkup("membership-top") +
           '<h3 id="rblxShellAnimationGateTitle">Animations is available with <span class="rblx-shell-gate-plus">Plus</span> or <span class="rblx-shell-gate-pro">Pro</span>.</h3>' +
           '<p>Choose a membership to unlock the animation tool and the creator benefits that come with it.</p>' +
           '<div class="rblx-shell-gate-benefits"><section><strong>Plus</strong><span>Animation Studio</span><span>Texture Baker</span><span>Bulk Downloads (1-5)</span><span>Much More</span></section><section><strong>Pro</strong><span>Everything from Plus</span><span>Cool AI Features</span><span>No Annoying Ads</span><span>RBLXTools Discord Bot Access</span><span>Bulk Downloads (5-10)</span><span>Much More to Offer</span></section></div>' +
           '<div class="rblx-shell-membership-gate-actions"><button class="rblx-shell-membership-gate-cancel" type="button" data-rblx-animation-gate-cancel="true">Cancel</button><a class="rblx-shell-membership-gate-button" href="./subscriptions">View Plans</a></div>' +
-          buildInlineBannerAdMarkup("membership-bottom") +
           '</div>' +
         buildModalAdRailsMarkup() +
       '</div>'
@@ -480,8 +473,6 @@
       gate.classList.add("is-open");
       gate.setAttribute("aria-hidden", "false");
       mountModalVerticalAds(gate);
-      mountInlineBannerAds(gate);
-      layoutPopupExteriorBanners(gate);
     }
 
     var cancelButton = gate.querySelector("[data-rblx-animation-gate-cancel]");
@@ -1731,7 +1722,6 @@
         '</div>' +
         '<div class="rblx-shell-reward-overlay" id="rblxShellRewardOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-reward-modal" id="rblxShellRewardModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellRewardTitle">' +
-            buildInlineBannerAdMarkup("reward-top") +
             '<div class="rblx-shell-reward-kicker">A gift from the RBLXTools team</div>' +
             '<h3 class="rblx-shell-reward-title" id="rblxShellRewardTitle">You\'ve received a reward!</h3>' +
             '<p class="rblx-shell-reward-value" id="rblxShellRewardValue"></p>' +
@@ -1739,14 +1729,12 @@
             '<p class="rblx-shell-reward-wait" id="rblxShellRewardWait">Please take a moment to read this note.</p>' +
             '<button class="rblx-shell-btn is-primary rblx-shell-reward-claim" type="button" id="rblxShellRewardClaim" disabled>Claim reward</button>' +
             '<section class="rblx-shell-reward-feedback" id="rblxShellRewardFeedback" hidden><div class="rblx-shell-reward-feedback-head"><strong>Enjoying RBLXTools?</strong><span>Write a review</span></div><div class="rblx-shell-reward-stars" id="rblxShellRewardStars" role="radiogroup" aria-label="Rate RBLXTools from 1 to 5 stars"><button type="button" data-reward-rating="1" aria-label="1 star">★</button><button type="button" data-reward-rating="2" aria-label="2 stars">★</button><button type="button" data-reward-rating="3" aria-label="3 stars">★</button><button type="button" data-reward-rating="4" aria-label="4 stars">★</button><button type="button" data-reward-rating="5" aria-label="5 stars">★</button></div><label class="rblx-shell-reward-feedback-field"><span>Review title</span><input id="rblxShellRewardFeedbackTitle" type="text" maxlength="140" placeholder="What stood out?" /></label><label class="rblx-shell-reward-feedback-field"><span>Review</span><textarea id="rblxShellRewardFeedbackBody" maxlength="1200" placeholder="Tell us what you like or what we should improve."></textarea></label><p class="rblx-shell-reward-feedback-status" id="rblxShellRewardFeedbackStatus" aria-live="polite"></p><button class="rblx-shell-btn rblx-shell-reward-feedback-submit" type="button" id="rblxShellRewardFeedbackSubmit">Post feedback</button></section><p class="rblx-shell-reward-feedback-thanks" id="rblxShellRewardFeedbackThanks" hidden aria-live="polite">Your feedback has been documented. Thank you!</p>' +
-            buildInlineBannerAdMarkup("reward-bottom") +
           '</div>' +
           buildModalAdRailsMarkup() +
         '</div>' +
         '<div class="rblx-shell-auth-overlay" id="rblxShellAuthOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-auth-modal" id="rblxShellAuthModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellAuthTitle">' +
             '<button class="rblx-shell-auth-close" type="button" id="rblxShellAuthClose" aria-label="Close login">×</button>' +
-            buildInlineBannerAdMarkup("auth-top") +
             '<h3 class="rblx-shell-auth-title" id="rblxShellAuthTitle">Welcome back - sign in</h3>' +
             '<p class="rblx-shell-auth-copy" id="rblxShellAuthCopy">Sign in to keep your tools, membership, and account access connected.</p>' +
             '<div class="rblx-shell-auth-google hidden" id="rblxShellAuthGoogleSection">' +
@@ -1770,7 +1758,6 @@
               '<button class="rblx-shell-btn is-primary rblx-shell-auth-submit" type="submit" id="rblxShellAuthSubmit">Sign In</button>' +
             '</form>' +
             '<div class="rblx-shell-auth-switch" id="rblxShellAuthSwitchPrompt">New to RBLXTools? <button type="button" id="rblxShellAuthSwitchButton">Start here</button></div>' +
-            buildInlineBannerAdMarkup("auth-bottom") +
           '</div>' +
           buildModalAdRailsMarkup() +
         '</div>' +
@@ -2250,8 +2237,6 @@
     shellState.authModal.classList.add("is-open");
     document.body.classList.add("rblx-shell-modal-open");
     mountModalVerticalAds(shellState.authOverlay);
-    mountInlineBannerAds(shellState.authOverlay);
-    layoutPopupExteriorBanners(shellState.authOverlay);
     if (shellState.authEmail && !shellState.authEmail.value) {
       var cachedUser = getCachedAuthUser();
       shellState.authEmail.value = String(cachedUser && cachedUser.email || "").trim();
@@ -2560,7 +2545,6 @@
     toggleSupportTargetField();
     setSupportStatus("", "");
     shellState.supportOverlay.classList.add("is-open");
-    mountInlineBannerAds(shellState.supportOverlay);
     shellState.supportOverlay.setAttribute("aria-hidden", "false");
   }
 
@@ -3443,7 +3427,6 @@
     shellState.checkoutSuccessOverlay.classList.add("is-open");
     shellState.checkoutSuccessOverlay.setAttribute("aria-hidden", "false");
     shellState.checkoutSuccessModal.classList.add("is-open");
-    mountInlineBannerAds(shellState.checkoutSuccessOverlay);
     clearCheckoutSuccessTimer();
     shellState.checkoutSuccessTimer = setInterval(function () {
       shellState.checkoutSuccessCountdown -= 1;
@@ -4155,11 +4138,6 @@
     slot.appendChild(adFrame);
   }
 
-  function mountInlineBannerAds(root) {
-    if (!shouldShowMemberAds()) return;
-    Array.prototype.forEach.call((root || document).querySelectorAll("[data-rblx-banner-ad] .rblx-tool-banner-ad-slot"), mountSharedBannerAd);
-  }
-
   function createSharedBannerAd(id, className) {
     var banner = document.createElement("section");
     banner.id = id;
@@ -4254,61 +4232,6 @@
       socialSection.insertAdjacentElement("afterend", footerAd.banner);
       mountSharedBannerAd(footerAd.slot);
     }
-  }
-
-  function movePopupBannersOutsideCard(overlay, card, prefix) {
-    if (!overlay || !card || overlay.dataset.rblxPopupBannersMoved === prefix) return;
-    var top = card.querySelector('[data-rblx-banner-placement="' + prefix + '-top"]');
-    var bottom = card.querySelector('[data-rblx-banner-placement="' + prefix + '-bottom"]');
-    if (!top || !bottom) return;
-
-    top.classList.add("rblx-popup-exterior-banner", "is-top");
-    bottom.classList.add("rblx-popup-exterior-banner", "is-bottom");
-    overlay.insertBefore(top, card);
-    overlay.insertBefore(bottom, card.nextSibling);
-    overlay.dataset.rblxPopupBannersMoved = prefix;
-  }
-
-  function layoutPopupExteriorBanners(overlay) {
-    if (!overlay || !window.matchMedia("(min-width: 1024px)").matches) return;
-    var card = overlay.querySelector(".rblx-shell-membership-gate-card, .rblx-shell-auth-modal, .rblx-shell-reward-modal");
-    if (!card) return;
-
-    window.requestAnimationFrame(function () {
-      var cardRect = card.getBoundingClientRect();
-      Array.prototype.forEach.call(overlay.querySelectorAll(".rblx-popup-exterior-banner"), function (banner) {
-        var isTop = banner.classList.contains("is-top");
-        var bannerHeight = banner.offsetHeight || 106;
-        banner.style.left = Math.max(16, (window.innerWidth - Math.min(760, window.innerWidth - 32)) / 2) + "px";
-        banner.style.top = Math.max(12, isTop ? cardRect.top - bannerHeight - 16 : cardRect.bottom + 16) + "px";
-      });
-    });
-  }
-
-  function initSharedPopupBannerPlacement() {
-    movePopupBannersOutsideCard(document.getElementById("rblxShellAnimationGate"), document.querySelector(".rblx-shell-membership-gate-card"), "membership");
-    movePopupBannersOutsideCard(document.getElementById("rblxShellAuthOverlay"), document.getElementById("rblxShellAuthModal"), "auth");
-    movePopupBannersOutsideCard(document.getElementById("rblxShellRewardOverlay"), document.getElementById("rblxShellRewardModal"), "reward");
-  }
-
-  function initSharedPopupBannerAds() {
-    [
-      { selector: "#rblxShellProfileModal", name: "profile" },
-      { selector: "#rblxShellSupportModal", name: "support" }
-    ].forEach(function (config) {
-      var modal = document.querySelector(config.selector);
-      if (!modal || modal.querySelector('[data-rblx-banner-placement="' + config.name + '-top"]')) return;
-
-      var titleCaseName = config.name.charAt(0).toUpperCase() + config.name.slice(1);
-      var top = createSharedBannerAd("rblx" + titleCaseName + "TopBannerAd", "rblx-inline-banner-ad");
-      top.banner.dataset.rblxBannerPlacement = config.name + "-top";
-      var bottom = createSharedBannerAd("rblx" + titleCaseName + "BottomBannerAd", "rblx-inline-banner-ad");
-      bottom.banner.dataset.rblxBannerPlacement = config.name + "-bottom";
-      modal.insertBefore(top.banner, modal.firstChild);
-      modal.appendChild(bottom.banner);
-      mountSharedBannerAd(top.slot);
-      mountSharedBannerAd(bottom.slot);
-    });
   }
 
   function initSharedToolShowcase() {
@@ -4981,8 +4904,6 @@
     resetRewardFeedback();
     overlay.classList.add("is-open"); overlay.setAttribute("aria-hidden", "false"); modal.classList.add("is-open"); document.body.classList.add("rblx-shell-modal-open");
     mountModalVerticalAds(overlay);
-    mountInlineBannerAds(overlay);
-    layoutPopupExteriorBanners(overlay);
     maybeShowRewardFeedback(overlay);
     // The server sends the remaining delay so an inaccurate device clock cannot stretch five seconds into minutes.
     var unlockAt = Date.now() + Math.max(0, Number(reward.claimDelayMs) || 0);
@@ -5082,9 +5003,6 @@
     initCheckoutSuccessModal();
     initSupportModal();
     setupAuthModal();
-    initSharedPopupBannerAds();
-    initSharedPopupBannerPlacement();
-    mountInlineBannerAds(document);
     initLoginRequiredNavigation();
     document.addEventListener("click", function (event) {
       var profileMenu = document.querySelector(".rblx-shell-profile-menu[open]");
