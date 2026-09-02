@@ -106,6 +106,9 @@ const DISCORD_TOOLS_SERVICE_SECRET = String(process.env.DISCORD_TOOLS_SERVICE_SE
 const DISCORD_TOOLS_BOT_CLIENT_ID = String(process.env.RBLXTOOLS_TOOLS_DISCORD_CLIENT_ID || "").trim();
 const SUPPORT_STAFF_MENTION = String(process.env.SUPPORT_STAFF_MENTION || "").trim();
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || "").trim();
+// Keep the Meshy credential exclusively on the server. Never send it to a browser.
+const MESHY_API_KEY = String(process.env.MESHY_API_KEY || "").trim();
+const MESHY_API_BASE_URL = "https://api.meshy.ai/openapi";
 const MAX_SUPPORT_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MAX_CHAT_TIMEOUT_SECONDS = 3650 * 24 * 60 * 60;
 const AI_CLOTHING_OUTPUT_WIDTH = 585;
@@ -178,6 +181,47 @@ function getOpenAIClient() {
   const OpenAI = require("openai");
   openaiClient = new OpenAI({ apiKey: OPENAI_API_KEY });
   return openaiClient;
+}
+
+function assertMeshyConfigured() {
+  if (!MESHY_API_KEY) {
+    const error = new Error("AI UGC Studio is not configured. Add MESHY_API_KEY to the server environment.");
+    error.statusCode = 503;
+    throw error;
+  }
+}
+
+function cleanMeshyTaskId(value) {
+  const taskId = String(value || "").trim();
+  if (!/^[a-zA-Z0-9-]{8,120}$/.test(taskId)) {
+    const error = new Error("That Meshy task ID is not valid.");
+    error.statusCode = 400;
+    throw error;
+  }
+  return taskId;
+}
+
+async function requestMeshy(pathname, options = {}) {
+  assertMeshyConfigured();
+  const response = await fetch(MESHY_API_BASE_URL + pathname, {
+    method: options.method || "GET",
+    headers: {
+      Authorization: "Bearer " + MESHY_API_KEY,
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = new Error(
+      (payload && (payload.message || payload.error?.message || payload.error)) ||
+      "Meshy could not process this request."
+    );
+    error.statusCode = response.status === 401 || response.status === 403 ? 502 : response.status;
+    throw error;
+  }
+  return payload || {};
 }
 
 function getOpenAIUploadHelpers() {
@@ -6426,6 +6470,54 @@ app.post("/ai/generate-clothing", async (req, res) => {
   }
 });
 
+// Admin-only Meshy proxy. Task URLs are short-lived Meshy signed URLs and the
+// provider key never leaves this process.
+app.post("/ai/ugc/preview", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const prompt = cleanText(req.body?.prompt, 800);
+    if (!prompt) return res.status(400).json({ error: "Describe the UGC item you want to create." });
+    const modelType = String(req.body?.modelType || "standard") === "smart-topology" ? "smart-topology" : "standard";
+    const targetPolycount = Math.max(500, Math.min(200000, Number.parseInt(req.body?.targetPolycount, 10) || 30000));
+    const task = await requestMeshy("/v2/text-to-3d", {
+      method: "POST",
+      body: { mode: "preview", prompt, model_type: modelType, ai_model: "latest", should_remesh: modelType === "standard", target_polycount: targetPolycount, target_formats: ["glb"], alpha_thumbnail: true, moderation: true },
+    });
+    return res.json({ ok: true, taskId: task.result || task.id });
+  } catch (error) {
+    console.error("POST /ai/ugc/preview failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not start the UGC preview." });
+  }
+});
+
+app.post("/ai/ugc/refine", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const previewTaskId = cleanMeshyTaskId(req.body?.previewTaskId);
+    const textureResolution = ["1k", "2k", "4k"].includes(String(req.body?.textureResolution || "")) ? String(req.body.textureResolution) : "2k";
+    const task = await requestMeshy("/v2/text-to-3d", {
+      method: "POST",
+      body: { mode: "refine", preview_task_id: previewTaskId, enable_pbr: Boolean(req.body?.enablePbr), texture_resolution: textureResolution, target_formats: ["glb"], alpha_thumbnail: true },
+    });
+    return res.json({ ok: true, taskId: task.result || task.id });
+  } catch (error) {
+    console.error("POST /ai/ugc/refine failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not start texture generation." });
+  }
+});
+
+app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    const task = await requestMeshy("/v2/text-to-3d/" + encodeURIComponent(taskId));
+    return res.json({ ok: true, task: { id: task.id, status: task.status, progress: Number(task.progress || 0), prompt: task.prompt || "", thumbnailUrl: task.alpha_thumbnail_url || task.thumbnail_url || "", modelUrls: task.model_urls || {}, textureUrls: Array.isArray(task.texture_urls) ? task.texture_urls : [], consumedCredits: task.consumed_credits, error: task.task_error && task.task_error.message ? task.task_error.message : "" } });
+  } catch (error) {
+    console.error("GET /ai/ugc/tasks failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the UGC task." });
+  }
+});
+
 // Fast page gate: avoids a live Stripe refresh when a tool only needs identity and entitlements.
 app.get("/auth/session", async (req, res) => {
   try {
@@ -9810,6 +9902,15 @@ app.delete("/discord-tools/link", async (req, res) => {
 
 app.get(["/ai-tokens", "/ai-tokens.html"], async (req, res) => {
   return res.sendFile(path.join(STATIC_ROOT, "ai-tokens.html"));
+});
+
+app.get(["/ai-ugc-studio", "/ai-ugc-studio.html"], async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    return res.sendFile(path.join(STATIC_ROOT, "ai-ugc-studio.html"));
+  } catch (error) {
+    return res.status(error.statusCode || 403).sendFile(path.join(STATIC_ROOT, "index.html"));
+  }
 });
 
 app.use(express.static(STATIC_ROOT, {
