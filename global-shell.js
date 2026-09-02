@@ -4274,11 +4274,21 @@
     }
 
     var showcaseCard = document.querySelector(".showcase-card");
-    var shareCard = document.querySelector(".share-card");
-    if (!showcaseCard || !shareCard || document.getElementById("rblxToolBannerAd")) return;
+    if (!showcaseCard || document.getElementById("rblxToolBannerAd")) return;
 
     var ad = createSharedBannerAd("rblxToolBannerAd", "rblx-tool-banner-ad");
-    shareCard.parentNode.insertBefore(ad.banner, shareCard);
+    showcaseCard.parentNode.insertBefore(ad.banner, showcaseCard);
+    mountSharedBannerAd(ad.slot);
+  }
+
+  function initSharedToolFooterBannerAd() {
+    if (!document.querySelector("#rblxShellPage .showcase-card") || document.getElementById("rblxToolFooterBannerAd")) return;
+
+    var footer = document.querySelector(".rblx-shell-footer");
+    if (!footer || !footer.parentNode) return;
+
+    var ad = createSharedBannerAd("rblxToolFooterBannerAd", "rblx-store-footer-banner-ad");
+    footer.parentNode.insertBefore(ad.banner, footer);
     mountSharedBannerAd(ad.slot);
   }
 
@@ -5087,6 +5097,7 @@
     window.setTimeout(function () {
       placeSharedFooter(pageHost);
       initSharedStoreFooterBannerAd();
+      initSharedToolFooterBannerAd();
       if (document.readyState !== "loading") revealSharedFooter();
     }, 0);
     syncMobileShellState();
