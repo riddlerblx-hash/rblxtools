@@ -8,35 +8,32 @@
   <link rel="stylesheet" href="./global-shell.css?v=20260902-ugc" />
   <link rel="stylesheet" href="./mobile-overrides.css?v=20260902-ugc" />
   <style>
-    :root { --ugc-lime:#d5ff56; --ugc-pink:#ff82ba; --ugc-ink:#101112; --ugc-panel:#1b1c1d; --ugc-muted:#a0a5a1; }
+    :root { --ugc-lime:#ff5458; --ugc-pink:#6ba8ff; --ugc-ink:#0b1220; --ugc-panel:#14223a; --ugc-muted:#aebbd0; }
     * { box-sizing:border-box; }
-    body.rblx-ugc-studio-page { min-height:100vh; background:#101112; color:#f5f7f3; font-family:Arial,sans-serif; }
-    body.rblx-ugc-studio-page::before { content:""; position:fixed; inset:0; pointer-events:none; background:radial-gradient(circle at 46% 37%,rgba(211,255,86,.10),transparent 20%),radial-gradient(circle at 76% 78%,rgba(255,130,186,.07),transparent 27%); }
-    body.rblx-ugc-studio-page .rblx-shell-center { background:#111213; }
+    [hidden] { display:none !important; }
+    body.rblx-ugc-studio-page { min-height:100vh; background:#080d18; color:#f5f7f3; font-family:Arial,sans-serif; }
+    body.rblx-ugc-studio-page::before { content:""; position:fixed; inset:0; pointer-events:none; background:radial-gradient(circle at 46% 37%,rgba(89,145,255,.13),transparent 24%),radial-gradient(circle at 76% 78%,rgba(255,77,82,.09),transparent 27%); }
+    body.rblx-ugc-studio-page .rblx-shell-center { background:#09101c; }
     .ugc-studio { min-height:calc(100vh - var(--shell-header-height)); padding:12px; position:relative; z-index:1; }
     .ugc-layout { min-height:calc(100vh - var(--shell-header-height) - 24px); display:grid; grid-template-columns:250px minmax(380px,1fr) 286px; gap:12px; }
-    .ugc-panel, .ugc-workspace { border:1px solid rgba(255,255,255,.07); background:linear-gradient(145deg,#202121,#171819); box-shadow:0 24px 60px rgba(0,0,0,.2); }
+    .ugc-panel, .ugc-workspace { border:1px solid rgba(103,150,235,.24); background:linear-gradient(145deg,#1c2c49,#101a2d); box-shadow:0 24px 60px rgba(0,0,0,.2); }
     .ugc-panel { border-radius:16px; padding:14px; min-width:0; }
     .ugc-control-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:16px; }
     .ugc-kicker { color:var(--ugc-lime); font-size:10px; font-weight:900; letter-spacing:1px; text-transform:uppercase; }
-    .ugc-badge { color:#1a1b1c; background:var(--ugc-lime); border-radius:99px; padding:5px 8px; font-size:9px; font-weight:900; letter-spacing:.8px; text-transform:uppercase; }
     .ugc-field { display:grid; gap:7px; margin-top:14px; }
     .ugc-field label { color:#d5dad5; font-size:11px; font-weight:800; }
     .ugc-field small { color:#838984; font-size:10px; line-height:1.45; }
-    .ugc-select, .ugc-input { width:100%; min-height:39px; border:1px solid rgba(255,255,255,.1); border-radius:9px; outline:0; background:#272928; color:#f3f5ef; padding:0 10px; font:700 12px Arial,sans-serif; }
-    .ugc-input:focus, .ugc-select:focus { border-color:rgba(213,255,86,.72); box-shadow:0 0 0 3px rgba(213,255,86,.1); }
-    .ugc-segment { display:grid; grid-template-columns:1fr 1fr; overflow:hidden; border:1px solid rgba(255,255,255,.09); border-radius:9px; background:#171818; }
+    .ugc-select, .ugc-input { width:100%; min-height:39px; border:1px solid rgba(103,150,235,.42); border-radius:9px; outline:0; background:#111c31; color:#f3f5ef; padding:0 10px; font:700 12px Arial,sans-serif; }
+    .ugc-input:focus, .ugc-select:focus { border-color:rgba(102,164,255,.9); box-shadow:0 0 0 3px rgba(102,164,255,.14); }
+    .ugc-segment { display:grid; grid-template-columns:1fr 1fr; overflow:hidden; border:1px solid rgba(103,150,235,.3); border-radius:9px; background:#0d1628; }
     .ugc-segment button { min-height:34px; border:0; background:transparent; color:#858a87; font-size:11px; font-weight:800; cursor:pointer; }
-    .ugc-segment button.is-active { color:#172015; background:var(--ugc-lime); }
+    .ugc-segment button.is-active { color:#fff; background:linear-gradient(105deg,var(--ugc-lime),#ff6e72); }
     .ugc-switch { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#c6cbc7; font-size:11px; font-weight:800; }
     .ugc-switch input { accent-color:var(--ugc-lime); width:34px; height:18px; }
-    .ugc-estimate { margin-top:14px; padding:12px; border:1px solid rgba(213,255,86,.28); border-radius:11px; background:linear-gradient(135deg,rgba(213,255,86,.13),rgba(255,130,186,.08)); }
+    .ugc-estimate { margin-top:14px; padding:12px; border:1px solid rgba(103,150,235,.4); border-radius:11px; background:linear-gradient(135deg,rgba(76,133,235,.16),rgba(255,77,82,.1)); }
     .ugc-estimate strong { display:block; color:var(--ugc-lime); font-size:14px; }.ugc-estimate span { display:block; color:#bdc2bd; margin-top:4px; font-size:10px; font-weight:700; line-height:1.45; }
-    .ugc-credits { margin-top:14px; padding:12px; border-radius:11px; background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.08); }
-    .ugc-credits strong { display:block; color:var(--ugc-lime); font-size:13px; }
-    .ugc-credits span { display:block; color:#bdc2bd; margin-top:4px; font-size:10px; font-weight:700; line-height:1.45; }
     .ugc-left { display:flex; flex-direction:column; }
-    .ugc-workspace { min-width:0; border-radius:16px; display:flex; flex-direction:column; overflow:hidden; background:radial-gradient(circle at 50% 45%,#292a29 0,#1a1b1b 36%,#151616 78%); }
+    .ugc-workspace { min-width:0; border-radius:16px; display:flex; flex-direction:column; overflow:hidden; background:radial-gradient(circle at 50% 45%,#203457 0,#101a2d 39%,#0a101c 78%); }
     .ugc-workspace-head { min-height:52px; padding:0 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid rgba(255,255,255,.07); background:rgba(13,14,14,.28); }
     .ugc-brand { display:flex; align-items:center; gap:9px; min-width:0; }
     .ugc-logo { display:grid; grid-template-columns:repeat(2,8px); gap:3px; width:19px; color:var(--ugc-lime); font-size:15px; line-height:8px; transform:rotate(45deg); }
@@ -44,41 +41,41 @@
     .ugc-logo i:nth-child(2) { border-radius:50%; } .ugc-logo i:nth-child(3) { border-radius:50% 50% 2px 2px; }
     .ugc-brand strong { font-size:13px; letter-spacing:.2px; } .ugc-brand span { display:block; color:#8e948f; margin-top:2px; font-size:10px; font-weight:700; }
     .ugc-stage { flex:1; min-height:420px; display:grid; place-items:center; padding:34px; position:relative; overflow:hidden; }
-    .ugc-stage::before { content:""; position:absolute; width:min(60vw,620px); aspect-ratio:1; border:1px solid rgba(213,255,86,.08); border-radius:50%; box-shadow:0 0 0 68px rgba(213,255,86,.018),0 0 0 136px rgba(213,255,86,.012); }
+    .ugc-stage::before { content:""; position:absolute; width:min(60vw,620px); aspect-ratio:1; border:1px solid rgba(103,150,235,.15); border-radius:50%; box-shadow:0 0 0 68px rgba(103,150,235,.025),0 0 0 136px rgba(255,77,82,.015); }
     .ugc-empty, .ugc-result { position:relative; z-index:1; max-width:520px; width:100%; text-align:center; }
-    .ugc-empty-icon { width:58px; height:58px; display:grid; place-items:center; margin:0 auto 17px; color:#151712; background:linear-gradient(135deg,var(--ugc-lime),#f7f080 58%,var(--ugc-pink)); border-radius:18px; font-size:29px; font-weight:900; }
+    .ugc-empty-icon { width:58px; height:58px; display:grid; place-items:center; margin:0 auto 17px; color:#fff; background:linear-gradient(135deg,var(--ugc-lime),#ff777c 56%,var(--ugc-pink)); border-radius:18px; font-size:29px; font-weight:900; }
     .ugc-empty h1 { margin:0; font-size:clamp(28px,3vw,42px); letter-spacing:-1.7px; } .ugc-empty p { color:#a6aba6; max-width:440px; margin:12px auto 22px; font-size:13px; font-weight:700; line-height:1.55; }
-    .ugc-generate { min-height:47px; border:0; border-radius:12px; padding:0 19px; cursor:pointer; color:#161817; background:linear-gradient(100deg,var(--ugc-lime),#effd8c 55%,var(--ugc-pink)); box-shadow:0 13px 25px rgba(213,255,86,.13); font-size:13px; font-weight:900; }
+    .ugc-generate { min-height:47px; border:0; border-radius:12px; padding:0 19px; cursor:pointer; color:#fff; background:linear-gradient(100deg,#ef3f45,var(--ugc-lime) 55%,#ff7a7e); box-shadow:0 13px 25px rgba(239,63,69,.22); font-size:13px; font-weight:900; }
     .ugc-generate:disabled { cursor:wait; opacity:.55; }
     .ugc-result[hidden], .ugc-empty[hidden] { display:none; }
-    .ugc-preview-wrap { width:min(370px,100%); aspect-ratio:1; margin:0 auto; padding:12px; border-radius:18px; border:1px solid rgba(213,255,86,.25); background:linear-gradient(145deg,rgba(213,255,86,.13),rgba(255,130,186,.08)); }
+    .ugc-preview-wrap { width:min(370px,100%); aspect-ratio:1; margin:0 auto; padding:12px; border-radius:18px; border:1px solid rgba(103,150,235,.42); background:linear-gradient(145deg,rgba(76,133,235,.18),rgba(255,77,82,.1)); }
     .ugc-preview-wrap img { width:100%; height:100%; object-fit:contain; border-radius:12px; background:#262827; }
     .ugc-result h2 { margin:17px 0 0; font-size:24px; letter-spacing:-.8px; } .ugc-status { min-height:24px; color:#aeb4af; margin:7px 0 0; font-size:12px; font-weight:700; }
-    .ugc-progress { height:8px; margin:14px auto 0; max-width:370px; overflow:hidden; border-radius:999px; background:#333634; } .ugc-progress span { display:block; width:0%; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--ugc-lime),var(--ugc-pink)); transition:width .4s ease; }
+    .ugc-progress { height:8px; margin:14px auto 0; max-width:370px; overflow:hidden; border-radius:999px; background:#24324a; } .ugc-progress span { display:block; width:0%; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--ugc-lime),var(--ugc-pink)); transition:width .4s ease; }
     .ugc-result-actions { display:flex; justify-content:center; gap:9px; flex-wrap:wrap; margin-top:17px; }
-    .ugc-secondary { min-height:39px; border:1px solid rgba(213,255,86,.32); border-radius:10px; padding:0 13px; background:#242624; color:#e6ebe4; font:800 11px Arial,sans-serif; cursor:pointer; } .ugc-secondary.primary { background:var(--ugc-lime); color:#151815; border-color:var(--ugc-lime); }
+    .ugc-secondary { min-height:39px; border:1px solid rgba(103,150,235,.42); border-radius:10px; padding:0 13px; background:#14223a; color:#e6ebe4; font:800 11px Arial,sans-serif; cursor:pointer; } .ugc-secondary.primary { background:var(--ugc-lime); color:#fff; border-color:var(--ugc-lime); }
     .ugc-library { padding:12px; display:flex; flex-direction:column; }
     .ugc-search { width:100%; height:36px; border:1px solid rgba(255,255,255,.1); border-radius:9px; background:#181919; color:#f3f5ef; padding:0 10px; outline:none; font:700 11px Arial,sans-serif; }
     .ugc-library-head { display:flex; justify-content:space-between; align-items:center; gap:6px; margin:14px 2px 10px; } .ugc-library-head strong { font-size:12px; } .ugc-library-head span { color:#878d88; font-size:10px; font-weight:700; }
     .ugc-assets { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; overflow:auto; }
     .ugc-asset { min-height:115px; padding:8px; border:1px solid rgba(255,255,255,.07); border-radius:10px; background:#252626; display:grid; align-content:center; gap:7px; text-align:center; }
-    .ugc-asset i { display:grid; place-items:center; width:48px; height:48px; margin:auto; border-radius:13px; color:#171917; background:linear-gradient(135deg,#d5ff56,#f7dd85); font-style:normal; font-size:23px; }
+    .ugc-asset i { display:grid; place-items:center; width:48px; height:48px; margin:auto; border-radius:13px; color:#fff; background:linear-gradient(135deg,var(--ugc-lime),var(--ugc-pink)); font-style:normal; font-size:23px; }
     .ugc-asset span { color:#bfc4c0; font-size:10px; font-weight:800; }
     .ugc-note { margin-top:12px; color:#8e948f; font-size:10px; line-height:1.5; font-weight:700; }
     .ugc-toast { position:fixed; left:50%; bottom:22px; z-index:1000; transform:translate(-50%,18px); width:min(480px,calc(100vw - 28px)); padding:12px 14px; border:1px solid rgba(255,130,186,.36); border-radius:12px; background:#292225; color:#fff1f6; box-shadow:0 18px 36px rgba(0,0,0,.32); font-size:12px; font-weight:800; opacity:0; pointer-events:none; transition:.2s ease; } .ugc-toast.is-visible { opacity:1; transform:translate(-50%,0); }
-    .ugc-image-drop { display:grid; place-items:center; min-height:86px; padding:10px; border:1px dashed rgba(213,255,86,.38); border-radius:10px; background:rgba(213,255,86,.04); color:#cfd8c9; text-align:center; cursor:pointer; }
-    .ugc-image-drop:hover, .ugc-image-drop.is-dragging { background:rgba(213,255,86,.1); border-color:var(--ugc-lime); }
+    .ugc-image-drop { display:grid; place-items:center; min-height:86px; padding:10px; border:1px dashed rgba(103,150,235,.55); border-radius:10px; background:rgba(76,133,235,.06); color:#cfd8c9; text-align:center; cursor:pointer; }
+    .ugc-image-drop:hover, .ugc-image-drop.is-dragging { background:rgba(76,133,235,.14); border-color:var(--ugc-pink); }
     .ugc-image-drop input { display:none; } .ugc-image-drop strong { display:block; font-size:11px; } .ugc-image-drop span { display:block; color:#8d968a; margin-top:4px; font-size:10px; font-weight:700; }
-    .ugc-source-preview { display:none; position:relative; overflow:hidden; margin-top:8px; border-radius:10px; border:1px solid rgba(213,255,86,.34); background:#131514; } .ugc-source-preview.is-visible { display:block; } .ugc-source-preview img { width:100%; height:90px; display:block; object-fit:cover; } .ugc-source-preview button { position:absolute; top:6px; right:6px; border:0; border-radius:7px; padding:5px 8px; background:#1e211f; color:#fff; font-size:10px; font-weight:800; cursor:pointer; }
+    .ugc-source-preview { display:none; position:relative; overflow:hidden; margin-top:8px; border-radius:10px; border:1px solid rgba(103,150,235,.48); background:#101a2d; } .ugc-source-preview.is-visible { display:block; } .ugc-source-preview img { width:100%; height:90px; display:block; object-fit:cover; } .ugc-source-preview button { position:absolute; top:6px; right:6px; border:0; border-radius:7px; padding:5px 8px; background:#182944; color:#fff; font-size:10px; font-weight:800; cursor:pointer; }
     @media(max-width:1100px){ .ugc-layout{grid-template-columns:224px minmax(340px,1fr);}.ugc-library{display:none;} }
-    @media(max-width:820px){ body.rblx-ugc-studio-page{overflow:auto;} .ugc-studio{padding:10px;}.ugc-layout{min-height:auto;display:block;}.ugc-left{margin-bottom:10px;}.ugc-left .ugc-credits{margin-top:14px;}.ugc-workspace{min-height:640px;}.ugc-stage{min-height:490px;padding:22px 15px;}.ugc-panel{border-radius:14px;}.ugc-library{display:none;} }
+    @media(max-width:820px){ body.rblx-ugc-studio-page{overflow:auto;} .ugc-studio{padding:10px;}.ugc-layout{min-height:auto;display:block;}.ugc-left{margin-bottom:10px;}.ugc-workspace{min-height:640px;}.ugc-stage{min-height:490px;padding:22px 15px;}.ugc-panel{border-radius:14px;}.ugc-library{display:none;} }
   </style>
 </head>
 <body class="rblx-shell-page rblx-ugc-studio-page">
   <main class="ugc-studio">
     <div class="ugc-layout">
       <aside class="ugc-panel ugc-left" aria-label="UGC generation controls">
-        <div class="ugc-control-head"><div><div class="ugc-kicker">RBLXTools Internal</div><strong>Generation setup</strong></div><span class="ugc-badge">Admin</span></div>
+        <div class="ugc-control-head"><div><div class="ugc-kicker">RBLXTools</div><strong>AI UGC Studio</strong></div></div>
         <div class="ugc-field"><label>Creation input</label><div class="ugc-segment" aria-label="Creation input"><button class="is-active" type="button" data-input-mode="text">Text prompt</button><button type="button" data-input-mode="image">Image to model</button></div><small>Choose one creation path. You can switch before generating.</small></div>
         <div class="ugc-field" id="ugcTextInputWrap"><label for="ugcPrompt">Describe your asset</label><textarea class="ugc-input" id="ugcPrompt" maxlength="800" rows="5" placeholder="Example: a playful red dragon shoulder companion with a tiny crown"></textarea><small>Use original concepts. Include shape, materials, colors, and where it will sit on an avatar.</small></div>
         <div class="ugc-field" id="ugcImageInputWrap" hidden><label>Reference image</label><label class="ugc-image-drop" id="ugcImageDrop"><input id="ugcImageInput" type="file" accept="image/png,image/jpeg,image/webp" /><strong>Upload image to UGC</strong><span>Click, drag, or paste a PNG, JPG, or WebP up to 5 MB.</span></label><div class="ugc-source-preview" id="ugcSourcePreview"><img id="ugcSourceImage" alt="Selected UGC reference" /><button id="ugcRemoveImage" type="button">Remove</button></div></div>
@@ -89,7 +86,6 @@
         <div class="ugc-field" id="ugcTextureQuality"><label for="ugcTexture">Texture quality</label><select class="ugc-select" id="ugcTexture"><option value="2k" selected>1K final export - Roblox UGC</option><option value="4k">4K - High quality</option></select><small id="ugcTextureHelp">Generated at 2K, then packed to 1024 x 1024 in the final Roblox UGC download.</small></div>
         <div class="ugc-estimate"><span>Generation estimate</span><strong id="ugcTokenCost">45 AI tokens</strong><span id="ugcTimeEstimate">About 1 minute. Tokens are deducted only after the request is accepted.</span></div>
         <button class="ugc-generate" id="ugcGenerate" type="button">✦ Generate UGC</button>
-        <div class="ugc-credits"><strong>Admin creation workflow</strong><span>Generation access is reserved for backend-approved RBLXTools admins.</span></div>
       </aside>
       <section class="ugc-workspace" aria-label="AI UGC workspace">
         <header class="ugc-workspace-head"><div class="ugc-brand"><span class="ugc-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div><strong>AI UGC Studio</strong><span>RBLXTools 3D asset workflow</span></div></div><span class="ugc-kicker" id="ugcPhase">Ready to create</span></header>
