@@ -994,7 +994,7 @@ function writeCommunityPosts(posts) {
 function buildPublicCommunityPost(post, viewer) {
   const viewerId = String(viewer?.id || "");
   const comments = post.comments.map((comment) => ({ ...comment, likes: Object.values(comment.reactions).filter((value) => value === "like").length, dislikes: Object.values(comment.reactions).filter((value) => value === "dislike").length, viewerReaction: viewerId ? String(comment.reactions[viewerId] || "") : "" }));
-  return { id: post.id, title: post.title, body: post.body, category: post.category, createdAt: post.createdAt, authorId: post.authorId, authorName: post.authorName, pinned: post.pinned, pinnedCommentId: post.pinnedCommentId, linkLabel: post.linkLabel, linkUrl: post.linkUrl, likes: Object.keys(post.likedBy).length, liked: Boolean(viewerId && post.likedBy[viewerId]), comments, commentCount: comments.length, viewerId };
+  return { id: post.id, title: post.title, body: post.body, category: post.category, createdAt: post.createdAt, authorId: post.authorId, authorName: post.authorName, pinned: post.pinned, pinnedCommentId: post.pinnedCommentId, linkLabel: post.linkLabel, linkUrl: post.linkUrl, likes: Object.keys(post.likedBy).length, liked: Boolean(viewerId && post.likedBy[viewerId]), comments, commentCount: comments.length, viewerId, viewerCanManage: Boolean(viewerId && (viewerId === String(post.authorId || "") || isAdminUser(viewer))) };
 }
 
 function buildAIClothingPrompt(input = {}) {
@@ -7057,6 +7057,20 @@ app.post("/api/community-posts/:postId/likes", async (req, res) => {
     if (post.likedBy[String(user.id)]) delete post.likedBy[String(user.id)]; else post.likedBy[String(user.id)] = new Date().toISOString(); writeCommunityPosts(posts);
     return res.json({ ok: true, liked: Boolean(post.likedBy[String(user.id)]), likes: Object.keys(post.likedBy).length });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this like." }); }
+});
+
+app.post("/api/community-posts/:postId/manage", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req); const posts = readCommunityPosts(); const post = posts.find((entry) => entry.id === String(req.params.postId || ""));
+    if (!post) return res.status(404).json({ error: "That community post was not found." });
+    if (String(post.authorId || "") !== String(user.id) && !isAdminUser(user)) return res.status(403).json({ error: "Only the post owner can manage this post." });
+    const action = String(req.body?.action || "");
+    if (action === "pin") post.pinned = !post.pinned;
+    else if (action === "edit") { const title = cleanText(req.body?.title, 140); const body = cleanText(req.body?.body, 6000); if (!title || !body) return res.status(400).json({ error: "A title and post text are required." }); post.title = title; post.body = body; post.updatedAt = new Date().toISOString(); }
+    else if (action === "delete") { const index = posts.indexOf(post); posts.splice(index, 1); writeCommunityPosts(posts); return res.json({ ok: true, deleted: true }); }
+    else return res.status(400).json({ error: "Unknown post action." });
+    writeCommunityPosts(posts); return res.json({ ok: true, post: buildPublicCommunityPost(post, user) });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not manage this post." }); }
 });
 
 app.post("/api/community-posts/:postId/comments", async (req, res) => {
