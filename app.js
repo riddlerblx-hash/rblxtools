@@ -6664,6 +6664,61 @@ app.post("/ai/ugc/preview", async (req, res) => {
   }
 });
 
+// Batch Images to 3D is a convenience workflow: every source image creates an
+// independent Image-to-3D task. It is deliberately separate from multi-view,
+// where several images describe different angles of one single object.
+app.post("/ai/ugc/batch", async (req, res) => {
+  let user;
+  let tokenCost = 0;
+  let tokensDebited = false;
+  try {
+    user = await requireAdminUser(req);
+    const imageDataUrls = Array.isArray(req.body?.imageDataUrls) ? req.body.imageDataUrls.filter(Boolean).slice(0, 4) : [];
+    if (imageDataUrls.length < 2) return res.status(400).json({ error: "Add at least two separate reference images for a batch." });
+    const resolvedSourceImageUrls = await Promise.all(imageDataUrls.map((dataUrl) => storeUGCSourceImage(dataUrl)));
+    const assetType = String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc";
+    const isUgcAsset = assetType === "ugc";
+    const withTexture = Boolean(req.body?.withTexture);
+    const membership = await resolveMembershipSnapshot(user);
+    const isPro = membership?.premiumActive && String(membership?.plan || "").toLowerCase() === "pro";
+    const minTriangles = isUgcAsset ? 300 : 50;
+    const maxTriangles = isUgcAsset ? 4000 : 15000;
+    const targetPolycount = Math.max(minTriangles, Math.min(maxTriangles, Number.parseInt(req.body?.targetPolycount, 10) || maxTriangles));
+    const textureResolution = ["2k", "4k"].includes(String(req.body?.textureResolution || "")) ? String(req.body.textureResolution) : "2k";
+    const enablePbr = withTexture && Boolean(req.body?.enablePbr);
+    if (textureResolution === "4k" && !isPro) return res.status(403).json({ error: "4K high-quality textures require RBLXTools Pro." });
+    if (enablePbr && !isPro) return res.status(403).json({ error: "PBR textures require RBLXTools Pro." });
+    const costPerImage = getUGCGenerationTokenCost({ assetType, inputMode: "image", withTexture });
+    tokenCost = costPerImage * resolvedSourceImageUrls.length;
+    await debitAITokens(user.id, tokenCost);
+    tokensDebited = true;
+    const modelType = isUgcAsset ? "smart-topology" : "standard";
+    const attempts = await Promise.allSettled(resolvedSourceImageUrls.map((imageUrl) => requestMeshy("/v1/image-to-3d", {
+      method: "POST",
+      body: { image_url: imageUrl, model_type: modelType, ai_model: isUgcAsset ? "meshy-t2" : "latest", should_texture: withTexture, should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: enablePbr, target_formats: ["glb"], alpha_thumbnail: true },
+    })));
+    const tasks = attempts.flatMap((attempt, sourceIndex) => {
+      if (attempt.status !== "fulfilled") return [];
+      const taskId = attempt.value?.result || attempt.value?.id;
+      if (!taskId) return [];
+      ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode: "image", taskType: "image", prompt: "", targetPolycount, withTexture, enablePbr, textureResolution, tokenCost: costPerImage, textureTokenCost: 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+      return [{ taskId, taskType: "image", sourceIndex }];
+    });
+    const failedCount = resolvedSourceImageUrls.length - tasks.length;
+    if (failedCount) await restoreAITokens(user.id, costPerImage * failedCount);
+    if (!tasks.length) {
+      tokensDebited = false;
+      throw new Error("None of the batch images could be submitted. Your tokens were restored.");
+    }
+    const latestUser = await getAuthUserById(user.id);
+    return res.json({ ok: true, tasks, assetType, targetPolycount, textureResolution, withTexture, tokenCost: costPerImage * tasks.length, aiTokens: getAITokenBalance(latestUser), historyLimit: getAIUGCHistoryLimit(membership), isPro });
+  } catch (error) {
+    if (user && tokensDebited) await restoreAITokens(user.id, tokenCost).catch(() => null);
+    console.error("POST /ai/ugc/batch failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not start the image batch." });
+  }
+});
+
 app.post("/ai/ugc/refine", async (req, res) => {
   try {
     const user = await requireAdminUser(req);
