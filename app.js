@@ -117,6 +117,7 @@ const AI_UGC_COMMUNITY_FEEDBACK_PATH = path.join(__dirname, "ai-ugc-community-fe
 // Preview tasks are short-lived. Keep the paid generation settings here so a
 // refinement cannot be requested for a different account or without textures.
 const ugcGenerationCharges = new Map();
+const ugcSubmissionLocks = new Set();
 const MAX_SUPPORT_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MAX_CHAT_TIMEOUT_SECONDS = 3650 * 24 * 60 * 60;
 const AI_CLOTHING_OUTPUT_WIDTH = 585;
@@ -210,12 +211,13 @@ function cleanMeshyTaskId(value) {
 }
 
 function getUGCGenerationTokenCost({ assetType, inputMode, withTexture }) {
-  // RBLXTools uses a 3x multiplier over the provider credit cost.
-  const isGameAsset = assetType === "game";
-  const isImageInput = inputMode === "image";
-  const baseCost = isImageInput ? 15 : isGameAsset ? 30 : 15;
-  return baseCost + (withTexture ? 30 : 0);
+  // Meshy credits convert at 1 credit = 5 RBLXTools tokens. Image generation
+  // with texture is a single 15-credit operation, not two stacked charges.
+  if (inputMode === "image") return withTexture ? 75 : 25;
+  return 50;
 }
+
+const UGC_TEXTURE_GENERATION_TOKEN_COST = 50;
 
 async function restoreAITokens(userId, amount) {
   const latestUser = await getAuthUserById(userId).catch(() => null);
@@ -6683,6 +6685,8 @@ app.post("/ai/ugc/preview", async (req, res) => {
   let tokensDebited = false;
   try {
     user = await requireAdminUser(req);
+    if (ugcSubmissionLocks.has(user.id)) return res.status(409).json({ error: "A UGC request is already being submitted. Please wait." });
+    ugcSubmissionLocks.add(user.id);
     const inputMode = String(req.body?.inputMode || "text") === "image" ? "image" : "text";
     const prompt = cleanText(req.body?.prompt, 800);
     const sourceImageUrls = inputMode === "image"
@@ -6718,13 +6722,15 @@ app.post("/ai/ugc/preview", async (req, res) => {
       : await requestMeshy("/v2/text-to-3d", { method: "POST", body: { mode: "preview", prompt, model_type: modelType, ai_model: "latest", should_remesh: modelType === "standard", target_polycount: targetPolycount, target_formats: ["glb"], alpha_thumbnail: true, moderation: true } });
     const taskId = task.result || task.id;
     const taskType = useMultiView ? "multi" : inputMode;
-    ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, taskType, prompt, targetPolycount, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? 30 : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+    ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, taskType, prompt, targetPolycount, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? UGC_TEXTURE_GENERATION_TOKEN_COST : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
     persistPendingAIUGCGeneration(user, { taskId, assetType, inputMode, taskType, prompt, targetPolycount, withTexture });
     return res.json({ ok: true, taskId, taskType, assetType, targetPolycount, textureResolution, withTexture, tokenCost, aiTokens, historyLimit: getAIUGCHistoryLimit(membership), isPro });
   } catch (error) {
     if (user && tokensDebited) await restoreAITokens(user.id, tokenCost).catch(() => null);
     console.error("POST /ai/ugc/preview failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not start the UGC preview." });
+  } finally {
+    if (user) ugcSubmissionLocks.delete(user.id);
   }
 });
 
@@ -6737,6 +6743,8 @@ app.post("/ai/ugc/batch", async (req, res) => {
   let tokensDebited = false;
   try {
     user = await requireAdminUser(req);
+    if (ugcSubmissionLocks.has(user.id)) return res.status(409).json({ error: "A UGC request is already being submitted. Please wait." });
+    ugcSubmissionLocks.add(user.id);
     const imageDataUrls = Array.isArray(req.body?.imageDataUrls) ? req.body.imageDataUrls.filter(Boolean).slice(0, 4) : [];
     if (imageDataUrls.length < 2) return res.status(400).json({ error: "Add at least two separate reference images for a batch." });
     const resolvedSourceImageUrls = await Promise.all(imageDataUrls.map((dataUrl) => storeUGCSourceImage(dataUrl)));
@@ -6781,12 +6789,18 @@ app.post("/ai/ugc/batch", async (req, res) => {
     if (user && tokensDebited) await restoreAITokens(user.id, tokenCost).catch(() => null);
     console.error("POST /ai/ugc/batch failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not start the image batch." });
+  } finally {
+    if (user) ugcSubmissionLocks.delete(user.id);
   }
 });
 
 app.post("/ai/ugc/refine", async (req, res) => {
+  let user;
+  let tokensDebited = false;
   try {
-    const user = await requireAdminUser(req);
+    user = await requireAdminUser(req);
+    if (ugcSubmissionLocks.has(user.id)) return res.status(409).json({ error: "A UGC request is already being submitted. Please wait." });
+    ugcSubmissionLocks.add(user.id);
     const previewTaskId = cleanMeshyTaskId(req.body?.previewTaskId);
     const charge = ugcGenerationCharges.get(previewTaskId);
     if (!charge || charge.userId !== user.id || !charge.withTexture || charge.inputMode !== "text") {
@@ -6798,6 +6812,8 @@ app.post("/ai/ugc/refine", async (req, res) => {
     const enablePbr = Boolean(req.body?.enablePbr);
     if (textureResolution === "4k" && !isPro) return res.status(403).json({ error: "4K high-quality textures require RBLXTools Pro." });
     if (enablePbr && !isPro) return res.status(403).json({ error: "PBR textures require RBLXTools Pro." });
+    const aiTokens = await debitAITokens(user.id, UGC_TEXTURE_GENERATION_TOKEN_COST);
+    tokensDebited = true;
     const task = await requestMeshy("/v2/text-to-3d", {
       method: "POST",
       body: { mode: "refine", preview_task_id: previewTaskId, enable_pbr: enablePbr, texture_resolution: textureResolution, target_formats: ["glb"], alpha_thumbnail: true },
@@ -6805,10 +6821,13 @@ app.post("/ai/ugc/refine", async (req, res) => {
     const taskId = task.result || task.id;
     ugcGenerationCharges.set(taskId, { ...charge, enablePbr, textureResolution, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
     persistPendingAIUGCGeneration(user, { taskId, assetType: charge.assetType, inputMode: "text", taskType: "text", prompt: charge.prompt, targetPolycount: charge.targetPolycount, withTexture: true });
-    return res.json({ ok: true, taskId, aiTokens: getAITokenBalance(await getAuthUserById(user.id)) });
+    return res.json({ ok: true, taskId, aiTokens });
   } catch (error) {
+    if (user && tokensDebited) await restoreAITokens(user.id, UGC_TEXTURE_GENERATION_TOKEN_COST).catch(() => null);
     console.error("POST /ai/ugc/refine failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not start texture generation." });
+  } finally {
+    if (user) ugcSubmissionLocks.delete(user.id);
   }
 });
 
