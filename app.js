@@ -7044,6 +7044,27 @@ async function getOptionalCommunityUser(req) {
   catch (_error) { return null; }
 }
 
+async function requireCommunityAdmin(req, res, next) {
+  try {
+    await requireAdminUser(req);
+    return next();
+  } catch (error) {
+    return res.status(error.statusCode === 401 ? 401 : 403).json({ error: "Community is currently limited to administrators." });
+  }
+}
+
+app.get(["/community", "/community.html"], async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    return res.sendFile(path.join(STATIC_ROOT, "community.html"));
+  } catch (_error) {
+    return res.status(403).send("Community is currently limited to administrators.");
+  }
+});
+
+app.use("/api/community-posts", requireCommunityAdmin);
+app.use("/api/ugc/community", requireCommunityAdmin);
+
 app.get("/api/community-posts", async (req, res) => {
   const viewer = await getOptionalCommunityUser(req);
   const posts = readCommunityPosts().sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
