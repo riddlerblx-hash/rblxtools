@@ -111,6 +111,8 @@ const MESHY_API_KEY = String(process.env.MESHY_API_KEY || "").trim();
 const MESHY_API_BASE_URL = "https://api.meshy.ai/openapi";
 const UGC_SOURCE_IMAGE_TTL_MS = 60 * 60 * 1000;
 const ugcSourceImages = new Map();
+const AI_UGC_HISTORY_PATH = path.join(__dirname, "ai-ugc-history.json");
+const AI_UGC_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 // Preview tasks are short-lived. Keep the paid generation settings here so a
 // refinement cannot be requested for a different account or without textures.
 const ugcGenerationCharges = new Map();
@@ -755,6 +757,43 @@ async function saveAIThumbnailHistory(userId, payload) {
   return item;
 }
 
+function pruneAIUGCHistory(items, now = Date.now()) {
+  return (Array.isArray(items) ? items : []).filter((item) => {
+    const createdAt = Date.parse(String(item?.createdAt || ""));
+    return item?.id && Number.isFinite(createdAt) && createdAt >= now - AI_UGC_HISTORY_RETENTION_MS;
+  }).sort((left, right) => Date.parse(String(right.createdAt || 0)) - Date.parse(String(left.createdAt || 0))).slice(0, 18);
+}
+
+function readPersistentAIUGCHistory() {
+  try {
+    if (!fs.existsSync(AI_UGC_HISTORY_PATH)) return { users: {} };
+    const payload = JSON.parse(fs.readFileSync(AI_UGC_HISTORY_PATH, "utf8"));
+    const users = payload && typeof payload.users === "object" && payload.users ? payload.users : {};
+    Object.keys(users).forEach((userId) => { users[userId] = pruneAIUGCHistory(users[userId]); });
+    return { users };
+  } catch (error) {
+    console.error("[AI UGC HISTORY] Could not read local backup:", error.message);
+    return { users: {} };
+  }
+}
+
+function writePersistentAIUGCHistory(payload) {
+  try { fs.writeFileSync(AI_UGC_HISTORY_PATH, JSON.stringify(payload) + "\n", "utf8"); }
+  catch (error) { console.error("[AI UGC HISTORY] Could not write local backup:", error.message); }
+}
+
+function getPersistentAIUGCHistory(userId) {
+  return pruneAIUGCHistory(readPersistentAIUGCHistory().users[String(userId)] || []);
+}
+
+function savePersistentAIUGCHistory(userId, item) {
+  const payload = readPersistentAIUGCHistory();
+  const key = String(userId);
+  const previous = Array.isArray(payload.users[key]) ? payload.users[key] : [];
+  payload.users[key] = pruneAIUGCHistory([item, ...previous.filter((entry) => String(entry?.id) !== String(item.id))]);
+  writePersistentAIUGCHistory(payload);
+}
+
 function buildAIClothingPrompt(input = {}) {
   const garmentType = normalizeAIClothingGarmentType(input.garmentType || input.templateKey);
   const gender = normalizeAIClothingGender(input.gender);
@@ -1276,6 +1315,10 @@ function isPlusPlan(plan) {
 
 function getAIThumbnailHistoryLimit(membership) {
   return String(membership?.plan || "").toLowerCase() === "pro" ? 30 : membership?.premiumActive ? 10 : 3;
+}
+
+function getAIUGCHistoryLimit(membership) {
+  return String(membership?.plan || "").toLowerCase() === "pro" ? 18 : membership?.premiumActive ? 6 : 3;
 }
 
 function getStripeSubscriptionPlan(subscription) {
@@ -6563,20 +6606,25 @@ app.post("/ai/ugc/preview", async (req, res) => {
     const assetType = String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc";
     const isUgcAsset = assetType === "ugc";
     const withTexture = Boolean(req.body?.withTexture);
+    const membership = await resolveMembershipSnapshot(user);
+    const isPro = membership?.premiumActive && String(membership?.plan || "").toLowerCase() === "pro";
     const modelType = isUgcAsset ? "smart-topology" : "standard";
     const minTriangles = isUgcAsset ? 300 : 50;
     const maxTriangles = isUgcAsset ? 4000 : 15000;
     const targetPolycount = Math.max(minTriangles, Math.min(maxTriangles, Number.parseInt(req.body?.targetPolycount, 10) || maxTriangles));
     const textureResolution = ["2k", "4k"].includes(String(req.body?.textureResolution || "")) ? String(req.body.textureResolution) : "2k";
+    const enablePbr = withTexture && Boolean(req.body?.enablePbr);
+    if (textureResolution === "4k" && !isPro) return res.status(403).json({ error: "4K high-quality textures require RBLXTools Pro." });
+    if (enablePbr && !isPro) return res.status(403).json({ error: "PBR textures require RBLXTools Pro." });
     tokenCost = getUGCGenerationTokenCost({ assetType, inputMode, withTexture });
     const aiTokens = await debitAITokens(user.id, tokenCost);
     tokensDebited = true;
     const task = sourceImageUrl
-      ? await requestMeshy("/v1/image-to-3d", { method: "POST", body: { image_url: sourceImageUrl, model_type: modelType, ai_model: isUgcAsset ? "meshy-t2" : "latest", should_texture: withTexture, should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: withTexture && Boolean(req.body?.enablePbr), target_formats: ["glb"], alpha_thumbnail: true } })
+      ? await requestMeshy("/v1/image-to-3d", { method: "POST", body: { image_url: sourceImageUrl, model_type: modelType, ai_model: isUgcAsset ? "meshy-t2" : "latest", should_texture: withTexture, should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: enablePbr, target_formats: ["glb"], alpha_thumbnail: true } })
       : await requestMeshy("/v2/text-to-3d", { method: "POST", body: { mode: "preview", prompt, model_type: modelType, ai_model: "latest", should_remesh: modelType === "standard", target_polycount: targetPolycount, target_formats: ["glb"], alpha_thumbnail: true, moderation: true } });
     const taskId = task.result || task.id;
-    ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, withTexture, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? 30 : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
-    return res.json({ ok: true, taskId, taskType: inputMode, assetType, targetPolycount, textureResolution, withTexture, tokenCost, aiTokens });
+    ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, prompt, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? 30 : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+    return res.json({ ok: true, taskId, taskType: inputMode, assetType, targetPolycount, textureResolution, withTexture, tokenCost, aiTokens, historyLimit: getAIUGCHistoryLimit(membership), isPro });
   } catch (error) {
     if (user && tokensDebited) await restoreAITokens(user.id, tokenCost).catch(() => null);
     console.error("POST /ai/ugc/preview failed:", error.message);
@@ -6593,11 +6641,18 @@ app.post("/ai/ugc/refine", async (req, res) => {
       return res.status(409).json({ error: "This preview is not eligible for a texture pass. Start a new textured generation." });
     }
     const textureResolution = ["2k", "4k"].includes(String(req.body?.textureResolution || "")) ? String(req.body.textureResolution) : "2k";
+    const membership = await resolveMembershipSnapshot(user);
+    const isPro = membership?.premiumActive && String(membership?.plan || "").toLowerCase() === "pro";
+    const enablePbr = Boolean(req.body?.enablePbr);
+    if (textureResolution === "4k" && !isPro) return res.status(403).json({ error: "4K high-quality textures require RBLXTools Pro." });
+    if (enablePbr && !isPro) return res.status(403).json({ error: "PBR textures require RBLXTools Pro." });
     const task = await requestMeshy("/v2/text-to-3d", {
       method: "POST",
-      body: { mode: "refine", preview_task_id: previewTaskId, enable_pbr: Boolean(req.body?.enablePbr), texture_resolution: textureResolution, target_formats: ["glb"], alpha_thumbnail: true },
+      body: { mode: "refine", preview_task_id: previewTaskId, enable_pbr: enablePbr, texture_resolution: textureResolution, target_formats: ["glb"], alpha_thumbnail: true },
     });
-    return res.json({ ok: true, taskId: task.result || task.id, aiTokens: getAITokenBalance(await getAuthUserById(user.id)) });
+    const taskId = task.result || task.id;
+    ugcGenerationCharges.set(taskId, { ...charge, enablePbr, textureResolution, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+    return res.json({ ok: true, taskId, aiTokens: getAITokenBalance(await getAuthUserById(user.id)) });
   } catch (error) {
     console.error("POST /ai/ugc/refine failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not start texture generation." });
@@ -6614,6 +6669,42 @@ app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
   } catch (error) {
     console.error("GET /ai/ugc/tasks failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the UGC task." });
+  }
+});
+
+app.get("/ai/ugc/history", async (req, res) => {
+  try {
+    const user = await requireAdminUser(req);
+    const historyLimit = getAIUGCHistoryLimit(await resolveMembershipSnapshot(user));
+    return res.json({ ok: true, items: getPersistentAIUGCHistory(user.id).slice(0, historyLimit), historyLimit });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load UGC history." });
+  }
+});
+
+app.post("/ai/ugc/history", async (req, res) => {
+  try {
+    const user = await requireAdminUser(req);
+    const taskId = cleanMeshyTaskId(req.body?.taskId);
+    const charge = ugcGenerationCharges.get(taskId);
+    if (!charge || charge.userId !== user.id) return res.status(404).json({ error: "This UGC generation is not available to save." });
+    const taskType = charge.inputMode === "image" ? "image" : "text";
+    const task = await requestMeshy((taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/") + encodeURIComponent(taskId));
+    if (task.status !== "SUCCEEDED") return res.status(409).json({ error: "Finish the generation before saving it." });
+    const item = {
+      id: taskId,
+      title: cleanText(req.body?.title || charge.prompt || (charge.inputMode === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
+      assetType: charge.assetType,
+      inputMode: charge.inputMode,
+      textured: charge.withTexture,
+      thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || ""),
+      createdAt: new Date().toISOString(),
+    };
+    savePersistentAIUGCHistory(user.id, item);
+    const historyLimit = getAIUGCHistoryLimit(await resolveMembershipSnapshot(user));
+    return res.json({ ok: true, item, historyLimit });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not save UGC history." });
   }
 });
 
