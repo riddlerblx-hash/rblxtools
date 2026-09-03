@@ -4810,11 +4810,11 @@
       var offerIndex = 0;
       var rotationKey = "rblxtools_membership_promo_started:" + activePlan;
       var tokenPacks = [
-        { tokens: 20, price: "$3.79", note: "Great for a quick project" },
-        { tokens: 45, price: "$5.99", note: "More room to experiment" },
-        { tokens: 130, price: "$14.49", note: "Built for active creators" },
-        { tokens: 245, price: "$24.99", note: "Stock up for bigger ideas" },
-        { tokens: 500, price: "$47.99", note: "Best value · Save 49%" }
+        { tokens: 200, price: "$3.79", note: "Great for a quick project" },
+        { tokens: 450, price: "$5.99", note: "More room to experiment" },
+        { tokens: 1300, price: "$14.49", note: "Built for active creators" },
+        { tokens: 2450, price: "$24.99", note: "Stock up for bigger ideas" },
+        { tokens: 5000, price: "$47.99", note: "Best value · Save 49%" }
       ];
 
       function getOffers() {
