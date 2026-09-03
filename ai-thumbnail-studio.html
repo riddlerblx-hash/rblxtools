@@ -117,7 +117,7 @@
           <div class="toolbar">
             <label class="attach" title="Add up to three reference images"><span>+</span> Add references<input id="referenceInput" type="file" accept="image/png,image/jpeg,image/webp" multiple /></label>
             <span class="counter" id="counter">0 / 3 images</span>
-            <span class="token-summary" title="Each thumbnail costs one AI token"><strong id="tokenBalance">0</strong><span>This generation will cost 1 AI token</span></span>
+            <span class="token-summary" title="Each thumbnail costs 10 AI tokens"><strong id="tokenBalance">0</strong><span>This generation will cost 10 AI tokens</span></span>
           </div>
           <button class="generate-thumbnail-button" id="generateButton" type="submit">Generate Thumbnail</button>
         </div>
@@ -126,7 +126,7 @@
     </section>
     <section class="gate" id="gate"><h2>Sign in to create thumbnails</h2><p id="gateMessage">Checking your account access...</p></section>
     <section class="token-modal" id="tokenModal" role="dialog" aria-modal="true" aria-labelledby="tokenDialogTitle">
-      <div class="token-dialog"><h2 id="tokenDialogTitle">Use 1 AI token?</h2><p>Creating a thumbnail costs 1 AI token. You currently have <strong id="modalTokenBalance">0</strong> AI tokens.</p><div class="token-dialog-actions"><button type="button" id="cancelTokenCharge">Cancel</button><button type="button" class="confirm" id="confirmTokenCharge">Continue</button><button type="button" class="confirm" id="confirmAndHideTokenCharge">Continue &amp; don't ask again</button></div></div>
+      <div class="token-dialog"><h2 id="tokenDialogTitle">Use 10 AI tokens?</h2><p>Creating a thumbnail costs 10 AI tokens. You currently have <strong id="modalTokenBalance">0</strong> AI tokens.</p><div class="token-dialog-actions"><button type="button" id="cancelTokenCharge">Cancel</button><button type="button" class="confirm" id="confirmTokenCharge">Continue</button><button type="button" class="confirm" id="confirmAndHideTokenCharge">Continue &amp; don't ask again</button></div></div>
     </section>
   </main>
   <script src="./global-shell.js?v=20260901-2"></script>
@@ -209,7 +209,7 @@
       }
       function appendAssistantTurn(imageUrl, downloadName, sourcePrompt, sourceReferences, historyId, savedFeedback) {
         var turn = document.createElement('article'); turn.className = 'chat-turn';
-        turn.innerHTML = '<div class="chat-avatar">✦</div><div><p class="chat-copy">Here\'s your thumbnail.</p><div class="chat-output"><img alt="Generated Roblox thumbnail"><div class="result-footer"><span>PNG thumbnail</span><div class="result-actions"><a class="download">Download</a><button type="button" class="result-action" data-feedback="like" title="Like this thumbnail">&#128077;</button><button type="button" class="result-action" data-feedback="dislike" title="Dislike this thumbnail">&#128078;</button><button type="button" class="result-action regenerate" title="Regenerate for 1 AI token">&#8635; Regen · 1</button></div></div></div></div>';
+        turn.innerHTML = '<div class="chat-avatar">✦</div><div><p class="chat-copy">Here\'s your thumbnail.</p><div class="chat-output"><img alt="Generated Roblox thumbnail"><div class="result-footer"><span>PNG thumbnail</span><div class="result-actions"><a class="download">Download</a><button type="button" class="result-action" data-feedback="like" title="Like this thumbnail">&#128077;</button><button type="button" class="result-action" data-feedback="dislike" title="Dislike this thumbnail">&#128078;</button><button type="button" class="result-action regenerate" title="Regenerate for 10 AI tokens">&#8635; Regen · 10</button></div></div></div></div>';
         var output = turn.querySelector('img'); var downloadLink = turn.querySelector('.download');
         output.src = imageUrl; downloadLink.href = imageUrl; downloadLink.download = downloadName || 'rblxtools-ai-thumbnail.png';
         turn.querySelectorAll('[data-feedback]').forEach(function (feedbackButton) { if (feedbackButton.getAttribute('data-feedback') === savedFeedback) feedbackButton.classList.add('active'); feedbackButton.addEventListener('click', function () { var feedback = feedbackButton.getAttribute('data-feedback'); turn.querySelectorAll('[data-feedback]').forEach(function (item) { item.classList.remove('active'); }); feedbackButton.classList.add('active'); saveFeedback(historyId, feedback); }); });
@@ -285,7 +285,7 @@
       async function beginGeneration(requestPrompt, requestReferences, isRegeneration) {
         if (!isAuthenticated) { if (window.RBLXToolsAuthModal) window.RBLXToolsAuthModal.open({ mode:'login', message:'Log in to create thumbnails and save your chat history.' }); else window.location.href = './login'; return; }
         if (!String(requestPrompt || '').trim()) { setStatus('Describe the thumbnail you want to create.', true); prompt.focus(); return; }
-        if (tokenBalance < 1) { setStatus('No AI tokens available. Add tokens before creating another thumbnail.', true); return; }
+        if (tokenBalance < 10) { setStatus('You need at least 10 AI tokens to create a thumbnail.', true); return; }
         if (!(await requestTokenApproval())) return;
         button.disabled = true; button.textContent = '…'; setStatus('Creating your thumbnail...');
         try {
