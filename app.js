@@ -117,6 +117,8 @@ const LEGACY_AI_UGC_HISTORY_PATH = path.join(__dirname, "ai-ugc-history.json");
 const AI_UGC_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const AI_UGC_COMMUNITY_PATH = process.env.AI_UGC_COMMUNITY_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc-community.json");
 const LEGACY_AI_UGC_COMMUNITY_FEEDBACK_PATH = path.join(__dirname, "ai-ugc-community-feedback.json");
+const COMMUNITY_POSTS_PATH = process.env.COMMUNITY_POSTS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-posts.json");
+const LEGACY_COMMUNITY_POSTS_PATH = path.join(__dirname, "community-posts.json");
 // Preview tasks are short-lived. Keep the paid generation settings here so a
 // refinement cannot be requested for a different account or without textures.
 const ugcGenerationCharges = new Map();
@@ -938,6 +940,48 @@ function getPublicAIUGCItems() {
   return Object.keys(users).flatMap((userId) => (Array.isArray(users[userId]) ? users[userId] : []).map((item) => ({ ...item, creatorId: userId })))
     .filter((item) => item.public === true)
     .sort((left, right) => Date.parse(right.createdAt || 0) - Date.parse(left.createdAt || 0));
+}
+
+const COMMUNITY_POST_CATEGORIES = new Set(["announcement", "changelog", "known-issue", "bug-report", "feedback", "q-and-a"]);
+
+function normalizeCommunityPostCategory(value) {
+  const category = String(value || "").trim().toLowerCase();
+  if (category === "bug-fix") return "changelog";
+  return COMMUNITY_POST_CATEGORIES.has(category) ? category : "announcement";
+}
+
+function ensureCommunityPostsStorage() {
+  fs.mkdirSync(path.dirname(COMMUNITY_POSTS_PATH), { recursive: true });
+  if (!fs.existsSync(COMMUNITY_POSTS_PATH) && fs.existsSync(LEGACY_COMMUNITY_POSTS_PATH)) fs.copyFileSync(LEGACY_COMMUNITY_POSTS_PATH, COMMUNITY_POSTS_PATH);
+  if (!fs.existsSync(COMMUNITY_POSTS_PATH)) {
+    try { fs.writeFileSync(COMMUNITY_POSTS_PATH, "[]\n", { encoding: "utf8", flag: "wx" }); }
+    catch (error) { if (error.code !== "EEXIST") throw error; }
+  }
+}
+
+function readCommunityPosts() {
+  try {
+    ensureCommunityPostsStorage(); const posts = JSON.parse(fs.readFileSync(COMMUNITY_POSTS_PATH, "utf8"));
+    return (Array.isArray(posts) ? posts : []).filter((post) => post && post.id && post.title && post.body).map((post) => ({
+      id: String(post.id), title: cleanText(post.title, 140), body: cleanText(post.body, 6000), category: normalizeCommunityPostCategory(post.category),
+      createdAt: String(post.createdAt || post.publishedAt || new Date().toISOString()), publishedAt: String(post.publishedAt || post.createdAt || new Date().toISOString()),
+      updatedAt: String(post.updatedAt || post.createdAt || new Date().toISOString()), authorName: cleanText(post.authorName || "RBLXTools", 80),
+      authorId: cleanText(post.authorId || "", 120), pinned: Boolean(post.pinned), linkLabel: cleanText(post.linkLabel || "", 80), linkUrl: cleanText(post.linkUrl || "", 1000),
+      likedBy: post.likedBy && typeof post.likedBy === "object" ? post.likedBy : {}, comments: Array.isArray(post.comments) ? post.comments.slice(-100) : [],
+    }));
+  } catch (error) { console.error("[COMMUNITY] Could not read posts:", error.message); return []; }
+}
+
+function writeCommunityPosts(posts) {
+  try {
+    ensureCommunityPostsStorage(); const tempPath = `${COMMUNITY_POSTS_PATH}.${process.pid}.${Date.now()}.tmp`;
+    fs.writeFileSync(tempPath, JSON.stringify(posts) + "\n", "utf8"); fs.renameSync(tempPath, COMMUNITY_POSTS_PATH);
+  } catch (error) { console.error("[COMMUNITY] Could not save posts:", error.message); }
+}
+
+function buildPublicCommunityPost(post, viewer) {
+  const viewerId = String(viewer?.id || "");
+  return { id: post.id, title: post.title, body: post.body, category: post.category, createdAt: post.createdAt, authorName: post.authorName, pinned: post.pinned, linkLabel: post.linkLabel, linkUrl: post.linkUrl, likes: Object.keys(post.likedBy).length, liked: Boolean(viewerId && post.likedBy[viewerId]), comments: post.comments, commentCount: post.comments.length };
 }
 
 function buildAIClothingPrompt(input = {}) {
@@ -6986,6 +7030,37 @@ async function getOptionalCommunityUser(req) {
   try { return await requireAuthenticatedUser(req); }
   catch (_error) { return null; }
 }
+
+app.get("/api/community-posts", async (req, res) => {
+  const viewer = await getOptionalCommunityUser(req);
+  const posts = readCommunityPosts().sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+  return res.json({ ok: true, posts: posts.map((post) => buildPublicCommunityPost(post, viewer)) });
+});
+
+app.post("/api/community-posts/:postId/likes", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req); const postId = String(req.params.postId || "").trim(); const posts = readCommunityPosts();
+    const post = posts.find((entry) => entry.id === postId); if (!post) return res.status(404).json({ error: "That community post was not found." });
+    if (post.likedBy[String(user.id)]) delete post.likedBy[String(user.id)]; else post.likedBy[String(user.id)] = new Date().toISOString(); writeCommunityPosts(posts);
+    return res.json({ ok: true, liked: Boolean(post.likedBy[String(user.id)]), likes: Object.keys(post.likedBy).length });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this like." }); }
+});
+
+app.post("/api/community-posts/:postId/comments", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req); const postId = String(req.params.postId || "").trim(); const body = cleanText(req.body?.body, 600);
+    if (!body) return res.status(400).json({ error: "Write a comment before posting." });
+    const posts = readCommunityPosts(); const post = posts.find((entry) => entry.id === postId); if (!post) return res.status(404).json({ error: "That community post was not found." });
+    const membership = await resolveMembershipSnapshot(user);
+    const comment = {
+      id: randomUUID(), userId: user.id,
+      authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
+      plan: String(membership?.plan || "free").toLowerCase(), body, createdAt: new Date().toISOString(),
+    };
+    post.comments.push(comment); post.comments = post.comments.slice(-100); writeCommunityPosts(posts);
+    return res.json({ ok: true, comment, commentCount: post.comments.length });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not post this comment." }); }
+});
 
 function buildAIUGCCommunityItem(item, post, viewer) {
   const ratings = Object.values(post.ratings).map(Number).filter((value) => value >= 1 && value <= 5);
