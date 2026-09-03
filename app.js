@@ -135,11 +135,11 @@ const AI_THUMBNAIL_PRO_REFERENCES = 6;
 const PRO_MONTHLY_AI_TOKEN_CREDITS = 20;
 const PRO_ANNUAL_AI_TOKEN_CREDITS = 240;
 const AI_TOKEN_PACKAGES = [
-  { key: "20", tokens: 200, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9siwVVdZ6u716").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_20 || "price_1U9YwwGrZOEMBkuuGypX9VtO").trim() },
-  { key: "45", tokens: 450, priceCents: 599, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
-  { key: "130", tokens: 1300, priceCents: 1449, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_130 || "prod_V9YGsNXs9IXcrX").trim() },
-  { key: "245", tokens: 2450, priceCents: 2499, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_245 || "prod_V9YK5x1FI50wj2").trim() },
-  { key: "500", tokens: 5000, priceCents: 4799, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_500 || "prod_V9shFwrlWrEAqI").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_500 || "price_1U9YvtGrZOEMBkuuETfZlZaG").trim() },
+  { key: "20", title: "200 Tokens", tokens: 200, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9siwVVdZ6u716").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_20 || "price_1U9YwwGrZOEMBkuuGypX9VtO").trim() },
+  { key: "45", title: "450 Tokens", tokens: 450, priceCents: 599, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
+  { key: "130", title: "1,300 Tokens", tokens: 1300, priceCents: 1449, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_130 || "prod_V9YGsNXs9IXcrX").trim() },
+  { key: "245", title: "2,450 Tokens", tokens: 2450, priceCents: 2499, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_245 || "prod_V9YK5x1FI50wj2").trim() },
+  { key: "500", title: "5,000 Tokens", tokens: 5000, priceCents: 4799, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_500 || "prod_V9shFwrlWrEAqI").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_500 || "price_1U9YvtGrZOEMBkuuETfZlZaG").trim() },
 ];
 const AI_SLEEVE_REFERENCE_PATHS = {
   long: path.join(__dirname, "assets", "ai-rig", "Long Sleeve Reference.png"),
