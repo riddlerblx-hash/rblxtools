@@ -212,10 +212,13 @@ function cleanMeshyTaskId(value) {
   return taskId;
 }
 
-function getUGCGenerationTokenCost({ assetType, inputMode, withTexture }) {
+function getUGCGenerationTokenCost({ assetType, inputMode, withTexture, multiView = false }) {
   // Meshy credits convert at 1 credit = 5 RBLXTools tokens. Image generation
   // with texture is a single 15-credit operation, not two stacked charges.
-  if (inputMode === "image") return withTexture ? 75 : 25;
+  if (inputMode === "image") {
+    const singleImageCost = withTexture ? 75 : 25;
+    return multiView ? singleImageCost * 2 : singleImageCost;
+  }
   return 50;
 }
 
@@ -6749,7 +6752,7 @@ app.post("/ai/ugc/preview", async (req, res) => {
     const enablePbr = withTexture && Boolean(req.body?.enablePbr);
     if (textureResolution === "4k" && !isPro) return res.status(403).json({ error: "4K high-quality textures require RBLXTools Pro." });
     if (enablePbr && !isPro) return res.status(403).json({ error: "PBR textures require RBLXTools Pro." });
-    tokenCost = getUGCGenerationTokenCost({ assetType, inputMode, withTexture });
+    tokenCost = getUGCGenerationTokenCost({ assetType, inputMode, withTexture, multiView: useMultiView });
     await ensureSufficientAITokens(user.id, tokenCost, "No AI tokens available. Add tokens before creating another UGC model.");
     const task = inputMode === "image"
       ? await requestMeshy(useMultiView ? "/v1/multi-image-to-3d" : "/v1/image-to-3d", { method: "POST", body: useMultiView
