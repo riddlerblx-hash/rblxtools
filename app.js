@@ -7064,6 +7064,7 @@ app.get(["/community", "/community.html"], async (req, res) => {
 
 app.use("/api/community-posts", requireCommunityAdmin);
 app.use("/api/ugc/community", requireCommunityAdmin);
+app.get("/api/community-access", requireCommunityAdmin, (_req, res) => res.json({ ok: true }));
 
 app.get("/api/community-posts", async (req, res) => {
   const viewer = await getOptionalCommunityUser(req);

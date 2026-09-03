@@ -3,6 +3,13 @@
   var page = document.querySelector('.community-page');
   if (!gallery || !page) return;
 
+  fetch('/api/community-access', { credentials: 'include' }).then(function (response) {
+    if (response.ok) return;
+    throw new Error('Community is currently limited to administrators.');
+  }).catch(function () {
+    document.body.innerHTML = '<main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#0b111d;color:#edf5ff;font:700 15px system-ui"><section style="max-width:460px;padding:30px;border:1px solid #28496d;border-radius:16px;background:#111d2c;text-align:center"><h1 style="margin:0 0 10px;font-size:25px">Community Locked</h1><p style="margin:0;color:#aebfd5;line-height:1.6">Community is temporarily limited to administrators while it is being updated.</p></section></main>';
+  });
+
   var state = { items: [], active: null, viewer: null, viewerTimer: 0, communityPollTimer: 0 };
   var authToken = function () { try { return localStorage.getItem('rblxtools_auth_token') || ''; } catch (_error) { return ''; } };
   var escapeHtml = function (value) { var node = document.createElement('span'); node.textContent = String(value == null ? '' : value); return node.innerHTML; };
