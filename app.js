@@ -115,11 +115,13 @@ const ugcSourceImages = new Map();
 const AI_UGC_HISTORY_PATH = process.env.AI_UGC_HISTORY_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc-history.json");
 const LEGACY_AI_UGC_HISTORY_PATH = path.join(__dirname, "ai-ugc-history.json");
 const AI_UGC_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
-const AI_UGC_COMMUNITY_FEEDBACK_PATH = path.join(__dirname, "ai-ugc-community-feedback.json");
+const AI_UGC_COMMUNITY_PATH = process.env.AI_UGC_COMMUNITY_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc-community.json");
+const LEGACY_AI_UGC_COMMUNITY_FEEDBACK_PATH = path.join(__dirname, "ai-ugc-community-feedback.json");
 // Preview tasks are short-lived. Keep the paid generation settings here so a
 // refinement cannot be requested for a different account or without textures.
 const ugcGenerationCharges = new Map();
 const ugcSubmissionLocks = new Set();
+const ugcCommunityTipLocks = new Set();
 const MAX_SUPPORT_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MAX_CHAT_TIMEOUT_SECONDS = 3650 * 24 * 60 * 60;
 const AI_CLOTHING_OUTPUT_WIDTH = 585;
@@ -886,14 +888,49 @@ async function refreshPersistentAIUGCHistory(userId) {
   return getPersistentAIUGCHistory(userId);
 }
 
-function readAIUGCCommunityFeedback() {
-  try { return fs.existsSync(AI_UGC_COMMUNITY_FEEDBACK_PATH) ? JSON.parse(fs.readFileSync(AI_UGC_COMMUNITY_FEEDBACK_PATH, "utf8")) : {}; }
-  catch (_error) { return {}; }
+function ensureAIUGCCommunityStorage() {
+  fs.mkdirSync(path.dirname(AI_UGC_COMMUNITY_PATH), { recursive: true });
+  if (!fs.existsSync(AI_UGC_COMMUNITY_PATH) && fs.existsSync(LEGACY_AI_UGC_COMMUNITY_FEEDBACK_PATH)) {
+    const legacyPosts = JSON.parse(fs.readFileSync(LEGACY_AI_UGC_COMMUNITY_FEEDBACK_PATH, "utf8"));
+    fs.writeFileSync(AI_UGC_COMMUNITY_PATH, JSON.stringify({ posts: legacyPosts, follows: {} }) + "\n", { encoding: "utf8", flag: "wx" });
+  }
+  if (!fs.existsSync(AI_UGC_COMMUNITY_PATH)) {
+    try { fs.writeFileSync(AI_UGC_COMMUNITY_PATH, '{"posts":{},"follows":{}}\n', { encoding: "utf8", flag: "wx" }); }
+    catch (error) { if (error.code !== "EEXIST") throw error; }
+  }
 }
 
-function writeAIUGCCommunityFeedback(payload) {
-  try { fs.writeFileSync(AI_UGC_COMMUNITY_FEEDBACK_PATH, JSON.stringify(payload) + "\n", "utf8"); }
-  catch (error) { console.error("[AI UGC COMMUNITY] Could not save feedback:", error.message); }
+function readAIUGCCommunityState() {
+  try {
+    ensureAIUGCCommunityStorage();
+    const state = JSON.parse(fs.readFileSync(AI_UGC_COMMUNITY_PATH, "utf8"));
+    return { posts: state?.posts && typeof state.posts === "object" ? state.posts : {}, follows: state?.follows && typeof state.follows === "object" ? state.follows : {} };
+  } catch (error) {
+    console.error("[AI UGC COMMUNITY] Could not read community state:", error.message);
+    return { posts: {}, follows: {} };
+  }
+}
+
+function writeAIUGCCommunityState(payload) {
+  try {
+    ensureAIUGCCommunityStorage();
+    const tempPath = `${AI_UGC_COMMUNITY_PATH}.${process.pid}.${Date.now()}.tmp`;
+    fs.writeFileSync(tempPath, JSON.stringify(payload) + "\n", "utf8");
+    fs.renameSync(tempPath, AI_UGC_COMMUNITY_PATH);
+  } catch (error) { console.error("[AI UGC COMMUNITY] Could not save community state:", error.message); }
+}
+
+function getAIUGCCommunityPost(state, taskId) {
+  const previous = state.posts[taskId] && typeof state.posts[taskId] === "object" ? state.posts[taskId] : {};
+  const post = {
+    votes: previous.votes && typeof previous.votes === "object" ? previous.votes : {},
+    ratings: previous.ratings && typeof previous.ratings === "object" ? previous.ratings : {},
+    views: previous.views && typeof previous.views === "object" ? previous.views : {},
+    comments: Array.isArray(previous.comments) ? previous.comments.slice(-100) : [],
+    tips: Array.isArray(previous.tips) ? previous.tips.slice(-100) : [],
+  };
+  state.posts[taskId] = post;
+  return post;
 }
 
 function getPublicAIUGCItems() {
@@ -6931,7 +6968,9 @@ app.post("/ai/ugc/history", async (req, res) => {
       rating: Number(existingItem?.rating || 0),
       pbrSettings,
       creatorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "RBLXTools creator", 80),
-      public: !isPro,
+      // Completed generations are automatically discoverable in AI Assets.
+      // Download access remains separately controlled by allowPublicDownloads.
+      public: true,
       allowPublicDownloads: Boolean(req.body?.allowPublicDownloads),
       createdAt: new Date().toISOString(),
     };
@@ -6943,32 +6982,132 @@ app.post("/ai/ugc/history", async (req, res) => {
   }
 });
 
-app.get("/api/ugc/community", (req, res) => {
-  const feedback = readAIUGCCommunityFeedback();
-  const items = getPublicAIUGCItems().map((item) => {
-    const entry = feedback[String(item.id)] || {};
-    const ratings = entry.ratings && typeof entry.ratings === "object" ? Object.values(entry.ratings).map(Number).filter((value) => value >= 1 && value <= 5) : [];
-    const votes = entry.votes && typeof entry.votes === "object" ? Object.values(entry.votes) : [];
-    return { id: item.id, title: item.title, thumbnailUrl: item.thumbnailUrl, assetType: item.assetType, textured: item.textured, creatorName: item.creatorName || "RBLXTools creator", createdAt: item.createdAt, allowDownloads: Boolean(item.allowPublicDownloads), rating: ratings.length ? Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10 : 0, ratingCount: ratings.length, likes: votes.filter((vote) => vote === "like").length, dislikes: votes.filter((vote) => vote === "dislike").length };
-  });
-  return res.json({ ok: true, items });
+async function getOptionalCommunityUser(req) {
+  try { return await requireAuthenticatedUser(req); }
+  catch (_error) { return null; }
+}
+
+function buildAIUGCCommunityItem(item, post, viewer) {
+  const ratings = Object.values(post.ratings).map(Number).filter((value) => value >= 1 && value <= 5);
+  const votes = Object.values(post.votes);
+  const tips = post.tips.reduce((total, tip) => total + Math.max(0, Number(tip?.amount) || 0), 0);
+  const viewerId = String(viewer?.id || "");
+  return {
+    id: item.id, title: item.title, thumbnailUrl: item.thumbnailUrl, assetType: item.assetType, textured: item.textured,
+    creatorId: item.creatorId, creatorName: item.creatorName || "RBLXTools creator", createdAt: item.createdAt,
+    allowDownloads: Boolean(item.allowPublicDownloads), rating: ratings.length ? Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10 : 0,
+    ratingCount: ratings.length, likes: votes.filter((vote) => vote === "like").length, dislikes: votes.filter((vote) => vote === "dislike").length,
+    views: Object.keys(post.views).length, commentCount: post.comments.length, tipTotal: tips, tipCount: post.tips.length,
+    viewerVote: viewerId ? String(post.votes[viewerId] || "") : "", viewerRating: viewerId ? Number(post.ratings[viewerId] || 0) : 0,
+  };
+}
+
+function findPublicAIUGCItem(taskId) {
+  return getPublicAIUGCItems().find((item) => String(item.id) === String(taskId));
+}
+
+app.get("/api/ugc/community", async (req, res) => {
+  const viewer = await getOptionalCommunityUser(req);
+  const state = readAIUGCCommunityState();
+  const items = getPublicAIUGCItems().map((item) => buildAIUGCCommunityItem(item, getAIUGCCommunityPost(state, String(item.id)), viewer));
+  return res.json({ ok: true, items, viewerId: viewer?.id || null });
+});
+
+app.get("/api/ugc/community/:taskId", async (req, res) => {
+  const item = findPublicAIUGCItem(cleanMeshyTaskId(req.params.taskId));
+  if (!item) return res.status(404).json({ error: "This community model is not available." });
+  const viewer = await getOptionalCommunityUser(req);
+  const state = readAIUGCCommunityState();
+  const post = getAIUGCCommunityPost(state, String(item.id));
+  const viewerId = String(viewer?.id || "");
+  const followers = state.follows[String(item.creatorId)] && typeof state.follows[String(item.creatorId)] === "object" ? state.follows[String(item.creatorId)] : {};
+  return res.json({ ok: true, item: { ...buildAIUGCCommunityItem(item, post, viewer), comments: post.comments, tips: post.tips.slice(-8).reverse(), creator: { id: item.creatorId, name: item.creatorName || "RBLXTools creator", followers: Object.keys(followers).length, isFollowing: Boolean(viewerId && followers[viewerId]) } } });
+});
+
+app.post("/api/ugc/community/:taskId/view", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const item = findPublicAIUGCItem(cleanMeshyTaskId(req.params.taskId));
+    if (!item) return res.status(404).json({ error: "This community model is not available." });
+    const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, String(item.id));
+    post.views[String(user.id)] = post.views[String(user.id)] || new Date().toISOString(); writeAIUGCCommunityState(state);
+    return res.json({ ok: true, views: Object.keys(post.views).length });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not record this view." }); }
 });
 
 app.post("/api/ugc/community/:taskId/feedback", async (req, res) => {
   try {
-    const user = await requireAuthenticatedUser(req);
-    const taskId = cleanMeshyTaskId(req.params.taskId);
-    if (!getPublicAIUGCItems().some((item) => String(item.id) === taskId)) return res.status(404).json({ error: "This community model is not available." });
-    const feedback = readAIUGCCommunityFeedback();
-    const entry = feedback[taskId] && typeof feedback[taskId] === "object" ? feedback[taskId] : { votes: {}, ratings: {} };
+    const user = await requireAuthenticatedUser(req); const taskId = cleanMeshyTaskId(req.params.taskId);
+    if (!findPublicAIUGCItem(taskId)) return res.status(404).json({ error: "This community model is not available." });
     const vote = ["like", "dislike"].includes(String(req.body?.vote || "")) ? String(req.body.vote) : "";
     const rating = Math.max(0, Math.min(5, Number.parseInt(req.body?.rating, 10) || 0));
-    if (vote) entry.votes[String(user.id)] = vote;
-    if (rating) entry.ratings[String(user.id)] = rating;
-    feedback[taskId] = entry;
-    writeAIUGCCommunityFeedback(feedback);
+    if (!vote && !rating) return res.status(400).json({ error: "Choose a reaction or rating." });
+    const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId);
+    if (vote) post.votes[String(user.id)] = vote; if (rating) post.ratings[String(user.id)] = rating; writeAIUGCCommunityState(state);
     return res.json({ ok: true });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save community feedback." }); }
+});
+
+app.post("/api/ugc/community/:taskId/comments", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req); const taskId = cleanMeshyTaskId(req.params.taskId);
+    if (!findPublicAIUGCItem(taskId)) return res.status(404).json({ error: "This community model is not available." });
+    const body = cleanText(req.body?.body, 600); if (!body) return res.status(400).json({ error: "Write a comment before posting." });
+    const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId);
+    const comment = { id: randomUUID(), userId: user.id, authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), body, createdAt: new Date().toISOString() };
+    post.comments.push(comment); post.comments = post.comments.slice(-100); writeAIUGCCommunityState(state);
+    return res.json({ ok: true, comment });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not post this comment." }); }
+});
+
+app.post("/api/ugc/community/creators/:creatorId/follow", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req); const creatorId = String(req.params.creatorId || "").trim();
+    if (!creatorId || creatorId === String(user.id)) return res.status(400).json({ error: "You cannot follow your own creator profile." });
+    const state = readAIUGCCommunityState(); const followers = state.follows[creatorId] && typeof state.follows[creatorId] === "object" ? state.follows[creatorId] : {};
+    if (followers[String(user.id)]) delete followers[String(user.id)]; else followers[String(user.id)] = new Date().toISOString(); state.follows[creatorId] = followers; writeAIUGCCommunityState(state);
+    return res.json({ ok: true, following: Boolean(followers[String(user.id)]), followers: Object.keys(followers).length });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this follow." }); }
+});
+
+app.post("/api/ugc/community/:taskId/tip", async (req, res) => {
+  let sender; let amount = 0;
+  try {
+    sender = await requireAuthenticatedUser(req); const taskId = cleanMeshyTaskId(req.params.taskId); const item = findPublicAIUGCItem(taskId);
+    if (!item) return res.status(404).json({ error: "This community model is not available." });
+    if (String(item.creatorId) === String(sender.id)) return res.status(400).json({ error: "You cannot tip your own generation." });
+    const requestedAmount = Number.parseInt(req.body?.amount, 10);
+    if (!Number.isFinite(requestedAmount) || requestedAmount < 1 || requestedAmount > 500) return res.status(400).json({ error: "Choose a tip amount from 1 to 500 tokens." });
+    amount = requestedAmount;
+    const lockKey = `${sender.id}:${taskId}`; if (ugcCommunityTipLocks.has(lockKey)) return res.status(409).json({ error: "That tip is already being processed." }); ugcCommunityTipLocks.add(lockKey);
+    await debitAITokens(sender.id, amount);
+    const creator = await getAuthUserById(item.creatorId); if (!creator) throw new Error("The creator account is unavailable.");
+    const credited = await updateAuthUserFields(creator.id, { ai_token_balance: getAITokenBalance(creator) + amount });
+    if (!credited) throw new Error("Could not credit the creator.");
+    const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId);
+    post.tips.push({ id: randomUUID(), userId: sender.id, senderName: cleanText(sender.display_name || sender.username || sender.email?.split("@")[0] || "Member", 80), amount, createdAt: new Date().toISOString() }); post.tips = post.tips.slice(-100); writeAIUGCCommunityState(state);
+    return res.json({ ok: true, amount, aiTokens: await getAITokenBalance((await getAuthUserById(sender.id)) || sender), tipTotal: post.tips.reduce((total, tip) => total + Number(tip.amount || 0), 0) });
+  } catch (error) {
+    if (sender && amount) await restoreAITokens(sender.id, amount).catch(() => null);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not send this tip." });
+  } finally { if (sender) ugcCommunityTipLocks.delete(`${sender.id}:${cleanMeshyTaskId(req.params.taskId)}`); }
+});
+
+app.get("/api/ugc/community/:taskId/model", async (req, res) => {
+  try {
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    const item = findPublicAIUGCItem(taskId);
+    if (!item) return res.status(404).json({ error: "This community model is not available." });
+    const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
+    const task = await requestMeshy(getUGCTaskPath(taskType) + encodeURIComponent(taskId));
+    if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) return res.status(409).json({ error: "The community preview is not available yet." });
+    const modelResponse = await fetch(task.model_urls.glb);
+    if (!modelResponse.ok) throw new Error("Could not retrieve the community GLB.");
+    const maxTriangles = item.assetType === "game" ? 15000 : 4000;
+    const prepared = await prepareRobloxGLBDownload(Buffer.from(await modelResponse.arrayBuffer()), maxTriangles, item.assetType === "game" ? 4096 : 1024);
+    res.setHeader("Content-Type", "model/gltf-binary"); res.setHeader("Cache-Control", "private, max-age=300");
+    return res.send(prepared.buffer);
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the community preview." }); }
 });
 
 app.get("/api/ugc/community/:taskId/download", async (req, res) => {
