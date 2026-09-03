@@ -796,7 +796,16 @@ function ensureAIUGCHistoryDirectory() {
   if (AI_UGC_HISTORY_PATH !== LEGACY_AI_UGC_HISTORY_PATH && !fs.existsSync(AI_UGC_HISTORY_PATH) && fs.existsSync(LEGACY_AI_UGC_HISTORY_PATH)) {
     fs.copyFileSync(LEGACY_AI_UGC_HISTORY_PATH, AI_UGC_HISTORY_PATH);
   }
+  if (!fs.existsSync(AI_UGC_HISTORY_PATH)) {
+    try { fs.writeFileSync(AI_UGC_HISTORY_PATH, '{"users":{}}\n', { encoding: "utf8", flag: "wx" }); }
+    catch (error) { if (error.code !== "EEXIST") throw error; }
+  }
 }
+
+// Initialize the persistent store during boot so a fresh VPS has a visible,
+// writable history file before the first generation completes.
+try { ensureAIUGCHistoryDirectory(); }
+catch (error) { console.error("[AI UGC HISTORY] Could not initialize persistent store:", error.message); }
 
 function readPersistentAIUGCHistory() {
   try {
