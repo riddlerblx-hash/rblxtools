@@ -297,22 +297,28 @@ async function prepareRobloxGLBDownload(glbBuffer, maxTriangles, maxTextureSize)
   return { buffer: Buffer.from(await io.writeBinary(document)), largestMeshTriangles };
 }
 
-function storeUGCSourceImage(dataUrl) {
+async function storeUGCSourceImage(dataUrl) {
   const match = String(dataUrl || "").trim().match(/^data:(image\/(?:png|jpeg|webp));base64,([a-z0-9+/=]+)$/i);
   if (!match) {
     const error = new Error("Upload a PNG, JPG, or WebP image.");
     error.statusCode = 400;
     throw error;
   }
-  const buffer = Buffer.from(match[2], "base64");
-  if (!buffer.length || buffer.length > 5 * 1024 * 1024) {
-    const error = new Error("The UGC reference image must be 5 MB or smaller.");
+  let buffer = Buffer.from(match[2], "base64");
+  if (!buffer.length || buffer.length > 20 * 1024 * 1024) {
+    const error = new Error("The UGC reference image must be 20 MB or smaller.");
     error.statusCode = 400;
     throw error;
   }
+  let type = match[1].toLowerCase();
+  // Meshy's multi-image endpoint accepts PNG and JPEG, so normalize WebP uploads.
+  if (type === "image/webp") {
+    buffer = await sharp(buffer).jpeg({ quality: 95 }).toBuffer();
+    type = "image/jpeg";
+  }
   const id = randomUUID();
   const expiresAt = Date.now() + UGC_SOURCE_IMAGE_TTL_MS;
-  ugcSourceImages.set(id, { buffer, type: match[1].toLowerCase(), expiresAt });
+  ugcSourceImages.set(id, { buffer, type, expiresAt });
   for (const [key, entry] of ugcSourceImages) {
     if (!entry || Number(entry.expiresAt || 0) <= Date.now()) ugcSourceImages.delete(key);
   }
@@ -1162,7 +1168,7 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
   }
 });
 app.use(cookieParser());
-app.use(express.json({ limit: "12mb" }));
+app.use(express.json({ limit: "120mb" }));
 
 const io = new Server(httpServer, {
   cors: corsOptions,
@@ -6616,8 +6622,15 @@ app.post("/ai/ugc/preview", async (req, res) => {
     user = await requireAdminUser(req);
     const inputMode = String(req.body?.inputMode || "text") === "image" ? "image" : "text";
     const prompt = cleanText(req.body?.prompt, 800);
-    const sourceImageUrl = inputMode === "image" && req.body?.imageDataUrl ? storeUGCSourceImage(req.body.imageDataUrl) : "";
-    if (inputMode === "image" && !sourceImageUrl) return res.status(400).json({ error: "Add a reference image before creating an image-to-model asset." });
+    const sourceImageUrls = inputMode === "image"
+      ? [req.body?.imageDataUrl, ...(Array.isArray(req.body?.multiViewImageDataUrls) ? req.body.multiViewImageDataUrls : [])]
+        .filter(Boolean)
+        .slice(0, 4)
+        .map((dataUrl) => storeUGCSourceImage(dataUrl))
+      : [];
+    const resolvedSourceImageUrls = await Promise.all(sourceImageUrls);
+    const useMultiView = inputMode === "image" && Boolean(req.body?.multiView) && resolvedSourceImageUrls.length > 1;
+    if (inputMode === "image" && !resolvedSourceImageUrls.length) return res.status(400).json({ error: "Add a reference image before creating an image-to-model asset." });
     if (inputMode === "text" && !prompt) return res.status(400).json({ error: "Describe the asset before creating a text-to-model asset." });
     const assetType = String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc";
     const isUgcAsset = assetType === "ugc";
@@ -6635,12 +6648,15 @@ app.post("/ai/ugc/preview", async (req, res) => {
     tokenCost = getUGCGenerationTokenCost({ assetType, inputMode, withTexture });
     const aiTokens = await debitAITokens(user.id, tokenCost);
     tokensDebited = true;
-    const task = sourceImageUrl
-      ? await requestMeshy("/v1/image-to-3d", { method: "POST", body: { image_url: sourceImageUrl, model_type: modelType, ai_model: isUgcAsset ? "meshy-t2" : "latest", should_texture: withTexture, should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: enablePbr, target_formats: ["glb"], alpha_thumbnail: true } })
+    const task = inputMode === "image"
+      ? await requestMeshy(useMultiView ? "/v1/multi-image-to-3d" : "/v1/image-to-3d", { method: "POST", body: useMultiView
+        ? { image_urls: resolvedSourceImageUrls, ai_model: "latest", should_texture: withTexture, should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: enablePbr, target_formats: ["glb"], alpha_thumbnail: true, moderation: true }
+        : { image_url: resolvedSourceImageUrls[0], model_type: modelType, ai_model: isUgcAsset ? "meshy-t2" : "latest", should_texture: withTexture, should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: enablePbr, target_formats: ["glb"], alpha_thumbnail: true } })
       : await requestMeshy("/v2/text-to-3d", { method: "POST", body: { mode: "preview", prompt, model_type: modelType, ai_model: "latest", should_remesh: modelType === "standard", target_polycount: targetPolycount, target_formats: ["glb"], alpha_thumbnail: true, moderation: true } });
     const taskId = task.result || task.id;
-    ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, prompt, targetPolycount, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? 30 : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
-    return res.json({ ok: true, taskId, taskType: inputMode, assetType, targetPolycount, textureResolution, withTexture, tokenCost, aiTokens, historyLimit: getAIUGCHistoryLimit(membership), isPro });
+    const taskType = useMultiView ? "multi" : inputMode;
+    ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, taskType, prompt, targetPolycount, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? 30 : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+    return res.json({ ok: true, taskId, taskType, assetType, targetPolycount, textureResolution, withTexture, tokenCost, aiTokens, historyLimit: getAIUGCHistoryLimit(membership), isPro });
   } catch (error) {
     if (user && tokensDebited) await restoreAITokens(user.id, tokenCost).catch(() => null);
     console.error("POST /ai/ugc/preview failed:", error.message);
@@ -6679,8 +6695,10 @@ app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
   try {
     await requireAdminUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
-    const taskType = String(req.query.type || "text") === "image" ? "image" : "text";
-    const task = await requestMeshy((taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/") + encodeURIComponent(taskId));
+    const requestedType = String(req.query.type || "text");
+    const taskType = ["image", "multi"].includes(requestedType) ? requestedType : "text";
+    const taskPath = taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
+    const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
     return res.json({ ok: true, task: { id: task.id, status: task.status, progress: Number(task.progress || 0), prompt: task.prompt || "", thumbnailUrl: task.alpha_thumbnail_url || task.thumbnail_url || "", modelUrls: task.model_urls || {}, textureUrls: Array.isArray(task.texture_urls) ? task.texture_urls : [], consumedCredits: task.consumed_credits, error: task.task_error && task.task_error.message ? task.task_error.message : "" } });
   } catch (error) {
     console.error("GET /ai/ugc/tasks failed:", error.message);
@@ -6704,14 +6722,16 @@ app.post("/ai/ugc/history", async (req, res) => {
     const taskId = cleanMeshyTaskId(req.body?.taskId);
     const charge = ugcGenerationCharges.get(taskId);
     if (!charge || charge.userId !== user.id) return res.status(404).json({ error: "This UGC generation is not available to save." });
-    const taskType = charge.inputMode === "image" ? "image" : "text";
-    const task = await requestMeshy((taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/") + encodeURIComponent(taskId));
+    const taskType = charge.taskType === "multi" ? "multi" : charge.inputMode === "image" ? "image" : "text";
+    const taskPath = taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
+    const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
     if (task.status !== "SUCCEEDED") return res.status(409).json({ error: "Finish the generation before saving it." });
     const item = {
       id: taskId,
       title: cleanText(req.body?.title || charge.prompt || (charge.inputMode === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
       assetType: charge.assetType,
       inputMode: charge.inputMode,
+      taskType,
       targetPolycount: charge.targetPolycount,
       textured: charge.withTexture,
       thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || ""),
@@ -6743,9 +6763,11 @@ app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
   try {
     const user = await requireAdminUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
-    const taskType = String(req.query.type || "text") === "image" ? "image" : "text";
+    const requestedType = String(req.query.type || "text");
+    const taskType = ["image", "multi"].includes(requestedType) ? requestedType : "text";
     const assetType = String(req.query.assetType || "ugc") === "game" ? "game" : "ugc";
-    const task = await requestMeshy((taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/") + encodeURIComponent(taskId));
+    const taskPath = taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
+    const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
     if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) {
       return res.status(409).json({ error: "The GLB is not ready to download yet." });
     }
