@@ -113,6 +113,7 @@ const UGC_SOURCE_IMAGE_TTL_MS = 60 * 60 * 1000;
 const ugcSourceImages = new Map();
 const AI_UGC_HISTORY_PATH = path.join(__dirname, "ai-ugc-history.json");
 const AI_UGC_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const AI_UGC_COMMUNITY_FEEDBACK_PATH = path.join(__dirname, "ai-ugc-community-feedback.json");
 // Preview tasks are short-lived. Keep the paid generation settings here so a
 // refinement cannot be requested for a different account or without textures.
 const ugcGenerationCharges = new Map();
@@ -814,6 +815,31 @@ function savePersistentAIUGCHistory(userId, item) {
   const previous = Array.isArray(payload.users[key]) ? payload.users[key] : [];
   payload.users[key] = pruneAIUGCHistory([item, ...previous.filter((entry) => String(entry?.id) !== String(item.id))]);
   writePersistentAIUGCHistory(payload);
+}
+
+function updatePersistentAIUGCHistory(userId, taskId, updates) {
+  const payload = readPersistentAIUGCHistory();
+  const key = String(userId);
+  const previous = Array.isArray(payload.users[key]) ? payload.users[key] : [];
+  payload.users[key] = previous.map((item) => String(item?.id) === String(taskId) ? { ...item, ...updates } : item);
+  writePersistentAIUGCHistory(payload);
+}
+
+function readAIUGCCommunityFeedback() {
+  try { return fs.existsSync(AI_UGC_COMMUNITY_FEEDBACK_PATH) ? JSON.parse(fs.readFileSync(AI_UGC_COMMUNITY_FEEDBACK_PATH, "utf8")) : {}; }
+  catch (_error) { return {}; }
+}
+
+function writeAIUGCCommunityFeedback(payload) {
+  try { fs.writeFileSync(AI_UGC_COMMUNITY_FEEDBACK_PATH, JSON.stringify(payload) + "\n", "utf8"); }
+  catch (error) { console.error("[AI UGC COMMUNITY] Could not save feedback:", error.message); }
+}
+
+function getPublicAIUGCItems() {
+  const users = readPersistentAIUGCHistory().users || {};
+  return Object.keys(users).flatMap((userId) => (Array.isArray(users[userId]) ? users[userId] : []).map((item) => ({ ...item, creatorId: userId })))
+    .filter((item) => item.public === true)
+    .sort((left, right) => Date.parse(right.createdAt || 0) - Date.parse(left.createdAt || 0));
 }
 
 function buildAIClothingPrompt(input = {}) {
@@ -6776,20 +6802,28 @@ app.post("/ai/ugc/history", async (req, res) => {
     const user = await requireAdminUser(req);
     const taskId = cleanMeshyTaskId(req.body?.taskId);
     const charge = ugcGenerationCharges.get(taskId);
-    if (!charge || charge.userId !== user.id) return res.status(404).json({ error: "This UGC generation is not available to save." });
-    const taskType = charge.taskType === "multi" ? "multi" : charge.inputMode === "image" ? "image" : "text";
+    if (charge && charge.userId !== user.id) return res.status(403).json({ error: "This UGC generation belongs to another account." });
+    const requestedType = String(req.body?.taskType || "text");
+    const taskType = charge ? (charge.taskType === "multi" ? "multi" : charge.inputMode === "image" ? "image" : "text") : (["image", "multi"].includes(requestedType) ? requestedType : "text");
     const taskPath = taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
     const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
     if (task.status !== "SUCCEEDED") return res.status(409).json({ error: "Finish the generation before saving it." });
+    const membership = await resolveMembershipSnapshot(user);
+    const isPro = membership?.premiumActive && String(membership?.plan || "").toLowerCase() === "pro";
     const item = {
       id: taskId,
-      title: cleanText(req.body?.title || charge.prompt || (charge.inputMode === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
-      assetType: charge.assetType,
-      inputMode: charge.inputMode,
+      title: cleanText(req.body?.title || charge?.prompt || (taskType === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
+      assetType: charge?.assetType || (String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc"),
+      inputMode: charge?.inputMode || (taskType === "text" ? "text" : "image"),
       taskType,
-      targetPolycount: charge.targetPolycount,
-      textured: charge.withTexture,
+      targetPolycount: charge?.targetPolycount || Number.parseInt(req.body?.targetPolycount, 10) || 4000,
+      textured: charge ? charge.withTexture : Boolean(req.body?.textured),
       thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || ""),
+      feedback: "",
+      rating: 0,
+      creatorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "RBLXTools creator", 80),
+      public: !isPro,
+      allowPublicDownloads: Boolean(req.body?.allowPublicDownloads),
       createdAt: new Date().toISOString(),
     };
     savePersistentAIUGCHistory(user.id, item);
@@ -6797,6 +6831,70 @@ app.post("/ai/ugc/history", async (req, res) => {
     return res.json({ ok: true, item, historyLimit });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not save UGC history." });
+  }
+});
+
+app.get("/api/ugc/community", (req, res) => {
+  const feedback = readAIUGCCommunityFeedback();
+  const items = getPublicAIUGCItems().map((item) => {
+    const entry = feedback[String(item.id)] || {};
+    const ratings = entry.ratings && typeof entry.ratings === "object" ? Object.values(entry.ratings).map(Number).filter((value) => value >= 1 && value <= 5) : [];
+    const votes = entry.votes && typeof entry.votes === "object" ? Object.values(entry.votes) : [];
+    return { id: item.id, title: item.title, thumbnailUrl: item.thumbnailUrl, assetType: item.assetType, textured: item.textured, creatorName: item.creatorName || "RBLXTools creator", createdAt: item.createdAt, allowDownloads: Boolean(item.allowPublicDownloads), rating: ratings.length ? Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10 : 0, ratingCount: ratings.length, likes: votes.filter((vote) => vote === "like").length, dislikes: votes.filter((vote) => vote === "dislike").length };
+  });
+  return res.json({ ok: true, items });
+});
+
+app.post("/api/ugc/community/:taskId/feedback", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    if (!getPublicAIUGCItems().some((item) => String(item.id) === taskId)) return res.status(404).json({ error: "This community model is not available." });
+    const feedback = readAIUGCCommunityFeedback();
+    const entry = feedback[taskId] && typeof feedback[taskId] === "object" ? feedback[taskId] : { votes: {}, ratings: {} };
+    const vote = ["like", "dislike"].includes(String(req.body?.vote || "")) ? String(req.body.vote) : "";
+    const rating = Math.max(0, Math.min(5, Number.parseInt(req.body?.rating, 10) || 0));
+    if (vote) entry.votes[String(user.id)] = vote;
+    if (rating) entry.ratings[String(user.id)] = rating;
+    feedback[taskId] = entry;
+    writeAIUGCCommunityFeedback(feedback);
+    return res.json({ ok: true });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save community feedback." }); }
+});
+
+app.get("/api/ugc/community/:taskId/download", async (req, res) => {
+  try {
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    const item = getPublicAIUGCItems().find((entry) => String(entry.id) === taskId);
+    if (!item || !item.allowPublicDownloads) return res.status(404).json({ error: "This creator has not enabled public downloads." });
+    const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
+    const taskPath = taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
+    const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
+    if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) return res.status(409).json({ error: "The community GLB is not available yet." });
+    const modelResponse = await fetch(task.model_urls.glb);
+    if (!modelResponse.ok) throw new Error("Could not retrieve the community GLB.");
+    const maxTriangles = item.assetType === "game" ? 15000 : 4000;
+    const prepared = await prepareRobloxGLBDownload(Buffer.from(await modelResponse.arrayBuffer()), maxTriangles, item.assetType === "game" ? 4096 : 1024);
+    res.setHeader("Content-Type", "model/gltf-binary");
+    res.setHeader("Content-Disposition", `attachment; filename="rblxtools-community-${taskId}.glb"`);
+    return res.send(prepared.buffer);
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the community GLB." }); }
+});
+
+app.post("/ai/ugc/history/:taskId/feedback", async (req, res) => {
+  try {
+    const user = await requireAdminUser(req);
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    const feedback = ["like", "dislike"].includes(String(req.body?.feedback || "")) ? String(req.body.feedback) : "";
+    const rating = Math.max(0, Math.min(5, Number.parseInt(req.body?.rating, 10) || 0));
+    if (!feedback && !rating) return res.status(400).json({ error: "Choose feedback or a star rating." });
+    const item = getPersistentAIUGCHistory(user.id).find((entry) => String(entry.id) === taskId);
+    if (!item) return res.status(404).json({ error: "Save this generation before rating it." });
+    const updates = { feedback: feedback || String(item.feedback || ""), rating: rating || Number(item.rating || 0) };
+    updatePersistentAIUGCHistory(user.id, taskId, updates);
+    return res.json({ ok: true, item: { ...item, ...updates } });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not save UGC feedback." });
   }
 });
 

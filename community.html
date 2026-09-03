@@ -576,9 +576,23 @@
         <section class="community-rail-ad" id="communityRailAd" aria-label="Advertisement"><span>Advertisement</span></section>
       </aside>
     </section>
+
+    <section class="community-card" id="ugcCommunityGallery" style="margin-top:22px">
+      <h2 style="margin:0 0 8px">AI UGC Community</h2>
+      <p>Discover creator-made 3D models. Downloads appear only when the creator has allowed them.</p>
+      <div id="ugcCommunityGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:18px"></div>
+    </section>
   </main>
 
   <script src="./community-page.js"></script>
+  <script>
+    (function(){
+      var grid=document.getElementById('ugcCommunityGrid'); if(!grid)return;
+      function esc(value){var node=document.createElement('span');node.textContent=String(value||'');return node.innerHTML;}
+      function render(items){if(!items.length){grid.innerHTML='<p style="color:#aebbd1">Community UGC models will appear here as creators publish them.</p>';return;}grid.innerHTML=items.map(function(item){return '<article style="overflow:hidden;border:1px solid rgba(151,181,255,.2);border-radius:14px;background:rgba(7,12,22,.42)">'+(item.thumbnailUrl?'<img src="'+esc(item.thumbnailUrl)+'" alt="" style="display:block;width:100%;aspect-ratio:1.35;object-fit:cover;background:#101725">':'<div style="display:grid;place-items:center;aspect-ratio:1.35;background:#101725;color:#abc4ee">3D</div>')+'<div style="padding:11px"><strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(item.title)+'</strong><span style="display:block;margin-top:4px;color:#aebbd1;font-size:12px">by '+esc(item.creatorName)+' · '+(item.rating||'New')+' ★</span><div style="display:flex;gap:7px;margin-top:10px"><button data-ugc-vote="like" data-ugc-id="'+esc(item.id)+'" style="cursor:pointer">♥ '+Number(item.likes||0)+'</button><button data-ugc-vote="dislike" data-ugc-id="'+esc(item.id)+'" style="cursor:pointer">× '+Number(item.dislikes||0)+'</button>'+(item.allowDownloads?'<a href="/api/ugc/community/'+encodeURIComponent(item.id)+'/download" style="color:#ffbec7;font-weight:800">Download GLB</a>':'<span style="color:#8491a8;font-size:12px">Downloads off</span>')+'</div></div></article>';}).join('');}
+      async function load(){try{var response=await fetch('/api/ugc/community',{credentials:'include'});var payload=await response.json();render(response.ok&&Array.isArray(payload.items)?payload.items:[]);}catch(_error){render([]);}}grid.addEventListener('click',function(event){var button=event.target.closest('[data-ugc-vote]');if(!button)return;fetch('/api/ugc/community/'+encodeURIComponent(button.getAttribute('data-ugc-id'))+'/feedback',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({vote:button.getAttribute('data-ugc-vote')})}).then(load);});load();
+    })();
+  </script>
   <script>
     (function () {
       var rail = document.getElementById('communityRailAd');
