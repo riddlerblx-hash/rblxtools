@@ -6564,8 +6564,9 @@ app.post("/ai/ugc/preview", async (req, res) => {
     const isUgcAsset = assetType === "ugc";
     const withTexture = Boolean(req.body?.withTexture);
     const modelType = isUgcAsset ? "smart-topology" : "standard";
-    const maxTriangles = isUgcAsset ? 4000 : 10000;
-    const targetPolycount = Math.max(100, Math.min(maxTriangles, Number.parseInt(req.body?.targetPolycount, 10) || maxTriangles));
+    const minTriangles = isUgcAsset ? 300 : 50;
+    const maxTriangles = isUgcAsset ? 4000 : 15000;
+    const targetPolycount = Math.max(minTriangles, Math.min(maxTriangles, Number.parseInt(req.body?.targetPolycount, 10) || maxTriangles));
     const textureResolution = ["2k", "4k"].includes(String(req.body?.textureResolution || "")) ? String(req.body.textureResolution) : "2k";
     tokenCost = getUGCGenerationTokenCost({ assetType, inputMode, withTexture });
     const aiTokens = await debitAITokens(user.id, tokenCost);
@@ -6643,7 +6644,7 @@ app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
     const modelResponse = await fetch(task.model_urls.glb);
     if (!modelResponse.ok) throw new Error("Could not retrieve the finished GLB.");
     const modelBuffer = Buffer.from(await modelResponse.arrayBuffer());
-    const limit = assetType === "ugc" ? 4000 : 10000;
+    const limit = assetType === "ugc" ? 4000 : 15000;
     const prepared = await prepareRobloxGLBDownload(modelBuffer, limit, assetType === "ugc" ? 1024 : 4096);
     res.setHeader("Content-Type", "model/gltf-binary");
     res.setHeader("Content-Disposition", `attachment; filename="rblxtools-${assetType}-${taskId}.glb"`);
