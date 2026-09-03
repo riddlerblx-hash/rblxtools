@@ -246,10 +246,7 @@ async function requestMeshy(pathname, options = {}) {
   return payload || {};
 }
 
-async function prepareRobloxGLBDownload(glbBuffer, maxTriangles, maxTextureSize) {
-  const { NodeIO } = require("@gltf-transform/core");
-  const io = new NodeIO();
-  const document = await io.readBinary(glbBuffer);
+function getLargestMeshTriangleCount(document) {
   let largestMeshTriangles = 0;
   for (const mesh of document.getRoot().listMeshes()) {
     let meshTriangles = 0;
@@ -261,10 +258,29 @@ async function prepareRobloxGLBDownload(glbBuffer, maxTriangles, maxTextureSize)
     }
     largestMeshTriangles = Math.max(largestMeshTriangles, meshTriangles);
   }
+  return largestMeshTriangles;
+}
+
+async function prepareRobloxGLBDownload(glbBuffer, maxTriangles, maxTextureSize) {
+  const { NodeIO } = require("@gltf-transform/core");
+  const { simplify } = require("@gltf-transform/functions");
+  const { MeshoptSimplifier } = require("meshoptimizer");
+  const io = new NodeIO();
+  const document = await io.readBinary(glbBuffer);
+  let largestMeshTriangles = getLargestMeshTriangleCount(document);
   if (largestMeshTriangles > maxTriangles) {
-    const error = new Error(`This model has ${largestMeshTriangles.toLocaleString()} triangles in one mesh, above the Roblox ${maxTriangles.toLocaleString()} triangle limit. Generate another version before downloading.`);
-    error.statusCode = 422;
-    throw error;
+    // Meshy can finish slightly above its requested target. Reduce the GLB here
+    // so the exported file always meets the exact Roblox/slider triangle ceiling.
+    for (let attempt = 0; largestMeshTriangles > maxTriangles && attempt < 3; attempt += 1) {
+      const ratio = Math.max(0.01, Math.min(0.98, (maxTriangles / largestMeshTriangles) * 0.96));
+      await document.transform(simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.02 }));
+      largestMeshTriangles = getLargestMeshTriangleCount(document);
+    }
+    if (largestMeshTriangles > maxTriangles) {
+      const error = new Error(`This model could not be reduced below the ${maxTriangles.toLocaleString()} triangle limit.`);
+      error.statusCode = 422;
+      throw error;
+    }
   }
   const sharp = getSharp();
   for (const texture of document.getRoot().listTextures()) {
@@ -6623,7 +6639,7 @@ app.post("/ai/ugc/preview", async (req, res) => {
       ? await requestMeshy("/v1/image-to-3d", { method: "POST", body: { image_url: sourceImageUrl, model_type: modelType, ai_model: isUgcAsset ? "meshy-t2" : "latest", should_texture: withTexture, should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: enablePbr, target_formats: ["glb"], alpha_thumbnail: true } })
       : await requestMeshy("/v2/text-to-3d", { method: "POST", body: { mode: "preview", prompt, model_type: modelType, ai_model: "latest", should_remesh: modelType === "standard", target_polycount: targetPolycount, target_formats: ["glb"], alpha_thumbnail: true, moderation: true } });
     const taskId = task.result || task.id;
-    ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, prompt, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? 30 : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+    ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, prompt, targetPolycount, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? 30 : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
     return res.json({ ok: true, taskId, taskType: inputMode, assetType, targetPolycount, textureResolution, withTexture, tokenCost, aiTokens, historyLimit: getAIUGCHistoryLimit(membership), isPro });
   } catch (error) {
     if (user && tokensDebited) await restoreAITokens(user.id, tokenCost).catch(() => null);
@@ -6696,6 +6712,7 @@ app.post("/ai/ugc/history", async (req, res) => {
       title: cleanText(req.body?.title || charge.prompt || (charge.inputMode === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
       assetType: charge.assetType,
       inputMode: charge.inputMode,
+      targetPolycount: charge.targetPolycount,
       textured: charge.withTexture,
       thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || ""),
       createdAt: new Date().toISOString(),
@@ -6724,7 +6741,7 @@ app.get("/ai/ugc/source/:sourceId", (req, res) => {
 
 app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
   try {
-    await requireAdminUser(req);
+    const user = await requireAdminUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const taskType = String(req.query.type || "text") === "image" ? "image" : "text";
     const assetType = String(req.query.assetType || "ugc") === "game" ? "game" : "ugc";
@@ -6735,7 +6752,14 @@ app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
     const modelResponse = await fetch(task.model_urls.glb);
     if (!modelResponse.ok) throw new Error("Could not retrieve the finished GLB.");
     const modelBuffer = Buffer.from(await modelResponse.arrayBuffer());
-    const limit = assetType === "ugc" ? 4000 : 15000;
+    const absoluteLimit = assetType === "ugc" ? 4000 : 15000;
+    const charge = ugcGenerationCharges.get(taskId);
+    const savedItem = charge?.userId === user.id ? null : getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId && item.assetType === assetType);
+    const requestedLimit = charge?.userId === user.id && charge.assetType === assetType
+      ? Number.parseInt(charge.targetPolycount, 10)
+      : Number.parseInt(savedItem?.targetPolycount, 10);
+    const minimumLimit = assetType === "ugc" ? 300 : 50;
+    const limit = Math.max(minimumLimit, Math.min(absoluteLimit, Number.isFinite(requestedLimit) ? requestedLimit : absoluteLimit));
     const prepared = await prepareRobloxGLBDownload(modelBuffer, limit, assetType === "ugc" ? 1024 : 4096);
     res.setHeader("Content-Type", "model/gltf-binary");
     res.setHeader("Content-Disposition", `attachment; filename="rblxtools-${assetType}-${taskId}.glb"`);
