@@ -111,7 +111,9 @@ const MESHY_API_KEY = String(process.env.MESHY_API_KEY || "").trim();
 const MESHY_API_BASE_URL = "https://api.meshy.ai/openapi";
 const UGC_SOURCE_IMAGE_TTL_MS = 60 * 60 * 1000;
 const ugcSourceImages = new Map();
-const AI_UGC_HISTORY_PATH = path.join(__dirname, "ai-ugc-history.json");
+// Runtime data belongs outside the deploy checkout so git pulls and restarts cannot erase member history.
+const AI_UGC_HISTORY_PATH = process.env.AI_UGC_HISTORY_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc-history.json");
+const LEGACY_AI_UGC_HISTORY_PATH = path.join(__dirname, "ai-ugc-history.json");
 const AI_UGC_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const AI_UGC_COMMUNITY_FEEDBACK_PATH = path.join(__dirname, "ai-ugc-community-feedback.json");
 // Preview tasks are short-lived. Keep the paid generation settings here so a
@@ -789,8 +791,16 @@ function pruneAIUGCHistory(items, now = Date.now()) {
   }).sort((left, right) => Date.parse(String(right.createdAt || 0)) - Date.parse(String(left.createdAt || 0))).slice(0, 18);
 }
 
+function ensureAIUGCHistoryDirectory() {
+  fs.mkdirSync(path.dirname(AI_UGC_HISTORY_PATH), { recursive: true });
+  if (AI_UGC_HISTORY_PATH !== LEGACY_AI_UGC_HISTORY_PATH && !fs.existsSync(AI_UGC_HISTORY_PATH) && fs.existsSync(LEGACY_AI_UGC_HISTORY_PATH)) {
+    fs.copyFileSync(LEGACY_AI_UGC_HISTORY_PATH, AI_UGC_HISTORY_PATH);
+  }
+}
+
 function readPersistentAIUGCHistory() {
   try {
+    ensureAIUGCHistoryDirectory();
     if (!fs.existsSync(AI_UGC_HISTORY_PATH)) return { users: {} };
     const payload = JSON.parse(fs.readFileSync(AI_UGC_HISTORY_PATH, "utf8"));
     const users = payload && typeof payload.users === "object" && payload.users ? payload.users : {};
@@ -803,7 +813,7 @@ function readPersistentAIUGCHistory() {
 }
 
 function writePersistentAIUGCHistory(payload) {
-  try { fs.writeFileSync(AI_UGC_HISTORY_PATH, JSON.stringify(payload) + "\n", "utf8"); }
+  try { ensureAIUGCHistoryDirectory(); const tempPath = `${AI_UGC_HISTORY_PATH}.${process.pid}.${Date.now()}.tmp`; fs.writeFileSync(tempPath, JSON.stringify(payload) + "\n", "utf8"); fs.renameSync(tempPath, AI_UGC_HISTORY_PATH); }
   catch (error) { console.error("[AI UGC HISTORY] Could not write local backup:", error.message); }
 }
 
@@ -1422,6 +1432,24 @@ function getStripeSubscriptionPlan(subscription) {
 function getAITokenBalance(user) {
   const parsed = Number.parseInt(user?.ai_token_balance, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : AI_TOKEN_DEFAULT_BALANCE;
+}
+
+async function ensureSufficientAITokens(userId, cost, errorMessage = "No AI tokens available.") {
+  const normalizedCost = Math.max(1, Number.parseInt(cost, 10) || 1);
+  const user = await getAuthUserById(userId);
+  if (!user) {
+    const error = new Error("User not found.");
+    error.statusCode = 401;
+    throw error;
+  }
+  const balance = getAITokenBalance(user);
+  if (balance < normalizedCost) {
+    const error = new Error(errorMessage);
+    error.statusCode = 402;
+    error.aiTokens = balance;
+    throw error;
+  }
+  return balance;
 }
 
 function getAITokenPackage(packageKey) {
@@ -6713,8 +6741,7 @@ app.post("/ai/ugc/preview", async (req, res) => {
     if (textureResolution === "4k" && !isPro) return res.status(403).json({ error: "4K high-quality textures require RBLXTools Pro." });
     if (enablePbr && !isPro) return res.status(403).json({ error: "PBR textures require RBLXTools Pro." });
     tokenCost = getUGCGenerationTokenCost({ assetType, inputMode, withTexture });
-    const aiTokens = await debitAITokens(user.id, tokenCost);
-    tokensDebited = true;
+    await ensureSufficientAITokens(user.id, tokenCost, "No AI tokens available. Add tokens before creating another UGC model.");
     const task = inputMode === "image"
       ? await requestMeshy(useMultiView ? "/v1/multi-image-to-3d" : "/v1/image-to-3d", { method: "POST", body: useMultiView
         ? { image_urls: resolvedSourceImageUrls, ai_model: "latest", should_texture: withTexture, should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: enablePbr, target_formats: ["glb"], alpha_thumbnail: true, moderation: true }
@@ -6722,6 +6749,8 @@ app.post("/ai/ugc/preview", async (req, res) => {
       : await requestMeshy("/v2/text-to-3d", { method: "POST", body: { mode: "preview", prompt, model_type: modelType, ai_model: "latest", should_remesh: modelType === "standard", target_polycount: targetPolycount, target_formats: ["glb"], alpha_thumbnail: true, moderation: true } });
     const taskId = task.result || task.id;
     const taskType = useMultiView ? "multi" : inputMode;
+    const aiTokens = await debitAITokens(user.id, tokenCost);
+    tokensDebited = true;
     ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, taskType, prompt, targetPolycount, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? UGC_TEXTURE_GENERATION_TOKEN_COST : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
     persistPendingAIUGCGeneration(user, { taskId, assetType, inputMode, taskType, prompt, targetPolycount, withTexture });
     return res.json({ ok: true, taskId, taskType, assetType, targetPolycount, textureResolution, withTexture, tokenCost, aiTokens, historyLimit: getAIUGCHistoryLimit(membership), isPro });
@@ -6761,30 +6790,27 @@ app.post("/ai/ugc/batch", async (req, res) => {
     if (textureResolution === "4k" && !isPro) return res.status(403).json({ error: "4K high-quality textures require RBLXTools Pro." });
     if (enablePbr && !isPro) return res.status(403).json({ error: "PBR textures require RBLXTools Pro." });
     const costPerImage = getUGCGenerationTokenCost({ assetType, inputMode: "image", withTexture });
-    tokenCost = costPerImage * resolvedSourceImageUrls.length;
-    await debitAITokens(user.id, tokenCost);
-    tokensDebited = true;
+    await ensureSufficientAITokens(user.id, costPerImage * resolvedSourceImageUrls.length, "No AI tokens available. Add tokens before creating another UGC batch.");
     const modelType = isUgcAsset ? "smart-topology" : "standard";
     const attempts = await Promise.allSettled(resolvedSourceImageUrls.map((imageUrl) => requestMeshy("/v1/image-to-3d", {
       method: "POST",
       body: { image_url: imageUrl, model_type: modelType, ai_model: isUgcAsset ? "meshy-t2" : "latest", should_texture: withTexture, should_remesh: !isUgcAsset, target_polycount: targetPolycount, texture_resolution: textureResolution, enable_pbr: enablePbr, target_formats: ["glb"], alpha_thumbnail: true },
     })));
-    const tasks = attempts.flatMap((attempt, sourceIndex) => {
+    const acceptedTasks = attempts.flatMap((attempt, sourceIndex) => {
       if (attempt.status !== "fulfilled") return [];
       const taskId = attempt.value?.result || attempt.value?.id;
-      if (!taskId) return [];
+      return taskId ? [{ taskId, sourceIndex }] : [];
+    });
+    if (!acceptedTasks.length) throw new Error("None of the batch images could be submitted.");
+    tokenCost = costPerImage * acceptedTasks.length;
+    const aiTokens = await debitAITokens(user.id, tokenCost);
+    tokensDebited = true;
+    const tasks = acceptedTasks.map(({ taskId, sourceIndex }) => {
       ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode: "image", taskType: "image", prompt: "", targetPolycount, withTexture, enablePbr, textureResolution, tokenCost: costPerImage, textureTokenCost: 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
       persistPendingAIUGCGeneration(user, { taskId, assetType, inputMode: "image", taskType: "image", prompt: "", targetPolycount, withTexture });
-      return [{ taskId, taskType: "image", sourceIndex }];
+      return { taskId, taskType: "image", sourceIndex };
     });
-    const failedCount = resolvedSourceImageUrls.length - tasks.length;
-    if (failedCount) await restoreAITokens(user.id, costPerImage * failedCount);
-    if (!tasks.length) {
-      tokensDebited = false;
-      throw new Error("None of the batch images could be submitted. Your tokens were restored.");
-    }
-    const latestUser = await getAuthUserById(user.id);
-    return res.json({ ok: true, tasks, assetType, targetPolycount, textureResolution, withTexture, tokenCost: costPerImage * tasks.length, aiTokens: getAITokenBalance(latestUser), historyLimit: getAIUGCHistoryLimit(membership), isPro });
+    return res.json({ ok: true, tasks, assetType, targetPolycount, textureResolution, withTexture, tokenCost, aiTokens, historyLimit: getAIUGCHistoryLimit(membership), isPro });
   } catch (error) {
     if (user && tokensDebited) await restoreAITokens(user.id, tokenCost).catch(() => null);
     console.error("POST /ai/ugc/batch failed:", error.message);
@@ -6812,13 +6838,14 @@ app.post("/ai/ugc/refine", async (req, res) => {
     const enablePbr = Boolean(req.body?.enablePbr);
     if (textureResolution === "4k" && !isPro) return res.status(403).json({ error: "4K high-quality textures require RBLXTools Pro." });
     if (enablePbr && !isPro) return res.status(403).json({ error: "PBR textures require RBLXTools Pro." });
-    const aiTokens = await debitAITokens(user.id, UGC_TEXTURE_GENERATION_TOKEN_COST);
-    tokensDebited = true;
+    await ensureSufficientAITokens(user.id, UGC_TEXTURE_GENERATION_TOKEN_COST, "No AI tokens available. Add tokens before starting the texture pass.");
     const task = await requestMeshy("/v2/text-to-3d", {
       method: "POST",
       body: { mode: "refine", preview_task_id: previewTaskId, enable_pbr: enablePbr, texture_resolution: textureResolution, target_formats: ["glb"], alpha_thumbnail: true },
     });
     const taskId = task.result || task.id;
+    const aiTokens = await debitAITokens(user.id, UGC_TEXTURE_GENERATION_TOKEN_COST);
+    tokensDebited = true;
     ugcGenerationCharges.set(taskId, { ...charge, enablePbr, textureResolution, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
     persistPendingAIUGCGeneration(user, { taskId, assetType: charge.assetType, inputMode: "text", taskType: "text", prompt: charge.prompt, targetPolycount: charge.targetPolycount, withTexture: true });
     return res.json({ ok: true, taskId, aiTokens });
@@ -6870,6 +6897,15 @@ app.post("/ai/ugc/history", async (req, res) => {
     if (task.status !== "SUCCEEDED") return res.status(409).json({ error: "Finish the generation before saving it." });
     const membership = await resolveMembershipSnapshot(user);
     const isPro = membership?.premiumActive && String(membership?.plan || "").toLowerCase() === "pro";
+    const existingItem = getPersistentAIUGCHistory(user.id).find((entry) => String(entry.id) === taskId);
+    const requestedPbrSettings = req.body?.pbrSettings && typeof req.body.pbrSettings === "object" ? req.body.pbrSettings : null;
+    const pbrSettings = isPro && requestedPbrSettings ? {
+      metalness: Math.max(0, Math.min(1, Number(requestedPbrSettings.metalness) || 0)),
+      roughness: Math.max(0, Math.min(1, Number(requestedPbrSettings.roughness) || 0.58)),
+      intensity: Math.max(0, Math.min(2, Number(requestedPbrSettings.intensity) || 1)),
+      bloom: Boolean(requestedPbrSettings.bloom),
+      bloomStrength: Math.max(0, Math.min(2, Number(requestedPbrSettings.bloomStrength) || 0)),
+    } : existingItem?.pbrSettings || null;
     const item = {
       id: taskId,
       title: cleanText(req.body?.title || charge?.prompt || (taskType === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
@@ -6879,8 +6915,9 @@ app.post("/ai/ugc/history", async (req, res) => {
       targetPolycount: charge?.targetPolycount || Number.parseInt(req.body?.targetPolycount, 10) || 4000,
       textured: charge ? charge.withTexture : Boolean(req.body?.textured),
       thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || ""),
-      feedback: "",
-      rating: 0,
+      feedback: String(existingItem?.feedback || ""),
+      rating: Number(existingItem?.rating || 0),
+      pbrSettings,
       creatorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "RBLXTools creator", 80),
       public: !isPro,
       allowPublicDownloads: Boolean(req.body?.allowPublicDownloads),
