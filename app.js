@@ -928,7 +928,13 @@ function getAIUGCCommunityPost(state, taskId) {
     votes: previous.votes && typeof previous.votes === "object" ? previous.votes : {},
     ratings: previous.ratings && typeof previous.ratings === "object" ? previous.ratings : {},
     views: previous.views && typeof previous.views === "object" ? previous.views : {},
-    comments: Array.isArray(previous.comments) ? previous.comments.slice(-100) : [],
+    pinnedCommentId: String(previous.pinnedCommentId || ""),
+    comments: (Array.isArray(previous.comments) ? previous.comments : []).slice(-100).map((comment) => ({
+      id: String(comment?.id || randomUUID()), userId: String(comment?.userId || ""), parentId: String(comment?.parentId || ""),
+      authorName: cleanText(comment?.authorName || "Member", 80), plan: String(comment?.plan || "free").toLowerCase(), avatarUrl: cleanText(comment?.avatarUrl || "", 500),
+      body: cleanText(comment?.body || "", 600), createdAt: String(comment?.createdAt || new Date().toISOString()), editedAt: comment?.editedAt ? String(comment.editedAt) : null,
+      reactions: comment?.reactions && typeof comment.reactions === "object" ? comment.reactions : {}, hearted: Boolean(comment?.hearted),
+    })).filter((comment) => comment.body),
     tips: Array.isArray(previous.tips) ? previous.tips.slice(-100) : [],
   };
   state.posts[taskId] = post;
@@ -967,7 +973,13 @@ function readCommunityPosts() {
       createdAt: String(post.createdAt || post.publishedAt || new Date().toISOString()), publishedAt: String(post.publishedAt || post.createdAt || new Date().toISOString()),
       updatedAt: String(post.updatedAt || post.createdAt || new Date().toISOString()), authorName: cleanText(post.authorName || "RBLXTools", 80),
       authorId: cleanText(post.authorId || "", 120), pinned: Boolean(post.pinned), linkLabel: cleanText(post.linkLabel || "", 80), linkUrl: cleanText(post.linkUrl || "", 1000),
-      likedBy: post.likedBy && typeof post.likedBy === "object" ? post.likedBy : {}, comments: Array.isArray(post.comments) ? post.comments.slice(-100) : [],
+      likedBy: post.likedBy && typeof post.likedBy === "object" ? post.likedBy : {}, pinnedCommentId: String(post.pinnedCommentId || ""),
+      comments: (Array.isArray(post.comments) ? post.comments : []).slice(-100).map((comment) => ({
+        id: String(comment?.id || randomUUID()), userId: String(comment?.userId || ""), parentId: String(comment?.parentId || ""),
+        authorName: cleanText(comment?.authorName || "Member", 80), plan: String(comment?.plan || "free").toLowerCase(), avatarUrl: cleanText(comment?.avatarUrl || "", 500),
+        body: cleanText(comment?.body || comment?.content || "", 600), createdAt: String(comment?.createdAt || new Date().toISOString()), editedAt: comment?.editedAt ? String(comment.editedAt) : null,
+        reactions: comment?.reactions && typeof comment.reactions === "object" ? comment.reactions : {}, hearted: Boolean(comment?.hearted),
+      })).filter((comment) => comment.body),
     }));
   } catch (error) { console.error("[COMMUNITY] Could not read posts:", error.message); return []; }
 }
@@ -981,7 +993,8 @@ function writeCommunityPosts(posts) {
 
 function buildPublicCommunityPost(post, viewer) {
   const viewerId = String(viewer?.id || "");
-  return { id: post.id, title: post.title, body: post.body, category: post.category, createdAt: post.createdAt, authorName: post.authorName, pinned: post.pinned, linkLabel: post.linkLabel, linkUrl: post.linkUrl, likes: Object.keys(post.likedBy).length, liked: Boolean(viewerId && post.likedBy[viewerId]), comments: post.comments, commentCount: post.comments.length };
+  const comments = post.comments.map((comment) => ({ ...comment, likes: Object.values(comment.reactions).filter((value) => value === "like").length, dislikes: Object.values(comment.reactions).filter((value) => value === "dislike").length, viewerReaction: viewerId ? String(comment.reactions[viewerId] || "") : "" }));
+  return { id: post.id, title: post.title, body: post.body, category: post.category, createdAt: post.createdAt, authorId: post.authorId, authorName: post.authorName, pinned: post.pinned, pinnedCommentId: post.pinnedCommentId, linkLabel: post.linkLabel, linkUrl: post.linkUrl, likes: Object.keys(post.likedBy).length, liked: Boolean(viewerId && post.likedBy[viewerId]), comments, commentCount: comments.length, viewerId };
 }
 
 function buildAIClothingPrompt(input = {}) {
@@ -7055,11 +7068,36 @@ app.post("/api/community-posts/:postId/comments", async (req, res) => {
     const comment = {
       id: randomUUID(), userId: user.id,
       authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
-      plan: String(membership?.plan || "free").toLowerCase(), body, createdAt: new Date().toISOString(),
+      plan: String(membership?.plan || "free").toLowerCase(), avatarUrl: cleanText(req.body?.avatarUrl || "", 500),
+      parentId: cleanText(req.body?.parentId || "", 120), body, createdAt: new Date().toISOString(), reactions: {}, hearted: false,
     };
+    if (comment.parentId && !post.comments.some((entry) => entry.id === comment.parentId)) return res.status(400).json({ error: "That parent comment was not found." });
     post.comments.push(comment); post.comments = post.comments.slice(-100); writeCommunityPosts(posts);
     return res.json({ ok: true, comment, commentCount: post.comments.length });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not post this comment." }); }
+});
+
+app.post("/api/community-posts/:postId/comments/:commentId", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req); const posts = readCommunityPosts(); const post = posts.find((entry) => entry.id === String(req.params.postId || ""));
+    if (!post) return res.status(404).json({ error: "That community post was not found." });
+    const comment = post.comments.find((entry) => entry.id === String(req.params.commentId || "")); if (!comment) return res.status(404).json({ error: "That comment was not found." });
+    const action = String(req.body?.action || ""); const isPostOwner = String(post.authorId || "") === String(user.id) || isAdminUser(user); const isCommentOwner = String(comment.userId) === String(user.id);
+    if (action === "react") { const vote = ["like", "dislike"].includes(String(req.body?.vote || "")) ? String(req.body.vote) : ""; if (!vote) return res.status(400).json({ error: "Choose a reaction." }); if (comment.reactions[user.id] === vote) delete comment.reactions[user.id]; else comment.reactions[user.id] = vote; }
+    else if (action === "edit") { if (!isCommentOwner) return res.status(403).json({ error: "Only the comment author can edit it." }); const body = cleanText(req.body?.body, 600); if (!body) return res.status(400).json({ error: "Write a comment before saving." }); comment.body = body; comment.editedAt = new Date().toISOString(); }
+    else if (action === "delete") { if (!isCommentOwner && !isPostOwner) return res.status(403).json({ error: "Only the comment author or post owner can delete it." }); post.comments = post.comments.filter((entry) => entry.id !== comment.id && entry.parentId !== comment.id); if (post.pinnedCommentId === comment.id) post.pinnedCommentId = ""; }
+    else if (action === "heart" || action === "pin") { if (!isPostOwner) return res.status(403).json({ error: "Only the post owner can do that." }); if (action === "heart") comment.hearted = !comment.hearted; else post.pinnedCommentId = post.pinnedCommentId === comment.id ? "" : comment.id; }
+    else return res.status(400).json({ error: "Unknown comment action." });
+    writeCommunityPosts(posts); return res.json({ ok: true, post: buildPublicCommunityPost(post, user) });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this comment." }); }
+});
+
+app.get("/api/community-members/:userId", async (req, res) => {
+  try {
+    const user = await getAuthUserById(String(req.params.userId || "")); if (!user) return res.status(404).json({ error: "This member is unavailable." });
+    const membership = await resolveMembershipSnapshot(user);
+    return res.json({ ok: true, member: { id: user.id, name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), plan: String(membership?.plan || "free").toLowerCase(), joinedAt: user.created_at || null } });
+  } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member." }); }
 });
 
 function buildAIUGCCommunityItem(item, post, viewer) {
@@ -7096,7 +7134,8 @@ app.get("/api/ugc/community/:taskId", async (req, res) => {
   const post = getAIUGCCommunityPost(state, String(item.id));
   const viewerId = String(viewer?.id || "");
   const followers = state.follows[String(item.creatorId)] && typeof state.follows[String(item.creatorId)] === "object" ? state.follows[String(item.creatorId)] : {};
-  return res.json({ ok: true, item: { ...buildAIUGCCommunityItem(item, post, viewer), comments: post.comments, tips: post.tips.slice(-8).reverse(), creator: { id: item.creatorId, name: item.creatorName || "RBLXTools creator", followers: Object.keys(followers).length, isFollowing: Boolean(viewerId && followers[viewerId]) } } });
+  const comments = post.comments.map((comment) => ({ ...comment, likes: Object.values(comment.reactions).filter((value) => value === "like").length, dislikes: Object.values(comment.reactions).filter((value) => value === "dislike").length, viewerReaction: viewerId ? String(comment.reactions[viewerId] || "") : "" }));
+  return res.json({ ok: true, item: { ...buildAIUGCCommunityItem(item, post, viewer), comments, pinnedCommentId: post.pinnedCommentId, viewerId, tips: post.tips.slice(-8).reverse(), creator: { id: item.creatorId, name: item.creatorName || "RBLXTools creator", followers: Object.keys(followers).length, isFollowing: Boolean(viewerId && followers[viewerId]) } } });
 });
 
 app.post("/api/ugc/community/:taskId/view", async (req, res) => {
@@ -7128,11 +7167,25 @@ app.post("/api/ugc/community/:taskId/comments", async (req, res) => {
     const user = await requireAuthenticatedUser(req); const taskId = cleanMeshyTaskId(req.params.taskId);
     if (!findPublicAIUGCItem(taskId)) return res.status(404).json({ error: "This community model is not available." });
     const body = cleanText(req.body?.body, 600); if (!body) return res.status(400).json({ error: "Write a comment before posting." });
-    const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId);
-    const comment = { id: randomUUID(), userId: user.id, authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), body, createdAt: new Date().toISOString() };
+    const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId); const membership = await resolveMembershipSnapshot(user);
+    const parentId = cleanText(req.body?.parentId || "", 120); if (parentId && !post.comments.some((entry) => entry.id === parentId)) return res.status(400).json({ error: "That parent comment was not found." });
+    const comment = { id: randomUUID(), userId: user.id, authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), plan: String(membership?.plan || "free").toLowerCase(), avatarUrl: cleanText(req.body?.avatarUrl || "", 500), parentId, body, createdAt: new Date().toISOString(), reactions: {}, hearted: false };
     post.comments.push(comment); post.comments = post.comments.slice(-100); writeAIUGCCommunityState(state);
     return res.json({ ok: true, comment });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not post this comment." }); }
+});
+
+app.post("/api/ugc/community/:taskId/comments/:commentId", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req); const taskId = cleanMeshyTaskId(req.params.taskId); const item = findPublicAIUGCItem(taskId);
+    if (!item) return res.status(404).json({ error: "This community model is not available." }); const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId);
+    const comment = post.comments.find((entry) => entry.id === String(req.params.commentId || "")); if (!comment) return res.status(404).json({ error: "That comment was not found." }); const action = String(req.body?.action || ""); const isPostOwner = String(item.creatorId) === String(user.id) || isAdminUser(user); const isCommentOwner = String(comment.userId) === String(user.id);
+    if (action === "react") { const vote = ["like", "dislike"].includes(String(req.body?.vote || "")) ? String(req.body.vote) : ""; if (!vote) return res.status(400).json({ error: "Choose a reaction." }); if (comment.reactions[user.id] === vote) delete comment.reactions[user.id]; else comment.reactions[user.id] = vote; }
+    else if (action === "edit") { if (!isCommentOwner) return res.status(403).json({ error: "Only the comment author can edit it." }); const body = cleanText(req.body?.body, 600); if (!body) return res.status(400).json({ error: "Write a comment before saving." }); comment.body = body; comment.editedAt = new Date().toISOString(); }
+    else if (action === "delete") { if (!isCommentOwner && !isPostOwner) return res.status(403).json({ error: "Only the comment author or post owner can delete it." }); post.comments = post.comments.filter((entry) => entry.id !== comment.id && entry.parentId !== comment.id); if (post.pinnedCommentId === comment.id) post.pinnedCommentId = ""; }
+    else if (action === "heart" || action === "pin") { if (!isPostOwner) return res.status(403).json({ error: "Only the post owner can do that." }); if (action === "heart") comment.hearted = !comment.hearted; else post.pinnedCommentId = post.pinnedCommentId === comment.id ? "" : comment.id; }
+    else return res.status(400).json({ error: "Unknown comment action." }); writeAIUGCCommunityState(state); return res.json({ ok: true });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this comment." }); }
 });
 
 app.post("/api/ugc/community/creators/:creatorId/follow", async (req, res) => {
