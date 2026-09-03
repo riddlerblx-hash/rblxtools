@@ -825,6 +825,43 @@ function updatePersistentAIUGCHistory(userId, taskId, updates) {
   writePersistentAIUGCHistory(payload);
 }
 
+function getUGCTaskPath(taskType) {
+  return taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
+}
+
+function persistPendingAIUGCGeneration(user, settings) {
+  savePersistentAIUGCHistory(user.id, {
+    id: settings.taskId,
+    title: cleanText(settings.prompt || (settings.inputMode === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
+    assetType: settings.assetType,
+    inputMode: settings.inputMode,
+    taskType: settings.taskType,
+    targetPolycount: settings.targetPolycount,
+    textured: settings.withTexture,
+    thumbnailUrl: "",
+    status: "PENDING",
+    feedback: "",
+    rating: 0,
+    createdAt: new Date().toISOString(),
+  });
+}
+
+async function refreshPersistentAIUGCHistory(userId) {
+  const items = getPersistentAIUGCHistory(userId);
+  await Promise.all(items.filter((item) => item.status !== "SUCCEEDED" && item.status !== "FAILED").map(async (item) => {
+    try {
+      const task = await requestMeshy(getUGCTaskPath(item.taskType) + encodeURIComponent(item.id));
+      updatePersistentAIUGCHistory(userId, item.id, {
+        status: String(task.status || "PENDING"),
+        thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || item.thumbnailUrl || ""),
+      });
+    } catch (error) {
+      console.warn("[AI UGC HISTORY] Could not refresh task", item.id, error.message);
+    }
+  }));
+  return getPersistentAIUGCHistory(userId);
+}
+
 function readAIUGCCommunityFeedback() {
   try { return fs.existsSync(AI_UGC_COMMUNITY_FEEDBACK_PATH) ? JSON.parse(fs.readFileSync(AI_UGC_COMMUNITY_FEEDBACK_PATH, "utf8")) : {}; }
   catch (_error) { return {}; }
@@ -6682,6 +6719,7 @@ app.post("/ai/ugc/preview", async (req, res) => {
     const taskId = task.result || task.id;
     const taskType = useMultiView ? "multi" : inputMode;
     ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, taskType, prompt, targetPolycount, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? 30 : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+    persistPendingAIUGCGeneration(user, { taskId, assetType, inputMode, taskType, prompt, targetPolycount, withTexture });
     return res.json({ ok: true, taskId, taskType, assetType, targetPolycount, textureResolution, withTexture, tokenCost, aiTokens, historyLimit: getAIUGCHistoryLimit(membership), isPro });
   } catch (error) {
     if (user && tokensDebited) await restoreAITokens(user.id, tokenCost).catch(() => null);
@@ -6728,6 +6766,7 @@ app.post("/ai/ugc/batch", async (req, res) => {
       const taskId = attempt.value?.result || attempt.value?.id;
       if (!taskId) return [];
       ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode: "image", taskType: "image", prompt: "", targetPolycount, withTexture, enablePbr, textureResolution, tokenCost: costPerImage, textureTokenCost: 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+      persistPendingAIUGCGeneration(user, { taskId, assetType, inputMode: "image", taskType: "image", prompt: "", targetPolycount, withTexture });
       return [{ taskId, taskType: "image", sourceIndex }];
     });
     const failedCount = resolvedSourceImageUrls.length - tasks.length;
@@ -6765,6 +6804,7 @@ app.post("/ai/ugc/refine", async (req, res) => {
     });
     const taskId = task.result || task.id;
     ugcGenerationCharges.set(taskId, { ...charge, enablePbr, textureResolution, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+    persistPendingAIUGCGeneration(user, { taskId, assetType: charge.assetType, inputMode: "text", taskType: "text", prompt: charge.prompt, targetPolycount: charge.targetPolycount, withTexture: true });
     return res.json({ ok: true, taskId, aiTokens: getAITokenBalance(await getAuthUserById(user.id)) });
   } catch (error) {
     console.error("POST /ai/ugc/refine failed:", error.message);
@@ -6791,7 +6831,8 @@ app.get("/ai/ugc/history", async (req, res) => {
   try {
     const user = await requireAdminUser(req);
     const historyLimit = getAIUGCHistoryLimit(await resolveMembershipSnapshot(user));
-    return res.json({ ok: true, items: getPersistentAIUGCHistory(user.id).slice(0, historyLimit), historyLimit });
+    const items = await refreshPersistentAIUGCHistory(user.id);
+    return res.json({ ok: true, items: items.slice(0, historyLimit), historyLimit });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load UGC history." });
   }
