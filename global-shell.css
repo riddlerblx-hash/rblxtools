@@ -3867,6 +3867,21 @@ body.rblx-subscription-store .pro-card .subscription-perks li::before { color:#f
 body.rblx-subscription-store .subscription-perks .perk-section-label { margin-top:5px; padding:10px 2px 5px; border:0; border-bottom:1px solid rgba(123,164,255,.24); border-radius:0; background:transparent; color:#9ec6ff; font-size:10px; font-weight:950; letter-spacing:.12em; text-transform:uppercase; }
 body.rblx-subscription-store .subscription-perks .perk-section-label::before { content:none; }
 body.rblx-subscription-store .pro-card .subscription-perks .perk-section-label { border-bottom-color:rgba(255,210,106,.34); color:#ffe39b; }
+/* Section labels are dividers, never benefit tiles. Keep this after all card variants. */
+body.rblx-subscription-store .plans-grid .subscription-perks li.perk-section-label {
+  display: block !important;
+  min-height: 0 !important;
+  margin-top: 6px !important;
+  padding: 9px 0 5px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(123,164,255,.24) !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+body.rblx-subscription-store .plans-grid .subscription-perks li.perk-section-label::before,
+body.rblx-subscription-store .plans-grid .subscription-perks li.perk-section-label::after { content: none !important; display: none !important; }
+body.rblx-subscription-store .plans-grid .pro-card .subscription-perks li.perk-section-label { border-bottom-color: rgba(255,210,106,.34) !important; }
 @media (max-width:900px) {
   body.rblx-subscription-store .subscriptions-main { display:block; min-height:0; padding:42px 14px 68px; }
   body.rblx-subscription-store .plans-grid { grid-template-columns:1fr; }
