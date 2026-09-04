@@ -71,9 +71,9 @@
       return '<article class="ai-community-comment' + ((depth || 0) ? ' is-reply' : '') + '">' + communityAvatar(comment) + '<div class="ai-community-comment-main">' + (pinned ? '<div class="ai-community-pinned">Pinned by post owner</div>' : '') + '<div class="ai-community-comment-head"><strong class="' + nameClass + '" data-community-profile="' + escapeHtml(comment.userId || '') + '">' + escapeHtml(comment.authorName || 'Member') + '</strong>' + planMark + '<span class="ai-community-comment-time">' + timeAgo(comment.createdAt) + (comment.editedAt ? ' · edited' : '') + '</span>' + menu + '</div><p class="ai-community-comment-text">' + escapeHtml(comment.body || '') + '</p><div class="ai-community-comment-tools">' + reactions + '</div>' + children + '</div></article>';
     };
 
-    readerFixStyle.textContent += '.ai-community-reader-article{grid-column:1;grid-row:1 / span 2;min-width:0;padding:28px;border:1px solid rgba(150,195,250,.24);border-radius:16px;background:linear-gradient(180deg,rgba(18,30,49,.98),rgba(9,16,28,.99));box-shadow:0 18px 45px rgba(0,0,0,.28)}.ai-community-owner{display:flex;align-items:center;gap:10px;margin:0 0 20px}.ai-community-owner-avatar{display:grid;place-items:center;width:42px;height:42px;overflow:hidden;padding:0;border:0;border-radius:50%;background:linear-gradient(135deg,#6faeff,#f59b69);color:#07111e;font:900 13px system-ui;cursor:pointer}.ai-community-owner-avatar img{width:100%;height:100%;object-fit:cover}.ai-community-owner-copy{display:grid;gap:3px;min-width:0}.ai-community-owner-copy small{margin:0!important;color:#91a4be}.ai-community-owner-copy .rblx-shell-chat-name-text{font-size:14px}.ai-community-reader-article h2{margin:0 0 18px;color:#f4f8ff;font-size:32px}.ai-community-reader-article .ai-community-reader-body{min-height:560px;margin:0;padding:24px;border:1px solid rgba(150,195,250,.18);border-radius:14px;background:rgba(7,14,25,.58);white-space:pre-wrap}.ai-community-reader-actions{grid-column:2;grid-row:1}.ai-community-reader-comments{grid-column:2;grid-row:2;display:flex;flex-direction:column;min-height:680px}.ai-community-reader-form{margin-top:auto}@media(max-width:860px){.ai-community-reader-article{padding:20px}.ai-community-reader-article .ai-community-reader-body{min-height:0}.ai-community-reader-comments{min-height:440px}}';
+    readerFixStyle.textContent += '.ai-community-reader-article{grid-column:1;grid-row:1 / span 2;min-width:0;padding:28px;border:1px solid rgba(150,195,250,.24);border-radius:16px;background:linear-gradient(180deg,rgba(18,30,49,.98),rgba(9,16,28,.99));box-shadow:0 18px 45px rgba(0,0,0,.28)}.ai-community-owner{display:flex;align-items:center;gap:10px;margin:0 0 20px}.ai-community-owner-avatar{display:grid;place-items:center;width:42px;height:42px;overflow:hidden;padding:0;border:0;border-radius:50%;background:linear-gradient(135deg,#6faeff,#f59b69);color:#07111e;font:900 13px system-ui;cursor:pointer}.ai-community-owner-avatar img{width:100%;height:100%;object-fit:cover}.ai-community-owner-copy{display:grid;gap:3px;min-width:0}.ai-community-owner-copy small{margin:0!important;color:#91a4be}.ai-community-owner-copy .rblx-shell-chat-name-text{font-size:14px}.ai-community-reader-article h2{margin:0;padding:0 0 20px;color:#f4f8ff;font-size:32px;border-bottom:1px solid rgba(150,195,250,.2)}.ai-community-reader-article .ai-community-reader-body{min-height:0;margin:0;padding:22px 0 0;border:0;border-radius:0;background:transparent;white-space:pre-wrap}.ai-community-reader-actions{grid-column:2;grid-row:1}.ai-community-reader-comments{grid-column:2;grid-row:2;display:flex;flex-direction:column;min-height:680px}.ai-community-reader-form{margin-top:auto}@media(max-width:860px){.ai-community-reader-article{padding:20px}.ai-community-reader-article .ai-community-reader-body{min-height:0}.ai-community-reader-comments{min-height:440px}}';
 
-    readerFixStyle.textContent += '.ai-community-reader-card{height:min(760px,calc(100vh - 48px));max-height:calc(100vh - 48px);overflow:hidden;grid-template-rows:auto minmax(0,1fr);align-items:stretch}.ai-community-reader-article{height:100%;min-height:0;display:flex;flex-direction:column}.ai-community-reader-article .ai-community-reader-body{flex:1;min-height:0;overflow:auto}.ai-community-reader-actions{grid-row:1;margin:0 0 12px}.ai-community-reader-comments{grid-row:2;min-height:0;height:100%;overflow:auto}.ai-community-reader-form{padding-top:14px}@media(max-width:860px){.ai-community-reader-card{height:auto;max-height:none;overflow:visible}.ai-community-reader-article .ai-community-reader-body{max-height:48vh}.ai-community-reader-comments{height:auto;min-height:440px;overflow:visible}}';
+    readerFixStyle.textContent += '.ai-community-reader-card{height:min(760px,calc(100vh - 48px));max-height:calc(100vh - 48px);overflow:hidden;grid-template-rows:auto minmax(0,1fr);align-items:stretch}.ai-community-reader-article{height:100%;min-height:0;display:flex;flex-direction:column}.ai-community-reader-article .ai-community-reader-body{flex:1;min-height:0;overflow:auto}.ai-community-reader-actions{grid-row:1;margin:0 0 12px}.ai-community-reader-comments{grid-row:2;min-height:0;height:100%;overflow:auto}.ai-community-reader-form{padding-top:14px}.ai-community-card-menu:not([open])>div,.ai-community-reader-menu:not([open])>div,.ai-community-comment-menu:not([open])>div{display:none!important}.ai-community-card-menu[open]>div,.ai-community-reader-menu[open]>div,.ai-community-comment-menu[open]>div{display:grid!important}@media(max-width:860px){.ai-community-reader-card{height:auto;max-height:none;overflow:visible}.ai-community-reader-article .ai-community-reader-body{max-height:48vh}.ai-community-reader-comments{height:auto;min-height:440px;overflow:visible}}';
 
     openCommunityPost = function (id) {
       var post = state.communityPosts.find(function (entry) { return String(entry.id) === String(id); });
@@ -118,6 +118,62 @@
 
     readerFixStyle.textContent += '.ai-community-reader-form{display:grid!important;grid-template-rows:minmax(84px,1fr) 44px;flex:0 0 auto!important;min-height:128px;margin:0 0 16px!important;border:1px solid rgba(147,187,235,.25)!important;border-radius:12px!important;overflow:hidden;background:#101926!important}.ai-community-reader-form textarea{display:block;width:100%;min-height:0!important;padding:14px 15px!important;border:0!important;border-radius:0!important;background:transparent!important;resize:none}.ai-community-reader-form-bar{display:flex;align-items:center;justify-content:flex-end;min-height:44px;padding:6px 10px;border:0!important;border-top:1px solid rgba(147,187,235,.18)!important;background:rgba(8,15,27,.52)!important}.ai-community-reader-form-bar span{display:none}.ai-community-reader-form button{min-height:32px!important;margin:0!important;padding:0 14px!important;border-radius:999px!important}.ai-community-reader-comments h3{flex:0 0 auto}.ai-community-thread{flex:0 0 auto}.ai-community-reader-article .ai-community-reader-actions{display:flex;grid-column:auto;grid-row:auto;align-self:flex-end;margin:16px 0 0;padding:10px 12px;border:1px solid rgba(150,195,250,.24);border-radius:12px;background:rgba(9,18,31,.88);box-shadow:0 12px 28px rgba(0,0,0,.24)}.ai-community-card .ai-community-card-menu{position:absolute;top:10px;right:10px;z-index:6;margin:0}.ai-community-card .ai-community-card-menu summary{display:grid;place-items:center;width:28px;height:28px;border:1px solid rgba(135,178,230,.3);border-radius:8px;background:rgba(13,24,40,.9);font-size:18px;line-height:1}.ai-community-card .ai-community-card-menu div{top:32px}.ai-community-reader-article{position:relative}.ai-community-reader-menu{position:absolute;z-index:5;top:16px;right:16px}.ai-community-reader-menu summary{display:grid;place-items:center;width:30px;height:30px;list-style:none;border:1px solid rgba(135,178,230,.3);border-radius:8px;background:#1b2a3e;color:#dceaff;font-size:20px;line-height:1;cursor:pointer}.ai-community-reader-menu summary::-webkit-details-marker{display:none}.ai-community-reader-menu div{position:absolute;right:0;top:36px;display:grid;min-width:120px;padding:5px;border:1px solid rgba(180,210,248,.25);border-radius:9px;background:#172235;box-shadow:0 12px 26px rgba(0,0,0,.4)}.ai-community-reader-menu button{padding:8px;border:0;background:transparent;color:#e7effb;text-align:left;font:800 11px system-ui;cursor:pointer}.ai-community-reader-menu button:hover{background:#293b54}.ai-community-reader-menu button[data-community-reader-manage="delete"]{color:#ffabbc}';
     readerFixStyle.textContent += '.ai-community-create{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1800px;margin:-12px auto 22px;padding:14px 16px;border:1px solid rgba(135,174,228,.2);border-radius:13px;background:linear-gradient(135deg,rgba(19,32,51,.94),rgba(12,20,33,.94));box-shadow:0 14px 30px rgba(0,0,0,.16)}.ai-community-create>div:first-child{display:grid;gap:3px}.ai-community-create strong{color:#edf5ff;font-size:13px}.ai-community-create span{color:#94a7c0;font-size:11px}.ai-community-create>button,.ai-community-create form button[type="submit"]{min-height:34px;padding:0 14px;border:0;border-radius:9px;background:#89c7ff;color:#08111e;font:900 11px system-ui;cursor:pointer}.ai-community-create form{display:grid;grid-template-columns:150px minmax(160px,1fr) minmax(260px,2fr) auto;gap:9px;width:100%;align-items:center}.ai-community-create form label{display:grid;gap:4px;color:#9fb4cf;font-size:10px;font-weight:900;text-transform:uppercase}.ai-community-create select,.ai-community-create input,.ai-community-create textarea{width:100%;min-height:36px;padding:8px 10px;border:1px solid rgba(147,187,235,.25);border-radius:8px;background:#0c1522;color:#edf5ff;font:12px system-ui}.ai-community-create textarea{min-height:70px;resize:vertical}.ai-community-create form>div{display:flex;gap:7px;justify-content:flex-end}.ai-community-create form button[type="button"]{min-height:34px;padding:0 12px;border:1px solid rgba(147,187,235,.25);border-radius:8px;background:transparent;color:#c8d8ec;font:800 11px system-ui;cursor:pointer}@media(max-width:860px){.ai-community-create{align-items:stretch;flex-direction:column}.ai-community-create form{grid-template-columns:1fr}.ai-community-create form>div{justify-content:flex-end}}';
+    document.addEventListener('click', function (event) {
+      var summary = event.target.closest('.ai-community-card-menu summary,.ai-community-reader-menu summary,.ai-community-comment-menu summary');
+      if (!summary) return;
+      event.preventDefault();
+      event.stopPropagation();
+      var menu = summary.parentElement;
+      document.querySelectorAll('.ai-community-card-menu[open],.ai-community-reader-menu[open],.ai-community-comment-menu[open]').forEach(function (entry) { if (entry !== menu) entry.removeAttribute('open'); });
+      menu.toggleAttribute('open');
+    }, true);
+
+    document.addEventListener('click', function (event) {
+      var profileTarget = event.target.closest('[data-community-profile]');
+      if (!profileTarget) return;
+      var profileId = String(profileTarget.dataset.communityProfile || '');
+      if (!profileId) return;
+      event.preventDefault();
+      event.stopPropagation();
+      request('/api/community-members/' + encodeURIComponent(profileId)).then(function (payload) {
+        var member = payload.member || {};
+        if (!window.RBLXToolsProfile || typeof window.RBLXToolsProfile.open !== 'function') throw new Error('The live profile card is not ready yet.');
+        window.RBLXToolsProfile.open({
+          userId: String(member.id || profileId),
+          displayName: String(member.name || 'Member'),
+          avatarUrl: String(member.avatarUrl || ''),
+          plan: String(member.plan || 'free'),
+          bio: String(member.bio || '')
+        }, profileTarget);
+      }).catch(function (error) { notify(error.message || 'Could not open this profile.'); });
+    }, true);
+
+    document.addEventListener('click', function (event) {
+      var likeButton = event.target.closest('[data-community-card-like]');
+      if (!likeButton) return;
+      var post = state.communityPosts.find(function (entry) { return String(entry.id) === String(likeButton.dataset.communityCardLike); });
+      if (!post || post.savingLike) return;
+      event.preventDefault();
+      event.stopPropagation();
+      var previousLiked = Boolean(post.liked);
+      var previousLikes = postLikeCount(post);
+      post.savingLike = true;
+      post.liked = !previousLiked;
+      post.likes = Math.max(0, previousLikes + (post.liked ? 1 : -1));
+      render();
+      request('/api/community-posts/' + encodeURIComponent(post.id) + '/likes', 'POST').then(function (payload) {
+        post.liked = Boolean(payload.liked);
+        post.likes = Number(payload.likes || 0);
+        post.savingLike = false;
+        render();
+      }).catch(function (error) {
+        post.liked = previousLiked;
+        post.likes = previousLikes;
+        post.savingLike = false;
+        render();
+        notify(error.message || 'Could not save this like.');
+      });
+    }, true);
     readerFixStyle.textContent += '.ai-community-create[hidden],.ai-community-composer[hidden]{display:none!important}.ai-community-create{display:flex;justify-content:flex-end;margin:-8px auto 20px;padding:0;border:0;background:transparent;box-shadow:none}.ai-community-create>button{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border:1px solid rgba(144,196,255,.42);border-radius:999px;background:rgba(24,49,78,.8);color:#e8f4ff;font:900 12px system-ui;cursor:pointer;transition:.18s ease}.ai-community-create>button:hover{border-color:#8fc9ff;background:#21466e;transform:translateY(-1px)}.ai-community-create>button span{color:#8fc9ff;font-size:17px;line-height:1}.ai-community-composer{position:fixed;z-index:10240;inset:0;display:grid;place-items:center;padding:20px;background:rgba(3,7,13,.72);backdrop-filter:blur(8px)}.ai-community-composer-card{width:min(620px,100%);overflow:hidden;border:1px solid rgba(145,190,245,.26);border-radius:18px;background:#0f1722;box-shadow:0 28px 85px rgba(0,0,0,.58)}.ai-community-composer-head{display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:0 17px;border-bottom:1px solid rgba(255,255,255,.08)}.ai-community-composer-head strong{font-size:15px;color:#eff6ff}.ai-community-composer-head button{width:30px;height:30px;border:0;border-radius:50%;background:transparent;color:#dce9f7;font-size:24px;line-height:1;cursor:pointer}.ai-community-composer-head button:hover{background:#202d3f}.ai-community-composer form{display:grid;gap:14px;padding:18px}.ai-community-composer-context{display:flex;align-items:center;gap:10px}.ai-community-composer-avatar{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#82b9ff,#f0a476);color:#07111e;font:950 13px system-ui}.ai-community-composer-context label{display:grid;gap:4px;color:#91a8c5;font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}.ai-community-composer select{min-height:30px;padding:0 26px 0 10px;border:1px solid rgba(142,191,248,.34);border-radius:999px;background:#101e2d;color:#a9d4ff;font:800 11px system-ui}.ai-community-composer input,.ai-community-composer textarea{width:100%;border:0;background:transparent;color:#edf5ff;font:inherit;outline:0}.ai-community-composer input{padding:0 4px;font-size:17px;font-weight:800}.ai-community-composer textarea{min-height:170px;padding:0 4px;resize:vertical;font-size:20px;line-height:1.45}.ai-community-composer input::placeholder,.ai-community-composer textarea::placeholder{color:#6e7e95}.ai-community-composer-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.09)}.ai-community-composer-foot span{color:#8dbef0;font-size:11px;font-weight:800}.ai-community-composer-foot div{display:flex;gap:8px}.ai-community-composer-foot button{min-height:36px;padding:0 15px;border:0;border-radius:999px;background:#89c7ff;color:#08111e;font:900 12px system-ui;cursor:pointer}.ai-community-composer-foot button[type="button"]{background:transparent;color:#c5d4e7}.ai-community-composer-foot button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:600px){.ai-community-composer{align-items:end;padding:0}.ai-community-composer-card{border-radius:18px 18px 0 0}.ai-community-composer textarea{min-height:140px}}';
     readerFixStyle.textContent += '.ai-community-category-name{display:none;min-height:30px;padding:0 10px;border:1px solid rgba(142,191,248,.24);border-radius:999px;color:#a9d4ff;font:800 11px/30px system-ui}.ai-community-stars{display:flex;gap:2px}.ai-community-stars button{width:27px;height:30px;padding:0;border:0;background:transparent;color:#4e6078;font-size:23px;line-height:1;cursor:pointer;transition:transform .14s ease,color .14s ease}.ai-community-stars button:hover,.ai-community-stars button.is-active{color:#ffcc64;text-shadow:0 0 12px rgba(255,190,66,.28)}.ai-community-stars button:hover{transform:translateY(-2px)}.ai-community-composer-foot{justify-content:flex-end}.ai-community-composer-foot>span{display:none}';
     document.getElementById('aiCommunityReader').addEventListener('click', function (event) {
@@ -158,13 +214,20 @@
       if (postLike) {
         var post = state.communityPosts.find(function (entry) { return String(entry.id) === String(postLike.dataset.communityLike); });
         if (!post || post.savingLike) return;
+        var previousLiked = Boolean(post.liked);
+        var previousLikes = postLikeCount(post);
         post.savingLike = true;
+        post.liked = !previousLiked;
+        post.likes = Math.max(0, previousLikes + (post.liked ? 1 : -1));
+        openCommunityPost(post.id);
         request('/api/community-posts/' + encodeURIComponent(post.id) + '/likes', 'POST').then(function (payload) {
           post.liked = Boolean(payload.liked);
           post.likes = Number(payload.likes || 0);
           post.savingLike = false;
           openCommunityPost(post.id);
         }).catch(function (error) {
+          post.liked = previousLiked;
+          post.likes = previousLikes;
           post.savingLike = false;
           notify(error.message || 'Could not save this like.');
           openCommunityPost(post.id);
@@ -176,10 +239,30 @@
       var commentId = String(commentReaction.dataset.commentId || '');
       var vote = String(commentReaction.dataset.vote || '');
       if (!commentId || (vote !== 'like' && vote !== 'dislike')) return;
+      var reactionPost = state.activeCommunityPost;
+      var reactionComment = (reactionPost.comments || []).find(function (comment) { return String(comment.id) === commentId; });
+      if (!reactionComment || reactionComment.savingReaction) return;
+      var previousReaction = String(reactionComment.viewerReaction || '');
+      var previousCommentLikes = Number(reactionComment.likes || 0);
+      var previousCommentDislikes = Number(reactionComment.dislikes || 0);
+      reactionComment.savingReaction = true;
+      reactionComment.viewerReaction = previousReaction === vote ? '' : vote;
+      if (previousReaction === 'like') reactionComment.likes = Math.max(0, previousCommentLikes - 1);
+      if (previousReaction === 'dislike') reactionComment.dislikes = Math.max(0, previousCommentDislikes - 1);
+      if (reactionComment.viewerReaction === 'like') reactionComment.likes = Number(reactionComment.likes || 0) + 1;
+      if (reactionComment.viewerReaction === 'dislike') reactionComment.dislikes = Number(reactionComment.dislikes || 0) + 1;
+      openCommunityPost(postId);
       request('/api/community-posts/' + encodeURIComponent(postId) + '/comments/' + encodeURIComponent(commentId), 'POST', { action: 'react', vote: vote }).then(function (payload) {
         if (payload.post) state.communityPosts = state.communityPosts.map(function (entry) { return String(entry.id) === String(payload.post.id) ? payload.post : entry; });
         openCommunityPost(postId);
-      }).catch(function (error) { notify(error.message || 'Could not save this reaction.'); });
+      }).catch(function (error) {
+        reactionComment.viewerReaction = previousReaction;
+        reactionComment.likes = previousCommentLikes;
+        reactionComment.dislikes = previousCommentDislikes;
+        reactionComment.savingReaction = false;
+        openCommunityPost(postId);
+        notify(error.message || 'Could not save this reaction.');
+      });
     }, true);
   }, 0);
   var authToken = function () { try { return localStorage.getItem('rblxtools_auth_token') || sessionStorage.getItem('rblxtools_auth_token') || ''; } catch (_error) { return ''; } };
