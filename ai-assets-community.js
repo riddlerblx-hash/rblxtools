@@ -87,6 +87,9 @@
           formBar.appendChild(submit);
         }
       }
+      var articlePanel = document.querySelector('.ai-community-reader-article');
+      var actionPanel = document.querySelector('.ai-community-reader-actions');
+      if (articlePanel && actionPanel) articlePanel.appendChild(actionPanel);
       document.getElementById('aiCommunityReader').hidden = false;
       startCommunityPostPolling(id);
     };
@@ -95,7 +98,7 @@
 
     readerFixStyle.textContent += '.ai-community-reader-form{margin:0 0 16px!important;border:1px solid rgba(147,187,235,.25);border-radius:12px;overflow:hidden;background:#151f2e}.ai-community-reader-form textarea{width:100%;border:0!important;border-radius:0!important;background:transparent!important}.ai-community-reader-form-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:7px 9px 7px 13px;border-top:1px solid rgba(147,187,235,.18);background:rgba(8,15,27,.5);color:#8fa5c0;font:800 10px system-ui}.ai-community-reader-form button{margin:0!important}.ai-community-thread{display:grid;gap:0}';
 
-    readerFixStyle.textContent += '.ai-community-reader-form{flex:0 0 auto!important;min-height:136px}.ai-community-reader-form textarea{display:block;min-height:82px}.ai-community-reader-comments h3{flex:0 0 auto}.ai-community-thread{flex:0 0 auto}';
+    readerFixStyle.textContent += '.ai-community-reader-form{flex:0 0 auto!important;min-height:136px}.ai-community-reader-form textarea{display:block;min-height:82px}.ai-community-reader-comments h3{flex:0 0 auto}.ai-community-thread{flex:0 0 auto}.ai-community-reader-article .ai-community-reader-actions{display:flex;grid-column:auto;grid-row:auto;align-self:flex-end;margin:16px 0 0;padding:10px 12px;border:1px solid rgba(150,195,250,.24);border-radius:12px;background:rgba(9,18,31,.88);box-shadow:0 12px 28px rgba(0,0,0,.24)}';
     document.getElementById('aiCommunityReader').addEventListener('click', function (event) {
       var postLike = event.target.closest('[data-community-like]');
       var commentReaction = event.target.closest('[data-community-comment-action="react"]');
