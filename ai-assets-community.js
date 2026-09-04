@@ -76,6 +76,43 @@
       document.getElementById('aiCommunityReader').hidden = false;
       startCommunityPostPolling(id);
     };
+
+    readerFixStyle.textContent += '.ai-community-action.like.is-active{border-color:#ff6f91!important;background:linear-gradient(135deg,rgba(221,57,98,.48),rgba(91,24,51,.82))!important;color:#ffe7ed!important;box-shadow:0 0 0 2px rgba(255,102,140,.2),0 10px 24px rgba(191,39,78,.2)!important}.ai-community-comment-tools button.is-active[data-vote="like"]{border-color:#ff6687!important;background:rgba(218,59,94,.22)!important;color:#ff9ab0!important}.ai-community-comment-tools button.is-active[data-vote="dislike"]{border-color:#8badff!important;background:rgba(91,139,255,.2)!important;color:#c9d9ff!important}';
+
+    document.getElementById('aiCommunityReader').addEventListener('click', function (event) {
+      var postLike = event.target.closest('[data-community-like]');
+      var commentReaction = event.target.closest('[data-community-comment-action="react"]');
+      if (!postLike && !commentReaction) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (!state.activeCommunityPost) return;
+
+      if (postLike) {
+        var post = state.communityPosts.find(function (entry) { return String(entry.id) === String(postLike.dataset.communityLike); });
+        if (!post || post.savingLike) return;
+        post.savingLike = true;
+        request('/api/community-posts/' + encodeURIComponent(post.id) + '/likes', 'POST').then(function (payload) {
+          post.liked = Boolean(payload.liked);
+          post.likes = Number(payload.likes || 0);
+          post.savingLike = false;
+          openCommunityPost(post.id);
+        }).catch(function (error) {
+          post.savingLike = false;
+          notify(error.message || 'Could not save this like.');
+          openCommunityPost(post.id);
+        });
+        return;
+      }
+
+      var postId = String(state.activeCommunityPost.id);
+      var commentId = String(commentReaction.dataset.commentId || '');
+      var vote = String(commentReaction.dataset.vote || '');
+      if (!commentId || (vote !== 'like' && vote !== 'dislike')) return;
+      request('/api/community-posts/' + encodeURIComponent(postId) + '/comments/' + encodeURIComponent(commentId), 'POST', { action: 'react', vote: vote }).then(function (payload) {
+        if (payload.post) state.communityPosts = state.communityPosts.map(function (entry) { return String(entry.id) === String(payload.post.id) ? payload.post : entry; });
+        openCommunityPost(postId);
+      }).catch(function (error) { notify(error.message || 'Could not save this reaction.'); });
+    }, true);
   }, 0);
   var authToken = function () { try { return localStorage.getItem('rblxtools_auth_token') || ''; } catch (_error) { return ''; } };
   var escapeHtml = function (value) { var node = document.createElement('span'); node.textContent = String(value == null ? '' : value); return node.innerHTML; };
