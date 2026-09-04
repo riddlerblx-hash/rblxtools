@@ -973,7 +973,7 @@ function readCommunityPosts() {
       id: String(post.id), title: cleanText(post.title, 140), body: cleanText(post.body, 6000), category: normalizeCommunityPostCategory(post.category),
       createdAt: String(post.createdAt || post.publishedAt || new Date().toISOString()), publishedAt: String(post.publishedAt || post.createdAt || new Date().toISOString()),
       updatedAt: String(post.updatedAt || post.createdAt || new Date().toISOString()), authorName: cleanText(post.authorName || "RBLXTools", 80),
-      authorId: cleanText(post.authorId || "", 120), authorAvatarUrl: cleanText(post.authorAvatarUrl || "", 500), pinned: Boolean(post.pinned), status: String(post.status || "open").toLowerCase() === "resolved" ? "resolved" : "open", rating: Math.max(0, Math.min(5, Number(post.rating || 0) || 0)), linkLabel: cleanText(post.linkLabel || "", 80), linkUrl: cleanText(post.linkUrl || "", 1000),
+      authorId: cleanText(post.authorId || "", 120), authorAvatarUrl: cleanText(post.authorAvatarUrl || "", 500), pinned: Boolean(post.pinned), status: ["open", "resolved", "known"].includes(String(post.status || "open").toLowerCase()) ? String(post.status || "open").toLowerCase() : "open", rating: Math.max(0, Math.min(5, Number(post.rating || 0) || 0)), linkLabel: cleanText(post.linkLabel || "", 80), linkUrl: cleanText(post.linkUrl || "", 1000),
       likedBy: post.likedBy && typeof post.likedBy === "object" ? post.likedBy : {}, pinnedCommentId: String(post.pinnedCommentId || ""),
       comments: (Array.isArray(post.comments) ? post.comments : []).slice(-100).map((comment) => ({
         id: String(comment?.id || randomUUID()), userId: String(comment?.userId || ""), parentId: String(comment?.parentId || ""),
@@ -995,7 +995,9 @@ function writeCommunityPosts(posts) {
 function buildPublicCommunityPost(post, viewer) {
   const viewerId = String(viewer?.id || "");
   const comments = post.comments.map((comment) => ({ ...comment, likes: Object.values(comment.reactions).filter((value) => value === "like").length, dislikes: Object.values(comment.reactions).filter((value) => value === "dislike").length, viewerReaction: viewerId ? String(comment.reactions[viewerId] || "") : "" }));
-  return { id: post.id, title: post.title, body: post.body, category: post.category, createdAt: post.createdAt, authorId: post.authorId, authorName: post.authorName, authorAvatarUrl: post.authorAvatarUrl, pinned: post.pinned, status: post.status, rating: post.rating, pinnedCommentId: post.pinnedCommentId, linkLabel: post.linkLabel, linkUrl: post.linkUrl, likes: Object.keys(post.likedBy).length, liked: Boolean(viewerId && post.likedBy[viewerId]), comments, commentCount: comments.length, viewerId, viewerCanManage: Boolean(viewerId && (viewerId === String(post.authorId || "") || isAdminUser(viewer))) };
+  const viewerIsAdmin = Boolean(viewer && isAdminUser(viewer));
+  const viewerIsOwner = Boolean(viewerId && viewerId === String(post.authorId || ""));
+  return { id: post.id, title: post.title, body: post.body, category: post.category, createdAt: post.createdAt, authorId: post.authorId, authorName: post.authorName, authorAvatarUrl: post.authorAvatarUrl, pinned: post.pinned, status: post.status, rating: post.rating, pinnedCommentId: post.pinnedCommentId, linkLabel: post.linkLabel, linkUrl: post.linkUrl, likes: Object.keys(post.likedBy).length, liked: Boolean(viewerId && post.likedBy[viewerId]), comments, commentCount: comments.length, viewerId, viewerIsOwner, viewerIsAdmin, viewerCanManage: viewerIsOwner || viewerIsAdmin };
 }
 
 function getCommunityAvatarUrl(user) {
@@ -7150,9 +7152,11 @@ app.post("/api/community-posts/:postId/manage", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req); const posts = readCommunityPosts(); const post = posts.find((entry) => entry.id === String(req.params.postId || ""));
     if (!post) return res.status(404).json({ error: "That community post was not found." });
-    if (String(post.authorId || "") !== String(user.id) && !isAdminUser(user)) return res.status(403).json({ error: "Only the post owner can manage this post." });
+    const isAdmin = isAdminUser(user); const isOwner = String(post.authorId || "") === String(user.id);
+    if (!isOwner && !isAdmin) return res.status(403).json({ error: "Only the post owner or an administrator can manage this post." });
     const action = String(req.body?.action || "");
-    if (action === "pin") post.pinned = !post.pinned;
+    if (action === "pin") { if (!isAdmin) return res.status(403).json({ error: "Only administrators can pin posts." }); post.pinned = !post.pinned; }
+    else if (action === "mark-resolved" || action === "mark-known" || action === "mark-unresolved") { if (!isAdmin) return res.status(403).json({ error: "Only administrators can change a report status." }); if (post.category !== "bug-report" && post.category !== "known-issue") return res.status(400).json({ error: "Only reports can have a status." }); post.status = action === "mark-resolved" ? "resolved" : action === "mark-known" ? "known" : "open"; post.updatedAt = new Date().toISOString(); }
     else if (action === "edit") { const title = cleanText(req.body?.title, 140); const body = cleanText(req.body?.body, 6000); if (!title || !body) return res.status(400).json({ error: "A title and post text are required." }); post.title = title; post.body = body; post.updatedAt = new Date().toISOString(); }
     else if (action === "delete") { const index = posts.indexOf(post); posts.splice(index, 1); writeCommunityPosts(posts); return res.json({ ok: true, deleted: true }); }
     else return res.status(400).json({ error: "Unknown post action." });
