@@ -26,7 +26,7 @@
     }
 
     loadCommunityPosts = function () {
-      return Promise.all([request('/api/community-session'), request('/api/community-posts')]).then(function (responses) {
+      return Promise.all([request('/api/community-session').catch(function () { return { authenticated: false, viewer: null }; }), request('/api/community-posts')]).then(function (responses) {
         var session = responses[0];
         var payload = responses[1];
         state.communityViewer = session.authenticated ? session.viewer : null;
