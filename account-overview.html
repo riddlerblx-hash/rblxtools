@@ -2315,7 +2315,8 @@
         if (!unlocked) return;
         if ((new URLSearchParams(window.location.search || "").get("tab") === "bot" || state.savedAccountTab === "bot") && els.acctBotTab) els.acctBotTab.click();
         var discordLinked = dashboard.discordLinked === undefined ? Boolean(state.discordLinked) : Boolean(dashboard.discordLinked);
-        var setupLocked = !discordLinked || !dashboard.server;
+        // Admins need access to their editable dashboard drafts even before linking a Discord account.
+        var setupLocked = !dashboard.adminAccess && (!discordLinked || !dashboard.server);
         els.acctBotDashboard.classList.toggle("is-setup-locked", setupLocked);
         if (els.acctBotSetupGate) els.acctBotSetupGate.hidden = !setupLocked;
         if (setupLocked && els.acctBotSetupMessage) els.acctBotSetupMessage.textContent = !discordLinked

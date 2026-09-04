@@ -4231,14 +4231,16 @@ function isAdminUser(user) {
 }
 
 function applyDashboardAdminAccess(dashboard, user) {
-  if (!dashboard || !isAdminUser(user) || dashboard.access) {
+  if (!dashboard || !isAdminUser(user)) {
     return dashboard;
   }
 
-  // Admins can configure and preview their own dashboard drafts without a paid bot plan.
-  dashboard.access = true;
-  dashboard.mode = "admin";
+  // Admins can configure and preview dashboard drafts without linking or claiming a server.
   dashboard.adminAccess = true;
+  if (!dashboard.access) {
+    dashboard.access = true;
+    dashboard.mode = "admin";
+  }
   return dashboard;
 }
 

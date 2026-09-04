@@ -134,7 +134,7 @@ async function requirePro(interaction) {
     await interaction.editReply("Your Discord is not linked yet. In RBLXTools Account Overview, generate a Discord link code, then run `/link code:YOUR-CODE`.");
     return null;
   }
-  if (!result.member || String(result.member.plan || "").toLowerCase() !== "pro") {
+  if (!result.member || !result.member.premium_active || String(result.member.plan || "").toLowerCase() !== "pro") {
     await interaction.editReply("This Discord tool is for active RBLXTools Pro members. Your linked account is currently " + (result.member ? "on the " + String(result.member.plan || "free") + " plan." : "not available.") + "");
     return null;
   }
@@ -363,6 +363,7 @@ async function syncGuildCommands(guild) {
 
 async function claimGuild(interaction) {
   if (!interaction.inGuild()) throw new Error("Run this command inside the Discord server you want to claim.");
+  if (interaction.guildId === PRO_ONLY_GUILD_ID) throw new Error("The official RBLXTools server does not need a claim code. Linked Pro members have unlimited access here.");
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) throw new Error("You need the Manage Server permission to claim this Discord server.");
   const link = await getDiscordLinkByUserId(interaction.user.id);
   if (!link?.appUserId) throw new Error("Link your RBLXTools account first, then run `/claim-server` again.");
@@ -440,9 +441,13 @@ async function handleInteraction(interaction) {
         await interaction.editReply("Run RBLXTools download commands in a server that has been claimed in the RBLXTools Bot dashboard.");
         return;
       }
-      const usage = await consumeDiscordServerUse({ guildId: interaction.guildId, discordUserId: interaction.user.id, discordRoleIds: getInteractionRoleIds(interaction), commandName: interaction.commandName });
-      await sendUsageAlert(interaction, usage);
-      await updateUsageCounter(interaction.guild, usage).catch((error) => console.warn("[tools-bot] usage counter update failed:", error.message || error));
+      const officialServer = interaction.guildId === PRO_ONLY_GUILD_ID;
+      if (officialServer && !(await requirePro(interaction))) return;
+      if (!officialServer) {
+        const usage = await consumeDiscordServerUse({ guildId: interaction.guildId, discordUserId: interaction.user.id, discordRoleIds: getInteractionRoleIds(interaction), commandName: interaction.commandName });
+        await sendUsageAlert(interaction, usage);
+        await updateUsageCounter(interaction.guild, usage).catch((error) => console.warn("[tools-bot] usage counter update failed:", error.message || error));
+      }
 
       const assetId = String(interaction.options.getString("asset-id", true) || "").trim();
       if (!/^\d+$/.test(assetId)) {
@@ -501,6 +506,10 @@ async function handleInteraction(interaction) {
     if (interaction.commandName === "check") {
       if (!interaction.inGuild()) {
         await interaction.editReply("Run `/check usage` in a server that has been claimed in the RBLXTools Bot dashboard.");
+        return;
+      }
+      if (requiresPro) {
+        await interaction.editReply("Official RBLXTools server access: **Unlimited** for your linked RBLXTools Pro membership.");
         return;
       }
       const usage = await getDiscordServerUsageSummary({ guildId: interaction.guildId, discordUserId: interaction.user.id, discordRoleIds: getInteractionRoleIds(interaction) });

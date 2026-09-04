@@ -52,7 +52,27 @@ async function updateStore(update) {
 
 function toIsoFromUnix(value) { const seconds = Number(value || 0); return Number.isFinite(seconds) && seconds > 0 ? new Date(seconds * 1000).toISOString() : null; }
 function isUnlimitedActive(entry) { return ["active", "trialing"].includes(String(entry?.status || "").toLowerCase()); }
-function purchasedUses(store, appUserId) { return Math.max(0, Number(store.useCreditsByAppUserId[String(appUserId || "").trim()] || 0)); }
+// Use packs are kept with the external Discord server after it has been claimed.
+// The existing account map remains the safe holding area for credits bought before a server is claimed.
+function unassignedUses(store, appUserId) { return Math.max(0, Number(store.useCreditsByAppUserId[String(appUserId || "").trim()] || 0)); }
+function serverTotalUses(store, server) {
+  if (!server) return 0;
+  if (Object.prototype.hasOwnProperty.call(server, "totalUses")) return Math.max(0, Number(server.totalUses || 0));
+  // Preserve balances created by the older account-wide implementation.
+  return unassignedUses(store, server.appUserId);
+}
+function creditUses(store, appUserId, uses) {
+  const userId = String(appUserId || "").trim();
+  const amount = Math.max(0, Number(uses || 0));
+  const server = getOwnerServer(store, userId);
+  if (server) {
+    server.totalUses = serverTotalUses(store, server) + amount;
+    server.updatedAt = new Date().toISOString();
+    return server.totalUses;
+  }
+  store.useCreditsByAppUserId[userId] = unassignedUses(store, userId) + amount;
+  return unassignedUses(store, userId);
+}
 function getOwnerServer(store, appUserId) { const userId = String(appUserId || "").trim(); return Object.values(store.serversByGuildId).find((server) => String(server?.appUserId || "") === userId && !server.unclaimedAt) || null; }
 function normalizeRoleDailyLimits(value) {
   const byRoleId = new Map();
@@ -79,8 +99,8 @@ function dashboardDraft(source) { const value = source && typeof source === "obj
 function buildDashboard(store, appUserId) {
   const userId = String(appUserId || "").trim();
   const subscription = store.unlimitedByAppUserId[userId] || null;
-  const totalUses = purchasedUses(store, userId);
   const server = getOwnerServer(store, userId);
+  const totalUses = server ? serverTotalUses(store, server) : unassignedUses(store, userId);
   const draftSettings = dashboardDraft(store.dashboardDraftsByAppUserId[userId]);
   const usedUses = Math.max(0, Number(server?.usedUses || 0));
   return {
@@ -118,14 +138,14 @@ async function grantComplimentaryUnlimited(appUserId) {
 async function grantComplimentaryUses({ appUserId, uses }) {
   const userId = String(appUserId || "").trim(); const amount = Number.parseInt(uses, 10);
   if (!userId || !Number.isFinite(amount) || amount < 1 || amount > 50000) throw new Error("Choose a use amount from 1 to 50,000.");
-  return updateStore((store) => { store.useCreditsByAppUserId[userId] = purchasedUses(store, userId) + amount; return purchasedUses(store, userId); });
+  return updateStore((store) => creditUses(store, userId, amount));
 }
 async function grantPurchasedUses(session) {
   const userId = String(session?.metadata?.appUserId || "").trim(); const sessionId = String(session?.id || "").trim(); const uses = Number.parseInt(session?.metadata?.discordBotUses, 10);
   if (!userId || !sessionId || !Number.isFinite(uses) || uses < 5 || uses > 50000 || uses % 5 !== 0) throw new Error("Discord bot use checkout metadata is invalid.");
-  return updateStore((store) => { if (store.processedUseCheckoutIds[sessionId]) return purchasedUses(store, userId); store.useCreditsByAppUserId[userId] = purchasedUses(store, userId) + uses; store.processedUseCheckoutIds[sessionId] = { appUserId: userId, uses, processedAt: new Date().toISOString() }; return purchasedUses(store, userId); });
+  return updateStore((store) => { if (store.processedUseCheckoutIds[sessionId]) { const server = getOwnerServer(store, userId); return server ? serverTotalUses(store, server) : unassignedUses(store, userId); } const creditedUses = creditUses(store, userId, uses); store.processedUseCheckoutIds[sessionId] = { appUserId: userId, uses, processedAt: new Date().toISOString() }; return creditedUses; });
 }
-async function getPurchasedUses(appUserId) { const userId = String(appUserId || "").trim(); return userId ? purchasedUses(await readStore(), userId) : 0; }
+async function getPurchasedUses(appUserId) { const userId = String(appUserId || "").trim(); return userId ? unassignedUses(await readStore(), userId) : 0; }
 async function getBotDashboard(appUserId) { return buildDashboard(await readStore(), appUserId); }
 async function getUsageCounterSnapshots() {
   const store = await readStore();
@@ -133,7 +153,7 @@ async function getUsageCounterSnapshots() {
     const channelId = String(server?.usageCounterChannelId || "").trim();
     if (!server || server.unclaimedAt || !/^\d{15,22}$/.test(channelId)) return null;
     const subscription = store.unlimitedByAppUserId[String(server.appUserId || "")] || null;
-    const totalUses = purchasedUses(store, server.appUserId);
+    const totalUses = serverTotalUses(store, server);
     return {
       guildId: String(server.guildId || ""),
       usageCounterChannelId: channelId,
@@ -166,7 +186,9 @@ async function claimDiscordServer({ code, appUserId, guildId, guildName, alertCh
     const existing = store.serversByGuildId[normalizedGuildId];
     if (existing && existing.appUserId !== userId) { const error = new Error("This Discord server is already claimed by another RBLXTools account."); error.statusCode = 409; throw error; }
     if (dashboard.server && dashboard.server.guildId !== normalizedGuildId) { const error = new Error("This purchase is already assigned to another Discord server."); error.statusCode = 409; throw error; }
-    const server = existing || { guildId: normalizedGuildId, appUserId: userId, usedUses: 0, dailyUserUseCounts: {}, ...dashboardDraft(store.dashboardDraftsByAppUserId[userId]) };
+    const server = existing || { guildId: normalizedGuildId, appUserId: userId, usedUses: 0, totalUses: unassignedUses(store, userId), dailyUserUseCounts: {}, ...dashboardDraft(store.dashboardDraftsByAppUserId[userId]) };
+    if (!existing) store.useCreditsByAppUserId[userId] = 0;
+    else if (!Object.prototype.hasOwnProperty.call(server, "totalUses")) server.totalUses = serverTotalUses(store, server);
     server.guildName = String(guildName || server.guildName || "Discord server").slice(0, 120); server.claimedAt = server.claimedAt || new Date().toISOString(); server.unclaimedAt = null; server.perUserDailyLimit = Math.max(0, Number(server.perUserDailyLimit || 0)); server.roleDailyLimits = normalizeRoleDailyLimits(server.roleDailyLimits); server.alertChannels = normalizeAlertChannels(alertChannels); if (!server.alertChannels.some((channel) => channel.id === String(server.alertChannelId || ""))) server.alertChannelId = ""; addAudit(server, "claimed", "Server claimed"); server.updatedAt = new Date().toISOString();
     store.serversByGuildId[normalizedGuildId] = server; delete store.claimCodesByCode[normalizedCode]; return buildDashboard(store, userId);
   });
@@ -200,7 +222,7 @@ async function unclaimServer({ appUserId, guildId }) { const userId = String(app
 
 async function getDiscordServerAccess(guildId) {
   const normalizedGuildId = String(guildId || "").trim(); const store = await readStore(); const server = store.serversByGuildId[normalizedGuildId];
-  if (!server) return { allowed: false, reason: "This Discord server has not been claimed in the RBLXTools Bot dashboard yet." };
+  if (!server || server.unclaimedAt) return { allowed: false, reason: "This Discord server has not been claimed in the RBLXTools Bot dashboard yet." };
   const dashboard = buildDashboard(store, server.appUserId);
   return dashboard.access ? { allowed: true, appUserId: server.appUserId, mode: dashboard.mode, server, dashboard } : { allowed: false, reason: "This server no longer has an active RBLXTools Bot entitlement." };
 }
