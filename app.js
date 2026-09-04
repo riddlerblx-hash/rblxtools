@@ -2041,7 +2041,8 @@ function clearAuthCookie(req, res) {
 }
 
 function getBearerToken(req) {
-  const cookieToken = String(req.cookies?.[AUTH_COOKIE_NAME] || "").trim();
+  const parsedCookies = parseCookieHeader(req.headers?.cookie);
+  const cookieToken = String(req.cookies?.[AUTH_COOKIE_NAME] || parsedCookies?.[AUTH_COOKIE_NAME] || "").trim();
   if (cookieToken) return cookieToken;
   const header = String(req.headers.authorization || "");
   const match = header.match(/^Bearer\s+(.+)$/i);

@@ -73,11 +73,27 @@
       var owner = '<div class="ai-community-owner"><button class="ai-community-owner-avatar" type="button" data-community-profile="' + escapeHtml(post.authorId || '') + '">' + ownerImage + '</button><div class="ai-community-owner-copy"><button class="rblx-shell-chat-name-button" type="button" data-community-profile="' + escapeHtml(post.authorId || '') + '">' + ownerMark + '<span class="' + ownerNameClass + '">' + escapeHtml(ownerName) + '</span></button><small>Posted ' + escapeHtml(timeAgo(post.createdAt || post.created_at)) + '</small></div></div>';
       var commentCount = postCommentCount(post);
       document.getElementById('aiCommunityReaderCard').innerHTML = '<button class="ai-community-reader-close" type="button" data-close-community-reader="true">&times;</button><article class="ai-community-reader-article"><small>' + escapeHtml(communityLabels[post.category] || 'Community') + '</small>' + owner + '<h2>' + escapeHtml(post.title || 'Community post') + '</h2><div class="ai-community-reader-body">' + escapeHtml(post.body || post.content || '') + '</div></article><div class="ai-community-reader-actions"><button class="ai-community-action like' + (post.liked ? ' is-active' : '') + '" type="button" data-community-like="' + escapeHtml(post.id) + '"><span class="community-heart">' + (post.liked ? '&#9829;' : '&#9825;') + '</span><b>' + postLikeCount(post) + '</b> Like</button><button class="ai-community-action share" type="button" data-community-share="true"><span>&#8599;</span> Share</button></div><section class="ai-community-reader-comments" id="aiCommunityComments"><h3>Comments <span class="ai-community-comment-count">' + commentCount + ' ' + (commentCount === 1 ? 'comment' : 'comments') + '</span></h3>' + comments + '<form class="ai-community-reader-form" id="aiCommunityCommentForm"><textarea id="aiCommunityComment" maxlength="600" placeholder="Write a comment..."></textarea><input id="aiCommunityCommentParent" type="hidden" /><button type="submit">Post comment</button></form></section>';
+      var commentPanel = document.getElementById('aiCommunityComments');
+      var commentForm = document.getElementById('aiCommunityCommentForm');
+      if (commentPanel && commentForm) {
+        var firstComment = commentPanel.querySelector('.ai-community-comment, .ai-community-reader-comment');
+        commentPanel.insertBefore(commentForm, firstComment || null);
+        var submit = commentForm.querySelector('button[type="submit"]');
+        if (submit && !commentForm.querySelector('.ai-community-reader-form-bar')) {
+          var formBar = document.createElement('div');
+          formBar.className = 'ai-community-reader-form-bar';
+          formBar.innerHTML = '<span>Join the conversation</span>';
+          submit.parentNode.insertBefore(formBar, submit);
+          formBar.appendChild(submit);
+        }
+      }
       document.getElementById('aiCommunityReader').hidden = false;
       startCommunityPostPolling(id);
     };
 
     readerFixStyle.textContent += '.ai-community-action.like.is-active{border-color:#ff6f91!important;background:linear-gradient(135deg,rgba(221,57,98,.48),rgba(91,24,51,.82))!important;color:#ffe7ed!important;box-shadow:0 0 0 2px rgba(255,102,140,.2),0 10px 24px rgba(191,39,78,.2)!important}.ai-community-comment-tools button.is-active[data-vote="like"]{border-color:#ff6687!important;background:rgba(218,59,94,.22)!important;color:#ff9ab0!important}.ai-community-comment-tools button.is-active[data-vote="dislike"]{border-color:#8badff!important;background:rgba(91,139,255,.2)!important;color:#c9d9ff!important}';
+
+    readerFixStyle.textContent += '.ai-community-reader-form{margin:0 0 16px!important;border:1px solid rgba(147,187,235,.25);border-radius:12px;overflow:hidden;background:#151f2e}.ai-community-reader-form textarea{width:100%;border:0!important;border-radius:0!important;background:transparent!important}.ai-community-reader-form-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:7px 9px 7px 13px;border-top:1px solid rgba(147,187,235,.18);background:rgba(8,15,27,.5);color:#8fa5c0;font:800 10px system-ui}.ai-community-reader-form button{margin:0!important}.ai-community-thread{display:grid;gap:0}';
 
     document.getElementById('aiCommunityReader').addEventListener('click', function (event) {
       var postLike = event.target.closest('[data-community-like]');
@@ -116,7 +132,7 @@
   }, 0);
   var authToken = function () { try { return localStorage.getItem('rblxtools_auth_token') || ''; } catch (_error) { return ''; } };
   var escapeHtml = function (value) { var node = document.createElement('span'); node.textContent = String(value == null ? '' : value); return node.innerHTML; };
-  var request = function (url, method, body) { return fetch(url, { method: method || 'GET', credentials: 'include', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken() }, body: body ? JSON.stringify(body) : undefined }).then(function (response) { return response.json().catch(function () { return {}; }).then(function (payload) { if (!response.ok) throw new Error(payload.error || 'Something went wrong.'); return payload; }); }); };
+  var request = function (url, method, body) { var token = authToken(); var headers = { 'Accept': 'application/json' }; if (body) headers['Content-Type'] = 'application/json'; if (token) headers.Authorization = 'Bearer ' + token; return fetch(url, { method: method || 'GET', credentials: 'include', headers: headers, body: body ? JSON.stringify(body) : undefined }).then(function (response) { return response.json().catch(function () { return {}; }).then(function (payload) { if (!response.ok) throw new Error(payload.error || 'Something went wrong.'); return payload; }); }); };
   var notify = function (message) { var node = document.getElementById('aiAssetsNotice'); if (!node) return; node.textContent = message; node.classList.add('is-visible'); clearTimeout(state.noticeTimer); state.noticeTimer = setTimeout(function () { node.classList.remove('is-visible'); }, 3200); };
   var heartBurst = function (button) { if (!button) return; var rect = button.getBoundingClientRect(), heart = document.createElement('span'); heart.className = 'ai-community-heart-burst'; heart.innerHTML = '&#9829;'; heart.style.left = (rect.left + rect.width / 2) + 'px'; heart.style.top = (rect.top + rect.height / 2) + 'px'; document.body.appendChild(heart); button.classList.add('is-hearting'); setTimeout(function () { button.classList.remove('is-hearting'); }, 450); setTimeout(function () { heart.remove(); }, 800); };
   var reactionCache = function () { try { return JSON.parse(localStorage.getItem('rblxtools_community_reactions') || '{}') || {}; } catch (_error) { return {}; } };
