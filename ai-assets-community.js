@@ -4,6 +4,56 @@
   if (!gallery || !page) return;
 
   var state = { items: [], active: null, viewer: null, viewerTimer: 0, communityPollTimer: 0 };
+  // The Community reader is owned here. Keep it on the server's current reaction
+  // state instead of reviving the retired client-side reaction cache.
+  window.setTimeout(function () {
+    var readerFixStyle = document.createElement('style');
+    readerFixStyle.textContent =
+      '.ai-community-reader{align-items:center;padding:24px;overflow:auto}' +
+      '.ai-community-reader-card{width:min(1240px,calc(100vw - 48px));max-height:calc(100vh - 48px);overflow:auto;padding:28px;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(330px,.75fr);gap:0 26px;border:1px solid rgba(150,195,250,.26);border-radius:18px;background:#101926;box-shadow:0 30px 90px rgba(0,0,0,.5)}' +
+      '.ai-community-reader-card::before{display:none}.ai-community-reader-card>small,.ai-community-reader-card>h2,.ai-community-reader-card>.ai-community-reader-body{grid-column:1;position:relative;z-index:1;margin-left:0;margin-right:0}.ai-community-reader-card>small{margin-top:0}.ai-community-reader-card>.ai-community-reader-body{min-height:0;margin-bottom:26px;padding:24px;border:1px solid rgba(150,195,250,.18);border-radius:14px;background:linear-gradient(180deg,rgba(19,31,51,.98),rgba(10,18,31,.98));box-shadow:inset 0 1px rgba(255,255,255,.03)}' +
+      '.ai-community-reader-actions{grid-column:2;grid-row:1;position:relative;z-index:1;align-self:start;margin:0 0 12px;padding:14px;border:1px solid rgba(150,195,250,.24);border-radius:15px;background:#101926;box-shadow:0 18px 45px rgba(0,0,0,.28)}' +
+      '.ai-community-reader-comments{grid-column:2;grid-row:2 / span 3;position:relative;z-index:1;min-height:0;max-height:none;overflow:visible;margin:0;padding:18px 18px 24px;border:1px solid rgba(150,195,250,.24);border-radius:15px;background:#101926;box-shadow:0 18px 45px rgba(0,0,0,.28)}' +
+      '.ai-community-reader-form{padding-bottom:8px}.ai-community-reader-form button{margin-bottom:0}.ai-community-comment-avatar.rblx-shell-chat-avatar-button{width:31px;height:31px;padding:0;border:0;background:transparent}.ai-community-comment-avatar .rblx-shell-chat-avatar{width:31px;height:31px}.ai-community-comment-head .rblx-shell-chat-name-text{font-size:12px}.ai-community-comment-head .rblx-shell-chat-plus-mark{margin-left:2px}' +
+      '@media(max-width:860px){.ai-community-reader{align-items:start;padding:14px}.ai-community-reader-card{display:block;width:min(760px,100%);max-height:none;padding:20px}.ai-community-reader-card>.ai-community-reader-body{margin-bottom:18px}.ai-community-reader-actions,.ai-community-reader-comments{margin-top:12px}.ai-community-reader-comments{padding-bottom:20px}}';
+    document.head.appendChild(readerFixStyle);
+
+    loadCommunityPosts = function () {
+      return request('/api/community-posts').then(function (payload) {
+        state.communityPosts = Array.isArray(payload.posts) ? payload.posts : [];
+        render();
+        return true;
+      }).catch(function (error) {
+        document.getElementById('aiAssetsGrid').innerHTML = '<div class="ai-community-empty">' + escapeHtml(error.message) + '</div>';
+        return false;
+      });
+    };
+
+    communityAvatar = function (comment) {
+      var url = String(comment.avatarUrl || '');
+      var name = String(comment.authorName || 'Member');
+      var image = /^https?:\/\//i.test(url)
+        ? '<img class="rblx-shell-chat-avatar-image" src="' + escapeHtml(url) + '" alt="" /><span class="rblx-shell-chat-avatar-fallback" style="display:none">' + escapeHtml(initials(name)) + '</span>'
+        : '<span class="rblx-shell-chat-avatar-fallback">' + escapeHtml(initials(name)) + '</span>';
+      return '<button class="ai-community-comment-avatar rblx-shell-chat-avatar-button" type="button" data-community-profile="' + escapeHtml(comment.userId || '') + '"><span class="rblx-shell-chat-avatar' + (url ? ' has-image' : '') + '">' + image + '</span></button>';
+    };
+
+    communityCommentMarkup = function (comment, post, depth) {
+      var isOwner = String(post.viewerId || '') === String(comment.userId || '');
+      var isPostOwner = String(post.authorId || '') === String(post.viewerId || '');
+      var canManage = isOwner || isPostOwner;
+      var pinned = String(post.pinnedCommentId || '') === String(comment.id || '');
+      var plan = String(comment.plan || '').toLowerCase();
+      var isPro = plan === 'pro';
+      var isPlus = plan === 'plus';
+      var nameClass = 'rblx-shell-chat-name-text' + (isPro ? ' is-pro' : (isPlus ? ' is-plus' : ''));
+      var planMark = isPro ? '<span class="rblx-shell-chat-plus-mark is-pro">&#128736;</span>' : (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : '');
+      var reactions = '<button class="' + (comment.viewerReaction === 'like' ? 'is-active' : '') + '" data-community-comment-action="react" data-comment-id="' + escapeHtml(comment.id) + '" data-vote="like">&#9825; ' + Number(comment.likes || 0) + '</button><button class="' + (comment.viewerReaction === 'dislike' ? 'is-active' : '') + '" data-community-comment-action="react" data-comment-id="' + escapeHtml(comment.id) + '" data-vote="dislike">&times; ' + Number(comment.dislikes || 0) + '</button><button data-community-reply="' + escapeHtml(comment.id) + '">Reply</button>' + (comment.hearted ? '<span class="ai-community-comment-heart">&#9829; Creator</span>' : '');
+      var menu = canManage || isPostOwner ? '<details class="ai-community-comment-menu"><summary>&#8942;</summary><div class="ai-community-comment-menu-menu">' + (isOwner ? '<button data-community-comment-action="edit" data-comment-id="' + escapeHtml(comment.id) + '">Edit</button>' : '') + (canManage ? '<button data-community-comment-action="delete" data-comment-id="' + escapeHtml(comment.id) + '">Delete</button>' : '') + (isPostOwner ? '<button data-community-comment-action="heart" data-comment-id="' + escapeHtml(comment.id) + '">' + (comment.hearted ? 'Unheart' : 'Heart') + '</button><button data-community-comment-action="pin" data-comment-id="' + escapeHtml(comment.id) + '">' + (pinned ? 'Unpin' : 'Pin') + '</button>' : '') + '</div></details>' : '';
+      var children = (post.comments || []).filter(function (entry) { return String(entry.parentId || '') === String(comment.id); }).map(function (entry) { return communityCommentMarkup(entry, post, (depth || 0) + 1); }).join('');
+      return '<article class="ai-community-comment' + ((depth || 0) ? ' is-reply' : '') + '">' + communityAvatar(comment) + '<div class="ai-community-comment-main">' + (pinned ? '<div class="ai-community-pinned">Pinned by post owner</div>' : '') + '<div class="ai-community-comment-head"><strong class="' + nameClass + '" data-community-profile="' + escapeHtml(comment.userId || '') + '">' + escapeHtml(comment.authorName || 'Member') + '</strong>' + planMark + '<span class="ai-community-comment-time">' + timeAgo(comment.createdAt) + (comment.editedAt ? ' · edited' : '') + '</span>' + menu + '</div><p class="ai-community-comment-text">' + escapeHtml(comment.body || '') + '</p><div class="ai-community-comment-tools">' + reactions + '</div>' + children + '</div></article>';
+    };
+  }, 0);
   var authToken = function () { try { return localStorage.getItem('rblxtools_auth_token') || ''; } catch (_error) { return ''; } };
   var escapeHtml = function (value) { var node = document.createElement('span'); node.textContent = String(value == null ? '' : value); return node.innerHTML; };
   var request = function (url, method, body) { return fetch(url, { method: method || 'GET', credentials: 'include', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken() }, body: body ? JSON.stringify(body) : undefined }).then(function (response) { return response.json().catch(function () { return {}; }).then(function (payload) { if (!response.ok) throw new Error(payload.error || 'Something went wrong.'); return payload; }); }); };
