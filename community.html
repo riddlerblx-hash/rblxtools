@@ -260,6 +260,8 @@
     .community-empty,
     .community-post,
     .community-card { padding: 24px; }
+    /* Keep the article itself on a distinct surface when it is read beside comments. */
+    .community-feed > .community-post { border: 1px solid rgba(94,139,224,.38); background: radial-gradient(circle at top right, rgba(65,103,174,.16), transparent 34%), linear-gradient(180deg, rgba(20,33,55,.98), rgba(9,16,28,.99)); box-shadow: 0 22px 50px rgba(3,8,18,.34); }
     .community-post-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
     .community-post-head-main { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
     .community-type {
@@ -305,7 +307,7 @@
     .community-comment-name-text { min-width: 0; color: #ffffff; font-size: 14px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .community-comment-name-text.is-plus { color: #d7e6ff; }
     .community-comment-date { color: rgba(210,218,234,.72); font-size: 12px; font-weight: 800; }
-    .community-comment-compose { display: grid; gap: 10px; min-width: 0; }
+    .community-comment-compose { display: grid; gap: 10px; min-width: 0; padding-bottom: 14px; }
     .community-card ul { margin: 12px 0 0; padding-left: 18px; }
     .community-card li + li { margin-top: 8px; }
     .community-post-menu { position: relative; flex: 0 0 auto; }
@@ -419,6 +421,7 @@
     .community-comment-action { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:34px; padding:0 12px; border:1px solid rgba(255,255,255,.10); border-radius:999px; background:rgba(255,255,255,.05); color:#eaf0fb; font:800 12px/1 inherit; cursor:pointer; transition:transform .18s ease,border-color .18s ease,background .18s ease; }
     .community-comment-action:hover { transform:translateY(-1px); border-color:rgba(255,160,179,.42); background:rgba(255,255,255,.08); }
     .community-comment-action.is-active { border-color:rgba(255,104,128,.62); background:rgba(255,81,109,.14); color:#ffd6df; }
+    .community-comment-dislike.is-active { border-color:rgba(125,170,255,.62); background:rgba(91,139,255,.16); color:#dbe7ff; }
     .community-comment-action.is-hearting > span:first-child { color:#ff6680; animation:communityHeartPulse .5s ease; }
     .community-admin-composer.is-member-report .community-category-field,
     .community-admin-composer.is-member-report .community-link-fields { display:none; }
@@ -584,7 +587,7 @@
     </section>
   </main>
 
-  <script src="./community-page.js"></script>
+  <script src="./community-page.js?v=20260904-1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>

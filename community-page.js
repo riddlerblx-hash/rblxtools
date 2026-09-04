@@ -219,15 +219,15 @@
       comment.plan ||
       ""
     ).trim().toLowerCase();
-    var isPlus = plan === "plus" || String(comment.badge || "").trim().toLowerCase() === "plus";
+    var isPro = plan === "pro";
+    var isPlus = plan === "plus" || (!isPro && String(comment.badge || "").trim().toLowerCase() === "plus");
     return {
       displayName: displayName,
       userId: commentUserId,
       avatarUrl: String((useCurrentIdentity && currentIdentity.avatarUrl) || comment.avatarUrl || "").trim(),
       avatarText: getInitials(displayName),
       bio: String((useCurrentIdentity && currentIdentity.bio) || comment.bio || "").trim(),
-      plan: isPlus ? "plus" : "free",
-      badge: isPlus ? "Plus" : "Free Plan"
+      plan: isPro ? "pro" : (isPlus ? "plus" : "free")
     };
   }
 
@@ -250,14 +250,14 @@
       authUser.plan ||
       "free"
     ).trim().toLowerCase() || "free";
+    var isPro = plan === "pro";
     var isPlus = plan === "plus";
     return {
       displayName: displayName,
       userId: String((currentViewer && currentViewer.userId) || (shellIdentity && shellIdentity.userId) || authUser.userId || "").trim(),
       avatarUrl: String((shellIdentity && shellIdentity.avatarUrl) || savedProfile.avatarUrl || "").trim(),
       bio: String((shellIdentity && shellIdentity.bio) || savedProfile.bio || "").trim(),
-      plan: isPlus ? "plus" : "free",
-      badge: isPlus ? "Plus" : "Free Plan"
+      plan: isPro ? "pro" : (isPlus ? "plus" : "free")
     };
   }
 
@@ -273,16 +273,15 @@
   }
 
   function buildCommunityCommentAuthor(profile) {
-    var isPlus = String(profile.plan || "").toLowerCase() === "plus";
-    var badgeMarkup = isPlus
-      ? ""
-      : '<span class="rblx-shell-chat-badge">' + escapeHtml(profile.badge || "Free Plan") + "</span>";
+    var plan = String(profile.plan || "").toLowerCase();
+    var isPro = plan === "pro";
+    var isPlus = plan === "plus";
     var avatarMarkup = profile.avatarUrl
       ? '<img class="rblx-shell-chat-avatar-image" src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;grid&quot;;" />' +
         '<span class="rblx-shell-chat-avatar-fallback" style="display:none;">' + escapeHtml(profile.avatarText || getInitials(profile.displayName)) + '</span>'
       : '<span class="rblx-shell-chat-avatar-fallback">' + escapeHtml(profile.avatarText || getInitials(profile.displayName)) + '</span>';
     var attrs = buildCommunityProfileAttrs(profile);
-    var nameClass = isPlus ? ' class="rblx-shell-chat-name-text is-plus"' : ' class="rblx-shell-chat-name-text"';
+    var nameClass = isPro ? ' class="rblx-shell-chat-name-text is-pro"' : (isPlus ? ' class="rblx-shell-chat-name-text is-plus"' : ' class="rblx-shell-chat-name-text"');
     return (
       '<div class="community-comment-author">' +
         '<button class="rblx-shell-chat-avatar-button" type="button"' + attrs + ' aria-label="Open profile for ' + escapeHtml(profile.displayName || "Member") + '">' +
@@ -291,8 +290,7 @@
         '<div class="community-comment-author-copy">' +
           '<div class="rblx-shell-chat-name">' +
             '<button class="rblx-shell-chat-name-button" type="button"' + attrs + '>' +
-              badgeMarkup +
-              (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : '') +
+              (isPro ? '<span class="rblx-shell-chat-plus-mark is-pro">&#128736;</span>' : (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : '')) +
               '<span' + nameClass + '>' + escapeHtml(profile.displayName || "Member") + '</span>' +
             '</button>' +
           '</div>' +
@@ -405,11 +403,11 @@
   }
 
   function buildPostActions(post) {
-    var likeLabel = post.viewerLiked ? "Liked" : "Like";
+    var likeLabel = post.liked ? "Liked" : "Like";
     return (
       '<div class="community-post-actions">' +
-        '<button class="community-post-action' + (post.viewerLiked ? " is-active" : "") + '" type="button" data-community-like="' + escapeHtml(post.id) + '">' +
-          '<span>&#10084;</span><span>' + escapeHtml(likeLabel) + " (" + Number(post.likeCount || 0) + ")</span>" +
+        '<button class="community-post-action' + (post.liked ? " is-active" : "") + '" type="button" data-community-like="' + escapeHtml(post.id) + '">' +
+          '<span>&#10084;</span><span>' + escapeHtml(likeLabel) + " (" + Number(post.likes || 0) + ")</span>" +
         "</button>" +
         '<button class="community-post-action" type="button" data-community-focus-comment="' + escapeHtml(post.id) + '">' +
           '<span>&#128172;</span><span>Comment (' + Number(post.commentCount || 0) + ")</span>" +
@@ -436,7 +434,7 @@
                 buildAdminCommentMenu(post.id, comment) +
               '</div>' +
               '<p>' + escapeHtml(comment.body || '').replace(/\\n/g, '<br>') + '</p>' +
-              '<div class="community-comment-actions"><button type="button" data-community-comment-like-post="' + escapeHtml(post.id) + '" data-community-comment-like="' + escapeHtml(comment.id) + '" class="community-comment-action community-comment-like' + (comment.viewerLiked ? ' is-active' : '') + '"><span>&#10084;</span><span>' + (comment.viewerLiked ? 'Liked' : 'Like') + ' (' + Number(comment.likeCount || 0) + ')</span></button><button type="button" class="community-comment-action" data-community-comment-reply-post="' + escapeHtml(post.id) + '" data-community-comment-reply="' + escapeHtml(comment.id) + '"><span>&#8618;</span><span>Reply</span></button></div>' +
+              '<div class="community-comment-actions"><button type="button" data-community-comment-reaction-post="' + escapeHtml(post.id) + '" data-community-comment-reaction="' + escapeHtml(comment.id) + '" data-community-comment-vote="like" class="community-comment-action community-comment-like' + (comment.viewerReaction === 'like' ? ' is-active' : '') + '"><span>&#10084;</span><span>' + Number(comment.likes || 0) + '</span></button><button type="button" data-community-comment-reaction-post="' + escapeHtml(post.id) + '" data-community-comment-reaction="' + escapeHtml(comment.id) + '" data-community-comment-vote="dislike" class="community-comment-action community-comment-dislike' + (comment.viewerReaction === 'dislike' ? ' is-active' : '') + '"><span>&#215;</span><span>' + Number(comment.dislikes || 0) + '</span></button><button type="button" class="community-comment-action" data-community-comment-reply-post="' + escapeHtml(post.id) + '" data-community-comment-reply="' + escapeHtml(comment.id) + '"><span>&#8618;</span><span>Reply</span></button></div>' +
               (Array.isArray(comment.replies) && comment.replies.length ? '<div class="community-comment-replies">' + comment.replies.map(function (reply) { var replyProfile = buildCommentProfile(reply); return '<article class="community-comment-reply">' + buildCommunityCommentAuthor(replyProfile) + '<p>' + escapeHtml(reply.body || '').replace(/\\n/g, '<br>') + '</p></article>'; }).join('') + '</div>' : '') +
             '</article>'
           );
@@ -591,9 +589,11 @@
     if (!user || typeof user !== "object") return null;
     var userId = String(user.id || user.userId || "").trim();
     if (!userId) return null;
+    var rawPlan = String(user.plan || "").toLowerCase();
+    var plan = rawPlan === "pro" ? "pro" : ((user.premiumActive === true || user.plusActive === true || user.isPlus === true || rawPlan === "plus") ? "plus" : "free");
     return {
       userId: userId,
-      plan: (user.premiumActive === true || user.plusActive === true || user.isPlus === true || String(user.plan || "").toLowerCase() === "plus") ? "plus" : "free",
+      plan: plan,
       isAdmin: isApprovedAdminUser(user)
     };
   }
@@ -972,14 +972,14 @@
     }
   }
 
-  async function toggleCommentLike(postId, commentId, button) {
-    if (!isLoggedIn) return void openLoginPrompt("Log in or sign up to like comments.");
-    var isNewLike = !button || !button.classList.contains("is-active");
+  async function toggleCommentReaction(postId, commentId, vote, button) {
+    if (!isLoggedIn) return void openLoginPrompt("Log in or sign up to react to comments.");
+    var isNewLike = vote === "like" && (!button || !button.classList.contains("is-active"));
     try {
-      await fetchJson(API_BASE + "/api/community-posts/" + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId) + "/likes", { method: "POST" });
+      await fetchJson(API_BASE + "/api/community-posts/" + encodeURIComponent(postId) + "/comments/" + encodeURIComponent(commentId), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "react", vote: vote }) });
       if (isNewLike) createHeartBurst(button);
       await loadCommunityPosts(true);
-    } catch (error) { setPublishStatus(error && error.message ? error.message : "Could not update the comment like.", "error"); }
+    } catch (error) { setPublishStatus(error && error.message ? error.message : "Could not update the comment reaction.", "error"); }
   }
 
   async function replyToComment(postId, commentId) {
@@ -1178,8 +1178,8 @@
       var commentPinButton = target.closest("[data-community-comment-pin]");
       if (commentPinButton) return void updateComment(commentPinButton.getAttribute("data-community-comment-pin-post"), commentPinButton.getAttribute("data-community-comment-pin"), { pinned: commentPinButton.getAttribute("data-next-pinned") === "true" });
 
-      var commentLikeButton = target.closest("[data-community-comment-like]");
-      if (commentLikeButton) return void toggleCommentLike(commentLikeButton.getAttribute("data-community-comment-like-post"), commentLikeButton.getAttribute("data-community-comment-like"), commentLikeButton);
+      var commentReactionButton = target.closest("[data-community-comment-reaction]");
+      if (commentReactionButton) return void toggleCommentReaction(commentReactionButton.getAttribute("data-community-comment-reaction-post"), commentReactionButton.getAttribute("data-community-comment-reaction"), commentReactionButton.getAttribute("data-community-comment-vote"), commentReactionButton);
 
       var commentReplyButton = target.closest("[data-community-comment-reply]");
       if (commentReplyButton) return void replyToComment(commentReplyButton.getAttribute("data-community-comment-reply-post"), commentReplyButton.getAttribute("data-community-comment-reply"));
