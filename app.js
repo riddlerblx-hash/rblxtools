@@ -7063,17 +7063,8 @@ async function requireCommunityAdmin(req, res, next) {
   }
 }
 
-app.get(["/community", "/community.html"], async (req, res) => {
-  try {
-    await requireAdminUser(req);
-    return res.sendFile(path.join(STATIC_ROOT, "community.html"));
-  } catch (_error) {
-    return res.status(403).send("Community is currently limited to administrators.");
-  }
-});
+app.get(["/community", "/community.html"], (_req, res) => res.sendFile(path.join(STATIC_ROOT, "community.html")));
 
-app.use("/api/community-posts", requireCommunityAdmin);
-app.use("/api/ugc/community", requireCommunityAdmin);
 app.get("/api/community-access", requireCommunityAdmin, (_req, res) => res.json({ ok: true }));
 
 app.get("/api/community-posts", async (req, res) => {

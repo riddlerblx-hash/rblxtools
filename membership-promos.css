@@ -147,7 +147,7 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-p
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-perks b,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-perks b { color:var(--promo-marker, #eaf3ff); font-size:16px; line-height:1; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-section,
-body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-section { grid-column:1 / -1; margin-top:4px; padding:8px 2px 3px; border-bottom:1px solid var(--promo-line, rgba(239,246,255,.28)); color:var(--promo-marker, #eaf3ff); font-size:9px; font-weight:950; letter-spacing:.12em; text-transform:uppercase; }
+body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-section { grid-column:1 / -1; margin-top:4px; padding:8px 2px 3px; border:0; border-bottom:1px solid var(--promo-line, rgba(239,246,255,.28)); border-radius:0; background:transparent!important; box-shadow:none!important; color:var(--promo-marker, #eaf3ff); font-size:9px; font-weight:950; letter-spacing:.12em; text-transform:uppercase; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-footer,
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo .rblx-membership-promo-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:auto; padding-top:17px; }
 body.rblx-home-page .home-grid-top > .plus-card .rblx-membership-promo-nav,

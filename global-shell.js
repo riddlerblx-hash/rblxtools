@@ -1450,6 +1450,7 @@
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
+          '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
             '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
@@ -1637,7 +1638,6 @@
               '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + "</div>" +
               '<div class="rblx-shell-left-foot">' +
                 '<div class="rblx-shell-box-ad" data-rblx-shell-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' +
-                '<div class="rblx-shell-token-banner" id="rblxShellTokenBanner" hidden><strong>AI Tokens</strong><span id="rblxShellTokenBalance">...</span><a class="rblx-shell-token-add" href="./ai-tokens" aria-label="Buy AI tokens" title="Buy AI tokens">+</a></div>' +
                 '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span><s>$5.00</s> $2.50 <em>50% off</em></span><i class="rblx-shell-plan-timer"><b></b></i></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a></div>' +
                 '<div class="rblx-shell-socials">' +
                   '<a href="https://x.com/Reese28575571" target="_blank" rel="noreferrer" aria-label="X">' + getSocialIcon("x") + '</a>' +
@@ -4721,14 +4721,14 @@
       title: "Pro",
       action: actionLabel || "Try Now",
       generalPerks: ["Includes All Plus Benefits", "Discord Bot Access", "No Annoying Ads", "Bulk Downloads (5-10)", "Premium Giveaways", "Custom Chat Tag", "Premium Website Experience"],
-      aiPerks: ["20 AI Credits Every Month", "30 Savable Thumbnail Generations (+27)", "18 Savable AI UGC Slots (+15)", "6 AI Thumbnail Attachments", "All Aspect Ratios", "1440p - 4K AI Thumbnail Quality", "4K High-Quality AI UGC Textures", "10% Off AI Generation Token Costs"]
+      aiPerks: ["20 AI Credits Every Month", "30 Savable Thumbnail Generations (+27)", "18 Savable AI UGC Slots (+15)", "6 AI Thumbnail References", "All Thumbnail Aspect Ratios", "4K AI Thumbnail Quality", "4K High-Quality AI UGC Textures", "10% Off Your AI Generations"]
     } : {
       price: "$1.00",
       subtitle: "Monthly membership",
       title: "Plus",
       action: actionLabel || "Try Now",
-      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "Textured UGCs", "Bulk Downloads (1-5)", "Premium Website Experience"],
-      aiPerks: ["10 Savable Thumbnail Generations", "8 Savable AI UGC Slots (+5)", "1080p AI Thumbnail Quality"]
+      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "Textured UGCs", "Bulk Downloads (1-5)"],
+      aiPerks: ["10 Savable Thumbnail Generations", "8 Savable AI UGC Slots (+5)", "1440p AI Thumbnail Quality"]
     };
     return [
       '<div class="rblx-membership-promo-floaters ' + (isPro ? 'is-pro' : 'is-plus') + '" aria-hidden="true"><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span></div>',
