@@ -7101,6 +7101,23 @@ app.get("/api/community-posts", async (req, res) => {
   return res.json({ ok: true, posts: await Promise.all(posts.map((post) => enrichCommunityPostIdentity(post, viewer))) });
 });
 
+app.post("/api/community-posts", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const title = cleanText(req.body?.title, 140);
+    const body = cleanText(req.body?.body, 6000);
+    if (!title || !body) return res.status(400).json({ error: "A title and post text are required." });
+    const post = {
+      id: randomUUID(), title, body, category: normalizeCommunityPostCategory(req.body?.category),
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      authorId: String(user.id), authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
+      authorAvatarUrl: getCommunityAvatarUrl(user), pinned: false, likedBy: {}, pinnedCommentId: "", comments: [],
+    };
+    const posts = readCommunityPosts(); posts.push(post); writeCommunityPosts(posts);
+    return res.status(201).json({ ok: true, post: await enrichCommunityPostIdentity(post, user) });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not create this post." }); }
+});
+
 app.post("/api/community-posts/:postId/likes", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req); const postId = String(req.params.postId || "").trim(); const posts = readCommunityPosts();
