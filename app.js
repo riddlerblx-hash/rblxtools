@@ -989,7 +989,7 @@ function writeCommunityPosts(posts) {
   try {
     ensureCommunityPostsStorage(); const tempPath = `${COMMUNITY_POSTS_PATH}.${process.pid}.${Date.now()}.tmp`;
     fs.writeFileSync(tempPath, JSON.stringify(posts) + "\n", "utf8"); fs.renameSync(tempPath, COMMUNITY_POSTS_PATH);
-  } catch (error) { console.error("[COMMUNITY] Could not save posts:", error.message); }
+  } catch (error) { console.error("[COMMUNITY] Could not save posts:", error.message); throw error; }
 }
 
 function buildPublicCommunityPost(post, viewer) {
@@ -7095,6 +7095,21 @@ async function requireCommunityAdmin(req, res, next) {
 app.get(["/community", "/community.html"], (_req, res) => res.sendFile(path.join(STATIC_ROOT, "community.html")));
 
 app.get("/api/community-access", requireCommunityAdmin, (_req, res) => res.json({ ok: true }));
+
+app.get("/api/community-session", async (req, res) => {
+  const user = await getOptionalCommunityUser(req);
+  if (!user) return res.json({ ok: true, authenticated: false, viewer: null });
+  const membership = await resolveMembershipSnapshot(user);
+  return res.json({
+    ok: true, authenticated: true,
+    viewer: {
+      id: String(user.id),
+      name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
+      avatarUrl: getCommunityAvatarUrl(user), plan: String(membership?.plan || "free").toLowerCase(),
+      canManageAll: isAdminUser(user),
+    },
+  });
+});
 
 app.get("/api/community-posts", async (req, res) => {
   const viewer = await getOptionalCommunityUser(req);
