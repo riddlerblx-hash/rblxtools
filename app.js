@@ -1521,7 +1521,13 @@ function getAIThumbnailHistoryLimit(membership) {
 }
 
 function getAIUGCHistoryLimit(membership) {
-  return String(membership?.plan || "").toLowerCase() === "pro" ? 18 : membership?.premiumActive ? 6 : 3;
+  return String(membership?.plan || "").toLowerCase() === "pro" ? 18 : membership?.premiumActive ? 8 : 3;
+}
+
+function getAITokenGenerationCost(cost, membership) {
+  const baseCost = Math.max(1, Number.parseInt(cost, 10) || 1);
+  const isPro = Boolean(membership?.premiumActive) && String(membership?.plan || "").toLowerCase() === "pro";
+  return isPro ? Math.max(1, Math.ceil(baseCost * 0.9)) : baseCost;
 }
 
 function getStripeSubscriptionPlan(subscription) {
@@ -6848,7 +6854,7 @@ app.post("/ai/ugc/preview", async (req, res) => {
     const enablePbr = withTexture && Boolean(req.body?.enablePbr);
     if (textureResolution === "4k" && !isPro) return res.status(403).json({ error: "4K high-quality textures require RBLXTools Pro." });
     if (enablePbr && !isPro) return res.status(403).json({ error: "PBR textures require RBLXTools Pro." });
-    tokenCost = getUGCGenerationTokenCost({ assetType, inputMode, withTexture, multiView: useMultiView });
+    tokenCost = getAITokenGenerationCost(getUGCGenerationTokenCost({ assetType, inputMode, withTexture, multiView: useMultiView }), membership);
     await ensureSufficientAITokens(user.id, tokenCost, "No AI tokens available. Add tokens before creating another UGC model.");
     const task = inputMode === "image"
       ? await requestMeshy(useMultiView ? "/v1/multi-image-to-3d" : "/v1/image-to-3d", { method: "POST", body: useMultiView
@@ -6859,7 +6865,7 @@ app.post("/ai/ugc/preview", async (req, res) => {
     const taskType = useMultiView ? "multi" : inputMode;
     const aiTokens = await debitAITokens(user.id, tokenCost);
     tokensDebited = true;
-    ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, taskType, prompt, targetPolycount, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? UGC_TEXTURE_GENERATION_TOKEN_COST : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+    ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, taskType, prompt, targetPolycount, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? getAITokenGenerationCost(UGC_TEXTURE_GENERATION_TOKEN_COST, membership) : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
     persistPendingAIUGCGeneration(user, { taskId, assetType, inputMode, taskType, prompt, targetPolycount, withTexture });
     return res.json({ ok: true, taskId, taskType, assetType, targetPolycount, textureResolution, withTexture, tokenCost, aiTokens, historyLimit: getAIUGCHistoryLimit(membership), isPro });
   } catch (error) {
@@ -6897,7 +6903,7 @@ app.post("/ai/ugc/batch", async (req, res) => {
     const enablePbr = withTexture && Boolean(req.body?.enablePbr);
     if (textureResolution === "4k" && !isPro) return res.status(403).json({ error: "4K high-quality textures require RBLXTools Pro." });
     if (enablePbr && !isPro) return res.status(403).json({ error: "PBR textures require RBLXTools Pro." });
-    const costPerImage = getUGCGenerationTokenCost({ assetType, inputMode: "image", withTexture });
+    const costPerImage = getAITokenGenerationCost(getUGCGenerationTokenCost({ assetType, inputMode: "image", withTexture }), membership);
     await ensureSufficientAITokens(user.id, costPerImage * resolvedSourceImageUrls.length, "No AI tokens available. Add tokens before creating another UGC batch.");
     const modelType = isUgcAsset ? "smart-topology" : "standard";
     const attempts = await Promise.allSettled(resolvedSourceImageUrls.map((imageUrl) => requestMeshy("/v1/image-to-3d", {
@@ -6931,6 +6937,7 @@ app.post("/ai/ugc/batch", async (req, res) => {
 app.post("/ai/ugc/refine", async (req, res) => {
   let user;
   let tokensDebited = false;
+  let textureTokenCost = 0;
   try {
     user = await requireAdminUser(req);
     if (ugcSubmissionLocks.has(user.id)) return res.status(409).json({ error: "A UGC request is already being submitted. Please wait." });
@@ -6946,19 +6953,20 @@ app.post("/ai/ugc/refine", async (req, res) => {
     const enablePbr = Boolean(req.body?.enablePbr);
     if (textureResolution === "4k" && !isPro) return res.status(403).json({ error: "4K high-quality textures require RBLXTools Pro." });
     if (enablePbr && !isPro) return res.status(403).json({ error: "PBR textures require RBLXTools Pro." });
-    await ensureSufficientAITokens(user.id, UGC_TEXTURE_GENERATION_TOKEN_COST, "No AI tokens available. Add tokens before starting the texture pass.");
+    textureTokenCost = Math.max(1, Number(charge.textureTokenCost) || getAITokenGenerationCost(UGC_TEXTURE_GENERATION_TOKEN_COST, membership));
+    await ensureSufficientAITokens(user.id, textureTokenCost, "No AI tokens available. Add tokens before starting the texture pass.");
     const task = await requestMeshy("/v2/text-to-3d", {
       method: "POST",
       body: { mode: "refine", preview_task_id: previewTaskId, enable_pbr: enablePbr, texture_resolution: textureResolution, target_formats: ["glb"], alpha_thumbnail: true },
     });
     const taskId = task.result || task.id;
-    const aiTokens = await debitAITokens(user.id, UGC_TEXTURE_GENERATION_TOKEN_COST);
+    const aiTokens = await debitAITokens(user.id, textureTokenCost);
     tokensDebited = true;
     ugcGenerationCharges.set(taskId, { ...charge, enablePbr, textureResolution, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
     persistPendingAIUGCGeneration(user, { taskId, assetType: charge.assetType, inputMode: "text", taskType: "text", prompt: charge.prompt, targetPolycount: charge.targetPolycount, withTexture: true });
-    return res.json({ ok: true, taskId, aiTokens });
+    return res.json({ ok: true, taskId, aiTokens, tokenCost: textureTokenCost });
   } catch (error) {
-    if (user && tokensDebited) await restoreAITokens(user.id, UGC_TEXTURE_GENERATION_TOKEN_COST).catch(() => null);
+    if (user && tokensDebited) await restoreAITokens(user.id, textureTokenCost).catch(() => null);
     console.error("POST /ai/ugc/refine failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not start texture generation." });
   } finally {
@@ -7373,10 +7381,11 @@ app.get("/auth/session", async (req, res) => {
 app.post("/ai/generate-thumbnail", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    const isPro = isProMember(user);
     const membership = await resolveMembershipSnapshot(user);
+    const isPro = membership?.premiumActive && String(membership?.plan || "").toLowerCase() === "pro";
     const thumbnailHistoryLimit = getAIThumbnailHistoryLimit(membership);
-    const aiTokens = await debitAITokens(user.id, AI_THUMBNAIL_TOKEN_COST);
+    const tokenCost = getAITokenGenerationCost(AI_THUMBNAIL_TOKEN_COST, membership);
+    const aiTokens = await debitAITokens(user.id, tokenCost);
     let result;
     try {
       result = await generateAIThumbnail({
@@ -7389,7 +7398,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
     } catch (generationError) {
       // A failed provider request should not consume a member's token.
       const latestUser = await getAuthUserById(user.id).catch(() => null);
-      const restoredBalance = getAITokenBalance(latestUser) + AI_THUMBNAIL_TOKEN_COST;
+      const restoredBalance = getAITokenBalance(latestUser) + tokenCost;
       await updateAuthUserFields(user.id, { ai_token_balance: restoredBalance }).catch(() => null);
       throw generationError;
     }
@@ -7410,7 +7419,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
     return res.json({
       ok: true,
       aiTokens,
-      tokenCost: AI_THUMBNAIL_TOKEN_COST,
+      tokenCost,
       model: result.model,
       promptPreview: result.promptPreview,
       outputWidth: result.outputWidth,
