@@ -3846,6 +3846,9 @@ body.rblx-subscription-store .subscription-perks li { position:relative; padding
 body.rblx-subscription-store .subscription-perks li::before { content:"+"; position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#38e6e0; font-size:17px; font-weight:900; }
 body.rblx-subscription-store .plus-card .subscription-perks li { border-color:rgba(56,230,224,.23); background:rgba(56,230,224,.055); }
 body.rblx-subscription-store .pro-card .subscription-perks li::before { color:#ffd26a; }
+body.rblx-subscription-store .subscription-perks .perk-section-label { margin-top:5px; padding:10px 2px 5px; border:0; border-bottom:1px solid rgba(123,164,255,.24); border-radius:0; background:transparent; color:#9ec6ff; font-size:10px; font-weight:950; letter-spacing:.12em; text-transform:uppercase; }
+body.rblx-subscription-store .subscription-perks .perk-section-label::before { content:none; }
+body.rblx-subscription-store .pro-card .subscription-perks .perk-section-label { border-bottom-color:rgba(255,210,106,.34); color:#ffe39b; }
 @media (max-width:900px) {
   body.rblx-subscription-store .subscriptions-main { display:block; min-height:0; padding:42px 14px 68px; }
   body.rblx-subscription-store .plans-grid { grid-template-columns:1fr; }
