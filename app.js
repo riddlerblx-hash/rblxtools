@@ -997,6 +997,33 @@ function buildPublicCommunityPost(post, viewer) {
   return { id: post.id, title: post.title, body: post.body, category: post.category, createdAt: post.createdAt, authorId: post.authorId, authorName: post.authorName, pinned: post.pinned, pinnedCommentId: post.pinnedCommentId, linkLabel: post.linkLabel, linkUrl: post.linkUrl, likes: Object.keys(post.likedBy).length, liked: Boolean(viewerId && post.likedBy[viewerId]), comments, commentCount: comments.length, viewerId, viewerCanManage: Boolean(viewerId && (viewerId === String(post.authorId || "") || isAdminUser(viewer))) };
 }
 
+function getCommunityAvatarUrl(user) {
+  return cleanText(user?.avatar_url || user?.avatarUrl || user?.user_metadata?.avatar_url || user?.user_metadata?.avatarUrl || user?.raw_user_meta_data?.avatar_url || user?.raw_user_meta_data?.avatarUrl || "", 500);
+}
+
+async function enrichCommunityPostIdentity(post, viewer) {
+  const publicPost = buildPublicCommunityPost(post, viewer);
+  const userIds = [...new Set([publicPost.authorId, ...publicPost.comments.map((comment) => comment.userId)].filter(Boolean).map(String))];
+  const profiles = new Map();
+  await Promise.all(userIds.map(async (userId) => {
+    const user = await getAuthUserById(userId);
+    if (!user) return;
+    const membership = await resolveMembershipSnapshot(user);
+    profiles.set(userId, { name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), avatarUrl: getCommunityAvatarUrl(user), plan: String(membership?.plan || "free").toLowerCase() });
+  }));
+  const author = profiles.get(String(publicPost.authorId || ""));
+  return {
+    ...publicPost,
+    authorName: author?.name || publicPost.authorName,
+    authorAvatarUrl: author?.avatarUrl || "",
+    authorPlan: author?.plan || "free",
+    comments: publicPost.comments.map((comment) => {
+      const profile = profiles.get(String(comment.userId || ""));
+      return { ...comment, authorName: profile?.name || comment.authorName, avatarUrl: comment.avatarUrl || profile?.avatarUrl || "", plan: profile?.plan || comment.plan || "free" };
+    }),
+  };
+}
+
 function buildAIClothingPrompt(input = {}) {
   const garmentType = normalizeAIClothingGarmentType(input.garmentType || input.templateKey);
   const gender = normalizeAIClothingGender(input.gender);
@@ -7070,7 +7097,7 @@ app.get("/api/community-access", requireCommunityAdmin, (_req, res) => res.json(
 app.get("/api/community-posts", async (req, res) => {
   const viewer = await getOptionalCommunityUser(req);
   const posts = readCommunityPosts().sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
-  return res.json({ ok: true, posts: posts.map((post) => buildPublicCommunityPost(post, viewer)) });
+  return res.json({ ok: true, posts: await Promise.all(posts.map((post) => enrichCommunityPostIdentity(post, viewer))) });
 });
 
 app.post("/api/community-posts/:postId/likes", async (req, res) => {
@@ -7092,7 +7119,7 @@ app.post("/api/community-posts/:postId/manage", async (req, res) => {
     else if (action === "edit") { const title = cleanText(req.body?.title, 140); const body = cleanText(req.body?.body, 6000); if (!title || !body) return res.status(400).json({ error: "A title and post text are required." }); post.title = title; post.body = body; post.updatedAt = new Date().toISOString(); }
     else if (action === "delete") { const index = posts.indexOf(post); posts.splice(index, 1); writeCommunityPosts(posts); return res.json({ ok: true, deleted: true }); }
     else return res.status(400).json({ error: "Unknown post action." });
-    writeCommunityPosts(posts); return res.json({ ok: true, post: buildPublicCommunityPost(post, user) });
+    writeCommunityPosts(posts); return res.json({ ok: true, post: await enrichCommunityPostIdentity(post, user) });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not manage this post." }); }
 });
 
@@ -7125,7 +7152,7 @@ app.post("/api/community-posts/:postId/comments/:commentId", async (req, res) =>
     else if (action === "delete") { if (!isCommentOwner && !isPostOwner) return res.status(403).json({ error: "Only the comment author or post owner can delete it." }); post.comments = post.comments.filter((entry) => entry.id !== comment.id && entry.parentId !== comment.id); if (post.pinnedCommentId === comment.id) post.pinnedCommentId = ""; }
     else if (action === "heart" || action === "pin") { if (!isPostOwner) return res.status(403).json({ error: "Only the post owner can do that." }); if (action === "heart") comment.hearted = !comment.hearted; else post.pinnedCommentId = post.pinnedCommentId === comment.id ? "" : comment.id; }
     else return res.status(400).json({ error: "Unknown comment action." });
-    writeCommunityPosts(posts); return res.json({ ok: true, post: buildPublicCommunityPost(post, user) });
+    writeCommunityPosts(posts); return res.json({ ok: true, post: await enrichCommunityPostIdentity(post, user) });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this comment." }); }
 });
 
@@ -7133,7 +7160,7 @@ app.get("/api/community-members/:userId", async (req, res) => {
   try {
     const user = await getAuthUserById(String(req.params.userId || "")); if (!user) return res.status(404).json({ error: "This member is unavailable." });
     const membership = await resolveMembershipSnapshot(user);
-    return res.json({ ok: true, member: { id: user.id, name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), plan: String(membership?.plan || "free").toLowerCase(), joinedAt: user.created_at || null } });
+    return res.json({ ok: true, member: { id: user.id, name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), avatarUrl: getCommunityAvatarUrl(user), plan: String(membership?.plan || "free").toLowerCase(), joinedAt: user.created_at || null } });
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member." }); }
 });
 
