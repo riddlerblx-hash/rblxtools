@@ -949,6 +949,7 @@ function getPublicAIUGCItems() {
 }
 
 const COMMUNITY_POST_CATEGORIES = new Set(["announcement", "changelog", "known-issue", "bug-report", "feedback", "q-and-a"]);
+const COMMUNITY_MEMBER_POST_CATEGORIES = new Set(["bug-report", "feedback", "q-and-a"]);
 
 function normalizeCommunityPostCategory(value) {
   const category = String(value || "").trim().toLowerCase();
@@ -972,7 +973,7 @@ function readCommunityPosts() {
       id: String(post.id), title: cleanText(post.title, 140), body: cleanText(post.body, 6000), category: normalizeCommunityPostCategory(post.category),
       createdAt: String(post.createdAt || post.publishedAt || new Date().toISOString()), publishedAt: String(post.publishedAt || post.createdAt || new Date().toISOString()),
       updatedAt: String(post.updatedAt || post.createdAt || new Date().toISOString()), authorName: cleanText(post.authorName || "RBLXTools", 80),
-      authorId: cleanText(post.authorId || "", 120), pinned: Boolean(post.pinned), linkLabel: cleanText(post.linkLabel || "", 80), linkUrl: cleanText(post.linkUrl || "", 1000),
+      authorId: cleanText(post.authorId || "", 120), pinned: Boolean(post.pinned), status: String(post.status || "open").toLowerCase() === "resolved" ? "resolved" : "open", rating: Math.max(0, Math.min(5, Number(post.rating || 0) || 0)), linkLabel: cleanText(post.linkLabel || "", 80), linkUrl: cleanText(post.linkUrl || "", 1000),
       likedBy: post.likedBy && typeof post.likedBy === "object" ? post.likedBy : {}, pinnedCommentId: String(post.pinnedCommentId || ""),
       comments: (Array.isArray(post.comments) ? post.comments : []).slice(-100).map((comment) => ({
         id: String(comment?.id || randomUUID()), userId: String(comment?.userId || ""), parentId: String(comment?.parentId || ""),
@@ -994,7 +995,7 @@ function writeCommunityPosts(posts) {
 function buildPublicCommunityPost(post, viewer) {
   const viewerId = String(viewer?.id || "");
   const comments = post.comments.map((comment) => ({ ...comment, likes: Object.values(comment.reactions).filter((value) => value === "like").length, dislikes: Object.values(comment.reactions).filter((value) => value === "dislike").length, viewerReaction: viewerId ? String(comment.reactions[viewerId] || "") : "" }));
-  return { id: post.id, title: post.title, body: post.body, category: post.category, createdAt: post.createdAt, authorId: post.authorId, authorName: post.authorName, pinned: post.pinned, pinnedCommentId: post.pinnedCommentId, linkLabel: post.linkLabel, linkUrl: post.linkUrl, likes: Object.keys(post.likedBy).length, liked: Boolean(viewerId && post.likedBy[viewerId]), comments, commentCount: comments.length, viewerId, viewerCanManage: Boolean(viewerId && (viewerId === String(post.authorId || "") || isAdminUser(viewer))) };
+  return { id: post.id, title: post.title, body: post.body, category: post.category, createdAt: post.createdAt, authorId: post.authorId, authorName: post.authorName, pinned: post.pinned, status: post.status, rating: post.rating, pinnedCommentId: post.pinnedCommentId, linkLabel: post.linkLabel, linkUrl: post.linkUrl, likes: Object.keys(post.likedBy).length, liked: Boolean(viewerId && post.likedBy[viewerId]), comments, commentCount: comments.length, viewerId, viewerCanManage: Boolean(viewerId && (viewerId === String(post.authorId || "") || isAdminUser(viewer))) };
 }
 
 function getCommunityAvatarUrl(user) {
@@ -7098,7 +7099,7 @@ app.get("/api/community-access", requireCommunityAdmin, (_req, res) => res.json(
 app.get("/api/community-posts", async (req, res) => {
   const viewer = await getOptionalCommunityUser(req);
   const posts = readCommunityPosts().sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
-  return res.json({ ok: true, posts: await Promise.all(posts.map((post) => enrichCommunityPostIdentity(post, viewer))) });
+  return res.json({ ok: true, canCreateAll: Boolean(viewer && isAdminUser(viewer)), posts: await Promise.all(posts.map((post) => enrichCommunityPostIdentity(post, viewer))) });
 });
 
 app.post("/api/community-posts", async (req, res) => {
@@ -7106,9 +7107,12 @@ app.post("/api/community-posts", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const title = cleanText(req.body?.title, 140);
     const body = cleanText(req.body?.body, 6000);
+    const category = normalizeCommunityPostCategory(req.body?.category);
+    if (!isAdminUser(user) && !COMMUNITY_MEMBER_POST_CATEGORIES.has(category)) return res.status(403).json({ error: "Members can post only in Bug Reports, Feedback, and Q&A." });
     if (!title || !body) return res.status(400).json({ error: "A title and post text are required." });
+    const rating = category === "feedback" ? Math.max(1, Math.min(5, Number(req.body?.rating || 5) || 5)) : 0;
     const post = {
-      id: randomUUID(), title, body, category: normalizeCommunityPostCategory(req.body?.category),
+      id: randomUUID(), title, body, category, status: category === "bug-report" ? "open" : "open", rating,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       authorId: String(user.id), authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
       authorAvatarUrl: getCommunityAvatarUrl(user), pinned: false, likedBy: {}, pinnedCommentId: "", comments: [],
