@@ -1375,7 +1375,7 @@
       </div>
       <div class="hero-chip">
         <strong>Pro Creator Membership</strong>
-        <span>Get the complete creator tier, wider AI controls, and 20 AI credits after every successful monthly payment.</span>
+        <span>Get the complete creator tier, wider AI controls, and 350 AI credits after every successful monthly payment.</span>
       </div>
     </section>
 
@@ -1474,7 +1474,7 @@
               <li>Animation Tool</li>
               <li>Bulk Downloads (1-5)</li>
               <li class="perk-section-label">AI benefits</li>
-              <li>50 AI Tokens on Signup</li>
+              <li id="plusTokenBenefit">50 Tokens Every Month</li>
               <li>10 Savable Thumbnail Generations</li>
               <li>8 Savable AI UGC Slots (+5)</li>
               <li>1440p AI Thumbnail Quality</li>
@@ -1505,10 +1505,10 @@
                 </div>
               </div>
               <div class="perk-card">
-                <div class="perk-icon plus">50</div>
+                <div class="perk-icon plus" id="plusTokenPerkIcon">50</div>
                 <div>
-                  <h3 class="perk-title">50 AI tokens on signup</h3>
-                  <p class="perk-desc">Start your new Plus membership with 50 AI tokens added directly to your account.</p>
+                  <h3 class="perk-title" id="plusTokenPerkTitle">50 tokens every month</h3>
+                  <p class="perk-desc" id="plusTokenPerkCopy">A fresh 50 AI tokens are added after every successful Plus monthly payment.</p>
                 </div>
               </div>
               <div class="perk-card">
@@ -1590,7 +1590,7 @@
               <li>Premium Giveaways</li>
               <li>Custom Chat Tag</li>
               <li class="perk-section-label">AI benefits</li>
-              <li id="proTokenBenefit">20 AI Credits Every Month</li>
+              <li id="proTokenBenefit">350 AI Credits Every Month</li>
               <li>30 Savable Thumbnail Generations (+27)</li>
               <li>18 Savable AI UGC Slots (+15)</li>
               <li>6 AI Thumbnail References</li>
@@ -1603,15 +1603,15 @@
 
             <div class="plus-highlight" style="background: radial-gradient(circle at top right, rgba(255, 190, 78, 0.18), transparent 35%), linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));">
               <div class="plus-highlight-title">Pro creator upgrades</div>
-              <div class="plus-highlight-copy">Choose annual Pro to receive all 240 AI credits instantly, or get 20 AI credits after each successful monthly Pro payment.</div>
+              <div class="plus-highlight-copy">Choose annual Pro to receive all 4,200 AI credits instantly, or get 350 AI credits after each successful monthly Pro payment.</div>
             </div>
 
             <div class="plan-grid">
               <div class="perk-card">
-                <div class="perk-icon pro" id="proTokenPerkIcon">20</div>
+                <div class="perk-icon pro" id="proTokenPerkIcon">350</div>
                 <div>
-                  <h3 class="perk-title" id="proTokenPerkTitle">20 AI Credits Every Month</h3>
-                  <p class="perk-desc" id="proTokenPerkCopy">A fresh 20 AI credits are added after every successful Pro monthly payment.</p>
+                  <h3 class="perk-title" id="proTokenPerkTitle">350 AI Credits Every Month</h3>
+                  <p class="perk-desc" id="proTokenPerkCopy">A fresh 350 AI credits are added after every successful Pro monthly payment.</p>
                 </div>
               </div>
               <div class="perk-card">
@@ -1667,7 +1667,7 @@
           <h3>Plus</h3>
           <div class="compare-list">
             <div class="compare-item"><strong>Best for:</strong> creators, resellers, and repeat users who want faster utility flow.</div>
-            <div class="compare-item"><strong>Why people buy:</strong> 50 AI tokens on signup, Animations, 1-5 item bulk actions, and a more premium site experience.</div>
+            <div class="compare-item"><strong>Why people buy:</strong> 50 tokens every month, Animations, 1-5 item bulk actions, and a more premium site experience.</div>
             <div class="compare-item"><strong>Biggest win:</strong> the whole site starts feeling built for real workflows instead of tiny single-use steps.</div>
           </div>
         </div>
@@ -1675,7 +1675,7 @@
           <h3>Pro</h3>
           <div class="compare-list">
             <div class="compare-item"><strong>Best for:</strong> higher-volume creators who need the complete member experience and wider AI controls.</div>
-            <div class="compare-item"><strong>Monthly benefit:</strong> 20 AI credits are added after every successful Pro payment.</div>
+            <div class="compare-item"><strong>Monthly benefit:</strong> 350 AI credits are added after every successful Pro payment.</div>
             <div class="compare-item"><strong>Biggest win:</strong> Pro includes all Plus benefits alongside 5-10 bulk actions, ad-free browsing, and enhanced thumbnail output options.</div>
           </div>
         </div>
@@ -1699,7 +1699,7 @@
         </div>
         <div class="faq-item">
           <strong>Is Pro live right now?</strong>
-          <span>Yes. Pro is a live $5 monthly membership with all Plus benefits, expanded creator features, and 20 AI credits each month.</span>
+          <span>Yes. Pro is a live $5 monthly membership with all Plus benefits, expanded creator features, and 350 AI credits each month.</span>
         </div>
       </div>
     </section>
@@ -1742,6 +1742,10 @@
       var priceValues = Array.prototype.slice.call(document.querySelectorAll("[data-membership-price]"));
       var priceSubtitles = Array.prototype.slice.call(document.querySelectorAll("[data-membership-price-sub]"));
       var priceSavings = Array.prototype.slice.call(document.querySelectorAll("[data-membership-save]"));
+      var plusTokenBenefit = document.getElementById("plusTokenBenefit");
+      var plusTokenPerkIcon = document.getElementById("plusTokenPerkIcon");
+      var plusTokenPerkTitle = document.getElementById("plusTokenPerkTitle");
+      var plusTokenPerkCopy = document.getElementById("plusTokenPerkCopy");
       var proTokenBenefit = document.getElementById("proTokenBenefit");
       var proTokenPerkIcon = document.getElementById("proTokenPerkIcon");
       var proTokenPerkTitle = document.getElementById("proTokenPerkTitle");
@@ -1781,11 +1785,15 @@
           priceSubtitles.forEach(function(element) {
             element.textContent = billingInterval === "year" ? "Per year" : "Per month";
           });
-          var isAnnualPro = billingInterval === "year";
-          if (proTokenBenefit) proTokenBenefit.textContent = isAnnualPro ? "240 AI Credits Every Year" : "20 AI Credits Every Month";
-          if (proTokenPerkIcon) proTokenPerkIcon.textContent = isAnnualPro ? "240" : "20";
-          if (proTokenPerkTitle) proTokenPerkTitle.textContent = isAnnualPro ? "240 AI Credits Every Year" : "20 AI Credits Every Month";
-          if (proTokenPerkCopy) proTokenPerkCopy.textContent = isAnnualPro ? "All 240 AI credits are added instantly after your successful annual Pro payment." : "A fresh 20 AI credits are added after every successful Pro monthly payment.";
+          var isAnnualBilling = billingInterval === "year";
+          if (plusTokenBenefit) plusTokenBenefit.textContent = isAnnualBilling ? "600 Tokens Every Year" : "50 Tokens Every Month";
+          if (plusTokenPerkIcon) plusTokenPerkIcon.textContent = isAnnualBilling ? "600" : "50";
+          if (plusTokenPerkTitle) plusTokenPerkTitle.textContent = isAnnualBilling ? "600 tokens every year" : "50 tokens every month";
+          if (plusTokenPerkCopy) plusTokenPerkCopy.textContent = isAnnualBilling ? "All 600 AI tokens are added instantly after your successful annual Plus payment." : "A fresh 50 AI tokens are added after every successful Plus monthly payment.";
+          if (proTokenBenefit) proTokenBenefit.textContent = isAnnualBilling ? "4,200 AI Credits Every Year" : "350 AI Credits Every Month";
+          if (proTokenPerkIcon) proTokenPerkIcon.textContent = isAnnualBilling ? "4200" : "350";
+          if (proTokenPerkTitle) proTokenPerkTitle.textContent = isAnnualBilling ? "4,200 AI Credits Every Year" : "350 AI Credits Every Month";
+          if (proTokenPerkCopy) proTokenPerkCopy.textContent = isAnnualBilling ? "All 4,200 AI credits are added instantly after your successful annual Pro payment." : "A fresh 350 AI credits are added after every successful Pro monthly payment.";
           if (proDiscountPrice) proDiscountPrice.textContent = isAnnualPro ? "$47.49" : "$2.50";
           if (proDiscountCorner) proDiscountCorner.textContent = isAnnualPro ? "-$2.50 off" : "50% off";
           priceSavings.forEach(function(element) {

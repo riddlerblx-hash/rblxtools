@@ -458,7 +458,7 @@
         '<div class="rblx-shell-membership-gate-card" role="dialog" aria-modal="true" aria-labelledby="rblxShellAnimationGateTitle">' +
           '<h3 id="rblxShellAnimationGateTitle">Animations is available with <span class="rblx-shell-gate-plus">Plus</span> or <span class="rblx-shell-gate-pro">Pro</span>.</h3>' +
           '<p>Choose a membership to unlock the animation tool and the creator benefits that come with it.</p>' +
-          '<div class="rblx-shell-gate-benefits"><section><strong>Plus</strong><span>50 AI Tokens on Signup</span><span>Animation Studio</span><span>Bulk Downloads (1-5)</span><span>Much More</span></section><section><strong>Pro</strong><span>Everything from Plus</span><span>Cool AI Features</span><span>No Annoying Ads</span><span>RBLXTools Discord Bot Access</span><span>Bulk Downloads (5-10)</span><span>Much More to Offer</span></section></div>' +
+          '<div class="rblx-shell-gate-benefits"><section><strong>Plus</strong><span>50 Tokens Every Month</span><span>Animation Studio</span><span>Bulk Downloads (1-5)</span><span>Much More</span></section><section><strong>Pro</strong><span>Everything from Plus</span><span>350 AI Credits Every Month</span><span>No Annoying Ads</span><span>RBLXTools Discord Bot Access</span><span>Bulk Downloads (5-10)</span><span>Much More to Offer</span></section></div>' +
           '<div class="rblx-shell-membership-gate-actions"><button class="rblx-shell-membership-gate-cancel" type="button" data-rblx-animation-gate-cancel="true">Cancel</button><a class="rblx-shell-membership-gate-button" href="./subscriptions">View Plans</a></div>' +
           '</div>' +
         buildModalAdRailsMarkup() +
@@ -4716,14 +4716,14 @@
       title: "Pro",
       action: actionLabel || "Try Now",
       generalPerks: ["Includes All Plus Benefits", "Discord Bot Access", "No Annoying Ads", "Bulk Downloads (5-10)", "Premium Giveaways", "Custom Chat Tag"],
-      aiPerks: ["20 AI Credits Every Month", "30 Savable Thumbnail Generations (+27)", "18 Savable AI UGC Slots (+15)", "6 AI Thumbnail References", "All Thumbnail Aspect Ratios", "4K AI Thumbnail Quality", "4K High-Quality AI UGC Textures", "UGC AI PBR Texture Enhancements", "10% Off Your AI Generations"]
+      aiPerks: ["350 AI Credits Every Month", "30 Savable Thumbnail Generations (+27)", "18 Savable AI UGC Slots (+15)", "6 AI Thumbnail References", "All Thumbnail Aspect Ratios", "4K AI Thumbnail Quality", "4K High-Quality AI UGC Textures", "UGC AI PBR Texture Enhancements", "10% Off Your AI Generations"]
     } : {
       price: "$1.00",
       subtitle: "Monthly membership",
       title: "Plus",
       action: actionLabel || "Try Now",
       generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "Bulk Downloads (1-5)"],
-      aiPerks: ["50 AI Tokens on Signup", "10 Savable Thumbnail Generations", "8 Savable AI UGC Slots (+5)", "1440p AI Thumbnail Quality"]
+      aiPerks: ["50 Tokens Every Month", "10 Savable Thumbnail Generations", "8 Savable AI UGC Slots (+5)", "1440p AI Thumbnail Quality"]
     };
     return [
       '<div class="rblx-membership-promo-floaters ' + (isPro ? 'is-pro' : 'is-plus') + '" aria-hidden="true"><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span></div>',

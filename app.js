@@ -148,9 +148,10 @@ const AI_TOKEN_DEFAULT_BALANCE = 0;
 const AI_THUMBNAIL_TOKEN_COST = 10;
 const AI_THUMBNAIL_FREE_REFERENCES = 3;
 const AI_THUMBNAIL_PRO_REFERENCES = 6;
-const PRO_MONTHLY_AI_TOKEN_CREDITS = 20;
-const PRO_ANNUAL_AI_TOKEN_CREDITS = 240;
-const PLUS_SIGNUP_AI_TOKEN_CREDITS = 50;
+const PLUS_MONTHLY_AI_TOKEN_CREDITS = 50;
+const PLUS_ANNUAL_AI_TOKEN_CREDITS = 600;
+const PRO_MONTHLY_AI_TOKEN_CREDITS = 350;
+const PRO_ANNUAL_AI_TOKEN_CREDITS = 4200;
 const AI_TOKEN_PACKAGES = [
   { key: "20", title: "200 Tokens", tokens: 200, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9siwVVdZ6u716").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_20 || "price_1U9YwwGrZOEMBkuuGypX9VtO").trim() },
   { key: "45", title: "450 Tokens", tokens: 450, priceCents: 599, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
@@ -1439,7 +1440,6 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
             });
           }
 
-          await grantPlusSignupTokensFromStripeCheckout(session);
         }
 
         if (session.payment_status === "paid") {
@@ -1483,7 +1483,7 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
             }));
           }
         }
-        await grantProTokensFromStripeInvoice(invoice);
+        await grantMembershipTokensFromStripeInvoice(invoice);
         break;
       }
 
@@ -3347,23 +3347,25 @@ function isDiscordBotUnlimitedInvoice(invoice) {
   return lines.some((line) => STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS.has(getStripePriceId(line?.price)));
 }
 
-function invoiceContainsProSubscription(invoice) {
+function getMembershipInvoiceBillingInterval(invoice, subscription) {
   const lines = Array.isArray(invoice?.lines?.data) ? invoice.lines.data : [];
-  return lines.some((line) => getStripePriceProductId(line?.price) === STRIPE_PRO_PRODUCT_ID);
-}
-
-function getProInvoiceBillingInterval(invoice, subscription) {
-  const lines = Array.isArray(invoice?.lines?.data) ? invoice.lines.data : [];
-  const proInvoiceLine = lines.find((line) => getStripePriceProductId(line?.price) === STRIPE_PRO_PRODUCT_ID);
-  const invoiceInterval = String(proInvoiceLine?.price?.recurring?.interval || "").trim().toLowerCase();
+  const recurringLine = lines.find((line) => line?.price?.recurring?.interval);
+  const invoiceInterval = String(recurringLine?.price?.recurring?.interval || "").trim().toLowerCase();
   if (invoiceInterval === "year") return "year";
 
   const subscriptionItems = Array.isArray(subscription?.items?.data) ? subscription.items.data : [];
-  const proSubscriptionItem = subscriptionItems.find((item) => getStripePriceProductId(item?.price) === STRIPE_PRO_PRODUCT_ID);
-  return String(proSubscriptionItem?.price?.recurring?.interval || "").trim().toLowerCase() === "year" ? "year" : "month";
+  const yearlySubscriptionItem = subscriptionItems.find((item) => String(item?.price?.recurring?.interval || "").trim().toLowerCase() === "year");
+  return yearlySubscriptionItem ? "year" : "month";
 }
 
-async function grantProTokensFromStripeInvoice(invoice) {
+function getMembershipTokenCredits(plan, billingInterval) {
+  if (plan === "pro") {
+    return billingInterval === "year" ? PRO_ANNUAL_AI_TOKEN_CREDITS : PRO_MONTHLY_AI_TOKEN_CREDITS;
+  }
+  return billingInterval === "year" ? PLUS_ANNUAL_AI_TOKEN_CREDITS : PLUS_MONTHLY_AI_TOKEN_CREDITS;
+}
+
+async function grantMembershipTokensFromStripeInvoice(invoice) {
   const invoiceId = String(invoice?.id || "").trim();
   const customerId = typeof invoice?.customer === "string"
     ? invoice.customer
@@ -3383,8 +3385,10 @@ async function grantProTokensFromStripeInvoice(invoice) {
       expand: ["items.data.price.product"],
     }).catch(() => null);
   }
+  if (!subscription) return null;
 
-  if (!invoiceContainsProSubscription(invoice) && getStripeSubscriptionPlan(subscription) !== "pro") {
+  const plan = getStripeSubscriptionPlan(subscription);
+  if (plan !== "plus" && plan !== "pro") {
     return null;
   }
 
@@ -3394,32 +3398,19 @@ async function grantProTokensFromStripeInvoice(invoice) {
   }
   if (!user) return null;
 
-  const billingInterval = getProInvoiceBillingInterval(invoice, subscription);
-  const tokenCredits = billingInterval === "year" ? PRO_ANNUAL_AI_TOKEN_CREDITS : PRO_MONTHLY_AI_TOKEN_CREDITS;
+  const billingInterval = getMembershipInvoiceBillingInterval(invoice, subscription);
+  const tokenCredits = getMembershipTokenCredits(plan, billingInterval);
 
   const rows = await supabaseRequest("/rest/v1/rpc/grant_ai_token_purchase", {
     method: "POST",
     body: JSON.stringify({
       // Invoice IDs are stable, so Stripe webhook retries cannot award the same billing period twice.
-      p_session_id: "pro-" + billingInterval + ":" + invoiceId,
+      p_session_id: "membership-" + plan + "-" + billingInterval + ":" + invoiceId,
       p_user_id: user.id,
       p_tokens: tokenCredits,
     }),
   });
 
-  return Number.parseInt(rows, 10) || 0;
-}
-
-async function grantPlusSignupTokensFromStripeCheckout(session) {
-  const sessionId = String(session?.id || "").trim();
-  const userId = String(session?.metadata?.appUserId || "").trim();
-  // Only checkout sessions created after this rollout carry the explicit Plus
-  // marker. The checkout ID also makes webhook retries safe to replay.
-  if (!sessionId || !userId || String(session?.metadata?.plan || "").toLowerCase() !== "plus") return 0;
-  const rows = await supabaseRequest("/rest/v1/rpc/grant_ai_token_purchase", {
-    method: "POST",
-    body: JSON.stringify({ p_session_id: "plus-signup:" + sessionId, p_user_id: userId, p_tokens: PLUS_SIGNUP_AI_TOKEN_CREDITS }),
-  });
   return Number.parseInt(rows, 10) || 0;
 }
 
@@ -9287,6 +9278,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
         metadata: {
           appUserId: user.id,
           plan: "plus",
+          billingInterval,
         },
       },
     });
