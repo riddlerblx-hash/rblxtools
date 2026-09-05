@@ -173,7 +173,7 @@
     {
       title: "Info",
       items: [
-        { href: "./community", label: "Community", icon: "community", adminOnly: true },
+        { href: "./community", label: "Community", icon: "community" },
         { href: "./about-us", label: "About Us", icon: "about" },
         { href: "./privacy-policy", label: "Privacy Policy", icon: "privacy" },
         { href: "./terms-and-conditions", label: "Terms & Conditions", icon: "terms" }

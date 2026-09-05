@@ -9147,14 +9147,15 @@ app.post("/store/create-discord-bot-use-checkout", async (req, res) => {
       return res.status(400).json({ error: "Choose between 5 and 50,000 uses in 5-use steps." });
     }
     const customerId = await getOrCreateStripeCustomerForUser(user);
+    const discountedCents = Math.max(1, Math.round(uses / 10));
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
       customer: customerId,
       line_items: [{
         price_data: {
           currency: "usd",
-          unit_amount: uses / 5,
-          product_data: { name: `RBLXTools Discord Bot - ${uses.toLocaleString("en-US")} Uses`, description: "Shared Discord server bot uses. Claim to one server after purchase." },
+          unit_amount: discountedCents,
+          product_data: { name: `RBLXTools Discord Bot - ${uses.toLocaleString("en-US")} Uses`, description: "50% off shared Discord server bot uses. Claim to one server after purchase." },
         },
         quantity: 1,
       }],

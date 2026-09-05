@@ -1794,8 +1794,8 @@
           if (proTokenPerkIcon) proTokenPerkIcon.textContent = isAnnualBilling ? "4200" : "350";
           if (proTokenPerkTitle) proTokenPerkTitle.textContent = isAnnualBilling ? "4,200 AI Credits Every Year" : "350 AI Credits Every Month";
           if (proTokenPerkCopy) proTokenPerkCopy.textContent = isAnnualBilling ? "All 4,200 AI credits are added instantly after your successful annual Pro payment." : "A fresh 350 AI credits are added after every successful Pro monthly payment.";
-          if (proDiscountPrice) proDiscountPrice.textContent = isAnnualPro ? "$47.49" : "$2.50";
-          if (proDiscountCorner) proDiscountCorner.textContent = isAnnualPro ? "-$2.50 off" : "50% off";
+          if (proDiscountPrice) proDiscountPrice.textContent = isAnnualBilling ? "$47.49" : "$2.50";
+          if (proDiscountCorner) proDiscountCorner.textContent = isAnnualBilling ? "$2.50 off" : "50% off";
           priceSavings.forEach(function(element) {
             var plan = element.getAttribute("data-membership-save");
             var monthlyPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan].month;
