@@ -61,7 +61,7 @@ const app = express();
 app.set("trust proxy", 1);
 app.get(["/ai-ugc", "/ai-ugc.html", "/ai-ugc-studio", "/ai-ugc-studio.html"], (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  return res.sendFile(path.join(__dirname, "ai-ugc-studio.html"));
+  return res.sendFile(path.join(__dirname, "ai-ugc.html"));
 });
 const httpServer = createServer(app);
 const AUTH_COOKIE_NAME = "rblxtools_auth_token";
