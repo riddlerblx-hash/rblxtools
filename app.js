@@ -113,6 +113,7 @@ const UGC_SOURCE_IMAGE_TTL_MS = 60 * 60 * 1000;
 const ugcSourceImages = new Map();
 // Runtime data belongs outside the deploy checkout so git pulls and restarts cannot erase member history.
 const AI_UGC_HISTORY_PATH = process.env.AI_UGC_HISTORY_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc-history.json");
+const AI_UGC_MODEL_DIR = process.env.AI_UGC_MODEL_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc-models");
 const LEGACY_AI_UGC_HISTORY_PATH = path.join(__dirname, "ai-ugc-history.json");
 const AI_UGC_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const AI_UGC_COMMUNITY_PATH = process.env.AI_UGC_COMMUNITY_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc-community.json");
@@ -855,12 +856,41 @@ function updatePersistentAIUGCHistory(userId, taskId, updates) {
   writePersistentAIUGCHistory(payload);
 }
 
+function getStoredAIUGCModelPath(userId, taskId) {
+  const safeUserId = String(userId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const safeTaskId = String(taskId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+  return path.join(AI_UGC_MODEL_DIR, safeUserId, `${safeTaskId}.glb`);
+}
+
+function readStoredAIUGCModel(userId, taskId) {
+  try {
+    const filePath = getStoredAIUGCModelPath(userId, taskId);
+    return fs.existsSync(filePath) ? fs.readFileSync(filePath) : null;
+  } catch (_error) { return null; }
+}
+
+async function storeAIUGCModel(userId, taskId, modelUrl) {
+  const filePath = getStoredAIUGCModelPath(userId, taskId);
+  if (fs.existsSync(filePath)) return true;
+  if (!/^https:\/\//i.test(String(modelUrl || ""))) return false;
+  const response = await fetch(modelUrl);
+  if (!response.ok) throw new Error("Could not store the finished GLB.");
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (!buffer.length || buffer.length > 100 * 1024 * 1024) throw new Error("The finished GLB is too large to store.");
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tempPath, buffer);
+  fs.renameSync(tempPath, filePath);
+  return true;
+}
+
 function deletePersistentAIUGCHistory(userId, taskId) {
   const payload = readPersistentAIUGCHistory();
   const key = String(userId);
   const previous = Array.isArray(payload.users[key]) ? payload.users[key] : [];
   payload.users[key] = previous.filter((item) => String(item?.id) !== String(taskId));
   writePersistentAIUGCHistory(payload);
+  try { fs.rmSync(getStoredAIUGCModelPath(userId, taskId), { force: true }); } catch (_error) {}
 }
 
 function getUGCTaskPath(taskType) {
@@ -7077,7 +7107,9 @@ app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
     if (task.status === "SUCCEEDED") {
       const existing = getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId);
       if (existing) {
-        const updates = { status: "SUCCEEDED", public: true, creatorName: existing.creatorName || cleanText(user.display_name || user.username || user.email?.split("@")[0] || "RBLXTools creator", 80), creatorAvatarUrl: getCommunityAvatarUrl(user), thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || existing.thumbnailUrl || "") };
+        let storedGlb = Boolean(readStoredAIUGCModel(user.id, taskId));
+        if (!storedGlb && task.model_urls?.glb) storedGlb = await storeAIUGCModel(user.id, taskId, task.model_urls.glb).catch(function (error) { console.warn("[AI UGC HISTORY] Could not store GLB", taskId, error.message); return false; });
+        const updates = { status: "SUCCEEDED", public: true, storedGlb, creatorName: existing.creatorName || cleanText(user.display_name || user.username || user.email?.split("@")[0] || "RBLXTools creator", 80), creatorAvatarUrl: getCommunityAvatarUrl(user), thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || existing.thumbnailUrl || "") };
         updatePersistentAIUGCHistory(user.id, taskId, updates);
         syncAIUGCCommunityOwnerEngagement(user.id, { ...existing, ...updates });
       }
@@ -7111,6 +7143,7 @@ app.post("/ai/ugc/history", async (req, res) => {
     const taskPath = taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
     const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
     if (task.status !== "SUCCEEDED") return res.status(409).json({ error: "Finish the generation before saving it." });
+    const storedGlb = await storeAIUGCModel(user.id, taskId, task.model_urls?.glb).catch(function (error) { console.warn("[AI UGC HISTORY] Could not store GLB", taskId, error.message); return false; });
     const membership = await resolveMembershipSnapshot(user);
     const isPro = membership?.premiumActive && String(membership?.plan || "").toLowerCase() === "pro";
     const existingItem = getPersistentAIUGCHistory(user.id).find((entry) => String(entry.id) === taskId);
@@ -7131,6 +7164,7 @@ app.post("/ai/ugc/history", async (req, res) => {
       targetPolycount: charge?.targetPolycount || Number.parseInt(req.body?.targetPolycount, 10) || 4000,
       textured: charge ? charge.withTexture : Boolean(req.body?.textured),
       thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || ""),
+      storedGlb,
       feedback: String(existingItem?.feedback || ""),
       rating: Number(existingItem?.rating || 0),
       pbrSettings,
@@ -7422,13 +7456,17 @@ app.get("/api/ugc/community/:taskId/model", async (req, res) => {
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const item = findPublicAIUGCItem(taskId);
     if (!item) return res.status(404).json({ error: "This community model is not available." });
-    const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
-    const task = await requestMeshy(getUGCTaskPath(taskType) + encodeURIComponent(taskId));
-    if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) return res.status(409).json({ error: "The community preview is not available yet." });
-    const modelResponse = await fetch(task.model_urls.glb);
-    if (!modelResponse.ok) throw new Error("Could not retrieve the community GLB.");
+    let modelBuffer = readStoredAIUGCModel(item.creatorId, taskId);
+    if (!modelBuffer) {
+      const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
+      const task = await requestMeshy(getUGCTaskPath(taskType) + encodeURIComponent(taskId));
+      if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) return res.status(409).json({ error: "The community preview is not available yet." });
+      await storeAIUGCModel(item.creatorId, taskId, task.model_urls.glb);
+      modelBuffer = readStoredAIUGCModel(item.creatorId, taskId);
+    }
+    if (!modelBuffer) throw new Error("Could not retrieve the community GLB.");
     const maxTriangles = item.assetType === "game" ? 15000 : 4000;
-    const prepared = await prepareRobloxGLBDownload(Buffer.from(await modelResponse.arrayBuffer()), maxTriangles, item.assetType === "game" ? 4096 : 1024);
+    const prepared = await prepareRobloxGLBDownload(modelBuffer, maxTriangles, item.assetType === "game" ? 4096 : 1024);
     res.setHeader("Content-Type", "model/gltf-binary"); res.setHeader("Cache-Control", "private, max-age=300");
     return res.send(prepared.buffer);
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the community preview." }); }
@@ -7439,14 +7477,17 @@ app.get("/api/ugc/community/:taskId/download", async (req, res) => {
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const item = getPublicAIUGCItems().find((entry) => String(entry.id) === taskId);
     if (!item || !item.allowPublicDownloads) return res.status(404).json({ error: "This creator has not enabled public downloads." });
-    const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
-    const taskPath = taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
-    const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
-    if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) return res.status(409).json({ error: "The community GLB is not available yet." });
-    const modelResponse = await fetch(task.model_urls.glb);
-    if (!modelResponse.ok) throw new Error("Could not retrieve the community GLB.");
+    let modelBuffer = readStoredAIUGCModel(item.creatorId, taskId);
+    if (!modelBuffer) {
+      const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
+      const task = await requestMeshy(getUGCTaskPath(taskType) + encodeURIComponent(taskId));
+      if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) return res.status(409).json({ error: "The community GLB is not available yet." });
+      await storeAIUGCModel(item.creatorId, taskId, task.model_urls.glb);
+      modelBuffer = readStoredAIUGCModel(item.creatorId, taskId);
+    }
+    if (!modelBuffer) throw new Error("Could not retrieve the community GLB.");
     const maxTriangles = item.assetType === "game" ? 15000 : 4000;
-    const prepared = await prepareRobloxGLBDownload(Buffer.from(await modelResponse.arrayBuffer()), maxTriangles, item.assetType === "game" ? 4096 : 1024);
+    const prepared = await prepareRobloxGLBDownload(modelBuffer, maxTriangles, item.assetType === "game" ? 4096 : 1024);
     res.setHeader("Content-Type", "model/gltf-binary");
     res.setHeader("Content-Disposition", `attachment; filename="rblxtools-community-${taskId}.glb"`);
     return res.send(prepared.buffer);
@@ -7469,6 +7510,7 @@ app.post("/ai/ugc/history/:taskId/feedback", async (req, res) => {
       const taskPath = getUGCTaskPath(taskType);
       const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
       if (task.status !== "SUCCEEDED") return res.status(409).json({ error: "This generation is still finishing. Please try the rating again in a moment." });
+      const storedGlb = await storeAIUGCModel(user.id, taskId, task.model_urls?.glb).catch(function (error) { console.warn("[AI UGC HISTORY] Could not store GLB", taskId, error.message); return false; });
       item = {
         id: taskId,
         title: cleanText(req.body?.title || charge?.prompt || task.prompt || (taskType === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
@@ -7476,7 +7518,7 @@ app.post("/ai/ugc/history/:taskId/feedback", async (req, res) => {
         inputMode: charge?.inputMode || (taskType === "text" ? "text" : "image"), taskType,
         targetPolycount: charge?.targetPolycount || Number.parseInt(req.body?.targetPolycount, 10) || 4000,
         textured: charge ? Boolean(charge.withTexture) : Boolean(req.body?.textured),
-        thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || ""), feedback: "", rating: 0,
+        thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || ""), storedGlb, feedback: "", rating: 0,
         creatorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "RBLXTools creator", 80),
         public: true, allowPublicDownloads: false, createdAt: new Date().toISOString(),
       };
