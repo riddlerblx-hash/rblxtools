@@ -7482,7 +7482,7 @@ app.post("/api/ugc/community/:taskId/tip", async (req, res) => {
     if (!item) return res.status(404).json({ error: "This community model is not available." });
     if (String(item.creatorId) === String(sender.id)) return res.status(400).json({ error: "You cannot tip your own generation." });
     const requestedAmount = Number.parseInt(req.body?.amount, 10);
-    if (!Number.isFinite(requestedAmount) || requestedAmount < 1 || requestedAmount > 500) return res.status(400).json({ error: "Choose a tip amount from 1 to 500 tokens." });
+    if (!Number.isFinite(requestedAmount) || requestedAmount < 1 || requestedAmount > 5000) return res.status(400).json({ error: "Choose a tip amount from 1 to 5,000 tokens." });
     amount = requestedAmount;
     const lockKey = `${sender.id}:${taskId}`; if (ugcCommunityTipLocks.has(lockKey)) return res.status(409).json({ error: "That tip is already being processed." }); ugcCommunityTipLocks.add(lockKey);
     await debitAITokens(sender.id, amount);
