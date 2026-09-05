@@ -9156,15 +9156,15 @@ async function createDiscordBotUseCheckout(req, res) {
       return res.status(400).json({ error: "Choose between 5 and 50,000 uses in 5-use steps." });
     }
     const customerId = await getOrCreateStripeCustomerForUser(user);
-    const discountedCents = Math.max(1, Math.round(uses / 10));
+    const checkoutCents = Math.max(1, Math.round(uses / 5));
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
       customer: customerId,
       line_items: [{
         price_data: {
           currency: "usd",
-          unit_amount: discountedCents,
-          product_data: { name: `RBLXTools Discord Bot Promo - ${uses.toLocaleString("en-US")} Uses (50% Off)`, description: "Discounted shared Discord server bot uses. Claim to one server after purchase." },
+          unit_amount: checkoutCents,
+          product_data: { name: `RBLXTools Discord Bot - ${uses.toLocaleString("en-US")} Uses`, description: "Shared Discord server bot uses. Claim to one server after purchase." },
         },
         quantity: 1,
       }],
@@ -9181,7 +9181,6 @@ async function createDiscordBotUseCheckout(req, res) {
 }
 
 app.post("/store/create-discord-bot-use-checkout", createDiscordBotUseCheckout);
-app.post("/store/create-discord-bot-use-promo-checkout", createDiscordBotUseCheckout);
 
 app.post("/store/confirm-discord-bot-use-checkout", async (req, res) => {
   try {
@@ -9213,21 +9212,7 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
     const priceId = billingPeriod === "annual" ? STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID : billingPeriod === "monthly" ? STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID : "";
     if (!priceId) return res.status(400).json({ error: "Choose the monthly or annual Unlimited plan." });
     const customerId = await getOrCreateStripeCustomerForUser(user);
-    const unlimitedLineItem = billingPeriod === "annual"
-      ? {
-          price_data: {
-            currency: "usd",
-            unit_amount: 15000,
-            recurring: { interval: "year" },
-            product_data: {
-              name: "RBLXTools Discord Bot Unlimited Promo - Annual (75% Off)",
-              description: "Discounted annual Unlimited Discord bot usage.",
-              metadata: { discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod },
-            },
-          },
-          quantity: 1,
-        }
-      : { price: priceId, quantity: 1 };
+    const unlimitedLineItem = { price: priceId, quantity: 1 };
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
@@ -9247,7 +9232,6 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
 }
 
 app.post("/store/create-discord-bot-unlimited-checkout", createDiscordBotUnlimitedCheckout);
-app.post("/store/create-discord-bot-unlimited-promo-checkout", createDiscordBotUnlimitedCheckout);
 
 app.post("/store/confirm-discord-bot-unlimited-checkout", async (req, res) => {
   try {
