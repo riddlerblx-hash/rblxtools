@@ -59,9 +59,19 @@ const {
 
 const app = express();
 app.set("trust proxy", 1);
-app.get(["/ai-ugc", "/ai-ugc.html", "/ai-ugc-studio", "/ai-ugc-studio.html"], (_req, res) => {
+app.get(["/ai-ugc-studio", "/ai-ugc-studio.html"], (req, res) => {
+  return res.redirect(302, "/ai-ugc" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
+});
+app.get(["/ai-ugc", "/ai-ugc.html"], (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   return res.sendFile(path.join(__dirname, "ai-ugc.html"));
+});
+app.get(["/ai-thumbnail-studio", "/ai-thumbnail-studio.html"], (req, res) => {
+  return res.redirect(302, "/thumbnail-ai" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
+});
+app.get(["/thumbnail-ai", "/thumbnail-ai.html"], (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  return res.sendFile(path.join(__dirname, "ai-thumbnail-studio.html"));
 });
 const httpServer = createServer(app);
 const AUTH_COOKIE_NAME = "rblxtools_auth_token";

@@ -7,8 +7,11 @@
   <title>RBLXTools - Roblox Creator Toolkit</title>
   <meta name="description" content="RBLXTools gives Roblox creators template, media, audio, UGC, and utility tools in one creator toolkit." />
   <script>
-    if (["/ai-ugc", "/ai-ugc-studio"].includes(window.location.pathname.replace(/\/+$/, ""))) {
-      window.location.replace("/ai-ugc-studio.html" + window.location.search + window.location.hash);
+    if (window.location.pathname.replace(/\/+$/, "") === "/ai-ugc-studio") {
+      window.location.replace("/ai-ugc" + window.location.search + window.location.hash);
+    }
+    if (window.location.pathname.replace(/\/+$/, "") === "/ai-thumbnail-studio") {
+      window.location.replace("/thumbnail-ai" + window.location.search + window.location.hash);
     }
   </script>
 <link rel="stylesheet" href="./global-shell.css?v=20260901-2" />
@@ -1465,7 +1468,7 @@
           </div>
 
           <div class="tool-grid plus-grid ai-grid">
-            <a class="tool-card plus-card-tool ai-card" href="./ai-thumbnail-studio">
+            <a class="tool-card plus-card-tool ai-card" href="./thumbnail-ai">
               <div class="ai-studio-head">
                 <div class="tool-icon">
                   <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l2.9 9.1L36 18l-9.1 2.9L24 30l-2.9-9.1L12 18l9.1-2.9L24 6z"></path><path d="M37 28l1.8 5.2L44 35l-5.2 1.8L37 42l-1.8-5.2L30 35l5.2-1.8L37 28z"></path><path d="M11 29l1.5 4.5L17 35l-4.5 1.5L11 41l-1.5-4.5L5 35l4.5-1.5L11 29z"></path></svg>
@@ -1610,7 +1613,7 @@
   </div>
 
 <link rel="stylesheet" href="./membership-promos.css?v=20260901-1" />
-<script src="./global-shell.js?v=20260901-2"></script>
+<script src="./global-shell.js?v=20260905-nav1"></script>
   <script>
     (function () {
       const API_BASE = window.location.origin;
