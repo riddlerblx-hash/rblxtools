@@ -9147,7 +9147,7 @@ app.post("/discord-bot/service/usage-counter", async (req, res) => {
   }
 });
 
-app.post("/store/create-discord-bot-use-checkout", async (req, res) => {
+app.post(["/store/create-discord-bot-use-checkout", "/store/create-discord-bot-use-promo-checkout"], async (req, res) => {
   try {
     assertStripePortalConfigured();
     const user = await requireAuthenticatedUser(req);
@@ -9164,7 +9164,7 @@ app.post("/store/create-discord-bot-use-checkout", async (req, res) => {
         price_data: {
           currency: "usd",
           unit_amount: discountedCents,
-          product_data: { name: `RBLXTools Discord Bot - ${uses.toLocaleString("en-US")} Uses (50% Off)`, description: "Discounted shared Discord server bot uses. Claim to one server after purchase." },
+          product_data: { name: `RBLXTools Discord Bot Promo - ${uses.toLocaleString("en-US")} Uses (50% Off)`, description: "Discounted shared Discord server bot uses. Claim to one server after purchase." },
         },
         quantity: 1,
       }],
@@ -9197,7 +9197,7 @@ app.post("/store/confirm-discord-bot-use-checkout", async (req, res) => {
   }
 });
 
-app.post("/store/create-discord-bot-unlimited-checkout", async (req, res) => {
+app.post(["/store/create-discord-bot-unlimited-checkout", "/store/create-discord-bot-unlimited-promo-checkout"], async (req, res) => {
   try {
     assertDiscordBotUnlimitedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
@@ -9217,7 +9217,7 @@ app.post("/store/create-discord-bot-unlimited-checkout", async (req, res) => {
             unit_amount: 15000,
             recurring: { interval: "year" },
             product_data: {
-              name: "RBLXTools Discord Bot Unlimited - Annual (75% Off)",
+              name: "RBLXTools Discord Bot Unlimited Promo - Annual (75% Off)",
               description: "Discounted annual Unlimited Discord bot usage.",
               metadata: { discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod },
             },
