@@ -4109,7 +4109,7 @@ body.rblx-ugc-studio-page.rblx-shell-ready .ugc-layout {
 }
 
 body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-page {
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Pause transient page toasts while leaving the Notifications inbox intact. */
