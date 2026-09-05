@@ -59,6 +59,10 @@ const {
 
 const app = express();
 app.set("trust proxy", 1);
+app.get(["/ai-ugc-studio", "/ai-ugc-studio.html"], (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  return res.sendFile(path.join(__dirname, "ai-ugc-studio.html"));
+});
 const httpServer = createServer(app);
 const AUTH_COOKIE_NAME = "rblxtools_auth_token";
 const ROBLOSECURITY = process.env.ROBLOSECURITY;
@@ -11128,10 +11132,6 @@ app.delete("/discord-tools/link", async (req, res) => {
 
 app.get(["/ai-tokens", "/ai-tokens.html"], async (req, res) => {
   return res.sendFile(path.join(STATIC_ROOT, "ai-tokens.html"));
-});
-
-app.get(["/ai-ugc-studio", "/ai-ugc-studio.html"], (_req, res) => {
-  res.sendFile(path.join(STATIC_ROOT, "ai-ugc-studio.html"));
 });
 
 app.use(express.static(STATIC_ROOT, {
