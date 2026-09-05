@@ -7427,8 +7427,15 @@ app.post("/api/ugc/community/:taskId/feedback", async (req, res) => {
     const rating = Math.max(0, Math.min(5, Number.parseInt(req.body?.rating, 10) || 0));
     if (!vote && !rating) return res.status(400).json({ error: "Choose a reaction or rating." });
     const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId);
-    if (vote) post.votes[String(user.id)] = vote; if (rating) post.ratings[String(user.id)] = rating; writeAIUGCCommunityState(state);
-    return res.json({ ok: true });
+    // Matching a selected reaction toggles it off so the optimistic client state
+    // and the persisted community state always agree.
+    if (vote) {
+      if (post.votes[String(user.id)] === vote) delete post.votes[String(user.id)];
+      else post.votes[String(user.id)] = vote;
+    }
+    if (rating) post.ratings[String(user.id)] = rating;
+    writeAIUGCCommunityState(state);
+    return res.json({ ok: true, vote: String(post.votes[String(user.id)] || ""), rating: Number(post.ratings[String(user.id)] || 0) });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save community feedback." }); }
 });
 
