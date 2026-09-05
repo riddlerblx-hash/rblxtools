@@ -4122,6 +4122,45 @@ body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-page {
   overflow: visible;
 }
 
+@media (max-width: 820px) {
+  body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-body {
+    display: block;
+    min-height: 0;
+    padding: calc(env(safe-area-inset-top, 0px) + 106px) 0 0;
+  }
+
+  body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-center {
+    width: 100%;
+    padding: 10px 0 0;
+  }
+
+  body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-page {
+    width: 100%;
+    overflow: visible;
+  }
+
+  body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-left,
+  body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-right {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    top: calc(env(safe-area-inset-top, 0px) + 118px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 86px);
+    width: auto;
+    height: auto;
+    opacity: 0;
+    transform: translateY(18px);
+    pointer-events: none;
+  }
+
+  body.rblx-ugc-studio-page.rblx-mobile-nav-open .rblx-shell-left,
+  body.rblx-ugc-studio-page.rblx-mobile-chat-open .rblx-shell-right {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+}
+
 /* Pause transient page toasts while leaving the Notifications inbox intact. */
 body.rblx-shell-page .ugc-toast,
 body.rblx-shell-page .ai-assets-notice,
