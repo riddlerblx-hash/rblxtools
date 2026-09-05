@@ -158,7 +158,7 @@
       title: "AI Tools",
       items: [
         { href: "./ai-clothing-studio", label: "AI Clothing Studio", icon: "ai", adminOnly: true },
-        { href: "./ai-ugc-studio.html", label: "AI UGC Studio", icon: "hat" },
+        { href: "./ai-ugc-studio.html", label: "AI UGC Studio", icon: "hat", adminOnly: true },
         { href: "./ai-thumbnail-studio", label: "AI Thumbnail Studio", icon: "spark" }
       ]
     },
