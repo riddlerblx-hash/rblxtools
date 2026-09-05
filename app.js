@@ -3343,6 +3343,15 @@ function isDiscordBotUnlimitedSubscription(subscription) {
 }
 
 function isDiscordBotUnlimitedInvoice(invoice) {
+  const metadata = Object.assign(
+    {},
+    invoice?.metadata || {},
+    invoice?.subscription_details?.metadata || {},
+    invoice?.parent?.subscription_details?.metadata || {}
+  );
+  if (String(metadata.discordBotUnlimited || "").toLowerCase() === "true" || String(metadata.productType || "").toLowerCase() === "discord_bot_unlimited") {
+    return true;
+  }
   const lines = Array.isArray(invoice?.lines?.data) ? invoice.lines.data : [];
   return lines.some((line) => STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS.has(getStripePriceId(line?.price)));
 }
@@ -9201,10 +9210,25 @@ app.post("/store/create-discord-bot-unlimited-checkout", async (req, res) => {
     const priceId = billingPeriod === "annual" ? STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID : billingPeriod === "monthly" ? STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID : "";
     if (!priceId) return res.status(400).json({ error: "Choose the monthly or annual Unlimited plan." });
     const customerId = await getOrCreateStripeCustomerForUser(user);
+    const unlimitedLineItem = billingPeriod === "annual"
+      ? {
+          price_data: {
+            currency: "usd",
+            unit_amount: 6000,
+            recurring: { interval: "year" },
+            product_data: {
+              name: "RBLXTools Discord Bot Unlimited - Annual",
+              description: "90% off annual Unlimited Discord bot usage.",
+              metadata: { discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod },
+            },
+          },
+          quantity: 1,
+        }
+      : { price: priceId, quantity: 1 };
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [unlimitedLineItem],
       success_url: getSafeDiscordBotStoreSuccessUrl(),
       cancel_url: getSafeDiscordBotStoreCancelUrl(),
       allow_promotion_codes: true,
