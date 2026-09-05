@@ -3563,7 +3563,7 @@
   }
 
   function formatCommunityNotificationCategory(category) {
-    var labels = { announcement: "Announcement", changelog: "Changelog", "known-issue": "Known issue" };
+    var labels = { announcement: "Announcement", changelog: "Changelog", "known-issue": "Known issue", like: "Like", tip: "Token tip", comment: "Comment", reply: "Reply", rating: "Rating", follow: "New follower" };
     return labels[String(category || "").toLowerCase()] || "Community update";
   }
 

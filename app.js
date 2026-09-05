@@ -124,6 +124,7 @@ const AI_UGC_COMMUNITY_PATH = process.env.AI_UGC_COMMUNITY_PATH || path.join(RBL
 const LEGACY_AI_UGC_COMMUNITY_FEEDBACK_PATH = path.join(__dirname, "ai-ugc-community-feedback.json");
 const COMMUNITY_POSTS_PATH = process.env.COMMUNITY_POSTS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-posts.json");
 const LEGACY_COMMUNITY_POSTS_PATH = path.join(__dirname, "community-posts.json");
+const COMMUNITY_NOTIFICATIONS_PATH = process.env.COMMUNITY_NOTIFICATIONS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-notifications.json");
 const COMMUNITY_PROFILES_PATH = process.env.COMMUNITY_PROFILES_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-profiles.json");
 const COMMUNITY_AVATAR_DIR = process.env.COMMUNITY_AVATAR_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-avatars");
 // Preview tasks are short-lived. Keep the paid generation settings here so a
@@ -1056,6 +1057,40 @@ function writeCommunityPosts(posts) {
     ensureCommunityPostsStorage(); const tempPath = `${COMMUNITY_POSTS_PATH}.${process.pid}.${Date.now()}.tmp`;
     fs.writeFileSync(tempPath, JSON.stringify(posts) + "\n", "utf8"); fs.renameSync(tempPath, COMMUNITY_POSTS_PATH);
   } catch (error) { console.error("[COMMUNITY] Could not save posts:", error.message); throw error; }
+}
+
+function readCommunityNotifications() {
+  try {
+    fs.mkdirSync(path.dirname(COMMUNITY_NOTIFICATIONS_PATH), { recursive: true });
+    if (!fs.existsSync(COMMUNITY_NOTIFICATIONS_PATH)) fs.writeFileSync(COMMUNITY_NOTIFICATIONS_PATH, '{"users":{}}\n', { encoding: "utf8", flag: "wx" });
+    const state = JSON.parse(fs.readFileSync(COMMUNITY_NOTIFICATIONS_PATH, "utf8"));
+    return state && typeof state === "object" && state.users && typeof state.users === "object" ? state : { users: {} };
+  } catch (error) { console.error("[COMMUNITY] Could not read notifications:", error.message); return { users: {} }; }
+}
+
+function writeCommunityNotifications(state) {
+  try {
+    fs.mkdirSync(path.dirname(COMMUNITY_NOTIFICATIONS_PATH), { recursive: true });
+    const tempPath = `${COMMUNITY_NOTIFICATIONS_PATH}.${process.pid}.${Date.now()}.tmp`;
+    fs.writeFileSync(tempPath, JSON.stringify({ users: state.users || {} }) + "\n", "utf8");
+    fs.renameSync(tempPath, COMMUNITY_NOTIFICATIONS_PATH);
+  } catch (error) { console.error("[COMMUNITY] Could not save notifications:", error.message); }
+}
+
+function communityActorName(user) {
+  return cleanText(user?.display_name || user?.username || user?.email?.split("@")[0] || "A member", 80);
+}
+
+function addCommunityNotification({ recipientId, actor, category, title, href }) {
+  const userId = String(recipientId || "").trim();
+  if (!userId || userId === String(actor?.id || "")) return;
+  const state = readCommunityNotifications();
+  const current = state.users[userId] && typeof state.users[userId] === "object" ? state.users[userId] : {};
+  const items = Array.isArray(current.items) ? current.items : [];
+  items.unshift({ id: randomUUID(), category: cleanText(category || "community", 40), title: cleanText(title || "New community activity", 240), href: cleanText(href || "./community", 500), createdAt: new Date().toISOString(), read: false });
+  state.users[userId] = { items: items.slice(0, 100), updatedAt: new Date().toISOString() };
+  writeCommunityNotifications(state);
+  io?.emit("community-notifications-updated", { userId });
 }
 
 function readCommunityProfiles() {
@@ -7276,6 +7311,30 @@ app.post("/api/community-profile", async (req, res) => {
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save this profile picture." }); }
 });
 
+app.get("/api/community-notifications", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const userState = readCommunityNotifications().users[String(user.id)] || {};
+    const items = (Array.isArray(userState.items) ? userState.items : []).slice(0, 100).map((item) => ({
+      id: String(item.id || ""), category: cleanText(item.category || "community", 40), title: cleanText(item.title || "New community activity", 240),
+      href: cleanText(item.href || "./community", 500), createdAt: String(item.createdAt || ""), read: Boolean(item.read),
+    }));
+    return res.json({ ok: true, items, unreadCount: items.filter((item) => !item.read).length });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not load notifications." }); }
+});
+
+app.post("/api/community-notifications/read", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req); const userId = String(user.id);
+    const state = readCommunityNotifications(); const current = state.users[userId] && typeof state.users[userId] === "object" ? state.users[userId] : { items: [] };
+    const notificationId = cleanText(req.body?.postId || "", 120); const markAll = Boolean(req.body?.all);
+    if (!markAll && !notificationId) return res.status(400).json({ error: "Choose a notification." });
+    current.items = (Array.isArray(current.items) ? current.items : []).map((item) => ({ ...item, read: markAll || String(item.id) === notificationId ? true : Boolean(item.read) }));
+    state.users[userId] = { ...current, updatedAt: new Date().toISOString() }; writeCommunityNotifications(state);
+    return res.json({ ok: true });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not mark notifications as read." }); }
+});
+
 app.get("/api/community-posts", async (req, res) => {
   const viewer = await getOptionalCommunityUser(req);
   const posts = readCommunityPosts().sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
@@ -7307,7 +7366,9 @@ app.post("/api/community-posts/:postId/likes", async (req, res) => {
     const user = await requireAuthenticatedUser(req); const postId = String(req.params.postId || "").trim(); const posts = readCommunityPosts();
     const post = posts.find((entry) => entry.id === postId); if (!post) return res.status(404).json({ error: "That community post was not found." });
     if (post.likedBy[String(user.id)]) delete post.likedBy[String(user.id)]; else post.likedBy[String(user.id)] = new Date().toISOString(); writeCommunityPosts(posts);
-    return res.json({ ok: true, liked: Boolean(post.likedBy[String(user.id)]), likes: Object.keys(post.likedBy).length });
+    const liked = Boolean(post.likedBy[String(user.id)]);
+    if (liked) addCommunityNotification({ recipientId: post.authorId, actor: user, category: "like", title: `${communityActorName(user)} liked your post.`, href: `./community#post-${encodeURIComponent(post.id)}` });
+    return res.json({ ok: true, liked, likes: Object.keys(post.likedBy).length });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this like." }); }
 });
 
@@ -7339,8 +7400,12 @@ app.post("/api/community-posts/:postId/comments", async (req, res) => {
       plan: String(membership?.plan || "free").toLowerCase(), avatarUrl: getCommunityAvatarUrl(user),
       parentId: cleanText(req.body?.parentId || "", 120), body, createdAt: new Date().toISOString(), reactions: {}, hearted: false,
     };
-    if (comment.parentId && !post.comments.some((entry) => entry.id === comment.parentId)) return res.status(400).json({ error: "That parent comment was not found." });
+    const parentComment = comment.parentId ? post.comments.find((entry) => entry.id === comment.parentId) : null;
+    if (comment.parentId && !parentComment) return res.status(400).json({ error: "That parent comment was not found." });
     post.comments.push(comment); post.comments = post.comments.slice(-100); writeCommunityPosts(posts);
+    const href = `./community#post-${encodeURIComponent(post.id)}`;
+    addCommunityNotification({ recipientId: post.authorId, actor: user, category: "comment", title: `${communityActorName(user)} commented on your post.`, href });
+    if (parentComment) addCommunityNotification({ recipientId: parentComment.userId, actor: user, category: "reply", title: `${communityActorName(user)} replied to your comment.`, href });
     return res.json({ ok: true, comment, commentCount: post.comments.length });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not post this comment." }); }
 });
@@ -7351,7 +7416,7 @@ app.post("/api/community-posts/:postId/comments/:commentId", async (req, res) =>
     if (!post) return res.status(404).json({ error: "That community post was not found." });
     const comment = post.comments.find((entry) => entry.id === String(req.params.commentId || "")); if (!comment) return res.status(404).json({ error: "That comment was not found." });
     const action = String(req.body?.action || ""); const isPostOwner = String(post.authorId || "") === String(user.id) || isAdminUser(user); const isCommentOwner = String(comment.userId) === String(user.id);
-    if (action === "react") { const vote = ["like", "dislike"].includes(String(req.body?.vote || "")) ? String(req.body.vote) : ""; if (!vote) return res.status(400).json({ error: "Choose a reaction." }); if (comment.reactions[user.id] === vote) delete comment.reactions[user.id]; else comment.reactions[user.id] = vote; }
+    if (action === "react") { const vote = ["like", "dislike"].includes(String(req.body?.vote || "")) ? String(req.body.vote) : ""; if (!vote) return res.status(400).json({ error: "Choose a reaction." }); if (comment.reactions[user.id] === vote) delete comment.reactions[user.id]; else comment.reactions[user.id] = vote; if (comment.reactions[user.id] === "like") addCommunityNotification({ recipientId: comment.userId, actor: user, category: "like", title: `${communityActorName(user)} liked your comment.`, href: `./community#post-${encodeURIComponent(post.id)}` }); }
     else if (action === "edit") { if (!isCommentOwner) return res.status(403).json({ error: "Only the comment author can edit it." }); const body = cleanText(req.body?.body, 600); if (!body) return res.status(400).json({ error: "Write a comment before saving." }); comment.body = body; comment.editedAt = new Date().toISOString(); }
     else if (action === "delete") { if (!isCommentOwner && !isPostOwner) return res.status(403).json({ error: "Only the comment author or post owner can delete it." }); post.comments = post.comments.filter((entry) => entry.id !== comment.id && entry.parentId !== comment.id); if (post.pinnedCommentId === comment.id) post.pinnedCommentId = ""; }
     else if (action === "pin") { if (!isPostOwner) return res.status(403).json({ error: "Only the post owner can do that." }); post.pinnedCommentId = post.pinnedCommentId === comment.id ? "" : comment.id; }
@@ -7429,7 +7494,8 @@ app.post("/api/ugc/community/:taskId/view", async (req, res) => {
 app.post("/api/ugc/community/:taskId/feedback", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req); const taskId = cleanMeshyTaskId(req.params.taskId);
-    if (!findPublicAIUGCItem(taskId)) return res.status(404).json({ error: "This community model is not available." });
+    const item = findPublicAIUGCItem(taskId);
+    if (!item) return res.status(404).json({ error: "This community model is not available." });
     const vote = ["like", "dislike"].includes(String(req.body?.vote || "")) ? String(req.body.vote) : "";
     const rating = Math.max(0, Math.min(5, Number.parseInt(req.body?.rating, 10) || 0));
     if (!vote && !rating) return res.status(400).json({ error: "Choose a reaction or rating." });
@@ -7442,6 +7508,9 @@ app.post("/api/ugc/community/:taskId/feedback", async (req, res) => {
     }
     if (rating) post.ratings[String(user.id)] = rating;
     writeAIUGCCommunityState(state);
+    const href = `./community#asset-${encodeURIComponent(taskId)}`;
+    if (post.votes[String(user.id)] === "like") addCommunityNotification({ recipientId: item.creatorId, actor: user, category: "like", title: `${communityActorName(user)} liked your AI asset.`, href });
+    if (rating) addCommunityNotification({ recipientId: item.creatorId, actor: user, category: "rating", title: `${communityActorName(user)} rated your AI asset ${rating} out of 5 stars.`, href });
     return res.json({ ok: true, vote: String(post.votes[String(user.id)] || ""), rating: Number(post.ratings[String(user.id)] || 0) });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save community feedback." }); }
 });
@@ -7449,7 +7518,8 @@ app.post("/api/ugc/community/:taskId/feedback", async (req, res) => {
 app.post("/api/ugc/community/:taskId/comments", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req); const taskId = cleanMeshyTaskId(req.params.taskId);
-    if (!findPublicAIUGCItem(taskId)) return res.status(404).json({ error: "This community model is not available." });
+    const item = findPublicAIUGCItem(taskId);
+    if (!item) return res.status(404).json({ error: "This community model is not available." });
     const body = cleanText(req.body?.body, 600); if (!body) return res.status(400).json({ error: "Write a comment before posting." });
     const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId); const membership = await resolveMembershipSnapshot(user);
     const parentId = cleanText(req.body?.parentId || "", 120); const parentComment = parentId ? post.comments.find((entry) => entry.id === parentId) : null;
@@ -7459,6 +7529,9 @@ app.post("/api/ugc/community/:taskId/comments", async (req, res) => {
     if (replyToId && (!replyToComment || String(replyToComment.id) !== String(parentId) && String(replyToComment.parentId || "") !== String(parentId))) return res.status(400).json({ error: "That reply target was not found in this thread." });
     const comment = { id: randomUUID(), userId: user.id, authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), plan: String(membership?.plan || "free").toLowerCase(), avatarUrl: getCommunityAvatarUrl(user), parentId, replyToId, replyToName: replyToComment ? cleanText(replyToComment.authorName || "Member", 80) : "", body, createdAt: new Date().toISOString(), reactions: {}, hearted: false };
     post.comments.push(comment); post.comments = post.comments.slice(-100); writeAIUGCCommunityState(state);
+    const href = `./community#asset-${encodeURIComponent(taskId)}`;
+    addCommunityNotification({ recipientId: item.creatorId, actor: user, category: "comment", title: `${communityActorName(user)} commented on your AI asset.`, href });
+    if (replyToComment) addCommunityNotification({ recipientId: replyToComment.userId, actor: user, category: "reply", title: `${communityActorName(user)} replied to your comment.`, href });
     return res.json({ ok: true, comment });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not post this comment." }); }
 });
@@ -7468,7 +7541,7 @@ app.post("/api/ugc/community/:taskId/comments/:commentId", async (req, res) => {
     const user = await requireAuthenticatedUser(req); const taskId = cleanMeshyTaskId(req.params.taskId); const item = findPublicAIUGCItem(taskId);
     if (!item) return res.status(404).json({ error: "This community model is not available." }); const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId);
     const comment = post.comments.find((entry) => entry.id === String(req.params.commentId || "")); if (!comment) return res.status(404).json({ error: "That comment was not found." }); const action = String(req.body?.action || ""); const isPostOwner = String(item.creatorId) === String(user.id) || isAdminUser(user); const isCommentOwner = String(comment.userId) === String(user.id);
-    if (action === "react") { const vote = ["like", "dislike"].includes(String(req.body?.vote || "")) ? String(req.body.vote) : ""; if (!vote) return res.status(400).json({ error: "Choose a reaction." }); if (comment.reactions[user.id] === vote) delete comment.reactions[user.id]; else comment.reactions[user.id] = vote; }
+    if (action === "react") { const vote = ["like", "dislike"].includes(String(req.body?.vote || "")) ? String(req.body.vote) : ""; if (!vote) return res.status(400).json({ error: "Choose a reaction." }); if (comment.reactions[user.id] === vote) delete comment.reactions[user.id]; else comment.reactions[user.id] = vote; if (comment.reactions[user.id] === "like") addCommunityNotification({ recipientId: comment.userId, actor: user, category: "like", title: `${communityActorName(user)} liked your comment.`, href: `./community#asset-${encodeURIComponent(taskId)}` }); }
     else if (action === "edit") { if (!isCommentOwner) return res.status(403).json({ error: "Only the comment author can edit it." }); const body = cleanText(req.body?.body, 600); if (!body) return res.status(400).json({ error: "Write a comment before saving." }); comment.body = body; comment.editedAt = new Date().toISOString(); }
     else if (action === "delete") { if (!isCommentOwner && !isPostOwner) return res.status(403).json({ error: "Only the comment author or post owner can delete it." }); post.comments = post.comments.filter((entry) => entry.id !== comment.id && entry.parentId !== comment.id); if (post.pinnedCommentId === comment.id) post.pinnedCommentId = ""; }
     else if (action === "heart" || action === "pin") { if (!isPostOwner) return res.status(403).json({ error: "Only the post owner can do that." }); if (action === "heart") comment.hearted = !comment.hearted; else post.pinnedCommentId = post.pinnedCommentId === comment.id ? "" : comment.id; }
@@ -7482,7 +7555,9 @@ app.post("/api/ugc/community/creators/:creatorId/follow", async (req, res) => {
     if (!creatorId || creatorId === String(user.id)) return res.status(400).json({ error: "You cannot follow your own creator profile." });
     const state = readAIUGCCommunityState(); const followers = state.follows[creatorId] && typeof state.follows[creatorId] === "object" ? state.follows[creatorId] : {};
     if (followers[String(user.id)]) delete followers[String(user.id)]; else followers[String(user.id)] = new Date().toISOString(); state.follows[creatorId] = followers; writeAIUGCCommunityState(state);
-    return res.json({ ok: true, following: Boolean(followers[String(user.id)]), followers: Object.keys(followers).length });
+    const following = Boolean(followers[String(user.id)]);
+    if (following) addCommunityNotification({ recipientId: creatorId, actor: user, category: "follow", title: `${communityActorName(user)} followed you.`, href: "./community" });
+    return res.json({ ok: true, following, followers: Object.keys(followers).length });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this follow." }); }
 });
 
@@ -7502,6 +7577,7 @@ app.post("/api/ugc/community/:taskId/tip", async (req, res) => {
     if (!credited) throw new Error("Could not credit the creator.");
     const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId);
     post.tips.push({ id: randomUUID(), userId: sender.id, senderName: cleanText(sender.display_name || sender.username || sender.email?.split("@")[0] || "Member", 80), amount, createdAt: new Date().toISOString() }); post.tips = post.tips.slice(-100); writeAIUGCCommunityState(state);
+    addCommunityNotification({ recipientId: item.creatorId, actor: sender, category: "tip", title: `${communityActorName(sender)} tipped you ${amount.toLocaleString("en-US")} AI tokens.`, href: `./community#asset-${encodeURIComponent(taskId)}` });
     return res.json({ ok: true, amount, aiTokens: await getAITokenBalance((await getAuthUserById(sender.id)) || sender), tipTotal: post.tips.reduce((total, tip) => total + Number(tip.amount || 0), 0) });
   } catch (error) {
     if (sender && amount) await restoreAITokens(sender.id, amount).catch(() => null);
