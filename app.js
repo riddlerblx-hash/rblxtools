@@ -7008,14 +7008,14 @@ app.post("/ai/generate-clothing", async (req, res) => {
   }
 });
 
-// Admin-only Meshy proxy. Task URLs are short-lived Meshy signed URLs and the
-// provider key never leaves this process.
+// Meshy proxy. Task URLs are short-lived Meshy signed URLs and the provider key
+// never leaves this process.
 app.post("/ai/ugc/preview", async (req, res) => {
   let user;
   let tokenCost = 0;
   let tokensDebited = false;
   try {
-    user = await requireAdminUser(req);
+    user = await requireAuthenticatedUser(req);
     if (ugcSubmissionLocks.has(user.id)) return res.status(409).json({ error: "A UGC request is already being submitted. Please wait." });
     ugcSubmissionLocks.add(user.id);
     const inputMode = String(req.body?.inputMode || "text") === "image" ? "image" : "text";
@@ -7074,7 +7074,7 @@ app.post("/ai/ugc/batch", async (req, res) => {
   let tokenCost = 0;
   let tokensDebited = false;
   try {
-    user = await requireAdminUser(req);
+    user = await requireAuthenticatedUser(req);
     if (ugcSubmissionLocks.has(user.id)) return res.status(409).json({ error: "A UGC request is already being submitted. Please wait." });
     ugcSubmissionLocks.add(user.id);
     const imageDataUrls = Array.isArray(req.body?.imageDataUrls) ? req.body.imageDataUrls.filter(Boolean).slice(0, 4) : [];
@@ -7128,7 +7128,7 @@ app.post("/ai/ugc/refine", async (req, res) => {
   let tokensDebited = false;
   let textureTokenCost = 0;
   try {
-    user = await requireAdminUser(req);
+    user = await requireAuthenticatedUser(req);
     if (ugcSubmissionLocks.has(user.id)) return res.status(409).json({ error: "A UGC request is already being submitted. Please wait." });
     ugcSubmissionLocks.add(user.id);
     const previewTaskId = cleanMeshyTaskId(req.body?.previewTaskId);
@@ -7165,7 +7165,7 @@ app.post("/ai/ugc/refine", async (req, res) => {
 
 app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
   try {
-    const user = await requireAdminUser(req);
+    const user = await requireAuthenticatedUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const requestedType = String(req.query.type || "text");
     const taskType = ["image", "multi"].includes(requestedType) ? requestedType : "text";
@@ -7214,7 +7214,7 @@ app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
 
 app.get("/ai/ugc/history", async (req, res) => {
   try {
-    const user = await requireAdminUser(req);
+    const user = await requireAuthenticatedUser(req);
     const historyLimit = getAIUGCHistoryLimit(await resolveMembershipSnapshot(user));
     const items = await refreshPersistentAIUGCHistory(user.id);
     return res.json({ ok: true, items: items.slice(0, historyLimit), historyLimit });
@@ -7225,7 +7225,7 @@ app.get("/ai/ugc/history", async (req, res) => {
 
 app.post("/ai/ugc/history", async (req, res) => {
   try {
-    const user = await requireAdminUser(req);
+    const user = await requireAuthenticatedUser(req);
     const taskId = cleanMeshyTaskId(req.body?.taskId);
     const charge = ugcGenerationCharges.get(taskId);
     if (charge && charge.userId !== user.id) return res.status(403).json({ error: "This UGC generation belongs to another account." });
@@ -7277,7 +7277,7 @@ app.post("/ai/ugc/history", async (req, res) => {
 
 app.delete("/ai/ugc/history/:taskId", async (req, res) => {
   try {
-    const user = await requireAdminUser(req);
+    const user = await requireAuthenticatedUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
     deletePersistentAIUGCHistory(user.id, taskId);
     return res.json({ ok: true, taskId });
@@ -7646,7 +7646,7 @@ app.get("/api/ugc/community/:taskId/download", async (req, res) => {
 
 app.post("/ai/ugc/history/:taskId/feedback", async (req, res) => {
   try {
-    const user = await requireAdminUser(req);
+    const user = await requireAuthenticatedUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const feedback = ["like", "dislike"].includes(String(req.body?.feedback || "")) ? String(req.body.feedback) : "";
     const rating = Math.max(0, Math.min(5, Number.parseInt(req.body?.rating, 10) || 0));
@@ -7700,7 +7700,7 @@ app.get("/ai/ugc/source/:sourceId", (req, res) => {
 
 app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
   try {
-    const user = await requireAdminUser(req);
+    const user = await requireAuthenticatedUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const requestedType = String(req.query.type || "text");
     const taskType = ["image", "multi"].includes(requestedType) ? requestedType : "text";
@@ -11131,7 +11131,7 @@ app.get(["/ai-tokens", "/ai-tokens.html"], async (req, res) => {
 
 app.get(["/ai-ugc-studio", "/ai-ugc-studio.html"], async (req, res) => {
   try {
-    await requireAdminUser(req);
+    await requireAuthenticatedUser(req);
     return res.sendFile(path.join(STATIC_ROOT, "ai-ugc-studio.html"));
   } catch (error) {
     return res.status(error.statusCode || 403).sendFile(path.join(STATIC_ROOT, "index.html"));
