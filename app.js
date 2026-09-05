@@ -11034,7 +11034,8 @@ app.use((req, res, next) => {
   const requestedPath = String(req.path || "");
   if (
     req.method === "GET" &&
-    requestedPath.endsWith(".html")
+    requestedPath.endsWith(".html") &&
+    requestedPath !== "/ai-ugc-studio.html"
   ) {
     const cleanPath = requestedPath === "/index.html"
       ? "/"
