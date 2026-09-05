@@ -300,6 +300,8 @@
   }
 
   function ensureAdsterraPopunderSetup() {
+    // Popunder ads are disabled sitewide; keep only visible in-page ad placements.
+    return;
     if (!ADSTERRA_POPUNDER_SRC || window.__rblxAdsterraPopunderLoaded || isMobileViewer()) return;
     var head = document.head || document.getElementsByTagName("head")[0];
     if (!head || document.querySelector('script[data-rblxtools-adsterra-popunder="true"]')) return;
