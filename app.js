@@ -112,11 +112,13 @@ const MESHY_API_BASE_URL = "https://api.meshy.ai/openapi";
 const UGC_SOURCE_IMAGE_TTL_MS = 60 * 60 * 1000;
 const ugcSourceImages = new Map();
 // Runtime data belongs outside the deploy checkout so git pulls and restarts cannot erase member history.
-const AI_UGC_HISTORY_PATH = process.env.AI_UGC_HISTORY_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc-history.json");
-const AI_UGC_MODEL_DIR = process.env.AI_UGC_MODEL_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc-models");
+// Use the app-owned runtime folder by default: it survives pulls/restarts and is writable by the PM2 process.
+const RBLXTOOLS_RUNTIME_DATA_DIR = process.env.RBLXTOOLS_RUNTIME_DATA_DIR || path.join(__dirname, ".rblxtools-runtime");
+const AI_UGC_HISTORY_PATH = process.env.AI_UGC_HISTORY_PATH || path.join(RBLXTOOLS_RUNTIME_DATA_DIR, "ai-ugc-history.json");
+const AI_UGC_MODEL_DIR = process.env.AI_UGC_MODEL_DIR || path.join(RBLXTOOLS_RUNTIME_DATA_DIR, "ai-ugc-models");
 const LEGACY_AI_UGC_HISTORY_PATH = path.join(__dirname, "ai-ugc-history.json");
 const AI_UGC_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
-const AI_UGC_COMMUNITY_PATH = process.env.AI_UGC_COMMUNITY_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc-community.json");
+const AI_UGC_COMMUNITY_PATH = process.env.AI_UGC_COMMUNITY_PATH || path.join(RBLXTOOLS_RUNTIME_DATA_DIR, "ai-ugc-community.json");
 const LEGACY_AI_UGC_COMMUNITY_FEEDBACK_PATH = path.join(__dirname, "ai-ugc-community-feedback.json");
 const COMMUNITY_POSTS_PATH = process.env.COMMUNITY_POSTS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-posts.json");
 const LEGACY_COMMUNITY_POSTS_PATH = path.join(__dirname, "community-posts.json");
@@ -832,8 +834,10 @@ function readPersistentAIUGCHistory() {
 }
 
 function writePersistentAIUGCHistory(payload) {
-  try { ensureAIUGCHistoryDirectory(); const tempPath = `${AI_UGC_HISTORY_PATH}.${process.pid}.${Date.now()}.tmp`; fs.writeFileSync(tempPath, JSON.stringify(payload) + "\n", "utf8"); fs.renameSync(tempPath, AI_UGC_HISTORY_PATH); }
-  catch (error) { console.error("[AI UGC HISTORY] Could not write local backup:", error.message); }
+  ensureAIUGCHistoryDirectory();
+  const tempPath = `${AI_UGC_HISTORY_PATH}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(payload) + "\n", "utf8");
+  fs.renameSync(tempPath, AI_UGC_HISTORY_PATH);
 }
 
 function getPersistentAIUGCHistory(userId) {
@@ -954,12 +958,10 @@ function readAIUGCCommunityState() {
 }
 
 function writeAIUGCCommunityState(payload) {
-  try {
-    ensureAIUGCCommunityStorage();
-    const tempPath = `${AI_UGC_COMMUNITY_PATH}.${process.pid}.${Date.now()}.tmp`;
-    fs.writeFileSync(tempPath, JSON.stringify(payload) + "\n", "utf8");
-    fs.renameSync(tempPath, AI_UGC_COMMUNITY_PATH);
-  } catch (error) { console.error("[AI UGC COMMUNITY] Could not save community state:", error.message); }
+  ensureAIUGCCommunityStorage();
+  const tempPath = `${AI_UGC_COMMUNITY_PATH}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(payload) + "\n", "utf8");
+  fs.renameSync(tempPath, AI_UGC_COMMUNITY_PATH);
 }
 
 function getAIUGCCommunityPost(state, taskId) {
@@ -7108,7 +7110,7 @@ app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
       const existing = getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId);
       if (existing) {
         let storedGlb = Boolean(readStoredAIUGCModel(user.id, taskId));
-        if (!storedGlb && task.model_urls?.glb) storedGlb = await storeAIUGCModel(user.id, taskId, task.model_urls.glb).catch(function (error) { console.warn("[AI UGC HISTORY] Could not store GLB", taskId, error.message); return false; });
+        if (!storedGlb && task.model_urls?.glb) storedGlb = await storeAIUGCModel(user.id, taskId, task.model_urls.glb);
         const updates = { status: "SUCCEEDED", public: true, storedGlb, creatorName: existing.creatorName || cleanText(user.display_name || user.username || user.email?.split("@")[0] || "RBLXTools creator", 80), creatorAvatarUrl: getCommunityAvatarUrl(user), thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || existing.thumbnailUrl || "") };
         updatePersistentAIUGCHistory(user.id, taskId, updates);
         syncAIUGCCommunityOwnerEngagement(user.id, { ...existing, ...updates });
@@ -7143,7 +7145,7 @@ app.post("/ai/ugc/history", async (req, res) => {
     const taskPath = taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
     const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
     if (task.status !== "SUCCEEDED") return res.status(409).json({ error: "Finish the generation before saving it." });
-    const storedGlb = await storeAIUGCModel(user.id, taskId, task.model_urls?.glb).catch(function (error) { console.warn("[AI UGC HISTORY] Could not store GLB", taskId, error.message); return false; });
+    const storedGlb = await storeAIUGCModel(user.id, taskId, task.model_urls?.glb);
     const membership = await resolveMembershipSnapshot(user);
     const isPro = membership?.premiumActive && String(membership?.plan || "").toLowerCase() === "pro";
     const existingItem = getPersistentAIUGCHistory(user.id).find((entry) => String(entry.id) === taskId);
@@ -7510,7 +7512,7 @@ app.post("/ai/ugc/history/:taskId/feedback", async (req, res) => {
       const taskPath = getUGCTaskPath(taskType);
       const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
       if (task.status !== "SUCCEEDED") return res.status(409).json({ error: "This generation is still finishing. Please try the rating again in a moment." });
-      const storedGlb = await storeAIUGCModel(user.id, taskId, task.model_urls?.glb).catch(function (error) { console.warn("[AI UGC HISTORY] Could not store GLB", taskId, error.message); return false; });
+      const storedGlb = await storeAIUGCModel(user.id, taskId, task.model_urls?.glb);
       item = {
         id: taskId,
         title: cleanText(req.body?.title || charge?.prompt || task.prompt || (taskType === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
