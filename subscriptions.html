@@ -1474,7 +1474,7 @@
               <li>Animation Tool</li>
               <li>Bulk Downloads (1-5)</li>
               <li class="perk-section-label">AI benefits</li>
-              <li id="plusTokenBenefit">50 Tokens Every Month</li>
+              <li id="plusTokenBenefit">30 Tokens Every Month</li>
               <li>10 Savable Thumbnail Generations</li>
               <li>8 Savable AI UGC Slots (+5)</li>
               <li>1440p AI Thumbnail Quality</li>
@@ -1505,10 +1505,10 @@
                 </div>
               </div>
               <div class="perk-card">
-                <div class="perk-icon plus" id="plusTokenPerkIcon">50</div>
+                <div class="perk-icon plus" id="plusTokenPerkIcon">30</div>
                 <div>
-                  <h3 class="perk-title" id="plusTokenPerkTitle">50 tokens every month</h3>
-                  <p class="perk-desc" id="plusTokenPerkCopy">A fresh 50 AI tokens are added after every successful Plus monthly payment.</p>
+                  <h3 class="perk-title" id="plusTokenPerkTitle">30 tokens every month</h3>
+                  <p class="perk-desc" id="plusTokenPerkCopy">A fresh 30 AI tokens are added after every successful Plus monthly payment.</p>
                 </div>
               </div>
               <div class="perk-card">
@@ -1667,7 +1667,7 @@
           <h3>Plus</h3>
           <div class="compare-list">
             <div class="compare-item"><strong>Best for:</strong> creators, resellers, and repeat users who want faster utility flow.</div>
-            <div class="compare-item"><strong>Why people buy:</strong> 50 tokens every month, Animations, 1-5 item bulk actions, and a more premium site experience.</div>
+            <div class="compare-item"><strong>Why people buy:</strong> 30 tokens every month, Animations, 1-5 item bulk actions, and a more premium site experience.</div>
             <div class="compare-item"><strong>Biggest win:</strong> the whole site starts feeling built for real workflows instead of tiny single-use steps.</div>
           </div>
         </div>
@@ -1720,7 +1720,7 @@
   </div>
 
   <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20260905-pop1"></script>
+<script src="./global-shell.js?v=20260905-plus30"></script>
   <script>
     (function () {
       var API_BASE = window.location.origin;
@@ -1786,10 +1786,10 @@
             element.textContent = billingInterval === "year" ? "Per year" : "Per month";
           });
           var isAnnualBilling = billingInterval === "year";
-          if (plusTokenBenefit) plusTokenBenefit.textContent = isAnnualBilling ? "600 Tokens Every Year" : "50 Tokens Every Month";
-          if (plusTokenPerkIcon) plusTokenPerkIcon.textContent = isAnnualBilling ? "600" : "50";
-          if (plusTokenPerkTitle) plusTokenPerkTitle.textContent = isAnnualBilling ? "600 tokens every year" : "50 tokens every month";
-          if (plusTokenPerkCopy) plusTokenPerkCopy.textContent = isAnnualBilling ? "All 600 AI tokens are added instantly after your successful annual Plus payment." : "A fresh 50 AI tokens are added after every successful Plus monthly payment.";
+          if (plusTokenBenefit) plusTokenBenefit.textContent = isAnnualBilling ? "360 Tokens Every Year" : "30 Tokens Every Month";
+          if (plusTokenPerkIcon) plusTokenPerkIcon.textContent = isAnnualBilling ? "360" : "30";
+          if (plusTokenPerkTitle) plusTokenPerkTitle.textContent = isAnnualBilling ? "360 tokens every year" : "30 tokens every month";
+          if (plusTokenPerkCopy) plusTokenPerkCopy.textContent = isAnnualBilling ? "All 360 AI tokens are added instantly after your successful annual Plus payment." : "A fresh 30 AI tokens are added after every successful Plus monthly payment.";
           if (proTokenBenefit) proTokenBenefit.textContent = isAnnualBilling ? "2,400 AI Credits Every Year" : "200 AI Credits Every Month";
           if (proTokenPerkIcon) proTokenPerkIcon.textContent = isAnnualBilling ? "2400" : "200";
           if (proTokenPerkTitle) proTokenPerkTitle.textContent = isAnnualBilling ? "2,400 AI Credits Every Year" : "200 AI Credits Every Month";
