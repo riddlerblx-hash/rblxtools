@@ -315,9 +315,9 @@ async function prepareRobloxGLBDownload(glbBuffer, maxTriangles, maxTextureSize)
 }
 
 async function storeUGCSourceImage(dataUrl) {
-  const match = String(dataUrl || "").trim().match(/^data:(image\/(?:png|jpeg|webp));base64,([a-z0-9+/=]+)$/i);
+  const match = String(dataUrl || "").trim().match(/^data:(image\/(?:png|jpeg));base64,([a-z0-9+/=]+)$/i);
   if (!match) {
-    const error = new Error("Upload a PNG, JPG, or WebP image.");
+    const error = new Error("Upload a PNG or JPG image.");
     error.statusCode = 400;
     throw error;
   }
@@ -327,12 +327,7 @@ async function storeUGCSourceImage(dataUrl) {
     error.statusCode = 400;
     throw error;
   }
-  let type = match[1].toLowerCase();
-  // Meshy's multi-image endpoint accepts PNG and JPEG, so normalize WebP uploads.
-  if (type === "image/webp") {
-    buffer = await getSharp()(buffer).jpeg({ quality: 95 }).toBuffer();
-    type = "image/jpeg";
-  }
+  const type = match[1].toLowerCase();
   const id = randomUUID();
   const expiresAt = Date.now() + UGC_SOURCE_IMAGE_TTL_MS;
   ugcSourceImages.set(id, { buffer, type, expiresAt });
@@ -920,13 +915,19 @@ function persistPendingAIUGCGeneration(user, settings) {
 
 async function refreshPersistentAIUGCHistory(userId) {
   const items = getPersistentAIUGCHistory(userId);
-  await Promise.all(items.filter((item) => item.status !== "SUCCEEDED" && item.status !== "FAILED").map(async (item) => {
+  await Promise.all(items.filter((item) => item.status !== "FAILED" && (item.status !== "SUCCEEDED" || !item.storedGlb)).map(async (item) => {
     try {
       const task = await requestMeshy(getUGCTaskPath(item.taskType) + encodeURIComponent(item.id));
-      updatePersistentAIUGCHistory(userId, item.id, {
+      const updates = {
         status: String(task.status || "PENDING"),
         thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || item.thumbnailUrl || ""),
-      });
+      };
+      if (updates.status === "SUCCEEDED") {
+        updates.storedGlb = await storeAIUGCModel(userId, item.id, task.model_urls?.glb);
+        updates.public = true;
+      }
+      updatePersistentAIUGCHistory(userId, item.id, updates);
+      if (updates.status === "SUCCEEDED") syncAIUGCCommunityOwnerEngagement(userId, { ...item, ...updates });
     } catch (error) {
       console.warn("[AI UGC HISTORY] Could not refresh task", item.id, error.message);
     }
