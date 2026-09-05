@@ -11129,13 +11129,8 @@ app.get(["/ai-tokens", "/ai-tokens.html"], async (req, res) => {
   return res.sendFile(path.join(STATIC_ROOT, "ai-tokens.html"));
 });
 
-app.get(["/ai-ugc-studio", "/ai-ugc-studio.html"], async (req, res) => {
-  try {
-    await requireAuthenticatedUser(req);
-    return res.sendFile(path.join(STATIC_ROOT, "ai-ugc-studio.html"));
-  } catch (error) {
-    return res.status(error.statusCode || 403).sendFile(path.join(STATIC_ROOT, "index.html"));
-  }
+app.get(["/ai-ugc-studio", "/ai-ugc-studio.html"], (_req, res) => {
+  res.sendFile(path.join(STATIC_ROOT, "ai-ugc-studio.html"));
 });
 
 app.use(express.static(STATIC_ROOT, {
