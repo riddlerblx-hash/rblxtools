@@ -111,12 +111,14 @@ const MESHY_API_KEY = String(process.env.MESHY_API_KEY || "").trim();
 const MESHY_API_BASE_URL = "https://api.meshy.ai/openapi";
 const UGC_SOURCE_IMAGE_TTL_MS = 60 * 60 * 1000;
 const ugcSourceImages = new Map();
-// Runtime data belongs outside the deploy checkout so git pulls and restarts cannot erase member history.
-// Use the app-owned runtime folder by default: it survives pulls/restarts and is writable by the PM2 process.
-const RBLXTOOLS_RUNTIME_DATA_DIR = process.env.RBLXTOOLS_RUNTIME_DATA_DIR || path.join(__dirname, ".rblxtools-runtime");
+// Keep member-owned generations outside the deploy checkout. A git update must
+// never be able to replace the history file or the stored GLB files.
+const RBLXTOOLS_RUNTIME_DATA_DIR = process.env.RBLXTOOLS_RUNTIME_DATA_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc");
 const AI_UGC_HISTORY_PATH = process.env.AI_UGC_HISTORY_PATH || path.join(RBLXTOOLS_RUNTIME_DATA_DIR, "ai-ugc-history.json");
 const AI_UGC_MODEL_DIR = process.env.AI_UGC_MODEL_DIR || path.join(RBLXTOOLS_RUNTIME_DATA_DIR, "ai-ugc-models");
 const LEGACY_AI_UGC_HISTORY_PATH = path.join(__dirname, "ai-ugc-history.json");
+const LEGACY_RUNTIME_AI_UGC_HISTORY_PATH = path.join(__dirname, ".rblxtools-runtime", "ai-ugc-history.json");
+const LEGACY_RUNTIME_AI_UGC_MODEL_DIR = path.join(__dirname, ".rblxtools-runtime", "ai-ugc-models");
 const AI_UGC_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const AI_UGC_COMMUNITY_PATH = process.env.AI_UGC_COMMUNITY_PATH || path.join(RBLXTOOLS_RUNTIME_DATA_DIR, "ai-ugc-community.json");
 const LEGACY_AI_UGC_COMMUNITY_FEEDBACK_PATH = path.join(__dirname, "ai-ugc-community-feedback.json");
@@ -800,8 +802,10 @@ function pruneAIUGCHistory(items, now = Date.now()) {
 
 function ensureAIUGCHistoryDirectory() {
   fs.mkdirSync(path.dirname(AI_UGC_HISTORY_PATH), { recursive: true });
-  if (AI_UGC_HISTORY_PATH !== LEGACY_AI_UGC_HISTORY_PATH && !fs.existsSync(AI_UGC_HISTORY_PATH) && fs.existsSync(LEGACY_AI_UGC_HISTORY_PATH)) {
-    fs.copyFileSync(LEGACY_AI_UGC_HISTORY_PATH, AI_UGC_HISTORY_PATH);
+  if (!fs.existsSync(AI_UGC_HISTORY_PATH)) {
+    const legacyPath = [LEGACY_RUNTIME_AI_UGC_HISTORY_PATH, LEGACY_AI_UGC_HISTORY_PATH]
+      .find((candidate) => candidate !== AI_UGC_HISTORY_PATH && fs.existsSync(candidate));
+    if (legacyPath) fs.copyFileSync(legacyPath, AI_UGC_HISTORY_PATH);
   }
   if (!fs.existsSync(AI_UGC_HISTORY_PATH)) {
     try { fs.writeFileSync(AI_UGC_HISTORY_PATH, '{"users":{}}\n', { encoding: "utf8", flag: "wx" }); }
@@ -861,14 +865,23 @@ function getStoredAIUGCModelPath(userId, taskId) {
   return path.join(AI_UGC_MODEL_DIR, safeUserId, `${safeTaskId}.glb`);
 }
 
+function ensureAIUGCModelDirectory() {
+  if (!fs.existsSync(AI_UGC_MODEL_DIR) && AI_UGC_MODEL_DIR !== LEGACY_RUNTIME_AI_UGC_MODEL_DIR && fs.existsSync(LEGACY_RUNTIME_AI_UGC_MODEL_DIR)) {
+    fs.cpSync(LEGACY_RUNTIME_AI_UGC_MODEL_DIR, AI_UGC_MODEL_DIR, { recursive: true, force: false });
+  }
+  fs.mkdirSync(AI_UGC_MODEL_DIR, { recursive: true });
+}
+
 function readStoredAIUGCModel(userId, taskId) {
   try {
+    ensureAIUGCModelDirectory();
     const filePath = getStoredAIUGCModelPath(userId, taskId);
     return fs.existsSync(filePath) ? fs.readFileSync(filePath) : null;
   } catch (_error) { return null; }
 }
 
 async function storeAIUGCModel(userId, taskId, modelUrl) {
+  ensureAIUGCModelDirectory();
   const filePath = getStoredAIUGCModelPath(userId, taskId);
   if (fs.existsSync(filePath)) return true;
   if (!/^https:\/\//i.test(String(modelUrl || ""))) return false;
