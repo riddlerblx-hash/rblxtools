@@ -7295,7 +7295,7 @@ app.post("/api/community-posts", async (req, res) => {
       id: randomUUID(), title, body, category, status: category === "bug-report" ? "open" : "open", rating,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       authorId: String(user.id), authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
-      authorAvatarUrl: cleanText(req.body?.avatarUrl || getCommunityAvatarUrl(user), 500), pinned: false, likedBy: {}, pinnedCommentId: "", comments: [],
+      authorAvatarUrl: getCommunityAvatarUrl(user), pinned: false, likedBy: {}, pinnedCommentId: "", comments: [],
     };
     const posts = readCommunityPosts(); posts.push(post); writeCommunityPosts(posts);
     return res.status(201).json({ ok: true, post: await enrichCommunityPostIdentity(post, user) });
@@ -7336,7 +7336,7 @@ app.post("/api/community-posts/:postId/comments", async (req, res) => {
     const comment = {
       id: randomUUID(), userId: user.id,
       authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
-      plan: String(membership?.plan || "free").toLowerCase(), avatarUrl: cleanText(req.body?.avatarUrl || "", 500),
+      plan: String(membership?.plan || "free").toLowerCase(), avatarUrl: getCommunityAvatarUrl(user),
       parentId: cleanText(req.body?.parentId || "", 120), body, createdAt: new Date().toISOString(), reactions: {}, hearted: false,
     };
     if (comment.parentId && !post.comments.some((entry) => entry.id === comment.parentId)) return res.status(400).json({ error: "That parent comment was not found." });
@@ -7457,7 +7457,7 @@ app.post("/api/ugc/community/:taskId/comments", async (req, res) => {
     if (parentComment?.parentId) return res.status(400).json({ error: "Replies can only be one level deep." });
     const replyToId = cleanText(req.body?.replyToId || "", 120); const replyToComment = replyToId ? post.comments.find((entry) => entry.id === replyToId) : null;
     if (replyToId && (!replyToComment || String(replyToComment.id) !== String(parentId) && String(replyToComment.parentId || "") !== String(parentId))) return res.status(400).json({ error: "That reply target was not found in this thread." });
-    const comment = { id: randomUUID(), userId: user.id, authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), plan: String(membership?.plan || "free").toLowerCase(), avatarUrl: cleanText(req.body?.avatarUrl || "", 500), parentId, replyToId, replyToName: replyToComment ? cleanText(replyToComment.authorName || "Member", 80) : "", body, createdAt: new Date().toISOString(), reactions: {}, hearted: false };
+    const comment = { id: randomUUID(), userId: user.id, authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), plan: String(membership?.plan || "free").toLowerCase(), avatarUrl: getCommunityAvatarUrl(user), parentId, replyToId, replyToName: replyToComment ? cleanText(replyToComment.authorName || "Member", 80) : "", body, createdAt: new Date().toISOString(), reactions: {}, hearted: false };
     post.comments.push(comment); post.comments = post.comments.slice(-100); writeAIUGCCommunityState(state);
     return res.json({ ok: true, comment });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not post this comment." }); }
