@@ -85,8 +85,6 @@ const STRIPE_PRO_PRODUCT_ID = String(process.env.STRIPE_PRO_PRODUCT_ID || "prod_
 const STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID = String(process.env.STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID || "price_1UB5KVGrZOEMBkuuQa6uAinu").trim();
 const STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID = "price_1UB5XiGrZOEMBkuuO9ptA9mB";
 const STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS = new Set([STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID, STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID].filter(Boolean));
-const STRIPE_DISCORD_BOT_USE_50_OFF_COUPON_ID = String(process.env.STRIPE_DISCORD_BOT_USE_50_OFF_COUPON_ID || "rblxtools-discord-bot-uses-50-off").trim();
-const STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_75_OFF_COUPON_ID = String(process.env.STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_75_OFF_COUPON_ID || "rblxtools-discord-bot-unlimited-annual-75-off").trim();
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "");
 const APP_BASE_URL = String(process.env.APP_BASE_URL || "https://www.rblxtools.net");
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
@@ -4765,37 +4763,6 @@ function buildCouponStatusPayload(promotionCode) {
   };
 }
 
-async function getOrCreateStripePercentOffCoupon({ id, percentOff, name }) {
-  const couponId = String(id || "").trim();
-  const discountPercent = Number(percentOff);
-  if (!couponId || !Number.isFinite(discountPercent) || discountPercent <= 0 || discountPercent >= 100) {
-    const error = new Error("Stripe discount coupon is not configured correctly.");
-    error.statusCode = 500;
-    throw error;
-  }
-
-  try {
-    const existing = await stripeClient.coupons.retrieve(couponId);
-    if (existing && !existing.deleted) {
-      const existingPercent = Number(existing.percent_off);
-      if (existingPercent === discountPercent) return existing.id;
-      const error = new Error("Stripe coupon " + couponId + " is " + existingPercent + "% off, expected " + discountPercent + "% off.");
-      error.statusCode = 500;
-      throw error;
-    }
-  } catch (error) {
-    if (error && error.statusCode !== 404 && error.code !== "resource_missing") throw error;
-  }
-
-  const coupon = await stripeClient.coupons.create({
-    id: couponId,
-    percent_off: discountPercent,
-    duration: "once",
-    name: String(name || discountPercent + "% off").trim(),
-  });
-  return coupon.id;
-}
-
 async function getUsageCounts() {
   try {
     const today = getTodayDate();
@@ -9189,24 +9156,18 @@ app.post("/store/create-discord-bot-use-checkout", async (req, res) => {
       return res.status(400).json({ error: "Choose between 5 and 50,000 uses in 5-use steps." });
     }
     const customerId = await getOrCreateStripeCustomerForUser(user);
-    const normalCents = uses / 5;
-    const discountCoupon = await getOrCreateStripePercentOffCoupon({
-      id: STRIPE_DISCORD_BOT_USE_50_OFF_COUPON_ID,
-      percentOff: 50,
-      name: "RBLXTools Discord Bot Uses - 50% Off",
-    });
+    const discountedCents = Math.max(1, Math.round(uses / 10));
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
       customer: customerId,
       line_items: [{
         price_data: {
           currency: "usd",
-          unit_amount: normalCents,
-          product_data: { name: `RBLXTools Discord Bot - ${uses.toLocaleString("en-US")} Uses`, description: "50% off shared Discord server bot uses. Claim to one server after purchase." },
+          unit_amount: discountedCents,
+          product_data: { name: `RBLXTools Discord Bot - ${uses.toLocaleString("en-US")} Uses (50% Off)`, description: "Discounted shared Discord server bot uses. Claim to one server after purchase." },
         },
         quantity: 1,
       }],
-      discounts: [{ coupon: discountCoupon }],
       success_url: `${getSanitizedAppBaseUrl()}/discord-bot?checkout=uses_success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: getSafeDiscordBotStoreCancelUrl(),
       client_reference_id: user.id,
@@ -9249,21 +9210,28 @@ app.post("/store/create-discord-bot-unlimited-checkout", async (req, res) => {
     const priceId = billingPeriod === "annual" ? STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID : billingPeriod === "monthly" ? STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID : "";
     if (!priceId) return res.status(400).json({ error: "Choose the monthly or annual Unlimited plan." });
     const customerId = await getOrCreateStripeCustomerForUser(user);
-    const annualDiscountCoupon = billingPeriod === "annual"
-      ? await getOrCreateStripePercentOffCoupon({
-          id: STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_75_OFF_COUPON_ID,
-          percentOff: 75,
-          name: "RBLXTools Discord Bot Unlimited Annual - 75% Off",
-        })
-      : "";
+    const unlimitedLineItem = billingPeriod === "annual"
+      ? {
+          price_data: {
+            currency: "usd",
+            unit_amount: 15000,
+            recurring: { interval: "year" },
+            product_data: {
+              name: "RBLXTools Discord Bot Unlimited - Annual (75% Off)",
+              description: "Discounted annual Unlimited Discord bot usage.",
+              metadata: { discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod },
+            },
+          },
+          quantity: 1,
+        }
+      : { price: priceId, quantity: 1 };
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: priceId, quantity: 1 }],
-      ...(annualDiscountCoupon ? { discounts: [{ coupon: annualDiscountCoupon }] } : {}),
+      line_items: [unlimitedLineItem],
       success_url: getSafeDiscordBotStoreSuccessUrl(),
       cancel_url: getSafeDiscordBotStoreCancelUrl(),
-      ...(annualDiscountCoupon ? {} : { allow_promotion_codes: true }),
+      allow_promotion_codes: true,
       client_reference_id: user.id,
       metadata: { appUserId: user.id, productType: "discord_bot_unlimited", billingPeriod },
       subscription_data: { metadata: { appUserId: user.id, discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod } },
