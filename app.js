@@ -7452,7 +7452,9 @@ app.post("/api/ugc/community/:taskId/comments", async (req, res) => {
     if (!findPublicAIUGCItem(taskId)) return res.status(404).json({ error: "This community model is not available." });
     const body = cleanText(req.body?.body, 600); if (!body) return res.status(400).json({ error: "Write a comment before posting." });
     const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId); const membership = await resolveMembershipSnapshot(user);
-    const parentId = cleanText(req.body?.parentId || "", 120); if (parentId && !post.comments.some((entry) => entry.id === parentId)) return res.status(400).json({ error: "That parent comment was not found." });
+    const parentId = cleanText(req.body?.parentId || "", 120); const parentComment = parentId ? post.comments.find((entry) => entry.id === parentId) : null;
+    if (parentId && !parentComment) return res.status(400).json({ error: "That parent comment was not found." });
+    if (parentComment?.parentId) return res.status(400).json({ error: "Replies can only be one level deep." });
     const comment = { id: randomUUID(), userId: user.id, authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), plan: String(membership?.plan || "free").toLowerCase(), avatarUrl: cleanText(req.body?.avatarUrl || "", 500), parentId, body, createdAt: new Date().toISOString(), reactions: {}, hearted: false };
     post.comments.push(comment); post.comments = post.comments.slice(-100); writeAIUGCCommunityState(state);
     return res.json({ ok: true, comment });
