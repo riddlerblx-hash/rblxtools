@@ -9640,7 +9640,7 @@ app.get("/developer-asset", async (_req, res) => {
   });
 });
 
-app.get("/ugc-texture", requireToolAccount, async (req, res) => {
+app.get("/ugc-texture", async (req, res) => {
   const id = String(req.query.id || "").trim();
 
   if (!/^[0-9]+$/.test(id)) {
