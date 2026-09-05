@@ -951,6 +951,16 @@ function getAIUGCCommunityPost(state, taskId) {
   return post;
 }
 
+function syncAIUGCCommunityOwnerEngagement(ownerId, item) {
+  const state = readAIUGCCommunityState();
+  const post = getAIUGCCommunityPost(state, String(item.id));
+  const feedback = ["like", "dislike"].includes(String(item.feedback || "")) ? String(item.feedback) : "";
+  const rating = Math.max(0, Math.min(5, Number(item.rating || 0) || 0));
+  if (feedback) post.votes[String(ownerId)] = feedback;
+  if (rating) post.ratings[String(ownerId)] = rating;
+  writeAIUGCCommunityState(state);
+}
+
 function getPublicAIUGCItems() {
   const users = readPersistentAIUGCHistory().users || {};
   return Object.keys(users).flatMap((userId) => (Array.isArray(users[userId]) ? users[userId] : []).map((item) => ({ ...item, creatorId: userId })))
@@ -7066,7 +7076,11 @@ app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
     const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
     if (task.status === "SUCCEEDED") {
       const existing = getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId);
-      if (existing) updatePersistentAIUGCHistory(user.id, taskId, { status: "SUCCEEDED", thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || existing.thumbnailUrl || "") });
+      if (existing) {
+        const updates = { status: "SUCCEEDED", public: true, creatorName: existing.creatorName || cleanText(user.display_name || user.username || user.email?.split("@")[0] || "RBLXTools creator", 80), creatorAvatarUrl: getCommunityAvatarUrl(user), thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || existing.thumbnailUrl || "") };
+        updatePersistentAIUGCHistory(user.id, taskId, updates);
+        syncAIUGCCommunityOwnerEngagement(user.id, { ...existing, ...updates });
+      }
     }
     return res.json({ ok: true, task: { id: task.id, status: task.status, progress: Number(task.progress || 0), prompt: task.prompt || "", thumbnailUrl: task.alpha_thumbnail_url || task.thumbnail_url || "", modelUrls: task.model_urls || {}, textureUrls: Array.isArray(task.texture_urls) ? task.texture_urls : [], consumedCredits: task.consumed_credits, error: task.task_error && task.task_error.message ? task.task_error.message : "" } });
   } catch (error) {
@@ -7128,6 +7142,7 @@ app.post("/ai/ugc/history", async (req, res) => {
       createdAt: new Date().toISOString(),
     };
     savePersistentAIUGCHistory(user.id, item);
+    syncAIUGCCommunityOwnerEngagement(user.id, item);
     const historyLimit = getAIUGCHistoryLimit(await resolveMembershipSnapshot(user));
     return res.json({ ok: true, item, historyLimit });
   } catch (error) {
@@ -7284,9 +7299,10 @@ function buildAIUGCCommunityItem(item, post, viewer) {
   const votes = Object.values(post.votes);
   const tips = post.tips.reduce((total, tip) => total + Math.max(0, Number(tip?.amount) || 0), 0);
   const viewerId = String(viewer?.id || "");
+  const sharedAvatarUrl = readCommunityProfiles()[String(item.creatorId || "")]?.avatarUrl;
   return {
     id: item.id, title: item.title, thumbnailUrl: item.thumbnailUrl, assetType: item.assetType, textured: item.textured,
-    creatorId: item.creatorId, creatorName: item.creatorName || "RBLXTools creator", createdAt: item.createdAt,
+    creatorId: item.creatorId, creatorName: item.creatorName || "RBLXTools creator", creatorAvatarUrl: cleanText(sharedAvatarUrl || item.creatorAvatarUrl || "", 2000), createdAt: item.createdAt,
     allowDownloads: Boolean(item.allowPublicDownloads), rating: ratings.length ? Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10 : 0,
     ratingCount: ratings.length, likes: votes.filter((vote) => vote === "like").length, dislikes: votes.filter((vote) => vote === "dislike").length,
     views: Object.keys(post.views).length, commentCount: post.comments.length, tipTotal: tips, tipCount: post.tips.length,
@@ -7314,7 +7330,8 @@ app.get("/api/ugc/community/:taskId", async (req, res) => {
   const viewerId = String(viewer?.id || "");
   const followers = state.follows[String(item.creatorId)] && typeof state.follows[String(item.creatorId)] === "object" ? state.follows[String(item.creatorId)] : {};
   const comments = post.comments.map((comment) => ({ ...comment, likes: Object.values(comment.reactions).filter((value) => value === "like").length, dislikes: Object.values(comment.reactions).filter((value) => value === "dislike").length, viewerReaction: viewerId ? String(comment.reactions[viewerId] || "") : "" }));
-  return res.json({ ok: true, item: { ...buildAIUGCCommunityItem(item, post, viewer), comments, pinnedCommentId: post.pinnedCommentId, viewerId, tips: post.tips.slice(-8).reverse(), creator: { id: item.creatorId, name: item.creatorName || "RBLXTools creator", followers: Object.keys(followers).length, isFollowing: Boolean(viewerId && followers[viewerId]) } } });
+  const communityItem = buildAIUGCCommunityItem(item, post, viewer);
+  return res.json({ ok: true, item: { ...communityItem, comments, pinnedCommentId: post.pinnedCommentId, viewerId, tips: post.tips.slice(-8).reverse(), creator: { id: item.creatorId, name: communityItem.creatorName, avatarUrl: communityItem.creatorAvatarUrl, followers: Object.keys(followers).length, isFollowing: Boolean(viewerId && followers[viewerId]) } } });
 });
 
 app.post("/api/ugc/community/:taskId/view", async (req, res) => {
@@ -7467,7 +7484,9 @@ app.post("/ai/ugc/history/:taskId/feedback", async (req, res) => {
     }
     const updates = { feedback: feedback || String(item.feedback || ""), rating: rating || Number(item.rating || 0) };
     updatePersistentAIUGCHistory(user.id, taskId, updates);
-    return res.json({ ok: true, item: { ...item, ...updates } });
+    const updatedItem = { ...item, ...updates };
+    syncAIUGCCommunityOwnerEngagement(user.id, updatedItem);
+    return res.json({ ok: true, item: updatedItem });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not save UGC feedback." });
   }
