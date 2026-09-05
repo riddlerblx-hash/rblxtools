@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UGC - RBLXTools</title>
-  <meta name="description" content="Download supported Roblox UGC OBJ files and related assets with the RBLXTools UGC." />
+  <meta name="description" content="Download supported Roblox UGC models as textured GLB files with RBLXTools." />
   <style>
     html, body { margin: 0; min-height: 100%; color: #ffffff; background: transparent !important; }
     body {
@@ -920,7 +920,7 @@
       <p id="roblox-ugc-subtitle">Preview a textured Roblox model, then choose the export format that fits your workflow.</p>
 
       <div id="plusNotice">
-        Free users can download textured OBJ packages 1 by 1. <span class="plusWord">Plus</span> users can export embedded-texture GLB files and download 2-5 items at a time; <span class="plusWord">Pro</span> users can download 5-10 items at a time.
+        Every member can download a textured GLB one at a time. <span class="plusWord">Plus</span> users can download 2-5 items at a time; <span class="plusWord">Pro</span> users can download 5-10 items at a time.
         <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
       </div>
 
@@ -993,7 +993,6 @@
             <p>RBTools <span class="plus-word">Plus</span> unlocks the premium side of the website with bulk usage upgrades, premium creator tools, cleaner visuals, and extra account cosmetics built for heavy Roblox workflows.</p>
             <div class="perk-list">
               <div class="perk"><strong>Animation Tools</strong><span>Open Animation Tools access as part of your premium tool set.</span></div>
-              <div class="perk"><strong>UGC Texture Baking</strong><span>Unlock texture baking tools for cleaner UGC creator workflows.</span></div>
               <div class="perk"><strong>Bulk actions and faster tool usage</strong><span>Plus supports 2-5 at a time; Pro supports heavier 5-10 item workflows where available.</span></div>
               <div class="perk"><strong>Cool chat tag cosmetic</strong><span>Show off a premium member cosmetic inside the live site chat experience.</span></div>
               <div class="perk"><strong>More premium website feel</strong><span>Get a more polished account-side experience across premium parts of the site.</span></div>
@@ -1466,8 +1465,8 @@
     if (statsPanel) statsPanel.innerHTML = getAssetStatsMarkup(activeSlide);
     const downloadBtn = document.getElementById("downloadBtn");
     if (downloadBtn) {
-      downloadBtn.textContent = currentSlides.length > 1 ? `Download ${currentSlides.length} OBJ Packages` : "Download OBJ Package";
-      downloadBtn.onclick = function () { downloadObjPackages(currentSlides); };
+      downloadBtn.textContent = currentSlides.length > 1 ? `Download ${currentSlides.length} Textured GLBs` : "Download Textured GLB";
+      downloadBtn.onclick = function () { downloadTexturedGlbs(currentSlides); };
     }
     const glbButton = document.getElementById("downloadGlbBtn");
     if (glbButton) {
@@ -1555,10 +1554,9 @@
         <button id="statsForNerdsBtn" type="button" aria-expanded="false" aria-controls="assetStatsPanel">Stats for Nerds</button>
       </div>
       <div id="actionRow">
-        <button id="downloadBtn" type="button">Download OBJ Package</button>
-        <button id="downloadGlbBtn" type="button"><span aria-hidden="true">&#128274;</span><span id="downloadGlbLabel">Download Textured GLB</span><span class="glb-plus-badge">Plus</span></button>
+        <button id="downloadBtn" type="button">Download Textured GLB</button>
       </div>
-      <div class="ugc-export-note"><strong>Choose the right export:</strong> the preview shows the available texture already applied. <strong>OBJ Package (Free)</strong> downloads an OBJ, MTL, and texture image together in a ZIP; keep those files together and, in programs like Blender, manually assign the included texture if it does not load automatically. <strong>Textured GLB (<span class="plusWord">Plus</span>)</strong> keeps the texture and material embedded in one file.</div>
+      <div class="ugc-export-note"><strong>Textured GLB download:</strong> every member receives one ready-to-use GLB with its texture and material embedded.</div>
       <div id="assetStatsPanel" aria-live="polite"></div>
     `;
 
@@ -1628,15 +1626,6 @@
     };
   }
 
-  function buildBakedMtl(textureFileName) {
-    return ["newmtl BakedMaterial", "Ka 1.000000 1.000000 1.000000", "Kd 1.000000 1.000000 1.000000", "Ks 0.000000 0.000000 0.000000", "d 1.0", "illum 2", "map_Kd " + textureFileName].join("\n");
-  }
-
-  function buildBakedObj(objText, mtlFileName) {
-    const cleaned = String(objText || "").replace(/^mtllib\s+.*$/gm, "").replace(/^usemtl\s+.*$/gm, "").trim();
-    return ["mtllib " + mtlFileName, "usemtl BakedMaterial", cleaned, ""].join("\n");
-  }
-
   function downloadBlob(blob, fileName) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -1648,40 +1637,8 @@
     window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }
 
-  async function downloadObjPackage(slide) {
-    const status = document.getElementById("status");
-    if (!slide || !slide.textureBlob || !window.JSZip) {
-      status.className = "error";
-      status.textContent = "The textured OBJ package is not ready yet. Create the preview again.";
-      return;
-    }
-    const baseName = "rblxtools-" + selectedItemMode + "-" + slide.id;
-    const mtlFileName = "baked-material.mtl";
-    const zip = new JSZip();
-    zip.file(baseName + ".obj", buildBakedObj(slide.objText, mtlFileName));
-    zip.file(mtlFileName, buildBakedMtl(slide.textureFileName));
-    zip.file(slide.textureFileName, slide.textureBlob);
-    const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
-    downloadBlob(blob, baseName + "-textured-obj.zip");
-  }
-
-  function downloadObjPackages(slides) {
-    const readySlides = Array.isArray(slides) ? slides.slice() : [];
-    readySlides.forEach(function (slide, index) {
-      window.setTimeout(function () { downloadObjPackage(slide); }, index * 180);
-    });
-  }
-
   async function downloadTexturedGlb(slide, options) {
     const status = document.getElementById("status");
-    const settings = options || {};
-    const hasPlus = settings.hasPlus === true || await fetchPlusStatus({ force: true });
-    if (!hasPlus) {
-      document.getElementById("plusGate").classList.add("open");
-      status.className = "error";
-      status.innerHTML = 'Textured GLB keeps the material embedded and needs <span class="plusWord">Plus</span>.';
-      return;
-    }
     status.className = "";
     status.textContent = "Creating your textured GLB...";
     try {
@@ -1707,16 +1664,8 @@
   async function downloadTexturedGlbs(slides) {
     const readySlides = Array.isArray(slides) ? slides.slice() : [];
     if (!readySlides.length) return;
-    const status = document.getElementById("status");
-    const hasPlus = await fetchPlusStatus({ force: true });
-    if (!hasPlus) {
-      document.getElementById("plusGate").classList.add("open");
-      status.className = "error";
-      status.innerHTML = 'Textured GLB keeps the material embedded and needs <span class="plusWord">Plus</span>.';
-      return;
-    }
     readySlides.forEach(function (slide, index) {
-      window.setTimeout(function () { downloadTexturedGlb(slide, { hasPlus: true }); }, index * 320);
+      window.setTimeout(function () { downloadTexturedGlb(slide); }, index * 320);
     });
   }
 
@@ -1799,7 +1748,7 @@
       const slides = await Promise.all(ids.map((id) => fetchObjAsset(id)));
 
       status.className = "success";
-      status.innerText = ids.length > 1 ? "OBJ assets found ✓ Ready to download" : "OBJ found ✓ Ready to download";
+      status.innerText = ids.length > 1 ? "Models found ✓ Ready for GLB download" : "Model found ✓ Ready for GLB download";
 
       renderSlides(slides);
       rememberToolActivity("UGC");

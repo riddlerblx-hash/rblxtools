@@ -150,6 +150,7 @@ const AI_THUMBNAIL_FREE_REFERENCES = 3;
 const AI_THUMBNAIL_PRO_REFERENCES = 6;
 const PRO_MONTHLY_AI_TOKEN_CREDITS = 20;
 const PRO_ANNUAL_AI_TOKEN_CREDITS = 240;
+const PLUS_SIGNUP_AI_TOKEN_CREDITS = 50;
 const AI_TOKEN_PACKAGES = [
   { key: "20", title: "200 Tokens", tokens: 200, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9siwVVdZ6u716").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_20 || "price_1U9YwwGrZOEMBkuuGypX9VtO").trim() },
   { key: "45", title: "450 Tokens", tokens: 450, priceCents: 599, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
@@ -1437,6 +1438,8 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
               stripe_customer_id: customerId,
             });
           }
+
+          await grantPlusSignupTokensFromStripeCheckout(session);
         }
 
         if (session.payment_status === "paid") {
@@ -3404,6 +3407,19 @@ async function grantProTokensFromStripeInvoice(invoice) {
     }),
   });
 
+  return Number.parseInt(rows, 10) || 0;
+}
+
+async function grantPlusSignupTokensFromStripeCheckout(session) {
+  const sessionId = String(session?.id || "").trim();
+  const userId = String(session?.metadata?.appUserId || "").trim();
+  // Only checkout sessions created after this rollout carry the explicit Plus
+  // marker. The checkout ID also makes webhook retries safe to replay.
+  if (!sessionId || !userId || String(session?.metadata?.plan || "").toLowerCase() !== "plus") return 0;
+  const rows = await supabaseRequest("/rest/v1/rpc/grant_ai_token_purchase", {
+    method: "POST",
+    body: JSON.stringify({ p_session_id: "plus-signup:" + sessionId, p_user_id: userId, p_tokens: PLUS_SIGNUP_AI_TOKEN_CREDITS }),
+  });
   return Number.parseInt(rows, 10) || 0;
 }
 
@@ -9263,12 +9279,14 @@ app.post("/auth/create-checkout-session", async (req, res) => {
       client_reference_id: user.id,
       metadata: {
         appUserId: user.id,
+        plan: "plus",
         billingInterval,
         referralCode,
       },
       subscription_data: {
         metadata: {
           appUserId: user.id,
+          plan: "plus",
         },
       },
     });
@@ -9669,7 +9687,7 @@ app.post("/ugc-bake-glb", async (req, res) => {
   let tempDir = null;
 
   try {
-    await requireActivePlusUser(req);
+    await requireAuthenticatedUser(req);
     const textureAsset = await resolveImageAssetFromRobloxAsset(assetId, { maxDepth: 5 });
 
     if (!textureAsset) {
