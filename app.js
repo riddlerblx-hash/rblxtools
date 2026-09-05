@@ -7405,7 +7405,14 @@ app.get("/api/ugc/community/:taskId", async (req, res) => {
   const followers = state.follows[String(item.creatorId)] && typeof state.follows[String(item.creatorId)] === "object" ? state.follows[String(item.creatorId)] : {};
   const comments = post.comments.map((comment) => ({ ...comment, likes: Object.values(comment.reactions).filter((value) => value === "like").length, dislikes: Object.values(comment.reactions).filter((value) => value === "dislike").length, viewerReaction: viewerId ? String(comment.reactions[viewerId] || "") : "" }));
   const communityItem = buildAIUGCCommunityItem(item, post, viewer);
-  return res.json({ ok: true, item: { ...communityItem, comments, pinnedCommentId: post.pinnedCommentId, viewerId, tips: post.tips.slice(-8).reverse(), creator: { id: item.creatorId, name: communityItem.creatorName, avatarUrl: communityItem.creatorAvatarUrl, followers: Object.keys(followers).length, isFollowing: Boolean(viewerId && followers[viewerId]) } } });
+  const tipLeaderboard = Object.values(post.tips.reduce((leaders, tip) => {
+    const tipperId = String(tip?.userId || tip?.senderName || "anonymous");
+    const current = leaders[tipperId] || { userId: tipperId, name: cleanText(tip?.senderName || "Member", 80), amount: 0 };
+    current.amount += Math.max(0, Number(tip?.amount) || 0);
+    leaders[tipperId] = current;
+    return leaders;
+  }, {})).sort((left, right) => right.amount - left.amount).slice(0, 5);
+  return res.json({ ok: true, item: { ...communityItem, comments, pinnedCommentId: post.pinnedCommentId, viewerId, tips: post.tips.slice(-8).reverse(), tipLeaderboard, creator: { id: item.creatorId, name: communityItem.creatorName, avatarUrl: communityItem.creatorAvatarUrl, followers: Object.keys(followers).length, isFollowing: Boolean(viewerId && followers[viewerId]) } } });
 });
 
 app.post("/api/ugc/community/:taskId/view", async (req, res) => {
