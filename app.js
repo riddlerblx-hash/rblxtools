@@ -119,6 +119,8 @@ const AI_UGC_COMMUNITY_PATH = process.env.AI_UGC_COMMUNITY_PATH || path.join(pro
 const LEGACY_AI_UGC_COMMUNITY_FEEDBACK_PATH = path.join(__dirname, "ai-ugc-community-feedback.json");
 const COMMUNITY_POSTS_PATH = process.env.COMMUNITY_POSTS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-posts.json");
 const LEGACY_COMMUNITY_POSTS_PATH = path.join(__dirname, "community-posts.json");
+const COMMUNITY_PROFILES_PATH = process.env.COMMUNITY_PROFILES_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-profiles.json");
+const COMMUNITY_AVATAR_DIR = process.env.COMMUNITY_AVATAR_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-avatars");
 // Preview tasks are short-lived. Keep the paid generation settings here so a
 // refinement cannot be requested for a different account or without textures.
 const ugcGenerationCharges = new Map();
@@ -992,6 +994,46 @@ function writeCommunityPosts(posts) {
   } catch (error) { console.error("[COMMUNITY] Could not save posts:", error.message); throw error; }
 }
 
+function readCommunityProfiles() {
+  try {
+    fs.mkdirSync(path.dirname(COMMUNITY_PROFILES_PATH), { recursive: true });
+    if (!fs.existsSync(COMMUNITY_PROFILES_PATH)) fs.writeFileSync(COMMUNITY_PROFILES_PATH, "{}\n", { encoding: "utf8", flag: "wx" });
+    const profiles = JSON.parse(fs.readFileSync(COMMUNITY_PROFILES_PATH, "utf8"));
+    return profiles && typeof profiles === "object" ? profiles : {};
+  } catch (error) { console.error("[COMMUNITY] Could not read profile avatars:", error.message); return {}; }
+}
+
+function writeCommunityProfiles(profiles) {
+  fs.mkdirSync(path.dirname(COMMUNITY_PROFILES_PATH), { recursive: true });
+  const tempPath = `${COMMUNITY_PROFILES_PATH}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(profiles) + "\n", "utf8");
+  fs.renameSync(tempPath, COMMUNITY_PROFILES_PATH);
+}
+
+function saveCommunityAvatar(userId, rawAvatarUrl) {
+  const avatarUrl = String(rawAvatarUrl || "").trim();
+  const profiles = readCommunityProfiles();
+  const id = String(userId || "");
+  if (!avatarUrl) { delete profiles[id]; writeCommunityProfiles(profiles); return ""; }
+  if (/^https?:\/\//i.test(avatarUrl)) {
+    profiles[id] = { avatarUrl: cleanText(avatarUrl, 2000), updatedAt: new Date().toISOString() };
+    writeCommunityProfiles(profiles);
+    return profiles[id].avatarUrl;
+  }
+  const match = avatarUrl.match(/^data:image\/(png|jpeg|webp|gif);base64,([a-z0-9+/=\s]+)$/i);
+  if (!match) throw Object.assign(new Error("Choose a PNG, JPEG, WebP, or GIF profile picture."), { statusCode: 400 });
+  const image = Buffer.from(match[2].replace(/\s/g, ""), "base64");
+  if (!image.length || image.length > 5 * 1024 * 1024) throw Object.assign(new Error("Profile pictures must be 5 MB or smaller."), { statusCode: 400 });
+  const extension = match[1].toLowerCase() === "jpeg" ? "jpg" : match[1].toLowerCase();
+  const fileName = `${id.replace(/[^a-zA-Z0-9_-]/g, "_")}.${extension}`;
+  fs.mkdirSync(COMMUNITY_AVATAR_DIR, { recursive: true });
+  fs.writeFileSync(path.join(COMMUNITY_AVATAR_DIR, fileName), image);
+  const publicUrl = `/community-avatars/${encodeURIComponent(fileName)}?v=${Date.now()}`;
+  profiles[id] = { avatarUrl: publicUrl, updatedAt: new Date().toISOString() };
+  writeCommunityProfiles(profiles);
+  return publicUrl;
+}
+
 function buildPublicCommunityPost(post, viewer) {
   const viewerId = String(viewer?.id || "");
   const comments = post.comments.map((comment) => ({ ...comment, likes: Object.values(comment.reactions).filter((value) => value === "like").length, dislikes: Object.values(comment.reactions).filter((value) => value === "dislike").length, viewerReaction: viewerId ? String(comment.reactions[viewerId] || "") : "" }));
@@ -1001,7 +1043,8 @@ function buildPublicCommunityPost(post, viewer) {
 }
 
 function getCommunityAvatarUrl(user) {
-  return cleanText(user?.avatar_url || user?.avatarUrl || user?.user_metadata?.avatar_url || user?.user_metadata?.avatarUrl || user?.raw_user_meta_data?.avatar_url || user?.raw_user_meta_data?.avatarUrl || "", 500);
+  const savedAvatar = readCommunityProfiles()[String(user?.id || "")]?.avatarUrl;
+  return cleanText(savedAvatar || user?.avatar_url || user?.avatarUrl || user?.user_metadata?.avatar_url || user?.user_metadata?.avatarUrl || user?.raw_user_meta_data?.avatar_url || user?.raw_user_meta_data?.avatarUrl || "", 2000);
 }
 
 async function enrichCommunityPostIdentity(post, viewer) {
@@ -7113,6 +7156,14 @@ app.get("/api/community-session", async (req, res) => {
   });
 });
 
+app.post("/api/community-profile", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const avatarUrl = saveCommunityAvatar(user.id, req.body?.avatarUrl);
+    return res.json({ ok: true, avatarUrl });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save this profile picture." }); }
+});
+
 app.get("/api/community-posts", async (req, res) => {
   const viewer = await getOptionalCommunityUser(req);
   const posts = readCommunityPosts().sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
@@ -7191,7 +7242,7 @@ app.post("/api/community-posts/:postId/comments/:commentId", async (req, res) =>
     if (action === "react") { const vote = ["like", "dislike"].includes(String(req.body?.vote || "")) ? String(req.body.vote) : ""; if (!vote) return res.status(400).json({ error: "Choose a reaction." }); if (comment.reactions[user.id] === vote) delete comment.reactions[user.id]; else comment.reactions[user.id] = vote; }
     else if (action === "edit") { if (!isCommentOwner) return res.status(403).json({ error: "Only the comment author can edit it." }); const body = cleanText(req.body?.body, 600); if (!body) return res.status(400).json({ error: "Write a comment before saving." }); comment.body = body; comment.editedAt = new Date().toISOString(); }
     else if (action === "delete") { if (!isCommentOwner && !isPostOwner) return res.status(403).json({ error: "Only the comment author or post owner can delete it." }); post.comments = post.comments.filter((entry) => entry.id !== comment.id && entry.parentId !== comment.id); if (post.pinnedCommentId === comment.id) post.pinnedCommentId = ""; }
-    else if (action === "heart" || action === "pin") { if (!isPostOwner) return res.status(403).json({ error: "Only the post owner can do that." }); if (action === "heart") comment.hearted = !comment.hearted; else post.pinnedCommentId = post.pinnedCommentId === comment.id ? "" : comment.id; }
+    else if (action === "pin") { if (!isPostOwner) return res.status(403).json({ error: "Only the post owner can do that." }); post.pinnedCommentId = post.pinnedCommentId === comment.id ? "" : comment.id; }
     else return res.status(400).json({ error: "Unknown comment action." });
     writeCommunityPosts(posts); return res.json({ ok: true, post: await enrichCommunityPostIdentity(post, user) });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this comment." }); }
@@ -10714,6 +10765,7 @@ function getUsers(room) {
 const STATIC_ROOT = __dirname;
 const AI_RIG_STATIC_ROOT = path.join(__dirname, "assets", "ai-rig");
 
+app.use("/community-avatars", express.static(COMMUNITY_AVATAR_DIR, { fallthrough: true, maxAge: "30d" }));
 
 app.use((req, res, next) => {
   const requestedPath = String(req.path || "");

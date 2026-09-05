@@ -5200,12 +5200,28 @@
     if (shellState.chatAdminButton) {
       shellState.chatAdminButton.addEventListener("click", openAdminWindow);
     }
+    function syncCommunityProfileAvatar(profile) {
+      var activeUserId = shellState.currentUser && shellState.currentUser.userId ? String(shellState.currentUser.userId) : "";
+      if (!activeUserId) return;
+      var identity = profile && typeof profile === "object" ? profile : getSocketChatIdentity();
+      var avatarUrl = String(identity.avatarUrl || "");
+      if (shellState.lastCommunityAvatarUrl === avatarUrl) return;
+      shellState.lastCommunityAvatarUrl = avatarUrl;
+      fetch(API_BASE + "/api/community-profile", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() },
+        body: JSON.stringify({ avatarUrl: avatarUrl })
+      }).catch(function () { shellState.lastCommunityAvatarUrl = null; });
+    }
+
     window.addEventListener("rblxtools-profile-updated", function (event) {
       var detail = event && event.detail ? event.detail : {};
       var activeUserId = shellState.currentUser && shellState.currentUser.userId ? String(shellState.currentUser.userId) : "";
       if (detail.userId && activeUserId && String(detail.userId) !== activeUserId) return;
       refreshCurrentProfile();
       syncChatIdentity();
+      syncCommunityProfileAvatar(detail.profile);
       if (shellState.socket && shellState.socketReady) {
         shellState.socket.emit("join-room", getSocketJoinPayload());
       }
@@ -5234,6 +5250,7 @@
     resolveUserState().then(function (state) {
       shellState.authResolved = true;
       updateAuthUi(state);
+      syncCommunityProfileAvatar();
       refreshSiteMaintenanceState();
       refreshMembershipStateFromServer();
     }).catch(function () {
