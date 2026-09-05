@@ -9147,7 +9147,7 @@ app.post("/discord-bot/service/usage-counter", async (req, res) => {
   }
 });
 
-app.post(["/store/create-discord-bot-use-checkout", "/store/create-discord-bot-use-promo-checkout"], async (req, res) => {
+async function createDiscordBotUseCheckout(req, res) {
   try {
     assertStripePortalConfigured();
     const user = await requireAuthenticatedUser(req);
@@ -9178,7 +9178,10 @@ app.post(["/store/create-discord-bot-use-checkout", "/store/create-discord-bot-u
     console.error("POST /store/create-discord-bot-use-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create the Discord bot use checkout." });
   }
-});
+}
+
+app.post("/store/create-discord-bot-use-checkout", createDiscordBotUseCheckout);
+app.post("/store/create-discord-bot-use-promo-checkout", createDiscordBotUseCheckout);
 
 app.post("/store/confirm-discord-bot-use-checkout", async (req, res) => {
   try {
@@ -9197,7 +9200,7 @@ app.post("/store/confirm-discord-bot-use-checkout", async (req, res) => {
   }
 });
 
-app.post(["/store/create-discord-bot-unlimited-checkout", "/store/create-discord-bot-unlimited-promo-checkout"], async (req, res) => {
+async function createDiscordBotUnlimitedCheckout(req, res) {
   try {
     assertDiscordBotUnlimitedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
@@ -9241,7 +9244,10 @@ app.post(["/store/create-discord-bot-unlimited-checkout", "/store/create-discord
     console.error("POST /store/create-discord-bot-unlimited-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create the Discord Bot Unlimited checkout." });
   }
-});
+}
+
+app.post("/store/create-discord-bot-unlimited-checkout", createDiscordBotUnlimitedCheckout);
+app.post("/store/create-discord-bot-unlimited-promo-checkout", createDiscordBotUnlimitedCheckout);
 
 app.post("/store/confirm-discord-bot-unlimited-checkout", async (req, res) => {
   try {
