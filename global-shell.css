@@ -3823,6 +3823,16 @@ body.rblx-tool-atmosphere {
 }
 body.rblx-tool-atmosphere .rblx-shell { position:relative; z-index:1; }
 
+body.rblx-ugc-studio-page.rblx-tool-atmosphere,
+html:has(body.rblx-ugc-studio-page.rblx-tool-atmosphere) {
+  background-color: #0d111c !important;
+  background-image:
+    radial-gradient(900px 680px at -8% -14%, rgba(46, 66, 139, .32), transparent 67%),
+    radial-gradient(860px 660px at 107% -18%, rgba(62, 88, 158, .24), transparent 67%),
+    radial-gradient(700px 760px at 52% 116%, rgba(36, 58, 106, .18), transparent 73%) !important;
+  background-attachment: fixed !important;
+}
+
 /* Compact, storefront-style memberships. */
 body.rblx-subscription-store .store-kicker { display:block; margin:0 0 12px; color:#82a7ff; font-size:12px; font-weight:900; letter-spacing:.13em; text-transform:uppercase; }
 body.rblx-subscription-store .hero { margin-bottom:30px; text-align:center; }
