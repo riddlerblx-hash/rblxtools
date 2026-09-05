@@ -4062,7 +4062,44 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
   background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
 }
 
-/* Keep AI UGC Studio inside the center website page, not underneath the shell sidebars. */
+/* AI UGC uses a canvas-style workspace; keep the global shell pinned while the studio stays in the center lane. */
+body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+}
+
+body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-body {
+  display: block;
+  min-height: 100vh;
+  padding-top: var(--shell-header-height);
+  padding-left: var(--shell-left-width);
+  padding-right: var(--shell-right-width);
+}
+
+body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-left,
+body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-right {
+  position: fixed;
+  top: var(--shell-header-height);
+  bottom: 0;
+  z-index: 50;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+}
+
+body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-left {
+  left: 0;
+  width: var(--shell-left-width);
+}
+
+body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-right {
+  right: 0;
+  width: var(--shell-right-width);
+}
+
 body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-center,
 body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-page,
 body.rblx-ugc-studio-page.rblx-shell-ready .ugc-studio,
