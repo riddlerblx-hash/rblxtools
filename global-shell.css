@@ -141,7 +141,7 @@ body.rblx-shell-ready {
   top: 0;
   z-index: 30;
   display: grid;
-  grid-template-columns: minmax(220px, auto) minmax(320px, 1fr) auto;
+  grid-template-columns: minmax(220px, auto) minmax(0, 1fr);
   align-items: center;
   gap: 20px;
   min-height: var(--shell-header-height);

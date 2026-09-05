@@ -1619,11 +1619,6 @@
               '<span class="rblx-shell-brand-subtitle">Roblox creator toolkit</span>' +
             "</span>" +
           "</a>" +
-          '<div class="rblx-shell-status" id="rblxShellStatus" data-plan="guest">' +
-            '<span class="rblx-shell-status-pluses" aria-hidden="true">' + buildStatusPlusMarkup() + '</span>' +
-            '<span class="rblx-shell-status-dot"></span>' +
-            '<span class="rblx-shell-status-text" id="rblxShellStatusText">You are browsing this website as a guest.</span>' +
-          "</div>" +
           '<div class="rblx-shell-header-actions">' +
             buildAuthMarkup() +
           "</div>" +
@@ -3743,14 +3738,14 @@
     var auth = document.getElementById("rblxShellAuth");
     var status = document.getElementById("rblxShellStatus");
     var statusText = document.getElementById("rblxShellStatusText");
-    if (!auth || !status || !statusText) return;
+    if (!auth) return;
 
     // Only rebuild the header for real session changes. Profile/name and token
     // refreshes are data updates, not a reason to visibly replace the UI.
     var nextSignature = [Boolean(state.loggedIn), state.userId || "", state.plan || "guest", Boolean(state.isAdmin)].join("|");
     var identityChanged = nextSignature !== shellState.authUiSignature;
-    status.setAttribute("data-plan", state.plan);
-    statusText.textContent = state.message;
+    if (status) status.setAttribute("data-plan", state.plan);
+    if (statusText) statusText.textContent = state.message;
     applyPlanAtmosphere(state.plan);
     shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : null };
     syncAdsterraPopunderForMember(state);

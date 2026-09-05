@@ -2262,7 +2262,6 @@
           } else {
             setStatus(els.acctDiscordLinkStatus, "Not linked yet. Generate a code, then run /link in Discord.", "");
           }
-          if (state.botDashboard) loadBotDashboard();
         } catch (error) {
           setStatus(els.acctDiscordLinkStatus, error.message || "Could not check your Discord link.", "error");
         }
@@ -2782,6 +2781,7 @@
             renderUser(loadedUser);
             if (result.botDashboard) renderBotDashboard({ dashboard: result.botDashboard, inviteUrl: result.botInviteUrl });
             loadAccountTabPreference();
+            loadBotDashboard();
             loadReferralDashboard();
             loadDiscordLinkStatus();
             var checkoutSummary = await loadCheckoutSummary();
