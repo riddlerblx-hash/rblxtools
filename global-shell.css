@@ -4062,40 +4062,17 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
   background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
 }
 
-/* AI UGC has a taller canvas-style workspace, so pin the shared shell to the viewport on that page. */
-body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell {
-  min-height: 100vh;
+/* Keep AI UGC Studio inside the center website page, not underneath the shell sidebars. */
+body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-center,
+body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-page,
+body.rblx-ugc-studio-page.rblx-shell-ready .ugc-studio,
+body.rblx-ugc-studio-page.rblx-shell-ready .ugc-layout {
+  min-width: 0;
+  max-width: 100%;
 }
 
-body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-}
-
-body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-body {
-  padding-top: var(--shell-header-height);
-}
-
-body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-left,
-body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-right {
-  position: fixed;
-  top: var(--shell-header-height);
-  bottom: 0;
-  height: auto;
-  max-height: none;
-  min-height: 0;
-}
-
-body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-left {
-  left: 0;
-  width: var(--shell-left-width);
-}
-
-body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-right {
-  right: 0;
-  width: var(--shell-right-width);
+body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-page {
+  overflow: hidden;
 }
 
 /* Pause transient page toasts while leaving the Notifications inbox intact. */
