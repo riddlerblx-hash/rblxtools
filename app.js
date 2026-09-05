@@ -150,8 +150,8 @@ const AI_THUMBNAIL_FREE_REFERENCES = 3;
 const AI_THUMBNAIL_PRO_REFERENCES = 6;
 const PLUS_MONTHLY_AI_TOKEN_CREDITS = 50;
 const PLUS_ANNUAL_AI_TOKEN_CREDITS = 600;
-const PRO_MONTHLY_AI_TOKEN_CREDITS = 350;
-const PRO_ANNUAL_AI_TOKEN_CREDITS = 4200;
+const PRO_MONTHLY_AI_TOKEN_CREDITS = 200;
+const PRO_ANNUAL_AI_TOKEN_CREDITS = 2400;
 const AI_TOKEN_PACKAGES = [
   { key: "20", title: "200 Tokens", tokens: 200, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9siwVVdZ6u716").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_20 || "price_1U9YwwGrZOEMBkuuGypX9VtO").trim() },
   { key: "45", title: "450 Tokens", tokens: 450, priceCents: 599, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
