@@ -330,7 +330,7 @@ async function storeUGCSourceImage(dataUrl) {
   let type = match[1].toLowerCase();
   // Meshy's multi-image endpoint accepts PNG and JPEG, so normalize WebP uploads.
   if (type === "image/webp") {
-    buffer = await sharp(buffer).jpeg({ quality: 95 }).toBuffer();
+    buffer = await getSharp()(buffer).jpeg({ quality: 95 }).toBuffer();
     type = "image/jpeg";
   }
   const id = randomUUID();
