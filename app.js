@@ -59,7 +59,7 @@ const {
 
 const app = express();
 app.set("trust proxy", 1);
-app.get(["/ai-ugc-studio", "/ai-ugc-studio.html"], (_req, res) => {
+app.get(["/ai-ugc", "/ai-ugc.html", "/ai-ugc-studio", "/ai-ugc-studio.html"], (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   return res.sendFile(path.join(__dirname, "ai-ugc-studio.html"));
 });

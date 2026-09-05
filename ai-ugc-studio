@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="refresh" content="0; url=/ai-ugc-studio.html" />
+  <meta http-equiv="refresh" content="0; url=/ai-ugc.html" />
   <title>AI UGC Studio - RBLXTools</title>
   <script>
-    window.location.replace("/ai-ugc-studio.html" + window.location.search + window.location.hash);
+    window.location.replace("/ai-ugc.html" + window.location.search + window.location.hash);
   </script>
 </head>
 <body>
-  <p><a href="/ai-ugc-studio.html">Open AI UGC Studio</a></p>
+  <p><a href="/ai-ugc.html">Open AI UGC Studio</a></p>
 </body>
 </html>
