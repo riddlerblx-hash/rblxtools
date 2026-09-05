@@ -9214,11 +9214,11 @@ app.post("/store/create-discord-bot-unlimited-checkout", async (req, res) => {
       ? {
           price_data: {
             currency: "usd",
-            unit_amount: 6000,
+            unit_amount: 15000,
             recurring: { interval: "year" },
             product_data: {
               name: "RBLXTools Discord Bot Unlimited - Annual",
-              description: "90% off annual Unlimited Discord bot usage.",
+              description: "75% off annual Unlimited Discord bot usage.",
               metadata: { discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod },
             },
           },
