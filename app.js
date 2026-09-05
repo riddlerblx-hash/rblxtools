@@ -7100,7 +7100,7 @@ app.post("/ai/ugc/refine", async (req, res) => {
     const taskId = task.result || task.id;
     const aiTokens = await debitAITokens(user.id, textureTokenCost);
     tokensDebited = true;
-    ugcGenerationCharges.set(taskId, { ...charge, enablePbr, textureResolution, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
+    ugcGenerationCharges.set(taskId, { ...charge, isRefine: true, enablePbr, textureResolution, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
     persistPendingAIUGCGeneration(user, { taskId, assetType: charge.assetType, inputMode: "text", taskType: "text", prompt: charge.prompt, targetPolycount: charge.targetPolycount, withTexture: true });
     return res.json({ ok: true, taskId, aiTokens, tokenCost: textureTokenCost });
   } catch (error) {
@@ -7122,12 +7122,36 @@ app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
     const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
     if (task.status === "SUCCEEDED") {
       const existing = getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId);
-      if (existing) {
+      const charge = ugcGenerationCharges.get(taskId);
+      // A textured text workflow has an intermediate preview. Save only its
+      // follow-up refinement, but save every completed final task server-side.
+      const isTexturePreview = Boolean(charge?.withTexture && charge?.inputMode === "text" && !charge?.isRefine);
+      if (!isTexturePreview) {
         let storedGlb = Boolean(readStoredAIUGCModel(user.id, taskId));
         if (!storedGlb && task.model_urls?.glb) storedGlb = await storeAIUGCModel(user.id, taskId, task.model_urls.glb);
-        const updates = { status: "SUCCEEDED", public: true, storedGlb, creatorName: existing.creatorName || cleanText(user.display_name || user.username || user.email?.split("@")[0] || "RBLXTools creator", 80), creatorAvatarUrl: getCommunityAvatarUrl(user), thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || existing.thumbnailUrl || "") };
-        updatePersistentAIUGCHistory(user.id, taskId, updates);
-        syncAIUGCCommunityOwnerEngagement(user.id, { ...existing, ...updates });
+        if (!storedGlb) throw new Error("Could not archive the completed GLB.");
+        const item = {
+          ...existing,
+          id: taskId,
+          title: existing?.title || cleanText(charge?.prompt || task.prompt || (taskType === "text" ? "Untitled UGC" : "Image-to-model asset"), 90),
+          assetType: existing?.assetType || charge?.assetType || (String(req.query.assetType || "") === "game" ? "game" : "ugc"),
+          inputMode: existing?.inputMode || charge?.inputMode || (taskType === "text" ? "text" : "image"),
+          taskType: existing?.taskType || charge?.taskType || taskType,
+          targetPolycount: existing?.targetPolycount || charge?.targetPolycount || 4000,
+          textured: existing?.textured ?? Boolean(charge?.withTexture),
+          thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || existing?.thumbnailUrl || ""),
+          storedGlb,
+          feedback: String(existing?.feedback || ""),
+          rating: Number(existing?.rating || 0),
+          creatorName: existing?.creatorName || cleanText(user.display_name || user.username || user.email?.split("@")[0] || "RBLXTools creator", 80),
+          creatorAvatarUrl: existing?.creatorAvatarUrl || getCommunityAvatarUrl(user),
+          public: true,
+          allowPublicDownloads: Boolean(existing?.allowPublicDownloads),
+          createdAt: existing?.createdAt || new Date().toISOString(),
+          status: "SUCCEEDED",
+        };
+        savePersistentAIUGCHistory(user.id, item);
+        syncAIUGCCommunityOwnerEngagement(user.id, item);
       }
     }
     return res.json({ ok: true, task: { id: task.id, status: task.status, progress: Number(task.progress || 0), prompt: task.prompt || "", thumbnailUrl: task.alpha_thumbnail_url || task.thumbnail_url || "", modelUrls: task.model_urls || {}, textureUrls: Array.isArray(task.texture_urls) ? task.texture_urls : [], consumedCredits: task.consumed_credits, error: task.task_error && task.task_error.message ? task.task_error.message : "" } });
