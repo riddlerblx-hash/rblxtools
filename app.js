@@ -6622,6 +6622,26 @@ app.get("/referrals/me", async (req, res) => {
   }
 });
 
+app.get("/referrals/lookup", async (req, res) => {
+  try {
+    const code = normalizeReferralCode(req.query?.code);
+    if (!code) return res.json({ ok: true, valid: false });
+    const state = readReferralProgram();
+    const referral = state.referrals.find((entry) => entry.code === code);
+    if (!referral) return res.json({ ok: true, valid: false, code });
+    const referrer = await getAuthUserById(referral.userId).catch(() => null);
+    return res.json({
+      ok: true,
+      valid: true,
+      code,
+      commissionRate: REFERRAL_COMMISSION_RATE * 100,
+      referrerName: referrer ? getActionTargetLabel(referrer) : "a RBLXTools creator",
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load affiliate details." });
+  }
+});
+
 app.post("/referrals/request-payout", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
@@ -9208,6 +9228,7 @@ async function createDiscordBotUseCheckout(req, res) {
     }
     const customerId = await getOrCreateStripeCustomerForUser(user);
     const checkoutCents = Math.max(1, Math.round(uses / 5));
+    const referralCode = normalizeReferralCode(req.body?.referralCode);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
       customer: customerId,
@@ -9220,8 +9241,9 @@ async function createDiscordBotUseCheckout(req, res) {
         quantity: 1,
       }],
       ...buildCheckoutReturnOptions(req, `${getSanitizedAppBaseUrl()}/discord-bot?checkout=uses_success&session_id={CHECKOUT_SESSION_ID}`, getSafeDiscordBotStoreCancelUrl()),
+      allow_promotion_codes: true,
       client_reference_id: user.id,
-      metadata: { appUserId: user.id, productType: "discord_bot_uses", discordBotUses: String(uses) },
+      metadata: { appUserId: user.id, productType: "discord_bot_uses", discordBotUses: String(uses), referralCode },
     });
     return res.json({ ok: true, url: checkoutSession.url, clientSecret: checkoutSession.client_secret || null });
   } catch (error) {
@@ -9264,6 +9286,7 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
     if (!priceId) return res.status(400).json({ error: "Choose the monthly or annual Unlimited plan." });
     const customerId = await getOrCreateStripeCustomerForUser(user);
     const unlimitedLineItem = { price: priceId, quantity: 1 };
+    const referralCode = normalizeReferralCode(req.body?.referralCode);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
@@ -9271,8 +9294,8 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
       ...buildCheckoutReturnOptions(req, getSafeDiscordBotStoreSuccessUrl(), getSafeDiscordBotStoreCancelUrl()),
       allow_promotion_codes: true,
       client_reference_id: user.id,
-      metadata: { appUserId: user.id, productType: "discord_bot_unlimited", billingPeriod },
-      subscription_data: { metadata: { appUserId: user.id, discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod } },
+      metadata: { appUserId: user.id, productType: "discord_bot_unlimited", billingPeriod, referralCode },
+      subscription_data: { metadata: { appUserId: user.id, discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod, referralCode } },
     });
     return res.json({ ok: true, url: checkoutSession.url, clientSecret: checkoutSession.client_secret || null });
   } catch (error) {
