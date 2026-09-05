@@ -855,6 +855,14 @@ function updatePersistentAIUGCHistory(userId, taskId, updates) {
   writePersistentAIUGCHistory(payload);
 }
 
+function deletePersistentAIUGCHistory(userId, taskId) {
+  const payload = readPersistentAIUGCHistory();
+  const key = String(userId);
+  const previous = Array.isArray(payload.users[key]) ? payload.users[key] : [];
+  payload.users[key] = previous.filter((item) => String(item?.id) !== String(taskId));
+  writePersistentAIUGCHistory(payload);
+}
+
 function getUGCTaskPath(taskType) {
   return taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
 }
@@ -7050,12 +7058,16 @@ app.post("/ai/ugc/refine", async (req, res) => {
 
 app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
   try {
-    await requireAdminUser(req);
+    const user = await requireAdminUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const requestedType = String(req.query.type || "text");
     const taskType = ["image", "multi"].includes(requestedType) ? requestedType : "text";
     const taskPath = taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
     const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
+    if (task.status === "SUCCEEDED") {
+      const existing = getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId);
+      if (existing) updatePersistentAIUGCHistory(user.id, taskId, { status: "SUCCEEDED", thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || existing.thumbnailUrl || "") });
+    }
     return res.json({ ok: true, task: { id: task.id, status: task.status, progress: Number(task.progress || 0), prompt: task.prompt || "", thumbnailUrl: task.alpha_thumbnail_url || task.thumbnail_url || "", modelUrls: task.model_urls || {}, textureUrls: Array.isArray(task.texture_urls) ? task.texture_urls : [], consumedCredits: task.consumed_credits, error: task.task_error && task.task_error.message ? task.task_error.message : "" } });
   } catch (error) {
     console.error("GET /ai/ugc/tasks failed:", error.message);
@@ -7120,6 +7132,17 @@ app.post("/ai/ugc/history", async (req, res) => {
     return res.json({ ok: true, item, historyLimit });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not save UGC history." });
+  }
+});
+
+app.delete("/ai/ugc/history/:taskId", async (req, res) => {
+  try {
+    const user = await requireAdminUser(req);
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    deletePersistentAIUGCHistory(user.id, taskId);
+    return res.json({ ok: true, taskId });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete this saved generation." });
   }
 });
 
@@ -7420,8 +7443,28 @@ app.post("/ai/ugc/history/:taskId/feedback", async (req, res) => {
     const feedback = ["like", "dislike"].includes(String(req.body?.feedback || "")) ? String(req.body.feedback) : "";
     const rating = Math.max(0, Math.min(5, Number.parseInt(req.body?.rating, 10) || 0));
     if (!feedback && !rating) return res.status(400).json({ error: "Choose feedback or a star rating." });
-    const item = getPersistentAIUGCHistory(user.id).find((entry) => String(entry.id) === taskId);
-    if (!item) return res.status(404).json({ error: "Save this generation before rating it." });
+    let item = getPersistentAIUGCHistory(user.id).find((entry) => String(entry.id) === taskId);
+    if (!item) {
+      const charge = ugcGenerationCharges.get(taskId);
+      if (charge && charge.userId !== user.id) return res.status(403).json({ error: "This UGC generation belongs to another account." });
+      const requestedType = String(req.body?.taskType || "text");
+      const taskType = charge ? (charge.taskType === "multi" ? "multi" : charge.inputMode === "image" ? "image" : "text") : (["image", "multi"].includes(requestedType) ? requestedType : "text");
+      const taskPath = getUGCTaskPath(taskType);
+      const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
+      if (task.status !== "SUCCEEDED") return res.status(409).json({ error: "This generation is still finishing. Please try the rating again in a moment." });
+      item = {
+        id: taskId,
+        title: cleanText(req.body?.title || charge?.prompt || task.prompt || (taskType === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
+        assetType: charge?.assetType || (String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc"),
+        inputMode: charge?.inputMode || (taskType === "text" ? "text" : "image"), taskType,
+        targetPolycount: charge?.targetPolycount || Number.parseInt(req.body?.targetPolycount, 10) || 4000,
+        textured: charge ? Boolean(charge.withTexture) : Boolean(req.body?.textured),
+        thumbnailUrl: String(task.alpha_thumbnail_url || task.thumbnail_url || ""), feedback: "", rating: 0,
+        creatorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "RBLXTools creator", 80),
+        public: true, allowPublicDownloads: false, createdAt: new Date().toISOString(),
+      };
+      savePersistentAIUGCHistory(user.id, item);
+    }
     const updates = { feedback: feedback || String(item.feedback || ""), rating: rating || Number(item.rating || 0) };
     updatePersistentAIUGCHistory(user.id, taskId, updates);
     return res.json({ ok: true, item: { ...item, ...updates } });
