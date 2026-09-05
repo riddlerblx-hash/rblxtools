@@ -94,6 +94,7 @@ const MODERATION_ACTIONS_TABLE = process.env.MODERATION_ACTIONS_TABLE || "member
 const DEVICE_LINKS_TABLE = process.env.DEVICE_LINKS_TABLE || "member_device_links";
 const AUTH_JWT_SECRET = String(process.env.AUTH_JWT_SECRET || "");
 const STRIPE_SECRET_KEY = String(process.env.STRIPE_SECRET_KEY || "");
+const STRIPE_PUBLISHABLE_KEY = String(process.env.STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLIC_KEY || process.env.STRIPE_PK || "").trim();
 const STRIPE_PRICE_ID = String(process.env.STRIPE_PRICE_ID || "");
 const STRIPE_PRO_PRODUCT_ID = String(process.env.STRIPE_PRO_PRODUCT_ID || "prod_V9rw4G9vIzpnZb").trim();
 const STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID = String(process.env.STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID || "price_1UB5KVGrZOEMBkuuQa6uAinu").trim();
@@ -1648,6 +1649,23 @@ function getSafeDiscordBotStoreCancelUrl() {
   return `${getSanitizedAppBaseUrl()}/discord-bot?checkout=cancelled`;
 }
 
+function wantsEmbeddedCheckout(req) {
+  return req.body?.embedded === true || String(req.body?.checkoutMode || "").toLowerCase() === "embedded";
+}
+
+function buildCheckoutReturnOptions(req, successUrl, cancelUrl) {
+  if (!wantsEmbeddedCheckout(req)) {
+    return {
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    };
+  }
+  return {
+    ui_mode: "embedded",
+    return_url: successUrl,
+  };
+}
+
 function assertStripePortalConfigured() {
   if (!STRIPE_SECRET_KEY || !stripeClient) {
     const error = new Error("Stripe customer portal is not configured.");
@@ -1661,6 +1679,15 @@ function assertStripeCheckoutConfigured() {
 
   if (!STRIPE_PRICE_ID) {
     const error = new Error("Stripe checkout is not configured.");
+    error.statusCode = 500;
+    throw error;
+  }
+}
+
+function assertStripeEmbeddedCheckoutConfigured() {
+  assertStripePortalConfigured();
+  if (!STRIPE_PUBLISHABLE_KEY) {
+    const error = new Error("Stripe embedded checkout is missing the publishable key.");
     error.statusCode = 500;
     throw error;
   }
@@ -6577,6 +6604,15 @@ app.get("/auth/google/config", (_req, res) => {
   });
 });
 
+app.get("/stripe/config", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({
+    ok: true,
+    publishableKey: STRIPE_PUBLISHABLE_KEY || null,
+    embeddedCheckoutEnabled: Boolean(STRIPE_PUBLISHABLE_KEY && stripeClient),
+  });
+});
+
 app.get("/referrals/me", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
@@ -8945,6 +8981,7 @@ app.get("/admin/staff-notes", async (req, res) => {
 app.post("/store/create-ai-token-checkout", async (req, res) => {
   try {
     assertStripePortalConfigured();
+    if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const packageDefinition = getAITokenPackage(req.body?.packageKey);
     if (!packageDefinition) {
@@ -8961,8 +8998,7 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
       mode: "payment",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: getSafeAiTokenStoreSuccessUrl(),
-      cancel_url: getSafeAiTokenStoreCancelUrl(),
+      ...buildCheckoutReturnOptions(req, getSafeAiTokenStoreSuccessUrl(), getSafeAiTokenStoreCancelUrl()),
       allow_promotion_codes: true,
       client_reference_id: user.id,
       metadata: {
@@ -8973,7 +9009,7 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
       },
     });
 
-    return res.json({ ok: true, url: checkoutSession.url });
+    return res.json({ ok: true, url: checkoutSession.url, clientSecret: checkoutSession.client_secret || null });
   } catch (error) {
     console.error("POST /store/create-ai-token-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({
@@ -9164,6 +9200,7 @@ app.post("/discord-bot/service/usage-counter", async (req, res) => {
 async function createDiscordBotUseCheckout(req, res) {
   try {
     assertStripePortalConfigured();
+    if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const uses = Number.parseInt(req.body?.uses, 10);
     if (!Number.isFinite(uses) || uses < 5 || uses > 50000 || uses % 5 !== 0) {
@@ -9182,12 +9219,11 @@ async function createDiscordBotUseCheckout(req, res) {
         },
         quantity: 1,
       }],
-      success_url: `${getSanitizedAppBaseUrl()}/discord-bot?checkout=uses_success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: getSafeDiscordBotStoreCancelUrl(),
+      ...buildCheckoutReturnOptions(req, `${getSanitizedAppBaseUrl()}/discord-bot?checkout=uses_success&session_id={CHECKOUT_SESSION_ID}`, getSafeDiscordBotStoreCancelUrl()),
       client_reference_id: user.id,
       metadata: { appUserId: user.id, productType: "discord_bot_uses", discordBotUses: String(uses) },
     });
-    return res.json({ ok: true, url: checkoutSession.url });
+    return res.json({ ok: true, url: checkoutSession.url, clientSecret: checkoutSession.client_secret || null });
   } catch (error) {
     console.error("POST /store/create-discord-bot-use-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create the Discord bot use checkout." });
@@ -9216,6 +9252,7 @@ app.post("/store/confirm-discord-bot-use-checkout", async (req, res) => {
 async function createDiscordBotUnlimitedCheckout(req, res) {
   try {
     assertDiscordBotUnlimitedCheckoutConfigured();
+    if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const existingSubscription = await getUnlimitedSubscription(user.id);
     if (isUnlimitedActive(existingSubscription)) {
@@ -9231,14 +9268,13 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
       mode: "subscription",
       customer: customerId,
       line_items: [unlimitedLineItem],
-      success_url: getSafeDiscordBotStoreSuccessUrl(),
-      cancel_url: getSafeDiscordBotStoreCancelUrl(),
+      ...buildCheckoutReturnOptions(req, getSafeDiscordBotStoreSuccessUrl(), getSafeDiscordBotStoreCancelUrl()),
       allow_promotion_codes: true,
       client_reference_id: user.id,
       metadata: { appUserId: user.id, productType: "discord_bot_unlimited", billingPeriod },
       subscription_data: { metadata: { appUserId: user.id, discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod } },
     });
-    return res.json({ ok: true, url: checkoutSession.url });
+    return res.json({ ok: true, url: checkoutSession.url, clientSecret: checkoutSession.client_secret || null });
   } catch (error) {
     console.error("POST /store/create-discord-bot-unlimited-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create the Discord Bot Unlimited checkout." });
@@ -9278,6 +9314,7 @@ app.post("/store/confirm-discord-bot-unlimited-checkout", async (req, res) => {
 app.post("/auth/create-checkout-session", async (req, res) => {
     try {
     assertStripeCheckoutConfigured();
+    if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const customerId = await getOrCreateStripeCustomerForUser(user);
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
@@ -9293,8 +9330,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url: getSafeCheckoutSuccessUrl(),
-      cancel_url: getSafeCheckoutCancelUrl(),
+      ...buildCheckoutReturnOptions(req, getSafeCheckoutSuccessUrl(), getSafeCheckoutCancelUrl()),
       allow_promotion_codes: true,
       client_reference_id: user.id,
       metadata: {
@@ -9315,6 +9351,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
     return res.json({
       ok: true,
       url: checkoutSession.url,
+      clientSecret: checkoutSession.client_secret || null,
     });
   } catch (error) {
     console.error("POST /auth/create-checkout-session failed:", error.message);
@@ -9327,6 +9364,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
 app.post("/auth/create-pro-checkout-session", async (req, res) => {
   try {
     assertStripePortalConfigured();
+    if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const customerId = await getOrCreateStripeCustomerForUser(user);
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
@@ -9336,14 +9374,13 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: getSafeCheckoutSuccessUrl(),
-      cancel_url: getSafeCheckoutCancelUrl(),
+      ...buildCheckoutReturnOptions(req, getSafeCheckoutSuccessUrl(), getSafeCheckoutCancelUrl()),
       allow_promotion_codes: true,
       client_reference_id: user.id,
       metadata: { appUserId: user.id, plan: "pro", billingInterval, referralCode },
       subscription_data: { metadata: { appUserId: user.id, plan: "pro", billingInterval } },
     });
-    return res.json({ ok: true, url: checkoutSession.url });
+    return res.json({ ok: true, url: checkoutSession.url, clientSecret: checkoutSession.client_secret || null });
   } catch (error) {
     console.error("POST /auth/create-pro-checkout-session failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create a Pro checkout session." });

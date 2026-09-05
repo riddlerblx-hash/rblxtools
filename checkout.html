@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout - RBLXTools</title>
+  <meta name="description" content="Complete your RBLXTools purchase securely." />
+  <link rel="stylesheet" href="./global-shell.css?v=20260901-2" />
+  <link rel="stylesheet" href="./mobile-overrides.css?v=20260831-2" />
+  <style>
+    :root { --ink:#f6f8ff; --muted:#9fb0c8; --panel:#101b31; --line:rgba(129,169,255,.25); --aqua:#55e6dc; --blue:#71a5ff; --coral:#ff5c67; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:radial-gradient(circle at 16% 12%,rgba(73,119,255,.16),transparent 30%),radial-gradient(circle at 80% 34%,rgba(85,230,220,.1),transparent 28%),#070d18; font-family:Arial,sans-serif; }
+    .checkout-page { min-height:100vh; padding:58px 18px 90px; }
+    .checkout-wrap { width:min(1040px,100%); margin:0 auto; }
+    .checkout-hero { margin:0 auto 22px; text-align:center; }
+    .eyebrow { margin:0 0 10px; color:var(--aqua); font-size:11px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; }
+    h1 { margin:0; font:900 clamp(36px,6vw,66px)/.92 Georgia,serif; letter-spacing:-.055em; }
+    .checkout-copy { width:min(620px,100%); margin:14px auto 0; color:var(--muted); font-size:14px; font-weight:700; line-height:1.55; }
+    .checkout-shell { overflow:hidden; border:1px solid var(--line); border-radius:24px; background:linear-gradient(155deg,rgba(24,38,66,.96),rgba(8,15,27,.98)); box-shadow:0 28px 70px rgba(0,0,0,.28); }
+    .checkout-top { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:16px 18px; border-bottom:1px solid rgba(129,169,255,.18); color:#d7e6ff; font-size:12px; font-weight:900; }
+    .checkout-pill { padding:7px 10px; border:1px solid rgba(85,230,220,.35); border-radius:999px; color:#bffdf8; background:rgba(85,230,220,.09); text-transform:uppercase; letter-spacing:.6px; }
+    #checkout { min-height:620px; padding:14px; }
+    .checkout-status { padding:42px 18px; color:#cbd8ed; font-size:14px; font-weight:800; line-height:1.5; text-align:center; }
+    .checkout-status strong { display:block; margin-bottom:8px; color:#fff; font:900 24px/1.1 Georgia,serif; }
+    .checkout-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:17px; }
+    .checkout-actions a, .checkout-actions button { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:0 15px; border:0; border-radius:12px; color:#07121a; background:linear-gradient(135deg,var(--aqua),var(--blue)); font:900 12px Arial,sans-serif; text-decoration:none; cursor:pointer; }
+    .checkout-actions .secondary { color:#d7e6ff; background:rgba(255,255,255,.08); border:1px solid rgba(129,169,255,.24); }
+    @media (max-width:720px) { .checkout-page { padding:36px 12px 78px; } .checkout-shell { border-radius:18px; } #checkout { min-height:560px; padding:8px; } .checkout-top { align-items:flex-start; flex-direction:column; } }
+  </style>
+</head>
+<body class="rblx-shell-page rblx-tool-atmosphere">
+  <main class="checkout-page">
+    <div class="checkout-wrap">
+      <header class="checkout-hero">
+        <p class="eyebrow">RBLXTools Checkout</p>
+        <h1>Secure checkout, right here.</h1>
+        <p class="checkout-copy">Complete your purchase without leaving RBLXTools. Payment fields are securely handled by Stripe in the embedded checkout.</p>
+      </header>
+      <section class="checkout-shell" aria-label="Secure Stripe checkout">
+        <div class="checkout-top">
+          <span id="checkoutTitle">Preparing checkout...</span>
+          <span class="checkout-pill">Powered by Stripe</span>
+        </div>
+        <div id="checkout"><div class="checkout-status"><strong>Loading checkout...</strong><span>Please wait while we prepare your secure payment session.</span></div></div>
+      </section>
+    </div>
+  </main>
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="./global-shell.js?v=20260905-plus30"></script>
+  <script>
+    (function () {
+      var checkoutHost = document.getElementById("checkout");
+      var title = document.getElementById("checkoutTitle");
+      var params = new URLSearchParams(window.location.search);
+      var stripeCheckout = null;
+
+      function getToken() {
+        try { return localStorage.getItem("rblxtools_auth_token") || ""; } catch (_) { return ""; }
+      }
+
+      function showError(message, fallbackUrl) {
+        checkoutHost.innerHTML = '<div class="checkout-status"><strong>Checkout could not load.</strong><span>' + escapeHtml(message || "Please try again.") + '</span><div class="checkout-actions">' + (fallbackUrl ? '<a href="' + encodeURI(fallbackUrl) + '">Open Stripe checkout</a>' : '') + '<a class="secondary" href="./subscriptions">Back to plans</a></div></div>';
+      }
+
+      function escapeHtml(value) {
+        return String(value || "").replace(/[&<>"']/g, function (char) {
+          return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char];
+        });
+      }
+
+      async function postJson(endpoint, body, embedded) {
+        var response = await fetch(endpoint, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() },
+          body: JSON.stringify(Object.assign({}, body, { embedded: embedded !== false }))
+        });
+        var payload = await response.json().catch(function () { return null; });
+        if (!response.ok || !payload) throw new Error(payload && payload.error || "Could not create checkout.");
+        return payload;
+      }
+
+      function buildCheckoutRequest() {
+        var type = String(params.get("type") || "membership").toLowerCase();
+        var billingInterval = String(params.get("billingInterval") || params.get("billing") || "month").toLowerCase() === "year" || String(params.get("billingPeriod") || "").toLowerCase() === "annual" ? "year" : "month";
+        var referralCode = params.get("referralCode") || "";
+        if (type === "ai-tokens") {
+          title.textContent = "AI token pack";
+          return { endpoint: "/store/create-ai-token-checkout", body: { packageKey: params.get("packageKey") || "", referralCode: referralCode }, fallback: "./ai-tokens" };
+        }
+        if (type === "discord-uses") {
+          title.textContent = "Discord bot server uses";
+          return { endpoint: "/store/create-discord-bot-use-checkout", body: { uses: Number(params.get("uses") || 0) }, fallback: "./discord-bot" };
+        }
+        if (type === "discord-unlimited") {
+          title.textContent = "Discord Bot Unlimited";
+          return { endpoint: "/store/create-discord-bot-unlimited-checkout", body: { billingPeriod: billingInterval === "year" ? "annual" : "monthly" }, fallback: "./discord-bot" };
+        }
+        var plan = String(params.get("plan") || "plus").toLowerCase() === "pro" ? "pro" : "plus";
+        title.textContent = plan === "pro" ? "RBLXTools Pro" : "RBLXTools Plus";
+        return { endpoint: plan === "pro" ? "/auth/create-pro-checkout-session" : "/auth/create-checkout-session", body: { billingInterval: billingInterval, referralCode: referralCode }, fallback: "./subscriptions" };
+      }
+
+      async function init() {
+        try {
+          var configResponse = await fetch("/stripe/config", { credentials: "include", cache: "no-store" });
+          var config = await configResponse.json().catch(function () { return null; });
+          var request = buildCheckoutRequest();
+          if (!configResponse.ok || !config || !config.embeddedCheckoutEnabled || !config.publishableKey || !window.Stripe) {
+            var fallbackSession = await postJson(request.endpoint, request.body, false);
+            if (fallbackSession && fallbackSession.url) {
+              window.location.href = fallbackSession.url;
+              return;
+            }
+            throw new Error("Embedded checkout is not configured yet.");
+          }
+          var session = await postJson(request.endpoint, request.body, true);
+          if (!session.clientSecret) {
+            if (session.url) window.location.href = session.url;
+            else throw new Error("Stripe did not return an embedded checkout session.");
+            return;
+          }
+          var stripe = Stripe(config.publishableKey);
+          stripeCheckout = await stripe.initEmbeddedCheckout({
+            fetchClientSecret: function () { return Promise.resolve(session.clientSecret); }
+          });
+          checkoutHost.innerHTML = "";
+          stripeCheckout.mount("#checkout");
+        } catch (error) {
+          showError(error.message || "Could not load checkout.");
+        }
+      }
+
+      window.addEventListener("pagehide", function () {
+        if (stripeCheckout && stripeCheckout.destroy) stripeCheckout.destroy();
+      });
+      init();
+    }());
+  </script>
+</body>
+</html>
