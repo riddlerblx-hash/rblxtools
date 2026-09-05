@@ -1065,7 +1065,7 @@ async function enrichCommunityPostIdentity(post, viewer) {
     authorPlan: author?.plan || "free",
     comments: publicPost.comments.map((comment) => {
       const profile = profiles.get(String(comment.userId || ""));
-      return { ...comment, authorName: profile?.name || comment.authorName, avatarUrl: comment.avatarUrl || profile?.avatarUrl || "", plan: profile?.plan || comment.plan || "free" };
+      return { ...comment, authorName: profile?.name || comment.authorName, avatarUrl: profile?.avatarUrl || comment.avatarUrl || "", plan: profile?.plan || comment.plan || "free" };
     }),
   };
 }

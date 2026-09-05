@@ -2867,16 +2867,30 @@
         }
       }
 
-      function saveProfileChanges() {
+      async function syncCommunityProfileAvatar() {
+        if (!state.user || !state.user.id) return;
+        await apiRequest("/api/community-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ avatarUrl: String(state.profile.avatarUrl || "") })
+        });
+      }
+
+      async function saveProfileChanges() {
         state.profile.displayName = els.acctDisplayNameInput.value.trim();
         state.profile.bio = String((els.acctBioInput && els.acctBioInput.value) || "").trim().slice(0, 150);
         saveProfile();
         renderProfilePresentation();
         broadcastProfileUpdate();
-        setStatus(els.acctProfileStatus, "Profile saved.", "success");
+        try {
+          await syncCommunityProfileAvatar();
+          setStatus(els.acctProfileStatus, "Profile saved. Your community avatar is now shared with everyone.", "success");
+        } catch (error) {
+          setStatus(els.acctProfileStatus, "Profile saved locally, but the shared community avatar could not sync. Please try saving again.", "error");
+        }
       }
 
-      function clearProfileChanges() {
+      async function clearProfileChanges() {
         state.profile = {
           displayName: "",
           bio: "",
@@ -2889,7 +2903,12 @@
         saveProfile();
         renderProfilePresentation();
         broadcastProfileUpdate();
-        setStatus(els.acctProfileStatus, "Profile customization cleared. The shell and live chat returned to the default account identity.", "success");
+        try {
+          await syncCommunityProfileAvatar();
+          setStatus(els.acctProfileStatus, "Profile customization cleared. The shell and live chat returned to the default account identity.", "success");
+        } catch (error) {
+          setStatus(els.acctProfileStatus, "Profile customization cleared locally, but the shared community avatar could not sync. Please try again.", "error");
+        }
       }
 
       function applyAvatarFile(file) {
