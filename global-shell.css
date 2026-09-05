@@ -4062,6 +4062,19 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
   background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
 }
 
+/* Pause transient page toasts while leaving the Notifications inbox intact. */
+body.rblx-shell-page .ugc-toast,
+body.rblx-shell-page .ai-assets-notice,
+body.rblx-shell-page .rblx-toast,
+body.rblx-shell-page .rblx-transient-notice,
+body.rblx-shell-page .toast,
+body.rblx-shell-page .notice.is-visible,
+body.rblx-shell-page .notice.show,
+body.rblx-shell-page .notice[role="status"],
+body.rblx-shell-page .notice[aria-live="polite"] {
+  display: none !important;
+}
+
 .rblx-tool-banner-ad,
 .rblx-tool-header-banner-ad,
 .rblx-store-footer-banner-ad,
