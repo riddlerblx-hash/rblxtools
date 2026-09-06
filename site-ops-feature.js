@@ -167,6 +167,16 @@ function isMaintenanceAllowedPath(pathname) {
     value.startsWith("/admin/") ||
     value.startsWith("/socket.io/") ||
     value.startsWith("/assets/") ||
+    value === "/checkout" ||
+    value === "/checkout.html" ||
+    value === "/stripe/config" ||
+    value === "/store/create-ai-token-checkout" ||
+    value === "/store/confirm-ai-token-checkout" ||
+    value === "/store/create-discord-bot-use-checkout" ||
+    value === "/store/confirm-discord-bot-use-checkout" ||
+    value === "/store/create-discord-bot-unlimited-checkout" ||
+    value === "/store/confirm-discord-bot-unlimited-checkout" ||
+    value === "/referrals/lookup" ||
     value === "/favicon.ico" ||
     value === "/robots.txt" ||
     value === "/sitemap.xml" ||
