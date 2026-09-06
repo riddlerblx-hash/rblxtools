@@ -177,10 +177,15 @@
         if (window.__RBLXTOOLS_CHECKOUT_CONFIG__ && window.__RBLXTOOLS_CHECKOUT_CONFIG__.publishableKey) {
           return window.__RBLXTOOLS_CHECKOUT_CONFIG__;
         }
-        var response = await fetch("/stripe/config", { credentials: "include", cache: "no-store" });
-        var payload = parseJsonResponseText(await response.text().catch(function () { return ""; }));
-        if (!response.ok || !payload) return null;
-        return payload;
+        var endpoints = ["/stripe/config", "/auth/stripe/config", "/auth/session?stripeConfig=1"];
+        for (var index = 0; index < endpoints.length; index += 1) {
+          try {
+            var response = await fetch(endpoints[index], { credentials: "include", cache: "no-store" });
+            var payload = parseJsonResponseText(await response.text().catch(function () { return ""; }));
+            if (payload && payload.publishableKey) return payload;
+          } catch (_) {}
+        }
+        return null;
       }
 
       function buildCheckoutRequest() {
@@ -240,18 +245,16 @@
         showAffiliate(request.referralCode);
         try {
           if (!window.Stripe) throw new Error("Stripe.js did not load. Please refresh and try again.");
+          var config = await loadStripeConfigFallback();
           var session = await postJson(request.endpoint, request.body);
-          if (!session.embeddedCheckoutEnabled || !session.publishableKey) {
-            var config = await loadStripeConfigFallback();
-            if (config && config.embeddedCheckoutEnabled && config.publishableKey) {
-              session.embeddedCheckoutEnabled = true;
-              session.publishableKey = config.publishableKey;
-            }
+          if (config && config.publishableKey) {
+            session.publishableKey = session.publishableKey || config.publishableKey;
+            session.embeddedCheckoutEnabled = Boolean(session.embeddedCheckoutEnabled || config.embeddedCheckoutEnabled);
           }
           if (!session.embeddedCheckoutEnabled || !session.publishableKey) {
-            throw new Error("RBLXTools checkout is not receiving the Stripe publishable key from the checkout session yet. Pull the latest code, restart PM2 with --update-env, then hard refresh this page.");
+            throw new Error("RBLXTools checkout could not read the Stripe publishable key. The product was selected, but the payment panel cannot start yet.");
           }
-          if (!session.clientSecret && session.url) throw new Error("The server is still returning Stripe's hosted checkout instead of the embedded checkout session. Pull the latest code and restart PM2.");
+          if (!session.clientSecret && session.url) throw new Error("This product is still creating a hosted Stripe checkout session instead of an embedded one. The buy button is correct, but the backend route needs the latest checkout code.");
           if (!session.clientSecret) throw new Error("Stripe did not return an embedded checkout session.");
           var stripe = Stripe(session.publishableKey);
           stripeCheckout = await stripe.initEmbeddedCheckout({
