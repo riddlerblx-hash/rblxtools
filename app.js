@@ -77,7 +77,14 @@ app.get(["/checkout", "/checkout.html"], (_req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
-  return res.sendFile(path.join(__dirname, "checkout.html"));
+  const checkoutPath = path.join(__dirname, "checkout.html");
+  const checkoutHtml = fs.readFileSync(checkoutPath, "utf8");
+  const checkoutConfigScript = `<script>window.__RBLXTOOLS_CHECKOUT_CONFIG__=${JSON.stringify({
+    ok: true,
+    publishableKey: STRIPE_PUBLISHABLE_KEY || null,
+    embeddedCheckoutEnabled: Boolean(STRIPE_PUBLISHABLE_KEY && stripeClient),
+  })};</script>`;
+  return res.type("html").send(checkoutHtml.replace("</head>", `${checkoutConfigScript}\n</head>`));
 });
 const httpServer = createServer(app);
 const AUTH_COOKIE_NAME = "rblxtools_auth_token";
