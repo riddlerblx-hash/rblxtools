@@ -6613,14 +6613,17 @@ app.get("/auth/google/config", (_req, res) => {
   });
 });
 
-app.get("/stripe/config", (_req, res) => {
+function sendStripeCheckoutConfig(_req, res) {
   res.setHeader("Cache-Control", "no-store");
   return res.json({
     ok: true,
     publishableKey: STRIPE_PUBLISHABLE_KEY || null,
     embeddedCheckoutEnabled: Boolean(STRIPE_PUBLISHABLE_KEY && stripeClient),
   });
-});
+}
+
+app.get("/auth/stripe/config", sendStripeCheckoutConfig);
+app.get("/stripe/config", sendStripeCheckoutConfig);
 
 app.get("/referrals/me", async (req, res) => {
   try {
