@@ -851,7 +851,10 @@ function readPersistentAIUGCHistory() {
     if (!fs.existsSync(AI_UGC_HISTORY_PATH)) return { users: {} };
     const payload = JSON.parse(fs.readFileSync(AI_UGC_HISTORY_PATH, "utf8"));
     const users = payload && typeof payload.users === "object" && payload.users ? payload.users : {};
-    Object.keys(users).forEach((userId) => { users[userId] = pruneAIUGCHistory(users[userId]); });
+    Object.keys(users).forEach((userId) => {
+      archiveAIUGCCommunityAssets(userId, users[userId]);
+      users[userId] = pruneAIUGCHistory(users[userId]);
+    });
     return { users };
   } catch (error) {
     console.error("[AI UGC HISTORY] Could not read local backup:", error.message);
@@ -871,6 +874,7 @@ function getPersistentAIUGCHistory(userId) {
 }
 
 function savePersistentAIUGCHistory(userId, item) {
+  archiveAIUGCCommunityAsset(userId, item);
   const payload = readPersistentAIUGCHistory();
   const key = String(userId);
   const previous = Array.isArray(payload.users[key]) ? payload.users[key] : [];
@@ -883,6 +887,8 @@ function updatePersistentAIUGCHistory(userId, taskId, updates) {
   const key = String(userId);
   const previous = Array.isArray(payload.users[key]) ? payload.users[key] : [];
   payload.users[key] = previous.map((item) => String(item?.id) === String(taskId) ? { ...item, ...updates } : item);
+  const updatedItem = payload.users[key].find((item) => String(item?.id) === String(taskId));
+  archiveAIUGCCommunityAsset(userId, updatedItem);
   writePersistentAIUGCHistory(payload);
 }
 
@@ -923,13 +929,15 @@ async function storeAIUGCModel(userId, taskId, modelUrl) {
   return true;
 }
 
-function deletePersistentAIUGCHistory(userId, taskId) {
+function deletePersistentAIUGCHistory(userId, taskId, options = {}) {
   const payload = readPersistentAIUGCHistory();
   const key = String(userId);
   const previous = Array.isArray(payload.users[key]) ? payload.users[key] : [];
   payload.users[key] = previous.filter((item) => String(item?.id) !== String(taskId));
   writePersistentAIUGCHistory(payload);
-  try { fs.rmSync(getStoredAIUGCModelPath(userId, taskId), { force: true }); } catch (_error) {}
+  if (!options.keepStoredModel) {
+    try { fs.rmSync(getStoredAIUGCModelPath(userId, taskId), { force: true }); } catch (_error) {}
+  }
 }
 
 function getUGCTaskPath(taskType) {
@@ -991,10 +999,14 @@ function readAIUGCCommunityState() {
   try {
     ensureAIUGCCommunityStorage();
     const state = JSON.parse(fs.readFileSync(AI_UGC_COMMUNITY_PATH, "utf8"));
-    return { posts: state?.posts && typeof state.posts === "object" ? state.posts : {}, follows: state?.follows && typeof state.follows === "object" ? state.follows : {} };
+    return {
+      posts: state?.posts && typeof state.posts === "object" ? state.posts : {},
+      follows: state?.follows && typeof state.follows === "object" ? state.follows : {},
+      assets: state?.assets && typeof state.assets === "object" ? state.assets : {},
+    };
   } catch (error) {
     console.error("[AI UGC COMMUNITY] Could not read community state:", error.message);
-    return { posts: {}, follows: {} };
+    return { posts: {}, follows: {}, assets: {} };
   }
 }
 
@@ -1025,6 +1037,7 @@ function getAIUGCCommunityPost(state, taskId) {
 }
 
 function syncAIUGCCommunityOwnerEngagement(ownerId, item) {
+  archiveAIUGCCommunityAsset(ownerId, item);
   const state = readAIUGCCommunityState();
   const post = getAIUGCCommunityPost(state, String(item.id));
   const feedback = ["like", "dislike"].includes(String(item.feedback || "")) ? String(item.feedback) : "";
@@ -1034,9 +1047,55 @@ function syncAIUGCCommunityOwnerEngagement(ownerId, item) {
   writeAIUGCCommunityState(state);
 }
 
+function normalizeAIUGCCommunityAsset(userId, item) {
+  if (!item || item.public !== true || !item.id) return null;
+  const taskId = String(item.id);
+  return {
+    id: taskId,
+    title: cleanText(item.title || "Untitled UGC", 90),
+    assetType: item.assetType === "game" ? "game" : "ugc",
+    inputMode: item.inputMode === "image" ? "image" : "text",
+    taskType: item.taskType === "multi" ? "multi" : item.taskType === "image" ? "image" : "text",
+    targetPolycount: Number.parseInt(item.targetPolycount, 10) || 4000,
+    textured: Boolean(item.textured),
+    thumbnailUrl: cleanText(item.thumbnailUrl || "", 2000),
+    storedGlb: Boolean(item.storedGlb),
+    pbrSettings: item.pbrSettings && typeof item.pbrSettings === "object" ? item.pbrSettings : null,
+    creatorId: String(item.creatorId || userId || ""),
+    creatorName: cleanText(item.creatorName || "RBLXTools creator", 80),
+    creatorAvatarUrl: cleanText(item.creatorAvatarUrl || "", 2000),
+    public: true,
+    allowPublicDownloads: Boolean(item.allowPublicDownloads),
+    createdAt: String(item.createdAt || new Date().toISOString()),
+    archivedAt: String(item.archivedAt || new Date().toISOString()),
+  };
+}
+
+function archiveAIUGCCommunityAsset(userId, item) {
+  const asset = normalizeAIUGCCommunityAsset(userId, item);
+  if (!asset) return false;
+  const state = readAIUGCCommunityState();
+  state.assets[String(asset.id)] = { ...(state.assets[String(asset.id)] || {}), ...asset };
+  writeAIUGCCommunityState(state);
+  return true;
+}
+
+function archiveAIUGCCommunityAssets(userId, items) {
+  const assets = (Array.isArray(items) ? items : []).map((item) => normalizeAIUGCCommunityAsset(userId, item)).filter(Boolean);
+  if (!assets.length) return;
+  const state = readAIUGCCommunityState();
+  assets.forEach((asset) => { state.assets[String(asset.id)] = { ...(state.assets[String(asset.id)] || {}), ...asset }; });
+  writeAIUGCCommunityState(state);
+}
+
 function getPublicAIUGCItems() {
   const users = readPersistentAIUGCHistory().users || {};
-  return Object.keys(users).flatMap((userId) => (Array.isArray(users[userId]) ? users[userId] : []).map((item) => ({ ...item, creatorId: userId })))
+  const archivedAssets = Object.values(readAIUGCCommunityState().assets || {}).map((item) => ({ ...item, creatorId: item.creatorId || "" }));
+  const historyAssets = Object.keys(users).flatMap((userId) => (Array.isArray(users[userId]) ? users[userId] : []).map((item) => ({ ...item, creatorId: userId })));
+  return Object.values([...archivedAssets, ...historyAssets].reduce((assets, item) => {
+    if (item?.id) assets[String(item.id)] = item;
+    return assets;
+  }, {}))
     .filter((item) => item.public === true)
     .sort((left, right) => Date.parse(right.createdAt || 0) - Date.parse(left.createdAt || 0));
 }
@@ -7380,7 +7439,9 @@ app.delete("/ai/ugc/history/:taskId", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
-    deletePersistentAIUGCHistory(user.id, taskId);
+    const item = getPersistentAIUGCHistory(user.id).find((entry) => String(entry.id) === taskId);
+    const archived = archiveAIUGCCommunityAsset(user.id, item);
+    deletePersistentAIUGCHistory(user.id, taskId, { keepStoredModel: archived });
     return res.json({ ok: true, taskId });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete this saved generation." });
