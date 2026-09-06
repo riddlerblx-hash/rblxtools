@@ -94,7 +94,16 @@ const MODERATION_ACTIONS_TABLE = process.env.MODERATION_ACTIONS_TABLE || "member
 const DEVICE_LINKS_TABLE = process.env.DEVICE_LINKS_TABLE || "member_device_links";
 const AUTH_JWT_SECRET = String(process.env.AUTH_JWT_SECRET || "");
 const STRIPE_SECRET_KEY = String(process.env.STRIPE_SECRET_KEY || "");
-const STRIPE_PUBLISHABLE_KEY = String(process.env.STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLIC_KEY || process.env.STRIPE_PK || "").trim();
+const STRIPE_PUBLISHABLE_KEY = String(
+  process.env.STRIPE_PUBLISHABLE_KEY ||
+    process.env.STRIPE_PUBLISHABLE ||
+    process.env.STRIPE_PUBLIC_KEY ||
+    process.env.STRIPE_PUBLIC ||
+    process.env.STRIPE_PK ||
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+    process.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+    ""
+).trim();
 const STRIPE_PRICE_ID = String(process.env.STRIPE_PRICE_ID || "");
 const STRIPE_PRO_PRODUCT_ID = String(process.env.STRIPE_PRO_PRODUCT_ID || "prod_V9rw4G9vIzpnZb").trim();
 const STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID = String(process.env.STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID || "price_1UB5KVGrZOEMBkuuQa6uAinu").trim();

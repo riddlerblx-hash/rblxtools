@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Checkout - RBLXTools</title>
   <meta name="description" content="Complete your RBLXTools purchase securely." />
-  <link rel="stylesheet" href="./global-shell.css?v=20260901-2" />
-  <link rel="stylesheet" href="./mobile-overrides.css?v=20260831-2" />
   <style>
     :root { --ink:#f7f9ff; --muted:#9daec7; --panel:#101b31; --panel2:#0b1425; --line:rgba(129,169,255,.24); --aqua:#55e6dc; --blue:#71a5ff; --coral:#ff5c67; --gold:#ffd56d; }
     * { box-sizing:border-box; }
-    body { min-width:0; min-height:100vh; margin:0; color:var(--ink); background:radial-gradient(circle at 16% 12%,rgba(73,119,255,.15),transparent 30%),radial-gradient(circle at 82% 30%,rgba(85,230,220,.1),transparent 30%),#070d18; font-family:Arial,sans-serif; }
-    .checkout-page { min-height:100vh; padding:52px 18px 92px; }
+    html { min-width:0; background:#070d18; }
+    body { min-width:0; min-height:100vh; margin:0; color:var(--ink); background:radial-gradient(circle at 16% 12%,rgba(73,119,255,.15),transparent 30%),radial-gradient(circle at 82% 30%,rgba(85,230,220,.1),transparent 30%),#070d18; font-family:Arial,sans-serif; overflow-x:hidden; }
+    .checkout-page { position:relative; min-height:100vh; padding:34px 18px 92px; }
+    .checkout-page::before { position:fixed; inset:0; background:linear-gradient(120deg,rgba(255,92,103,.08),transparent 24%,rgba(85,230,220,.07) 78%,transparent),repeating-linear-gradient(135deg,rgba(255,255,255,.025) 0 1px,transparent 1px 12px); content:""; pointer-events:none; }
     .checkout-wrap { width:min(1180px,100%); margin:0 auto; }
     .checkout-nav { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
     .back-link { display:inline-flex; align-items:center; gap:8px; min-height:38px; padding:0 13px; border:1px solid rgba(129,169,255,.2); border-radius:999px; color:#d8e5fa; background:rgba(12,24,42,.68); font-size:12px; font-weight:900; text-decoration:none; }
@@ -35,7 +35,8 @@
     .affiliate-card.is-active { border-color:rgba(85,230,220,.4); background:rgba(11,48,59,.52); }
     .payment-panel { min-height:670px; padding:22px; background:linear-gradient(180deg,rgba(12,21,38,.97),rgba(8,14,25,.99)); }
     .payment-head { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; color:#d7e6ff; font-size:12px; font-weight:900; }
-    .payment-head small { color:#8fa3be; font-weight:800; }
+    .payment-head small { color:#8fa3be; font-weight:800; text-align:right; }
+    .secure-note { position:fixed; right:18px; bottom:14px; z-index:3; padding:8px 11px; border:1px solid rgba(129,169,255,.19); border-radius:999px; color:#9eb0c9; background:rgba(7,13,24,.82); font-size:11px; font-weight:900; box-shadow:0 12px 26px rgba(0,0,0,.22); backdrop-filter:blur(12px); }
     #checkout { min-height:610px; overflow:hidden; border:1px solid rgba(129,169,255,.16); border-radius:20px; background:#f7f8fb; }
     .checkout-status { display:grid; min-height:420px; place-items:center; padding:42px 20px; color:#cbd8ed; font-size:14px; font-weight:800; line-height:1.5; text-align:center; background:var(--panel2); }
     .checkout-status strong { display:block; margin-bottom:8px; color:#fff; font:900 25px/1.1 Georgia,serif; }
@@ -46,18 +47,18 @@
     @media (max-width:560px) { .checkout-page { padding:32px 10px 74px; } .checkout-nav { align-items:flex-start; flex-direction:column; } .checkout-grid { border-radius:20px; } .summary-panel, .payment-panel { padding:18px; } #checkout { min-height:560px; border-radius:14px; } }
   </style>
 </head>
-<body class="rblx-shell-page rblx-tool-atmosphere">
+<body>
   <main class="checkout-page">
     <div class="checkout-wrap">
       <nav class="checkout-nav" aria-label="Checkout navigation">
         <a class="back-link" id="backLink" href="./subscriptions">&larr; Back to plans</a>
-        <span class="checkout-pill">Secure Stripe payments</span>
+        <span class="checkout-pill">Secure RBLXTools payment</span>
       </nav>
       <section class="checkout-grid" aria-label="RBLXTools checkout">
         <aside class="summary-panel">
           <p class="eyebrow">RBLXTools Checkout</p>
           <h1 id="checkoutTitle">Secure checkout, right here.</h1>
-          <p class="summary-copy">Review your order on RBLXTools, then finish payment in the secure Stripe-powered panel.</p>
+          <p class="summary-copy">Review your order on RBLXTools, then finish payment without leaving our checkout page.</p>
           <div class="order-card" aria-label="Order summary">
             <div class="order-line"><span>Item</span><strong id="summaryItem">Preparing...</strong></div>
             <div class="order-line"><span>Billing</span><strong id="summaryBilling">One-time</strong></div>
@@ -75,15 +76,15 @@
         <section class="payment-panel">
           <div class="payment-head">
             <span>Payment method</span>
-            <small>Powered by Stripe</small>
+            <small>Complete your order securely</small>
           </div>
           <div id="checkout"><div class="checkout-status"><div><strong>Loading checkout...</strong><span>Please wait while we prepare your secure payment session.</span></div></div></div>
         </section>
       </section>
     </div>
   </main>
+  <div class="secure-note">Purchases secured by Stripe</div>
   <script src="https://js.stripe.com/v3/"></script>
-  <script src="./global-shell.js?v=20260905-plus30"></script>
   <script>
     (function () {
       var checkoutHost = document.getElementById("checkout");
@@ -113,7 +114,24 @@
       }
 
       function showError(message, fallbackHref) {
-        checkoutHost.innerHTML = '<div class="checkout-status"><div><strong>Checkout could not load.</strong><span>' + escapeHtml(message || "Please try again.") + '</span><div class="checkout-actions"><a href="' + encodeURI(fallbackHref || "./subscriptions") + '">Go back</a></div></div></div>';
+        checkoutHost.innerHTML = '<div class="checkout-status"><div><strong>Checkout could not load.</strong><span>' + escapeHtml(message || "Please try again.") + '</span><div class="checkout-actions"><a href="' + encodeURI(getBackHref(fallbackHref || "./subscriptions")) + '">Go back</a></div></div></div>';
+      }
+
+      function getBackHref(fallbackHref) {
+        var fromParam = params.get("from") || "";
+        try {
+          var candidate = fromParam || document.referrer || fallbackHref || "./subscriptions";
+          var url = new URL(candidate, window.location.href);
+          if (url.origin === window.location.origin && !/\/checkout\/?$/.test(url.pathname)) {
+            return url.pathname + url.search + url.hash;
+          }
+        } catch (_) {}
+        return fallbackHref || "./subscriptions";
+      }
+
+      function setBackLink(fallbackHref, label) {
+        backLink.href = getBackHref(fallbackHref);
+        backLink.textContent = "\u2190 " + (label || "Back");
       }
 
       async function postJson(endpoint, body) {
@@ -139,8 +157,7 @@
           summaryItem.textContent = packTokens ? packTokens.toLocaleString("en-US") + " AI tokens" : "AI token pack";
           summaryBilling.textContent = "One-time purchase";
           summaryTotal.textContent = "Calculated by Stripe";
-          backLink.href = "./ai-tokens";
-          backLink.textContent = "\u2190 Back to AI tokens";
+          setBackLink("./ai-tokens", "Back to AI tokens");
           return { endpoint: "/store/create-ai-token-checkout", body: { packageKey: pack, referralCode: referralCode }, fallback: "./ai-tokens", referralCode: referralCode };
         }
         if (type === "discord-uses") {
@@ -149,8 +166,7 @@
           summaryItem.textContent = uses > 0 ? uses.toLocaleString("en-US") + " bot uses" : "Discord bot uses";
           summaryBilling.textContent = "One-time purchase";
           summaryTotal.textContent = uses > 0 ? formatMoney(Math.max(1, Math.round(uses / 5))) : "Calculated by Stripe";
-          backLink.href = "./discord-bot";
-          backLink.textContent = "\u2190 Back to Discord bot";
+          setBackLink("./discord-bot", "Back to Discord bot");
           return { endpoint: "/store/create-discord-bot-use-checkout", body: { uses: uses, referralCode: referralCode }, fallback: "./discord-bot", referralCode: referralCode };
         }
         if (type === "discord-unlimited") {
@@ -158,8 +174,7 @@
           summaryItem.textContent = "Discord Bot Unlimited";
           summaryBilling.textContent = billingInterval === "year" ? "Annual subscription" : "Monthly subscription";
           summaryTotal.textContent = "Calculated by Stripe";
-          backLink.href = "./discord-bot";
-          backLink.textContent = "\u2190 Back to Discord bot";
+          setBackLink("./discord-bot", "Back to Discord bot");
           return { endpoint: "/store/create-discord-bot-unlimited-checkout", body: { billingPeriod: billingInterval === "year" ? "annual" : "monthly", referralCode: referralCode }, fallback: "./discord-bot", referralCode: referralCode };
         }
         var plan = String(params.get("plan") || "plus").toLowerCase() === "pro" ? "pro" : "plus";
@@ -167,8 +182,7 @@
         summaryItem.textContent = plan === "pro" ? "RBLXTools Pro" : "RBLXTools Plus";
         summaryBilling.textContent = billingInterval === "year" ? "Annual subscription" : "Monthly subscription";
         summaryTotal.textContent = "Calculated by Stripe";
-        backLink.href = "./subscriptions";
-        backLink.textContent = "\u2190 Back to plans";
+        setBackLink("./subscriptions", "Back to plans");
         return { endpoint: plan === "pro" ? "/auth/create-pro-checkout-session" : "/auth/create-checkout-session", body: { billingInterval: billingInterval, referralCode: referralCode }, fallback: "./subscriptions", referralCode: referralCode };
       }
 
