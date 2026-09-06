@@ -73,6 +73,12 @@ app.get(["/thumbnail-ai", "/thumbnail-ai.html"], (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   return res.sendFile(path.join(__dirname, "ai-thumbnail-studio.html"));
 });
+app.get(["/checkout", "/checkout.html"], (_req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  return res.sendFile(path.join(__dirname, "checkout.html"));
+});
 const httpServer = createServer(app);
 const AUTH_COOKIE_NAME = "rblxtools_auth_token";
 const ROBLOSECURITY = process.env.ROBLOSECURITY;

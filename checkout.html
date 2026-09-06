@@ -146,6 +146,13 @@
         return payload;
       }
 
+      async function loadStripeConfigFallback() {
+        var response = await fetch("/stripe/config", { credentials: "include", cache: "no-store" });
+        var payload = await response.json().catch(function () { return null; });
+        if (!response.ok || !payload) return null;
+        return payload;
+      }
+
       function buildCheckoutRequest() {
         var type = String(params.get("type") || "membership").toLowerCase();
         var billingInterval = String(params.get("billingInterval") || params.get("billing") || "month").toLowerCase() === "year" || String(params.get("billingPeriod") || "").toLowerCase() === "annual" ? "year" : "month";
@@ -205,8 +212,16 @@
           if (!window.Stripe) throw new Error("Stripe.js did not load. Please refresh and try again.");
           var session = await postJson(request.endpoint, request.body);
           if (!session.embeddedCheckoutEnabled || !session.publishableKey) {
-            throw new Error("RBLXTools checkout is not fully configured. Add STRIPE_PUBLISHABLE_KEY on the VPS, then restart the app.");
+            var config = await loadStripeConfigFallback();
+            if (config && config.embeddedCheckoutEnabled && config.publishableKey) {
+              session.embeddedCheckoutEnabled = true;
+              session.publishableKey = config.publishableKey;
+            }
           }
+          if (!session.embeddedCheckoutEnabled || !session.publishableKey) {
+            throw new Error("RBLXTools checkout is not receiving the Stripe publishable key from the checkout session yet. Pull the latest code, restart PM2 with --update-env, then hard refresh this page.");
+          }
+          if (!session.clientSecret && session.url) throw new Error("The server is still returning Stripe's hosted checkout instead of the embedded checkout session. Pull the latest code and restart PM2.");
           if (!session.clientSecret) throw new Error("Stripe did not return an embedded checkout session.");
           var stripe = Stripe(session.publishableKey);
           stripeCheckout = await stripe.initEmbeddedCheckout({
