@@ -600,15 +600,5 @@
       async function load(){try{var response=await fetch('/api/ugc/community',{credentials:'include'});var payload=await response.json();render(response.ok&&Array.isArray(payload.items)?payload.items:[]);}catch(_error){render([]);}}grid.addEventListener('click',function(event){var button=event.target.closest('[data-ugc-vote]');if(!button)return;fetch('/api/ugc/community/'+encodeURIComponent(button.getAttribute('data-ugc-id'))+'/feedback',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({vote:button.getAttribute('data-ugc-vote')})}).then(load);});load();
     })();
   </script>
-  <script>
-    (function () {
-      var rail = document.getElementById('communityRailAd');
-      var cachedUser = null; try { cachedUser = JSON.parse(localStorage.getItem('rblxtools_auth_user') || 'null'); } catch (_error) {}
-      if (!rail || !window.matchMedia('(min-width: 1320px)').matches || document.body.classList.contains('rblx-pro-ad-free') || String(cachedUser && cachedUser.plan || '').toLowerCase() === 'pro') return;
-      var frame = document.createElement('iframe'); frame.title = 'Advertisement'; frame.width = '160'; frame.height = '600'; frame.scrolling = 'no'; frame.setAttribute('frameborder', '0');
-      frame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};<\/script><script src="https://www.highrevenueformat.com/c56a103ad60efdb3686d500b49552f97/invoke.js"><\/script></body></html>';
-      rail.appendChild(frame);
-    }());
-  </script>
 </body>
 </html>

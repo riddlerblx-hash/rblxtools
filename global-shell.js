@@ -4,7 +4,6 @@
 
   var API_BASE = window.location.origin;
   var ADSENSE_CLIENT = "ca-pub-1298532626039613";
-  var ADSTERRA_POPUNDER_SRC = "https://professionalsusceptible.com/db/b2/3c/dbb23c04482ce596492b26e928c44986.js";
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
@@ -286,38 +285,6 @@
   }
 
   ensureAdSenseSetup();
-
-  function isMobileViewer() {
-    var userAgentData = navigator.userAgentData;
-    if (userAgentData && userAgentData.mobile) return true;
-    if (/Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent || "")) return true;
-    // Mobile browsers can request a desktop user agent or report mouse-like
-    // capabilities. Treat compact screens and small touch-only devices as mobile
-    // so a popunder is never loaded on a phone in desktop-site mode.
-    if (window.matchMedia && window.matchMedia("(max-width: 820px)").matches) return true;
-    var shortestScreenSide = Math.min(Number(window.screen && window.screen.width) || 0, Number(window.screen && window.screen.height) || 0);
-    return Boolean(navigator.maxTouchPoints > 0 && shortestScreenSide > 0 && shortestScreenSide <= 1024);
-  }
-
-  function ensureAdsterraPopunderSetup() {
-    // Popunder ads are disabled sitewide; keep only visible in-page ad placements.
-    return;
-    if (!ADSTERRA_POPUNDER_SRC || window.__rblxAdsterraPopunderLoaded || isMobileViewer()) return;
-    var head = document.head || document.getElementsByTagName("head")[0];
-    if (!head || document.querySelector('script[data-rblxtools-adsterra-popunder="true"]')) return;
-
-    var script = document.createElement("script");
-    script.async = true;
-    script.dataset.rblxtoolsAdsterraPopunder = "true";
-    script.src = ADSTERRA_POPUNDER_SRC;
-    head.appendChild(script);
-    window.__rblxAdsterraPopunderLoaded = true;
-  }
-
-  function syncAdsterraPopunderForMember(state) {
-    if (!shellState.authResolved || String(state && state.plan || "").toLowerCase() === "pro") return;
-    ensureAdsterraPopunderSetup();
-  }
 
   function isProMember(state) {
     var plan = state && state.plan != null ? state.plan : (shellState.currentUser && shellState.currentUser.plan);
@@ -3750,7 +3717,6 @@
     if (statusText) statusText.textContent = state.message;
     applyPlanAtmosphere(state.plan);
     shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : null };
-    syncAdsterraPopunderForMember(state);
     syncMemberAdVisibility(state);
     var tokenBanner = document.getElementById("rblxShellTokenBanner");
     var tokenBalance = document.getElementById("rblxShellTokenBalance");
@@ -4153,18 +4119,7 @@
   function mountSharedBannerAd(slot) {
     if (!slot || slot.dataset.rblxBannerLoaded === "true") return;
     slot.dataset.rblxBannerLoaded = "true";
-
-    // This provider writes its iframe while its script is parsed. Isolate it in
-    // a document so each slot loads reliably without competing global options.
-    var adFrame = document.createElement("iframe");
-    adFrame.className = "rblx-banner-ad-frame";
-    adFrame.title = "Advertisement";
-    adFrame.width = "728";
-    adFrame.height = "90";
-    adFrame.scrolling = "no";
-    adFrame.setAttribute("frameborder", "0");
-    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:728px;height:90px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"fb95715336abfc09031edf4e6ef208c5",format:"iframe",height:90,width:728,params:{}};<\/script><script src="https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js"><\/script></body></html>';
-    slot.appendChild(adFrame);
+    slot.hidden = true;
   }
 
   function createSharedBannerAd(id, className) {
@@ -4188,16 +4143,7 @@
   function mountMobileHomeBannerAd(slot) {
     if (!slot || !shouldShowMemberAds() || slot.dataset.rblxMobileBannerLoaded === "true") return;
     slot.dataset.rblxMobileBannerLoaded = "true";
-
-    var adFrame = document.createElement("iframe");
-    adFrame.className = "rblx-mobile-home-banner-ad-frame";
-    adFrame.title = "Advertisement";
-    adFrame.width = "320";
-    adFrame.height = "50";
-    adFrame.scrolling = "no";
-    adFrame.setAttribute("frameborder", "0");
-    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:320px;height:50px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"4f3f88a3c4de39df646d1819202a769b",format:"iframe",height:50,width:320,params:{}};<\/script><script src="https://professionalsusceptible.com/4f3f88a3c4de39df646d1819202a769b/invoke.js"><\/script></body></html>';
-    slot.appendChild(adFrame);
+    slot.hidden = true;
   }
 
   function createMobileBannerAd(id, className) {
@@ -4757,17 +4703,8 @@
 
   function mountBoxAd(host) {
     if (!host || !shouldShowMemberAds() || host.dataset.rblxBoxAdMounted === "true") return;
-    // Isolate each provider call so one ad placement cannot overwrite another's options.
-    var adFrame = document.createElement("iframe");
-    adFrame.className = "rblx-box-ad-frame";
-    adFrame.title = "Advertisement";
-    adFrame.width = "300";
-    adFrame.height = "250";
-    adFrame.scrolling = "no";
-    adFrame.setAttribute("frameborder", "0");
-    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:300px;height:250px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"d0b55a0366cbbdb50c4c68fe13fa1e3f",format:"iframe",height:250,width:300,params:{}};</script><script src="https://professionalsusceptible.com/d0b55a0366cbbdb50c4c68fe13fa1e3f/invoke.js"></script></body></html>';
-    host.appendChild(adFrame);
     host.dataset.rblxBoxAdMounted = "true";
+    host.hidden = true;
   }
 
   function mountDesktopShellBoxAds() {
@@ -4777,16 +4714,8 @@
 
   function mountVerticalAd(host) {
     if (!host || !shouldShowMemberAds() || host.dataset.rblxVerticalAdMounted === "true") return;
-    var adFrame = document.createElement("iframe");
-    adFrame.className = "rblx-vertical-ad-frame";
-    adFrame.title = "Advertisement";
-    adFrame.width = "160";
-    adFrame.height = "600";
-    adFrame.scrolling = "no";
-    adFrame.setAttribute("frameborder", "0");
-    adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};</script><script src="https://professionalsusceptible.com/c56a103ad60efdb3686d500b49552f97/invoke.js"></script></body></html>';
-    host.appendChild(adFrame);
     host.dataset.rblxVerticalAdMounted = "true";
+    host.hidden = true;
   }
 
   function mountModalVerticalAds(overlay) {
