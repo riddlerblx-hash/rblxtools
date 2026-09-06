@@ -2064,6 +2064,21 @@
         return headers;
       }
 
+      async function openHostedCheckout(endpoint, body, token) {
+        var response = await fetch(API_BASE + endpoint, {
+          method: "POST",
+          credentials: "include",
+          headers: buildCheckoutHeaders(token),
+          body: JSON.stringify(body || {})
+        });
+        var payload = await response.json().catch(function () { return null; });
+        if (!response.ok || !payload || !payload.url) {
+          throw new Error((payload && payload.error) || "Stripe did not return a checkout URL.");
+        }
+        if (window.top && window.top !== window) window.top.location.href = payload.url;
+        else window.location.href = payload.url;
+      }
+
       function applyPlanState(plan) {
         var isPlus = plan === "plus";
         var isPro = plan === "pro";
@@ -2163,9 +2178,15 @@
 
         plusCheckoutBtn.disabled = true;
         setStatus(plusStatusEl, "Opening secure RBLXTools checkout...", "success");
-        var plusCheckoutUrl = "./checkout?type=membership&plan=plus&billingInterval=" + encodeURIComponent(billingInterval) + "&referralCode=" + encodeURIComponent(window.RBLXToolsReferral ? window.RBLXToolsReferral.getCode() : "");
-        if (window.top && window.top !== window) window.top.location.href = plusCheckoutUrl;
-        else window.location.href = plusCheckoutUrl;
+        try {
+          await openHostedCheckout("/auth/create-checkout-session", {
+            billingInterval: billingInterval,
+            referralCode: window.RBLXToolsReferral ? window.RBLXToolsReferral.getCode() : ""
+          }, token);
+        } catch (error) {
+          plusCheckoutBtn.disabled = false;
+          setStatus(plusStatusEl, error.message || "Could not open Stripe checkout.");
+        }
       }
 
       if (plusCheckoutBtn) {
@@ -2186,9 +2207,15 @@
           }
           proCheckoutBtn.disabled = true;
           setStatus(proStatusEl, "Opening secure RBLXTools checkout...", "success");
-          var proCheckoutUrl = "./checkout?type=membership&plan=pro&billingInterval=" + encodeURIComponent(billingInterval) + "&referralCode=" + encodeURIComponent(window.RBLXToolsReferral ? window.RBLXToolsReferral.getCode() : "");
-          if (window.top && window.top !== window) window.top.location.href = proCheckoutUrl;
-          else window.location.href = proCheckoutUrl;
+          try {
+            await openHostedCheckout("/auth/create-pro-checkout-session", {
+              billingInterval: billingInterval,
+              referralCode: window.RBLXToolsReferral ? window.RBLXToolsReferral.getCode() : ""
+            }, token);
+          } catch (error) {
+            proCheckoutBtn.disabled = false;
+            setStatus(proStatusEl, error.message || "Could not open Stripe checkout.");
+          }
         });
       }
 

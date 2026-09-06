@@ -73,19 +73,6 @@ app.get(["/thumbnail-ai", "/thumbnail-ai.html"], (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   return res.sendFile(path.join(__dirname, "ai-thumbnail-studio.html"));
 });
-app.get(["/checkout", "/checkout.html"], (_req, res) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-  res.setHeader("Pragma", "no-cache");
-  res.setHeader("Expires", "0");
-  const checkoutPath = path.join(__dirname, "checkout.html");
-  const checkoutHtml = fs.readFileSync(checkoutPath, "utf8");
-  const checkoutConfigScript = `<script>window.__RBLXTOOLS_CHECKOUT_CONFIG__=${JSON.stringify({
-    ok: true,
-    publishableKey: STRIPE_PUBLISHABLE_KEY || null,
-    embeddedCheckoutEnabled: Boolean(STRIPE_PUBLISHABLE_KEY && stripeClient),
-  })};</script>`;
-  return res.type("html").send(checkoutHtml.replace("</head>", `${checkoutConfigScript}\n</head>`));
-});
 const httpServer = createServer(app);
 const AUTH_COOKIE_NAME = "rblxtools_auth_token";
 const ROBLOSECURITY = process.env.ROBLOSECURITY;
