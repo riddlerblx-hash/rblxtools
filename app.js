@@ -3836,6 +3836,15 @@ async function getOrCreateStripeCustomerForUser(user) {
   return customer.id;
 }
 
+async function getStripeCheckoutCustomerParams(user) {
+  if (String(STRIPE_SECRET_KEY || "").startsWith("sk_test_")) {
+    const email = String(user?.email || "").trim();
+    return email ? { customer_email: email } : {};
+  }
+
+  return { customer: await getOrCreateStripeCustomerForUser(user) };
+}
+
 function buildMembershipStorageFields(snapshot = {}) {
   const plan = snapshot.plan || (snapshot.premiumActive ? "plus" : "free");
   return {
@@ -7817,6 +7826,9 @@ app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
 // Fast page gate: avoids a live Stripe refresh when a tool only needs identity and entitlements.
 app.get("/auth/session", async (req, res) => {
   try {
+    if (String(req.query?.stripeConfig || "") === "1") {
+      return sendStripeCheckoutConfig(req, res);
+    }
     const user = await requireAuthenticatedUser(req);
     return res.json({ ok: true, user: buildPublicUser(user) });
   } catch (error) {
@@ -9023,12 +9035,12 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
       return res.status(503).json({ error: "This AI token package is not configured yet." });
     }
 
-    const customerId = await getOrCreateStripeCustomerForUser(user);
+    const customerParams = await getStripeCheckoutCustomerParams(user);
     const priceId = await resolveAITokenPackagePrice(packageDefinition);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
-      customer: customerId,
+      ...customerParams,
       line_items: [{ price: priceId, quantity: 1 }],
       ...buildCheckoutReturnOptions(req, getSafeAiTokenStoreSuccessUrl(), getSafeAiTokenStoreCancelUrl()),
       allow_promotion_codes: true,
@@ -9238,12 +9250,12 @@ async function createDiscordBotUseCheckout(req, res) {
     if (!Number.isFinite(uses) || uses < 5 || uses > 50000 || uses % 5 !== 0) {
       return res.status(400).json({ error: "Choose between 5 and 50,000 uses in 5-use steps." });
     }
-    const customerId = await getOrCreateStripeCustomerForUser(user);
+    const customerParams = await getStripeCheckoutCustomerParams(user);
     const checkoutCents = Math.max(1, Math.round(uses / 5));
     const referralCode = normalizeReferralCode(req.body?.referralCode);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
-      customer: customerId,
+      ...customerParams,
       line_items: [{
         price_data: {
           currency: "usd",
@@ -9296,12 +9308,12 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
     const billingPeriod = String(req.body?.billingPeriod || "monthly").trim().toLowerCase();
     const priceId = billingPeriod === "annual" ? STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID : billingPeriod === "monthly" ? STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID : "";
     if (!priceId) return res.status(400).json({ error: "Choose the monthly or annual Unlimited plan." });
-    const customerId = await getOrCreateStripeCustomerForUser(user);
+    const customerParams = await getStripeCheckoutCustomerParams(user);
     const unlimitedLineItem = { price: priceId, quantity: 1 };
     const referralCode = normalizeReferralCode(req.body?.referralCode);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
-      customer: customerId,
+      ...customerParams,
       line_items: [unlimitedLineItem],
       ...buildCheckoutReturnOptions(req, getSafeDiscordBotStoreSuccessUrl(), getSafeDiscordBotStoreCancelUrl()),
       allow_promotion_codes: true,
@@ -9351,14 +9363,14 @@ app.post("/auth/create-checkout-session", async (req, res) => {
     assertStripeCheckoutConfigured();
     if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
-    const customerId = await getOrCreateStripeCustomerForUser(user);
+    const customerParams = await getStripeCheckoutCustomerParams(user);
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
     const priceId = await resolvePlusRecurringPrice(billingInterval);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
 
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
-      customer: customerId,
+      ...customerParams,
       line_items: [
         {
           price: priceId,
@@ -9401,13 +9413,13 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
     assertStripePortalConfigured();
     if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
-    const customerId = await getOrCreateStripeCustomerForUser(user);
+    const customerParams = await getStripeCheckoutCustomerParams(user);
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
     const priceId = await resolveRecurringProductPrice(STRIPE_PRO_PRODUCT_ID, billingInterval);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
-      customer: customerId,
+      ...customerParams,
       line_items: [{ price: priceId, quantity: 1 }],
       ...buildCheckoutReturnOptions(req, getSafeCheckoutSuccessUrl(), getSafeCheckoutCancelUrl()),
       allow_promotion_codes: true,
