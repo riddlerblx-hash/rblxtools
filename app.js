@@ -6634,6 +6634,16 @@ function sendStripeCheckoutConfig(_req, res) {
 app.get("/auth/stripe/config", sendStripeCheckoutConfig);
 app.get("/stripe/config", sendStripeCheckoutConfig);
 
+function buildCheckoutSessionResponse(checkoutSession) {
+  return {
+    ok: true,
+    url: checkoutSession.url,
+    clientSecret: checkoutSession.client_secret || null,
+    publishableKey: STRIPE_PUBLISHABLE_KEY || null,
+    embeddedCheckoutEnabled: Boolean(STRIPE_PUBLISHABLE_KEY && stripeClient),
+  };
+}
+
 app.get("/referrals/me", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
@@ -9053,7 +9063,7 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
       },
     });
 
-    return res.json({ ok: true, url: checkoutSession.url, clientSecret: checkoutSession.client_secret || null });
+    return res.json(buildCheckoutSessionResponse(checkoutSession));
   } catch (error) {
     console.error("POST /store/create-ai-token-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({
@@ -9269,7 +9279,7 @@ async function createDiscordBotUseCheckout(req, res) {
       client_reference_id: user.id,
       metadata: { appUserId: user.id, productType: "discord_bot_uses", discordBotUses: String(uses), referralCode },
     });
-    return res.json({ ok: true, url: checkoutSession.url, clientSecret: checkoutSession.client_secret || null });
+    return res.json(buildCheckoutSessionResponse(checkoutSession));
   } catch (error) {
     console.error("POST /store/create-discord-bot-use-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create the Discord bot use checkout." });
@@ -9321,7 +9331,7 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
       metadata: { appUserId: user.id, productType: "discord_bot_unlimited", billingPeriod, referralCode },
       subscription_data: { metadata: { appUserId: user.id, discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod, referralCode } },
     });
-    return res.json({ ok: true, url: checkoutSession.url, clientSecret: checkoutSession.client_secret || null });
+    return res.json(buildCheckoutSessionResponse(checkoutSession));
   } catch (error) {
     console.error("POST /store/create-discord-bot-unlimited-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create the Discord Bot Unlimited checkout." });
@@ -9395,11 +9405,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
       },
     });
 
-    return res.json({
-      ok: true,
-      url: checkoutSession.url,
-      clientSecret: checkoutSession.client_secret || null,
-    });
+    return res.json(buildCheckoutSessionResponse(checkoutSession));
   } catch (error) {
     console.error("POST /auth/create-checkout-session failed:", error.message);
     return res.status(error.statusCode || 500).json({
@@ -9427,7 +9433,7 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
       metadata: { appUserId: user.id, plan: "pro", billingInterval, referralCode },
       subscription_data: { metadata: { appUserId: user.id, plan: "pro", billingInterval } },
     });
-    return res.json({ ok: true, url: checkoutSession.url, clientSecret: checkoutSession.client_secret || null });
+    return res.json(buildCheckoutSessionResponse(checkoutSession));
   } catch (error) {
     console.error("POST /auth/create-pro-checkout-session failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create a Pro checkout session." });

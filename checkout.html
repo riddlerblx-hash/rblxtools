@@ -202,15 +202,13 @@
         var request = buildCheckoutRequest();
         showAffiliate(request.referralCode);
         try {
-          var configResponse = await fetch("/auth/session?stripeConfig=1", { credentials:"include", cache:"no-store" });
-          var config = await configResponse.json().catch(function () { return null; });
-          if (!configResponse.ok || !config || !config.embeddedCheckoutEnabled || !config.publishableKey) {
-            throw new Error("RBLXTools checkout is not fully configured. Add STRIPE_PUBLISHABLE_KEY on the VPS, then restart the app.");
-          }
           if (!window.Stripe) throw new Error("Stripe.js did not load. Please refresh and try again.");
           var session = await postJson(request.endpoint, request.body);
+          if (!session.embeddedCheckoutEnabled || !session.publishableKey) {
+            throw new Error("RBLXTools checkout is not fully configured. Add STRIPE_PUBLISHABLE_KEY on the VPS, then restart the app.");
+          }
           if (!session.clientSecret) throw new Error("Stripe did not return an embedded checkout session.");
-          var stripe = Stripe(config.publishableKey);
+          var stripe = Stripe(session.publishableKey);
           stripeCheckout = await stripe.initEmbeddedCheckout({
             fetchClientSecret: function () { return Promise.resolve(session.clientSecret); }
           });
