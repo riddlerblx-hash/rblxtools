@@ -1020,10 +1020,11 @@ function readAIUGCCommunityState() {
       posts: state?.posts && typeof state.posts === "object" ? state.posts : {},
       follows: state?.follows && typeof state.follows === "object" ? state.follows : {},
       assets: state?.assets && typeof state.assets === "object" ? state.assets : {},
+      deletedAssets: state?.deletedAssets && typeof state.deletedAssets === "object" ? state.deletedAssets : {},
     };
   } catch (error) {
     console.error("[AI UGC COMMUNITY] Could not read community state:", error.message);
-    return { posts: {}, follows: {}, assets: {} };
+    return { posts: {}, follows: {}, assets: {}, deletedAssets: {} };
   }
 }
 
@@ -1092,6 +1093,7 @@ function archiveAIUGCCommunityAsset(userId, item) {
   const asset = normalizeAIUGCCommunityAsset(userId, item);
   if (!asset) return false;
   const state = readAIUGCCommunityState();
+  if (state.deletedAssets[String(asset.id)]) return false;
   state.assets[String(asset.id)] = { ...(state.assets[String(asset.id)] || {}), ...asset };
   writeAIUGCCommunityState(state);
   return true;
@@ -1101,16 +1103,20 @@ function archiveAIUGCCommunityAssets(userId, items) {
   const assets = (Array.isArray(items) ? items : []).map((item) => normalizeAIUGCCommunityAsset(userId, item)).filter(Boolean);
   if (!assets.length) return;
   const state = readAIUGCCommunityState();
-  assets.forEach((asset) => { state.assets[String(asset.id)] = { ...(state.assets[String(asset.id)] || {}), ...asset }; });
+  assets.forEach((asset) => {
+    if (!state.deletedAssets[String(asset.id)]) state.assets[String(asset.id)] = { ...(state.assets[String(asset.id)] || {}), ...asset };
+  });
   writeAIUGCCommunityState(state);
 }
 
 function getPublicAIUGCItems() {
   const users = readPersistentAIUGCHistory().users || {};
-  const archivedAssets = Object.values(readAIUGCCommunityState().assets || {}).map((item) => ({ ...item, creatorId: item.creatorId || "" }));
+  const state = readAIUGCCommunityState();
+  const deletedAssets = state.deletedAssets || {};
+  const archivedAssets = Object.values(state.assets || {}).map((item) => ({ ...item, creatorId: item.creatorId || "" }));
   const historyAssets = Object.keys(users).flatMap((userId) => (Array.isArray(users[userId]) ? users[userId] : []).map((item) => ({ ...item, creatorId: userId })));
   return Object.values([...archivedAssets, ...historyAssets].reduce((assets, item) => {
-    if (item?.id) assets[String(item.id)] = item;
+    if (item?.id && !deletedAssets[String(item.id)]) assets[String(item.id)] = item;
     return assets;
   }, {}))
     .filter((item) => item.public === true)
@@ -7641,6 +7647,7 @@ function buildAIUGCCommunityItem(item, post, viewer) {
     ratingCount: ratings.length, likes: votes.filter((vote) => vote === "like").length, dislikes: votes.filter((vote) => vote === "dislike").length,
     views: Object.keys(post.views).length, commentCount: post.comments.length, tipTotal: tips, tipCount: post.tips.length,
     viewerVote: viewerId ? String(post.votes[viewerId] || "") : "", viewerRating: viewerId ? Number(post.ratings[viewerId] || 0) : 0,
+    viewerCanManage: Boolean(viewer && isAdminUser(viewer)),
   };
 }
 
@@ -7708,6 +7715,29 @@ app.post("/api/ugc/community/:taskId/feedback", async (req, res) => {
     if (rating) addCommunityNotification({ recipientId: item.creatorId, actor: user, category: "rating", title: `${communityActorName(user)} rated your AI asset ${rating} out of 5 stars.`, href });
     return res.json({ ok: true, vote: String(post.votes[String(user.id)] || ""), rating: Number(post.ratings[String(user.id)] || 0) });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save community feedback." }); }
+});
+
+app.delete("/api/ugc/community/:taskId", async (req, res) => {
+  try {
+    const adminUser = await requireAdminUser(req);
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    const item = findPublicAIUGCItem(taskId);
+    if (!item) return res.status(404).json({ error: "This community model is not available." });
+    const state = readAIUGCCommunityState();
+    delete state.assets[taskId];
+    delete state.posts[taskId];
+    state.deletedAssets[taskId] = {
+      deletedAt: new Date().toISOString(),
+      deletedBy: String(adminUser.id || ""),
+      creatorId: String(item.creatorId || ""),
+      title: cleanText(item.title || "Untitled UGC", 90),
+    };
+    writeAIUGCCommunityState(state);
+    try { fs.rmSync(getStoredAIUGCModelPath(item.creatorId, taskId), { force: true }); } catch (_error) {}
+    return res.json({ ok: true, taskId });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Only admins can delete AI community assets." });
+  }
 });
 
 app.post("/api/ugc/community/:taskId/comments", async (req, res) => {
