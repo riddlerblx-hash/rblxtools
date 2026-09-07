@@ -343,6 +343,17 @@ async function prepareRobloxGLBDownload(glbBuffer, maxTriangles, maxTextureSize)
   return { buffer: Buffer.from(await io.writeBinary(document)), largestMeshTriangles };
 }
 
+function isGLBBinary(buffer) {
+  return Buffer.isBuffer(buffer) && buffer.length >= 12 && buffer.toString("utf8", 0, 4) === "glTF";
+}
+
+function assertGLBBinary(buffer, message = "The finished model was not a valid GLB file.") {
+  if (isGLBBinary(buffer)) return;
+  const error = new Error(message);
+  error.statusCode = 502;
+  throw error;
+}
+
 async function storeUGCSourceImage(dataUrl) {
   const match = String(dataUrl || "").trim().match(/^data:(image\/(?:png|jpeg));base64,([a-z0-9+/=]+)$/i);
   if (!match) {
@@ -913,15 +924,21 @@ function readStoredAIUGCModel(userId, taskId) {
   } catch (_error) { return null; }
 }
 
+function readValidStoredAIUGCModel(userId, taskId) {
+  const modelBuffer = readStoredAIUGCModel(userId, taskId);
+  return isGLBBinary(modelBuffer) ? modelBuffer : null;
+}
+
 async function storeAIUGCModel(userId, taskId, modelUrl) {
   ensureAIUGCModelDirectory();
   const filePath = getStoredAIUGCModelPath(userId, taskId);
-  if (fs.existsSync(filePath)) return true;
+  if (fs.existsSync(filePath) && isGLBBinary(fs.readFileSync(filePath))) return true;
   if (!/^https:\/\//i.test(String(modelUrl || ""))) return false;
   const response = await fetch(modelUrl);
   if (!response.ok) throw new Error("Could not store the finished GLB.");
   const buffer = Buffer.from(await response.arrayBuffer());
   if (!buffer.length || buffer.length > 100 * 1024 * 1024) throw new Error("The finished GLB is too large to store.");
+  assertGLBBinary(buffer, "The 3D generation service returned a model file Roblox could not read.");
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
   fs.writeFileSync(tempPath, buffer);
@@ -7768,17 +7785,18 @@ app.get("/api/ugc/community/:taskId/model", async (req, res) => {
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const item = findPublicAIUGCItem(taskId);
     if (!item) return res.status(404).json({ error: "This community model is not available." });
-    let modelBuffer = readStoredAIUGCModel(item.creatorId, taskId);
+    let modelBuffer = readValidStoredAIUGCModel(item.creatorId, taskId);
     if (!modelBuffer) {
       const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
       const task = await requestMeshy(getUGCTaskPath(taskType) + encodeURIComponent(taskId));
       if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) return res.status(409).json({ error: "The community preview is not available yet." });
       await storeAIUGCModel(item.creatorId, taskId, task.model_urls.glb);
-      modelBuffer = readStoredAIUGCModel(item.creatorId, taskId);
+      modelBuffer = readValidStoredAIUGCModel(item.creatorId, taskId);
     }
     if (!modelBuffer) throw new Error("Could not retrieve the community GLB.");
     const maxTriangles = item.assetType === "game" ? 15000 : 4000;
     const prepared = await prepareRobloxGLBDownload(modelBuffer, maxTriangles, item.assetType === "game" ? 4096 : 1024);
+    assertGLBBinary(prepared.buffer);
     res.setHeader("Content-Type", "model/gltf-binary"); res.setHeader("Cache-Control", "private, max-age=300");
     return res.send(prepared.buffer);
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the community preview." }); }
@@ -7789,17 +7807,18 @@ app.get("/api/ugc/community/:taskId/download", async (req, res) => {
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const item = getPublicAIUGCItems().find((entry) => String(entry.id) === taskId);
     if (!item || !item.allowPublicDownloads) return res.status(404).json({ error: "This creator has not enabled public downloads." });
-    let modelBuffer = readStoredAIUGCModel(item.creatorId, taskId);
+    let modelBuffer = readValidStoredAIUGCModel(item.creatorId, taskId);
     if (!modelBuffer) {
       const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
       const task = await requestMeshy(getUGCTaskPath(taskType) + encodeURIComponent(taskId));
       if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) return res.status(409).json({ error: "The community GLB is not available yet." });
       await storeAIUGCModel(item.creatorId, taskId, task.model_urls.glb);
-      modelBuffer = readStoredAIUGCModel(item.creatorId, taskId);
+      modelBuffer = readValidStoredAIUGCModel(item.creatorId, taskId);
     }
     if (!modelBuffer) throw new Error("Could not retrieve the community GLB.");
     const maxTriangles = item.assetType === "game" ? 15000 : 4000;
     const prepared = await prepareRobloxGLBDownload(modelBuffer, maxTriangles, item.assetType === "game" ? 4096 : 1024);
+    assertGLBBinary(prepared.buffer);
     res.setHeader("Content-Type", "model/gltf-binary");
     res.setHeader("Content-Disposition", `attachment; filename="rblxtools-community-${taskId}.glb"`);
     return res.send(prepared.buffer);
@@ -7872,18 +7891,24 @@ app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
     if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) {
       return res.status(409).json({ error: "The GLB is not ready to download yet." });
     }
-    const modelResponse = await fetch(task.model_urls.glb);
-    if (!modelResponse.ok) throw new Error("Could not retrieve the finished GLB.");
-    const modelBuffer = Buffer.from(await modelResponse.arrayBuffer());
     const absoluteLimit = assetType === "ugc" ? 4000 : 15000;
     const charge = ugcGenerationCharges.get(taskId);
     const savedItem = charge?.userId === user.id ? null : getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId && item.assetType === assetType);
+    let modelBuffer = readValidStoredAIUGCModel(user.id, taskId);
+    if (!modelBuffer) {
+      const modelResponse = await fetch(task.model_urls.glb);
+      if (!modelResponse.ok) throw new Error("Could not retrieve the finished GLB.");
+      modelBuffer = Buffer.from(await modelResponse.arrayBuffer());
+      assertGLBBinary(modelBuffer, "The 3D generation service returned a model file Roblox could not read.");
+      await storeAIUGCModel(user.id, taskId, task.model_urls.glb);
+    }
     const requestedLimit = charge?.userId === user.id && charge.assetType === assetType
       ? Number.parseInt(charge.targetPolycount, 10)
       : Number.parseInt(savedItem?.targetPolycount, 10);
     const minimumLimit = assetType === "ugc" ? 300 : 50;
     const limit = Math.max(minimumLimit, Math.min(absoluteLimit, Number.isFinite(requestedLimit) ? requestedLimit : absoluteLimit));
     const prepared = await prepareRobloxGLBDownload(modelBuffer, limit, assetType === "ugc" ? 1024 : 4096);
+    assertGLBBinary(prepared.buffer);
     res.setHeader("Content-Type", "model/gltf-binary");
     res.setHeader("Content-Disposition", `attachment; filename="rblxtools-${assetType}-${taskId}.glb"`);
     res.setHeader("Cache-Control", "no-store");
