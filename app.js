@@ -7659,7 +7659,7 @@ app.get("/api/ugc/community", async (req, res) => {
   const viewer = await getOptionalCommunityUser(req);
   const state = readAIUGCCommunityState();
   const items = getPublicAIUGCItems().map((item) => buildAIUGCCommunityItem(item, getAIUGCCommunityPost(state, String(item.id)), viewer));
-  return res.json({ ok: true, items, viewerId: viewer?.id || null });
+  return res.json({ ok: true, items, viewerId: viewer?.id || null, canManageAll: Boolean(viewer && isAdminUser(viewer)) });
 });
 
 app.get("/api/ugc/community/:taskId", async (req, res) => {
