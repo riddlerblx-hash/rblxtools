@@ -276,8 +276,8 @@
       historySearch.addEventListener('input', renderHistoryList);
       newChatButton.addEventListener('click', resetConversation);
       historyToggle.addEventListener('click', function () { setHistoryOpen(!historyPanel.classList.contains('visible')); });
-      // Desktop has room for history alongside the studio; phone layouts keep it tucked away.
-      setHistoryOpen(!(window.matchMedia && window.matchMedia('(max-width: 820px)').matches));
+      // Start every studio visit with the saved-chat drawer open; its toggle controls visibility.
+      setHistoryOpen(true);
       card.addEventListener('dragover', function (event) { event.preventDefault(); card.classList.add('dragging'); });
       card.addEventListener('dragleave', function () { card.classList.remove('dragging'); });
       card.addEventListener('drop', function (event) { event.preventDefault(); card.classList.remove('dragging'); addFiles(event.dataTransfer.files); });
