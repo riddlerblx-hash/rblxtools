@@ -920,7 +920,7 @@
       <p id="roblox-ugc-subtitle">Preview a textured Roblox model, then choose the export format that fits your workflow.</p>
 
       <div id="plusNotice">
-        Everyone can download a textured GLB one at a time. <span class="plusWord">Plus</span> users can download 2-5 items at a time; <span class="plusWord">Pro</span> users can download 5-10 items at a time.
+        Everyone can download textured GLB files for up to 5 asset IDs at a time.
         <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
       </div>
 
@@ -1062,21 +1062,11 @@
       </div>
       <div class="faq-item">
         <button class="faq-q" type="button">Does this support multi-download?</button>
-        <div class="faq-a">Yes. <span class="plus-word">Plus</span> accounts can use 2-5 IDs at once, while <span class="plus-word">Pro</span> accounts can use up to 10.</div>
+        <div class="faq-a">Yes. Everyone can use up to 5 IDs at once.</div>
       </div>
     </section>
   </main>
 
-  <div class="gate-overlay" id="plusGate">
-    <div class="gate-modal">
-      <h3><span><span class="plus-word">Plus</span> Required</span><span>You Don't Own <span class="plus-word">Plus</span></span></h3>
-      <p>This tool is locked to <span class="plus-word">Plus</span>. Upgrade your plan to unlock it, then come right back.</p>
-      <div class="gate-actions">
-        <a class="plans-btn" href="./subscriptions">View Plans</a>
-        <button class="close-btn" type="button" id="closeGate">Close</button>
-      </div>
-    </div>
-  </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
@@ -1228,87 +1218,6 @@
       return localStorage.getItem(TOKEN_KEY) || "";
     } catch (e) {
       return "";
-    }
-  }
-
-  function hasPlusFromPayload(payload) {
-  if (!payload || typeof payload !== "object") return false;
-  const directPremium = payload.premiumActive === true || payload.plusActive === true || payload.plus === true || payload.isPlus === true || payload.hasPlus === true;
-  const user = payload.user && typeof payload.user === "object" ? payload.user : null;
-  const userPremium = user && (user.premiumActive === true || user.plusActive === true || user.plus === true || user.isPlus === true || user.hasPlus === true);
-  return Boolean(directPremium || userPremium);
-}
-
-  const PLUS_STATUS_KEY = "rblxtools_plus_cache";
-
-  function readCachedPlusStatus() {
-    try {
-      const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.isPlus === false) return false;
-      }
-    } catch (_error) {}
-    return null;
-  }
-
-  function writeCachedPlusStatus(isPlus) {
-    try {
-      localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
-        isPlus: Boolean(isPlus),
-        updatedAt: Date.now()
-      }));
-    } catch (_error) {}
-  }
-
-  function clearCachedPlusStatus() {
-    try {
-      localStorage.removeItem(PLUS_STATUS_KEY);
-    } catch (_error) {}
-  }
-
-  async function fetchPlusStatus(options) {
-    const token = getStoredToken();
-
-    const settings = options && typeof options === "object" ? options : {};
-    if (!settings.force) {
-      const cachedStatus = readCachedPlusStatus();
-      if (cachedStatus !== null) {
-        window.setTimeout(function () {
-          fetchPlusStatus({ force: true, background: true });
-        }, 0);
-        return cachedStatus;
-      }
-    }
-
-    try {
-      const premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
-        method: "GET", credentials: "include"
-      });
-
-      if (premiumResponse.ok) {
-        const premiumPayload = await premiumResponse.json().catch(() => null);
-        const hasPlus = hasPlusFromPayload(premiumPayload);
-        writeCachedPlusStatus(hasPlus);
-        return hasPlus;
-      }
-
-      if (premiumResponse.status === 401 || premiumResponse.status === 403) {
-        clearCachedPlusStatus();
-        return false;
-      }
-
-      const response = await fetch(API_BASE + "/auth/me", {
-        method: "GET", credentials: "include"
-      });
-
-      if (!response.ok) return readCachedPlusStatus() === true;
-      const payload = await response.json().catch(() => null);
-      const hasPlus = hasPlusFromPayload(payload);
-      writeCachedPlusStatus(hasPlus);
-      return hasPlus;
-    } catch (_error) {
-      return readCachedPlusStatus() === true;
     }
   }
 
@@ -1686,8 +1595,7 @@
     resizeObserver.observe(document.getElementById("roblox-ugc-stack-shell"));
   }
 
-  window.addEventListener("load", async () => {
-    await fetchPlusStatus();
+  window.addEventListener("load", () => {
     scheduleEmbedHeightReport();
     setTimeout(scheduleEmbedHeightReport, 150);
     setTimeout(scheduleEmbedHeightReport, 500);
@@ -1710,7 +1618,7 @@
 
     if (ids.length > 5) {
       status.className = "error";
-      status.innerHTML = '<span class="plusWord">Plus</span> users can download up to 5 assets at a time.';
+      status.innerText = "You can download up to 5 assets at a time.";
       scheduleEmbedHeightReport();
       return;
     }
@@ -1720,16 +1628,6 @@
       status.innerText = "Use only Roblox asset IDs separated by commas.";
       scheduleEmbedHeightReport();
       return;
-    }
-
-    if (ids.length > 1) {
-      const hasPlus = await fetchPlusStatus();
-      if (!hasPlus) {
-        status.className = "error";
-        status.innerHTML = 'Must be a <span class="plusWord">Plus</span> subscriber to download multiple assets at the same time. <a href="https://www.rblxtools.net/subscriptions" target="_top"><span class="plusWord">Upgrade to Plus</span></a>';
-        scheduleEmbedHeightReport();
-        return;
-      }
     }
 
     status.className = "";
