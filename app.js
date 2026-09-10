@@ -7562,6 +7562,45 @@ app.post("/api/community-posts", async (req, res) => {
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not create this post." }); }
 });
 
+app.post("/api/community-posts/bug-reports", async (req, res) => {
+  try {
+    const user = await getOptionalCommunityUser(req);
+    const tool = cleanText(req.body?.tool || "", 80);
+    const title = cleanText(req.body?.title || (tool ? `${tool} report` : "Tool report"), 140);
+    const body = cleanText(req.body?.body, 6000);
+
+    if (!title || !body) {
+      return res.status(400).json({ error: "A title and report details are required." });
+    }
+
+    const post = {
+      id: randomUUID(),
+      title,
+      body,
+      category: "bug-report",
+      status: "open",
+      rating: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      authorId: user ? String(user.id) : `guest-${randomUUID()}`,
+      authorName: user ? cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80) : "Guest Reporter",
+      authorAvatarUrl: user ? getCommunityAvatarUrl(user) : "",
+      pinned: false,
+      likedBy: {},
+      pinnedCommentId: "",
+      comments: [],
+    };
+
+    const posts = readCommunityPosts();
+    posts.push(post);
+    writeCommunityPosts(posts);
+
+    return res.status(201).json({ ok: true, post: await enrichCommunityPostIdentity(post, user) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit this bug report." });
+  }
+});
+
 app.post("/api/community-posts/:postId/likes", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req); const postId = String(req.params.postId || "").trim(); const posts = readCommunityPosts();

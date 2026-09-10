@@ -930,7 +930,7 @@
       </div>
       <p class="ugc-mode-help"><strong>Not sure?</strong> Start with Modern mode for UGC, multi-mesh items, and newer Roblox-made items. Use Legacy Classic only for older single-mesh catalog items.</p>
       <label class="field-label" for="ugcId">Roblox Catalog Asset ID</label>
-      <textarea id="ugcId" placeholder="Enter one Roblox catalog asset ID, or comma-separated IDs for Plus / Pro"></textarea>
+      <textarea id="ugcId" placeholder="Enter one Roblox catalog asset ID, or comma-separated IDs"></textarea>
 
       <button id="ugcButton" onclick="generateUgc()">Create Textured Preview</button>
 
@@ -1465,7 +1465,7 @@
       <div id="actionRow">
         <button id="downloadBtn" type="button">Download Textured GLB</button>
       </div>
-      <div class="ugc-export-note"><strong>Textured GLB download:</strong> every member receives one ready-to-use GLB with its texture and material embedded.</div>
+      <div class="ugc-export-note"><strong>Textured GLB download:</strong> everyone receives one ready-to-use GLB with its texture and material embedded.</div>
       <div id="assetStatsPanel" aria-live="polite"></div>
     `;
 
@@ -1685,44 +1685,11 @@
         option.classList.toggle("is-active", option === button);
       });
       ugcIdInput.placeholder = selectedItemMode === "classic"
-        ? "Enter an older single-mesh catalog asset ID, or comma-separated IDs for Plus"
-        : "Enter a modern, UGC, or multi-mesh catalog asset ID, or comma-separated IDs for Plus";
+        ? "Enter an older single-mesh catalog asset ID, or comma-separated IDs"
+        : "Enter a modern, UGC, or multi-mesh catalog asset ID, or comma-separated IDs";
     });
   });
 
-  /* Temporary inline reporting was replaced by the shared report modal. */
-  /*document.getElementById("ugcReportButton").addEventListener("click", async function () {
-    const assetId = String(ugcIdInput.value || "").trim().split(/[,\s]+/)[0];
-    const details = window.prompt("What went wrong with this item? Include any texture or preview issue.");
-    if (!details || !String(details).trim()) return;
-    const title = assetId ? "UGC tool issue: asset " + assetId : "UGC tool issue";
-    const body = [
-      "Tool: UGC Downloader",
-      "Asset ID: " + (assetId || "Not provided"),
-      "Selected mode: " + (selectedItemMode === "classic" ? "Legacy Classic / Single-mesh" : "Modern / UGC / Multi-mesh"),
-      "Issue: " + String(details).trim()
-    ].join("\n");
-    const button = this;
-    button.disabled = true;
-    try {
-      const response = await fetch(API_BASE + "/api/community-posts/bug-reports", {
-        method: "POST",
-        credentials: "include",
-        headers: Object.assign({ "Content-Type": "application/json" }, getAuthHeaders()),
-        body: JSON.stringify({ title: title, body: body })
-      });
-      const payload = await response.json().catch(function () { return {}; });
-      if (response.status === 401) throw new Error("Log in to submit a tool report.");
-      if (!response.ok) throw new Error(payload.error || "Could not submit the report.");
-      status.className = "success";
-      status.textContent = "Report sent to Community Bug Reports. Thank you.";
-    } catch (error) {
-      status.className = "error";
-      status.textContent = error.message || "Could not submit the report.";
-    } finally {
-      button.disabled = false;
-    }
-  });*/
 </script>
 <script>
     (function () {
@@ -1846,7 +1813,7 @@
       video.addEventListener("ended", showCover);
     })();
   </script>
-<script src="./tool-report.js"></script>
+<script src="./tool-report.js?v=20260910-guest-reports"></script>
 </body>
 </html>
 
