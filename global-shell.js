@@ -4378,7 +4378,7 @@
       { name: "Robux Calculator", desc: "Fast conversion math for Robux and pricing plans.", href: "./robux-calculator", plus: false, icon: "calc", tag: "Value Tool", tone: "linear-gradient(180deg,#3e5b35,#27391f)" },
       { name: "Media", desc: "Access supported media assets quickly.", href: "./media-downloader", plus: false, icon: "media", tag: "Media Tool", tone: "linear-gradient(180deg,#5a3b61,#32213a)" },
       { name: "Audio", desc: "Fetch audio asset files from supported IDs.", href: "./audio-downloader", plus: false, icon: "audio", tag: "Audio Tool", tone: "linear-gradient(180deg,#6a3e3a,#3f2523)" },
-      { name: "Animations", desc: "Premium animation utility for advanced workflows.", href: "./animation-spoofer", plus: true, icon: "rig", tag: "Plus Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
+      { name: "Animations", desc: "Animation utility for Roblox creator workflows.", href: "./animation-spoofer", plus: false, icon: "rig", tag: "Animation Tool", tone: "linear-gradient(180deg,#3a456f,#212846)" }
     ].filter(function (tool) {
       if (tool.adminOnly && !shellState.isAdmin) return false;
       return String(tool.href || "").replace(/^\.\//, "").replace(/\.html$/, "") !== currentPath;

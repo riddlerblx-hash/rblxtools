@@ -1551,23 +1551,9 @@
         updateEmptyPreviewState();
 
         if (files.length > 10) {
-          setStatus("<span class=\"rblx-pro-word\">Pro</span> users can restore up to 10 templates at a time.", "error");
+          setStatus("You can restore up to 10 templates at a time.", "error");
           renderEntryPreview();
           return;
-        }
-
-        if (files.length > 1) {
-          var hasPlus = await fetchPlusStatus();
-          if (!hasPlus) {
-            setStatus("Must be a <span class=\"rblx-plus-word\">Plus</span> subscriber to restore multiple templates at the same time. <a href=\"https://www.rblxtools.net/subscriptions\" target=\"_top\"><span class=\"rblx-plus-word\">Upgrade to Plus</span></a>", "error");
-            renderEntryPreview();
-            return;
-          }
-          if (files.length > 5 && !accountIsPro) {
-            setStatus("<span class=\"rblx-pro-word\">Pro</span> users can restore up to 10 templates at a time. <a href=\"https://www.rblxtools.net/subscriptions\" target=\"_top\"><span class=\"rblx-pro-word\">Upgrade to Pro</span></a>", "error");
-            renderEntryPreview();
-            return;
-          }
         }
 
         setStatus("Loading uploaded template" + (files.length > 1 ? "s..." : "..."));

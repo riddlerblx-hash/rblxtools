@@ -2038,17 +2038,8 @@
       const button = document.getElementById("templateButton");
 
       if (!ids.length) { status.className = "error"; status.innerText = "Enter at least one Roblox item ID."; return; }
-      if (ids.length > 5) { status.className = "error"; status.innerHTML = '<span class="plus-word">Plus</span> users can download up to 5 templates at a time.'; return; }
+      if (ids.length > 5) { status.className = "error"; status.innerText = "You can download up to 5 templates at a time."; return; }
       if (ids.some((id) => !/^\d+$/.test(id))) { status.className = "error"; status.innerText = "Use only Roblox asset IDs separated by commas."; return; }
-
-      if (ids.length > 1) {
-        const hasPlus = await bootstrapPlusStatus();
-        if (!hasPlus) {
-          status.className = "error";
-          status.innerHTML = 'Must be a <span class="plus-word">Plus</span> subscriber for multi-download. <a href="./subscriptions"><span class="plus-word">Upgrade to Plus</span></a>';
-          return;
-        }
-      }
 
       status.className = "";
       status.innerText = ids.length > 1 ? "Fetching templates..." : "Fetching template...";

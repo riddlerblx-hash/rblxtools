@@ -1317,7 +1317,7 @@
   <main>
     <section class="hero">
       <h1><span>Roblox</span><span>Animations</span></h1>
-      <p>Download Roblox animation assets using supported animation IDs with the same premium page treatment as the template-downloader layout.</p>
+      <p>Download Roblox animation assets using supported animation IDs with the same polished page treatment as the template-downloader layout.</p>
     </section>
 
     <section class="top-grid">
@@ -1326,17 +1326,17 @@
           <article id="animation-spoofer-card" class="stack-card">
           <div id="accessGate" class="hidden">
             <div class="access-top">
-              <span id="accessBadge" class="access-chip">Plus or Pro Required</span>
-              <span class="access-chip">RBLXTools Membership</span>
+              <span id="accessBadge" class="access-chip">Free Access</span>
+              <span class="access-chip">RBLXTools Utility</span>
             </div>
 
             <h2 class="access-title">
               <span>Animations</span>
-              <span class="accent">Needs <span class="plus-word">Plus</span></span>
+              <span class="accent">Ready to use</span>
             </h2>
 
             <p id="accessCopy" class="access-copy">
-              This tool is part of RBTools <span class="plus-word">Plus</span>. Log in and make sure your subscription is active before using it.
+              This tool is available without logging in.
             </p>
 
             <div class="access-grid">
@@ -1377,12 +1377,12 @@
             </p>
 
             <div id="plusNotice">
-              <strong>TIP:</strong> Free users download 1 at a time. <a class="plus-word" href="./subscriptions">Plus</a> users can download 2-5, while <a class="plus-word" href="./subscriptions">Pro</a> users can download 5-10 at a time with comma-separated IDs.
+              <strong>TIP:</strong> Download up to 5 animations at a time with comma-separated IDs.
               <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
             </div>
 
             <label class="field-label" for="animationAssetId">Roblox Animation Asset ID</label>
-            <textarea id="animationAssetId" placeholder="Enter one Roblox animation asset ID, or comma-separated IDs for Plus / Pro"></textarea>
+            <textarea id="animationAssetId" placeholder="Enter one Roblox animation asset ID, or comma-separated IDs"></textarea>
 
             <button id="animationButton" onclick="generateAnimation()">Download Animation</button>
 
@@ -1864,52 +1864,7 @@
       }
 
       async function fetchPlusStatus(options) {
-        const token = getStoredToken();
-
-        const settings = options && typeof options === "object" ? options : {};
-        if (!settings.force) {
-          const cachedStatus = readCachedPlusStatus();
-          if (cachedStatus !== null) {
-            window.setTimeout(function () {
-              fetchPlusStatus({ force: true, background: true });
-            }, 0);
-            return cachedStatus ? { ok: true } : { ok: false, reason: "plus" };
-          }
-        }
-
-        try {
-          const premiumResponse = await fetch(API_BASE_ROOT + "/auth/premium-status", {
-            method: "GET", credentials: "include"
-          });
-
-          if (premiumResponse.ok) {
-            const premiumPayload = await premiumResponse.json().catch(() => null);
-            const hasPlus = hasPlusFromPayload(premiumPayload);
-            writeCachedPlusStatus(hasPlus);
-            return hasPlus ? { ok: true } : { ok: false, reason: "plus" };
-          }
-
-          if (premiumResponse.status === 401 || premiumResponse.status === 403) {
-            clearCachedPlusStatus();
-            return { ok: false, reason: "login" };
-          }
-
-          const response = await fetch(API_BASE_ROOT + "/auth/me", {
-            method: "GET", credentials: "include"
-          });
-
-          if (!response.ok) {
-            return response.status === 401 || response.status === 403
-              ? { ok: false, reason: "login" }
-              : (readCachedPlusStatus() === true ? { ok: true } : { ok: false, reason: "plus" });
-          }
-          const payload = await response.json().catch(() => null);
-          const hasPlus = hasPlusFromPayload(payload) || hasPlusFromPayload(payload && payload.user ? payload.user : null);
-          writeCachedPlusStatus(hasPlus);
-          return hasPlus ? { ok: true } : { ok: false, reason: "plus" };
-        } catch (_error) {
-          return readCachedPlusStatus() === true ? { ok: true } : { ok: false, reason: "plus" };
-        }
+        return { ok: true };
       }
 
       function applyLivePlusAccess(hasPlus) {
@@ -2032,14 +1987,14 @@
         }
 
         if (reason === "login") {
-          accessBadge.innerHTML = "Login Required";
-          accessCopy.textContent = "Log in, then activate a Plus or Pro membership to use Animations.";
+          accessBadge.innerHTML = "Free Access";
+          accessCopy.textContent = "This tool is available without logging in.";
         } else if (reason === "checking") {
           accessBadge.innerHTML = "Checking Access";
-          accessCopy.textContent = "Checking your Plus or Pro membership now.";
+          accessCopy.textContent = "Preparing the animation downloader.";
         } else {
-          accessBadge.textContent = "Plus or Pro Required";
-          accessCopy.textContent = "Animations is available to active RBLXTools Plus and Pro members.";
+          accessBadge.textContent = "Free Access";
+          accessCopy.textContent = "Animations is available to everyone.";
         }
 
         lockPlusPage(reason === "login" ? "login" : "plus");
@@ -2245,8 +2200,7 @@
 
       async function generateAnimation() {
         if (accessState !== "ok") {
-          showAccessGate(accessState === "login" ? "login" : "plus");
-          return;
+          showAccessGate("ok");
         }
 
         const ids = normalizeIds(animationInput.value);
@@ -2258,16 +2212,8 @@
         }
 
         if (ids.length > 5) {
-          setStatus('<span class="plus-word">Plus</span> users can download up to 5 animations at a time.', "error");
+          setStatus("You can download up to 5 animations at a time.", "error");
           return;
-        }
-
-        if (ids.length > 1) {
-          const plusStatus = await fetchPlusStatus();
-          if (!plusStatus.ok) {
-            setStatus('Must be a <span class="plus-word">Plus</span> subscriber to download multiple animations at the same time. <a href="https://www.rblxtools.net/subscriptions" target="_top"><span class="plus-word">Upgrade to Plus</span></a>', "error");
-            return;
-          }
         }
 
         button.disabled = true;
@@ -2351,13 +2297,7 @@
       }
 
       function initializeAnimationPage() {
-        // rblx-silent-plus-gate: paint cached access first; verify in the background.
-        var cachedPlus = readCachedPlusStatus();
-        if (cachedPlus === true) {
-          showAccessGate("ok");
-        } else {
-          showAccessGate("checking");
-        }
+        showAccessGate("ok");
         renderActionButtons();
         renderCouponStatus();
         pollCouponStatus();
@@ -2424,13 +2364,7 @@
         }
       });
 
-      fetchPlusStatus({ force: true }).then(function (status) {
-        showAccessGate(status.ok ? "ok" : status.reason);
-        if (!status.ok) lockPlusPage(status.reason);
-      }).catch(function () {
-        showAccessGate("plus");
-        lockPlusPage("plus");
-      });
+      showAccessGate("ok");
     </script>
 <script>
     (function () {

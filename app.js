@@ -9914,7 +9914,6 @@ app.post("/ugc-bake-glb", async (req, res) => {
   let tempDir = null;
 
   try {
-    await requireAuthenticatedUser(req);
     const textureAsset = await resolveImageAssetFromRobloxAsset(assetId, { maxDepth: 5 });
 
     if (!textureAsset) {
@@ -9975,16 +9974,6 @@ app.post("/ugc-bake-glb", async (req, res) => {
 
 
 async function handleAnimationRequest(req, res) {
-  try {
-    await requireActivePlusUser(req);
-  } catch (error) {
-    return res.status(error.statusCode || 500).json({
-      error: error.statusCode === 401
-        ? "Log in to use Animations."
-        : "Animations requires an active RBLXTools Plus or Pro membership.",
-    });
-  }
-
   const id = String(req.query.id || "").trim();
 
   if (!/^[0-9]+$/.test(id)) {

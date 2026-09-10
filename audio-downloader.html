@@ -1230,19 +1230,8 @@
       }
 
       if (ids.length > 5) {
-        setStatus("Plus users can download up to 5 audios at a time.", "error");
+        setStatus("You can download up to 5 audios at a time.", "error");
         return;
-      }
-
-      if (ids.length > 1) {
-        const hasPlus = await fetchPlusStatus();
-        if (!hasPlus) {
-          setStatus('');
-          audioStatus.className = "rblx-status error";
-          audioStatus.innerHTML = 'Must be a <span class="plusWord">Plus</span> subscriber to download multiple audios at the same time. <a href="https://www.rblxtools.net/subscriptions" target="_top"><span class="plusWord">Upgrade to Plus</span></a>';
-          scheduleEmbedHeightReport();
-          return;
-        }
       }
 
       audioButton.disabled = true;
