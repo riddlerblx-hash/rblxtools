@@ -71,7 +71,8 @@ app.get(["/ai-thumbnail-studio", "/ai-thumbnail-studio.html"], (req, res) => {
 });
 app.get(["/thumbnail-ai", "/thumbnail-ai.html"], (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  return res.sendFile(path.join(__dirname, "ai-thumbnail-studio.html"));
+  // Keep the public route and the folder route on the same chat-studio build.
+  return res.sendFile(path.join(__dirname, "thumbnail-ai", "index.html"));
 });
 const httpServer = createServer(app);
 const AUTH_COOKIE_NAME = "rblxtools_auth_token";
