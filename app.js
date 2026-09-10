@@ -4374,22 +4374,9 @@ async function requireActivePlusUser(req) {
 }
 
 async function requireToolAccount(req, res, next) {
-  try {
-    const discordMember = await getDiscordToolsProMember(req);
-    if (discordMember) {
-      req.toolAccount = discordMember;
-      return next();
-    }
-
-    req.toolAccount = await requireAuthenticatedUser(req);
-    return next();
-  } catch (error) {
-    return res.status(error.statusCode || 500).json({
-      error: error.statusCode === 401
-        ? "Log in or sign up to use RBLXTools tools."
-        : error.message || "Could not verify your account.",
-    });
-  }
+  const discordMember = await getDiscordToolsProMember(req).catch(() => null);
+  req.toolAccount = discordMember || await tryGetAuthenticatedUser(req);
+  return next();
 }
 
 async function tryGetAuthenticatedUser(req) {

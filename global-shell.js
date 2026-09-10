@@ -497,6 +497,14 @@
 
     // Store and studio pages are public previews. Their individual actions gate login.
     var protectedPages = {};
+    var freeToolPages = {
+      "template-downloader": true,
+      "template-background-changer": true,
+      "ugc-downloader": true,
+      "media-downloader": true,
+      "audio-downloader": true,
+      "robux-calculator": true
+    };
 
     document.addEventListener("click", function (event) {
       if (event.defaultPrevented || (typeof event.button === "number" && event.button !== 0) || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -504,6 +512,7 @@
       if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
       var href = String(link.getAttribute("href") || "");
       var path = href.split("?")[0].split("#")[0].replace(/^\.\//, "").replace(/\.html$/i, "");
+      if (freeToolPages[path]) return;
       var message = protectedPages[path];
       if (!message) return;
 
