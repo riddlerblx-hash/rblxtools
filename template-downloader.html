@@ -1239,7 +1239,7 @@
         </div>
 
         <label class="field-label" for="robloxId">Roblox Clothing Asset ID</label>
-        <textarea id="robloxId" placeholder="Enter one Roblox clothing asset ID, or comma-separated IDs for Plus / Pro"></textarea>
+        <textarea id="robloxId" placeholder="Enter one Roblox clothing asset ID, or comma-separated IDs"></textarea>
         <button id="templateButton" class="btn" onclick="generate()">Download Template</button>
         <div id="status"></div>
         <div id="result"></div>
@@ -1377,8 +1377,6 @@
     let currentSlides = [];
     let currentSlideIndex = 0;
     let cachedActivityIdentity = null;
-    const PLUS_STATUS_KEY = "rblxtools_plus_cache";
-    let knownPlus = null;
     let showcaseTimer = null;
     let showcaseProgressTimer = null;
     let templateRigRenderer = null;
@@ -1628,42 +1626,18 @@
 
     async function resolveActivityIdentity() {
       if (cachedActivityIdentity) return cachedActivityIdentity;
-      const token = getStoredToken();
-      if (!token) {
-        cachedActivityIdentity = { userId: "", displayName: "", username: "", avatarUrl: "", plan: "guest", isPlus: false };
-        return cachedActivityIdentity;
-      }
-
-      let isPlus = false;
-      try {
-        const premiumResponse = await fetch(API_BASE + "/auth/premium-status", { method: "GET", credentials: "include" });
-        if (premiumResponse.ok) {
-          const premiumPayload = await premiumResponse.json().catch(() => null);
-          isPlus = hasPlusFromPayload(premiumPayload);
-        }
-      } catch (_error) {}
-
-      try {
-        const response = await fetch(API_BASE + "/auth/me", { method: "GET", credentials: "include" });
-        if (!response.ok) throw new Error("Could not load account.");
-
-        const payload = await response.json().catch(() => null);
-        const userId = firstString(payload, ["id","userId","user.id","user.userId","profile.id","account.id"]);
-        const fallbackEmail = firstString(payload, ["email","user.email","account.email"]);
-        const storedProfile = loadStoredProfile(userId, fallbackEmail);
-        const accountPlan = firstString(payload, ["plan","subscription","tier","user.plan","user.subscription","user.tier","account.plan"]).toLowerCase();
-        const fetchedDisplayName = firstString(payload, ["displayName","username","name","user.displayName","user.username","user.name","profile.displayName","profile.username","account.displayName","account.username"]);
-        const displayName = storedProfile.displayName || fetchedDisplayName || (fallbackEmail ? fallbackEmail.split("@")[0] : "");
-        const username = firstString(payload, ["username","user.username","profile.username","account.username"]) || displayName;
-        const avatarUrl = storedProfile.avatarUrl || firstString(payload, ["avatarUrl","avatar","avatarURL","profilePicture","profileImage","profilePhoto","imageUrl","user.avatarUrl","user.avatar","user.profilePicture","user.profileImage","user.imageUrl","profile.avatarUrl","profile.profilePicture","profile.imageUrl","account.avatarUrl","account.profilePicture"]) || "";
-        const plan = isPlus || accountPlan === "plus" || accountPlan === "premium" ? "plus" : (accountPlan || "free");
-
-        cachedActivityIdentity = { userId: String(userId || ""), displayName: String(displayName || ""), username: String(username || ""), avatarUrl: String(avatarUrl || ""), plan: plan, isPlus: plan === "plus" };
-        return cachedActivityIdentity;
-      } catch (_error) {
-        cachedActivityIdentity = { userId: "", displayName: "", username: "", avatarUrl: "", plan: isPlus ? "plus" : "free", isPlus: isPlus };
-        return cachedActivityIdentity;
-      }
+      const cachedUser = getCachedToolUser();
+      const userId = firstString(cachedUser, ["id","userId"]);
+      const fallbackEmail = firstString(cachedUser, ["email"]);
+      const storedProfile = loadStoredProfile(userId, fallbackEmail);
+      const displayName = storedProfile.displayName || getToolUserName(cachedUser);
+      const username = firstString(cachedUser, ["username"]) || displayName;
+      const avatarUrl = storedProfile.avatarUrl || firstString(cachedUser, ["avatarUrl","avatar","profilePicture","imageUrl"]);
+      const accountPlan = firstString(cachedUser, ["plan","subscription","tier"]).toLowerCase();
+      const isPlus = hasPlusFromPayload(cachedUser);
+      const plan = isPlus || accountPlan === "plus" || accountPlan === "premium" ? "plus" : (accountPlan || "guest");
+      cachedActivityIdentity = { userId: String(userId || ""), displayName: String(displayName || ""), username: String(username || ""), avatarUrl: String(avatarUrl || ""), plan: plan, isPlus: plan === "plus" };
+      return cachedActivityIdentity;
     }
 
     async function postTemplateLog(assetId) {
@@ -1787,85 +1761,6 @@
       url.searchParams.set("displayName", getActivityNameFromCache());
       return url.toString();
     }
-
-    function readCachedPlusStatus() {
-      try {
-        const raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && parsed.isPlus === false) return false;
-        }
-      } catch (_error) {}
-      return null;
-    }
-
-    function writeCachedPlusStatus(isPlus) {
-      try {
-        localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
-          isPlus: Boolean(isPlus),
-          updatedAt: Date.now()
-        }));
-      } catch (_error) {}
-    }
-
-    function clearCachedPlusStatus() {
-      try {
-        localStorage.removeItem(PLUS_STATUS_KEY);
-      } catch (_error) {}
-    }
-
-    async function fetchPlusStatus(options) {
-      const token = getStoredToken();
-      if (!token) {
-        clearCachedPlusStatus();
-        return false;
-      }
-
-      const settings = options && typeof options === "object" ? options : {};
-      if (!settings.force) {
-        const cachedStatus = readCachedPlusStatus();
-        if (cachedStatus !== null) {
-          window.setTimeout(function () {
-            fetchPlusStatus({ force: true, background: true });
-          }, 0);
-          return cachedStatus;
-        }
-      }
-
-      try {
-        const premiumResponse = await fetch(API_BASE + "/auth/premium-status", { method: "GET", credentials: "include" });
-
-        if (premiumResponse.ok) {
-          const premiumPayload = await premiumResponse.json().catch(() => null);
-          const hasPlus = hasPlusFromPayload(premiumPayload);
-          writeCachedPlusStatus(hasPlus);
-          return hasPlus;
-        }
-
-        if (premiumResponse.status === 401 || premiumResponse.status === 403) {
-          clearCachedPlusStatus();
-          return false;
-        }
-
-        const response = await fetch(API_BASE + "/auth/me", { method: "GET", credentials: "include" });
-        if (!response.ok) return readCachedPlusStatus() === true;
-        const payload = await response.json().catch(() => null);
-        const hasPlus = hasPlusFromPayload(payload);
-        writeCachedPlusStatus(hasPlus);
-        return hasPlus;
-      } catch (_e) {
-        return readCachedPlusStatus() === true;
-      }
-    }
-
-    async function bootstrapPlusStatus() {
-      if (knownPlus === true) return true;
-      if (knownPlus === false) return false;
-      knownPlus = await fetchPlusStatus();
-      return knownPlus;
-    }
-
-    knownPlus = readCachedPlusStatus();
 
     function buildDefaultPreview() {
       return `
@@ -2122,11 +2017,7 @@
     async function openCurrentTool() {
       const tool = toolsData[activeToolIndex];
       if (!tool.plus) { window.location.href = tool.href; return; }
-      if (knownPlus === true) { window.location.href = tool.href; return; }
-
-      const hasPlus = await bootstrapPlusStatus();
-      if (hasPlus) { window.location.href = tool.href; return; }
-      showPlusGate();
+      window.location.href = tool.href;
     }
 
     document.getElementById("prevTool").addEventListener("click", () => goToTool(activeToolIndex - 1));
@@ -2148,7 +2039,6 @@
     document.getElementById("result").innerHTML = buildDefaultPreview();
     renderToolSlide();
     restartShowcaseTimer();
-    bootstrapPlusStatus();
   </script>
   <script>
     (function () {

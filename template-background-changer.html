@@ -1078,8 +1078,6 @@
       var currentPreviewIndex = 0;
       var templateCache = {};
       var accountHasPlus = false;
-      var accountIsPro = false;
-      var plusStatusPromise = null;
       var hasInteracted = false;
 
       function setStatus(message, type) {
@@ -1105,147 +1103,6 @@
           return "";
         }
       }
-
-      function hasPlusFromPayload(payload) {
-        if (!payload || typeof payload !== "object") return false;
-        return Boolean(
-          payload.plus === true ||
-          payload.isPlus === true ||
-          payload.hasPlus === true ||
-          payload.plusActive === true ||
-          payload.subscription === "plus" ||
-          payload.plan === "plus" ||
-          payload.tier === "plus"
-        ) || isProFromPayload(payload);
-      }
-
-      function isProFromPayload(payload) {
-        if (!payload || typeof payload !== "object") return false;
-        var source = payload.user && typeof payload.user === "object" ? payload.user : payload;
-        return Boolean(
-          source.isPro === true ||
-          source.hasPro === true ||
-          source.proActive === true ||
-          String(source.plan || "").toLowerCase() === "pro" ||
-          String(source.subscription || "").toLowerCase() === "pro" ||
-          String(source.tier || "").toLowerCase() === "pro"
-        );
-      }
-
-      var PLUS_STATUS_KEY = "rblxtools_plus_cache";
-
-      function readCachedPlusStatus() {
-        try {
-          var raw = localStorage.getItem(PLUS_STATUS_KEY) || "";
-          if (raw) {
-            var parsed = JSON.parse(raw);
-            if (parsed && typeof parsed.isPlus === "boolean") {
-              return parsed.isPlus;
-            }
-          }
-        } catch (_error) {}
-
-        try {
-          var cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
-          return hasPlusFromPayload(cachedUser) ? true : null;
-        } catch (_error2) {
-          return null;
-        }
-      }
-
-      function readCachedProStatus() {
-        try {
-          var cachedUser = JSON.parse(localStorage.getItem("rblxtools_auth_user") || "null");
-          return isProFromPayload(cachedUser);
-        } catch (_error) {
-          return false;
-        }
-      }
-
-      function writeCachedPlusStatus(isPlus) {
-        try {
-          localStorage.setItem(PLUS_STATUS_KEY, JSON.stringify({
-            isPlus: Boolean(isPlus),
-            updatedAt: Date.now()
-          }));
-        } catch (_error) {}
-      }
-
-      function clearCachedPlusStatus() {
-        try {
-          localStorage.removeItem(PLUS_STATUS_KEY);
-        } catch (_error) {}
-      }
-
-      async function fetchPlusStatus(options) {
-        var token = getStoredToken();
-        if (!token) {
-          clearCachedPlusStatus();
-          accountIsPro = false;
-          return false;
-        }
-
-        var settings = options && typeof options === "object" ? options : {};
-        if (!settings.force) {
-          var cachedStatus = readCachedPlusStatus();
-          if (cachedStatus !== null) {
-            accountIsPro = readCachedProStatus();
-            window.setTimeout(function () {
-              fetchPlusStatus({ force: true, background: true });
-            }, 0);
-            return cachedStatus;
-          }
-        }
-
-        try {
-          var premiumResponse = await fetch(API_BASE + "/auth/premium-status", {
-            method: "GET", credentials: "include"
-          });
-
-          if (premiumResponse.ok) {
-            var premiumPayload = await premiumResponse.json().catch(function () { return null; });
-            accountIsPro = isProFromPayload(premiumPayload);
-            var hasPlus = hasPlusFromPayload(premiumPayload);
-            writeCachedPlusStatus(hasPlus);
-            return hasPlus;
-          }
-
-          if (premiumResponse.status === 401 || premiumResponse.status === 403) {
-            clearCachedPlusStatus();
-            accountIsPro = false;
-            return false;
-          }
-
-          var response = await fetch(API_BASE + "/auth/me", {
-            method: "GET", credentials: "include"
-          });
-
-          if (!response.ok) return readCachedPlusStatus() === true;
-          var payload = await response.json().catch(function () { return null; });
-          accountIsPro = isProFromPayload(payload);
-          var hasPlus = hasPlusFromPayload(payload);
-          writeCachedPlusStatus(hasPlus);
-          return hasPlus;
-        } catch (_error3) {
-          var cachedStatus = readCachedPlusStatus();
-          accountIsPro = readCachedProStatus();
-          return cachedStatus === true;
-        }
-      }
-
-      async function ensurePlusStatus() {
-        if (plusStatusPromise) return plusStatusPromise;
-        plusStatusPromise = fetchPlusStatus().then(function (hasPlus) {
-          accountHasPlus = Boolean(hasPlus);
-          return accountHasPlus;
-        }).catch(function () {
-          accountHasPlus = false;
-          return false;
-        });
-        return plusStatusPromise;
-      }
-
-
 
       function getActivityNameFromCache() {
         function readNameFrom(value) {
@@ -1685,11 +1542,6 @@
         updateEmptyPreviewState();
         drawTemplatePreview().catch(function () {
           setStatus("Upload a template to begin.");
-        });
-        ensurePlusStatus().then(function (hasPlus) {
-          return drawTemplatePreview();
-        }).catch(function () {
-          return drawTemplatePreview();
         });
         scheduleHeightReport();
         setTimeout(scheduleHeightReport, 150);
