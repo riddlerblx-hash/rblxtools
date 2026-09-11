@@ -11,7 +11,7 @@ function getDefaultSiteSettings() {
   return {
     maintenanceEnabled: false,
     maintenanceTitle: "Sorry, the site is under maintenance right now.",
-    maintenanceNotice: "This does not mean the servers are down. The RBLXTeam is currently updating the site. Please come back later.",
+    maintenanceNotice: "",
     maintenancePaths: [],
     updatedAt: null,
     updatedBy: "",
@@ -120,7 +120,7 @@ function readSiteSettings(baseDir) {
     return {
       maintenanceEnabled: Boolean(parsed.maintenanceEnabled),
       maintenanceTitle: String(parsed.maintenanceTitle || defaults.maintenanceTitle).trim() || defaults.maintenanceTitle,
-      maintenanceNotice: String(parsed.maintenanceNotice || defaults.maintenanceNotice).trim() || defaults.maintenanceNotice,
+      maintenanceNotice: String(parsed.maintenanceNotice ?? defaults.maintenanceNotice).trim(),
       maintenancePaths: normalizeMaintenancePaths(parsed.maintenancePaths),
       updatedAt: parsed.updatedAt ? String(parsed.updatedAt) : null,
       updatedBy: parsed.updatedBy ? String(parsed.updatedBy) : "",
@@ -135,7 +135,7 @@ function writeSiteSettings(baseDir, settings) {
   const next = {
     maintenanceEnabled: Boolean(settings.maintenanceEnabled),
     maintenanceTitle: String(settings.maintenanceTitle || defaults.maintenanceTitle).trim() || defaults.maintenanceTitle,
-    maintenanceNotice: String(settings.maintenanceNotice || defaults.maintenanceNotice).trim() || defaults.maintenanceNotice,
+    maintenanceNotice: String(settings.maintenanceNotice ?? defaults.maintenanceNotice).trim(),
     maintenancePaths: normalizeMaintenancePaths(settings.maintenancePaths),
     updatedAt: settings.updatedAt ? String(settings.updatedAt) : null,
     updatedBy: settings.updatedBy ? String(settings.updatedBy) : "",
@@ -206,7 +206,7 @@ function isMaintenanceAllowedPath(pathname) {
 
 function buildMaintenanceHtml(settings) {
   const title = String(settings?.maintenanceTitle || "Sorry, the site is under maintenance right now.").replace(/[<>&"]/g, "");
-  const notice = String(settings?.maintenanceNotice || "This does not mean the servers are down. The RBLXTeam is currently updating the site. Please come back later.").replace(/[<>&"]/g, "");
+  const notice = String(settings?.maintenanceNotice || "").replace(/[<>&"]/g, "");
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -287,7 +287,7 @@ function buildMaintenanceHtml(settings) {
     <div class="kicker">Maintenance Notice</div>
     <h1>${title}</h1>
 
-    <div class="notice">${notice}</div>
+    ${notice ? `<div class="notice">${notice}</div>` : ""}
   </main>
 </body>
 </html>`;
@@ -938,7 +938,9 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
         // page must never leave the whole site locked by a stale checkbox value.
         maintenanceEnabled: requestedPaths.length ? false : Boolean(req.body?.maintenanceEnabled),
         maintenanceTitle: cleanText(req.body?.maintenanceTitle, 140) || defaults.maintenanceTitle,
-        maintenanceNotice: cleanText(req.body?.maintenanceNotice, 500) || defaults.maintenanceNotice,
+        maintenanceNotice: Object.prototype.hasOwnProperty.call(req.body || {}, "maintenanceNotice")
+          ? cleanText(req.body?.maintenanceNotice, 500)
+          : defaults.maintenanceNotice,
         maintenancePaths: requestedPaths,
         updatedAt: new Date().toISOString(),
         updatedBy: String(adminUser.email || adminUser.id || "admin"),

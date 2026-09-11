@@ -27,7 +27,7 @@
       var pathsNode = document.getElementById("maintenancePaths");
       if (enabledNode) enabledNode.checked = Boolean(settings.maintenanceEnabled);
       if (titleNode) titleNode.value = settings.maintenanceTitle || "Sorry, the site is under maintenance right now.";
-      if (noticeNode) noticeNode.value = settings.maintenanceNotice || "This does not mean the servers are down. The RBLXTeam is currently updating the site. Please come back later.";
+      if (noticeNode) noticeNode.value = settings.maintenanceNotice || "";
       if (pathsNode) {
         var selectedPaths = Array.isArray(settings.maintenancePaths) ? settings.maintenancePaths : [];
         Array.prototype.forEach.call(pathsNode.querySelectorAll("[data-maintenance-path]"), function (option) {
