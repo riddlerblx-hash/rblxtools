@@ -28,6 +28,7 @@ const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 const { installSiteOpsFeature } = require("./site-ops-feature");
 const { createCodesPlatform } = require("./codes-platform");
+const { createSupabaseCodesStore } = require("./supabase-codes-store");
 const {
   createDiscordLinkCode,
   getDiscordLinkByAppUserId,
@@ -155,7 +156,12 @@ const COMMUNITY_NOTIFICATIONS_PATH = process.env.COMMUNITY_NOTIFICATIONS_PATH ||
 const COMMUNITY_PROFILES_PATH = process.env.COMMUNITY_PROFILES_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-profiles.json");
 const COMMUNITY_AVATAR_DIR = process.env.COMMUNITY_AVATAR_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-avatars");
 const RBLXTOOLS_CODES_DATA_PATH = process.env.RBLXTOOLS_CODES_DATA_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "codes.json");
-const codesPlatform = createCodesPlatform({ dataPath: RBLXTOOLS_CODES_DATA_PATH });
+const fileCodesPlatform = createCodesPlatform({ dataPath: RBLXTOOLS_CODES_DATA_PATH });
+const codesPlatform = createSupabaseCodesStore({
+  fallback: fileCodesPlatform,
+  request: supabaseRequest,
+  isConfigured: () => Boolean(SUPABASE_URL && SUPABASE_KEY),
+});
 // Preview tasks are short-lived. Keep the paid generation settings here so a
 // refinement cannot be requested for a different account or without textures.
 const ugcGenerationCharges = new Map();
@@ -11295,14 +11301,14 @@ function getUsers(room) {
 const STATIC_ROOT = __dirname;
 const AI_RIG_STATIC_ROOT = path.join(__dirname, "assets", "ai-rig");
 
-app.get("/api/codes", (req, res) => {
-  try { return res.json(codesPlatform.list({ search: req.query.search, limit: req.query.limit, page: req.query.page })); }
+app.get("/api/codes", async (req, res) => {
+  try { return res.json(await codesPlatform.list({ search: req.query.search, limit: req.query.limit, page: req.query.page })); }
   catch (_error) { return res.status(500).json({ error: "Could not load Roblox code guides." }); }
 });
 
-app.get("/api/codes/:slug", (req, res) => {
+app.get("/api/codes/:slug", async (req, res) => {
   try {
-    const guide = codesPlatform.getGame(req.params.slug);
+    const guide = await codesPlatform.getGame(req.params.slug);
     return guide ? res.json(guide) : res.status(404).json({ error: "Code guide not found." });
   } catch (_error) { return res.status(500).json({ error: "Could not load this Roblox code guide." }); }
 });
@@ -11317,10 +11323,14 @@ app.get(["/codes", "/codes/", "/game-codes"], (_req, res) => {
   return res.sendFile(path.join(STATIC_ROOT, "game-codes.html"));
 });
 
-app.get("/codes/:slug", (req, res) => {
-  if (!codesPlatform.getGame(req.params.slug)) return res.status(404).sendFile(path.join(STATIC_ROOT, "game-codes.html"));
-  res.setHeader("Cache-Control", "no-store");
-  return res.sendFile(path.join(STATIC_ROOT, "game-codes.html"));
+app.get("/codes/:slug", async (req, res) => {
+  try {
+    if (!await codesPlatform.getGame(req.params.slug)) return res.status(404).sendFile(path.join(STATIC_ROOT, "game-codes.html"));
+    res.setHeader("Cache-Control", "no-store");
+    return res.sendFile(path.join(STATIC_ROOT, "game-codes.html"));
+  } catch (_error) {
+    return res.status(500).sendFile(path.join(STATIC_ROOT, "game-codes.html"));
+  }
 });
 
 app.use("/community-avatars", express.static(COMMUNITY_AVATAR_DIR, { fallthrough: true, maxAge: "30d" }));
