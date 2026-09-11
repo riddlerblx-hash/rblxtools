@@ -28,7 +28,12 @@
       if (enabledNode) enabledNode.checked = Boolean(settings.maintenanceEnabled);
       if (titleNode) titleNode.value = settings.maintenanceTitle || "Sorry, the site is under maintenance right now.";
       if (noticeNode) noticeNode.value = settings.maintenanceNotice || "This does not mean the servers are down. The RBLXTeam is currently updating the site. Please come back later.";
-      if (pathsNode) pathsNode.value = Array.isArray(settings.maintenancePaths) ? settings.maintenancePaths.join("\n") : "";
+      if (pathsNode) {
+        var selectedPaths = Array.isArray(settings.maintenancePaths) ? settings.maintenancePaths : [];
+        Array.prototype.forEach.call(pathsNode.options || [], function (option) {
+          option.selected = selectedPaths.indexOf(option.value) !== -1;
+        });
+      }
       setStatus("Maintenance settings loaded.", "success");
     } catch (error) {
       setStatus(error.message || "Could not load maintenance settings.", "error");
@@ -52,7 +57,7 @@
           maintenanceEnabled: Boolean(enabledNode && enabledNode.checked),
           maintenanceTitle: titleNode ? String(titleNode.value || "").trim() : "",
           maintenanceNotice: noticeNode ? String(noticeNode.value || "").trim() : "",
-          maintenancePaths: pathsNode ? String(pathsNode.value || "").split(/[\n,]/).map(function (path) { return path.trim(); }).filter(Boolean) : []
+          maintenancePaths: pathsNode ? Array.prototype.map.call(pathsNode.selectedOptions || [], function (option) { return option.value; }) : []
         })
       });
       setStatus(payload.message || "Maintenance settings saved.", "success");
@@ -69,6 +74,13 @@
     if (!saveButton || !refreshButton) return;
     saveButton.addEventListener("click", saveMaintenanceSettings);
     refreshButton.addEventListener("click", loadMaintenanceSettings);
+    var pathsNode = document.getElementById("maintenancePaths");
+    var enabledNode = document.getElementById("maintenanceEnabled");
+    if (pathsNode && enabledNode) {
+      pathsNode.addEventListener("change", function () {
+        if (pathsNode.selectedOptions && pathsNode.selectedOptions.length) enabledNode.checked = false;
+      });
+    }
     loadMaintenanceSettings();
   }
 

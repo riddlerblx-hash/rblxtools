@@ -1169,7 +1169,7 @@
         </div>
         <div class="admin-triple">
           <div class="admin-field">
-            <label class="admin-label" for="maintenanceEnabled">Maintenance Mode</label>
+            <label class="admin-label" for="maintenanceEnabled">Full-Site Maintenance</label>
             <input class="admin-input" id="maintenanceEnabled" type="checkbox" />
           </div>
           <div class="admin-field" style="grid-column: span 2;">
@@ -1182,9 +1182,21 @@
           <textarea class="admin-textarea" id="maintenanceNotice" placeholder="Extra maintenance details shown on the public screen"></textarea>
         </div>
         <div class="admin-field">
-          <label class="admin-label" for="maintenancePaths">Specific Pages Under Maintenance</label>
-          <textarea class="admin-textarea" id="maintenancePaths" placeholder="One page per line, for example:&#10;/ugc-downloader&#10;/game-codes"></textarea>
-          <p class="admin-field-note">Optional. These page routes lock even when full-site maintenance is off. Admins retain access.</p>
+          <label class="admin-label" for="maintenancePaths">Specific Page Maintenance</label>
+          <select class="admin-input" id="maintenancePaths" multiple size="9" aria-describedby="maintenancePathsHelp">
+            <option value="/game-codes">Roblox Codes</option>
+            <option value="/ugc-downloader">UGC Downloader</option>
+            <option value="/template-downloader">Template Downloader</option>
+            <option value="/template-background-changer">Template Background Changer</option>
+            <option value="/media-downloader">Media Downloader</option>
+            <option value="/audio-downloader">Audio Downloader</option>
+            <option value="/animation-spoofer">Animation Spoofer</option>
+            <option value="/robux-calculator">Robux Calculator</option>
+            <option value="/thumbnail-ai">Thumbnail AI</option>
+            <option value="/ai-ugc">AI UGC</option>
+            <option value="/ai-clothing-studio">AI Clothing Studio</option>
+          </select>
+          <p class="admin-field-note" id="maintenancePathsHelp">Choose one or more public pages. Selecting any page automatically turns off full-site maintenance; admins retain access.</p>
         </div>
         <div class="admin-buttons">
           <button class="admin-btn green" id="saveMaintenanceButton" type="button">Save Maintenance Mode</button>

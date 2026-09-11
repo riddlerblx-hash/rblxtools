@@ -932,19 +932,24 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
     try {
       const adminUser = await requireAdminUser(req);
       const defaults = getDefaultSiteSettings();
+      const requestedPaths = normalizeMaintenancePaths(req.body?.maintenancePaths);
       const nextSettings = writeSiteSettings(baseDir, {
-        maintenanceEnabled: Boolean(req.body?.maintenanceEnabled),
+        // Targeted and full-site maintenance are mutually exclusive. A selected
+        // page must never leave the whole site locked by a stale checkbox value.
+        maintenanceEnabled: requestedPaths.length ? false : Boolean(req.body?.maintenanceEnabled),
         maintenanceTitle: cleanText(req.body?.maintenanceTitle, 140) || defaults.maintenanceTitle,
         maintenanceNotice: cleanText(req.body?.maintenanceNotice, 500) || defaults.maintenanceNotice,
-        maintenancePaths: normalizeMaintenancePaths(req.body?.maintenancePaths),
+        maintenancePaths: requestedPaths,
         updatedAt: new Date().toISOString(),
         updatedBy: String(adminUser.email || adminUser.id || "admin"),
       });
       return res.json({
         ok: true,
         message: nextSettings.maintenanceEnabled
-          ? "Site maintenance mode is now enabled."
-          : "Site maintenance mode is now disabled.",
+          ? "Full-site maintenance mode is now enabled."
+          : (nextSettings.maintenancePaths.length
+            ? `Maintenance is enabled for ${nextSettings.maintenancePaths.length} selected page${nextSettings.maintenancePaths.length === 1 ? "" : "s"}.`
+            : "Maintenance mode is now disabled."),
         settings: buildPublicSiteStatus(nextSettings),
       });
     } catch (error) {
