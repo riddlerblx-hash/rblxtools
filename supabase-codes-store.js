@@ -113,6 +113,24 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const game = toGame(rows[0]);
     const rowsForCodes = await request(`/rest/v1/game_codes?game_id=eq.${encodeURIComponent(game.id)}&select=*&order=created_at.desc`);
     const codes = (Array.isArray(rowsForCodes) ? rowsForCodes : []).map(toCode);
+    const codeIds = codes.map((code) => code.id);
+    const voteRows = codeIds.length
+      ? await request(`/rest/v1/game_code_votes?${buildInFilter("game_code_id", codeIds)}&select=game_code_id,worked`)
+      : [];
+    const voteSummary = new Map();
+    (Array.isArray(voteRows) ? voteRows : []).forEach((vote) => {
+      const summary = voteSummary.get(vote.game_code_id) || { successVotes: 0, failureVotes: 0 };
+      if (vote.worked) summary.successVotes += 1;
+      else summary.failureVotes += 1;
+      voteSummary.set(vote.game_code_id, summary);
+    });
+    codes.forEach((code) => {
+      const summary = voteSummary.get(code.id) || { successVotes: 0, failureVotes: 0 };
+      code.successVotes = summary.successVotes;
+      code.failureVotes = summary.failureVotes;
+      code.totalVotes = summary.successVotes + summary.failureVotes;
+      code.successRate = code.totalVotes ? Math.round((summary.successVotes / code.totalVotes) * 100) : null;
+    });
     return {
       game: publicGame(game, codes),
       workingCodes: codes.filter((code) => code.status === "working"),
@@ -181,12 +199,96 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     return toCode(Array.isArray(rows) ? rows[0] : {});
   }
 
+  async function submitCodeSubmission(gameId, input, user) {
+    const code = clean(input.code, 160);
+    if (!code) throw new Error("A code is required.");
+    const rows = await request("/rest/v1/game_code_submissions", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        game_id: gameId,
+        code,
+        reward: clean(input.reward, 300),
+        source_url: clean(input.sourceUrl, 500),
+        submitter_user_id: user.id,
+        submitter_name: clean(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
+      }),
+    });
+    return Array.isArray(rows) ? rows[0] : null;
+  }
+
+  async function voteForCode(gameId, codeId, userId, worked) {
+    const codeRows = await request(`/rest/v1/game_codes?id=eq.${encodeURIComponent(codeId)}&game_id=eq.${encodeURIComponent(gameId)}&select=id&limit=1`);
+    if (!Array.isArray(codeRows) || !codeRows[0]) throw new Error("Code not found for this game.");
+    await request("/rest/v1/game_code_votes?on_conflict=game_code_id,voter_user_id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ game_code_id: codeId, voter_user_id: userId, worked: Boolean(worked), updated_at: new Date().toISOString() }),
+    });
+    const votes = await request(`/rest/v1/game_code_votes?game_code_id=eq.${encodeURIComponent(codeId)}&select=worked`);
+    const summary = (Array.isArray(votes) ? votes : []).reduce((result, vote) => {
+      if (vote.worked) result.successVotes += 1;
+      else result.failureVotes += 1;
+      return result;
+    }, { successVotes: 0, failureVotes: 0 });
+    summary.totalVotes = summary.successVotes + summary.failureVotes;
+    summary.successRate = summary.totalVotes ? Math.round((summary.successVotes / summary.totalVotes) * 100) : null;
+    return summary;
+  }
+
+  async function listSubmissions(status = "pending") {
+    const safeStatus = ["pending", "approved", "rejected"].includes(status) ? status : "pending";
+    const rows = await request(`/rest/v1/game_code_submissions?status=eq.${safeStatus}&select=*&order=created_at.desc&limit=200`);
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function reviewSubmission(id, decision, adminUserId, note = "") {
+    const status = decision === "approved" ? "approved" : "rejected";
+    const rows = await request(`/rest/v1/game_code_submissions?id=eq.${encodeURIComponent(id)}&select=*&limit=1`);
+    const submission = Array.isArray(rows) ? rows[0] : null;
+    if (!submission) throw new Error("Submission not found.");
+    if (submission.status !== "pending") throw new Error("This submission has already been reviewed.");
+    let code = null;
+    if (status === "approved") {
+      code = await upsertCode(submission.game_id, {
+        code: submission.code,
+        reward: submission.reward,
+        status: "working",
+        verificationStatus: "unconfirmed",
+        source: "Community submission approved by RBLXTools staff",
+        sourceUrl: submission.source_url,
+      });
+    }
+    await request(`/rest/v1/game_code_submissions?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ status, reviewed_by_user_id: adminUserId, reviewed_at: new Date().toISOString(), review_note: clean(note, 500), updated_at: new Date().toISOString() }),
+    });
+    return { status, code };
+  }
+
   return {
     provider: fallback.provider,
     list(input) { return useDatabase(() => listFromDatabase(input), () => fallback.list(input)); },
     getGame(slug) { return useDatabase(() => getFromDatabase(slug), () => fallback.getGame(slug)); },
     upsertGame(input) { return useDatabase(() => upsertGame(input), () => fallback.upsertGame(input)); },
     upsertCode(gameId, input) { return useDatabase(() => upsertCode(gameId, input), () => fallback.upsertCode(gameId, input)); },
+    submitCodeSubmission(gameId, input, user) {
+      if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
+      return submitCodeSubmission(gameId, input, user);
+    },
+    voteForCode(gameId, codeId, userId, worked) {
+      if (!isConfigured()) throw new Error("Code voting is not configured yet.");
+      return voteForCode(gameId, codeId, userId, worked);
+    },
+    listSubmissions(status) {
+      if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
+      return listSubmissions(status);
+    },
+    reviewSubmission(id, decision, adminUserId, note) {
+      if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
+      return reviewSubmission(id, decision, adminUserId, note);
+    },
     sync() { return fallback.sync(); },
   };
 }

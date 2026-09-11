@@ -11313,6 +11313,85 @@ app.get("/api/codes/:slug", async (req, res) => {
   } catch (_error) { return res.status(500).json({ error: "Could not load this Roblox code guide." }); }
 });
 
+app.get("/api/codes-session", async (req, res) => {
+  const user = await getOptionalCommunityUser(req);
+  if (!user) return res.json({ authenticated: false, canManageCodes: false, viewer: null });
+  return res.json({
+    authenticated: true,
+    canManageCodes: isAdminUser(user),
+    viewer: { id: String(user.id), name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80) },
+  });
+});
+
+app.post("/api/codes/:slug/submissions", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).json({ error: "Code guide not found." });
+    const submission = await codesPlatform.submitCodeSubmission(guide.game.id, req.body || {}, user);
+    return res.status(201).json({ ok: true, submission });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit this code." });
+  }
+});
+
+app.post("/api/codes/:slug/votes/:codeId", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).json({ error: "Code guide not found." });
+    if (typeof req.body?.worked !== "boolean") return res.status(400).json({ error: "Choose whether the code worked." });
+    const summary = await codesPlatform.voteForCode(guide.game.id, req.params.codeId, user.id, req.body.worked);
+    return res.json({ ok: true, summary });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not save your vote." });
+  }
+});
+
+app.post("/admin/codes/games", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    return res.status(201).json({ ok: true, game: await codesPlatform.upsertGame(req.body || {}) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not create this code guide." });
+  }
+});
+
+app.post("/admin/codes/:slug", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).json({ error: "Code guide not found." });
+    const code = await codesPlatform.upsertCode(guide.game.id, {
+      ...req.body,
+      source: "RBLXTools staff",
+      verificationStatus: req.body?.verificationStatus || "unconfirmed",
+    });
+    return res.status(201).json({ ok: true, code });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not publish this code." });
+  }
+});
+
+app.get("/admin/codes/submissions", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    return res.json({ submissions: await codesPlatform.listSubmissions(req.query.status) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load code submissions." });
+  }
+});
+
+app.patch("/admin/codes/submissions/:id", async (req, res) => {
+  try {
+    const admin = await requireAdminUser(req);
+    const result = await codesPlatform.reviewSubmission(req.params.id, req.body?.decision, admin.id, req.body?.note);
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not review this code submission." });
+  }
+});
+
 app.post("/admin/codes/sync", async (req, res) => {
   try { await requireAdminUser(req); return res.json({ ok: true, run: await codesPlatform.sync() }); }
   catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not start the code sync." }); }

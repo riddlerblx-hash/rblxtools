@@ -15,3 +15,26 @@ create table if not exists game_codes (
   unique (game_id, normalized_code)
 );
 create index if not exists game_codes_game_status_idx on game_codes(game_id, status);
+
+-- Community reports stay private until staff approve them into game_codes.
+create table if not exists game_code_submissions (
+  id uuid primary key default gen_random_uuid(),
+  game_id uuid not null references games(id) on delete cascade,
+  code text not null, reward text not null default '', source_url text not null default '',
+  submitter_user_id uuid not null, submitter_name text not null default '',
+  status text not null default 'pending' check (status in ('pending','approved','rejected')),
+  reviewed_by_user_id uuid, reviewed_at timestamptz, review_note text not null default '',
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
+create index if not exists game_code_submissions_review_idx on game_code_submissions(status, created_at desc);
+
+-- One account can change its vote, but cannot inflate a code's success rate.
+create table if not exists game_code_votes (
+  id uuid primary key default gen_random_uuid(),
+  game_code_id uuid not null references game_codes(id) on delete cascade,
+  voter_user_id uuid not null,
+  worked boolean not null,
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+  unique (game_code_id, voter_user_id)
+);
+create index if not exists game_code_votes_code_idx on game_code_votes(game_code_id);
