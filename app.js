@@ -9590,7 +9590,6 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
       ...customerParams,
       line_items: [{ price: priceId, quantity: 1 }],
       ...buildCheckoutReturnOptions(req, getSafeCheckoutSuccessUrl(), getSafeCheckoutCancelUrl()),
-      allow_promotion_codes: true,
       client_reference_id: user.id,
       metadata: { appUserId: user.id, plan: "pro", billingInterval, referralCode },
       subscription_data: { metadata: { appUserId: user.id, plan: "pro", billingInterval } },

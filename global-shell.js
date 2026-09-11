@@ -1611,7 +1611,7 @@
               '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + "</div>" +
               '<div class="rblx-shell-left-foot">' +
                 '<div class="rblx-shell-box-ad" data-rblx-shell-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' +
-                '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span><s>$5.00</s> $2.50 <em>50% off</em></span><i class="rblx-shell-plan-timer"><b></b></i></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a></div>' +
+                '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span>$5.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a></div>' +
                 '<div class="rblx-shell-socials">' +
                   '<a href="https://x.com/Reese28575571" target="_blank" rel="noreferrer" aria-label="X">' + getSocialIcon("x") + '</a>' +
                   '<a href="https://www.youtube.com/@ItzReeseRBLX" target="_blank" rel="noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + '</a>' +
@@ -4685,10 +4685,8 @@
     var isPro = plan === "pro";
     var floatingMark = isPro ? "&#128736;" : "+";
     var config = isPro ? {
-      price: "$2.50",
-      originalPrice: "$5.00",
-      discount: "50% off",
-      subtitle: "With code PROCREATOR",
+      price: "$5.00",
+      subtitle: "Monthly membership",
       title: "Pro",
       action: actionLabel || "Try Now",
       generalPerks: ["Includes All Plus Benefits", "Discord Bot Access", "No Annoying Ads", "Bulk Downloads (5-10)", "Premium Giveaways", "Custom Chat Tag"],
@@ -4704,7 +4702,7 @@
     return [
       '<div class="rblx-membership-promo-floaters ' + (isPro ? 'is-pro' : 'is-plus') + '" aria-hidden="true"><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span></div>',
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
-      '<div class="rblx-membership-promo-price-box' + (isPro ? ' is-discounted' : '') + '">' + (isPro ? '<span class="rblx-membership-promo-discount">' + config.discount + '</span><div class="rblx-membership-promo-price-row"><s>' + config.originalPrice + '</s><span class="rblx-membership-promo-price">' + config.price + '</span></div>' : '<span class="rblx-membership-promo-price">' + config.price + '</span>') + '<small>' + config.subtitle + '</small></div>',
+      '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price">' + config.price + '</span><small>' + config.subtitle + '</small></div>',
       '<div class="rblx-membership-promo-perks"><div class="rblx-membership-promo-section">General benefits</div>' + config.generalPerks.map(function (perk) { return perk === "Includes All Plus Benefits" ? '<span class="rblx-membership-promo-included"><b>+</b>Includes All Plus Benefits</span>' : '<span><b>+</b>' + perk + '</span>'; }).join("") + '<div class="rblx-membership-promo-section">AI benefits</div>' + config.aiPerks.map(function (perk) { return '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
       showBoxAd ? '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' : '',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous membership plan"></button><div class="rblx-membership-promo-progress" aria-label="Membership plan rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next membership plan"></button></div><a class="rblx-membership-promo-action" href="./subscriptions">' + config.action + '</a></div>'

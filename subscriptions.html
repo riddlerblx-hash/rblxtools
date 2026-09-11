@@ -1273,19 +1273,6 @@
       justify-content:center;
     }
 
-    .pro-price-stack { flex:0 0 154px; }
-    .pro-price-box { position:relative; min-width:154px; }
-    .pro-discount-corner { position:absolute; top:7px; right:7px; padding:3px 5px; border:1px solid rgba(255,125,119,.52); border-radius:999px; color:#ffd1c9; background:rgba(105,29,28,.56); font-size:7px; font-weight:950; letter-spacing:.06em; text-transform:uppercase; }
-    .pro-price-row { display:flex; align-items:baseline; justify-content:center; gap:8px; margin-top:5px; }
-    .pro-price-original { color:#ff9a96; font-size:15px; font-weight:900; text-decoration:line-through 2px #ff5454; }
-    .pro-price-discounted { color:#fff; font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1; }
-    .pro-discount-badge { display:none; }
-    .pro-creator-offer { display:grid; width:100%; justify-items:center; gap:4px; margin-top:10px; margin-bottom:8px; padding:2px 0 0; }
-    .pro-creator-label { color:#e8cc86; font-size:8px; font-weight:850; letter-spacing:.04em; white-space:nowrap; }
-    .pro-creator-code-row { display:flex; width:100%; align-items:center; }
-    .pro-creator-offer-code { flex:1; min-width:0; height:36px; border:1px solid rgba(255,224,145,.56); border-right:0; border-radius:10px 0 0 10px; padding:0 12px; color:#fff4d5; background:rgba(43,30,10,.5); font-size:10px; font-weight:900; letter-spacing:.06em; outline:none; }
-    .pro-creator-copy { display:grid; width:36px; height:36px; place-items:center; border:1px solid rgba(255,229,158,.68); border-radius:0 10px 10px 0; color:#2b1900; background:linear-gradient(135deg,#fff0b0,#e9b43f); cursor:pointer; font-size:14px; }
-    .pro-creator-copy:active { transform:translateY(1px); }
     .pill-row:empty { display: none; }
     .plan-title { margin-top: 7px; font-size: clamp(28px, 2.55vw, 38px); line-height: .95; }
     .plan-subtitle { margin-top: 8px; line-height: 1.5; }
@@ -1566,18 +1553,11 @@
                 <p class="plan-subtitle">The higher-tier creator membership for wider thumbnail flexibility, larger download batches, and a cleaner ad-free workflow.</p>
               </div>
 
-              <div class="pro-price-stack">
               <div class="price-box pro-price-box">
-                <span class="pro-discount-corner" id="proDiscountCorner">50% off</span>
                 <div class="price-kicker">Current Price</div>
-                <div class="pro-price-row"><span class="pro-price-original" data-membership-price="pro">$5.00</span><span class="pro-price-discounted" id="proDiscountPrice">$2.50</span></div>
+                <div class="price-value" data-membership-price="pro">$5.00</div>
                 <div class="price-sub" data-membership-price-sub="pro">Per month</div>
                 <div class="price-save" data-membership-save="pro"></div>
-              </div>
-              <div class="pro-creator-offer">
-                <span class="pro-creator-label">(Discount code)</span>
-                <div class="pro-creator-code-row"><input class="pro-creator-offer-code" id="proCreatorOfferCode" type="text" value="PROCREATOR" readonly aria-label="Pro promo code" /><button class="pro-creator-copy" id="proCreatorCopyButton" type="button" title="Copy promo code" aria-label="Copy promo code">📋</button></div>
-              </div>
               </div>
             </div>
 
@@ -1750,10 +1730,6 @@
       var proTokenPerkIcon = document.getElementById("proTokenPerkIcon");
       var proTokenPerkTitle = document.getElementById("proTokenPerkTitle");
       var proTokenPerkCopy = document.getElementById("proTokenPerkCopy");
-      var proCreatorOfferCode = document.getElementById("proCreatorOfferCode");
-      var proCreatorCopyButton = document.getElementById("proCreatorCopyButton");
-      var proDiscountPrice = document.getElementById("proDiscountPrice");
-      var proDiscountCorner = document.getElementById("proDiscountCorner");
       var billingInterval = "month";
       var membershipPricing = null;
         var loginRedirectTimer = 0;
@@ -1794,8 +1770,6 @@
           if (proTokenPerkIcon) proTokenPerkIcon.textContent = isAnnualBilling ? "2400" : "200";
           if (proTokenPerkTitle) proTokenPerkTitle.textContent = isAnnualBilling ? "2,400 AI Credits Every Year" : "200 AI Credits Every Month";
           if (proTokenPerkCopy) proTokenPerkCopy.textContent = isAnnualBilling ? "All 2,400 AI credits are added instantly after your successful annual Pro payment." : "A fresh 200 AI credits are added after every successful Pro monthly payment.";
-          if (proDiscountPrice) proDiscountPrice.textContent = isAnnualBilling ? "$47.49" : "$2.50";
-          if (proDiscountCorner) proDiscountCorner.textContent = isAnnualBilling ? "$2.50 off" : "50% off";
           priceSavings.forEach(function(element) {
             var plan = element.getAttribute("data-membership-save");
             var monthlyPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan].month;
@@ -1808,13 +1782,6 @@
             element.style.display = billingInterval === "year" && savingPercent > 0 ? "inline-block" : "none";
           });
         }
-
-        if (proCreatorCopyButton) proCreatorCopyButton.addEventListener("click", function() {
-          var code = "PROCREATOR";
-          var fallback = function() { proCreatorCopyButton.textContent = "Copied!"; window.setTimeout(function(){ proCreatorCopyButton.textContent = "📋"; }, 1600); };
-          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(fallback).catch(fallback);
-          else fallback();
-        });
 
         async function loadMembershipPricing() {
           try {
