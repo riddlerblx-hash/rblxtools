@@ -1163,7 +1163,7 @@
         <div class="admin-card-head">
           <div>
             <h2 class="admin-card-title">Site Maintenance</h2>
-            <p class="admin-card-copy">Turn the public maintenance screen on or off without affecting approved admins.</p>
+            <p class="admin-card-copy">Maintain the full site or selected page routes. Locks are enforced by the server and never rely on a browser overlay.</p>
           </div>
           <span class="admin-pill live">Admin Only</span>
         </div>
@@ -1180,6 +1180,11 @@
         <div class="admin-field">
           <label class="admin-label" for="maintenanceNotice">Public Notice</label>
           <textarea class="admin-textarea" id="maintenanceNotice" placeholder="Extra maintenance details shown on the public screen"></textarea>
+        </div>
+        <div class="admin-field">
+          <label class="admin-label" for="maintenancePaths">Specific Pages Under Maintenance</label>
+          <textarea class="admin-textarea" id="maintenancePaths" placeholder="One page per line, for example:&#10;/ugc-downloader&#10;/game-codes"></textarea>
+          <p class="admin-field-note">Optional. These page routes lock even when full-site maintenance is off. Admins retain access.</p>
         </div>
         <div class="admin-buttons">
           <button class="admin-btn green" id="saveMaintenanceButton" type="button">Save Maintenance Mode</button>

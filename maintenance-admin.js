@@ -24,9 +24,11 @@
       var enabledNode = document.getElementById("maintenanceEnabled");
       var titleNode = document.getElementById("maintenanceTitle");
       var noticeNode = document.getElementById("maintenanceNotice");
+      var pathsNode = document.getElementById("maintenancePaths");
       if (enabledNode) enabledNode.checked = Boolean(settings.maintenanceEnabled);
       if (titleNode) titleNode.value = settings.maintenanceTitle || "Sorry, the site is under maintenance right now.";
       if (noticeNode) noticeNode.value = settings.maintenanceNotice || "This does not mean the servers are down. The RBLXTeam is currently updating the site. Please come back later.";
+      if (pathsNode) pathsNode.value = Array.isArray(settings.maintenancePaths) ? settings.maintenancePaths.join("\n") : "";
       setStatus("Maintenance settings loaded.", "success");
     } catch (error) {
       setStatus(error.message || "Could not load maintenance settings.", "error");
@@ -37,6 +39,7 @@
     var enabledNode = document.getElementById("maintenanceEnabled");
     var titleNode = document.getElementById("maintenanceTitle");
     var noticeNode = document.getElementById("maintenanceNotice");
+    var pathsNode = document.getElementById("maintenancePaths");
     var saveButton = document.getElementById("saveMaintenanceButton");
     if (saveButton) saveButton.disabled = true;
     setStatus("Saving maintenance settings...");
@@ -48,7 +51,8 @@
         body: JSON.stringify({
           maintenanceEnabled: Boolean(enabledNode && enabledNode.checked),
           maintenanceTitle: titleNode ? String(titleNode.value || "").trim() : "",
-          maintenanceNotice: noticeNode ? String(noticeNode.value || "").trim() : ""
+          maintenanceNotice: noticeNode ? String(noticeNode.value || "").trim() : "",
+          maintenancePaths: pathsNode ? String(pathsNode.value || "").split(/[\n,]/).map(function (path) { return path.trim(); }).filter(Boolean) : []
         })
       });
       setStatus(payload.message || "Maintenance settings saved.", "success");

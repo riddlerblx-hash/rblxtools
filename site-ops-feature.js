@@ -12,6 +12,7 @@ function getDefaultSiteSettings() {
     maintenanceEnabled: false,
     maintenanceTitle: "Sorry, the site is under maintenance right now.",
     maintenanceNotice: "This does not mean the servers are down. The RBLXTeam is currently updating the site. Please come back later.",
+    maintenancePaths: [],
     updatedAt: null,
     updatedBy: "",
   };
@@ -120,6 +121,7 @@ function readSiteSettings(baseDir) {
       maintenanceEnabled: Boolean(parsed.maintenanceEnabled),
       maintenanceTitle: String(parsed.maintenanceTitle || defaults.maintenanceTitle).trim() || defaults.maintenanceTitle,
       maintenanceNotice: String(parsed.maintenanceNotice || defaults.maintenanceNotice).trim() || defaults.maintenanceNotice,
+      maintenancePaths: normalizeMaintenancePaths(parsed.maintenancePaths),
       updatedAt: parsed.updatedAt ? String(parsed.updatedAt) : null,
       updatedBy: parsed.updatedBy ? String(parsed.updatedBy) : "",
     };
@@ -134,11 +136,29 @@ function writeSiteSettings(baseDir, settings) {
     maintenanceEnabled: Boolean(settings.maintenanceEnabled),
     maintenanceTitle: String(settings.maintenanceTitle || defaults.maintenanceTitle).trim() || defaults.maintenanceTitle,
     maintenanceNotice: String(settings.maintenanceNotice || defaults.maintenanceNotice).trim() || defaults.maintenanceNotice,
+    maintenancePaths: normalizeMaintenancePaths(settings.maintenancePaths),
     updatedAt: settings.updatedAt ? String(settings.updatedAt) : null,
     updatedBy: settings.updatedBy ? String(settings.updatedBy) : "",
   };
   fs.writeFileSync(getSiteSettingsPath(baseDir), JSON.stringify(next, null, 2) + "\n", "utf8");
   return next;
+}
+
+function normalizeMaintenancePaths(value) {
+  const entries = Array.isArray(value) ? value : String(value || "").split(/[\n,]/);
+  return [...new Set(entries.map((entry) => {
+    let pathname = String(entry || "").trim().split("?")[0].split("#")[0];
+    if (!pathname) return "";
+    if (!pathname.startsWith("/")) pathname = `/${pathname}`;
+    pathname = pathname.replace(/\/{2,}/g, "/").replace(/\/$/, "");
+    if (pathname.endsWith(".html")) pathname = pathname.slice(0, -5);
+    return pathname.toLowerCase();
+  }).filter((pathname) => pathname && pathname !== "/" && !/^\/(?:api|auth|admin|socket\.io)(?:\/|$)/.test(pathname)))].slice(0, 40);
+}
+
+function isTargetedMaintenancePath(pathname, maintenancePaths) {
+  const normalized = normalizeMaintenancePaths([pathname])[0];
+  return Boolean(normalized && normalizeMaintenancePaths(maintenancePaths).includes(normalized));
 }
 
 function getPathnameFromRequest(req) {
@@ -369,6 +389,7 @@ function buildPublicSiteStatus(settings) {
     maintenanceEnabled: Boolean(settings.maintenanceEnabled),
     maintenanceTitle: settings.maintenanceTitle,
     maintenanceNotice: settings.maintenanceNotice,
+    maintenancePaths: normalizeMaintenancePaths(settings.maintenancePaths),
     updatedAt: settings.updatedAt || null,
   };
 }
@@ -380,9 +401,9 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
   app.use(async (req, res, next) => {
     try {
       const settings = readSiteSettings(baseDir);
-      if (!settings.maintenanceEnabled) return next();
-
       const pathname = getPathnameFromRequest(req);
+      const targetedMaintenance = isTargetedMaintenancePath(pathname, settings.maintenancePaths);
+      if (!settings.maintenanceEnabled && !targetedMaintenance) return next();
       if (isMaintenanceAllowedPath(pathname) || isStaticAssetPath(pathname)) {
         return next();
       }
@@ -915,6 +936,7 @@ function installSiteOpsFeature({ app, baseDir, requireAdminUser, requireAuthenti
         maintenanceEnabled: Boolean(req.body?.maintenanceEnabled),
         maintenanceTitle: cleanText(req.body?.maintenanceTitle, 140) || defaults.maintenanceTitle,
         maintenanceNotice: cleanText(req.body?.maintenanceNotice, 500) || defaults.maintenanceNotice,
+        maintenancePaths: normalizeMaintenancePaths(req.body?.maintenancePaths),
         updatedAt: new Date().toISOString(),
         updatedBy: String(adminUser.email || adminUser.id || "admin"),
       });

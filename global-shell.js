@@ -170,12 +170,15 @@
       ]
     },
     {
-      title: "Info",
+      title: "Player Tools",
       items: [
-        { href: "./community", label: "Community", icon: "community" },
-        { href: "./about-us", label: "About Us", icon: "about" },
-        { href: "./privacy-policy", label: "Privacy Policy", icon: "privacy" },
-        { href: "./terms-and-conditions", label: "Terms & Conditions", icon: "terms" }
+        { href: "./game-codes", label: "Roblox Codes", icon: "calc" }
+      ]
+    },
+    {
+      title: "Social",
+      items: [
+        { href: "./community", label: "Community", icon: "community" }
       ]
     }
   ];
