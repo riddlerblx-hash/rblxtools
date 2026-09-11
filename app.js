@@ -11396,7 +11396,9 @@ app.post("/admin/codes/:slug", async (req, res) => {
     const code = await codesPlatform.upsertCode(guide.game.id, {
       ...req.body,
       source: "RBLXTools staff",
-      verificationStatus: req.body?.verificationStatus || "unconfirmed",
+      sourceUrl: "",
+      status: "working",
+      verificationStatus: "verified",
     });
     return res.status(201).json({ ok: true, code });
   } catch (error) {
