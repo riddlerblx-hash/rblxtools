@@ -30,9 +30,10 @@
       if (noticeNode) noticeNode.value = settings.maintenanceNotice || "This does not mean the servers are down. The RBLXTeam is currently updating the site. Please come back later.";
       if (pathsNode) {
         var selectedPaths = Array.isArray(settings.maintenancePaths) ? settings.maintenancePaths : [];
-        Array.prototype.forEach.call(pathsNode.options || [], function (option) {
-          option.selected = selectedPaths.indexOf(option.value) !== -1;
+        Array.prototype.forEach.call(pathsNode.querySelectorAll("[data-maintenance-path]"), function (option) {
+          option.checked = selectedPaths.indexOf(option.value) !== -1;
         });
+        updatePathSummary(pathsNode);
       }
       setStatus("Maintenance settings loaded.", "success");
     } catch (error) {
@@ -57,7 +58,7 @@
           maintenanceEnabled: Boolean(enabledNode && enabledNode.checked),
           maintenanceTitle: titleNode ? String(titleNode.value || "").trim() : "",
           maintenanceNotice: noticeNode ? String(noticeNode.value || "").trim() : "",
-          maintenancePaths: pathsNode ? Array.prototype.map.call(pathsNode.selectedOptions || [], function (option) { return option.value; }) : []
+          maintenancePaths: pathsNode ? Array.prototype.map.call(pathsNode.querySelectorAll("[data-maintenance-path]:checked"), function (option) { return option.value; }) : []
         })
       });
       setStatus(payload.message || "Maintenance settings saved.", "success");
@@ -78,10 +79,19 @@
     var enabledNode = document.getElementById("maintenanceEnabled");
     if (pathsNode && enabledNode) {
       pathsNode.addEventListener("change", function () {
-        if (pathsNode.selectedOptions && pathsNode.selectedOptions.length) enabledNode.checked = false;
+        var selected = pathsNode.querySelectorAll("[data-maintenance-path]:checked");
+        if (selected.length) enabledNode.checked = false;
+        updatePathSummary(pathsNode);
       });
     }
     loadMaintenanceSettings();
+  }
+
+  function updatePathSummary(pathsNode) {
+    var summary = document.getElementById("maintenancePathsSummary");
+    if (!summary || !pathsNode) return;
+    var count = pathsNode.querySelectorAll("[data-maintenance-path]:checked").length;
+    summary.textContent = count ? count + " page" + (count === 1 ? "" : "s") + " selected" : "Choose pages to maintain";
   }
 
   init();

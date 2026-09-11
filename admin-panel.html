@@ -781,6 +781,7 @@
     .admin-grid-divider span { color:#ff9b94; font-size:10px; font-weight:900; letter-spacing:1.2px; }
     .admin-grid-divider h2 { margin:0; font-size:22px; letter-spacing:-.7px; }
     .admin-grid-divider p { margin:0 0 0 auto; color:var(--admin-muted); font-size:12px; font-weight:700; }
+    .admin-multi-select { position:relative; } .admin-multi-select summary { min-height:44px; padding:12px 14px; border:1px solid var(--admin-line); border-radius:10px; color:var(--admin-text); background:rgba(255,255,255,.035); cursor:pointer; font-size:13px; font-weight:800; } .admin-multi-select[open] summary { border-bottom-left-radius:0; border-bottom-right-radius:0; } .admin-multi-select-list { display:grid; gap:7px; max-height:250px; overflow:auto; padding:12px; border:1px solid var(--admin-line); border-top:0; border-radius:0 0 10px 10px; background:#101827; } .admin-multi-select-list label { display:flex; align-items:center; gap:9px; color:var(--admin-text); font-size:12px; font-weight:700; cursor:pointer; }
     @media (max-width:760px) { body{padding:10px}.admin-topbar{min-height:0;padding:22px}.admin-badges{justify-content:flex-start}.admin-section-label,.admin-grid-divider{align-items:flex-start;flex-direction:column;gap:3px}.admin-section-label p,.admin-grid-divider p{margin:0}.admin-primary-ops{grid-template-columns:1fr} }
   </style>
   <link rel="stylesheet" href="./mobile-overrides.css">
@@ -1183,19 +1184,9 @@
         </div>
         <div class="admin-field">
           <label class="admin-label" for="maintenancePaths">Specific Page Maintenance</label>
-          <select class="admin-input" id="maintenancePaths" multiple size="9" aria-describedby="maintenancePathsHelp">
-            <option value="/game-codes">Roblox Codes</option>
-            <option value="/ugc-downloader">UGC Downloader</option>
-            <option value="/template-downloader">Template Downloader</option>
-            <option value="/template-background-changer">Template Background Changer</option>
-            <option value="/media-downloader">Media Downloader</option>
-            <option value="/audio-downloader">Audio Downloader</option>
-            <option value="/animation-spoofer">Animation Spoofer</option>
-            <option value="/robux-calculator">Robux Calculator</option>
-            <option value="/thumbnail-ai">Thumbnail AI</option>
-            <option value="/ai-ugc">AI UGC</option>
-            <option value="/ai-clothing-studio">AI Clothing Studio</option>
-          </select>
+          <details class="admin-multi-select" id="maintenancePaths" aria-describedby="maintenancePathsHelp"><summary id="maintenancePathsSummary">Choose pages to maintain</summary><div class="admin-multi-select-list">
+            <label><input data-maintenance-path type="checkbox" value="/game-codes" /> Roblox Codes</label><label><input data-maintenance-path type="checkbox" value="/ugc-downloader" /> UGC Downloader</label><label><input data-maintenance-path type="checkbox" value="/template-downloader" /> Template Downloader</label><label><input data-maintenance-path type="checkbox" value="/template-background-changer" /> Template Background Changer</label><label><input data-maintenance-path type="checkbox" value="/media-downloader" /> Media Downloader</label><label><input data-maintenance-path type="checkbox" value="/audio-downloader" /> Audio Downloader</label><label><input data-maintenance-path type="checkbox" value="/animation-spoofer" /> Animation Spoofer</label><label><input data-maintenance-path type="checkbox" value="/robux-calculator" /> Robux Calculator</label><label><input data-maintenance-path type="checkbox" value="/thumbnail-ai" /> Thumbnail AI</label><label><input data-maintenance-path type="checkbox" value="/ai-ugc" /> AI UGC</label><label><input data-maintenance-path type="checkbox" value="/ai-clothing-studio" /> AI Clothing Studio</label>
+          </div></details>
           <p class="admin-field-note" id="maintenancePathsHelp">Choose one or more public pages. Selecting any page automatically turns off full-site maintenance; admins retain access.</p>
         </div>
         <div class="admin-buttons">

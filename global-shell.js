@@ -1096,7 +1096,12 @@
     shellState.maintenanceState = settings || null;
     if (!shellState.maintenanceOverlay || !shellState.maintenanceTitle || !shellState.maintenanceNotice) return;
     var enabled = Boolean(settings && settings.maintenanceEnabled);
-    var shouldShow = enabled && !shellState.isAdmin;
+    var currentPath = normalizePath(window.location.pathname).replace(/\.html$/i, "").replace(/\/$/, "") || "/";
+    var selectedPaths = Array.isArray(settings && settings.maintenancePaths) ? settings.maintenancePaths : [];
+    var targeted = selectedPaths.some(function (path) {
+      return normalizePath(path).replace(/\.html$/i, "").replace(/\/$/, "") === currentPath;
+    });
+    var shouldShow = (enabled || targeted) && !shellState.isAdmin;
     shellState.maintenanceOverlay.classList.toggle("is-open", shouldShow);
     shellState.maintenanceOverlay.setAttribute("aria-hidden", shouldShow ? "false" : "true");
     shellState.maintenanceTitle.textContent = settings && settings.maintenanceTitle
