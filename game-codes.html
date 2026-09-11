@@ -1,88 +1,36 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Roblox Codes - RBLXTools</title>
-  <meta name="description" content="Find official Roblox game code sources and keep a personal code tracker with RBLXTools." />
-  <link rel="stylesheet" href="./global-shell.css?v=20260901-2" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Roblox Game Codes - RBLXTools</title>
+  <meta name="description" content="Browse RBLXTools Roblox game code guides and redemption instructions.">
+  <link rel="stylesheet" href="./global-shell.css?v=20260901-2">
   <style>
-    :root { --ink:#edf4ff; --muted:#aab9d0; --line:rgba(125,164,237,.23); --panel:rgba(9,18,35,.88); --aqua:#45ddd8; --gold:#ffc75c; }
-    * { box-sizing:border-box; }
-    body { margin:0; min-height:100vh; color:var(--ink); font-family:Georgia, "Times New Roman", serif; background:radial-gradient(circle at 11% 13%,rgba(69,221,216,.18),transparent 25%),radial-gradient(circle at 87% 17%,rgba(255,199,92,.13),transparent 20%),linear-gradient(135deg,#07101f,#101629 54%,#07111d); }
-    .codes-page { width:min(1050px,calc(100% - 32px)); margin:0 auto; padding:42px 0 64px; }
-    .hero { padding:34px; border:1px solid var(--line); border-radius:28px; background:linear-gradient(135deg,rgba(12,29,52,.96),rgba(13,18,37,.92)); box-shadow:0 26px 70px rgba(0,0,0,.28); }
-    .eyebrow { color:var(--aqua); font-family:Arial,sans-serif; font-size:11px; font-weight:900; letter-spacing:.18em; text-transform:uppercase; }
-    h1 { max-width:640px; margin:10px 0 12px; font-size:clamp(40px,6vw,72px); line-height:.91; letter-spacing:-.06em; }
-    .hero p { max-width:630px; margin:0; color:var(--muted); font:16px/1.6 Arial,sans-serif; }
-    .search { display:flex; gap:10px; margin-top:24px; }
-    input, button { min-height:48px; border-radius:12px; font:700 14px Arial,sans-serif; }
-    input { min-width:0; flex:1; padding:0 15px; border:1px solid rgba(111,179,255,.38); color:var(--ink); background:rgba(3,10,22,.7); outline:none; }
-    button { padding:0 18px; border:0; cursor:pointer; color:#062025; background:linear-gradient(135deg,var(--aqua),#82baff); }
-    .grid { display:grid; grid-template-columns:1fr .9fr; gap:18px; margin-top:18px; }
-    .card { padding:24px; border:1px solid var(--line); border-radius:22px; background:var(--panel); box-shadow:0 18px 40px rgba(0,0,0,.18); }
-    h2 { margin:0 0 8px; font-size:26px; } .card p, .empty { color:var(--muted); font:14px/1.55 Arial,sans-serif; }
-    .links { display:grid; gap:10px; margin-top:16px; } .links a { padding:13px 14px; border:1px solid var(--line); border-radius:12px; color:var(--ink); font:700 13px Arial,sans-serif; text-decoration:none; background:rgba(255,255,255,.025); } .links a:hover { border-color:var(--aqua); }
-    .tracker-form { display:grid; grid-template-columns:1fr 1fr auto; gap:9px; margin-top:15px; } .tracker-form input { min-height:42px; font-size:12px; }
-    .tracker-form button { min-height:42px; } .code-list { display:grid; gap:8px; margin-top:14px; } .code-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px; border-radius:10px; background:rgba(255,255,255,.035); font:13px Arial,sans-serif; } .code-row strong { display:block; } .code-row span { color:var(--gold); font-weight:800; } .delete { min-height:30px; padding:0 9px; color:#ffd0d0; background:rgba(194,65,70,.22); }
-    .note { margin-top:18px; color:#7f91ad; font:12px/1.5 Arial,sans-serif; }
-    @media (max-width:760px) { .codes-page { width:min(100% - 20px,1050px); padding-top:20px; } .hero,.card { padding:20px; } .grid { grid-template-columns:1fr; } .search,.tracker-form { grid-template-columns:1fr; display:grid; } h1 { font-size:46px; } }
+    :root{--bg:#070f29;--panel:#121f4b;--panel2:#1a2a61;--line:#30467e;--text:#f6f8ff;--muted:#aab8d9;--aqua:#4ce4d4;--gold:#ffd06d}*{box-sizing:border-box}body{margin:0;color:var(--text);font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at 14% 3%,#30348288,transparent 25%),radial-gradient(circle at 85% 15%,#16cfc429,transparent 22%),var(--bg)}.codes{width:min(1200px,calc(100% - 42px));margin:auto;padding:52px 0 82px}.hero{text-align:center;padding:22px 0 38px}.eyebrow{color:var(--aqua);font-size:11px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}.hero h1{max-width:760px;margin:12px auto;font-size:clamp(42px,6vw,70px);letter-spacing:-.07em;line-height:.94}.hero h1 b{color:var(--gold)}.hero p{max-width:690px;margin:auto;color:var(--muted);font-size:16px;line-height:1.6}.search{display:flex;gap:8px;width:min(650px,100%);margin:26px auto 0;padding:6px;border:1px solid #52648f;border-radius:17px;background:#394264;box-shadow:0 20px 45px #0005}.search input,.saved input{min-width:0;flex:1;border:0;outline:0;color:var(--text);background:transparent;font:700 14px Arial;padding:0 13px}.search input::placeholder{color:#c2cadb}.button{border:0;border-radius:12px;padding:0 18px;min-height:44px;cursor:pointer;color:#071529;background:linear-gradient(135deg,var(--aqua),#77a7ff);font:900 13px Arial}.section-head{display:flex;justify-content:space-between;align-items:end;gap:18px;margin:10px 0 16px}.section-head h2{margin:0;font-size:32px;letter-spacing:-.05em}.section-head p{margin:0;color:var(--muted);font-size:12px;text-align:right}.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}.filter{border:1px solid var(--line);border-radius:99px;padding:8px 12px;color:#cad5ed;background:#ffffff0b;font:800 12px Arial;cursor:pointer}.filter.active,.filter:hover{border-color:var(--aqua);color:#071529;background:var(--aqua)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.game{overflow:hidden;border:1px solid var(--line);border-radius:19px;color:inherit;background:linear-gradient(145deg,var(--panel2),#0e1a42);text-align:left;cursor:pointer;transition:.18s}.game:hover{border-color:var(--aqua);transform:translateY(-4px);box-shadow:0 22px 42px #0005}.art{position:relative;display:flex;align-items:end;min-height:135px;overflow:hidden;padding:13px;background:linear-gradient(130deg,#bd461f,#ffba34)}.art:before{position:absolute;inset:-24px;background:radial-gradient(circle at 82% 21%,#fff9,transparent 17%),repeating-linear-gradient(135deg,transparent 0 26px,#fff2 27px 33px,transparent 34px 61px);content:"";transform:rotate(-7deg)}.art:after{position:absolute;right:-18px;bottom:-32px;width:120px;height:120px;border:14px solid #ffffff33;border-radius:50%;content:""}.art span{position:relative;z-index:1;max-width:160px;color:#fff;font-size:23px;font-weight:1000;letter-spacing:-.07em;line-height:.88;text-shadow:0 2px #0004}.blue{background:linear-gradient(130deg,#132465,#396ff3)}.pink{background:linear-gradient(130deg,#751d69,#ef709a)}.lime{background:linear-gradient(130deg,#37743e,#bddd49)}.purple{background:linear-gradient(130deg,#10162f,#8646b9)}.sky{background:linear-gradient(130deg,#047aa8,#6de0e4)}.fire{background:linear-gradient(130deg,#b72439,#ff824c)}.game-body{padding:14px}.game h3{overflow:hidden;margin:0;font-size:16px;text-overflow:ellipsis;white-space:nowrap}.meta{display:flex;justify-content:space-between;gap:6px;margin-top:9px;color:#b3c1e5;font-size:11px;font-weight:700}.meta b{color:var(--aqua)}.empty{display:none;padding:36px;border:1px dashed var(--line);border-radius:18px;color:var(--muted);text-align:center}.guide{display:none;margin-top:33px}.guide.open{display:block;animation:in .3s ease}@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}.guide-top{display:grid;grid-template-columns:.78fr 1fr;gap:24px;padding:22px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(125deg,#142958,#0b1639)}.guide-art{min-height:230px;border-radius:16px}.guide-info{align-self:center}.guide-label{color:var(--aqua);font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase}.guide h2{margin:8px 0 10px;font-size:clamp(31px,4vw,47px);letter-spacing:-.065em;line-height:.96}.guide-info p{color:var(--muted);font-size:14px;line-height:1.6}.notice{margin-top:16px;padding:12px;border-left:3px solid var(--aqua);border-radius:6px;color:#cbd7ef;background:#4ce4d415;font-size:12px;font-weight:700}.guide-grid{display:grid;grid-template-columns:1.6fr .7fr;gap:20px;margin-top:20px}.panel{border:1px solid var(--line);border-radius:20px;background:#101e48}.panel h3{margin:0;padding:19px 20px 12px;font-size:19px;letter-spacing:-.04em}.panel p{padding:0 20px 20px;margin:0;color:var(--muted);font-size:13px;line-height:1.6}.panel ol{margin:0;padding:0 28px 20px 39px;color:#d9e2f4;font-size:13px;line-height:1.85}.panel a{display:inline-block;padding:0 20px 20px;color:var(--aqua);font-size:12px;font-weight:900;text-decoration:none}.code-table{width:100%;border-collapse:collapse;font-size:12px}.code-table th,.code-table td{padding:13px 20px;text-align:left;border-top:1px solid #40538255}.code-table th{color:#aebbd8;background:#8195cf1c;font-size:10px;text-transform:uppercase}.code-table code{padding:7px 9px;border-radius:7px;color:var(--aqua);background:#06102b;font-weight:900}.saved{margin-top:23px;padding:23px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(120deg,#142957,#0d1b41)}.saved h2{margin:0;font-size:23px;letter-spacing:-.04em}.saved p{color:var(--muted);font-size:13px}.saved-form{display:grid;grid-template-columns:1fr 1fr auto;gap:9px}.saved input{min-height:43px;border:1px solid var(--line);border-radius:10px;background:#020a1f88;font-size:12px}.saved-list{display:grid;gap:8px;margin-top:13px}.saved-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:9px;background:#fff1;font-size:12px}.saved-row b{display:block}.saved-row code{color:var(--gold);font-weight:900}.saved-row button{border:0;border-radius:7px;padding:7px;color:#ffc3c7;background:#bf465833;font-weight:800;cursor:pointer}.note{color:#8293b9;font-size:12px;line-height:1.55}@media(max-width:1000px){.grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:720px){.codes{width:min(100% - 22px,1200px);padding-top:28px}.search{display:grid}.section-head{align-items:start;flex-direction:column}.section-head p{text-align:left}.grid{grid-template-columns:repeat(2,1fr);gap:11px}.art{min-height:108px}.art span{font-size:18px}.guide-top,.guide-grid{grid-template-columns:1fr}.guide-art{min-height:170px}.saved-form{grid-template-columns:1fr}}@media(max-width:410px){.grid{grid-template-columns:1fr}.art{min-height:126px}}
   </style>
 </head>
 <body>
-  <main class="codes-page">
-    <section class="hero">
-      <div class="eyebrow">Player Tools</div>
-      <h1>Roblox<br />Codes Desk.</h1>
-      <p>Search for a game's current code sources, then keep the codes you find in a private browser-local tracker. Codes change often, so this desk never pretends an old code is still active.</p>
-      <div class="search">
-        <input id="gameSearch" type="search" placeholder="Enter a Roblox game name, for example: Blox Fruits" />
-        <button id="searchButton" type="button">Find Code Sources</button>
-      </div>
-    </section>
-    <section class="grid">
-      <article class="card">
-        <h2>Find Official Sources</h2>
-        <p>Use the game's Roblox page, group, Discord, or social profile first. Those are the only sources that can reliably confirm a code is current.</p>
-        <div class="links">
-          <a href="https://www.roblox.com/promocodes" target="_blank" rel="noopener noreferrer">Open official Roblox promo codes</a>
-          <a href="https://www.roblox.com/discover" target="_blank" rel="noopener noreferrer">Browse Roblox experiences</a>
-        </div>
-      </article>
-      <article class="card">
-        <h2>My Code Tracker</h2>
-        <p>Saved only in this browser. RBLXTools does not send these codes to the server.</p>
-        <div class="tracker-form">
-          <input id="trackerGame" placeholder="Game" maxlength="60" />
-          <input id="trackerCode" placeholder="Code" maxlength="80" />
-          <button id="saveCode" type="button">Save</button>
-        </div>
-        <div class="code-list" id="codeList"><div class="empty">No saved codes yet.</div></div>
-      </article>
-    </section>
-    <p class="note">RBLXTools is not affiliated with Roblox. Game creators control their own codes, rewards, and expiry dates.</p>
-  </main>
+  <main class="codes"><section class="hero"><div class="eyebrow">Player Tools / Code Guides</div><h1>Roblox <b>game codes</b><br>worth checking.</h1><p>Browse game-by-game guides, see how each game handles redemptions, and keep your own code finds in a private browser-only list.</p><div class="search"><input id="search" type="search" placeholder="Search a Roblox game"><button class="button" id="openFirst">Search guides</button></div></section><section><div class="section-head"><h2>Latest code guides</h2><p>Open a guide for redemption steps and source links.</p></div><div class="filters" id="filters"></div><div class="grid" id="grid"></div><div class="empty" id="empty">No guide matches that search yet. Try another game name.</div></section><section class="guide" id="guide"></section><section class="saved"><h2>My saved codes</h2><p>Private to this browser. RBLXTools never uploads this list.</p><div class="saved-form"><input id="savedGame" placeholder="Game name"><input id="savedCode" placeholder="Code"><button class="button" id="save">Save code</button></div><div class="saved-list" id="savedList"></div></section><p class="note">Codes, rewards, and expiry dates are controlled by each game’s developer. RBLXTools is not affiliated with Roblox or individual Roblox experiences.</p></main>
   <script src="./global-shell.js?v=20260911-player-tools"></script>
   <script>
-    (function () {
-      var storageKey = "rblxtools_game_codes_v1";
-      var list = document.getElementById("codeList");
-      function getCodes() { try { var value = JSON.parse(localStorage.getItem(storageKey) || "[]"); return Array.isArray(value) ? value : []; } catch (_) { return []; } }
-      function setCodes(codes) { localStorage.setItem(storageKey, JSON.stringify(codes.slice(0, 40))); }
-      function render() {
-        var codes = getCodes();
-        list.innerHTML = codes.length ? "" : '<div class="empty">No saved codes yet.</div>';
-        codes.forEach(function (item, index) {
-          var row = document.createElement("div"); row.className = "code-row";
-          var copy = document.createElement("div"); copy.innerHTML = "<strong></strong><span></span>"; copy.querySelector("strong").textContent = item.game; copy.querySelector("span").textContent = item.code;
-          var remove = document.createElement("button"); remove.className = "delete"; remove.type = "button"; remove.textContent = "Remove"; remove.addEventListener("click", function () { var next = getCodes(); next.splice(index, 1); setCodes(next); render(); });
-          row.append(copy, remove); list.appendChild(row);
-        });
-      }
-      document.getElementById("searchButton").addEventListener("click", function () { var game = document.getElementById("gameSearch").value.trim(); if (!game) return document.getElementById("gameSearch").focus(); window.open("https://www.google.com/search?q=" + encodeURIComponent(game + " Roblox codes official"), "_blank", "noopener"); });
-      document.getElementById("saveCode").addEventListener("click", function () { var game = document.getElementById("trackerGame").value.trim(); var code = document.getElementById("trackerCode").value.trim(); if (!game || !code) return; setCodes([{ game: game, code: code }].concat(getCodes())); document.getElementById("trackerGame").value = ""; document.getElementById("trackerCode").value = ""; render(); });
-      render();
-    }());
+  (function(){
+    var games=[
+      {id:'blox',name:'Blox Fruits',by:'Gamer Robot Inc',cat:'Adventure',art:'fire',url:'https://www.roblox.com/games/2753915549/Blox-Fruits',steps:['Launch Blox Fruits in Roblox.','Open the gift icon on the left side of the screen.','Paste a code exactly as posted.','Press Redeem and check the reward notice.']},
+      {id:'garden',name:'Grow a Garden',by:'The Garden Game',cat:'Simulator',art:'lime',url:'https://www.roblox.com/discover',steps:['Launch Grow a Garden.','Open the in-game menu.','Find the Codes or Rewards option.','Enter a current developer-posted code.']},
+      {id:'als',name:'Anime Last Stand',by:'Studio Blox',cat:'Anime',art:'pink',url:'https://www.roblox.com/discover',steps:['Launch Anime Last Stand.','Open the menu from the lobby.','Choose Codes.','Paste the code, then select Redeem.']},
+      {id:'rng',name:'RNG Battles',by:'RNG Battles Studio',cat:'RNG',art:'blue',url:'https://www.roblox.com/discover',steps:['Launch RNG Battles.','Open settings or the menu panel.','Find the code entry field.','Enter the posted code and claim the reward.']},
+      {id:'dti',name:'Dress To Impress',by:'Dress To Impress Group',cat:'Simulator',art:'sky',url:'https://www.roblox.com/discover',steps:['Launch Dress To Impress.','Open the code menu when available.','Enter a current developer-posted code.','Check your inventory for the reward.']},
+      {id:'lootr',name:'Dungeon Lootr',by:'Forge Stone',cat:'Adventure',art:'purple',url:'https://www.roblox.com/discover',steps:['Launch Dungeon Lootr.','Open the menu button.','Open Settings, then Codes.','Paste a current code and choose Claim.']},
+      {id:'bluelock',name:'Blue Lock: Rivals',by:'Blue Lock Rivals',cat:'Anime',art:'blue',url:'https://www.roblox.com/discover',steps:['Launch Blue Lock: Rivals.','Open the Codes menu.','Enter a code exactly as posted.','Redeem and confirm the reward.']},
+      {id:'sols',name:"Sol's RNG",by:"sol's studio",cat:'RNG',art:'purple',url:'https://www.roblox.com/discover',steps:["Launch Sol's RNG.",'Open the game menu.','Choose the code or settings option.','Submit a current code to claim its reward.']}
+    ], cats=['All guides','Adventure','Simulator','Anime','RNG'], state={cat:'All guides',query:''}, grid=document.getElementById('grid'), empty=document.getElementById('empty'), guide=document.getElementById('guide');
+    function e(v){return String(v||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})} function visible(){return games.filter(function(g){return(state.cat==='All guides'||g.cat===state.cat)&&(g.name+' '+g.by).toLowerCase().indexOf(state.query.toLowerCase())>-1})}
+    function render(){var list=visible();document.getElementById('filters').innerHTML=cats.map(function(c){return '<button class="filter '+(state.cat===c?'active':'')+'" data-cat="'+c+'">'+c+'</button>'}).join('');grid.innerHTML=list.map(function(g){return '<button class="game" data-id="'+g.id+'"><div class="art '+g.art+'"><span>'+e(g.name)+'</span></div><div class="game-body"><h3>'+e(g.name)+'</h3><div class="meta"><span>by '+e(g.by)+'</span><b>Open guide</b></div></div></button>'}).join('');empty.style.display=list.length?'none':'block'}
+    function open(id){var g=games.filter(function(x){return x.id===id})[0];if(!g)return;guide.innerHTML='<div class="guide-top"><div class="art guide-art '+g.art+'"><span>'+e(g.name)+'</span></div><div class="guide-info"><div class="guide-label">Roblox code guide</div><h2>'+e(g.name)+' Codes</h2><p>A focused space for updates, rewards, and the game\'s official redemption instructions.</p><div class="notice">Guide status: ready for verified developer-posted codes. We do not pad lists with expired or unsourced entries.</div></div></div><div class="guide-grid"><article class="panel"><h3>Active '+e(g.name)+' codes</h3><table class="code-table"><thead><tr><th>Code</th><th>Reward</th><th>Added</th></tr></thead><tbody><tr><td colspan="3">No verified codes are posted in this guide yet. Check the official game source, then save a code privately while it is being verified.</td></tr></tbody></table></article><aside><article class="panel"><h3>How to redeem codes</h3><ol>'+g.steps.map(function(s){return '<li>'+e(s)+'</li>'}).join('')+'</ol></article><article class="panel"><h3>Official game source</h3><p>Use the experience page and its verified social links for the most reliable announcements.</p><a href="'+e(g.url)+'" target="_blank" rel="noopener">Open official Roblox source &#8599;</a></article></aside></div>';guide.classList.add('open');guide.scrollIntoView({behavior:'smooth',block:'start'})}
+    document.getElementById('filters').onclick=function(ev){var b=ev.target.closest('[data-cat]');if(b){state.cat=b.dataset.cat;render()}};grid.onclick=function(ev){var b=ev.target.closest('[data-id]');if(b)open(b.dataset.id)};document.getElementById('search').oninput=function(ev){state.query=ev.target.value.trim();render()};document.getElementById('openFirst').onclick=function(){var g=visible()[0];if(g)open(g.id);else document.getElementById('search').focus()};
+    var key='rblxtools_game_codes_v2';function get(){try{var x=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(x)?x:[]}catch(_){return[]}}function draw(){var list=document.getElementById('savedList'),items=get();list.innerHTML=items.length?'':'<p class="note">No personal codes saved yet.</p>';items.forEach(function(x,i){var row=document.createElement('div');row.className='saved-row';row.innerHTML='<div><b></b><code></code></div><button type="button">Remove</button>';row.querySelector('b').textContent=x.game;row.querySelector('code').textContent=x.code;row.querySelector('button').onclick=function(){var next=get();next.splice(i,1);localStorage.setItem(key,JSON.stringify(next));draw()};list.appendChild(row)})}document.getElementById('save').onclick=function(){var game=document.getElementById('savedGame').value.trim(),code=document.getElementById('savedCode').value.trim();if(!game||!code)return;localStorage.setItem(key,JSON.stringify([{game:game,code:code}].concat(get()).slice(0,40)));document.getElementById('savedGame').value='';document.getElementById('savedCode').value='';draw()};render();draw();
+  }())
   </script>
 </body>
 </html>
