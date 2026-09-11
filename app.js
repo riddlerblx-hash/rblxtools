@@ -6705,6 +6705,24 @@ function sendStripeCheckoutConfig(_req, res) {
 app.get("/auth/stripe/config", sendStripeCheckoutConfig);
 app.get("/stripe/config", sendStripeCheckoutConfig);
 
+// Safe deployment check for checkout support. It intentionally exposes no key material.
+app.get("/auth/stripe/diagnostic", (_req, res) => {
+  const keyPrefix = STRIPE_SECRET_KEY.startsWith("sk_")
+    ? "sk"
+    : STRIPE_SECRET_KEY.startsWith("rk_")
+      ? "rk"
+      : STRIPE_SECRET_KEY
+        ? "invalid"
+        : "missing";
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({
+    ok: true,
+    deploymentMarker: "stripe-diagnostic-20260911",
+    stripeSecretKeyFormat: keyPrefix,
+    stripeClientConfigured: Boolean(stripeClient),
+  });
+});
+
 function buildCheckoutSessionResponse(checkoutSession) {
   return {
     ok: true,
