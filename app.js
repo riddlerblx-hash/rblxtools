@@ -1,4 +1,5 @@
-require("dotenv").config({ path: require("path").join(__dirname, ".env") });
+// The VPS `.env` file is the deployment source of truth, not stale PM2 values.
+require("dotenv").config({ path: require("path").join(__dirname, ".env"), override: true });
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
