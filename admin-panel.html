@@ -1161,6 +1161,13 @@
     </section>
     <section class="admin-card">
       <div class="admin-card-inner">
+        <div class="admin-card-head"><div><h2 class="admin-card-title">Pending Code Submissions</h2><p class="admin-card-copy">Review community code reports before they are added to public game-code guides.</p></div><button class="admin-btn ghost" id="refreshCodeSubmissionsButton" type="button">Refresh</button></div>
+        <div class="admin-note-log" id="codeSubmissionsLog">Loading submissions...</div>
+      </div>
+    </section>
+
+    <section class="admin-card">
+      <div class="admin-card-inner">
         <div class="admin-card-head">
           <div>
             <h2 class="admin-card-title">Site Maintenance</h2>
@@ -1938,6 +1945,46 @@
 
       bootstrap();
     })();
+  </script>
+  <script>
+    (function () {
+      var log = document.getElementById("codeSubmissionsLog");
+      var refresh = document.getElementById("refreshCodeSubmissionsButton");
+      if (!log || !refresh) return;
+      function text(value) { return String(value || ""); }
+      async function load() {
+        log.textContent = "Loading submissions...";
+        try {
+          var response = await fetch("/admin/codes/submissions?status=pending", { credentials: "include" });
+          var payload = await response.json().catch(function () { return {}; });
+          if (!response.ok) throw new Error(payload.error || "Could not load code submissions.");
+          var submissions = Array.isArray(payload.submissions) ? payload.submissions : [];
+          log.innerHTML = "";
+          if (!submissions.length) { log.textContent = "No pending code submissions."; return; }
+          submissions.forEach(function (submission) {
+            var row = document.createElement("div"); row.className = "admin-note-entry";
+            var title = document.createElement("strong"); title.textContent = text(submission.code) + " · " + text(submission.reward || "No reward supplied");
+            var meta = document.createElement("div"); meta.textContent = "Submitted by " + text(submission.submitter_name || "Member") + " on " + new Date(submission.created_at).toLocaleString();
+            var source = document.createElement("div"); source.textContent = submission.source_url ? "Source: " + text(submission.source_url) : "No source URL supplied.";
+            var approve = document.createElement("button"); approve.className = "admin-btn green"; approve.type = "button"; approve.textContent = "Approve";
+            var reject = document.createElement("button"); reject.className = "admin-btn red"; reject.type = "button"; reject.textContent = "Reject";
+            [approve, reject].forEach(function (button) { button.style.marginTop = "8px"; button.style.marginRight = "7px"; });
+            async function review(decision) {
+              try {
+                var result = await fetch("/admin/codes/submissions/" + encodeURIComponent(submission.id), { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: decision }) });
+                var body = await result.json().catch(function () { return {}; });
+                if (!result.ok) throw new Error(body.error || "Could not review this submission.");
+                load();
+              } catch (error) { alert(error.message); }
+            }
+            approve.onclick = function () { review("approved"); }; reject.onclick = function () { review("rejected"); };
+            row.append(title, meta, source, approve, reject); log.appendChild(row);
+          });
+        } catch (error) { log.textContent = error.message || "Could not load code submissions."; }
+      }
+      refresh.onclick = load;
+      load();
+    }());
   </script>
   <script src="./maintenance-admin.js"></script>
 </body>

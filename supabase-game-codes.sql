@@ -38,3 +38,14 @@ create table if not exists game_code_votes (
   unique (game_code_id, voter_user_id)
 );
 create index if not exists game_code_votes_code_idx on game_code_votes(game_code_id);
+
+-- Community scores are intentionally permanent: one account gets one 1-5 rating per guide.
+create table if not exists game_ratings (
+  id uuid primary key default gen_random_uuid(),
+  game_id uuid not null references games(id) on delete cascade,
+  voter_user_id uuid not null,
+  score smallint not null check (score between 1 and 5),
+  created_at timestamptz not null default now(),
+  unique (game_id, voter_user_id)
+);
+create index if not exists game_ratings_game_idx on game_ratings(game_id);

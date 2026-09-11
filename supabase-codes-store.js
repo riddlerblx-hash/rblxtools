@@ -131,11 +131,15 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
       code.totalVotes = summary.successVotes + summary.failureVotes;
       code.successRate = code.totalVotes ? Math.round((summary.successVotes / code.totalVotes) * 100) : null;
     });
+    const ratingRows = await request(`/rest/v1/game_ratings?game_id=eq.${encodeURIComponent(game.id)}&select=score`);
+    const ratingCount = Array.isArray(ratingRows) ? ratingRows.length : 0;
+    const ratingTotal = (Array.isArray(ratingRows) ? ratingRows : []).reduce((total, rating) => total + Number(rating.score || 0), 0);
     return {
       game: publicGame(game, codes),
       workingCodes: codes.filter((code) => code.status === "working"),
       expiredCodes: codes.filter((code) => code.status === "expired"),
       lastUpdated: game.updatedAt,
+      communityRating: { average: ratingCount ? Math.round((ratingTotal / ratingCount) * 10) / 10 : null, count: ratingCount },
       attribution: fallback.provider.attribution || null,
     };
   }
@@ -267,6 +271,20 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     return { status, code };
   }
 
+  async function rateGame(gameId, userId, score) {
+    const existing = await request(`/rest/v1/game_ratings?game_id=eq.${encodeURIComponent(gameId)}&voter_user_id=eq.${encodeURIComponent(userId)}&select=id&limit=1`);
+    if (Array.isArray(existing) && existing[0]) throw Object.assign(new Error("You have already rated this code guide."), { statusCode: 409 });
+    await request("/rest/v1/game_ratings", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ game_id: gameId, voter_user_id: userId, score }),
+    });
+    const ratings = await request(`/rest/v1/game_ratings?game_id=eq.${encodeURIComponent(gameId)}&select=score`);
+    const count = Array.isArray(ratings) ? ratings.length : 0;
+    const total = (Array.isArray(ratings) ? ratings : []).reduce((sum, rating) => sum + Number(rating.score || 0), 0);
+    return { average: count ? Math.round((total / count) * 10) / 10 : null, count };
+  }
+
   return {
     provider: fallback.provider,
     list(input) { return useDatabase(() => listFromDatabase(input), () => fallback.list(input)); },
@@ -288,6 +306,10 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     reviewSubmission(id, decision, adminUserId, note) {
       if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
       return reviewSubmission(id, decision, adminUserId, note);
+    },
+    rateGame(gameId, userId, score) {
+      if (!isConfigured()) throw new Error("Code ratings are not configured yet.");
+      return rateGame(gameId, userId, score);
     },
     sync() { return fallback.sync(); },
   };

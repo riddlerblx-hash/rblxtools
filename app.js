@@ -11,7 +11,7 @@ const {
   timingSafeEqual,
   scryptSync,
 } = require("crypto");
-const { mkdtemp, writeFile, rm } = require("fs/promises");
+const { mkdtemp, mkdir, writeFile, rm } = require("fs/promises");
 const fs = require("fs");
 const path = require("path");
 const { Readable } = require("stream");
@@ -155,6 +155,7 @@ const LEGACY_COMMUNITY_POSTS_PATH = path.join(__dirname, "community-posts.json")
 const COMMUNITY_NOTIFICATIONS_PATH = process.env.COMMUNITY_NOTIFICATIONS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-notifications.json");
 const COMMUNITY_PROFILES_PATH = process.env.COMMUNITY_PROFILES_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-profiles.json");
 const COMMUNITY_AVATAR_DIR = process.env.COMMUNITY_AVATAR_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-avatars");
+const CODE_GUIDE_COVER_DIR = process.env.CODE_GUIDE_COVER_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "code-guide-covers");
 const RBLXTOOLS_CODES_DATA_PATH = process.env.RBLXTOOLS_CODES_DATA_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "codes.json");
 const fileCodesPlatform = createCodesPlatform({ dataPath: RBLXTOOLS_CODES_DATA_PATH });
 const codesPlatform = createSupabaseCodesStore({
@@ -1250,6 +1251,20 @@ function saveCommunityAvatar(userId, rawAvatarUrl) {
   profiles[id] = { avatarUrl: publicUrl, updatedAt: new Date().toISOString() };
   writeCommunityProfiles(profiles);
   return publicUrl;
+}
+
+async function saveCodeGuideCover(rawImage) {
+  const match = String(rawImage || "").match(/^data:image\/(png|jpeg|webp);base64,([a-z0-9+/=\s]+)$/i);
+  if (!match) throw Object.assign(new Error("Upload a PNG, JPEG, or WebP cover image."), { statusCode: 400 });
+  const image = Buffer.from(match[2].replace(/\s/g, ""), "base64");
+  if (!image.length || image.length > 5 * 1024 * 1024) {
+    throw Object.assign(new Error("Cover images must be 5 MB or smaller."), { statusCode: 400 });
+  }
+  const extension = match[1].toLowerCase() === "jpeg" ? "jpg" : match[1].toLowerCase();
+  const fileName = `${randomUUID()}.${extension}`;
+  await mkdir(CODE_GUIDE_COVER_DIR, { recursive: true });
+  await writeFile(path.join(CODE_GUIDE_COVER_DIR, fileName), image);
+  return `/code-guide-covers/${fileName}`;
 }
 
 function buildPublicCommunityPost(post, viewer) {
@@ -11348,10 +11363,26 @@ app.post("/api/codes/:slug/votes/:codeId", async (req, res) => {
   }
 });
 
+app.post("/api/codes/:slug/rating", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).json({ error: "Code guide not found." });
+    const score = Number(req.body?.score);
+    if (!Number.isInteger(score) || score < 1 || score > 5) return res.status(400).json({ error: "Choose a rating from 1 to 5." });
+    return res.status(201).json({ ok: true, rating: await codesPlatform.rateGame(guide.game.id, user.id, score) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not save your rating." });
+  }
+});
+
 app.post("/admin/codes/games", async (req, res) => {
   try {
     await requireAdminUser(req);
-    return res.status(201).json({ ok: true, game: await codesPlatform.upsertGame(req.body || {}) });
+    const payload = { ...(req.body || {}) };
+    if (payload.coverImageDataUrl) payload.iconUrl = await saveCodeGuideCover(payload.coverImageDataUrl);
+    delete payload.coverImageDataUrl;
+    return res.status(201).json({ ok: true, game: await codesPlatform.upsertGame(payload) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create this code guide." });
   }
@@ -11413,6 +11444,7 @@ app.get("/codes/:slug", async (req, res) => {
 });
 
 app.use("/community-avatars", express.static(COMMUNITY_AVATAR_DIR, { fallthrough: true, maxAge: "30d" }));
+app.use("/code-guide-covers", express.static(CODE_GUIDE_COVER_DIR, { fallthrough: true, maxAge: "30d" }));
 
 app.use((req, res, next) => {
   const requestedPath = String(req.path || "");

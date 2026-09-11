@@ -81,7 +81,39 @@
       input.oninput = draw;
       root.querySelector("#liveSearchButton").onclick = draw;
       draw();
-      if (session.canManageCodes) renderStaffQueue();
+      if (session.canManageCodes) mountCreatePost();
+    }
+
+    function mountCreatePost() {
+      var hero = root.querySelector(".hero");
+      if (!hero) return;
+      var style = document.createElement("style");
+      style.textContent = '.hero{position:relative}.create-post{position:absolute;right:0;top:0}.post-modal{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:18px;background:#020713bb}.post-card{width:min(620px,100%);display:grid;gap:10px;padding:22px;border:1px solid #52648f;border-radius:18px;background:#101e48;box-shadow:0 28px 70px #000}.post-card h2{margin:0}.post-card input,.post-card textarea{width:100%;min-height:42px;padding:10px;border:1px solid #405382;border-radius:9px;color:#f6f8ff;background:#06102b;font:700 13px Arial}.post-card textarea{min-height:78px;resize:vertical}.post-actions{display:flex;justify-content:flex-end;gap:8px}.ratings{display:grid;grid-template-columns:1fr 1fr;margin:22px auto 0;max-width:620px;border:1px solid var(--line);border-radius:17px;overflow:hidden;background:#101e48}.rating-box{padding:18px;text-align:center}.rating-box+ .rating-box{border-left:1px solid var(--line)}.rating-box small{display:block;color:var(--muted);font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.rating-box strong{display:block;margin-top:9px;font-size:27px}.stars{display:flex;justify-content:center;gap:4px;margin-top:9px}.stars button{border:0;background:transparent;color:#ffd06d;font-size:21px;cursor:pointer;padding:0}.rating-box p{margin:7px 0 0;color:var(--muted);font-size:10px}@media(max-width:720px){.create-post{position:static;margin-top:18px}.ratings{grid-template-columns:1fr}.rating-box+.rating-box{border-left:0;border-top:1px solid var(--line)}}';
+      document.head.appendChild(style);
+      var button = document.createElement("button");
+      button.className = "button create-post";
+      button.textContent = "Create post";
+      hero.appendChild(button);
+      button.onclick = function () {
+        var modal = document.createElement("div");
+        modal.className = "post-modal";
+        modal.innerHTML = '<form class="post-card"><h2>Create code guide</h2><input name="name" required maxlength="140" placeholder="Game title"><input name="slug" required maxlength="140" placeholder="URL slug, e.g. anime-expeditions"><input name="robloxUrl" type="url" placeholder="Official Roblox game link"><textarea name="description" maxlength="600" placeholder="Short guide description"></textarea><label class="note">Cover image (PNG, JPEG, or WebP, up to 5 MB)<input name="cover" type="file" accept="image/png,image/jpeg,image/webp" required></label><div class="post-actions"><button class="outline" type="button" data-close>Cancel</button><button class="button" type="submit">Create post</button></div></form>';
+        document.body.appendChild(modal);
+        modal.querySelector("[data-close]").onclick = function () { modal.remove(); };
+        modal.querySelector("form").onsubmit = function (event) {
+          event.preventDefault();
+          var form = event.currentTarget, file = form.cover.files[0];
+          if (!file || file.size > 5 * 1024 * 1024) return alert("Choose a PNG, JPEG, or WebP cover image that is 5 MB or smaller.");
+          var reader = new FileReader();
+          reader.onload = async function () {
+            try {
+              var result = await request("/admin/codes/games", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: form.name.value, slug: form.slug.value, robloxUrl: form.robloxUrl.value, description: form.description.value, coverImageDataUrl: reader.result }) });
+              location.href = "/codes/" + encodeURIComponent(result.game.slug);
+            } catch (error) { alert(error.message); }
+          };
+          reader.readAsDataURL(file);
+        };
+      };
     }
 
     async function renderStaffQueue() {
@@ -108,7 +140,9 @@
       var guide = await request(api + "/" + encodeURIComponent(slug));
       var game = guide.game;
       var active = guide.workingCodes || [], expired = guide.expiredCodes || [];
-      root.innerHTML = '<section class="guide live-guide open"><a class="back" href="/codes">&#8592; All code guides</a><div class="guide-top">' + art(game) + '<div class="guide-info"><div class="guide-label">Roblox game code guide</div><h2>' + esc(game.name) + ' Codes</h2><p>' + esc(game.description || ('Find community-reviewed codes for ' + game.name + '.')) + '</p><div class="notice">Last checked: ' + date(guide.lastUpdated) + '. Success rates are based on signed-in member reports.</div>' + (game.robloxUrl ? '<a class="official" href="' + esc(game.robloxUrl) + '" target="_blank" rel="noopener">Open game on Roblox &#8599;</a>' : '') + '</div></div><div class="guide-grid"><article class="panel codes-panel"><div class="code-head"><h3>Working codes</h3><button class="outline" id="openSubmission">Submit code</button></div><div id="submissionForm" class="inline-form" hidden><input id="submitCode" placeholder="Code"><input id="submitReward" placeholder="Reward"><input id="submitSource" placeholder="Official source link, if available"><button class="button" id="sendSubmission">Send for review</button><p class="note">' + loginHint + '</p></div><div class="table-wrap"><table class="code-table live-table"><thead><tr><th>Code</th><th>Reward</th><th>Status</th><th>Added on</th><th>Success rate</th><th>Vote</th></tr></thead><tbody>' + (active.length ? active.map(codeRow).join("") : '<tr><td colspan="6">No working codes are published yet.</td></tr>') + '</tbody></table></div><h3 class="expired-head">Expired codes</h3><div class="table-wrap"><table class="code-table live-table"><tbody>' + (expired.length ? expired.map(codeRow).join("") : '<tr><td>No expired codes recorded.</td></tr>') + '</tbody></table></div></article><aside><article class="panel"><h3>How to redeem</h3><p>Open the experience in Roblox and use its official menu or instructions. We only show game-specific redemption steps when a reliable source is available.</p></article><article class="panel"><h3>Help verify</h3><p>Redeemed a code? Vote whether it worked. One signed-in account can update one vote per code.</p></article></aside></div><section class="saved" id="staffComposer" hidden></section></section>';
+      var rating = guide.communityRating || { average: null, count: 0 };
+      var ratingMarkup = '<section class="ratings"><div class="rating-box"><small>Active codes</small><strong>' + active.length + '</strong><p>Published working codes</p></div><div class="rating-box"><small>Community rating</small><strong>' + (rating.average === null ? "-" : rating.average.toFixed(1)) + ' / 5</strong><div class="stars">' + [1,2,3,4,5].map(function (score) { return '<button type="button" data-game-rating="' + score + '" aria-label="Rate ' + score + ' out of 5">&#9733;</button>'; }).join("") + '</div><p>' + rating.count + ' permanent community rating' + (rating.count === 1 ? "" : "s") + '</p></div></section>';
+      root.innerHTML = '<section class="guide live-guide open"><a class="back" href="/codes">&#8592; All code guides</a><div class="guide-top">' + art(game) + '<div class="guide-info"><div class="guide-label">Roblox game code guide</div><h2>' + esc(game.name) + ' Codes</h2><p>' + esc(game.description || ('Find community-reviewed codes for ' + game.name + '.')) + '</p><div class="notice">Updated: ' + date(guide.lastUpdated) + ' · ' + active.length + ' active code' + (active.length === 1 ? "" : "s") + '.</div>' + (game.robloxUrl ? '<a class="official" href="' + esc(game.robloxUrl) + '" target="_blank" rel="noopener">Open game on Roblox &#8599;</a>' : '') + '</div></div><div class="guide-grid"><article class="panel codes-panel"><div class="code-head"><h3>Working codes</h3><button class="outline" id="openSubmission">Submit code</button></div><div id="submissionForm" class="inline-form" hidden><input id="submitCode" placeholder="Code"><input id="submitReward" placeholder="Reward"><input id="submitSource" placeholder="Official source link, if available"><button class="button" id="sendSubmission">Send for review</button><p class="note">' + loginHint + '</p></div><div class="table-wrap"><table class="code-table live-table"><thead><tr><th>Code</th><th>Reward</th><th>Status</th><th>Added on</th><th>Success rate</th><th>Vote</th></tr></thead><tbody>' + (active.length ? active.map(codeRow).join("") : '<tr><td colspan="6">No working codes are published yet.</td></tr>') + '</tbody></table></div><h3 class="expired-head">Expired codes</h3><div class="table-wrap"><table class="code-table live-table"><tbody>' + (expired.length ? expired.map(codeRow).join("") : '<tr><td>No expired codes recorded.</td></tr>') + '</tbody></table></div></article><aside><article class="panel"><h3>How to redeem</h3><p>Open the experience in Roblox and use its official menu or instructions. We only show game-specific redemption steps when a reliable source is available.</p></article><article class="panel"><h3>Help verify</h3><p>Redeemed a code? Vote whether it worked. One signed-in account can update one vote per code.</p></article></aside></div>' + ratingMarkup + '<section class="saved" id="staffComposer" hidden></section></section>';
       bindCopyButtons();
       root.querySelector("#openSubmission").onclick = function () { root.querySelector("#submissionForm").hidden = !root.querySelector("#submissionForm").hidden; };
       root.querySelector("#sendSubmission").onclick = async function () {
@@ -120,6 +154,11 @@
       root.querySelectorAll("[data-vote]").forEach(function (button) {
         button.onclick = async function () {
           try { await request(api + "/" + encodeURIComponent(game.slug) + "/votes/" + encodeURIComponent(button.closest("tr").dataset.codeId), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ worked: button.dataset.vote === "true" }) }); renderGuide(game.slug); } catch (error) { alert(error.message); }
+        };
+      });
+      root.querySelectorAll("[data-game-rating]").forEach(function (button) {
+        button.onclick = async function () {
+          try { await request(api + "/" + encodeURIComponent(game.slug) + "/rating", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ score: Number(button.dataset.gameRating) }) }); renderGuide(game.slug); } catch (error) { alert(error.message); }
         };
       });
       if (session.canManageCodes) renderStaffComposer(game);
