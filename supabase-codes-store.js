@@ -203,6 +203,17 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     return toCode(Array.isArray(rows) ? rows[0] : {});
   }
 
+  async function deleteGame(slug) {
+    const rows = await request(`/rest/v1/games?slug=eq.${encodeURIComponent(slugify(slug))}&select=*&limit=1`);
+    if (!Array.isArray(rows) || !rows[0]) return null;
+    const game = toGame(rows[0]);
+    await request(`/rest/v1/games?id=eq.${encodeURIComponent(game.id)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    });
+    return game;
+  }
+
   async function submitCodeSubmission(gameId, input, user) {
     const code = clean(input.code, 160);
     if (!code) throw new Error("A code is required.");
@@ -290,6 +301,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     list(input) { return useDatabase(() => listFromDatabase(input), () => fallback.list(input)); },
     getGame(slug) { return useDatabase(() => getFromDatabase(slug), () => fallback.getGame(slug)); },
     upsertGame(input) { return useDatabase(() => upsertGame(input), () => fallback.upsertGame(input)); },
+    deleteGame(slug) { return useDatabase(() => deleteGame(slug), () => fallback.deleteGame(slug)); },
     upsertCode(gameId, input) { return useDatabase(() => upsertCode(gameId, input), () => fallback.upsertCode(gameId, input)); },
     submitCodeSubmission(gameId, input, user) {
       if (!isConfigured()) throw new Error("Code submissions are not configured yet.");

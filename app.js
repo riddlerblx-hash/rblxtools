@@ -1267,6 +1267,14 @@ async function saveCodeGuideCover(rawImage) {
   return `/code-guide-covers/${fileName}`;
 }
 
+async function removeCodeGuideCover(iconUrl) {
+  const publicPath = String(iconUrl || "");
+  if (!publicPath.startsWith("/code-guide-covers/")) return;
+  const fileName = path.basename(publicPath);
+  if (!fileName || fileName !== publicPath.slice("/code-guide-covers/".length)) return;
+  await rm(path.join(CODE_GUIDE_COVER_DIR, fileName), { force: true });
+}
+
 function buildPublicCommunityPost(post, viewer) {
   const viewerId = String(viewer?.id || "");
   const comments = post.comments.map((comment) => ({ ...comment, likes: Object.values(comment.reactions).filter((value) => value === "like").length, dislikes: Object.values(comment.reactions).filter((value) => value === "dislike").length, viewerReaction: viewerId ? String(comment.reactions[viewerId] || "") : "" }));
@@ -11403,6 +11411,18 @@ app.post("/admin/codes/:slug", async (req, res) => {
     return res.status(201).json({ ok: true, code });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not publish this code." });
+  }
+});
+
+app.delete("/admin/codes/:slug", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const game = await codesPlatform.deleteGame(req.params.slug);
+    if (!game) return res.status(404).json({ error: "Code post not found." });
+    await removeCodeGuideCover(game.iconUrl).catch((error) => console.error("Could not remove code post cover:", error.message));
+    return res.json({ ok: true, deletedSlug: game.slug });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete this code post." });
   }
 });
 
