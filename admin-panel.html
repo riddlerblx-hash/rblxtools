@@ -1165,6 +1165,12 @@
         <div class="admin-note-log" id="codeSubmissionsLog">Loading submissions...</div>
       </div>
     </section>
+    <section class="admin-card">
+      <div class="admin-card-inner">
+        <div class="admin-card-head"><div><h2 class="admin-card-title">Reported Expired Codes</h2><p class="admin-card-copy">Member reports that need a staff check before a public code is moved to the expired tab.</p></div><button class="admin-btn ghost" id="refreshExpiryReportsButton" type="button">Refresh</button></div>
+        <div class="admin-note-log" id="expiryReportsLog">Loading reports...</div>
+      </div>
+    </section>
 
     <section class="admin-card">
       <div class="admin-card-inner">
@@ -1981,6 +1987,35 @@
             row.append(title, meta, source, approve, reject); log.appendChild(row);
           });
         } catch (error) { log.textContent = error.message || "Could not load code submissions."; }
+      }
+      refresh.onclick = load;
+      load();
+    }());
+  </script>
+  <script>
+    (function () {
+      var log = document.getElementById("expiryReportsLog");
+      var refresh = document.getElementById("refreshExpiryReportsButton");
+      if (!log || !refresh) return;
+      async function load() {
+        log.textContent = "Loading reports...";
+        try {
+          var response = await fetch("/admin/codes/expiry-reports", { credentials: "include" });
+          var payload = await response.json().catch(function () { return {}; });
+          if (!response.ok) throw new Error(payload.error || "Could not load expiry reports.");
+          var reports = Array.isArray(payload.reports) ? payload.reports : [];
+          log.innerHTML = "";
+          if (!reports.length) { log.textContent = "No code-expiry reports yet."; return; }
+          reports.forEach(function (report) {
+            var row = document.createElement("div");
+            row.className = "admin-note-entry";
+            var title = document.createElement("strong"); title.textContent = String(report.code || "Unknown code") + " · " + String(report.gameName || "Unknown post");
+            var meta = document.createElement("div"); meta.textContent = "Reported by " + String(report.reporterName || "Member") + " on " + new Date(report.createdAt).toLocaleString();
+            row.append(title, meta);
+            if (report.gameSlug) { var link = document.createElement("a"); link.href = "/codes/" + encodeURIComponent(report.gameSlug); link.target = "_blank"; link.rel = "noopener"; link.textContent = "Open code post"; link.style.display = "inline-block"; link.style.marginTop = "8px"; row.appendChild(link); }
+            log.appendChild(row);
+          });
+        } catch (error) { log.textContent = error.message || "Could not load expiry reports."; }
       }
       refresh.onclick = load;
       load();

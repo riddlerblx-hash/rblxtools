@@ -11387,9 +11387,19 @@ app.post("/api/codes/:slug/codes/:codeId/expiry-reports", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const guide = await codesPlatform.getGame(req.params.slug);
     if (!guide) return res.status(404).json({ error: "Code post not found." });
-    return res.status(201).json({ ok: true, report: await codesPlatform.reportCodeExpired(guide.game.id, req.params.codeId, user.id) });
+    return res.status(201).json({ ok: true, report: await codesPlatform.reportCodeExpired(guide.game.id, req.params.codeId, user) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not report this code." });
+  }
+});
+
+app.post("/api/codes/:slug/view", async (req, res) => {
+  try {
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).json({ error: "Code post not found." });
+    return res.status(201).json({ ok: true, ...(await codesPlatform.recordView(guide.game.id, req.body?.visitorKey)) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not record this view." });
   }
 });
 
@@ -11507,6 +11517,15 @@ app.delete("/admin/codes/:slug", async (req, res) => {
     return res.json({ ok: true, deletedSlug: game.slug });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete this code post." });
+  }
+});
+
+app.get("/admin/codes/expiry-reports", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    return res.json({ reports: await codesPlatform.listExpiryReports() });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load expiry reports." });
   }
 });
 

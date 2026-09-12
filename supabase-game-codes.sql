@@ -52,6 +52,17 @@ create table if not exists game_code_expiry_reports (
   unique (game_code_id, reporter_user_id)
 );
 create index if not exists game_code_expiry_reports_code_idx on game_code_expiry_reports(game_code_id, created_at desc);
+alter table game_code_expiry_reports add column if not exists reporter_name text not null default '';
+
+-- One browser counts once per post, so refreshes cannot inflate public view totals.
+create table if not exists game_code_page_views (
+  id uuid primary key default gen_random_uuid(),
+  game_id uuid not null references games(id) on delete cascade,
+  visitor_key uuid not null,
+  created_at timestamptz not null default now(),
+  unique (game_id, visitor_key)
+);
+create index if not exists game_code_page_views_game_idx on game_code_page_views(game_id);
 
 -- Community scores are intentionally permanent: one account gets one 1-5 rating per guide.
 create table if not exists game_ratings (

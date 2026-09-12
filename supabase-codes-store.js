@@ -55,7 +55,7 @@ function toCode(row) {
   };
 }
 
-function publicGame(game, codeRows) {
+function publicGame(game, codeRows, viewRows = []) {
   return {
     id: game.id,
     name: game.name,
@@ -67,6 +67,7 @@ function publicGame(game, codeRows) {
     description: game.description,
     redemptionInstructions: game.redemptionInstructions,
     instructionImageUrls: game.instructionImageUrls,
+    viewCount: viewRows.filter((view) => view.gameId === game.id).length,
     workingCodeCount: codeRows.filter((code) => code.gameId === game.id && code.status === "working").length,
     lastUpdated: game.updatedAt,
   };
@@ -108,7 +109,9 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
       ? await request(`/rest/v1/game_codes?${buildInFilter("game_id", ids)}&status=eq.working&select=game_id,status`)
       : [];
     const codes = (Array.isArray(codeRows) ? codeRows : []).map((row) => ({ gameId: row.game_id, status: row.status }));
-    return { games: pageGames.map((game) => publicGame(game, codes)), page: current, limit: size, total: games.length, provider: providerInfo() };
+    const viewRows = ids.length ? await request(`/rest/v1/game_code_page_views?${buildInFilter("game_id", ids)}&select=game_id`) : [];
+    const views = (Array.isArray(viewRows) ? viewRows : []).map((row) => ({ gameId: row.game_id }));
+    return { games: pageGames.map((game) => publicGame(game, codes, views)), page: current, limit: size, total: games.length, provider: providerInfo() };
   }
 
   async function getFromDatabase(slug, viewerUserId = "") {
@@ -138,8 +141,11 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const ratingRows = await request(`/rest/v1/game_ratings?game_id=eq.${encodeURIComponent(game.id)}&select=score,voter_user_id`);
     const ratingCount = Array.isArray(ratingRows) ? ratingRows.length : 0;
     const ratingTotal = (Array.isArray(ratingRows) ? ratingRows : []).reduce((total, rating) => total + Number(rating.score || 0), 0);
+    const viewRows = await request(`/rest/v1/game_code_page_views?game_id=eq.${encodeURIComponent(game.id)}&select=id`);
+    const guideGame = publicGame(game, codes);
+    guideGame.viewCount = Array.isArray(viewRows) ? viewRows.length : 0;
     return {
-      game: publicGame(game, codes),
+      game: guideGame,
       workingCodes: codes.filter((code) => code.status === "working"),
       expiredCodes: codes.filter((code) => code.status === "expired"),
       lastUpdated: game.updatedAt,
@@ -253,13 +259,13 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     return toCode(rows[0]);
   }
 
-  async function reportCodeExpired(gameId, codeId, userId) {
+  async function reportCodeExpired(gameId, codeId, user) {
     const codeRows = await request(`/rest/v1/game_codes?id=eq.${encodeURIComponent(codeId)}&game_id=eq.${encodeURIComponent(gameId)}&select=id&limit=1`);
     if (!Array.isArray(codeRows) || !codeRows[0]) throw new Error("Code not found for this game.");
     await request("/rest/v1/game_code_expiry_reports?on_conflict=game_code_id,reporter_user_id", {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify({ game_code_id: codeId, reporter_user_id: userId }),
+      body: JSON.stringify({ game_code_id: codeId, reporter_user_id: user.id, reporter_name: clean(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80) }),
     });
     return { reported: true };
   }
@@ -305,6 +311,29 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const safeStatus = ["pending", "approved", "rejected"].includes(status) ? status : "pending";
     const rows = await request(`/rest/v1/game_code_submissions?status=eq.${safeStatus}&select=*&order=created_at.desc&limit=200`);
     return Array.isArray(rows) ? rows : [];
+  }
+
+  async function listExpiryReports() {
+    const rows = await request("/rest/v1/game_code_expiry_reports?select=id,created_at,reporter_name,reporter_user_id,game_codes(code,games(name,slug))&order=created_at.desc&limit=200");
+    return (Array.isArray(rows) ? rows : []).map((report) => ({
+      id: report.id,
+      createdAt: report.created_at,
+      reporterName: report.reporter_name || report.reporter_user_id,
+      code: report.game_codes?.code || "Unknown code",
+      gameName: report.game_codes?.games?.name || "Unknown post",
+      gameSlug: report.game_codes?.games?.slug || "",
+    }));
+  }
+
+  async function recordView(gameId, visitorKey) {
+    if (!/^[0-9a-f-]{36}$/i.test(String(visitorKey || ""))) throw new Error("Invalid viewer.");
+    await request("/rest/v1/game_code_page_views?on_conflict=game_id,visitor_key", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ game_id: gameId, visitor_key: visitorKey }),
+    });
+    const rows = await request(`/rest/v1/game_code_page_views?game_id=eq.${encodeURIComponent(gameId)}&select=id`);
+    return { viewCount: Array.isArray(rows) ? rows.length : 0 };
   }
 
   async function reviewSubmission(id, decision, adminUserId, note = "") {
@@ -363,13 +392,21 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
       if (!isConfigured()) throw new Error("Code voting is not configured yet.");
       return voteForCode(gameId, codeId, userId, worked);
     },
-    reportCodeExpired(gameId, codeId, userId) {
+    reportCodeExpired(gameId, codeId, user) {
       if (!isConfigured()) throw new Error("Code expiry reports are not configured yet.");
-      return reportCodeExpired(gameId, codeId, userId);
+      return reportCodeExpired(gameId, codeId, user);
     },
     listSubmissions(status) {
       if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
       return listSubmissions(status);
+    },
+    listExpiryReports() {
+      if (!isConfigured()) throw new Error("Code expiry reports are not configured yet.");
+      return listExpiryReports();
+    },
+    recordView(gameId, visitorKey) {
+      if (!isConfigured()) return Promise.resolve({ viewCount: 0 });
+      return recordView(gameId, visitorKey);
     },
     reviewSubmission(id, decision, adminUserId, note) {
       if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
