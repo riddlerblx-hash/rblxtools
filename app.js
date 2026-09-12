@@ -11349,10 +11349,12 @@ app.get("/api/codes/:slug", async (req, res) => {
 
 app.get("/api/codes-session", async (req, res) => {
   const user = await getOptionalCommunityUser(req);
-  if (!user) return res.json({ authenticated: false, canManageCodes: false, viewer: null });
+  if (!user) return res.json({ authenticated: false, canManageCodes: false, hideAds: false, viewer: null });
+  const membership = getEffectiveMembership(user);
   return res.json({
     authenticated: true,
     canManageCodes: isAdminUser(user),
+    hideAds: Boolean(membership.premiumActive) && membership.plan === "pro",
     viewer: { id: String(user.id), name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80) },
   });
 });
