@@ -30,6 +30,7 @@ function toGame(row) {
     description: row.description || "",
     redemptionInstructions: row.redemption_instructions || "",
     instructionImageUrls: Array.isArray(row.instruction_image_urls) ? row.instruction_image_urls : [],
+    pinnedGameCodeCommentId: row.pinned_game_code_comment_id || null,
     codesEnabled: row.codes_enabled !== false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -146,13 +147,27 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const viewRows = await request(`/rest/v1/game_code_page_views?game_id=eq.${encodeURIComponent(game.id)}&select=id`);
     const guideGame = publicGame(game, codes);
     guideGame.viewCount = Array.isArray(viewRows) ? viewRows.length : 0;
-    const commentRows = await request(`/rest/v1/game_code_comments?game_id=eq.${encodeURIComponent(game.id)}&select=id,author_name,body,created_at&order=created_at.asc&limit=200`);
+    const commentRows = await request(`/rest/v1/game_code_comments?game_id=eq.${encodeURIComponent(game.id)}&select=id,author_user_id,author_name,author_avatar_url,body,parent_comment_id,created_at,updated_at&order=created_at.asc&limit=400`);
+    const commentIds = (Array.isArray(commentRows) ? commentRows : []).map((comment) => comment.id);
+    const commentReactionRows = commentIds.length
+      ? await request(`/rest/v1/game_code_comment_reactions?${buildInFilter("comment_id", commentIds)}&select=comment_id,voter_user_id,reaction`)
+      : [];
     return {
       game: guideGame,
       workingCodes: codes.filter((code) => code.status === "working"),
       expiredCodes: codes.filter((code) => code.status === "expired"),
       lastUpdated: game.updatedAt,
-      comments: (Array.isArray(commentRows) ? commentRows : []).map((comment) => ({ id: comment.id, authorName: comment.author_name || "Member", body: comment.body, createdAt: comment.created_at })),
+      comments: (Array.isArray(commentRows) ? commentRows : []).map((comment) => {
+        const reactions = (Array.isArray(commentReactionRows) ? commentReactionRows : []).filter((reaction) => String(reaction.comment_id) === String(comment.id));
+        const viewerReaction = viewerUserId ? reactions.find((reaction) => String(reaction.voter_user_id) === String(viewerUserId))?.reaction || null : null;
+        return {
+          id: comment.id, userId: comment.author_user_id, authorName: comment.author_name || "Member", avatarUrl: comment.author_avatar_url || "", body: comment.body,
+          parentId: comment.parent_comment_id || null, createdAt: comment.created_at, updatedAt: comment.updated_at || comment.created_at,
+          hearts: reactions.filter((reaction) => reaction.reaction === "heart").length,
+          xes: reactions.filter((reaction) => reaction.reaction === "x").length,
+          viewerReaction, pinned: String(game.pinnedGameCodeCommentId || "") === String(comment.id),
+        };
+      }),
       communityRating: { average: ratingCount ? Math.round((ratingTotal / ratingCount) * 10) / 10 : null, count: ratingCount, viewerScore: viewerUserId ? Number((ratingRows || []).find((rating) => String(rating.voter_user_id) === String(viewerUserId))?.score || 0) : 0 },
       attribution: fallback.provider.attribution || null,
     };
@@ -340,16 +355,71 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     return { viewCount: Array.isArray(rows) ? rows.length : 0 };
   }
 
-  async function addComment(gameId, user, body) {
+  async function addComment(gameId, user, body, parentCommentId = "") {
     const message = clean(body, 1000);
     if (!message) throw new Error("Write a comment first.");
+    const parentId = clean(parentCommentId, 80) || null;
+    if (parentId) {
+      const parent = await request(`/rest/v1/game_code_comments?id=eq.${encodeURIComponent(parentId)}&game_id=eq.${encodeURIComponent(gameId)}&select=id&limit=1`);
+      if (!Array.isArray(parent) || !parent[0]) throw new Error("That comment is no longer available.");
+    }
     const rows = await request("/rest/v1/game_code_comments", {
       method: "POST",
       headers: { Prefer: "return=representation" },
-      body: JSON.stringify({ game_id: gameId, author_user_id: user.id, author_name: clean(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), body: message }),
+      body: JSON.stringify({ game_id: gameId, author_user_id: user.id, author_name: clean(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), author_avatar_url: clean(user.avatarUrl, 500), body: message, parent_comment_id: parentId }),
     });
     const comment = Array.isArray(rows) ? rows[0] : {};
-    return { id: comment.id, authorName: comment.author_name, body: comment.body, createdAt: comment.created_at };
+    return { id: comment.id, userId: comment.author_user_id, authorName: comment.author_name, avatarUrl: comment.author_avatar_url || "", body: comment.body, parentId: comment.parent_comment_id || null, createdAt: comment.created_at, updatedAt: comment.updated_at || comment.created_at, hearts: 0, xes: 0, viewerReaction: null, pinned: false };
+  }
+
+  async function findComment(gameId, commentId) {
+    const rows = await request(`/rest/v1/game_code_comments?id=eq.${encodeURIComponent(commentId)}&game_id=eq.${encodeURIComponent(gameId)}&select=*&limit=1`);
+    return Array.isArray(rows) ? rows[0] || null : null;
+  }
+
+  async function updateComment(gameId, commentId, user, body, isAdmin) {
+    const comment = await findComment(gameId, commentId);
+    if (!comment) throw Object.assign(new Error("Comment not found."), { statusCode: 404 });
+    if (!isAdmin && String(comment.author_user_id) !== String(user.id)) throw Object.assign(new Error("You can edit only your own comments."), { statusCode: 403 });
+    const message = clean(body, 1000);
+    if (!message) throw new Error("Write a comment first.");
+    await request(`/rest/v1/game_code_comments?id=eq.${encodeURIComponent(commentId)}&game_id=eq.${encodeURIComponent(gameId)}`, {
+      method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ body: message, updated_at: new Date().toISOString() }),
+    });
+    return { updated: true };
+  }
+
+  async function deleteComment(gameId, commentId, user, isAdmin) {
+    const comment = await findComment(gameId, commentId);
+    if (!comment) throw Object.assign(new Error("Comment not found."), { statusCode: 404 });
+    if (!isAdmin && String(comment.author_user_id) !== String(user.id)) throw Object.assign(new Error("You can delete only your own comments."), { statusCode: 403 });
+    await request(`/rest/v1/game_code_comments?id=eq.${encodeURIComponent(commentId)}&game_id=eq.${encodeURIComponent(gameId)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+    return { deleted: true };
+  }
+
+  async function reactToComment(gameId, commentId, userId, reaction) {
+    if (!["heart", "x"].includes(reaction)) throw new Error("Invalid comment reaction.");
+    const comment = await findComment(gameId, commentId);
+    if (!comment) throw Object.assign(new Error("Comment not found."), { statusCode: 404 });
+    const existing = await request(`/rest/v1/game_code_comment_reactions?comment_id=eq.${encodeURIComponent(commentId)}&voter_user_id=eq.${encodeURIComponent(userId)}&select=id,reaction&limit=1`);
+    if (Array.isArray(existing) && existing[0]?.reaction === reaction) {
+      await request(`/rest/v1/game_code_comment_reactions?id=eq.${encodeURIComponent(existing[0].id)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+    } else {
+      await request("/rest/v1/game_code_comment_reactions?on_conflict=comment_id,voter_user_id", {
+        method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ comment_id: commentId, voter_user_id: userId, reaction, updated_at: new Date().toISOString() }),
+      });
+    }
+    return { updated: true };
+  }
+
+  async function pinComment(gameId, commentId, isAdmin) {
+    if (!isAdmin) throw Object.assign(new Error("Only admins can pin comments."), { statusCode: 403 });
+    const comment = await findComment(gameId, commentId);
+    if (!comment) throw Object.assign(new Error("Comment not found."), { statusCode: 404 });
+    const gameRows = await request(`/rest/v1/games?id=eq.${encodeURIComponent(gameId)}&select=pinned_game_code_comment_id&limit=1`);
+    const pinnedId = String(gameRows?.[0]?.pinned_game_code_comment_id || "");
+    await request(`/rest/v1/games?id=eq.${encodeURIComponent(gameId)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ pinned_game_code_comment_id: pinnedId === String(commentId) ? null : commentId, updated_at: new Date().toISOString() }) });
+    return { pinned: pinnedId !== String(commentId) };
   }
 
   async function reviewSubmission(id, decision, adminUserId, note = "") {
@@ -424,10 +494,14 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
       if (!isConfigured()) return Promise.resolve({ viewCount: 0 });
       return recordView(gameId, visitorKey);
     },
-    addComment(gameId, user, body) {
+    addComment(gameId, user, body, parentCommentId) {
       if (!isConfigured()) throw new Error("Code comments are not configured yet.");
-      return addComment(gameId, user, body);
+      return addComment(gameId, user, body, parentCommentId);
     },
+    updateComment(gameId, commentId, user, body, isAdmin) { if (!isConfigured()) throw new Error("Code comments are not configured yet."); return updateComment(gameId, commentId, user, body, isAdmin); },
+    deleteComment(gameId, commentId, user, isAdmin) { if (!isConfigured()) throw new Error("Code comments are not configured yet."); return deleteComment(gameId, commentId, user, isAdmin); },
+    reactToComment(gameId, commentId, userId, reaction) { if (!isConfigured()) throw new Error("Code comments are not configured yet."); return reactToComment(gameId, commentId, userId, reaction); },
+    pinComment(gameId, commentId, isAdmin) { if (!isConfigured()) throw new Error("Code comments are not configured yet."); return pinComment(gameId, commentId, isAdmin); },
     reviewSubmission(id, decision, adminUserId, note) {
       if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
       return reviewSubmission(id, decision, adminUserId, note);

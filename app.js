@@ -11355,7 +11355,7 @@ app.get("/api/codes-session", async (req, res) => {
     authenticated: true,
     canManageCodes: isAdminUser(user),
     hideAds: Boolean(membership.premiumActive) && membership.plan === "pro",
-    viewer: { id: String(user.id), name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80) },
+    viewer: { id: String(user.id), name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), avatarUrl: getCommunityAvatarUrl(user) },
   });
 });
 
@@ -11410,9 +11410,26 @@ app.post("/api/codes/:slug/comments", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const guide = await codesPlatform.getGame(req.params.slug);
     if (!guide) return res.status(404).json({ error: "Code post not found." });
-    return res.status(201).json({ ok: true, comment: await codesPlatform.addComment(guide.game.id, user, req.body?.body) });
+    return res.status(201).json({ ok: true, comment: await codesPlatform.addComment(guide.game.id, { ...user, avatarUrl: getCommunityAvatarUrl(user) }, req.body?.body, req.body?.parentCommentId) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not post this comment." });
+  }
+});
+
+app.post("/api/codes/:slug/comments/:commentId", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).json({ error: "Code post not found." });
+    const action = String(req.body?.action || "");
+    const isAdmin = isAdminUser(user);
+    if (action === "edit") return res.json({ ok: true, ...(await codesPlatform.updateComment(guide.game.id, req.params.commentId, user, req.body?.body, isAdmin)) });
+    if (action === "delete") return res.json({ ok: true, ...(await codesPlatform.deleteComment(guide.game.id, req.params.commentId, user, isAdmin)) });
+    if (action === "react") return res.json({ ok: true, ...(await codesPlatform.reactToComment(guide.game.id, req.params.commentId, user.id, String(req.body?.reaction || ""))) });
+    if (action === "pin") return res.json({ ok: true, ...(await codesPlatform.pinComment(guide.game.id, req.params.commentId, isAdmin)) });
+    return res.status(400).json({ error: "Unsupported comment action." });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this comment." });
   }
 });
 
