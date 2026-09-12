@@ -11403,6 +11403,17 @@ app.post("/api/codes/:slug/view", async (req, res) => {
   }
 });
 
+app.post("/api/codes/:slug/comments", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).json({ error: "Code post not found." });
+    return res.status(201).json({ ok: true, comment: await codesPlatform.addComment(guide.game.id, user, req.body?.body) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not post this comment." });
+  }
+});
+
 app.post("/api/codes/:slug/rating", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);

@@ -64,6 +64,16 @@ create table if not exists game_code_page_views (
 );
 create index if not exists game_code_page_views_game_idx on game_code_page_views(game_id);
 
+create table if not exists game_code_comments (
+  id uuid primary key default gen_random_uuid(),
+  game_id uuid not null references games(id) on delete cascade,
+  author_user_id uuid not null,
+  author_name text not null default '',
+  body text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists game_code_comments_game_idx on game_code_comments(game_id, created_at desc);
+
 -- Community scores are intentionally permanent: one account gets one 1-5 rating per guide.
 create table if not exists game_ratings (
   id uuid primary key default gen_random_uuid(),

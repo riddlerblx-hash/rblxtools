@@ -122,7 +122,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const codes = (Array.isArray(rowsForCodes) ? rowsForCodes : []).map(toCode);
     const codeIds = codes.map((code) => code.id);
     const voteRows = codeIds.length
-      ? await request(`/rest/v1/game_code_votes?${buildInFilter("game_code_id", codeIds)}&select=game_code_id,worked`)
+      ? await request(`/rest/v1/game_code_votes?${buildInFilter("game_code_id", codeIds)}&select=game_code_id,worked,voter_user_id`)
       : [];
     const voteSummary = new Map();
     (Array.isArray(voteRows) ? voteRows : []).forEach((vote) => {
@@ -137,6 +137,8 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
       code.failureVotes = summary.failureVotes;
       code.totalVotes = summary.successVotes + summary.failureVotes;
       code.successRate = code.totalVotes ? Math.round((summary.successVotes / code.totalVotes) * 100) : null;
+      const viewerVote = viewerUserId ? (Array.isArray(voteRows) ? voteRows : []).find((vote) => String(vote.game_code_id) === String(code.id) && String(vote.voter_user_id) === String(viewerUserId)) : null;
+      code.viewerWorked = viewerVote ? Boolean(viewerVote.worked) : null;
     });
     const ratingRows = await request(`/rest/v1/game_ratings?game_id=eq.${encodeURIComponent(game.id)}&select=score,voter_user_id`);
     const ratingCount = Array.isArray(ratingRows) ? ratingRows.length : 0;
@@ -144,11 +146,13 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const viewRows = await request(`/rest/v1/game_code_page_views?game_id=eq.${encodeURIComponent(game.id)}&select=id`);
     const guideGame = publicGame(game, codes);
     guideGame.viewCount = Array.isArray(viewRows) ? viewRows.length : 0;
+    const commentRows = await request(`/rest/v1/game_code_comments?game_id=eq.${encodeURIComponent(game.id)}&select=id,author_name,body,created_at&order=created_at.asc&limit=200`);
     return {
       game: guideGame,
       workingCodes: codes.filter((code) => code.status === "working"),
       expiredCodes: codes.filter((code) => code.status === "expired"),
       lastUpdated: game.updatedAt,
+      comments: (Array.isArray(commentRows) ? commentRows : []).map((comment) => ({ id: comment.id, authorName: comment.author_name || "Member", body: comment.body, createdAt: comment.created_at })),
       communityRating: { average: ratingCount ? Math.round((ratingTotal / ratingCount) * 10) / 10 : null, count: ratingCount, viewerScore: viewerUserId ? Number((ratingRows || []).find((rating) => String(rating.voter_user_id) === String(viewerUserId))?.score || 0) : 0 },
       attribution: fallback.provider.attribution || null,
     };
@@ -336,6 +340,18 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     return { viewCount: Array.isArray(rows) ? rows.length : 0 };
   }
 
+  async function addComment(gameId, user, body) {
+    const message = clean(body, 1000);
+    if (!message) throw new Error("Write a comment first.");
+    const rows = await request("/rest/v1/game_code_comments", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ game_id: gameId, author_user_id: user.id, author_name: clean(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), body: message }),
+    });
+    const comment = Array.isArray(rows) ? rows[0] : {};
+    return { id: comment.id, authorName: comment.author_name, body: comment.body, createdAt: comment.created_at };
+  }
+
   async function reviewSubmission(id, decision, adminUserId, note = "") {
     const status = decision === "approved" ? "approved" : "rejected";
     const rows = await request(`/rest/v1/game_code_submissions?id=eq.${encodeURIComponent(id)}&select=*&limit=1`);
@@ -407,6 +423,10 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     recordView(gameId, visitorKey) {
       if (!isConfigured()) return Promise.resolve({ viewCount: 0 });
       return recordView(gameId, visitorKey);
+    },
+    addComment(gameId, user, body) {
+      if (!isConfigured()) throw new Error("Code comments are not configured yet.");
+      return addComment(gameId, user, body);
     },
     reviewSubmission(id, decision, adminUserId, note) {
       if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
