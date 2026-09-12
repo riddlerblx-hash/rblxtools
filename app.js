@@ -1253,18 +1253,28 @@ function saveCommunityAvatar(userId, rawAvatarUrl) {
   return publicUrl;
 }
 
-async function saveCodeGuideCover(rawImage) {
+async function saveCodeGuideImage(rawImage, label = "image") {
   const match = String(rawImage || "").match(/^data:image\/(png|jpeg|webp);base64,([a-z0-9+/=\s]+)$/i);
-  if (!match) throw Object.assign(new Error("Upload a PNG, JPEG, or WebP cover image."), { statusCode: 400 });
+  if (!match) throw Object.assign(new Error(`Upload a PNG, JPEG, or WebP ${label}.`), { statusCode: 400 });
   const image = Buffer.from(match[2].replace(/\s/g, ""), "base64");
   if (!image.length || image.length > 5 * 1024 * 1024) {
-    throw Object.assign(new Error("Cover images must be 5 MB or smaller."), { statusCode: 400 });
+    throw Object.assign(new Error(`${label[0].toUpperCase()}${label.slice(1)} must be 5 MB or smaller.`), { statusCode: 400 });
   }
   const extension = match[1].toLowerCase() === "jpeg" ? "jpg" : match[1].toLowerCase();
   const fileName = `${randomUUID()}.${extension}`;
   await mkdir(CODE_GUIDE_COVER_DIR, { recursive: true });
   await writeFile(path.join(CODE_GUIDE_COVER_DIR, fileName), image);
   return `/code-guide-covers/${fileName}`;
+}
+
+async function saveCodeGuideCover(rawImage) {
+  return saveCodeGuideImage(rawImage, "cover image");
+}
+
+async function saveCodeGuideInstructionImages(rawImages) {
+  if (!Array.isArray(rawImages)) return [];
+  if (rawImages.length > 6) throw Object.assign(new Error("Upload no more than 6 tutorial images."), { statusCode: 400 });
+  return Promise.all(rawImages.map((image) => saveCodeGuideImage(image, "tutorial image")));
 }
 
 async function removeCodeGuideCover(iconUrl) {
@@ -11400,7 +11410,9 @@ app.post("/admin/codes/games", async (req, res) => {
     await requireAdminUser(req);
     const payload = { ...(req.body || {}) };
     if (payload.coverImageDataUrl) payload.iconUrl = await saveCodeGuideCover(payload.coverImageDataUrl);
+    if (payload.instructionImageDataUrls) payload.instructionImageUrls = await saveCodeGuideInstructionImages(payload.instructionImageDataUrls);
     delete payload.coverImageDataUrl;
+    delete payload.instructionImageDataUrls;
     return res.status(201).json({ ok: true, game: await codesPlatform.upsertGame(payload) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create this code guide." });
@@ -11457,7 +11469,7 @@ app.delete("/admin/codes/:slug", async (req, res) => {
     await requireAdminUser(req);
     const game = await codesPlatform.deleteGame(req.params.slug);
     if (!game) return res.status(404).json({ error: "Code post not found." });
-    await removeCodeGuideCover(game.iconUrl).catch((error) => console.error("Could not remove code post cover:", error.message));
+    await Promise.all([game.iconUrl, ...(game.instructionImageUrls || [])].map((url) => removeCodeGuideCover(url).catch((error) => console.error("Could not remove code post image:", error.message))));
     return res.json({ ok: true, deletedSlug: game.slug });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete this code post." });
