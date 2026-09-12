@@ -11341,7 +11341,8 @@ app.get("/api/codes", async (req, res) => {
 
 app.get("/api/codes/:slug", async (req, res) => {
   try {
-    const guide = await codesPlatform.getGame(req.params.slug);
+    const viewer = await getOptionalCommunityUser(req);
+    const guide = await codesPlatform.getGame(req.params.slug, viewer?.id);
     return guide ? res.json(guide) : res.status(404).json({ error: "Code guide not found." });
   } catch (_error) { return res.status(500).json({ error: "Could not load this Roblox code guide." }); }
 });
@@ -11409,6 +11410,9 @@ app.post("/admin/codes/games", async (req, res) => {
   try {
     await requireAdminUser(req);
     const payload = { ...(req.body || {}) };
+    if (!String(payload.redemptionInstructions || "").trim()) return res.status(400).json({ error: "Redemption instructions are required." });
+    if (!Array.isArray(payload.instructionImageDataUrls) || !payload.instructionImageDataUrls.length) return res.status(400).json({ error: "Add at least one tutorial image." });
+    if (!payload.coverImageDataUrl) return res.status(400).json({ error: "A cover image is required." });
     if (payload.coverImageDataUrl) payload.iconUrl = await saveCodeGuideCover(payload.coverImageDataUrl);
     if (payload.instructionImageDataUrls) payload.instructionImageUrls = await saveCodeGuideInstructionImages(payload.instructionImageDataUrls);
     delete payload.coverImageDataUrl;
@@ -11416,6 +11420,36 @@ app.post("/admin/codes/games", async (req, res) => {
     return res.status(201).json({ ok: true, game: await codesPlatform.upsertGame(payload) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create this code guide." });
+  }
+});
+
+app.patch("/admin/codes/:slug", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).json({ error: "Code post not found." });
+    const payload = { ...(req.body || {}) };
+    const hasNewCover = Boolean(payload.coverImageDataUrl);
+    const hasNewTutorialImages = Array.isArray(payload.instructionImageDataUrls) && payload.instructionImageDataUrls.length > 0;
+    const iconUrl = hasNewCover ? await saveCodeGuideCover(payload.coverImageDataUrl) : guide.game.icon;
+    const instructionImageUrls = hasNewTutorialImages ? await saveCodeGuideInstructionImages(payload.instructionImageDataUrls) : (guide.game.instructionImageUrls || []);
+    const redemptionInstructions = String(payload.redemptionInstructions || guide.game.redemptionInstructions || "").trim();
+    if (!redemptionInstructions || !instructionImageUrls.length) return res.status(400).json({ error: "Redemption instructions and at least one tutorial image are required." });
+    const game = await codesPlatform.upsertGame({
+      name: payload.name || guide.game.name,
+      slug: guide.game.slug,
+      robloxUrl: payload.robloxUrl === undefined ? guide.game.robloxUrl : payload.robloxUrl,
+      iconUrl,
+      description: guide.game.description,
+      redemptionInstructions,
+      instructionImageUrls,
+      codesEnabled: true,
+    });
+    const replacedImages = (hasNewCover ? [guide.game.icon] : []).concat(hasNewTutorialImages ? guide.game.instructionImageUrls || [] : []);
+    await Promise.all(replacedImages.filter(Boolean).map((url) => removeCodeGuideCover(url).catch((error) => console.error("Could not remove replaced code post image:", error.message))));
+    return res.json({ ok: true, game });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this code post." });
   }
 });
 

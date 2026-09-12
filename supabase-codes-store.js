@@ -111,7 +111,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     return { games: pageGames.map((game) => publicGame(game, codes)), page: current, limit: size, total: games.length, provider: providerInfo() };
   }
 
-  async function getFromDatabase(slug) {
+  async function getFromDatabase(slug, viewerUserId = "") {
     const rows = await request(`/rest/v1/games?slug=eq.${encodeURIComponent(slugify(slug))}&codes_enabled=is.true&select=*&limit=1`);
     if (!Array.isArray(rows) || !rows[0]) return null;
     const game = toGame(rows[0]);
@@ -135,7 +135,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
       code.totalVotes = summary.successVotes + summary.failureVotes;
       code.successRate = code.totalVotes ? Math.round((summary.successVotes / code.totalVotes) * 100) : null;
     });
-    const ratingRows = await request(`/rest/v1/game_ratings?game_id=eq.${encodeURIComponent(game.id)}&select=score`);
+    const ratingRows = await request(`/rest/v1/game_ratings?game_id=eq.${encodeURIComponent(game.id)}&select=score,voter_user_id`);
     const ratingCount = Array.isArray(ratingRows) ? ratingRows.length : 0;
     const ratingTotal = (Array.isArray(ratingRows) ? ratingRows : []).reduce((total, rating) => total + Number(rating.score || 0), 0);
     return {
@@ -143,7 +143,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
       workingCodes: codes.filter((code) => code.status === "working"),
       expiredCodes: codes.filter((code) => code.status === "expired"),
       lastUpdated: game.updatedAt,
-      communityRating: { average: ratingCount ? Math.round((ratingTotal / ratingCount) * 10) / 10 : null, count: ratingCount },
+      communityRating: { average: ratingCount ? Math.round((ratingTotal / ratingCount) * 10) / 10 : null, count: ratingCount, viewerScore: viewerUserId ? Number((ratingRows || []).find((rating) => String(rating.voter_user_id) === String(viewerUserId))?.score || 0) : 0 },
       attribution: fallback.provider.attribution || null,
     };
   }
@@ -349,7 +349,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
   return {
     provider: fallback.provider,
     list(input) { return useDatabase(() => listFromDatabase(input), () => fallback.list(input)); },
-    getGame(slug) { return useDatabase(() => getFromDatabase(slug), () => fallback.getGame(slug)); },
+    getGame(slug, viewerUserId) { return useDatabase(() => getFromDatabase(slug, viewerUserId), () => fallback.getGame(slug)); },
     upsertGame(input) { return useDatabase(() => upsertGame(input), () => fallback.upsertGame(input)); },
     deleteGame(slug) { return useDatabase(() => deleteGame(slug), () => fallback.deleteGame(slug)); },
     upsertCode(gameId, input) { return useDatabase(() => upsertCode(gameId, input), () => fallback.upsertCode(gameId, input)); },
