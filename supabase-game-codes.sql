@@ -39,6 +39,16 @@ create table if not exists game_code_votes (
 );
 create index if not exists game_code_votes_code_idx on game_code_votes(game_code_id);
 
+-- A member can flag a code as expired once. Reports never automatically change a code.
+create table if not exists game_code_expiry_reports (
+  id uuid primary key default gen_random_uuid(),
+  game_code_id uuid not null references game_codes(id) on delete cascade,
+  reporter_user_id uuid not null,
+  created_at timestamptz not null default now(),
+  unique (game_code_id, reporter_user_id)
+);
+create index if not exists game_code_expiry_reports_code_idx on game_code_expiry_reports(game_code_id, created_at desc);
+
 -- Community scores are intentionally permanent: one account gets one 1-5 rating per guide.
 create table if not exists game_ratings (
   id uuid primary key default gen_random_uuid(),

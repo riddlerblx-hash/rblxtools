@@ -214,6 +214,50 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     return game;
   }
 
+  async function updateCodeStatus(gameId, codeId, status) {
+    if (!VALID_STATUS.has(status)) throw new Error("Invalid code status.");
+    const codeRows = await request(`/rest/v1/game_codes?id=eq.${encodeURIComponent(codeId)}&game_id=eq.${encodeURIComponent(gameId)}&select=*&limit=1`);
+    if (!Array.isArray(codeRows) || !codeRows[0]) return null;
+    const now = new Date().toISOString();
+    const rows = await request(`/rest/v1/game_codes?id=eq.${encodeURIComponent(codeId)}&game_id=eq.${encodeURIComponent(gameId)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ status, expired_at: status === "expired" ? now : null, updated_at: now }),
+    });
+    await request(`/rest/v1/games?id=eq.${encodeURIComponent(gameId)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ updated_at: now }),
+    });
+    return toCode(Array.isArray(rows) ? rows[0] : codeRows[0]);
+  }
+
+  async function deleteCode(gameId, codeId) {
+    const rows = await request(`/rest/v1/game_codes?id=eq.${encodeURIComponent(codeId)}&game_id=eq.${encodeURIComponent(gameId)}&select=*&limit=1`);
+    if (!Array.isArray(rows) || !rows[0]) return null;
+    await request(`/rest/v1/game_codes?id=eq.${encodeURIComponent(codeId)}&game_id=eq.${encodeURIComponent(gameId)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    });
+    await request(`/rest/v1/games?id=eq.${encodeURIComponent(gameId)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ updated_at: new Date().toISOString() }),
+    });
+    return toCode(rows[0]);
+  }
+
+  async function reportCodeExpired(gameId, codeId, userId) {
+    const codeRows = await request(`/rest/v1/game_codes?id=eq.${encodeURIComponent(codeId)}&game_id=eq.${encodeURIComponent(gameId)}&select=id&limit=1`);
+    if (!Array.isArray(codeRows) || !codeRows[0]) throw new Error("Code not found for this game.");
+    await request("/rest/v1/game_code_expiry_reports?on_conflict=game_code_id,reporter_user_id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ game_code_id: codeId, reporter_user_id: userId }),
+    });
+    return { reported: true };
+  }
+
   async function submitCodeSubmission(gameId, input, user) {
     const code = clean(input.code, 160);
     if (!code) throw new Error("A code is required.");
@@ -303,6 +347,8 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     upsertGame(input) { return useDatabase(() => upsertGame(input), () => fallback.upsertGame(input)); },
     deleteGame(slug) { return useDatabase(() => deleteGame(slug), () => fallback.deleteGame(slug)); },
     upsertCode(gameId, input) { return useDatabase(() => upsertCode(gameId, input), () => fallback.upsertCode(gameId, input)); },
+    updateCodeStatus(gameId, codeId, status) { return useDatabase(() => updateCodeStatus(gameId, codeId, status), () => fallback.updateCodeStatus(gameId, codeId, status)); },
+    deleteCode(gameId, codeId) { return useDatabase(() => deleteCode(gameId, codeId), () => fallback.deleteCode(gameId, codeId)); },
     submitCodeSubmission(gameId, input, user) {
       if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
       return submitCodeSubmission(gameId, input, user);
@@ -310,6 +356,10 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     voteForCode(gameId, codeId, userId, worked) {
       if (!isConfigured()) throw new Error("Code voting is not configured yet.");
       return voteForCode(gameId, codeId, userId, worked);
+    },
+    reportCodeExpired(gameId, codeId, userId) {
+      if (!isConfigured()) throw new Error("Code expiry reports are not configured yet.");
+      return reportCodeExpired(gameId, codeId, userId);
     },
     listSubmissions(status) {
       if (!isConfigured()) throw new Error("Code submissions are not configured yet.");

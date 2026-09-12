@@ -11371,6 +11371,17 @@ app.post("/api/codes/:slug/votes/:codeId", async (req, res) => {
   }
 });
 
+app.post("/api/codes/:slug/codes/:codeId/expiry-reports", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).json({ error: "Code post not found." });
+    return res.status(201).json({ ok: true, report: await codesPlatform.reportCodeExpired(guide.game.id, req.params.codeId, user.id) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not report this code." });
+  }
+});
+
 app.post("/api/codes/:slug/rating", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
@@ -11411,6 +11422,33 @@ app.post("/admin/codes/:slug", async (req, res) => {
     return res.status(201).json({ ok: true, code });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not publish this code." });
+  }
+});
+
+app.patch("/admin/codes/:slug/codes/:codeId", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).json({ error: "Code post not found." });
+    if (req.body?.action !== "expire") return res.status(400).json({ error: "Unsupported code action." });
+    const code = await codesPlatform.updateCodeStatus(guide.game.id, req.params.codeId, "expired");
+    if (!code) return res.status(404).json({ error: "Code not found." });
+    return res.json({ ok: true, code });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this code." });
+  }
+});
+
+app.delete("/admin/codes/:slug/codes/:codeId", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).json({ error: "Code post not found." });
+    const code = await codesPlatform.deleteCode(guide.game.id, req.params.codeId);
+    if (!code) return res.status(404).json({ error: "Code not found." });
+    return res.json({ ok: true, deletedCodeId: code.id });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete this code." });
   }
 });
 
