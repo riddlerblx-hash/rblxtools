@@ -116,14 +116,28 @@ const STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS = new Set([STRIPE_DISCORD_BOT_UNLIM
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "");
 const APP_BASE_URL = String(process.env.APP_BASE_URL || "https://www.rblxtools.net");
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
-const ADMIN_USER_IDS = new Set((process.env.ADMIN_USER_IDS || "")
-  .split(",")
-  .map((value) => String(value || "").trim())
-  .filter(Boolean));
-const ADMIN_USER_EMAILS = new Set((process.env.ADMIN_USER_EMAILS || "")
-  .split(",")
-  .map((value) => String(value || "").trim().toLowerCase())
-  .filter(Boolean));
+function parseAdminAllowlist(...environmentNames) {
+  return new Set(environmentNames.flatMap((environmentName) => {
+    const rawValue = String(process.env[environmentName] || "").trim();
+    if (!rawValue) return [];
+
+    // Commas are the documented format. New lines and semicolons make an
+    // edited .env equally safe, while a JSON array is convenient for managed
+    // hosting panels. dotenv has already removed ordinary surrounding quotes.
+    try {
+      const parsed = JSON.parse(rawValue);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (_error) {}
+    return rawValue.split(/[;,\r\n]+/);
+  }).map((value) => String(value || "").trim()).filter(Boolean));
+}
+
+// These are the only server-side sources of admin access. Keep the short
+// aliases so existing environments using either spelling remain valid.
+const ADMIN_USER_IDS = new Set([...parseAdminAllowlist("ADMIN_USER_IDS", "ADMIN_IDS")]
+  .map((value) => value.toLowerCase()));
+const ADMIN_USER_EMAILS = new Set([...parseAdminAllowlist("ADMIN_USER_EMAILS", "ADMIN_EMAILS")]
+  .map((value) => value.toLowerCase()));
 const DEFAULT_COMPLIMENTARY_PLUS_DAYS = 14;
 const MAX_COMPLIMENTARY_PLUS_DAYS = 3650;
 const REWARD_POINT_AWARDS = Object.freeze({ working_code: 20, expired_code_report: 3 });
