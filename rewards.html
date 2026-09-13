@@ -18,4 +18,73 @@
       setActive(giftCardsTab);
     }
   })();
+</script><script>
+  (() => {
+    const amounts = [5, 10, 25, 50, 100];
+    const modal = document.getElementById("modal");
+    const copy = modal && modal.querySelector(".modal-copy");
+    const title = document.getElementById("title");
+    const price = document.getElementById("modalPrice");
+    const redeem = document.getElementById("redeem");
+    if (!modal || !copy || !title || !price || !redeem) return;
+
+    let activeGift = null;
+    function showGiftCardAmounts(card) {
+      const heading = card.querySelector("h3");
+      const points = card.querySelector(".price");
+      const cardTitle = String(heading && heading.textContent || "");
+      if (!/Gift Card/i.test(cardTitle)) return;
+      const basePoints = Number((String(points && points.textContent || "").match(/[\d,]+/) || ["0"])[0].replace(/,/g, ""));
+      const brand = cardTitle.replace(/^\$5\s*-\s*\$100\s*/i, "").trim();
+      let selectedAmount = 5;
+      let options = copy.querySelector(".modal-options");
+      if (!options) {
+        options = document.createElement("div");
+        options.className = "modal-options";
+        price.parentNode.insertBefore(options, price);
+      }
+      const prompt = copy.querySelector(".modal-options-prompt") || document.createElement("p");
+      prompt.className = "modal-options-prompt";
+      prompt.innerHTML = "<b>Select a gift-card amount:</b>";
+      if (!prompt.parentNode) price.parentNode.insertBefore(prompt, options);
+
+      function renderOptions() {
+        options.hidden = false;
+        prompt.hidden = false;
+        options.innerHTML = amounts.map((amount) => '<button type="button" class="' + (amount === selectedAmount ? "selected" : "") + '" data-gift-amount="' + amount + '">$' + amount + ' gift card</button>').join("");
+        options.querySelectorAll("button").forEach((button) => {
+          button.onclick = () => { selectedAmount = Number(button.dataset.giftAmount); renderOptions(); };
+        });
+        title.textContent = "$" + selectedAmount + " " + brand;
+        price.textContent = Math.round(basePoints * selectedAmount / 5).toLocaleString() + " PTS";
+        redeem.textContent = "Request $" + selectedAmount + " gift card";
+      }
+
+      activeGift = { brand, basePoints, get amount() { return selectedAmount; } };
+      redeem.onclick = async () => {
+        if (!activeGift) return;
+        redeem.disabled = true;
+        try {
+          const response = await fetch("/api/rewards/redeem", {
+            method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ brand: activeGift.brand, amount: activeGift.amount, basePoints: activeGift.basePoints })
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || "Could not submit this request.");
+          alert("Your gift-card request is pending fulfillment.");
+          modal.hidden = true;
+        } catch (error) { alert(error.message); }
+        finally { redeem.disabled = false; }
+      };
+      renderOptions();
+    }
+
+    document.addEventListener("click", (event) => {
+      const card = event.target.closest(".reward");
+      if (!card) return;
+      // The card's own modal opener and shared shell enhancement run first.
+      // Run afterward so this page always owns the selected gift-card amount.
+      setTimeout(() => showGiftCardAmounts(card), 25);
+    }, true);
+  })();
 </script></body></html>
