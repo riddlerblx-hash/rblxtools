@@ -5286,15 +5286,38 @@
   function enhanceRewardsGiftCardPicker() {
     if (!/^\/rewards\/?$/.test(window.location.pathname)) return;
     var style = document.createElement("style");
-    style.textContent = ".modal-options{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0 23px}.modal-options button{min-height:45px;border:1px solid #465777;border-radius:9px;color:#e9f1ff;background:#202a3d;font-weight:800;cursor:pointer}.modal-options button:hover,.modal-options button.selected{border-color:#d9e5ff;background:#dce7ff;color:#132039}.modal-copy h2{font-size:36px}.modal button.action:disabled{opacity:.48;cursor:not-allowed}@media(max-width:420px){.modal-options{grid-template-columns:repeat(2,1fr)}}";
+    style.textContent = ".modal-options{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0 23px}.modal-options button{min-height:45px;border:1px solid #465777;border-radius:9px;color:#e9f1ff;background:#202a3d;font-weight:800;cursor:pointer}.modal-options button:hover,.modal-options button.selected{border-color:#d9e5ff;background:#dce7ff;color:#132039}.modal-copy h2{font-size:36px}.modal-art img{object-fit:contain!important}.reward .art img[src*='rblxtoolscash']{object-fit:contain!important;background:#080b10}.modal button.action:disabled{opacity:.48;cursor:not-allowed}.goal-controls{display:grid;gap:8px;margin-top:14px}.goal-controls select{width:100%;border:1px solid #536683;border-radius:9px;padding:10px;color:#f7f9ff;background:#111a29;font:700 12px Arial}.goal-progress{height:9px;overflow:hidden;border-radius:99px;background:#0d1523}.goal-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#8ec5ff,#a68bff)}.goal-meta{display:flex;justify-content:space-between;gap:8px;margin-top:8px;color:#cbd8ef;font-size:12px;font-weight:800}.goal-box{border:0;cursor:pointer;text-align:left;color:#fff;font:inherit}.reward .pill.manual{background:#7fe6b526;color:#a4f5c7}@media(max-width:420px){.modal-options{grid-template-columns:repeat(2,1fr)}}";
     document.head.appendChild(style);
     setTimeout(function () {
-      var modal = document.getElementById("modal"), price = document.getElementById("modalPrice"), title = document.getElementById("title"), redeem = document.getElementById("redeem"), desc = document.getElementById("desc"), terms = document.getElementById("terms");
+      var modal = document.getElementById("modal"), modalArt = document.getElementById("modalArt"), price = document.getElementById("modalPrice"), title = document.getElementById("title"), redeem = document.getElementById("redeem"), desc = document.getElementById("desc"), terms = document.getElementById("terms");
       if (!modal || !price || !title || !redeem) return;
       var options = document.createElement("div"), prompt = document.createElement("p"), amounts = [5, 10, 25, 50, 100], selectedAmount = 5;
       options.className = "modal-options"; options.hidden = true;
       prompt.hidden = true; prompt.innerHTML = "<b>Select a gift-card amount:</b>";
       price.parentNode.insertBefore(prompt, price); price.parentNode.insertBefore(options, price);
+      var cards = document.querySelectorAll(".reward");
+      cards.forEach(function (card) {
+        var heading = card.querySelector("h3"), pointText = card.querySelector(".price"), pill = card.querySelector(".pill.manual"), cardTitle = heading && heading.textContent || "";
+        if (pill) pill.textContent = "1 - 7 days";
+        if (/^\$1 RBLXTools Cash$/.test(cardTitle)) { card.remove(); return; }
+        if (/^\$5 RBLXTools Cash$/.test(cardTitle)) { heading.textContent = "RBLXTools Cash"; var art = card.querySelector(".art"); if (art) art.innerHTML = '<img src="/assets/rewards/gift-cards/rblxtoolscash.png" alt="RBLXTools Cash">'; return; }
+        if (/Gift Card/.test(cardTitle)) {
+          var base = Number(String(pointText && pointText.textContent || "").replace(/[^0-9]/g, ""));
+          heading.textContent = cardTitle.replace(/^\$5\s*/, "") + " $5 - $100";
+          if (pointText && base) pointText.innerHTML = base.toLocaleString() + " - " + (base * 20).toLocaleString() + " <small>PTS</small>";
+        }
+      });
+      var goal = document.querySelector(".goal"), pointBalance = 0, goalKey = "rblxtools-reward-goal", brands = { "Roblox Gift Card": 5500, "Amazon Gift Card": 6000, "Xbox Gift Card": 6000, "Microsoft Store Gift Card": 6000, "PlayStation Gift Card": 6000, "Steam Gift Card": 6000, "Apple Gift Card": 6000, "Google Play Gift Card": 6000 };
+      function getGoal() { try { return JSON.parse(localStorage.getItem(goalKey) || "null") || { brand: "Roblox Gift Card", amount: 5 }; } catch (_) { return { brand: "Roblox Gift Card", amount: 5 }; } }
+      function renderGoal(editing) {
+        if (!goal) return; var saved = getGoal(), needed = Math.round((brands[saved.brand] || 5500) * Number(saved.amount || 5) / 5), percent = Math.min(100, needed ? Math.round(pointBalance / needed * 100) : 0), remaining = Math.max(0, needed - pointBalance);
+        var brandOptions = Object.keys(brands).map(function (brand) { return '<option value="' + brand + '"' + (saved.brand === brand ? " selected" : "") + '>' + brand + '</option>'; }).join(""), amountOptions = amounts.map(function (amount) { return '<option value="' + amount + '"' + (Number(saved.amount) === amount ? " selected" : "") + '>$' + amount + '</option>'; }).join("");
+        goal.innerHTML = '<div><div class="kicker">Set a rewards goal</div><h2>' + (editing ? "Choose your goal" : saved.brand + " · $" + saved.amount) + '</h2>' + (editing ? '<div class="goal-controls"><select data-goal-brand>' + brandOptions + '</select><select data-goal-amount>' + amountOptions + '</select><button class="goal-box" data-save-goal>Save reward goal</button></div>' : '<p>' + pointBalance.toLocaleString() + " of " + needed.toLocaleString() + ' points</p><div class="goal-progress"><i style="width:' + percent + '%"></i></div><div class="goal-meta"><span>' + percent + '% complete</span><span>' + remaining.toLocaleString() + ' to go</span></div><button class="goal-box" data-edit-goal>Change reward goal</button>') + '</div>';
+        var edit = goal.querySelector("[data-edit-goal]"), save = goal.querySelector("[data-save-goal]");
+        if (edit) edit.onclick = function () { renderGoal(true); };
+        if (save) save.onclick = function () { var next = { brand: goal.querySelector("[data-goal-brand]").value, amount: Number(goal.querySelector("[data-goal-amount]").value) }; localStorage.setItem(goalKey, JSON.stringify(next)); renderGoal(false); };
+      }
+      fetch("/api/rewards/me", { credentials: "include" }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) { pointBalance = Number(payload && payload.rewardPoints || 0); renderGoal(false); }).catch(function () { renderGoal(false); });
       function isGift() { return /gift card/i.test(title.textContent || ""); }
       function baseCost() { return Number(String(price.dataset.baseCost || price.textContent).replace(/[^0-9]/g, "")) || 0; }
       function renderOptions() {
@@ -5309,7 +5332,7 @@
       document.addEventListener("click", function (event) {
         var card = event.target.closest(".reward");
         if (!card) return;
-        setTimeout(function () { price.dataset.baseCost = String(price.textContent); selectedAmount = 5; renderOptions(); if (isGift()) { desc.textContent = "Choose $5, $10, $25, $50, or $100. Point costs scale from this card’s existing $5 price."; terms.textContent = "Your request stays pending for staff fulfillment and is shown in Account Overview."; } }, 0);
+        setTimeout(function () { price.dataset.baseCost = String(price.textContent); selectedAmount = 5; renderOptions(); if (/RBLXTools Cash/.test(title.textContent || "") && modalArt) modalArt.innerHTML = '<img src="/assets/rewards/gift-cards/rblxtoolscash.png" alt="RBLXTools Cash">'; if (isGift()) { desc.textContent = "Choose $5, $10, $25, $50, or $100. Point costs scale from this card’s existing $5 price."; terms.textContent = "Your request stays pending for staff fulfillment and is shown in Account Overview."; } }, 0);
       });
       redeem.onclick = async function () {
         if (!isGift()) return alert("This reward is not available for redemption yet.");
