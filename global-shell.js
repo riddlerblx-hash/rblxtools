@@ -311,6 +311,11 @@
     return '<details class="rblx-shell-admin-preview"><summary>View as <strong>' + label + '</strong></summary><div class="rblx-shell-admin-preview-panel"><button type="button" data-shell-admin-preview="guest">View as guest</button><button type="button" data-shell-admin-preview="plus">View as Plus</button><button type="button" data-shell-admin-preview="pro">View as Pro</button><button type="button" data-shell-admin-preview="admin">Exit preview</button></div></details>';
   }
 
+  function refreshAdminPreviewControl() {
+    var host = document.getElementById("rblxShellAdminPreviewHost");
+    if (host) host.innerHTML = buildAdminPreviewMarkup();
+  }
+
   function applyAdminPreview() {
     var mode = shellState.isAdmin ? getAdminPreviewMode() : "admin";
     document.body.dataset.rblxAdminPreview = mode;
@@ -1462,7 +1467,6 @@
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
           '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
-          buildAdminPreviewMarkup() +
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
             '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
               '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 10.5a6 6 0 0 0-12 0c0 7-2.5 7-2.5 8.5h17C20.5 17.5 18 17.5 18 10.5ZM9.5 21h5"></path></svg>' +
@@ -1630,6 +1634,7 @@
               '<span class="rblx-shell-brand-subtitle">Roblox creator toolkit</span>' +
             "</span>" +
           "</a>" +
+          '<div id="rblxShellAdminPreviewHost">' + buildAdminPreviewMarkup() + '</div>' +
           '<div class="rblx-shell-header-actions">' +
             buildAuthMarkup() +
           "</div>" +
@@ -3767,6 +3772,7 @@
       tokenBalance.textContent = state.loggedIn && shellState.currentUser.aiTokens != null ? String(shellState.currentUser.aiTokens) : "0";
     }
     shellState.isAdmin = Boolean(state.isAdmin);
+    refreshAdminPreviewControl();
     applyAdminPreview();
     shellState.authUiSignature = nextSignature;
     applyModerationState(state.moderation || shellState.moderation);
