@@ -8264,12 +8264,13 @@ app.post("/auth/change-password", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const currentPassword = String(req.body?.currentPassword || "");
     const newPassword = String(req.body?.newPassword || "");
+    const adminPasswordOverride = isAdminUser(user);
 
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: "Current password and new password are required." });
+    if (!newPassword || (!adminPasswordOverride && !currentPassword)) {
+      return res.status(400).json({ error: adminPasswordOverride ? "A new password is required." : "Current password and new password are required." });
     }
 
-    if (!verifyPassword(currentPassword, user.password_hash)) {
+    if (!adminPasswordOverride && !verifyPassword(currentPassword, user.password_hash)) {
       return res.status(401).json({ error: "Current password is incorrect." });
     }
 
