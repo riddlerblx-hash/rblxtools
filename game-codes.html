@@ -75,28 +75,8 @@
     var loginHint = "Sign in to submit a code or vote on whether one worked.";
     var browserViewerKey = function () { var key = "rblxtools_code_post_viewer"; var value = localStorage.getItem(key); if (!/^[0-9a-f-]{36}$/i.test(value || "")) { value = crypto.randomUUID(); localStorage.setItem(key, value); } return value; };
     var openCodeMenu = null;
-    var codePostAdMarkup = function (position) { return '<section class="code-post-ad" data-code-post-ad data-ad-position="' + position + '" aria-label="Advertisement"><div class="code-post-ad-unit"></div></section>'; };
-
-    function mountCodePostAds(container) {
-      var units = Array.prototype.slice.call(container.querySelectorAll("[data-code-post-ad] .code-post-ad-unit"));
-      function loadNext(index) {
-        if (index >= units.length) return;
-        var unit = units[index];
-        window.atOptions = { key: "fb95715336abfc09031edf4e6ef208c5", format: "iframe", height: 90, width: 728, params: {} };
-        var script = document.createElement("script");
-        script.src = "https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js";
-        script.async = false;
-        script.onload = function () {
-          setTimeout(function () {
-            if (!unit.querySelector("iframe, ins, object, embed")) unit.closest("[data-code-post-ad]").remove();
-          }, 3000);
-          setTimeout(function () { loadNext(index + 1); }, 150);
-        };
-        script.onerror = function () { unit.closest("[data-code-post-ad]").remove(); loadNext(index + 1); };
-        unit.appendChild(script);
-      }
-      loadNext(0);
-    }
+    var codePostAdMarkup = function () { return ""; };
+    function mountCodePostAds() {}
 
     function createCodePostAd(position) {
       var template = document.createElement("template");
