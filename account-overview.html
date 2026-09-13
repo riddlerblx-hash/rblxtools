@@ -1187,7 +1187,10 @@
     #rbtools-account-overview .acct-bot-info-popover { position:absolute; z-index:4; top:calc(100% + 10px); right:0; width:min(300px, 78vw); padding:12px 14px; border:1px solid rgba(115, 162, 240, .38); border-radius:12px; color:#d9e7fc; background:#101b2f; box-shadow:0 16px 30px rgba(0, 0, 0, .42); font-size:11px; font-weight:700; line-height:1.5; }
     #rbtools-account-overview .acct-bot-info-popover a { display:inline-flex; margin-top:9px; color:#9dc8ff; font-weight:900; text-decoration:none; }
     #rbtools-account-overview .acct-bot-info-popover a:hover { color:#fff; text-decoration:underline; }
-    #rbtools-account-overview .acct-tab-panel { display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(300px, .72fr); gap: 14px; }
+    /* Tabs are moved into .acct-grid at runtime. Override its legacy two-column
+       dashboard grid so the selected panel owns the complete workspace width. */
+    #rbtools-account-overview .acct-grid { display: block; grid-template-columns: minmax(0, 1fr); }
+    #rbtools-account-overview .acct-tab-panel { display: grid; width: 100%; grid-template-columns: minmax(0, 1.28fr) minmax(300px, .72fr); gap: 14px; }
     #rbtools-account-overview .acct-tab-panel[hidden] { display: none; }
     #rbtools-account-overview .acct-tab-panel .acct-block { margin: 0; }
     #rbtools-account-overview .acct-settings-stack { display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); align-self: stretch; gap: 14px; min-width: 0; }
