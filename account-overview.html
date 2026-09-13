@@ -1760,7 +1760,7 @@
                 Update the password for the account currently loaded in this browser.
               </div>
               <div class="acct-form">
-                <div id="acctCurrentPasswordField">
+                <div>
                   <div class="acct-field-label">Current Password</div>
                   <input id="acctCurrentPasswordInput" class="acct-input" type="password" autocomplete="current-password" placeholder="Enter your current password">
                 </div>
@@ -1969,7 +1969,6 @@
         acctSessionLogoutButton: document.getElementById("acctSessionLogoutButton"),
         acctDeleteAccountButton: document.getElementById("acctDeleteAccountButton"),
         acctChangePasswordModal: document.getElementById("acctChangePasswordModal"),
-        acctCurrentPasswordField: document.getElementById("acctCurrentPasswordField"),
         acctCurrentPasswordInput: document.getElementById("acctCurrentPasswordInput"),
         acctNewPasswordInput: document.getElementById("acctNewPasswordInput"),
         acctConfirmPasswordInput: document.getElementById("acctConfirmPasswordInput"),
@@ -3182,18 +3181,13 @@
 
       function openChangePasswordModal() {
         resetChangePasswordForm();
-        var isAdmin = Boolean(state.user && state.user.isAdmin);
-        if (els.acctCurrentPasswordField) els.acctCurrentPasswordField.hidden = isAdmin;
-        if (isAdmin) setStatus(els.acctChangePasswordStatus, "Admin session verified. Enter and confirm a new password.", "");
         if (els.acctChangePasswordModal) {
           els.acctChangePasswordModal.classList.add("is-open");
         }
-        if (!isAdmin && els.acctCurrentPasswordInput) {
+        if (els.acctCurrentPasswordInput) {
           setTimeout(function () {
             els.acctCurrentPasswordInput.focus();
           }, 0);
-        } else if (isAdmin && els.acctNewPasswordInput) {
-          setTimeout(function () { els.acctNewPasswordInput.focus(); }, 0);
         }
       }
 
@@ -3213,9 +3207,8 @@
         var newPassword = String((els.acctNewPasswordInput && els.acctNewPasswordInput.value) || "");
         var confirmPassword = String((els.acctConfirmPasswordInput && els.acctConfirmPasswordInput.value) || "");
 
-        var isAdmin = Boolean(state.user && state.user.isAdmin);
-        if ((!isAdmin && !currentPassword) || !newPassword || !confirmPassword) {
-          setStatus(els.acctChangePasswordStatus, isAdmin ? "Enter and confirm a new password." : "Fill out all password fields first.", "error");
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          setStatus(els.acctChangePasswordStatus, "Fill out all password fields first.", "error");
           return;
         }
 
