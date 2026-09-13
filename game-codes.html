@@ -77,6 +77,33 @@
     var browserViewerKey = function () { var key = "rblxtools_code_post_viewer"; var value = localStorage.getItem(key); if (!/^[0-9a-f-]{36}$/i.test(value || "")) { value = crypto.randomUUID(); localStorage.setItem(key, value); } return value; };
     var openCodeMenu = null;
     var guideCache = Object.create(null);
+    var liveCodeSocket = null;
+    var liveRefreshTimer = 0;
+
+    function refreshCodesFromLiveUpdate() {
+      window.clearTimeout(liveRefreshTimer);
+      liveRefreshTimer = window.setTimeout(function () {
+        var match = location.pathname.match(/^\/codes\/([^/]+)$/);
+        if (match) {
+          var slug = decodeURIComponent(match[1]);
+          delete guideCache[slug];
+          renderGuide(slug).catch(function () {});
+        } else {
+          renderDirectory().catch(function () {});
+        }
+      }, 80);
+    }
+
+    function connectLiveCodeUpdates(attempt) {
+      if (liveCodeSocket || attempt > 30) return;
+      if (typeof window.io !== "function") {
+        window.setTimeout(function () { connectLiveCodeUpdates((attempt || 0) + 1); }, 500);
+        return;
+      }
+      liveCodeSocket = window.io();
+      liveCodeSocket.on("codes-updated", refreshCodesFromLiveUpdate);
+    }
+    connectLiveCodeUpdates(0);
     var codePostAdMarkup = function (position) { return '<section class="code-post-ad" data-code-post-ad data-ad-position="' + position + '" aria-label="Advertisement"><div class="code-post-ad-unit"></div></section>'; };
 
     function mountCodePostAds(container) {

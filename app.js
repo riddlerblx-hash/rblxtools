@@ -1767,6 +1767,12 @@ async function rejectPendingPointTransaction(sourceType, sourceId, adminUserId, 
   });
 }
 
+function publishCodesUpdate() {
+  // Code-post visitors receive this event and re-fetch their open guide without
+  // a page reload. No account or moderation data is included in the broadcast.
+  io.emit("codes-updated", { updatedAt: new Date().toISOString() });
+}
+
 function isAuthStorageConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_KEY && AUTH_JWT_SECRET);
 }
@@ -11531,7 +11537,9 @@ app.post("/admin/codes/games", async (req, res) => {
     if (payload.instructionImageDataUrls) payload.instructionImageUrls = await saveCodeGuideInstructionImages(payload.instructionImageDataUrls);
     delete payload.coverImageDataUrl;
     delete payload.instructionImageDataUrls;
-    return res.status(201).json({ ok: true, game: await codesPlatform.upsertGame(payload) });
+    const game = await codesPlatform.upsertGame(payload);
+    publishCodesUpdate();
+    return res.status(201).json({ ok: true, game });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create this code guide." });
   }
@@ -11561,6 +11569,7 @@ app.patch("/admin/codes/:slug", async (req, res) => {
     });
     const replacedImages = (hasNewCover ? [guide.game.icon] : []).concat(hasNewTutorialImages ? guide.game.instructionImageUrls || [] : []);
     await Promise.all(replacedImages.filter(Boolean).map((url) => removeCodeGuideCover(url).catch((error) => console.error("Could not remove replaced code post image:", error.message))));
+    publishCodesUpdate();
     return res.json({ ok: true, game });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this code post." });
@@ -11579,6 +11588,7 @@ app.post("/admin/codes/:slug", async (req, res) => {
       status: "working",
       verificationStatus: "verified",
     });
+    publishCodesUpdate();
     return res.status(201).json({ ok: true, code });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not publish this code." });
@@ -11593,6 +11603,7 @@ app.patch("/admin/codes/:slug/codes/:codeId", async (req, res) => {
     if (req.body?.action !== "expire") return res.status(400).json({ error: "Unsupported code action." });
     const code = await codesPlatform.updateCodeStatus(guide.game.id, req.params.codeId, "expired");
     if (!code) return res.status(404).json({ error: "Code not found." });
+    publishCodesUpdate();
     return res.json({ ok: true, code });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this code." });
@@ -11606,6 +11617,7 @@ app.delete("/admin/codes/:slug/codes/:codeId", async (req, res) => {
     if (!guide) return res.status(404).json({ error: "Code post not found." });
     const code = await codesPlatform.deleteCode(guide.game.id, req.params.codeId);
     if (!code) return res.status(404).json({ error: "Code not found." });
+    publishCodesUpdate();
     return res.json({ ok: true, deletedCodeId: code.id });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete this code." });
@@ -11618,6 +11630,7 @@ app.delete("/admin/codes/:slug", async (req, res) => {
     const game = await codesPlatform.deleteGame(req.params.slug);
     if (!game) return res.status(404).json({ error: "Code post not found." });
     await Promise.all([game.iconUrl, ...(game.instructionImageUrls || [])].map((url) => removeCodeGuideCover(url).catch((error) => console.error("Could not remove code post image:", error.message))));
+    publishCodesUpdate();
     return res.json({ ok: true, deletedSlug: game.slug });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete this code post." });
@@ -11660,6 +11673,7 @@ app.patch("/admin/codes/submissions/:id", async (req, res) => {
       if (result.status === "approved") await awardRewardPoints({ userId: submission.submitter_user_id, sourceType: "working_code", sourceId: submission.id, title: "Working code approved", points: REWARD_POINT_AWARDS.working_code, adminUserId: admin.id, note: req.body?.note });
       else await rejectPendingPointTransaction("working_code", submission.id, admin.id, req.body?.note);
     }
+    if (result.status === "approved") publishCodesUpdate();
     return res.json({ ok: true, ...result });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not review this code submission." });
@@ -11672,6 +11686,7 @@ app.patch("/admin/codes/expiry-reports/:id", async (req, res) => {
     const result = await codesPlatform.reviewExpiryReport(req.params.id, req.body?.decision, admin.id, req.body?.note);
     if (result.status === "approved") await awardRewardPoints({ userId: result.report.reporter_user_id, sourceType: "expired_code_report", sourceId: result.report.id, title: "Inactive code report approved", points: REWARD_POINT_AWARDS.expired_code_report, adminUserId: admin.id, note: req.body?.note });
     else await rejectPendingPointTransaction("expired_code_report", result.report.id, admin.id, req.body?.note);
+    if (result.status === "approved") publishCodesUpdate();
     return res.json({ ok: true, ...result });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not review this expiry report." });

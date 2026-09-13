@@ -1,6 +1,13 @@
 -- Run this in the Supabase SQL editor before deploying the reward-point workflow.
 -- Point balances only change through the atomic function below; every attempted award
 -- remains visible in the member's history.
+alter table member_accounts
+  add column if not exists reward_points integer not null default 0;
+
+update member_accounts
+  set reward_points = 0
+  where reward_points is null;
+
 create table if not exists reward_point_transactions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null,
@@ -47,3 +54,37 @@ begin
   return entry;
 end;
 $$;
+
+-- Repair approvals made before the reward function was available. This credits
+-- only new/pending ledger rows, so it is safe to run more than once.
+with approved_sources as (
+  select id as source_id, submitter_user_id as user_id, 'working_code'::text as source_type,
+    'Working code approved'::text as title, 20::integer as points, reviewed_by_user_id, reviewed_at, review_note as note
+  from game_code_submissions where status = 'approved'
+  union all
+  select id as source_id, reporter_user_id as user_id, 'expired_code_report'::text as source_type,
+    'Inactive code report approved'::text as title, 3::integer as points, reviewed_by_user_id, reviewed_at, review_note as note
+  from game_code_expiry_reports where status = 'approved'
+), inserted as (
+  insert into reward_point_transactions (user_id, source_type, source_id, title, points_delta, status, reviewed_by_user_id, reviewed_at, note)
+  select user_id, source_type, source_id, title, points, 'approved', reviewed_by_user_id, coalesce(reviewed_at, now()), coalesce(note, '')
+  from approved_sources
+  on conflict (source_type, source_id) where source_id is not null do nothing
+  returning user_id, points_delta
+), promoted as (
+  update reward_point_transactions ledger
+  set status = 'approved', reviewed_at = coalesce(source.reviewed_at, now()), reviewed_by_user_id = source.reviewed_by_user_id,
+    note = coalesce(source.note, ''), updated_at = now()
+  from approved_sources source
+  where ledger.source_type = source.source_type and ledger.source_id = source.source_id and ledger.status = 'pending'
+  returning ledger.user_id, ledger.points_delta
+), credits as (
+  select user_id, points_delta from inserted
+  union all
+  select user_id, points_delta from promoted
+), totals as (
+  select user_id, sum(points_delta)::integer as points from credits group by user_id
+)
+update member_accounts account
+set reward_points = greatest(0, coalesce(account.reward_points, 0) + totals.points), updated_at = now()
+from totals where account.id = totals.user_id;
