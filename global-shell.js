@@ -162,6 +162,12 @@
       ]
     },
     {
+      title: "RBLX Rewards",
+      items: [
+        { href: "./rewards", label: "Redeem", icon: "spark" }
+      ]
+    },
+    {
       title: "Store",
       items: [
         { href: "./ai-tokens", label: "AI Tokens", icon: "spark" },
