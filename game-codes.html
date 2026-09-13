@@ -75,6 +75,7 @@
     var loginHint = "Sign in to submit a code or vote on whether one worked.";
     var browserViewerKey = function () { var key = "rblxtools_code_post_viewer"; var value = localStorage.getItem(key); if (!/^[0-9a-f-]{36}$/i.test(value || "")) { value = crypto.randomUUID(); localStorage.setItem(key, value); } return value; };
     var openCodeMenu = null;
+    var guideCache = Object.create(null);
     var codePostAdMarkup = function (position) { return '<section class="code-post-ad" data-code-post-ad data-ad-position="' + position + '" aria-label="Advertisement"><div class="code-post-ad-unit"></div></section>'; };
 
     function mountCodePostAds(container) {
@@ -135,6 +136,23 @@
       }
       input.oninput = draw;
       draw();
+      var rewardsLink = root.querySelector('.game-request a[href="/rewards.html"]');
+      if (rewardsLink) rewardsLink.remove();
+      grid.addEventListener("pointerover", function (event) {
+        var link = event.target.closest("a.game");
+        if (!link) return;
+        var slug = decodeURIComponent((link.getAttribute("href") || "").split("/").pop() || "");
+        if (slug && !guideCache[slug]) request(api + "/" + encodeURIComponent(slug)).then(function (guide) { guideCache[slug] = guide; }).catch(function () {});
+      });
+      grid.addEventListener("click", function (event) {
+        var link = event.target.closest("a.game");
+        if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        var slug = decodeURIComponent((link.getAttribute("href") || "").split("/").pop() || "");
+        if (!slug) return;
+        history.pushState({}, "", "/codes/" + encodeURIComponent(slug));
+        renderGuide(slug).catch(function () { renderDirectory(); });
+      });
       root.querySelector("[data-request-game]").onclick = function () {
         if (!session.authenticated) {
           var message = "Log in or sign up to request a game.";
@@ -231,7 +249,7 @@
     function openCodeModal(game, staff) {
       var modal = document.createElement("div");
       modal.className = "post-modal";
-      modal.innerHTML = '<form class="post-card"><h2>' + (staff ? "Post a code" : "Submit a code") + '</h2><p class="note">' + (staff ? "Staff code posts are marked working and verified. Added-on is saved automatically." : "Community submissions are reviewed before they appear on this code post.") + '</p><input name="code" required maxlength="160" placeholder="Code"><input name="reward" maxlength="300" placeholder="Reward"><div class="post-actions"><button class="outline" type="button" data-close>Cancel</button><button class="button" type="submit">' + (staff ? "Post code" : "Send for review") + '</button></div></form>';
+      modal.innerHTML = '<form class="post-card"><h2>' + (staff ? "Post a code" : "Submit a code") + '</h2><p class="note">' + (staff ? "Staff code posts are marked working and verified. Added-on is saved automatically." : "Community submissions are reviewed before they appear on this code post. If accepted, this submission earns +20 RBLX Points.") + '</p><input name="code" required maxlength="160" placeholder="Code"><input name="reward" maxlength="300" placeholder="Reward"><div class="post-actions"><button class="outline" type="button" data-close>Cancel</button><button class="button" type="submit">' + (staff ? "Post code" : "Send for review · +20 pts if accepted") + '</button></div></form>';
       document.body.appendChild(modal);
       modal.querySelector("[data-close]").onclick = function () { modal.remove(); };
       modal.querySelector("form").onsubmit = async function (event) {
@@ -274,7 +292,8 @@
     }
 
     async function renderGuide(slug) {
-      var guide = await request(api + "/" + encodeURIComponent(slug));
+      var guide = guideCache[slug] || await request(api + "/" + encodeURIComponent(slug));
+      guideCache[slug] = guide;
       var game = guide.game;
       var active = guide.workingCodes || [], expired = guide.expiredCodes || [];
       var rating = guide.communityRating || { average: null, count: 0 };
@@ -377,11 +396,12 @@
           reportButton.disabled = alreadyReported;
           reportButton.onclick = async function () {
             if (!session.authenticated) return alert(loginHint);
+            var originalLabel = reportButton.textContent;
+            reportButton.textContent = "Reported · pending";
+            reportButton.disabled = true;
             try {
               await request(api + "/" + encodeURIComponent(game.slug) + "/codes/" + encodeURIComponent(codeId) + "/expiry-reports", { method: "POST" });
-              reportButton.textContent = "Reported";
-              reportButton.disabled = true;
-            } catch (error) { alert(error.message); }
+            } catch (error) { reportButton.textContent = originalLabel; reportButton.disabled = false; alert(error.message); }
           };
           voteActions.appendChild(reportButton);
         }
@@ -468,6 +488,7 @@
     }
 
     async function start() {
+      root.innerHTML = '<section class="codes-loading"><div><strong>Loading code posts…</strong><p>Fetching the latest working and expired codes.</p></div></section>';
       session = await request("/api/codes-session").catch(function () { return session; });
       var previewMode = "admin";
       try { previewMode = String(sessionStorage.getItem("rblxtools_admin_view_as") || "admin").toLowerCase(); } catch (_error) {}

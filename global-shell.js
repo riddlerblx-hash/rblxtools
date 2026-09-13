@@ -5288,6 +5288,7 @@
     var style = document.createElement("style");
     style.textContent = ".modal-options{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0 23px}.modal-options button{min-height:45px;border:1px solid #465777;border-radius:9px;color:#e9f1ff;background:#202a3d;font-weight:800;cursor:pointer}.modal-options button:hover,.modal-options button.selected{border-color:#d9e5ff;background:#dce7ff;color:#132039}.modal-copy h2{font-size:36px}.modal-art img{object-fit:contain!important}.reward .art img[src*='rblxtoolscash']{object-fit:contain!important;background:#080b10}.modal button.action:disabled{opacity:.48;cursor:not-allowed}.goal-controls{display:grid;gap:8px;margin-top:14px}.goal-controls select{width:100%;border:1px solid #536683;border-radius:9px;padding:10px;color:#f7f9ff;background:#111a29;font:700 12px Arial}.goal-progress{height:9px;overflow:hidden;border-radius:99px;background:#0d1523}.goal-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#8ec5ff,#a68bff)}.goal-meta{display:flex;justify-content:space-between;gap:8px;margin-top:8px;color:#cbd8ef;font-size:12px;font-weight:800}.goal-box{border:0;cursor:pointer;text-align:left;color:#fff;font:inherit}.reward .pill.manual{background:#7fe6b526;color:#a4f5c7}@media(max-width:420px){.modal-options{grid-template-columns:repeat(2,1fr)}}";
     document.head.appendChild(style);
+    style.textContent += ".points-chart{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 28px;padding:19px;border:1px solid #394a63;border-radius:18px;background:linear-gradient(145deg,#202b3e,#172131)}.points-chart h2{grid-column:1/-1;margin:0;font-size:21px}.points-chart p{grid-column:1/-1;margin:0;color:#aebbd0;font-size:13px}.points-chart-item{padding:14px;border:1px solid #465777;border-radius:12px;background:#111a29}.points-chart-item b{display:block;color:#ffdb70;font-size:22px}.points-chart-item span{display:block;margin-top:5px;color:#e8f0ff;font-weight:800}.points-chart-item small{display:block;margin-top:5px;color:#aebbd0;line-height:1.4}@media(max-width:600px){.points-chart{grid-template-columns:1fr}}";
     setTimeout(function () {
       var modal = document.getElementById("modal"), modalArt = document.getElementById("modalArt"), price = document.getElementById("modalPrice"), title = document.getElementById("title"), redeem = document.getElementById("redeem"), desc = document.getElementById("desc"), terms = document.getElementById("terms");
       if (!modal || !price || !title || !redeem) return;
@@ -5308,6 +5309,13 @@
         }
       });
       var goal = document.querySelector(".goal"), pointBalance = 0, goalKey = "rblxtools-reward-goal", brands = { "Roblox Gift Card": 5500, "Amazon Gift Card": 6000, "Xbox Gift Card": 6000, "Microsoft Store Gift Card": 6000, "PlayStation Gift Card": 6000, "Steam Gift Card": 6000, "Apple Gift Card": 6000, "Google Play Gift Card": 6000 };
+      var hero = document.querySelector(".hero");
+      if (hero && !document.querySelector(".points-chart")) {
+        var chart = document.createElement("section");
+        chart.className = "points-chart";
+        chart.innerHTML = '<h2>How to earn RBLX Points</h2><p>Your submission stays pending until an admin checks it. Points are added only after approval.</p><div class="points-chart-item"><b>+20 points</b><span>Submit a working code</span><small>Send a current code for the correct game post. If staff approve it, it is added to the working-code list.</small></div><div class="points-chart-item"><b>+3 points</b><span>Report an inactive code</span><small>Use “Report expired” on a code that no longer works. Staff confirm it before moving it to Expired.</small></div>';
+        hero.insertAdjacentElement("afterend", chart);
+      }
       function getGoal() { try { return JSON.parse(localStorage.getItem(goalKey) || "null") || { brand: "Roblox Gift Card", amount: 5 }; } catch (_) { return { brand: "Roblox Gift Card", amount: 5 }; } }
       function renderGoal(editing) {
         if (!goal) return; var saved = getGoal(), needed = Math.round((brands[saved.brand] || 5500) * Number(saved.amount || 5) / 5), percent = Math.min(100, needed ? Math.round(pointBalance / needed * 100) : 0), remaining = Math.max(0, needed - pointBalance);
