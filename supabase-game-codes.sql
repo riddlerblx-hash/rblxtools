@@ -19,6 +19,8 @@ create index if not exists game_codes_game_status_idx on game_codes(game_id, sta
 -- Optional staff-authored redemption tutorial shown beneath a code post.
 alter table games add column if not exists redemption_instructions text not null default '';
 alter table games add column if not exists instruction_image_urls jsonb not null default '[]'::jsonb;
+alter table games add column if not exists author_user_id uuid;
+alter table games add column if not exists author_name text not null default '';
 
 -- Community reports stay private until staff approve them into game_codes.
 create table if not exists game_code_submissions (

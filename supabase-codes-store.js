@@ -30,6 +30,7 @@ function toGame(row) {
     description: row.description || "",
     redemptionInstructions: row.redemption_instructions || "",
     instructionImageUrls: Array.isArray(row.instruction_image_urls) ? row.instruction_image_urls : [],
+    authorName: row.author_name || "RBLXTools Staff",
     pinnedGameCodeCommentId: row.pinned_game_code_comment_id || null,
     codesEnabled: row.codes_enabled !== false,
     createdAt: row.created_at,
@@ -68,6 +69,7 @@ function publicGame(game, codeRows, viewRows = []) {
     description: game.description,
     redemptionInstructions: game.redemptionInstructions,
     instructionImageUrls: game.instructionImageUrls,
+    authorName: game.authorName,
     viewCount: viewRows.filter((view) => view.gameId === game.id).length,
     workingCodeCount: codeRows.filter((code) => code.gameId === game.id && code.status === "working").length,
     lastUpdated: game.updatedAt,
@@ -183,22 +185,27 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
       const matches = await request(`/rest/v1/games?roblox_universe_id=eq.${encodeURIComponent(universeId)}&select=slug&limit=1`);
       if (Array.isArray(matches) && matches[0]?.slug) slug = matches[0].slug;
     }
+    const gamePayload = {
+      name,
+      slug,
+      roblox_universe_id: universeId,
+      roblox_place_id: clean(input.robloxPlaceId, 60) || null,
+      roblox_url: clean(input.robloxUrl, 500) || null,
+      icon_url: clean(input.iconUrl, 500) || null,
+      description: clean(input.description, 600),
+      redemption_instructions: clean(input.redemptionInstructions, 4000),
+      instruction_image_urls: Array.isArray(input.instructionImageUrls) ? input.instructionImageUrls.map((url) => clean(url, 500)).filter(Boolean).slice(0, 6) : [],
+      codes_enabled: input.codesEnabled !== false,
+      updated_at: new Date().toISOString(),
+    };
+    if (clean(input.authorName, 80)) {
+      gamePayload.author_user_id = clean(input.authorUserId, 80) || null;
+      gamePayload.author_name = clean(input.authorName, 80);
+    }
     const rows = await request("/rest/v1/games?on_conflict=slug", {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates,return=representation" },
-      body: JSON.stringify({
-        name,
-        slug,
-        roblox_universe_id: universeId,
-        roblox_place_id: clean(input.robloxPlaceId, 60) || null,
-        roblox_url: clean(input.robloxUrl, 500) || null,
-        icon_url: clean(input.iconUrl, 500) || null,
-        description: clean(input.description, 600),
-        redemption_instructions: clean(input.redemptionInstructions, 4000),
-        instruction_image_urls: Array.isArray(input.instructionImageUrls) ? input.instructionImageUrls.map((url) => clean(url, 500)).filter(Boolean).slice(0, 6) : [],
-        codes_enabled: input.codesEnabled !== false,
-        updated_at: new Date().toISOString(),
-      }),
+      body: JSON.stringify(gamePayload),
     });
     return toGame(Array.isArray(rows) ? rows[0] : {});
   }

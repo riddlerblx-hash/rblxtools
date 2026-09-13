@@ -11448,8 +11448,10 @@ app.post("/api/codes/:slug/rating", async (req, res) => {
 
 app.post("/admin/codes/games", async (req, res) => {
   try {
-    await requireAdminUser(req);
+    const adminUser = await requireAdminUser(req);
     const payload = { ...(req.body || {}) };
+    payload.authorUserId = adminUser.id;
+    payload.authorName = cleanText(adminUser.display_name || adminUser.username || adminUser.email?.split("@")[0] || "RBLXTools Staff", 80);
     if (!String(payload.redemptionInstructions || "").trim()) return res.status(400).json({ error: "Redemption instructions are required." });
     if (!Array.isArray(payload.instructionImageDataUrls) || !payload.instructionImageDataUrls.length) return res.status(400).json({ error: "Add at least one tutorial image." });
     if (!payload.coverImageDataUrl) return res.status(400).json({ error: "A cover image is required." });
