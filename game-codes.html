@@ -24,6 +24,7 @@
     /* Final code-post interaction refinements. */
     .tutorial h3{padding:19px 20px 10px;text-align:center}.login-required-button{border:0;padding:0;color:#8bc7ff;background:transparent;font:800 10px Arial;white-space:nowrap;cursor:pointer}.login-required-button:hover{text-decoration:underline}.game-request button{border:0;padding:0;color:#8e73ff;background:transparent;font:800 13px Arial;cursor:pointer}.game-request button:hover{text-decoration:underline}.comments .comment.reply-depth-2>.comment-main>.comment-replies{margin-left:0;padding-left:0;border-left:0}.comments .comment.reply-depth-2>.comment-main>.comment-replies>.comment-thread-item>.comment.is-reply:before{display:none}.comments .comment-replies{border-left:0!important;padding-left:0!important}.comments .comment-replies>.comment-thread-item>.comment.is-reply:before{display:none!important}
   </style>
+  <style>main.codes{visibility:hidden}</style>
 </head>
 <body>
   <main class="codes"><section class="hero"><h1>Roblox <b>game codes</b><br>worth checking.</h1><div class="search"><span class="search-icon" aria-hidden="true"></span><input id="search" type="search" placeholder="Search for Roblox codes"></div><p class="game-request">Request a game? <a href="/community">Submit it here</a></p></section><section><div class="section-head"><h2>Latest code posts</h2><p>Open a code post for redemption steps and updates.</p></div><div class="filters" id="filters"></div><div class="grid" id="grid"></div><div class="empty" id="empty">No code post matches that search yet. Try another game name.</div></section><section class="guide" id="guide"></section><section class="saved"><h2>My saved codes</h2><p>Private to this browser. RBLXTools never uploads this list.</p><div class="saved-form"><input id="savedGame" placeholder="Game name"><input id="savedCode" placeholder="Code"><button class="button" id="save">Save code</button></div><div class="saved-list" id="savedList"></div></section><p class="note">Codes, rewards, and expiry dates are controlled by each game’s developer. RBLXTools is not affiliated with Roblox or individual Roblox experiences.</p></main>
@@ -488,6 +489,7 @@
     }
 
     async function start() {
+      root.style.visibility = "visible";
       root.innerHTML = '<section class="codes-loading"><div><strong>Loading code posts…</strong><p>Fetching the latest working and expired codes.</p></div></section>';
       session = await request("/api/codes-session").catch(function () { return session; });
       var previewMode = "admin";
