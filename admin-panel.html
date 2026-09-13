@@ -2015,6 +2015,14 @@
             var title = document.createElement("strong"); title.textContent = String(report.code || "Unknown code") + " · " + String(report.gameName || "Unknown post");
             var meta = document.createElement("div"); meta.textContent = "Reported by " + String(report.reporterName || "Member") + " on " + new Date(report.createdAt).toLocaleString();
             row.append(title, meta);
+            if ((report.status || "pending") === "pending") {
+              var approve = document.createElement("button"), reject = document.createElement("button");
+              approve.className = "admin-btn green"; approve.type = "button"; approve.textContent = "Approve + Award 3 Points";
+              reject.className = "admin-btn red"; reject.type = "button"; reject.textContent = "Reject";
+              [approve, reject].forEach(function (button) { button.style.marginTop = "8px"; button.style.marginRight = "7px"; });
+              function review(decision) { return fetch("/admin/codes/expiry-reports/" + encodeURIComponent(report.id), { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: decision }) }).then(function (result) { return result.json().then(function (body) { if (!result.ok) throw new Error(body.error || "Could not review this report."); }); }).then(load).catch(function (error) { alert(error.message); }); }
+              approve.onclick = function () { review("approved"); }; reject.onclick = function () { review("rejected"); }; row.append(approve, reject);
+            }
             if (report.gameSlug) { var link = document.createElement("a"); link.href = "/codes/" + encodeURIComponent(report.gameSlug); link.target = "_blank"; link.rel = "noopener"; link.textContent = "Open code post"; link.style.display = "inline-block"; link.style.marginTop = "8px"; row.appendChild(link); }
             log.appendChild(row);
           });

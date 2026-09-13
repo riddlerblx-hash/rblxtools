@@ -292,12 +292,13 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
   async function reportCodeExpired(gameId, codeId, user) {
     const codeRows = await request(`/rest/v1/game_codes?id=eq.${encodeURIComponent(codeId)}&game_id=eq.${encodeURIComponent(gameId)}&select=id&limit=1`);
     if (!Array.isArray(codeRows) || !codeRows[0]) throw new Error("Code not found for this game.");
-    await request("/rest/v1/game_code_expiry_reports?on_conflict=game_code_id,reporter_user_id", {
+    const rows = await request("/rest/v1/game_code_expiry_reports?on_conflict=game_code_id,reporter_user_id", {
       method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      headers: { Prefer: "resolution=merge-duplicates,return=representation" },
       body: JSON.stringify({ game_code_id: codeId, reporter_user_id: user.id, reporter_name: clean(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80) }),
     });
-    return { reported: true };
+    const report = Array.isArray(rows) ? rows[0] : null;
+    return { reported: true, id: report?.id || null };
   }
 
   async function submitCodeSubmission(gameId, input, user) {
@@ -378,11 +379,15 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
   }
 
   async function listExpiryReports() {
-    const rows = await request("/rest/v1/game_code_expiry_reports?select=id,created_at,reporter_name,reporter_user_id,game_codes(code,games(name,slug))&order=created_at.desc&limit=200");
+    const rows = await request("/rest/v1/game_code_expiry_reports?select=id,created_at,reporter_name,reporter_user_id,status,review_note,game_code_id,game_codes(code,games(name,slug))&order=created_at.desc&limit=200");
     return (Array.isArray(rows) ? rows : []).map((report) => ({
       id: report.id,
       createdAt: report.created_at,
       reporterName: report.reporter_name || report.reporter_user_id,
+      reporterUserId: report.reporter_user_id,
+      status: report.status || "pending",
+      reviewNote: report.review_note || "",
+      gameCodeId: report.game_code_id,
       code: report.game_codes?.code || "Unknown code",
       gameName: report.game_codes?.games?.name || "Unknown post",
       gameSlug: report.game_codes?.games?.slug || "",
@@ -489,7 +494,26 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({ status, reviewed_by_user_id: adminUserId, reviewed_at: new Date().toISOString(), review_note: clean(note, 500), updated_at: new Date().toISOString() }),
     });
-    return { status, code };
+    return { status, code, submission };
+  }
+
+  async function reviewExpiryReport(id, decision, adminUserId, note = "") {
+    const status = decision === "approved" ? "approved" : "rejected";
+    const rows = await request(`/rest/v1/game_code_expiry_reports?id=eq.${encodeURIComponent(id)}&select=*&limit=1`);
+    const report = Array.isArray(rows) ? rows[0] : null;
+    if (!report) throw new Error("Expiry report not found.");
+    if ((report.status || "pending") !== "pending") throw new Error("This expiry report has already been reviewed.");
+    if (status === "approved") {
+      const codes = await request(`/rest/v1/game_codes?id=eq.${encodeURIComponent(report.game_code_id)}&select=game_id&limit=1`);
+      if (!Array.isArray(codes) || !codes[0]) throw new Error("The reported code no longer exists.");
+      await updateCodeStatus(codes[0].game_id, report.game_code_id, "expired");
+    }
+    await request(`/rest/v1/game_code_expiry_reports?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ status, reviewed_by_user_id: adminUserId, reviewed_at: new Date().toISOString(), review_note: clean(note, 500) }),
+    });
+    return { status, report };
   }
 
   async function rateGame(gameId, userId, score) {
@@ -562,6 +586,10 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     reviewSubmission(id, decision, adminUserId, note) {
       if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
       return reviewSubmission(id, decision, adminUserId, note);
+    },
+    reviewExpiryReport(id, decision, adminUserId, note) {
+      if (!isConfigured()) throw new Error("Code expiry reports are not configured yet.");
+      return reviewExpiryReport(id, decision, adminUserId, note);
     },
     rateGame(gameId, userId, score) {
       if (!isConfigured()) throw new Error("Code ratings are not configured yet.");

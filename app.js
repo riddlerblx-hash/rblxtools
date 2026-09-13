@@ -126,6 +126,9 @@ const ADMIN_USER_EMAILS = new Set((process.env.ADMIN_USER_EMAILS || "")
   .filter(Boolean));
 const DEFAULT_COMPLIMENTARY_PLUS_DAYS = 14;
 const MAX_COMPLIMENTARY_PLUS_DAYS = 3650;
+const REWARD_POINT_AWARDS = Object.freeze({ working_code: 20, expired_code_report: 3 });
+const GIFT_CARD_VALUES = Object.freeze([5, 10, 25, 50, 100]);
+const GIFT_CARD_BASE_POINTS = Object.freeze({ "Roblox Gift Card": 5500, "Amazon Gift Card": 6000, "Xbox Gift Card": 6000, "Microsoft Store Gift Card": 6000, "PlayStation Gift Card": 6000, "Steam Gift Card": 6000, "Apple Gift Card": 6000, "Google Play Gift Card": 6000 });
 const OWNER_STRIPE_PIN = "0212";
 const DISCORD_SUPPORT_WEBHOOK_URL = String(process.env.DISCORD_SUPPORT_WEBHOOK_URL || process.env.SUPPORT_DISCORD_WEBHOOK_URL || "").trim();
 const SUPPORT_BOT_ENDPOINT = String(process.env.SUPPORT_BOT_ENDPOINT || "").trim();
@@ -1718,6 +1721,36 @@ async function supabaseRequest(path, options = {}) {
   } catch (error) {
     throw new Error(`Supabase returned invalid JSON: ${error.message}`);
   }
+}
+
+async function createPendingPointTransaction({ userId, sourceType, sourceId, title, points }) {
+  return supabaseRequest("/rest/v1/reward_point_transactions", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify({
+      user_id: userId, source_type: sourceType, source_id: sourceId, title,
+      points_delta: Math.max(0, Number(points) || 0), status: "pending",
+    }),
+  });
+}
+
+async function awardRewardPoints({ userId, sourceType, sourceId, title, points, adminUserId, note = "" }) {
+  const rows = await supabaseRequest("/rest/v1/rpc/award_reward_points", {
+    method: "POST",
+    body: JSON.stringify({
+      p_user_id: userId, p_source_type: sourceType, p_source_id: sourceId,
+      p_title: title, p_points: Math.max(0, Number(points) || 0),
+      p_admin_user_id: adminUserId, p_note: cleanText(note, 500),
+    }),
+  });
+  return Array.isArray(rows) ? rows[0] : rows;
+}
+
+async function rejectPendingPointTransaction(sourceType, sourceId, adminUserId, note = "") {
+  return supabaseRequest(`/rest/v1/reward_point_transactions?source_type=eq.${encodeURIComponent(sourceType)}&source_id=eq.${encodeURIComponent(sourceId)}&status=eq.pending`, {
+    method: "PATCH", headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ status: "rejected", reviewed_by_user_id: adminUserId, reviewed_at: new Date().toISOString(), note: cleanText(note, 500), updated_at: new Date().toISOString() }),
+  });
 }
 
 function isAuthStorageConfigured() {
@@ -11367,6 +11400,7 @@ app.post("/api/codes/:slug/submissions", async (req, res) => {
     const guide = await codesPlatform.getGame(req.params.slug);
     if (!guide) return res.status(404).json({ error: "Code guide not found." });
     const submission = await codesPlatform.submitCodeSubmission(guide.game.id, req.body || {}, user);
+    await createPendingPointTransaction({ userId: user.id, sourceType: "working_code", sourceId: submission.id, title: "Working code submitted", points: REWARD_POINT_AWARDS.working_code });
     return res.status(201).json({ ok: true, submission });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit this code." });
@@ -11400,7 +11434,11 @@ app.post("/api/codes/:slug/codes/:codeId/expiry-reports", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const guide = await codesPlatform.getGame(req.params.slug);
     if (!guide) return res.status(404).json({ error: "Code post not found." });
-    return res.status(201).json({ ok: true, report: await codesPlatform.reportCodeExpired(guide.game.id, req.params.codeId, user) });
+    const report = await codesPlatform.reportCodeExpired(guide.game.id, req.params.codeId, user);
+    // The report store returns only a confirmation on older installs. A unique source id
+    // is required for a history row, so refresh the member ledger only when available.
+    if (report?.id) await createPendingPointTransaction({ userId: user.id, sourceType: "expired_code_report", sourceId: report.id, title: "Inactive code reported", points: REWARD_POINT_AWARDS.expired_code_report });
+    return res.status(201).json({ ok: true, report });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not report this code." });
   }
@@ -11594,9 +11632,52 @@ app.patch("/admin/codes/submissions/:id", async (req, res) => {
   try {
     const admin = await requireAdminUser(req);
     const result = await codesPlatform.reviewSubmission(req.params.id, req.body?.decision, admin.id, req.body?.note);
+    const submission = result.submission;
+    if (submission) {
+      if (result.status === "approved") await awardRewardPoints({ userId: submission.submitter_user_id, sourceType: "working_code", sourceId: submission.id, title: "Working code approved", points: REWARD_POINT_AWARDS.working_code, adminUserId: admin.id, note: req.body?.note });
+      else await rejectPendingPointTransaction("working_code", submission.id, admin.id, req.body?.note);
+    }
     return res.json({ ok: true, ...result });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not review this code submission." });
+  }
+});
+
+app.patch("/admin/codes/expiry-reports/:id", async (req, res) => {
+  try {
+    const admin = await requireAdminUser(req);
+    const result = await codesPlatform.reviewExpiryReport(req.params.id, req.body?.decision, admin.id, req.body?.note);
+    if (result.status === "approved") await awardRewardPoints({ userId: result.report.reporter_user_id, sourceType: "expired_code_report", sourceId: result.report.id, title: "Inactive code report approved", points: REWARD_POINT_AWARDS.expired_code_report, adminUserId: admin.id, note: req.body?.note });
+    else await rejectPendingPointTransaction("expired_code_report", result.report.id, admin.id, req.body?.note);
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not review this expiry report." });
+  }
+});
+
+app.get("/api/rewards/me", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const rows = await supabaseRequest(`/rest/v1/reward_point_transactions?user_id=eq.${encodeURIComponent(user.id)}&select=id,title,points_delta,status,note,created_at,reviewed_at,source_type&order=created_at.desc&limit=100`);
+    return res.json({ ok: true, rewardPoints: Math.max(0, Number(user.reward_points) || 0), transactions: Array.isArray(rows) ? rows : [] });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load reward history." });
+  }
+});
+
+app.post("/api/rewards/redeem", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const amount = Number(req.body?.amount);
+    const brand = cleanText(req.body?.brand, 40);
+    const basePoints = Number(GIFT_CARD_BASE_POINTS[brand] || 0);
+    if (!GIFT_CARD_VALUES.includes(amount) || !brand || !basePoints) return res.status(400).json({ error: "Choose an available gift-card amount." });
+    const pointsCost = Math.round(basePoints * amount / 5);
+    if (Number(user.reward_points || 0) < pointsCost) return res.status(409).json({ error: "You do not have enough approved points for that gift card." });
+    const rows = await supabaseRequest("/rest/v1/reward_point_transactions", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ user_id: user.id, source_type: "gift_card_request", title: `${brand} $${amount} gift card request`, points_delta: -pointsCost, status: "pending", note: "Awaiting staff fulfillment" }) });
+    return res.status(201).json({ ok: true, transaction: Array.isArray(rows) ? rows[0] : null });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit your gift-card request." });
   }
 });
 

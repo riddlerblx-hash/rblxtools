@@ -5283,6 +5283,44 @@
   }
 
 
+  function enhanceRewardsGiftCardPicker() {
+    if (!/^\/rewards\/?$/.test(window.location.pathname)) return;
+    var style = document.createElement("style");
+    style.textContent = ".modal-options{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0 23px}.modal-options button{min-height:45px;border:1px solid #465777;border-radius:9px;color:#e9f1ff;background:#202a3d;font-weight:800;cursor:pointer}.modal-options button:hover,.modal-options button.selected{border-color:#d9e5ff;background:#dce7ff;color:#132039}.modal-copy h2{font-size:36px}.modal button.action:disabled{opacity:.48;cursor:not-allowed}@media(max-width:420px){.modal-options{grid-template-columns:repeat(2,1fr)}}";
+    document.head.appendChild(style);
+    setTimeout(function () {
+      var modal = document.getElementById("modal"), price = document.getElementById("modalPrice"), title = document.getElementById("title"), redeem = document.getElementById("redeem"), desc = document.getElementById("desc"), terms = document.getElementById("terms");
+      if (!modal || !price || !title || !redeem) return;
+      var options = document.createElement("div"), prompt = document.createElement("p"), amounts = [5, 10, 25, 50, 100], selectedAmount = 5;
+      options.className = "modal-options"; options.hidden = true;
+      prompt.hidden = true; prompt.innerHTML = "<b>Select a gift-card amount:</b>";
+      price.parentNode.insertBefore(prompt, price); price.parentNode.insertBefore(options, price);
+      function isGift() { return /gift card/i.test(title.textContent || ""); }
+      function baseCost() { return Number(String(price.dataset.baseCost || price.textContent).replace(/[^0-9]/g, "")) || 0; }
+      function renderOptions() {
+        var gift = isGift(), base = baseCost(); options.hidden = !gift; prompt.hidden = !gift;
+        if (!gift) return;
+        options.innerHTML = amounts.map(function (amount) { return '<button type="button" class="' + (selectedAmount === amount ? "selected" : "") + '" data-amount="' + amount + '">$' + amount + " gift card</button>"; }).join("");
+        options.querySelectorAll("button").forEach(function (button) { button.onclick = function () { selectedAmount = Number(button.dataset.amount); renderOptions(); }; });
+        price.textContent = Math.round(base * selectedAmount / 5).toLocaleString() + " PTS";
+        redeem.textContent = "Request $" + selectedAmount + " gift card";
+      }
+      var priorOpen = window.open;
+      document.addEventListener("click", function (event) {
+        var card = event.target.closest(".reward");
+        if (!card) return;
+        setTimeout(function () { price.dataset.baseCost = String(price.textContent); selectedAmount = 5; renderOptions(); if (isGift()) { desc.textContent = "Choose $5, $10, $25, $50, or $100. Point costs scale from this card’s existing $5 price."; terms.textContent = "Your request stays pending for staff fulfillment and is shown in Account Overview."; } }, 0);
+      });
+      redeem.onclick = async function () {
+        if (!isGift()) return alert("This reward is not available for redemption yet.");
+        var basePoints = Number(String(price.dataset.baseCost || "").replace(/[^0-9]/g, ""));
+        redeem.disabled = true;
+        try { var response = await fetch("/api/rewards/redeem", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brand: title.textContent, amount: selectedAmount, basePoints: basePoints }) }), payload = await response.json().catch(function () { return {}; }); if (!response.ok) throw Error(payload.error || "Could not submit this request."); alert("Your gift-card request is pending staff fulfillment."); modal.hidden = true; } catch (error) { alert(error.message); } finally { redeem.disabled = false; }
+      };
+    }, 0);
+  }
+
+  enhanceRewardsGiftCardPicker();
   if (document.body) initShell();
   else document.addEventListener("DOMContentLoaded", initShell, { once: true });
 }());

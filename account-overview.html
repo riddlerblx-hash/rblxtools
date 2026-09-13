@@ -1432,6 +1432,7 @@
                 <button class="acct-tab is-active" type="button" role="tab" aria-selected="true" data-account-tab="settings">Account Settings</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="billing">Payments &amp; Billing</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="referrals">Referrals &amp; Earnings</button>
+                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="rewards">Rewards &amp; History</button>
                 <div id="acctBotTabWrap" class="acct-bot-tab-wrap" role="presentation">
                   <button id="acctBotTab" class="acct-tab" type="button" role="tab" aria-selected="false" aria-disabled="false" data-account-tab="bot">Bot Dashboard</button>
                   <span class="acct-bot-tab-lock" aria-hidden="true">&#128274;</span>
@@ -1636,6 +1637,15 @@
                       <button id="acctDiscordUnlinkButton" class="acct-button secondary" type="button" hidden>Unlink Discord</button>
                     </div>
                     <div id="acctDiscordLinkStatus" class="acct-status">Checking Discord link...</div>
+                  </section>
+
+                  <section class="acct-block" data-account-section="rewards">
+                    <div class="acct-section-kicker">RBLX Rewards</div>
+                    <h3 class="acct-section-title">Points &amp; transaction history</h3>
+                    <p class="acct-section-copy">Working-code submissions earn 20 points after approval. Approved inactive-code reports earn 3. Pending and rejected items never increase your balance.</p>
+                    <div class="acct-info-grid"><div class="acct-pill-card"><div class="acct-pill-label">Available RBLX Points</div><div id="acctRewardPoints" class="acct-pill-value">0</div></div></div>
+                    <div id="acctRewardHistory" class="acct-bot-list" style="margin-top:14px">Loading reward history...</div>
+                    <div id="acctRewardsStatus" class="acct-status"></div>
                   </section>
 
                   <section id="acctBotDashboard" class="acct-block acct-bot-dashboard" data-account-section="bot">
@@ -1950,6 +1960,9 @@
         acctReferralCopyButton: document.getElementById("acctReferralCopyButton"),
         acctReferralPayoutButton: document.getElementById("acctReferralPayoutButton"),
         acctReferralStatus: document.getElementById("acctReferralStatus"),
+        acctRewardPoints: document.getElementById("acctRewardPoints"),
+        acctRewardHistory: document.getElementById("acctRewardHistory"),
+        acctRewardsStatus: document.getElementById("acctRewardsStatus"),
         acctReferralRequestList: document.getElementById("acctReferralRequestList"),
         acctDiscordLinkButton: document.getElementById("acctDiscordLinkButton"),
         acctDiscordUnlinkButton: document.getElementById("acctDiscordUnlinkButton"),
@@ -2247,6 +2260,20 @@
         } catch (error) {
           setStatus(els.acctReferralStatus, error.message || "Could not load referral details.", "error");
         }
+      }
+
+      async function loadRewardHistory() {
+        if (!state.user || !state.user.id || !els.acctRewardHistory) return;
+        try {
+          var payload = await apiRequest("/api/rewards/me", { method: "GET" });
+          els.acctRewardPoints.textContent = Number(payload && payload.rewardPoints || 0).toLocaleString();
+          var transactions = Array.isArray(payload && payload.transactions) ? payload.transactions : [];
+          els.acctRewardHistory.innerHTML = transactions.length ? transactions.map(function (item) {
+            var status = String(item.status || "pending"), delta = Number(item.points_delta || 0), sign = delta > 0 ? "+" : "";
+            return '<div class="acct-bot-list-row"><strong>' + String(item.title || "Reward activity").replace(/[&<>]/g, "") + '</strong><span>' + sign + delta.toLocaleString() + ' pts · ' + status + '<br><small>' + new Date(item.created_at).toLocaleString() + '</small></span></div>';
+          }).join("") : "No reward transactions yet. Submit a working or inactive code report to get started.";
+          setStatus(els.acctRewardsStatus, "", "");
+        } catch (error) { setStatus(els.acctRewardsStatus, error.message || "Could not load reward history.", "error"); }
       }
 
       async function loadDiscordLinkStatus() {
@@ -2783,6 +2810,7 @@
             loadAccountTabPreference();
             loadBotDashboard();
             loadReferralDashboard();
+            loadRewardHistory();
             loadDiscordLinkStatus();
             var checkoutSummary = await loadCheckoutSummary();
             if (state.checkoutStatus === "success") {
@@ -3216,7 +3244,7 @@
         if (!grid || !tabs.length || grid.dataset.tabsReady === "true") return;
 
         var panels = {};
-        ["settings", "billing", "referrals", "bot"].forEach(function (name) {
+        ["settings", "billing", "referrals", "rewards", "bot"].forEach(function (name) {
           var panel = document.createElement("div");
           panel.className = "acct-tab-panel";
           panel.dataset.accountPanel = name;
@@ -3267,7 +3295,7 @@
         });
         var requestedTab = new URLSearchParams(window.location.search || "").get("tab"), storedTab = "";
         try { storedTab = window.localStorage.getItem("rblxtools-account-tab") || ""; } catch (_error) { storedTab = ""; }
-        selectTab(["settings", "billing", "referrals"].includes(requestedTab) ? requestedTab : ["settings", "billing", "referrals"].includes(storedTab) ? storedTab : "settings", false);
+        selectTab(["settings", "billing", "referrals", "rewards"].includes(requestedTab) ? requestedTab : ["settings", "billing", "referrals", "rewards"].includes(storedTab) ? storedTab : "settings", false);
       }
 
       setupAccountTabs();
