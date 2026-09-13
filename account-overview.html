@@ -1289,6 +1289,27 @@
     #rbtools-account-overview .acct-bot-limit-config.is-disabled::after { position:absolute; z-index:2; inset:-5px; border-radius:10px; background:rgba(4, 10, 22, .38); box-shadow:inset 0 0 18px rgba(0, 0, 0, .45); content:""; }
     #rbtools-account-overview .acct-bot-chart { width:100%; height:190px; margin-top:8px; border-radius:9px; background:rgba(4,12,25,.45); }
     #rbtools-account-overview .acct-bot-list { display:grid; gap:7px; max-height:170px; overflow:auto; color:#cbd9ed; font-size:10px; font-weight:700; }
+    #rbtools-account-overview .acct-transactions { margin-top:16px; padding:18px; border:1px solid rgba(137,174,227,.28); border-radius:14px; background:rgba(5,14,29,.5); }
+    #rbtools-account-overview .acct-transaction-top { display:flex; align-items:end; justify-content:space-between; gap:14px; }
+    #rbtools-account-overview .acct-transaction-top h4 { margin:0; color:#f3f7ff; font-size:20px; letter-spacing:-.03em; }
+    #rbtools-account-overview .acct-transaction-controls { display:flex; flex-wrap:wrap; gap:9px; margin:15px 0; }
+    #rbtools-account-overview .acct-transaction-controls label { display:grid; gap:5px; color:#a8bbd8; font-size:10px; font-weight:900; letter-spacing:.05em; text-transform:uppercase; }
+    #rbtools-account-overview .acct-transaction-controls select { min-width:150px; padding:9px 30px 9px 10px; border:1px solid rgba(156,190,239,.42); border-radius:8px; color:#ecf3ff; background:#111e34; font:700 12px Arial; }
+    #rbtools-account-overview .acct-transaction-group { margin-top:17px; }
+    #rbtools-account-overview .acct-transaction-group-head, #rbtools-account-overview .acct-transaction-row { display:grid; grid-template-columns:minmax(0,1fr) 130px; gap:12px; align-items:center; }
+    #rbtools-account-overview .acct-transaction-group-head { padding:0 0 8px; border-bottom:1px solid rgba(180,204,236,.3); color:#f5f8ff; font-size:12px; font-weight:900; }
+    #rbtools-account-overview .acct-transaction-row { padding:11px 0; border-bottom:1px solid rgba(255,255,255,.06); }
+    #rbtools-account-overview .acct-transaction-row:last-child { border-bottom:0; }
+    #rbtools-account-overview .acct-transaction-row strong { display:block; color:#edf4ff; font-size:12px; }
+    #rbtools-account-overview .acct-transaction-row small { display:block; margin-top:3px; color:#9fb0ca; font-size:10px; }
+    #rbtools-account-overview .acct-transaction-amount { text-align:right; color:#a8f0c9; font-size:13px; font-weight:900; }
+    #rbtools-account-overview .acct-transaction-amount.is-outgoing { color:#ffc0c7; }
+    #rbtools-account-overview .acct-transaction-status { display:inline-block; margin-top:4px; padding:2px 5px; border-radius:99px; color:#b5c7e1; background:rgba(145,170,210,.14); font-size:9px; font-weight:900; text-transform:capitalize; }
+    #rbtools-account-overview .acct-transaction-status.approved { color:#98efbd; background:rgba(52,201,128,.16); }
+    #rbtools-account-overview .acct-transaction-status.rejected { color:#ffabb4; background:rgba(231,79,99,.16); }
+    #rbtools-account-overview .acct-transaction-status.pending { color:#ffe09b; background:rgba(240,187,69,.16); }
+    #rbtools-account-overview .acct-transaction-total { display:flex; justify-content:space-between; padding:10px 0 0; color:#f4f8ff; font-size:12px; font-weight:900; }
+    #rbtools-account-overview .acct-transaction-empty { padding:13px 0; color:#9fb0ca; font-size:12px; }
     #rbtools-account-overview .acct-account-details { margin: 14px 0; }
     #rbtools-account-overview .acct-referral-hero { border-color: rgba(63, 231, 201, .34); background: radial-gradient(circle at top right, rgba(51, 233, 202, .13), transparent 38%), linear-gradient(180deg, rgba(16, 53, 66, .38), rgba(11, 19, 33, .62)); }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
@@ -1641,10 +1662,14 @@
 
                   <section class="acct-block" data-account-section="rewards">
                     <div class="acct-section-kicker">RBLX Rewards</div>
-                    <h3 class="acct-section-title">Points &amp; transaction history</h3>
-                    <p class="acct-section-copy">Working-code submissions earn 20 points after approval. Approved inactive-code reports earn 3. Pending and rejected items never increase your balance.</p>
-                    <div class="acct-info-grid"><div class="acct-pill-card"><div class="acct-pill-label">Available RBLX Points</div><div id="acctRewardPoints" class="acct-pill-value">0</div></div></div>
-                    <div id="acctRewardHistory" class="acct-bot-list" style="margin-top:14px">Loading reward history...</div>
+                    <h3 class="acct-section-title">My transactions</h3>
+                    <p class="acct-section-copy">Approved code contributions add points. Gift-card requests deduct points; pending and rejected activity is clearly shown below.</p>
+                    <div class="acct-info-grid"><div class="acct-pill-card"><div class="acct-pill-label">My RBLX Points balance</div><div id="acctRewardPoints" class="acct-pill-value">0</div></div></div>
+                    <div class="acct-transactions">
+                      <div class="acct-transaction-top"><div><div class="acct-section-kicker">Transaction history</div><h4>Summary</h4></div></div>
+                      <div class="acct-transaction-controls"><label>Type of transaction<select id="acctRewardTransactionType"><option value="summary">Summary</option><option value="rewards">Rewards</option><option value="purchases">Purchases</option></select></label><label>Date range<select id="acctRewardTransactionRange"><option value="30">Past 30 days</option><option value="all">All time</option></select></label></div>
+                      <div id="acctRewardHistory">Loading transaction history...</div>
+                    </div>
                     <div id="acctRewardsStatus" class="acct-status"></div>
                   </section>
 
@@ -1962,6 +1987,8 @@
         acctReferralStatus: document.getElementById("acctReferralStatus"),
         acctRewardPoints: document.getElementById("acctRewardPoints"),
         acctRewardHistory: document.getElementById("acctRewardHistory"),
+        acctRewardTransactionType: document.getElementById("acctRewardTransactionType"),
+        acctRewardTransactionRange: document.getElementById("acctRewardTransactionRange"),
         acctRewardsStatus: document.getElementById("acctRewardsStatus"),
         acctReferralRequestList: document.getElementById("acctReferralRequestList"),
         acctDiscordLinkButton: document.getElementById("acctDiscordLinkButton"),
@@ -2268,10 +2295,34 @@
           var payload = await apiRequest("/api/rewards/me", { method: "GET" });
           els.acctRewardPoints.textContent = Number(payload && payload.rewardPoints || 0).toLocaleString();
           var transactions = Array.isArray(payload && payload.transactions) ? payload.transactions : [];
-          els.acctRewardHistory.innerHTML = transactions.length ? transactions.map(function (item) {
-            var status = String(item.status || "pending"), delta = Number(item.points_delta || 0), sign = delta > 0 ? "+" : "";
-            return '<div class="acct-bot-list-row"><strong>' + String(item.title || "Reward activity").replace(/[&<>]/g, "") + '</strong><span>' + sign + delta.toLocaleString() + ' pts · ' + status + '<br><small>' + new Date(item.created_at).toLocaleString() + '</small></span></div>';
-          }).join("") : "No reward transactions yet. Submit a working or inactive code report to get started.";
+          var esc = function (value) { return String(value || "").replace(/[&<>]/g, function (char) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]; }); };
+          var type = els.acctRewardTransactionType ? els.acctRewardTransactionType.value : "summary";
+          var range = els.acctRewardTransactionRange ? els.acctRewardTransactionRange.value : "30";
+          var cutoff = range === "all" ? 0 : Date.now() - 30 * 24 * 60 * 60 * 1000;
+          var visible = transactions.filter(function (item) {
+            var delta = Number(item.points_delta || 0), created = Date.parse(item.created_at || "") || 0;
+            if (created && created < cutoff) return false;
+            if (type === "rewards") return delta >= 0 && item.source_type !== "gift_card_request";
+            if (type === "purchases") return delta < 0 || item.source_type === "gift_card_request";
+            return true;
+          });
+          function rows(items, outgoing) {
+            return items.length ? items.map(function (item) {
+              var status = String(item.status || "pending").toLowerCase(), delta = Number(item.points_delta || 0), amount = Math.abs(delta).toLocaleString();
+              return '<div class="acct-transaction-row"><div><strong>' + esc(item.title || "Reward activity") + '</strong><small>' + new Date(item.created_at).toLocaleDateString() + ' · <span class="acct-transaction-status ' + esc(status) + '">' + esc(status) + '</span></small></div><div class="acct-transaction-amount' + (outgoing ? ' is-outgoing' : '') + '">' + (outgoing ? '-' : '+') + amount + ' pts</div></div>';
+            }).join("") : '<div class="acct-transaction-empty">No transactions in this category yet.</div>';
+          }
+          var incoming = visible.filter(function (item) { return Number(item.points_delta || 0) >= 0 && item.source_type !== "gift_card_request"; });
+          var outgoing = visible.filter(function (item) { return Number(item.points_delta || 0) < 0 || item.source_type === "gift_card_request"; });
+          var incomingTotal = incoming.reduce(function (sum, item) { return sum + Math.max(0, Number(item.points_delta || 0)); }, 0);
+          var outgoingTotal = outgoing.reduce(function (sum, item) { return sum + Math.abs(Number(item.points_delta || 0)); }, 0);
+          if (type === "rewards") els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>Rewards</span><span style="text-align:right">Amount</span></div>' + rows(incoming, false) + '<div class="acct-transaction-total"><span>Total rewards</span><span>+' + incomingTotal.toLocaleString() + ' pts</span></div></div>';
+          else if (type === "purchases") els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>Purchases</span><span style="text-align:right">Amount</span></div>' + rows(outgoing, true) + '<div class="acct-transaction-total"><span>Total purchases</span><span>-' + outgoingTotal.toLocaleString() + ' pts</span></div></div>';
+          else els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>Incoming RBLX Points</span><span style="text-align:right">Amount</span></div>' + rows(incoming, false) + '<div class="acct-transaction-total"><span>Total incoming</span><span>+' + incomingTotal.toLocaleString() + ' pts</span></div></div><div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>Outgoing RBLX Points</span><span style="text-align:right">Amount</span></div>' + rows(outgoing, true) + '<div class="acct-transaction-total"><span>Total outgoing</span><span>-' + outgoingTotal.toLocaleString() + ' pts</span></div></div>';
+          if (els.acctRewardTransactionType && !els.acctRewardTransactionType.dataset.bound) {
+            [els.acctRewardTransactionType, els.acctRewardTransactionRange].forEach(function (select) { select.addEventListener("change", function () { loadRewardHistory(); }); });
+            els.acctRewardTransactionType.dataset.bound = "true";
+          }
           setStatus(els.acctRewardsStatus, "", "");
         } catch (error) { setStatus(els.acctRewardsStatus, error.message || "Could not load reward history.", "error"); }
       }

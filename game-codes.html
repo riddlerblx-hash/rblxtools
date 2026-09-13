@@ -255,7 +255,7 @@
     function openCodeModal(game, staff) {
       var modal = document.createElement("div");
       modal.className = "post-modal";
-      modal.innerHTML = '<form class="post-card"><h2>' + (staff ? "Post a code" : "Submit a code") + '</h2><p class="note">' + (staff ? "Staff code posts are marked working and verified. Added-on is saved automatically." : "Community submissions are reviewed before they appear on this code post. If accepted, this submission earns +20 RBLX Points.") + '</p><input name="code" required maxlength="160" placeholder="Code"><input name="reward" maxlength="300" placeholder="Reward"><div class="post-actions"><button class="outline" type="button" data-close>Cancel</button><button class="button" type="submit">' + (staff ? "Post code" : "Send for review · +20 pts if accepted") + '</button></div></form>';
+      modal.innerHTML = '<form class="post-card"><h2>' + (staff ? "Post a code" : "Submit a code") + '</h2><p class="note">' + (staff ? "Staff code posts are marked working and verified. Added-on is saved automatically." : "Community submissions are reviewed before they appear on this code post. If accepted, this submission earns +20 RBLX Points.") + '</p><input name="code" required maxlength="160" placeholder="Code"><input name="reward" maxlength="300" placeholder="Reward"><div class="post-actions"><button class="outline" type="button" data-close>Cancel</button><button class="button" type="submit">' + (staff ? "Post code" : "Send for review") + '</button></div></form>';
       document.body.appendChild(modal);
       modal.querySelector("[data-close]").onclick = function () { modal.remove(); };
       modal.querySelector("form").onsubmit = async function (event) {
@@ -403,7 +403,7 @@
           reportButton.onclick = async function () {
             if (!session.authenticated) return alert(loginHint);
             var originalLabel = reportButton.textContent;
-            reportButton.textContent = "Reported · pending";
+            reportButton.textContent = "Reported";
             reportButton.disabled = true;
             try {
               await request(api + "/" + encodeURIComponent(game.slug) + "/codes/" + encodeURIComponent(codeId) + "/expiry-reports", { method: "POST" });
