@@ -5292,20 +5292,17 @@
     setTimeout(function () {
       var modal = document.getElementById("modal"), modalArt = document.getElementById("modalArt"), price = document.getElementById("modalPrice"), title = document.getElementById("title"), redeem = document.getElementById("redeem"), desc = document.getElementById("desc"), terms = document.getElementById("terms");
       if (!modal || !price || !title || !redeem) return;
-      var options = document.createElement("div"), prompt = document.createElement("p"), amounts = [5, 10, 25, 50, 100], selectedAmount = 5;
+      var options = document.createElement("div"), prompt = document.createElement("p"), amounts = [5, 10, 25, 50, 100], selectedAmount = 5, selectedBrand = "", selectedBasePoints = 0;
       options.className = "modal-options"; options.hidden = true;
       prompt.hidden = true; prompt.innerHTML = "<b>Select a gift-card amount:</b>";
       price.parentNode.insertBefore(prompt, price); price.parentNode.insertBefore(options, price);
       var cards = document.querySelectorAll(".reward");
       cards.forEach(function (card) {
         var heading = card.querySelector("h3"), pointText = card.querySelector(".price"), pill = card.querySelector(".pill.manual"), cardTitle = heading && heading.textContent || "";
-        if (pill) pill.textContent = "1 - 7 days";
-        if (/^\$1 RBLXTools Cash$/.test(cardTitle)) { card.remove(); return; }
-        if (/^\$5 RBLXTools Cash$/.test(cardTitle)) { heading.textContent = "RBLXTools Cash"; var art = card.querySelector(".art"); if (art) art.innerHTML = '<img src="/assets/rewards/gift-cards/rblxtoolscash.png" alt="RBLXTools Cash">'; return; }
-        if (/Gift Card/.test(cardTitle)) {
-          var base = Number(String(pointText && pointText.textContent || "").replace(/[^0-9]/g, ""));
-          heading.textContent = cardTitle.replace(/^\$5\s*/, "") + " $5 - $100";
-          if (pointText && base) pointText.innerHTML = base.toLocaleString() + " - " + (base * 20).toLocaleString() + " <small>PTS</small>";
+        if (pill) pill.textContent = "1-7 days";
+        if (/Gift Card/i.test(cardTitle)) {
+          card.dataset.rewardBrand = cardTitle.replace(/^\$5\s*-\s*\$100\s*/i, "").trim();
+          card.dataset.rewardBasePoints = String(Number((String(pointText && pointText.textContent || "").match(/[\d,]+/) || ["0"])[0].replace(/,/g, "")) || 0);
         }
       });
       var goal = document.querySelector(".goal"), pointBalance = 0, goalKey = "rblxtools-reward-goal", brands = { "Roblox Gift Card": 5500, "Amazon Gift Card": 6000, "Xbox Gift Card": 6000, "Microsoft Store Gift Card": 6000, "PlayStation Gift Card": 6000, "Steam Gift Card": 6000, "Apple Gift Card": 6000, "Google Play Gift Card": 6000 };
@@ -5326,27 +5323,26 @@
         if (save) save.onclick = function () { var next = { brand: goal.querySelector("[data-goal-brand]").value, amount: Number(goal.querySelector("[data-goal-amount]").value) }; localStorage.setItem(goalKey, JSON.stringify(next)); renderGoal(false); };
       }
       fetch("/api/rewards/me", { credentials: "include" }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) { pointBalance = Number(payload && payload.rewardPoints || 0); renderGoal(false); }).catch(function () { renderGoal(false); });
-      function isGift() { return /gift card/i.test(title.textContent || ""); }
-      function baseCost() { return Number(String(price.dataset.baseCost || price.textContent).replace(/[^0-9]/g, "")) || 0; }
+      function isGift() { return Boolean(selectedBrand); }
       function renderOptions() {
-        var gift = isGift(), base = baseCost(); options.hidden = !gift; prompt.hidden = !gift;
+        var gift = isGift(), base = selectedBasePoints; options.hidden = !gift; prompt.hidden = !gift;
         if (!gift) return;
         options.innerHTML = amounts.map(function (amount) { return '<button type="button" class="' + (selectedAmount === amount ? "selected" : "") + '" data-amount="' + amount + '">$' + amount + " gift card</button>"; }).join("");
         options.querySelectorAll("button").forEach(function (button) { button.onclick = function () { selectedAmount = Number(button.dataset.amount); renderOptions(); }; });
+        title.textContent = "$" + selectedAmount + " " + selectedBrand;
         price.textContent = Math.round(base * selectedAmount / 5).toLocaleString() + " PTS";
         redeem.textContent = "Request $" + selectedAmount + " gift card";
       }
-      var priorOpen = window.open;
       document.addEventListener("click", function (event) {
         var card = event.target.closest(".reward");
         if (!card) return;
-        setTimeout(function () { price.dataset.baseCost = String(price.textContent); selectedAmount = 5; renderOptions(); if (/RBLXTools Cash/.test(title.textContent || "") && modalArt) modalArt.innerHTML = '<img src="/assets/rewards/gift-cards/rblxtoolscash.png" alt="RBLXTools Cash">'; if (isGift()) { desc.textContent = "Choose $5, $10, $25, $50, or $100. Point costs scale from this card’s existing $5 price."; terms.textContent = "Your request stays pending for staff fulfillment and is shown in Account Overview."; } }, 0);
+        setTimeout(function () { selectedBrand = String(card.dataset.rewardBrand || ""); selectedBasePoints = Number(card.dataset.rewardBasePoints || 0); selectedAmount = 5; renderOptions(); if (/RBLXTools Cash/.test(title.textContent || "") && modalArt) modalArt.innerHTML = '<img src="/assets/rewards/gift-cards/rblxtoolscash.png" alt="RBLXTools Cash">'; if (isGift()) { desc.textContent = "Choose $5, $10, $25, $50, or $100. Point costs scale from this card’s $5 price."; terms.textContent = "Your request is shown in Account Overview and fulfilled within 1-7 days."; } }, 0);
       });
       redeem.onclick = async function () {
         if (!isGift()) return alert("This reward is not available for redemption yet.");
-        var basePoints = Number(String(price.dataset.baseCost || "").replace(/[^0-9]/g, ""));
+        var basePoints = selectedBasePoints;
         redeem.disabled = true;
-        try { var response = await fetch("/api/rewards/redeem", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brand: title.textContent, amount: selectedAmount, basePoints: basePoints }) }), payload = await response.json().catch(function () { return {}; }); if (!response.ok) throw Error(payload.error || "Could not submit this request."); alert("Your gift-card request is pending staff fulfillment."); modal.hidden = true; } catch (error) { alert(error.message); } finally { redeem.disabled = false; }
+        try { var response = await fetch("/api/rewards/redeem", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brand: selectedBrand, amount: selectedAmount, basePoints: basePoints }) }), payload = await response.json().catch(function () { return {}; }); if (!response.ok) throw Error(payload.error || "Could not submit this request."); alert("Your gift-card request is pending fulfillment."); modal.hidden = true; } catch (error) { alert(error.message); } finally { redeem.disabled = false; }
       };
     }, 0);
   }

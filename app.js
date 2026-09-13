@@ -11374,6 +11374,15 @@ app.get("/api/codes", async (req, res) => {
   catch (_error) { return res.status(500).json({ error: "Could not load Roblox code guides." }); }
 });
 
+app.get("/api/codes/rankings", async (req, res) => {
+  try {
+    const period = String(req.query.period || "popular").toLowerCase() === "weekly" ? "weekly" : "popular";
+    return res.json(await codesPlatform.listRanked({ period, limit: req.query.limit }));
+  } catch (_error) {
+    return res.status(500).json({ error: "Could not load code-post rankings." });
+  }
+});
+
 app.get("/api/codes/:slug", async (req, res) => {
   try {
     const viewer = await getOptionalCommunityUser(req);

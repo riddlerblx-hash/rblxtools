@@ -125,9 +125,12 @@
     }
 
     async function renderDirectory() {
-      var payload = await request(api + "?limit=100");
-      var games = payload.games || [];
-      root.innerHTML = '<section class="hero"><h1>Roblox <b>game codes</b><br>worth checking.</h1><div class="search"><span class="search-icon" aria-hidden="true"></span><input id="liveSearch" type="search" placeholder="Search for Roblox codes"></div><p class="game-request">Request a game? <button type="button" data-request-game>Submit it here</button> · <a href="/rewards.html">Earn RBLX Points</a></p></section><section><div class="section-head"><h2>Latest code posts</h2><p>' + games.length + ' published code post' + (games.length === 1 ? "" : "s") + '.</p></div><div class="grid" id="liveGrid"></div><div class="empty" id="liveEmpty">No published code posts yet. Check back soon.</div></section><p class="note">Codes and rewards are controlled by each game’s developer. A success rate reflects signed-in RBLXTools member reports, not a guarantee.</p>';
+      var results = await Promise.all([request(api + "?limit=100"), request(api + "/rankings?period=weekly&limit=8").catch(function () { return { games: [] }; }), request(api + "/rankings?period=popular&limit=8").catch(function () { return { games: [] }; })]);
+      var payload = results[0], games = payload.games || [], weekly = results[1].games || [], popular = results[2].games || [];
+      function rankingMarkup(items, gridId, emptyId, emptyText) {
+        return '<div class="grid" id="' + gridId + '">' + items.map(function (game) { return '<a class="game" href="/codes/' + encodeURIComponent(game.slug) + '">' + art(game) + '<div class="game-body"><h3>' + esc(displayGameName(game.name)) + '</h3><small class="card-author">By ' + esc(game.authorName || "RBLXTools Staff") + '</small><div class="meta"><span>' + date(game.lastUpdated) + '</span><b>' + Number(game.viewCount || 0) + ' visits</b></div></div></a>'; }).join("") + '</div><div class="empty" id="' + emptyId + '">' + emptyText + '</div>';
+      }
+      root.innerHTML = '<section class="hero"><h1>Roblox <b>game codes</b><br>worth checking.</h1><div class="search"><span class="search-icon" aria-hidden="true"></span><input id="liveSearch" type="search" placeholder="Search for Roblox codes"></div><p class="game-request">Request a game? <button type="button" data-request-game>Submit it here</button></p></section><section><div class="section-head"><h2>Latest code posts</h2><p>' + games.length + ' published code post' + (games.length === 1 ? "" : "s") + '.</p></div><div class="grid" id="liveGrid"></div><div class="empty" id="liveEmpty">No published code posts yet. Check back soon.</div></section><section class="code-rankings"><div class="section-head"><h2>Trending code posts</h2><p>Most visited this week · resets every 7 days.</p></div>' + rankingMarkup(weekly, "weeklyGrid", "weeklyEmpty", "No code-post visits have been recorded this week yet.") + '</section><section class="code-rankings"><div class="section-head"><h2>Most popular code posts</h2><p>Automatically ranked by total visits.</p></div>' + rankingMarkup(popular, "popularGrid", "popularEmpty", "No code-post visits have been recorded yet.") + '</section><p class="note">Codes and rewards are controlled by each game’s developer. A success rate reflects signed-in RBLXTools member reports, not a guarantee.</p>';
       var grid = root.querySelector("#liveGrid"), empty = root.querySelector("#liveEmpty"), input = root.querySelector("#liveSearch");
       function draw() {
         var query = input.value.trim().toLowerCase();
@@ -135,6 +138,8 @@
         grid.innerHTML = visible.map(function (game) { return '<a class="game" href="/codes/' + encodeURIComponent(game.slug) + '">' + art(game) + '<div class="game-body"><h3>' + esc(displayGameName(game.name)) + '</h3><small class="card-author">By ' + esc(game.authorName || "RBLXTools Staff") + '</small><div class="meta"><span>' + date(game.lastUpdated) + '</span><b>' + game.workingCodeCount + ' active · ' + Number(game.viewCount || 0) + ' views</b></div></div></a>'; }).join("");
         empty.style.display = visible.length ? "none" : "block";
       }
+      root.querySelector("#weeklyEmpty").style.display = weekly.length ? "none" : "block";
+      root.querySelector("#popularEmpty").style.display = popular.length ? "none" : "block";
       input.oninput = draw;
       draw();
       var rewardsLink = root.querySelector('.game-request a[href="/rewards.html"]');

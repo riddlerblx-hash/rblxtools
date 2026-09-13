@@ -117,6 +117,33 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     return { games: pageGames.map((game) => publicGame(game, codes, views)), page: current, limit: size, total: games.length, provider: providerInfo() };
   }
 
+  function currentWeekStart() {
+    const now = new Date();
+    now.setUTCDate(now.getUTCDate() - ((now.getUTCDay() + 6) % 7));
+    now.setUTCHours(0, 0, 0, 0);
+    return now.toISOString().slice(0, 10);
+  }
+
+  async function listRankedFromDatabase({ period = "popular", limit = 8 } = {}) {
+    const size = Math.max(1, Math.min(Number(limit) || 8, 24));
+    const games = (await request("/rest/v1/games?codes_enabled=is.true&select=*&order=updated_at.desc")).map(toGame);
+    const viewFilter = period === "weekly" ? `&week_start=eq.${currentWeekStart()}` : "";
+    const viewRows = await request(`/rest/v1/game_code_page_views?select=game_id${viewFilter}&limit=10000`);
+    const codeRows = await request("/rest/v1/game_codes?status=eq.working&select=game_id,status&limit=10000");
+    const views = (Array.isArray(viewRows) ? viewRows : []).map((row) => ({ gameId: row.game_id }));
+    const counts = new Map();
+    views.forEach((view) => counts.set(String(view.gameId), (counts.get(String(view.gameId)) || 0) + 1));
+    const codes = (Array.isArray(codeRows) ? codeRows : []).map((row) => ({ gameId: row.game_id, status: row.status }));
+    return {
+      games: games.filter((game) => (counts.get(String(game.id)) || 0) > 0)
+        .sort((left, right) => (counts.get(String(right.id)) || 0) - (counts.get(String(left.id)) || 0) || String(right.updatedAt).localeCompare(String(left.updatedAt)))
+        .slice(0, size).map((game) => publicGame(game, codes, views)),
+      period,
+      weekStart: period === "weekly" ? currentWeekStart() : null,
+      provider: providerInfo(),
+    };
+  }
+
   async function getFromDatabase(slug, viewerUserId = "") {
     const rows = await request(`/rest/v1/games?slug=eq.${encodeURIComponent(slugify(slug))}&codes_enabled=is.true&select=*&limit=1`);
     if (!Array.isArray(rows) || !rows[0]) return null;
@@ -396,10 +423,10 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
 
   async function recordView(gameId, visitorKey) {
     if (!/^[0-9a-f-]{36}$/i.test(String(visitorKey || ""))) throw new Error("Invalid viewer.");
-    await request("/rest/v1/game_code_page_views?on_conflict=game_id,visitor_key", {
+    await request("/rest/v1/game_code_page_views?on_conflict=game_id,visitor_key,week_start", {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify({ game_id: gameId, visitor_key: visitorKey }),
+      body: JSON.stringify({ game_id: gameId, visitor_key: visitorKey, week_start: currentWeekStart() }),
     });
     const rows = await request(`/rest/v1/game_code_page_views?game_id=eq.${encodeURIComponent(gameId)}&select=id`);
     return { viewCount: Array.isArray(rows) ? rows.length : 0 };
@@ -533,6 +560,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
   return {
     provider: fallback.provider,
     list(input) { return useDatabase(() => listFromDatabase(input), () => fallback.list(input)); },
+    listRanked(input) { return useDatabase(() => listRankedFromDatabase(input), () => ({ games: [], period: input?.period || "popular", provider: providerInfo() })); },
     getGame(slug, viewerUserId) { return useDatabase(() => getFromDatabase(slug, viewerUserId), () => fallback.getGame(slug)); },
     upsertGame(input) { return useDatabase(() => upsertGame(input), () => fallback.upsertGame(input)); },
     deleteGame(slug) { return useDatabase(() => deleteGame(slug), () => fallback.deleteGame(slug)); },

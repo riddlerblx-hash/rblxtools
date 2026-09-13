@@ -79,6 +79,16 @@ create table if not exists game_code_page_views (
 );
 create index if not exists game_code_page_views_game_idx on game_code_page_views(game_id);
 
+-- A visitor can count once per code post each week. This makes the Trending
+-- section reset naturally every seven days while preserving all-time popularity.
+alter table game_code_page_views add column if not exists week_start date;
+update game_code_page_views set week_start = date_trunc('week', created_at at time zone 'utc')::date where week_start is null;
+alter table game_code_page_views alter column week_start set not null;
+alter table game_code_page_views alter column week_start set default date_trunc('week', now() at time zone 'utc')::date;
+alter table game_code_page_views drop constraint if exists game_code_page_views_game_id_visitor_key_key;
+create unique index if not exists game_code_page_views_weekly_visitor_key on game_code_page_views(game_id, visitor_key, week_start);
+create index if not exists game_code_page_views_weekly_trending_idx on game_code_page_views(week_start, game_id);
+
 create table if not exists game_code_comments (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references games(id) on delete cascade,
