@@ -294,6 +294,30 @@
     return String(plan || "").toLowerCase() === "pro";
   }
 
+  var ADMIN_PREVIEW_KEY = "rblxtools_admin_view_as";
+  function getAdminPreviewMode() {
+    try {
+      var mode = String(sessionStorage.getItem(ADMIN_PREVIEW_KEY) || "admin").toLowerCase();
+      return ["admin", "guest", "plus", "pro"].indexOf(mode) >= 0 ? mode : "admin";
+    } catch (_error) {
+      return "admin";
+    }
+  }
+
+  function buildAdminPreviewMarkup() {
+    if (!shellState.isAdmin) return "";
+    var mode = getAdminPreviewMode();
+    var label = mode === "admin" ? "Admin" : mode.charAt(0).toUpperCase() + mode.slice(1);
+    return '<details class="rblx-shell-admin-preview"><summary>View as <strong>' + label + '</strong></summary><div class="rblx-shell-admin-preview-panel"><button type="button" data-shell-admin-preview="guest">View as guest</button><button type="button" data-shell-admin-preview="plus">View as Plus</button><button type="button" data-shell-admin-preview="pro">View as Pro</button><button type="button" data-shell-admin-preview="admin">Exit preview</button></div></details>';
+  }
+
+  function applyAdminPreview() {
+    var mode = shellState.isAdmin ? getAdminPreviewMode() : "admin";
+    document.body.dataset.rblxAdminPreview = mode;
+    if (shellState.isAdmin) syncMemberAdVisibility({ plan: mode === "admin" ? (shellState.currentUser && shellState.currentUser.plan) : mode });
+    document.dispatchEvent(new CustomEvent("rblxtools-admin-preview", { detail: { mode: mode, active: shellState.isAdmin && mode !== "admin" } }));
+  }
+
   function shouldShowMemberAds() {
     return !isProMember();
   }
@@ -1438,6 +1462,7 @@
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
           '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
+          buildAdminPreviewMarkup() +
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
             '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
               '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 10.5a6 6 0 0 0-12 0c0 7-2.5 7-2.5 8.5h17C20.5 17.5 18 17.5 18 10.5ZM9.5 21h5"></path></svg>' +
@@ -3742,6 +3767,7 @@
       tokenBalance.textContent = state.loggedIn && shellState.currentUser.aiTokens != null ? String(shellState.currentUser.aiTokens) : "0";
     }
     shellState.isAdmin = Boolean(state.isAdmin);
+    applyAdminPreview();
     shellState.authUiSignature = nextSignature;
     applyModerationState(state.moderation || shellState.moderation);
     applyMaintenanceState(shellState.maintenanceState);
@@ -5076,6 +5102,13 @@
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
+    applyAdminPreview();
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-shell-admin-preview]");
+      if (!button || !shellState.isAdmin) return;
+      try { sessionStorage.setItem(ADMIN_PREVIEW_KEY, button.dataset.shellAdminPreview); } catch (_error) {}
+      window.location.reload();
+    });
     shellState.renderedCommunityUnreadCount = shellState.communityUnreadCount;
     ensureSitePlusBackdrop();
     applyPlanAtmosphere(initialState.plan);

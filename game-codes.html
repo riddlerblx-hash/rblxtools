@@ -424,6 +424,17 @@
 
     async function start() {
       session = await request("/api/codes-session").catch(function () { return session; });
+      var previewMode = "admin";
+      try { previewMode = String(sessionStorage.getItem("rblxtools_admin_view_as") || "admin").toLowerCase(); } catch (_error) {}
+      if (session.canManageCodes && ["guest", "plus", "pro"].indexOf(previewMode) >= 0) {
+        session = Object.assign({}, session, {
+          authenticated: previewMode !== "guest",
+          canManageCodes: false,
+          hideAds: previewMode === "pro",
+          previewMode: previewMode,
+          viewer: previewMode === "guest" ? null : session.viewer
+        });
+      }
       var match = location.pathname.match(/^\/codes\/([^/]+)$/);
       if (match) return renderGuide(decodeURIComponent(match[1])).catch(function () { renderDirectory(); });
       return renderDirectory();
