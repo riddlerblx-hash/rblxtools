@@ -22,7 +22,7 @@
     .hero .search{position:relative;display:block;width:min(505px,100%);margin:26px auto 0;padding:0;border:0;border-radius:13px;background:#30334d;box-shadow:none}.hero .search-icon{position:absolute;z-index:1;top:50%;left:16px;width:15px;height:15px;border:2px solid #edf3ff;border-radius:50%;pointer-events:none;transform:translateY(-58%)}.hero .search-icon:after{position:absolute;right:-5px;bottom:-4px;width:6px;height:2px;border-radius:2px;background:#edf3ff;content:"";transform:rotate(45deg)}.hero .search input{display:block;width:100%;height:45px;padding:0 16px 0 43px;color:#fff;font-size:14px}.hero .search input::placeholder{color:#fff;opacity:1}.game-request{width:min(505px,100%);max-width:100%;margin:14px auto 0!important;color:#b8c5dd!important;font-size:13px!important;text-align:center}.game-request a{color:#8e73ff;font-weight:800;text-decoration:none}.game-request a:hover{text-decoration:underline}.card-author{display:block;margin-top:6px;color:#9eafc5;font-size:10px;font-weight:700}.post-author{margin:0 0 8px;color:#aebdd0;font-size:12px;font-weight:700}.post-author b{color:#dce9ff}.comment-login-link{border:0;padding:0;color:#8bc7ff;background:transparent;font:800 12px Arial;cursor:pointer}.comment-login-link:hover{text-decoration:underline}.comment-replies .is-hidden-reply{display:none}.comment-replies.is-expanded .is-hidden-reply{display:block}.show-more-replies{margin-top:8px;border:0;color:#8bc7ff;background:transparent;font:800 11px Arial;cursor:pointer}
     @media(max-width:720px){.codes{width:min(100% - 20px,1200px);padding:20px 0 48px}.hero{padding:10px 0 26px}.hero h1{font-size:clamp(36px,12vw,52px)}.hero p{font-size:14px}.search{grid-template-columns:1fr;border-radius:14px}.search .button{min-height:42px}.section-head{margin-top:0;gap:7px}.section-head h2{font-size:27px}.grid{grid-template-columns:1fr;gap:12px}.game{padding:12px}.cover{height:150px}.guide{margin-top:18px}.guide-top{grid-template-columns:1fr;gap:14px;padding:14px;border-radius:16px}.guide-top .cover{height:180px}.guide h2{font-size:32px}.notice{margin-top:12px;padding:10px}.code-head{align-items:flex-start;flex-direction:column;padding:14px 14px 8px}.code-actions{width:100%;justify-content:flex-end}.code-tabs{padding:0 14px 9px}.table-wrap{-webkit-overflow-scrolling:touch}.live-table{min-width:570px;font-size:11px}.code-table th,.code-table td{padding:10px 12px}.tutorial{margin-top:14px}.tutorial h3{padding:15px 14px 8px}.tutorial-copy{padding:0 14px 14px}.tutorial-images{grid-template-columns:minmax(0,100%);padding:0 14px 14px}.tutorial-images img{max-height:none;height:auto}.ratings{margin-top:14px}.rating-box{padding:15px}.saved{padding:16px}.saved-form{grid-template-columns:1fr}.code-post-ad{display:none}.comments .comment.is-reply{margin-left:0}.comments .comment-replies{margin-left:0;padding-left:14px}.comments .comment-replies>.comment-thread-item>.comment.is-reply:before{left:-15px;width:14px}.comments .comment-form-actions{margin-left:50px}.hero .search{margin-top:20px}}
     /* Final code-post interaction refinements. */
-    .tutorial h3{padding:19px 20px 10px;text-align:center}.login-required-button{border:0;padding:0;color:#8bc7ff;background:transparent;font:800 10px Arial;white-space:nowrap;cursor:pointer}.login-required-button:hover{text-decoration:underline}.comments .comment.reply-depth-2>.comment-main>.comment-replies{margin-left:0;padding-left:0;border-left:0}.comments .comment.reply-depth-2>.comment-main>.comment-replies>.comment-thread-item>.comment.is-reply:before{display:none}
+    .tutorial h3{padding:19px 20px 10px;text-align:center}.login-required-button{border:0;padding:0;color:#8bc7ff;background:transparent;font:800 10px Arial;white-space:nowrap;cursor:pointer}.login-required-button:hover{text-decoration:underline}.game-request button{border:0;padding:0;color:#8e73ff;background:transparent;font:800 13px Arial;cursor:pointer}.game-request button:hover{text-decoration:underline}.comments .comment.reply-depth-2>.comment-main>.comment-replies{margin-left:0;padding-left:0;border-left:0}.comments .comment.reply-depth-2>.comment-main>.comment-replies>.comment-thread-item>.comment.is-reply:before{display:none}
   </style>
 </head>
 <body>
@@ -126,7 +126,7 @@
     async function renderDirectory() {
       var payload = await request(api + "?limit=100");
       var games = payload.games || [];
-      root.innerHTML = '<section class="hero"><h1>Roblox <b>game codes</b><br>worth checking.</h1><div class="search"><span class="search-icon" aria-hidden="true"></span><input id="liveSearch" type="search" placeholder="Search for Roblox codes"></div><p class="game-request">Request a game? <a href="/community">Submit it here</a></p></section><section><div class="section-head"><h2>Latest code posts</h2><p>' + games.length + ' published code post' + (games.length === 1 ? "" : "s") + '.</p></div><div class="grid" id="liveGrid"></div><div class="empty" id="liveEmpty">No published code posts yet. Check back soon.</div></section><section class="saved" id="staffQueue" hidden></section><p class="note">Codes and rewards are controlled by each game’s developer. A success rate reflects signed-in RBLXTools member reports, not a guarantee.</p>';
+      root.innerHTML = '<section class="hero"><h1>Roblox <b>game codes</b><br>worth checking.</h1><div class="search"><span class="search-icon" aria-hidden="true"></span><input id="liveSearch" type="search" placeholder="Search for Roblox codes"></div><p class="game-request">Request a game? <button type="button" data-request-game>Submit it here</button></p></section><section><div class="section-head"><h2>Latest code posts</h2><p>' + games.length + ' published code post' + (games.length === 1 ? "" : "s") + '.</p></div><div class="grid" id="liveGrid"></div><div class="empty" id="liveEmpty">No published code posts yet. Check back soon.</div></section><section class="saved" id="staffQueue" hidden></section><p class="note">Codes and rewards are controlled by each game’s developer. A success rate reflects signed-in RBLXTools member reports, not a guarantee.</p>';
       var grid = root.querySelector("#liveGrid"), empty = root.querySelector("#liveEmpty"), input = root.querySelector("#liveSearch");
       function draw() {
         var query = input.value.trim().toLowerCase();
@@ -136,7 +136,39 @@
       }
       input.oninput = draw;
       draw();
-      if (session.canManageCodes) mountCreatePost();
+      root.querySelector("[data-request-game]").onclick = function () {
+        if (!session.authenticated) {
+          var message = "Log in or sign up to request a game.";
+          if (window.RBLXToolsAuth && typeof window.RBLXToolsAuth.open === "function") window.RBLXToolsAuth.open({ mode: "login", message: message });
+          else window.dispatchEvent(new CustomEvent("rblxtools-open-auth", { detail: { mode: "login", message: message } }));
+          return;
+        }
+        openGameRequestModal();
+      };
+      if (session.canManageCodes) { mountCreatePost(); renderStaffQueue().catch(function (error) { console.error("Could not load staff code queues:", error); }); }
+    }
+
+    function openGameRequestModal() {
+      var modal = document.createElement("div");
+      modal.className = "post-modal";
+      modal.innerHTML = '<form class="post-card"><h2>Request a game</h2><p class="note">Send staff the Roblox game link. Adding any codes you already know is optional, but helpful.</p><input name="robloxGameUrl" type="url" required maxlength="500" placeholder="Roblox game link"><textarea name="additionalCodes" maxlength="2000" placeholder="Optional codes, one per line"></textarea><div class="post-actions"><button class="outline" type="button" data-close>Cancel</button><button class="button" type="submit">Send request</button></div></form>';
+      document.body.appendChild(modal);
+      modal.querySelector("[data-close]").onclick = function () { modal.remove(); };
+      modal.querySelector("form").onsubmit = async function (event) {
+        event.preventDefault();
+        var form = event.currentTarget, submit = form.querySelector('[type="submit"]');
+        submit.disabled = true;
+        submit.textContent = "Sending...";
+        try {
+          await request("/api/codes/game-requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ robloxGameUrl: form.robloxGameUrl.value, additionalCodes: form.additionalCodes.value }) });
+          modal.remove();
+          alert("Your game request was sent to the RBLXTools staff queue.");
+        } catch (error) {
+          alert(error.message);
+          submit.disabled = false;
+          submit.textContent = "Send request";
+        }
+      };
     }
 
     function mountCreatePost() {
@@ -174,9 +206,11 @@
       var queue = root.querySelector("#staffQueue");
       if (!queue) return;
       queue.hidden = false;
-      var payload = await request("/admin/codes/submissions?status=pending");
-      var entries = payload.submissions || [];
-      queue.innerHTML = '<h2>Staff: pending code submissions</h2><p>Approve only after checking the linked source. Approved entries become public codes with their automatic added-on date.</p><div class="staff-create"><input id="newGameName" placeholder="New game name"><input id="newGameSlug" placeholder="Guide slug, e.g. blox-fruits"><button class="button" id="createGuide">Create guide</button></div><div class="submission-list">' + (entries.length ? entries.map(function (entry) { return '<div class="submission"><b>' + esc(entry.code) + '</b><span>' + esc(entry.reward || "No reward supplied") + '</span><small>Submitted by ' + esc(entry.submitter_name || "Member") + ' · ' + date(entry.created_at) + '</small><div><button data-review="approved" data-id="' + esc(entry.id) + '">Approve</button><button data-review="rejected" data-id="' + esc(entry.id) + '">Reject</button></div></div>'; }).join("") : '<p class="note">No pending submissions.</p>') + '</div>';
+       var payloads = await Promise.all([request("/admin/codes/submissions?status=pending"), request("/admin/codes/game-requests?status=pending")]);
+       var entries = payloads[0].submissions || [];
+       var gameRequests = payloads[1].requests || [];
+       queue.innerHTML = '<h2>Staff: pending code submissions</h2><p>Approve only after checking the linked source. Approved entries become public codes with their automatic added-on date.</p><div class="staff-create"><input id="newGameName" placeholder="New game name"><input id="newGameSlug" placeholder="Guide slug, e.g. blox-fruits"><button class="button" id="createGuide">Create guide</button></div><div class="submission-list">' + (entries.length ? entries.map(function (entry) { return '<div class="submission"><b>' + esc(entry.code) + '</b><span>' + esc(entry.reward || "No reward supplied") + '</span><small>Submitted by ' + esc(entry.submitter_name || "Member") + ' · ' + date(entry.created_at) + '</small><div><button data-review="approved" data-id="' + esc(entry.id) + '">Approve</button><button data-review="rejected" data-id="' + esc(entry.id) + '">Reject</button></div></div>'; }).join("") : '<p class="note">No pending submissions.</p>') + '</div>';
+      queue.insertAdjacentHTML("beforeend", '<h2>Staff: requested games</h2><p>These are requested games that do not have code posts yet. Optional submitted codes are for staff review only.</p><div class="submission-list">' + (gameRequests.length ? gameRequests.map(function (entry) { return '<div class="submission"><b>' + esc(entry.roblox_game_url) + '</b><span>' + esc(entry.additional_codes || "No codes supplied") + '</span><small>Requested by ' + esc(entry.requester_name || "Member") + ' · ' + date(entry.created_at) + '</small><div><button data-game-request-review="reviewed" data-id="' + esc(entry.id) + '">Mark reviewed</button><button data-game-request-review="rejected" data-id="' + esc(entry.id) + '">Reject</button></div></div>'; }).join("") : '<p class="note">No pending game requests.</p>') + '</div>');
       queue.querySelector("#createGuide").onclick = async function () {
         try {
           var game = await request("/admin/codes/games", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: queue.querySelector("#newGameName").value, slug: queue.querySelector("#newGameSlug").value }) });
@@ -186,6 +220,11 @@
       queue.querySelectorAll("[data-review]").forEach(function (button) {
         button.onclick = async function () {
           try { await request("/admin/codes/submissions/" + encodeURIComponent(button.dataset.id), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: button.dataset.review }) }); renderStaffQueue(); } catch (error) { alert(error.message); }
+        };
+      });
+      queue.querySelectorAll("[data-game-request-review]").forEach(function (button) {
+        button.onclick = async function () {
+          try { await request("/admin/codes/game-requests/" + encodeURIComponent(button.dataset.id), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: button.dataset.gameRequestReview }) }); renderStaffQueue(); } catch (error) { alert(error.message); }
         };
       });
     }

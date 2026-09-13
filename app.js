@@ -11371,6 +11371,15 @@ app.post("/api/codes/:slug/submissions", async (req, res) => {
   }
 });
 
+app.post("/api/codes/game-requests", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    return res.status(201).json({ ok: true, request: await codesPlatform.submitGameRequest(req.body || {}, user) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit this game request." });
+  }
+});
+
 app.post("/api/codes/:slug/votes/:codeId", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
@@ -11570,6 +11579,15 @@ app.get("/admin/codes/submissions", async (req, res) => {
   }
 });
 
+app.get("/admin/codes/game-requests", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    return res.json({ requests: await codesPlatform.listGameRequests(req.query.status) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load game requests." });
+  }
+});
+
 app.patch("/admin/codes/submissions/:id", async (req, res) => {
   try {
     const admin = await requireAdminUser(req);
@@ -11577,6 +11595,15 @@ app.patch("/admin/codes/submissions/:id", async (req, res) => {
     return res.json({ ok: true, ...result });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not review this code submission." });
+  }
+});
+
+app.patch("/admin/codes/game-requests/:id", async (req, res) => {
+  try {
+    const admin = await requireAdminUser(req);
+    return res.json({ ok: true, ...(await codesPlatform.reviewGameRequest(req.params.id, req.body?.decision, admin.id)) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not review this game request." });
   }
 });
 

@@ -34,6 +34,19 @@ create table if not exists game_code_submissions (
 );
 create index if not exists game_code_submissions_review_idx on game_code_submissions(status, created_at desc);
 
+-- Requests for games that do not have a code post yet. Optional codes give staff a head start.
+create table if not exists game_code_game_requests (
+  id uuid primary key default gen_random_uuid(),
+  roblox_game_url text not null,
+  additional_codes text not null default '',
+  requester_user_id uuid not null,
+  requester_name text not null default '',
+  status text not null default 'pending' check (status in ('pending','reviewed','rejected')),
+  reviewed_by_user_id uuid, reviewed_at timestamptz,
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
+create index if not exists game_code_game_requests_review_idx on game_code_game_requests(status, created_at desc);
+
 -- One account can change its vote, but cannot inflate a code's success rate.
 create table if not exists game_code_votes (
   id uuid primary key default gen_random_uuid(),

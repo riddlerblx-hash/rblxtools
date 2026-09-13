@@ -318,6 +318,22 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     return Array.isArray(rows) ? rows[0] : null;
   }
 
+  async function submitGameRequest(input, user) {
+    const robloxGameUrl = clean(input.robloxGameUrl, 500);
+    if (!/^https?:\/\/(?:www\.)?roblox\.com\//i.test(robloxGameUrl)) throw new Error("Enter a valid Roblox game link.");
+    const rows = await request("/rest/v1/game_code_game_requests", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        roblox_game_url: robloxGameUrl,
+        additional_codes: clean(input.additionalCodes, 2000),
+        requester_user_id: user.id,
+        requester_name: clean(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
+      }),
+    });
+    return Array.isArray(rows) ? rows[0] : null;
+  }
+
   async function voteForCode(gameId, codeId, userId, worked) {
     const codeRows = await request(`/rest/v1/game_codes?id=eq.${encodeURIComponent(codeId)}&game_id=eq.${encodeURIComponent(gameId)}&select=id&limit=1`);
     if (!Array.isArray(codeRows) || !codeRows[0]) throw new Error("Code not found for this game.");
@@ -341,6 +357,24 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const safeStatus = ["pending", "approved", "rejected"].includes(status) ? status : "pending";
     const rows = await request(`/rest/v1/game_code_submissions?status=eq.${safeStatus}&select=*&order=created_at.desc&limit=200`);
     return Array.isArray(rows) ? rows : [];
+  }
+
+  async function listGameRequests(status = "pending") {
+    const safeStatus = ["pending", "reviewed", "rejected"].includes(status) ? status : "pending";
+    const rows = await request(`/rest/v1/game_code_game_requests?status=eq.${safeStatus}&select=*&order=created_at.desc&limit=200`);
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function reviewGameRequest(id, decision, adminUserId) {
+    const status = decision === "reviewed" ? "reviewed" : "rejected";
+    const rows = await request(`/rest/v1/game_code_game_requests?id=eq.${encodeURIComponent(id)}&status=eq.pending&select=id&limit=1`);
+    if (!Array.isArray(rows) || !rows[0]) throw new Error("Game request is no longer pending.");
+    await request(`/rest/v1/game_code_game_requests?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ status, reviewed_by_user_id: adminUserId, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
+    });
+    return { status };
   }
 
   async function listExpiryReports() {
@@ -485,6 +519,10 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
       if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
       return submitCodeSubmission(gameId, input, user);
     },
+    submitGameRequest(input, user) {
+      if (!isConfigured()) throw new Error("Game requests are not configured yet.");
+      return submitGameRequest(input, user);
+    },
     voteForCode(gameId, codeId, userId, worked) {
       if (!isConfigured()) throw new Error("Code voting is not configured yet.");
       return voteForCode(gameId, codeId, userId, worked);
@@ -496,6 +534,14 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     listSubmissions(status) {
       if (!isConfigured()) throw new Error("Code submissions are not configured yet.");
       return listSubmissions(status);
+    },
+    listGameRequests(status) {
+      if (!isConfigured()) throw new Error("Game requests are not configured yet.");
+      return listGameRequests(status);
+    },
+    reviewGameRequest(id, decision, adminUserId) {
+      if (!isConfigured()) throw new Error("Game requests are not configured yet.");
+      return reviewGameRequest(id, decision, adminUserId);
     },
     listExpiryReports() {
       if (!isConfigured()) throw new Error("Code expiry reports are not configured yet.");
