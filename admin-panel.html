@@ -1159,22 +1159,19 @@
         </div>
       </div>
     </section>
-    <section class="admin-card">
+    <section class="admin-card" id="codeActionReviewCenter">
       <div class="admin-card-inner">
-        <div class="admin-card-head"><div><h2 class="admin-card-title">Pending Code Submissions</h2><p class="admin-card-copy">Review community code reports before they are added to public game-code guides.</p></div><button class="admin-btn ghost" id="refreshCodeSubmissionsButton" type="button">Refresh</button></div>
+        <div class="admin-card-head"><div><h2 class="admin-card-title">Code Action Review Center</h2><p class="admin-card-copy">Review code submissions, inactive reports, and contributor awards in one place. Points are granted only after an admin validates the action.</p></div><button class="admin-btn ghost" id="refreshCodeSubmissionsButton" type="button">Refresh submissions</button></div>
         <div class="admin-note-log" id="codeSubmissionsLog">Loading submissions...</div>
+        <div class="admin-card-head" style="margin-top:18px"><div><h3 class="admin-card-title" style="font-size:17px">Reported Inactive Codes</h3><p class="admin-card-copy">Confirm a report before marking a code inactive and awarding its configured points.</p></div><button class="admin-btn ghost" id="refreshExpiryReportsButton" type="button">Refresh reports</button></div>
+        <div class="admin-note-log" id="expiryReportsLog">Loading reports...</div>
+        <div id="contributorRewardsMount"></div>
       </div>
     </section>
     <section class="admin-card">
       <div class="admin-card-inner">
         <div class="admin-card-head"><div><h2 class="admin-card-title">Requested Games</h2><p class="admin-card-copy">Review member game requests and optional code notes here, away from the public Codes page.</p></div><button class="admin-btn ghost" id="refreshCodeGameRequestsButton" type="button">Refresh</button></div>
         <div class="admin-note-log" id="codeGameRequestsLog">Loading game requests...</div>
-      </div>
-    </section>
-    <section class="admin-card">
-      <div class="admin-card-inner">
-        <div class="admin-card-head"><div><h2 class="admin-card-title">Reported Expired Codes</h2><p class="admin-card-copy">Member reports that need a staff check before a public code is moved to the expired tab.</p></div><button class="admin-btn ghost" id="refreshExpiryReportsButton" type="button">Refresh</button></div>
-        <div class="admin-note-log" id="expiryReportsLog">Loading reports...</div>
       </div>
     </section>
 
@@ -1204,7 +1201,7 @@
         <div class="admin-field">
           <label class="admin-label" for="maintenancePaths">Specific Page Maintenance</label>
           <details class="admin-multi-select" id="maintenancePaths" aria-describedby="maintenancePathsHelp"><summary id="maintenancePathsSummary">Choose pages to maintain</summary><div class="admin-multi-select-list">
-            <label><input data-maintenance-path type="checkbox" value="/game-codes" /> Roblox Codes</label><label><input data-maintenance-path type="checkbox" value="/ugc-downloader" /> UGC Downloader</label><label><input data-maintenance-path type="checkbox" value="/template-downloader" /> Template Downloader</label><label><input data-maintenance-path type="checkbox" value="/template-background-changer" /> Template Background Changer</label><label><input data-maintenance-path type="checkbox" value="/media-downloader" /> Media Downloader</label><label><input data-maintenance-path type="checkbox" value="/audio-downloader" /> Audio Downloader</label><label><input data-maintenance-path type="checkbox" value="/animation-spoofer" /> Animation Spoofer</label><label><input data-maintenance-path type="checkbox" value="/robux-calculator" /> Robux Calculator</label><label><input data-maintenance-path type="checkbox" value="/thumbnail-ai" /> Thumbnail AI</label><label><input data-maintenance-path type="checkbox" value="/ai-ugc" /> AI UGC</label><label><input data-maintenance-path type="checkbox" value="/ai-clothing-studio" /> AI Clothing Studio</label>
+            <label><input data-maintenance-path type="checkbox" value="/game-codes" /> Roblox Codes</label><label><input data-maintenance-path type="checkbox" value="/rewards" /> RBLX Rewards</label><label><input data-maintenance-path type="checkbox" value="/ugc-downloader" /> UGC Downloader</label><label><input data-maintenance-path type="checkbox" value="/template-downloader" /> Template Downloader</label><label><input data-maintenance-path type="checkbox" value="/template-background-changer" /> Template Background Changer</label><label><input data-maintenance-path type="checkbox" value="/media-downloader" /> Media Downloader</label><label><input data-maintenance-path type="checkbox" value="/audio-downloader" /> Audio Downloader</label><label><input data-maintenance-path type="checkbox" value="/animation-spoofer" /> Animation Spoofer</label><label><input data-maintenance-path type="checkbox" value="/robux-calculator" /> Robux Calculator</label><label><input data-maintenance-path type="checkbox" value="/thumbnail-ai" /> Thumbnail AI</label><label><input data-maintenance-path type="checkbox" value="/ai-ugc" /> AI UGC</label><label><input data-maintenance-path type="checkbox" value="/ai-clothing-studio" /> AI Clothing Studio</label>
           </div></details>
           <p class="admin-field-note" id="maintenancePathsHelp">Choose one or more public pages. Selecting any page automatically turns off full-site maintenance; admins retain access.</p>
         </div>
