@@ -127,6 +127,9 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const voteRows = codeIds.length
       ? await request(`/rest/v1/game_code_votes?${buildInFilter("game_code_id", codeIds)}&select=game_code_id,worked,voter_user_id`)
       : [];
+    const expiryReportRows = codeIds.length && viewerUserId
+      ? await request(`/rest/v1/game_code_expiry_reports?${buildInFilter("game_code_id", codeIds)}&reporter_user_id=eq.${encodeURIComponent(viewerUserId)}&select=game_code_id`)
+      : [];
     const voteSummary = new Map();
     (Array.isArray(voteRows) ? voteRows : []).forEach((vote) => {
       const summary = voteSummary.get(vote.game_code_id) || { successVotes: 0, failureVotes: 0 };
@@ -142,6 +145,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
       code.successRate = code.totalVotes ? Math.round((summary.successVotes / code.totalVotes) * 100) : null;
       const viewerVote = viewerUserId ? (Array.isArray(voteRows) ? voteRows : []).find((vote) => String(vote.game_code_id) === String(code.id) && String(vote.voter_user_id) === String(viewerUserId)) : null;
       code.viewerWorked = viewerVote ? Boolean(viewerVote.worked) : null;
+      code.viewerReportedExpired = viewerUserId && (Array.isArray(expiryReportRows) ? expiryReportRows : []).some((report) => String(report.game_code_id) === String(code.id));
     });
     const ratingRows = await request(`/rest/v1/game_ratings?game_id=eq.${encodeURIComponent(game.id)}&select=score,voter_user_id`);
     const ratingCount = Array.isArray(ratingRows) ? ratingRows.length : 0;
