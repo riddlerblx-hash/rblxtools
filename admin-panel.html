@@ -1167,6 +1167,12 @@
     </section>
     <section class="admin-card">
       <div class="admin-card-inner">
+        <div class="admin-card-head"><div><h2 class="admin-card-title">Requested Games</h2><p class="admin-card-copy">Review member game requests and optional code notes here, away from the public Codes page.</p></div><button class="admin-btn ghost" id="refreshCodeGameRequestsButton" type="button">Refresh</button></div>
+        <div class="admin-note-log" id="codeGameRequestsLog">Loading game requests...</div>
+      </div>
+    </section>
+    <section class="admin-card">
+      <div class="admin-card-inner">
         <div class="admin-card-head"><div><h2 class="admin-card-title">Reported Expired Codes</h2><p class="admin-card-copy">Member reports that need a staff check before a public code is moved to the expired tab.</p></div><button class="admin-btn ghost" id="refreshExpiryReportsButton" type="button">Refresh</button></div>
         <div class="admin-note-log" id="expiryReportsLog">Loading reports...</div>
       </div>
@@ -2021,7 +2027,36 @@
       load();
     }());
   </script>
-  <script src="./maintenance-admin.js"></script>
+  <script>
+    (function () {
+      var log = document.getElementById("codeGameRequestsLog"), refresh = document.getElementById("refreshCodeGameRequestsButton");
+      if (!log || !refresh) return;
+      async function load() {
+        log.textContent = "Loading game requests...";
+        try {
+          var response = await fetch("/admin/codes/game-requests?status=pending", { credentials: "include" });
+          var payload = await response.json().catch(function () { return {}; });
+          if (!response.ok) throw new Error(payload.error || "Could not load game requests.");
+          var requests = Array.isArray(payload.requests) ? payload.requests : [];
+          log.innerHTML = "";
+          if (!requests.length) { log.textContent = "No pending game requests."; return; }
+          requests.forEach(function (entry) {
+            var row = document.createElement("div"); row.className = "admin-note-entry";
+            var title = document.createElement("strong"); title.textContent = entry.roblox_game_url || "Game link not supplied";
+            var notes = document.createElement("div"); notes.textContent = entry.additional_codes || "No optional codes supplied.";
+            var meta = document.createElement("div"); meta.textContent = "Requested by " + (entry.requester_name || "Member") + " on " + new Date(entry.created_at).toLocaleString();
+            var reviewed = document.createElement("button"); reviewed.className = "admin-btn green"; reviewed.type = "button"; reviewed.textContent = "Mark reviewed";
+            var reject = document.createElement("button"); reject.className = "admin-btn red"; reject.type = "button"; reject.textContent = "Reject";
+            [reviewed, reject].forEach(function (button) { button.style.marginTop = "8px"; button.style.marginRight = "7px"; });
+            function review(decision) { return fetch("/admin/codes/game-requests/" + encodeURIComponent(entry.id), { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: decision }) }).then(function (result) { return result.json().then(function (body) { if (!result.ok) throw new Error(body.error || "Could not review this request."); }); }).then(load).catch(function (error) { alert(error.message); }); }
+            reviewed.onclick = function () { review("reviewed"); }; reject.onclick = function () { review("rejected"); };
+            row.append(title, notes, meta, reviewed, reject); log.appendChild(row);
+          });
+        } catch (error) { log.textContent = error.message || "Could not load game requests."; }
+      }
+      refresh.onclick = load; load();
+    }());
+  </script>  <script src="./maintenance-admin.js"></script>
 </body>
 </html>
 
