@@ -116,14 +116,14 @@ const STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS = new Set([STRIPE_DISCORD_BOT_UNLIM
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "");
 const APP_BASE_URL = String(process.env.APP_BASE_URL || "https://www.rblxtools.net");
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
-const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || "")
+const ADMIN_USER_IDS = new Set((process.env.ADMIN_USER_IDS || "")
   .split(",")
   .map((value) => String(value || "").trim())
-  .filter(Boolean);
-const ADMIN_USER_EMAILS = (process.env.ADMIN_USER_EMAILS || "")
+  .filter(Boolean));
+const ADMIN_USER_EMAILS = new Set((process.env.ADMIN_USER_EMAILS || "")
   .split(",")
   .map((value) => String(value || "").trim().toLowerCase())
-  .filter(Boolean);
+  .filter(Boolean));
 const DEFAULT_COMPLIMENTARY_PLUS_DAYS = 14;
 const MAX_COMPLIMENTARY_PLUS_DAYS = 3650;
 const OWNER_STRIPE_PIN = "0212";
@@ -4592,8 +4592,8 @@ function isAdminUser(user) {
   const userEmail = String(user.email || "").trim().toLowerCase();
 
   return (
-    (userId && ADMIN_USER_IDS.includes(userId)) ||
-    (userEmail && ADMIN_USER_EMAILS.includes(userEmail))
+    (userId && ADMIN_USER_IDS.has(userId)) ||
+    (userEmail && ADMIN_USER_EMAILS.has(userEmail))
   );
 }
 
@@ -4614,7 +4614,7 @@ function applyDashboardAdminAccess(dashboard, user) {
 async function requireAdminUser(req) {
     const user = await requireAuthenticatedUser(req);
 
-  if (!ADMIN_USER_IDS.length && !ADMIN_USER_EMAILS.length) {
+  if (!ADMIN_USER_IDS.size && !ADMIN_USER_EMAILS.size) {
     const error = new Error("Admin allowlist is not configured.");
     error.statusCode = 500;
     throw error;
