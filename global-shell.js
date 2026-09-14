@@ -3006,6 +3006,10 @@
         syncChatFromServer();
       });
 
+      shellState.socket.on("account-transactions-updated", function () {
+        try { window.dispatchEvent(new CustomEvent("rblxtools-account-transactions-updated")); } catch (_error) {}
+      });
+
       shellState.socket.on("connect_error", function (error) {
         shellState.socketReady = false;
         // The HTTP sync/post routes remain usable while Socket.IO retries.

@@ -1748,6 +1748,37 @@ async function createPendingPointTransaction({ userId, sourceType, sourceId, tit
   });
 }
 
+function emitAccountTransactionUpdate(userId) {
+  if (!userId || !io?.sockets?.sockets) return;
+  io.sockets.sockets.forEach((socket) => {
+    if (String(socket?.data?.currentUserId || "") === String(userId)) socket.emit("account-transactions-updated");
+  });
+}
+
+// This is a display/audit ledger. It is deliberately separate from balances so
+// a temporary ledger outage never prevents a paid AI job from completing.
+async function recordAccountTransaction({ userId, category, sourceType, sourceId, title, amountDelta, unit, status = "accepted", note = "" }) {
+  if (!userId || !category || !sourceType || !title || !unit) return null;
+  try {
+    const rows = await supabaseRequest("/rest/v1/account_transactions", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify({
+        user_id: userId, category, source_type: sourceType,
+        source_id: String(sourceId || randomUUID()), title: cleanText(title, 160),
+        amount_delta: Number(amountDelta) || 0, unit: cleanText(unit, 20),
+        status, note: cleanText(note, 500),
+      }),
+    });
+    emitAccountTransactionUpdate(userId);
+    return Array.isArray(rows) ? rows[0] : rows;
+  } catch (error) {
+    // The migration may not have been applied yet. Keep core account actions safe.
+    console.warn("Could not record account transaction:", error.message);
+    return null;
+  }
+}
+
 async function awardRewardPoints({ userId, sourceType, sourceId, title, points, adminUserId, note = "" }) {
   const rows = await supabaseRequest("/rest/v1/rpc/award_reward_points", {
     method: "POST",
@@ -1757,6 +1788,7 @@ async function awardRewardPoints({ userId, sourceType, sourceId, title, points, 
       p_admin_user_id: adminUserId, p_note: cleanText(note, 500),
     }),
   });
+  emitAccountTransactionUpdate(userId);
   return Array.isArray(rows) ? rows[0] : rows;
 }
 
@@ -2078,6 +2110,7 @@ function recordReferralCommissionFromCheckout(session) {
   state.attributions.push({ id: randomUUID(), buyerUserId, referrerUserId: referral.userId, code, createdAt: commission.createdAt });
   state.commissions.push(commission);
   writeReferralProgram(state);
+  recordAccountTransaction({ userId: referral.userId, category: "affiliate", sourceType: "affiliate_commission", sourceId: commission.id, title: "Affiliate commission earned", amountDelta: commission.amountCents, unit: "usd_cents", status: "pending", note: "Available after the 14-day holding period" });
   return commission;
 }
 
@@ -3481,7 +3514,7 @@ async function updateAuthUserFields(userId, fields) {
   return Array.isArray(rows) && rows[0] ? rows[0] : null;
 }
 
-async function debitAITokens(userId, cost) {
+async function debitAITokens(userId, cost, transaction = {}) {
   const normalizedCost = Math.max(1, Number.parseInt(cost, 10) || 1);
 
   // The balance predicate prevents two overlapping requests from spending the same token.
@@ -3524,6 +3557,11 @@ async function debitAITokens(userId, cost) {
     );
 
     if (Array.isArray(rows) && rows[0]) {
+      await recordAccountTransaction({
+        userId, category: "ai_tokens", sourceType: transaction.sourceType || "ai_token_spend",
+        sourceId: transaction.sourceId || randomUUID(), title: transaction.title || "AI tool usage",
+        amountDelta: -normalizedCost, unit: "tokens", status: "accepted", note: transaction.note || "",
+      });
       return getAITokenBalance(rows[0]);
     }
   }
@@ -3552,8 +3590,9 @@ async function grantAITokensFromStripeCheckout(session) {
       p_tokens: tokens,
     }),
   });
-
-  return Number.parseInt(rows, 10) || 0;
+  const balance = Number.parseInt(rows, 10) || 0;
+  await recordAccountTransaction({ userId, category: "ai_tokens", sourceType: "ai_token_purchase", sourceId: sessionId, title: `Purchased ${tokens.toLocaleString("en-US")} AI tokens`, amountDelta: tokens, unit: "tokens", status: "accepted", note: "Stripe checkout" });
+  return balance;
 }
 
 function getStripePriceProductId(price) {
@@ -3651,7 +3690,9 @@ async function grantMembershipTokensFromStripeInvoice(invoice) {
     }),
   });
 
-  return Number.parseInt(rows, 10) || 0;
+  const balance = Number.parseInt(rows, 10) || 0;
+  await recordAccountTransaction({ userId: user.id, category: "ai_tokens", sourceType: "membership_token_credit", sourceId: "membership-" + plan + "-" + billingInterval + ":" + invoiceId, title: `${plan === "pro" ? "Pro" : "Plus"} membership AI token credit`, amountDelta: tokenCredits, unit: "tokens", status: "accepted", note: `${billingInterval} membership renewal` });
+  return balance;
 }
 
 async function getDeviceLinksForUser(userId) {
@@ -4814,6 +4855,7 @@ async function grantAITokensToUser(userId, amount) {
     error.statusCode = 500;
     throw error;
   }
+  await recordAccountTransaction({ userId: targetUser.id, category: "ai_tokens", sourceType: "ai_token_admin_grant", sourceId: randomUUID(), title: "AI token grant", amountDelta: safeAmount, unit: "tokens", status: "accepted", note: "Granted by staff" });
   return { user: updatedUser, amount: safeAmount };
 }
 
@@ -6876,6 +6918,7 @@ app.post("/referrals/request-payout", async (req, res) => {
     available.forEach((entry) => { entry.status = "requested"; entry.payoutRequestId = request.id; });
     state.payoutRequests.push(request);
     writeReferralProgram(state);
+    await recordAccountTransaction({ userId: user.id, category: "affiliate", sourceType: "affiliate_payout", sourceId: request.id, title: "Affiliate payout requested", amountDelta: -availableCents, unit: "usd_cents", status: "pending", note: "Awaiting staff payout review" });
     return res.json({ ok: true, request, referral: getReferralDashboard(user.id) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not request a payout." });
@@ -7339,7 +7382,7 @@ app.post("/ai/ugc/preview", async (req, res) => {
       : await requestMeshy("/v2/text-to-3d", { method: "POST", body: { mode: "preview", prompt, model_type: modelType, ai_model: "latest", should_remesh: modelType === "standard", target_polycount: targetPolycount, target_formats: ["glb"], alpha_thumbnail: true, moderation: true } });
     const taskId = task.result || task.id;
     const taskType = useMultiView ? "multi" : inputMode;
-    const aiTokens = await debitAITokens(user.id, tokenCost);
+    const aiTokens = await debitAITokens(user.id, tokenCost, { sourceType: "ai_ugc_preview", sourceId: taskId, title: "AI UGC Studio generation", note: `${assetType} ${taskType} generation` });
     tokensDebited = true;
     ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode, taskType, prompt, targetPolycount, withTexture, enablePbr, textureResolution, tokenCost, textureTokenCost: withTexture && inputMode === "text" ? getAITokenGenerationCost(UGC_TEXTURE_GENERATION_TOKEN_COST, membership) : 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
     persistPendingAIUGCGeneration(user, { taskId, assetType, inputMode, taskType, prompt, targetPolycount, withTexture });
@@ -7393,7 +7436,7 @@ app.post("/ai/ugc/batch", async (req, res) => {
     });
     if (!acceptedTasks.length) throw new Error("None of the batch images could be submitted.");
     tokenCost = costPerImage * acceptedTasks.length;
-    const aiTokens = await debitAITokens(user.id, tokenCost);
+    const aiTokens = await debitAITokens(user.id, tokenCost, { sourceType: "ai_ugc_batch", sourceId: acceptedTasks.map((task) => task.taskId).join(","), title: "AI UGC Studio batch generation", note: `${acceptedTasks.length} image${acceptedTasks.length === 1 ? "" : "s"}` });
     tokensDebited = true;
     const tasks = acceptedTasks.map(({ taskId, sourceIndex }) => {
       ugcGenerationCharges.set(taskId, { userId: user.id, assetType, inputMode: "image", taskType: "image", prompt: "", targetPolycount, withTexture, enablePbr, textureResolution, tokenCost: costPerImage, textureTokenCost: 0, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
@@ -7436,7 +7479,7 @@ app.post("/ai/ugc/refine", async (req, res) => {
       body: { mode: "refine", preview_task_id: previewTaskId, enable_pbr: enablePbr, texture_resolution: textureResolution, target_formats: ["glb"], alpha_thumbnail: true },
     });
     const taskId = task.result || task.id;
-    const aiTokens = await debitAITokens(user.id, textureTokenCost);
+    const aiTokens = await debitAITokens(user.id, textureTokenCost, { sourceType: "ai_ugc_texture", sourceId: taskId, title: "AI UGC Studio texture pass", note: "Texture refinement" });
     tokensDebited = true;
     ugcGenerationCharges.set(taskId, { ...charge, isRefine: true, enablePbr, textureResolution, expiresAt: Date.now() + UGC_SOURCE_IMAGE_TTL_MS });
     persistPendingAIUGCGeneration(user, { taskId, assetType: charge.assetType, inputMode: "text", taskType: "text", prompt: charge.prompt, targetPolycount: charge.targetPolycount, withTexture: true });
@@ -7939,7 +7982,7 @@ app.post("/api/ugc/community/:taskId/tip", async (req, res) => {
     if (!Number.isFinite(requestedAmount) || requestedAmount < 1 || requestedAmount > 5000) return res.status(400).json({ error: "Choose a tip amount from 1 to 5,000 tokens." });
     amount = requestedAmount;
     const lockKey = `${sender.id}:${taskId}`; if (ugcCommunityTipLocks.has(lockKey)) return res.status(409).json({ error: "That tip is already being processed." }); ugcCommunityTipLocks.add(lockKey);
-    await debitAITokens(sender.id, amount);
+    await debitAITokens(sender.id, amount, { sourceType: "ai_ugc_tip", sourceId: taskId + ":" + sender.id + ":" + Date.now(), title: "AI UGC community tip", note: "Tip sent to a community creator" });
     const creator = await getAuthUserById(item.creatorId); if (!creator) throw new Error("The creator account is unavailable.");
     const credited = await updateAuthUserFields(creator.id, { ai_token_balance: getAITokenBalance(creator) + amount });
     if (!credited) throw new Error("Could not credit the creator.");
@@ -8112,7 +8155,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
     const isPro = membership?.premiumActive && String(membership?.plan || "").toLowerCase() === "pro";
     const thumbnailHistoryLimit = getAIThumbnailHistoryLimit(membership);
     const tokenCost = getAITokenGenerationCost(AI_THUMBNAIL_TOKEN_COST, membership);
-    const aiTokens = await debitAITokens(user.id, tokenCost);
+    const aiTokens = await debitAITokens(user.id, tokenCost, { sourceType: "ai_thumbnail", sourceId: randomUUID(), title: "AI Thumbnail Studio generation", note: "Thumbnail generation" });
     let result;
     try {
       result = await generateAIThumbnail({
@@ -11430,6 +11473,7 @@ app.post("/api/codes/:slug/submissions", async (req, res) => {
     if (!guide) return res.status(404).json({ error: "Code guide not found." });
     const submission = await codesPlatform.submitCodeSubmission(guide.game.id, req.body || {}, user);
     await createPendingPointTransaction({ userId: user.id, sourceType: "working_code", sourceId: submission.id, title: "Working code submitted", points: REWARD_POINT_AWARDS.working_code });
+    emitAccountTransactionUpdate(user.id);
     return res.status(201).json({ ok: true, submission });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit this code." });
@@ -11467,6 +11511,7 @@ app.post("/api/codes/:slug/codes/:codeId/expiry-reports", async (req, res) => {
     // The report store returns only a confirmation on older installs. A unique source id
     // is required for a history row, so refresh the member ledger only when available.
     if (report?.id) await createPendingPointTransaction({ userId: user.id, sourceType: "expired_code_report", sourceId: report.id, title: "Inactive code reported", points: REWARD_POINT_AWARDS.expired_code_report });
+    emitAccountTransactionUpdate(user.id);
     return res.status(201).json({ ok: true, report });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not report this code." });
@@ -11671,7 +11716,7 @@ app.patch("/admin/codes/submissions/:id", async (req, res) => {
     const submission = result.submission;
     if (submission) {
       if (result.status === "approved") await awardRewardPoints({ userId: submission.submitter_user_id, sourceType: "working_code", sourceId: submission.id, title: "Working code approved", points: REWARD_POINT_AWARDS.working_code, adminUserId: admin.id, note: req.body?.note });
-      else await rejectPendingPointTransaction("working_code", submission.id, admin.id, req.body?.note);
+      else { await rejectPendingPointTransaction("working_code", submission.id, admin.id, req.body?.note); emitAccountTransactionUpdate(submission.submitter_user_id); }
     }
     if (result.status === "approved") publishCodesUpdate();
     return res.json({ ok: true, ...result });
@@ -11685,7 +11730,7 @@ app.patch("/admin/codes/expiry-reports/:id", async (req, res) => {
     const admin = await requireAdminUser(req);
     const result = await codesPlatform.reviewExpiryReport(req.params.id, req.body?.decision, admin.id, req.body?.note);
     if (result.status === "approved") await awardRewardPoints({ userId: result.report.reporter_user_id, sourceType: "expired_code_report", sourceId: result.report.id, title: "Inactive code report approved", points: REWARD_POINT_AWARDS.expired_code_report, adminUserId: admin.id, note: req.body?.note });
-    else await rejectPendingPointTransaction("expired_code_report", result.report.id, admin.id, req.body?.note);
+    else { await rejectPendingPointTransaction("expired_code_report", result.report.id, admin.id, req.body?.note); emitAccountTransactionUpdate(result.report.reporter_user_id); }
     if (result.status === "approved") publishCodesUpdate();
     return res.json({ ok: true, ...result });
   } catch (error) {
@@ -11696,8 +11741,10 @@ app.patch("/admin/codes/expiry-reports/:id", async (req, res) => {
 app.get("/api/rewards/me", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    const rows = await supabaseRequest(`/rest/v1/reward_point_transactions?user_id=eq.${encodeURIComponent(user.id)}&select=id,title,points_delta,status,note,created_at,reviewed_at,source_type&order=created_at.desc&limit=100`);
-    return res.json({ ok: true, rewardPoints: Math.max(0, Number(user.reward_points) || 0), transactions: Array.isArray(rows) ? rows : [] });
+    const pointRows = await supabaseRequest(`/rest/v1/reward_point_transactions?user_id=eq.${encodeURIComponent(user.id)}&select=id,title,points_delta,status,note,created_at,reviewed_at,source_type&order=created_at.desc&limit=100`);
+    const accountRows = await supabaseRequest(`/rest/v1/account_transactions?user_id=eq.${encodeURIComponent(user.id)}&select=id,category,source_type,title,amount_delta,unit,status,note,created_at,reviewed_at&order=created_at.desc&limit=100`).catch(() => []);
+    const points = (Array.isArray(pointRows) ? pointRows : []).map((row) => ({ ...row, category: "points", amount_delta: row.points_delta, unit: "points" }));
+    return res.json({ ok: true, rewardPoints: Math.max(0, Number(user.reward_points) || 0), transactions: points.concat(Array.isArray(accountRows) ? accountRows : []).sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0)).slice(0, 100) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load reward history." });
   }
@@ -11713,6 +11760,7 @@ app.post("/api/rewards/redeem", async (req, res) => {
     const pointsCost = Math.round(basePoints * amount / 5);
     if (Number(user.reward_points || 0) < pointsCost) return res.status(409).json({ error: "You do not have enough approved points for that gift card." });
     const rows = await supabaseRequest("/rest/v1/reward_point_transactions", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ user_id: user.id, source_type: "gift_card_request", title: `${brand} $${amount} gift card request`, points_delta: -pointsCost, status: "pending", note: "Awaiting staff fulfillment" }) });
+    emitAccountTransactionUpdate(user.id);
     return res.status(201).json({ ok: true, transaction: Array.isArray(rows) ? rows[0] : null });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit your gift-card request." });

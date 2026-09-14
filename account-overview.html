@@ -1307,6 +1307,8 @@
     #rbtools-account-overview .acct-transaction-row small { display:block; margin-top:3px; color:#9fb0ca; font-size:10px; }
     #rbtools-account-overview .acct-transaction-amount { text-align:right; color:#a8f0c9; font-size:13px; font-weight:900; }
     #rbtools-account-overview .acct-transaction-amount.is-outgoing { color:#ffc0c7; }
+    #rbtools-account-overview .acct-transaction-amount.is-pending { color:#aeb9c9; }
+    #rbtools-account-overview .acct-transaction-amount.is-rejected { color:#ffabb4; }
     #rbtools-account-overview .acct-transaction-status { display:inline-block; margin-top:4px; padding:2px 5px; border-radius:99px; color:#b5c7e1; background:rgba(145,170,210,.14); font-size:9px; font-weight:900; text-transform:capitalize; }
     #rbtools-account-overview .acct-transaction-status.approved { color:#98efbd; background:rgba(52,201,128,.16); }
     #rbtools-account-overview .acct-transaction-status.rejected { color:#ffabb4; background:rgba(231,79,99,.16); }
@@ -2311,32 +2313,41 @@
           var type = els.acctRewardTransactionType ? els.acctRewardTransactionType.value : "points";
           var range = els.acctRewardTransactionRange ? els.acctRewardTransactionRange.value : "30";
           var cutoff = Date.now() - Math.max(1, Number(range) || 30) * 24 * 60 * 60 * 1000;
+          var categoryFor = function (item) {
+            if (item.category) return item.category;
+            if (item.source_type === "working_code" || item.source_type === "expired_code_report" || item.source_type === "gift_card_request") return item.source_type === "gift_card_request" ? "purchases" : "points";
+            return "";
+          };
           var visible = transactions.filter(function (item) {
-            var delta = Number(item.points_delta || 0), created = Date.parse(item.created_at || "") || 0;
-            if (created && created < cutoff) return false;
-            if (type === "points") return (item.source_type === "working_code" || item.source_type === "expired_code_report");
-            if (type === "ai_tokens") return item.source_type === "ai_token_purchase" || item.source_type === "ai_token_grant";
-            if (type === "purchases") return delta < 0 || item.source_type === "gift_card_request";
-            if (type === "sales") return item.source_type === "sale_of_goods";
-            if (type === "affiliate") return item.source_type === "affiliate_commission" || item.source_type === "affiliate_payout";
-            return false;
+            var created = Date.parse(item.created_at || "") || 0;
+            return (!created || created >= cutoff) && categoryFor(item) === type;
           });
-          function rows(items, outgoing) {
+          var labels = { points: "Points earned", ai_tokens: "AI token activity", purchases: "Purchases", sales: "Sales of goods", affiliate: "Affiliate marketing" };
+          var unitLabel = function (unit) { return unit === "tokens" ? "tokens" : unit === "usd_cents" ? "USD" : "points"; };
+          var amountFor = function (item) {
+            var delta = Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0), unit = item.unit || "points", sign = delta < 0 ? "-" : "+", value = Math.abs(delta);
+            if (unit === "usd_cents") return sign + "$" + (value / 100).toFixed(2);
+            return sign + value.toLocaleString() + " " + unitLabel(unit);
+          };
+          function rows(items) {
             return items.length ? items.map(function (item) {
-              var status = String(item.status || "pending").toLowerCase(), delta = Number(item.points_delta || 0), amount = Math.abs(delta).toLocaleString();
-              return '<div class="acct-transaction-row"><div><strong>' + esc(item.title || "Reward activity") + '</strong><small>' + new Date(item.created_at).toLocaleDateString() + ' · <span class="acct-transaction-status ' + esc(status) + '">' + esc(status) + '</span></small></div><div class="acct-transaction-amount' + (outgoing ? ' is-outgoing' : '') + '">' + (outgoing ? '-' : '+') + amount + ' pts</div></div>';
+              var rawStatus = String(item.status || "pending").toLowerCase(), status = rawStatus === "approved" ? "accepted" : rawStatus;
+              var date = new Date(item.created_at), details = item.note ? " · " + esc(item.note) : "";
+              var amountClass = status === "pending" ? " is-pending" : status === "rejected" ? " is-rejected" : Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0) < 0 ? " is-outgoing" : "";
+              return '<div class="acct-transaction-row"><div><strong>' + esc(item.title || "Account activity") + '</strong><small>' + (Number.isNaN(date.getTime()) ? "Transaction" : date.toLocaleDateString()) + details + '</small></div><div class="acct-transaction-amount' + amountClass + '">' + amountFor(item) + ' <span class="acct-transaction-status ' + esc(status) + '">(' + esc(status) + ')</span></div></div>';
             }).join("") : '<div class="acct-transaction-empty">No transactions in this category yet.</div>';
           }
-          var incoming = visible.filter(function (item) { return Number(item.points_delta || 0) >= 0 && item.source_type !== "gift_card_request"; });
-          var outgoing = visible.filter(function (item) { return Number(item.points_delta || 0) < 0 || item.source_type === "gift_card_request"; });
-          var incomingTotal = incoming.reduce(function (sum, item) { return sum + Math.max(0, Number(item.points_delta || 0)); }, 0);
-          var outgoingTotal = outgoing.reduce(function (sum, item) { return sum + Math.abs(Number(item.points_delta || 0)); }, 0);
-          if (type === "points") els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>Points earned</span><span style="text-align:right">Amount</span></div>' + rows(incoming, false) + '<div class="acct-transaction-total"><span>Total points earned</span><span>+' + incomingTotal.toLocaleString() + ' pts</span></div></div>';
-          else if (type === "purchases") els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>Purchases</span><span style="text-align:right">Amount</span></div>' + rows(outgoing, true) + '<div class="acct-transaction-total"><span>Total purchases</span><span>-' + outgoingTotal.toLocaleString() + ' pts</span></div></div>';
-          else { var labels = { ai_tokens: "AI token activity", sales: "Sales of goods", affiliate: "Affiliate marketing" }, label = labels[type] || "Transaction activity"; els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>' + label + '</span><span style="text-align:right">Amount</span></div>' + rows(visible, false) + '<div class="acct-transaction-total"><span>Total</span><span>+' + incomingTotal.toLocaleString() + ' pts</span></div></div>'; }
+          var total = visible.filter(function (item) { var status = String(item.status || "pending").toLowerCase(); return status === "accepted" || status === "approved"; }).reduce(function (sum, item) { return sum + Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0); }, 0);
+          var totalUnit = visible[0] && visible[0].unit || (type === "ai_tokens" ? "tokens" : "points");
+          var totalText = totalUnit === "usd_cents" ? (total < 0 ? "-" : "+") + "$" + (Math.abs(total) / 100).toFixed(2) : (total < 0 ? "-" : "+") + Math.abs(total).toLocaleString() + " " + unitLabel(totalUnit);
+          els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>' + labels[type] + '</span><span style="text-align:right">Amount</span></div>' + rows(visible) + '<div class="acct-transaction-total"><span>Accepted total</span><span>' + totalText + '</span></div></div>';
           if (els.acctRewardTransactionType && !els.acctRewardTransactionType.dataset.bound) {
             [els.acctRewardTransactionType, els.acctRewardTransactionRange].forEach(function (select) { select.addEventListener("change", function () { loadRewardHistory(); }); });
             els.acctRewardTransactionType.dataset.bound = "true";
+          }
+          if (!window.__rblxAccountTransactionLiveBound) {
+            window.__rblxAccountTransactionLiveBound = true;
+            window.addEventListener("rblxtools-account-transactions-updated", function () { loadRewardHistory(); });
           }
           setStatus(els.acctRewardsStatus, "", "");
         } catch (_error) {
