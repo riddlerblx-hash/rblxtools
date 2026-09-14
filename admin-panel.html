@@ -1993,6 +1993,7 @@
       }
       refresh.onclick = load;
       window.addEventListener("rblxtools-codes-updated", load);
+      window.setInterval(function () { if (!document.hidden) load(); }, 2500);
       load();
     }());
   </script>
@@ -2031,6 +2032,7 @@
       }
       refresh.onclick = load;
       window.addEventListener("rblxtools-codes-updated", load);
+      window.setInterval(function () { if (!document.hidden) load(); }, 2500);
       load();
     }());
   </script>
@@ -2061,7 +2063,7 @@
           });
         } catch (error) { log.textContent = error.message || "Could not load game requests."; }
       }
-      refresh.onclick = load; window.addEventListener("rblxtools-codes-updated", load); load();
+      refresh.onclick = load; window.addEventListener("rblxtools-codes-updated", load); window.setInterval(function () { if (!document.hidden) load(); }, 2500); load();
     }());
   </script>
   <script src="/socket.io/socket.io.js"></script>

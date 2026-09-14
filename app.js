@@ -11472,7 +11472,9 @@ app.post("/api/codes/:slug/submissions", async (req, res) => {
     const guide = await codesPlatform.getGame(req.params.slug);
     if (!guide) return res.status(404).json({ error: "Code guide not found." });
     const submission = await codesPlatform.submitCodeSubmission(guide.game.id, req.body || {}, user);
-    await createPendingPointTransaction({ userId: user.id, sourceType: "working_code", sourceId: submission.id, title: "Working code submitted", points: REWARD_POINT_AWARDS.working_code });
+    // A missing/stale reward migration must never prevent a newly submitted
+    // code from reaching the live admin queue.
+    await createPendingPointTransaction({ userId: user.id, sourceType: "working_code", sourceId: submission.id, title: "Working code submitted", points: REWARD_POINT_AWARDS.working_code }).catch((error) => console.error("Could not create pending code-point transaction:", error.message));
     emitAccountTransactionUpdate(user.id);
     publishCodesUpdate();
     return res.status(201).json({ ok: true, submission });
@@ -11511,7 +11513,7 @@ app.post("/api/codes/:slug/codes/:codeId/expiry-reports", async (req, res) => {
     const report = await codesPlatform.reportCodeExpired(guide.game.id, req.params.codeId, user);
     // The report store returns only a confirmation on older installs. A unique source id
     // is required for a history row, so refresh the member ledger only when available.
-    if (report?.id) await createPendingPointTransaction({ userId: user.id, sourceType: "expired_code_report", sourceId: report.id, title: "Inactive code reported", points: REWARD_POINT_AWARDS.expired_code_report });
+    if (report?.id) await createPendingPointTransaction({ userId: user.id, sourceType: "expired_code_report", sourceId: report.id, title: "Inactive code reported", points: REWARD_POINT_AWARDS.expired_code_report }).catch((error) => console.error("Could not create pending expiry-report transaction:", error.message));
     emitAccountTransactionUpdate(user.id);
     publishCodesUpdate();
     return res.status(201).json({ ok: true, report });

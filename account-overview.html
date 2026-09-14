@@ -2348,6 +2348,9 @@
           if (!window.__rblxAccountTransactionLiveBound) {
             window.__rblxAccountTransactionLiveBound = true;
             window.addEventListener("rblxtools-account-transactions-updated", function () { loadRewardHistory(); });
+            // Socket events are instant; this short fallback covers a member
+            // who temporarily loses the live connection while an admin reviews.
+            window.setInterval(function () { if (!document.hidden) loadRewardHistory(); }, 5000);
           }
           setStatus(els.acctRewardsStatus, "", "");
         } catch (_error) {
