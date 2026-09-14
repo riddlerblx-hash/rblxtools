@@ -1812,6 +1812,58 @@ async function awardRewardPoints({ userId, sourceType, sourceId, title, points, 
   return { transaction, rewardPoints: balanceAfter };
 }
 
+let rewardReconciliationInFlight = false;
+
+// Approval and points should never drift apart. This small server-side repair
+// pass covers actions approved during a brief database/schema interruption and
+// also repairs older approvals that predate the rewards feature. It only calls
+// the atomic award function when the source has no approved ledger entry.
+async function reconcileApprovedRewardPoints() {
+  if (rewardReconciliationInFlight || !SUPABASE_URL || !SUPABASE_KEY) return;
+  rewardReconciliationInFlight = true;
+  try {
+    const [submissionRows, reportRows] = await Promise.all([
+      supabaseRequest("/rest/v1/game_code_submissions?status=eq.approved&select=id,submitter_user_id,reviewed_by_user_id,review_note&order=reviewed_at.desc&limit=250").catch((error) => {
+        console.error("Could not read approved code submissions for reward reconciliation:", error.message);
+        return [];
+      }),
+      supabaseRequest("/rest/v1/game_code_expiry_reports?status=eq.approved&select=id,reporter_user_id,reviewed_by_user_id,review_note&order=reviewed_at.desc&limit=250").catch((error) => {
+        console.error("Could not read approved expiry reports for reward reconciliation:", error.message);
+        return [];
+      }),
+    ]);
+    const actions = [
+      ...(Array.isArray(submissionRows) ? submissionRows : []).map((row) => ({
+        userId: row.submitter_user_id, sourceType: "working_code", sourceId: row.id,
+        title: "Working code approved", points: REWARD_POINT_AWARDS.working_code,
+        adminUserId: row.reviewed_by_user_id, note: row.review_note || "",
+      })),
+      ...(Array.isArray(reportRows) ? reportRows : []).map((row) => ({
+        userId: row.reporter_user_id, sourceType: "expired_code_report", sourceId: row.id,
+        title: "Inactive code report approved", points: REWARD_POINT_AWARDS.expired_code_report,
+        adminUserId: row.reviewed_by_user_id, note: row.review_note || "",
+      })),
+    ];
+    for (const action of actions) {
+      if (!action.userId || !action.sourceId || !action.adminUserId) continue;
+      const entries = await supabaseRequest(`/rest/v1/reward_point_transactions?source_type=eq.${encodeURIComponent(action.sourceType)}&source_id=eq.${encodeURIComponent(action.sourceId)}&select=status&limit=1`);
+      if (Array.isArray(entries) && entries.some((entry) => entry.status === "approved")) continue;
+      try {
+        await awardRewardPoints(action);
+        console.info(`Reconciled ${action.points} RBLX Points for approved ${action.sourceType}: ${action.sourceId}`);
+      } catch (error) {
+        console.error(`Could not reconcile ${action.sourceType} reward ${action.sourceId}:`, error.message);
+      }
+    }
+  } finally {
+    rewardReconciliationInFlight = false;
+  }
+}
+
+const rewardReconciliationTimer = setInterval(() => { void reconcileApprovedRewardPoints(); }, 20_000);
+if (typeof rewardReconciliationTimer.unref === "function") rewardReconciliationTimer.unref();
+setTimeout(() => { void reconcileApprovedRewardPoints(); }, 2_000);
+
 // Do this before changing the underlying code action. A successful approval
 // must always have an available, atomic points ledger behind it.
 async function assertRewardPointsReady() {
