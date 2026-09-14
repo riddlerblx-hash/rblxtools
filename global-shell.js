@@ -5352,6 +5352,10 @@
   }
 
   enhanceRewardsGiftCardPicker();
-  if (document.body) initShell();
-  else document.addEventListener("DOMContentLoaded", initShell, { once: true });
+  // Several legacy tool pages load this shared script before their <main>.
+  // Mounting immediately created an empty shell over content the HTML parser
+  // had not inserted yet. Waiting for parsing means the shell and tool DOM are
+  // moved together in a single frame on every page.
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initShell, { once: true });
+  else initShell();
 }());
