@@ -33,13 +33,7 @@
     body {
       margin: 0;
       min-height: 100%;
-      background:
-        radial-gradient(circle at top left, rgba(110, 169, 255, 0.1), transparent 24%),
-        radial-gradient(circle at bottom right, rgba(83, 223, 136, 0.08), transparent 24%),
-        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-        linear-gradient(180deg, #0d1016 0%, #090b10 100%);
-      background-size: auto, auto, 28px 28px, 28px 28px, auto;
+      background: #0d1117;
       color: var(--admin-text);
       font-family: var(--admin-font);
     }
@@ -784,19 +778,20 @@
     .admin-multi-select { position:relative; } .admin-multi-select summary { min-height:44px; padding:12px 14px; border:1px solid var(--admin-line); border-radius:10px; color:var(--admin-text); background:rgba(255,255,255,.035); cursor:pointer; font-size:13px; font-weight:800; } .admin-multi-select[open] summary { border-bottom-left-radius:0; border-bottom-right-radius:0; } .admin-multi-select-list { display:grid; gap:7px; max-height:250px; overflow:auto; padding:12px; border:1px solid var(--admin-line); border-top:0; border-radius:0 0 10px 10px; background:#101827; } .admin-multi-select-list label { display:flex; align-items:center; gap:9px; color:var(--admin-text); font-size:12px; font-weight:700; cursor:pointer; }
     /* Shared workspaces make related controls feel like one professional flow,
        rather than a wall of unrelated utility boxes. */
-    .admin-workspace-nav { position:sticky; top:10px; z-index:8; display:flex; align-items:center; gap:8px; overflow:auto; padding:9px; border:1px solid rgba(166,193,231,.14); border-radius:18px; background:rgba(10,15,22,.82); box-shadow:0 12px 30px rgba(0,0,0,.2); backdrop-filter:blur(14px); }
-    .admin-workspace-nav a { flex:0 0 auto; padding:9px 12px; border-radius:10px; color:#b9c9df; font-size:11px; font-weight:900; letter-spacing:.02em; text-decoration:none; transition:background .16s ease,color .16s ease,transform .16s ease; }
-    .admin-workspace-nav a:hover { color:#fff; background:rgba(110,169,255,.18); transform:translateY(-1px); }
-    .admin-actions-grid { grid-template-columns:repeat(2,minmax(0,1fr)); padding:7px; border:1px solid rgba(166,193,231,.12); border-radius:28px; background:linear-gradient(145deg,rgba(38,51,69,.42),rgba(9,13,19,.42)); }
-    .admin-actions-grid > .admin-card { border-color:rgba(175,196,232,.09); border-radius:19px; background:linear-gradient(145deg,rgba(23,32,44,.96),rgba(15,21,30,.96)); box-shadow:none; }
-    .admin-actions-grid > .admin-card:hover { border-color:rgba(110,169,255,.28); }
+    .admin-workspace-nav { position:sticky; top:10px; z-index:8; display:flex; align-items:center; gap:4px; overflow:auto; padding:6px; border:1px solid #283341; border-radius:12px; background:#141b24; box-shadow:0 10px 24px rgba(0,0,0,.18); }
+    .admin-workspace-tab { flex:0 0 auto; padding:10px 14px; border:0; border-radius:8px; color:#9eacc0; background:transparent; font:800 12px var(--admin-font); cursor:pointer; transition:background .16s ease,color .16s ease; }
+    .admin-workspace-tab:hover { color:#f4f7fb; background:#202a36; }
+    .admin-workspace-tab[aria-selected="true"] { color:#fff; background:#2c5e92; box-shadow:inset 0 0 0 1px rgba(153,204,255,.18); }
+    [data-admin-workspace][hidden] { display:none!important; }
+    .admin-actions-grid { grid-template-columns:repeat(2,minmax(0,1fr)); padding:6px; border:1px solid #283341; border-radius:16px; background:#141b24; }
+    .admin-actions-grid > .admin-card { border-color:#283341; border-radius:11px; background:#181f29; box-shadow:none; }
+    .admin-actions-grid > .admin-card:hover { border-color:#3c4e62; }
     .admin-primary-ops { grid-template-columns:minmax(0,1.2fr) minmax(360px,.8fr); }
     .admin-primary-ops > .admin-card { min-height:0!important; }
-    #codeActionReviewCenter { border-color:rgba(255,204,107,.24); background:radial-gradient(circle at top right,rgba(255,204,107,.11),transparent 34%),linear-gradient(145deg,rgba(28,32,41,.98),rgba(15,20,29,.98)); }
-    #admin-live-ops > .admin-card:first-child { border-color:rgba(110,169,255,.25); }
-    #admin-live-ops > .admin-card:last-child { border-color:rgba(83,223,136,.25); }
-    .admin-section-label { padding:20px 4px 6px; margin:0; }
-    .admin-section-label h2 { font-size:28px; }
+    #codeActionReviewCenter { border-color:#344352; background:#181f29; }
+    #admin-live-ops > .admin-card:first-child,#admin-live-ops > .admin-card:last-child { border-color:#344352; }
+    .admin-section-label { padding:18px 4px 6px; margin:0; }
+    .admin-section-label h2 { font-size:24px; }
     .admin-note-log { padding:3px; border-radius:14px; background:rgba(0,0,0,.12); }
     .admin-note-entry { border-radius:10px; border-color:rgba(175,196,232,.08); background:rgba(255,255,255,.025); }
     @media (max-width:900px) { .admin-actions-grid,.admin-primary-ops{grid-template-columns:1fr}.admin-workspace-nav{top:4px} }
@@ -807,23 +802,11 @@
 <body>
 
   <div class="admin-panel">
-    <section class="admin-topbar">
-      <div class="admin-title-wrap">
-        <div class="admin-kicker">RBLXTools Internal</div>
-        <h1 class="admin-title">Command Center</h1>
-        <p class="admin-copy">A clear workspace for member access, Discord Bot entitlements, safety controls, and live community operations. Every action stays scoped to its own member target.</p>
-      </div>
-      <div class="admin-badges">
-        <span class="admin-pill live">Admin Approved</span>
-        <span class="admin-pill">Backend Controlled</span>
-      </div>
-    </section>
-
     <nav class="admin-workspace-nav" aria-label="Admin workspaces">
-      <a href="#admin-access">Member access</a><a href="#admin-live-ops">Live events</a><a href="#codeActionReviewCenter">Code review</a><a href="#admin-maintenance">Maintenance</a>
+      <button class="admin-workspace-tab" type="button" data-admin-tab="access" aria-selected="true">Member access</button><button class="admin-workspace-tab" type="button" data-admin-tab="live" aria-selected="false">Live events</button><button class="admin-workspace-tab" type="button" data-admin-tab="review" aria-selected="false">Code review</button><button class="admin-workspace-tab" type="button" data-admin-tab="maintenance" aria-selected="false">Maintenance</button>
     </nav>
 
-    <section class="admin-card admin-session-card">
+    <section class="admin-card admin-session-card" data-admin-workspace="access">
       <div class="admin-card-inner">
         <div class="admin-card-head">
           <div>
@@ -852,7 +835,7 @@
       </div>
     </section>
 
-    <section class="admin-overview">
+    <section class="admin-overview" data-admin-workspace="access">
       <div class="admin-card admin-lookup-card">
         <div class="admin-card-inner">
           <div class="admin-card-head">
@@ -953,8 +936,8 @@
       </div>
     </section>
 
-    <div class="admin-section-label" id="admin-access"><span>01 / ACCESS</span><h2>Member Operations</h2><p>Membership rewards and Discord Bot access.</p></div>
-    <section class="admin-actions-grid admin-primary-ops">
+    <div class="admin-section-label" id="admin-access" data-admin-workspace="access"><span>Member access</span><h2>Member Operations</h2><p>Membership rewards and Discord Bot access.</p></div>
+    <section class="admin-actions-grid admin-primary-ops" data-admin-workspace="access">
         <div class="admin-card admin-unified"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Member Rewards &amp; Membership</h2><p class="admin-card-copy">Grant Plus or Pro time as a Robux purchase or a complimentary grant. AI token grants are rewards only and never change a membership plan.</p></div></div><div class="admin-compact-grid"><div class="admin-field"><label class="admin-label" for="unifiedReward">Action</label><select class="admin-input" id="unifiedReward"><option value="plus">Grant Plus</option><option value="pro">Grant Pro</option><option value="tokens">Grant AI Tokens</option><option value="remove_plus_days">Remove Plus Days</option><option value="remove_pro_days">Remove Pro Days</option></select></div><div class="admin-field" id="unifiedSourceField"><label class="admin-label" for="unifiedGrantSource">Membership Source</label><select class="admin-input" id="unifiedGrantSource"><option value="robux">Robux Purchase</option><option value="complimentary">Complimentary</option></select></div><div class="admin-field"><label class="admin-label" for="unifiedTarget">User ID Or Email</label><input class="admin-input" id="unifiedTarget" placeholder="Target member" /></div><div class="admin-field"><label class="admin-label" id="unifiedAmountLabel" for="unifiedAmount">Days</label><input class="admin-input" id="unifiedAmount" type="number" min="1" value="14" /></div><div class="admin-field" id="unifiedTitleField"><label class="admin-label" for="unifiedTitle">Reward Title</label><input class="admin-input" id="unifiedTitle" placeholder="Optional for new grants" /></div><div class="admin-field"><label class="admin-label" for="unifiedNote">Staff Note</label><input class="admin-input" id="unifiedNote" placeholder="Required reason" /></div></div><div class="admin-buttons"><button class="admin-btn green" id="unifiedGrantButton" type="button">Apply Membership Change</button></div><div class="admin-result" id="unifiedGrantStatus"></div></div></div>
         <div class="admin-card admin-unified"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Discord Bot Complimentary Access</h2><p class="admin-card-copy">Admin-only test grants. These unlock the Bot Dashboard, but never create a Stripe purchase or alter customer checkout.</p></div></div><div class="admin-compact-grid"><div class="admin-field"><label class="admin-label" for="botGrantTarget">User ID Or Email</label><input class="admin-input" id="botGrantTarget" placeholder="Target member" /></div><div class="admin-field"><label class="admin-label" for="botGrantUses">Pay By Usage Uses</label><input class="admin-input" id="botGrantUses" type="number" min="1" max="50000" value="100" /></div><div class="admin-field"><label class="admin-label" for="botGrantNote">Staff Note</label><input class="admin-input" id="botGrantNote" placeholder="Required test reason" /></div></div><div class="admin-buttons"><button class="admin-btn green" id="grantBotUnlimitedButton" type="button">Grant Unlimited Uses</button><button class="admin-btn blue" id="grantBotUsesButton" type="button">Grant Pay By Usage</button></div><div class="admin-result" id="botGrantStatus"></div></div></div>
         <div class="admin-card">
@@ -1094,10 +1077,10 @@
         </div>
       </div>
     </section>
-    <section class="admin-card"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Staff Notes</h2><p class="admin-card-copy">Recent moderator notes and the admin who recorded them.</p></div><button class="admin-btn ghost" id="refreshNotesButton" type="button">Refresh</button></div><div class="admin-note-log" id="staffNotesLog">Loading notes...</div></div></section>
+    <section class="admin-card" data-admin-workspace="access"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Staff Notes</h2><p class="admin-card-copy">Recent moderator notes and the admin who recorded them.</p></div><button class="admin-btn ghost" id="refreshNotesButton" type="button">Refresh</button></div><div class="admin-note-log" id="staffNotesLog">Loading notes...</div></div></section>
 
-    <div class="admin-section-label"><span>02 / LIVE</span><h2>Community Events</h2><p>Configure drops and chat rain from one workspace.</p></div>
-    <section class="admin-actions-grid" id="admin-live-ops">
+    <div class="admin-section-label" data-admin-workspace="live"><span>Live events</span><h2>Community Events</h2><p>Configure drops and chat rain from one workspace.</p></div>
+    <section class="admin-actions-grid" id="admin-live-ops" data-admin-workspace="live">
       <div class="admin-card">
         <div class="admin-card-inner">
           <div class="admin-card-head">
@@ -1182,8 +1165,8 @@
         </div>
       </div>
     </section>
-    <div class="admin-section-label"><span>03 / REVIEW</span><h2>Contributor Queue</h2><p>Approve community actions and issue their earned rewards.</p></div>
-    <section class="admin-card" id="codeActionReviewCenter">
+    <div class="admin-section-label" data-admin-workspace="review"><span>Code review</span><h2>Contributor Queue</h2><p>Approve community actions and issue their earned rewards.</p></div>
+    <section class="admin-card" id="codeActionReviewCenter" data-admin-workspace="review">
       <div class="admin-card-inner">
         <div class="admin-card-head"><div><h2 class="admin-card-title">Code Action Review Center</h2><p class="admin-card-copy">Review code submissions, inactive reports, and contributor awards in one place. Points are granted only after an admin validates the action.</p></div><button class="admin-btn ghost" id="refreshCodeSubmissionsButton" type="button">Refresh submissions</button></div>
         <div class="admin-note-log" id="codeSubmissionsLog">Loading submissions...</div>
@@ -1192,15 +1175,15 @@
         <div id="contributorRewardsMount"></div>
       </div>
     </section>
-    <section class="admin-card">
+    <section class="admin-card" data-admin-workspace="review">
       <div class="admin-card-inner">
         <div class="admin-card-head"><div><h2 class="admin-card-title">Requested Games</h2><p class="admin-card-copy">Review member game requests and optional code notes here, away from the public Codes page.</p></div><button class="admin-btn ghost" id="refreshCodeGameRequestsButton" type="button">Refresh</button></div>
         <div class="admin-note-log" id="codeGameRequestsLog">Loading game requests...</div>
       </div>
     </section>
 
-    <div class="admin-section-label"><span>04 / SITE</span><h2>Operations</h2><p>Manage public availability without disrupting admin access.</p></div>
-    <section class="admin-card" id="admin-maintenance">
+    <div class="admin-section-label" data-admin-workspace="maintenance"><span>Maintenance</span><h2>Operations</h2><p>Manage public availability without disrupting admin access.</p></div>
+    <section class="admin-card" id="admin-maintenance" data-admin-workspace="maintenance">
       <div class="admin-card-inner">
         <div class="admin-card-head">
           <div>
@@ -1979,6 +1962,20 @@
 
       bootstrap();
     })();
+  </script>
+  <script>
+    (function () {
+      var tabs = Array.prototype.slice.call(document.querySelectorAll("[data-admin-tab]"));
+      var panels = Array.prototype.slice.call(document.querySelectorAll("[data-admin-workspace]"));
+      function selectWorkspace(name) {
+        var active = ["access", "live", "review", "maintenance"].includes(name) ? name : "access";
+        panels.forEach(function (panel) { panel.hidden = panel.dataset.adminWorkspace !== active; });
+        tabs.forEach(function (tab) { tab.setAttribute("aria-selected", String(tab.dataset.adminTab === active)); });
+        try { history.replaceState(null, "", location.pathname + "#" + active); } catch (_error) {}
+      }
+      tabs.forEach(function (tab) { tab.addEventListener("click", function () { selectWorkspace(tab.dataset.adminTab); }); });
+      selectWorkspace(String(location.hash || "").replace(/^#/, ""));
+    }());
   </script>
   <script>
     (function () {
