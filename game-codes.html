@@ -465,6 +465,8 @@
             if (!window.confirm(message)) return;
             try {
               await request("/admin/codes/" + encodeURIComponent(game.slug) + "/codes/" + encodeURIComponent(codeId), action === "expire" ? { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "expire" }) } : { method: "DELETE" });
+              // Do not reuse a guide cached before the destructive action.
+              delete guideCache[game.slug];
               renderGuide(game.slug);
             } catch (error) { alert(error.message); }
             };

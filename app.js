@@ -11474,6 +11474,7 @@ app.post("/api/codes/:slug/submissions", async (req, res) => {
     const submission = await codesPlatform.submitCodeSubmission(guide.game.id, req.body || {}, user);
     await createPendingPointTransaction({ userId: user.id, sourceType: "working_code", sourceId: submission.id, title: "Working code submitted", points: REWARD_POINT_AWARDS.working_code });
     emitAccountTransactionUpdate(user.id);
+    publishCodesUpdate();
     return res.status(201).json({ ok: true, submission });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit this code." });
@@ -11512,6 +11513,7 @@ app.post("/api/codes/:slug/codes/:codeId/expiry-reports", async (req, res) => {
     // is required for a history row, so refresh the member ledger only when available.
     if (report?.id) await createPendingPointTransaction({ userId: user.id, sourceType: "expired_code_report", sourceId: report.id, title: "Inactive code reported", points: REWARD_POINT_AWARDS.expired_code_report });
     emitAccountTransactionUpdate(user.id);
+    publishCodesUpdate();
     return res.status(201).json({ ok: true, report });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not report this code." });

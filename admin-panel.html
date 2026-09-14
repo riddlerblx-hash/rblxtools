@@ -1992,6 +1992,7 @@
         } catch (error) { log.textContent = error.message || "Could not load code submissions."; }
       }
       refresh.onclick = load;
+      window.addEventListener("rblxtools-codes-updated", load);
       load();
     }());
   </script>
@@ -2017,10 +2018,10 @@
             row.append(title, meta);
             if ((report.status || "pending") === "pending") {
               var approve = document.createElement("button"), reject = document.createElement("button");
-              approve.className = "admin-btn green"; approve.type = "button"; approve.textContent = "Approve + Award 3 Points";
+              approve.className = "admin-btn green"; approve.type = "button"; approve.textContent = "Approve";
               reject.className = "admin-btn red"; reject.type = "button"; reject.textContent = "Reject";
               [approve, reject].forEach(function (button) { button.style.marginTop = "8px"; button.style.marginRight = "7px"; });
-              function review(decision) { return fetch("/admin/codes/expiry-reports/" + encodeURIComponent(report.id), { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: decision }) }).then(function (result) { return result.json().then(function (body) { if (!result.ok) throw new Error(body.error || "Could not review this report."); }); }).then(load).catch(function (error) { alert(error.message); }); }
+              function review(decision) { return fetch("/admin/codes/expiry-reports/" + encodeURIComponent(report.id), { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: decision }) }).then(async function (result) { var raw = await result.text(), body = {}; try { body = raw ? JSON.parse(raw) : {}; } catch (_error) { throw new Error("The server returned an unexpected response. Please try again after the site restart."); } if (!result.ok) throw new Error(body.error || "Could not review this report."); }).then(load).catch(function (error) { alert(error.message); }); }
               approve.onclick = function () { review("approved"); }; reject.onclick = function () { review("rejected"); }; row.append(approve, reject);
             }
             if (report.gameSlug) { var link = document.createElement("a"); link.href = "/codes/" + encodeURIComponent(report.gameSlug); link.target = "_blank"; link.rel = "noopener"; link.textContent = "Open code post"; link.style.display = "inline-block"; link.style.marginTop = "8px"; row.appendChild(link); }
@@ -2029,6 +2030,7 @@
         } catch (error) { log.textContent = error.message || "Could not load expiry reports."; }
       }
       refresh.onclick = load;
+      window.addEventListener("rblxtools-codes-updated", load);
       load();
     }());
   </script>
@@ -2059,9 +2061,18 @@
           });
         } catch (error) { log.textContent = error.message || "Could not load game requests."; }
       }
-      refresh.onclick = load; load();
+      refresh.onclick = load; window.addEventListener("rblxtools-codes-updated", load); load();
     }());
-  </script>  <script src="./contributor-rewards-admin.js"></script>
+  </script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    (function () {
+      if (typeof window.io !== "function") return;
+      var socket = window.io({ transports: ["websocket", "polling"], withCredentials: true });
+      socket.on("codes-updated", function () { window.dispatchEvent(new CustomEvent("rblxtools-codes-updated")); });
+    }());
+  </script>
+  <script src="./contributor-rewards-admin.js"></script>
   <script src="./maintenance-admin.js"></script>
 </body>
 </html>
