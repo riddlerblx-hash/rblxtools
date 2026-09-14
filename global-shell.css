@@ -18,6 +18,23 @@
   --shell-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
 }
 
+/* First-paint guard: every customer-facing page loads this stylesheet before
+   its legacy markup. Keep that markup off-screen until the shared shell has
+   moved it into the current layout, so an old page design cannot flash during
+   navigation. Scripts and styles remain available for normal bootstrapping. */
+body:not(.rblx-shell-ready) > :not(script):not(style):not(link) {
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Chrome/Edge use this for a native, cross-document transition between site
+   pages. Other browsers simply get the same fast shell entrance below. */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: rblx-page-leave .12s ease-in both; }
+::view-transition-new(root) { animation: rblx-page-arrive .20s ease-out both; }
+@keyframes rblx-page-leave { to { opacity: 0; transform: translateY(-3px); } }
+@keyframes rblx-page-arrive { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+
 body.rblx-shell-ready {
   min-height: 100vh;
 }
@@ -3815,9 +3832,13 @@ body.rblx-shell-ready #rblxShellPage > *::before,
 body.rblx-shell-ready #rblxShellPage > *::after { display:none !important; }
 
 /* A shared, subtle entry motion gives every shell page the same polished arrival as Home. */
-body.rblx-shell-ready #rblxShellPage > * { animation: rblxShellPageEnter .32s ease-out both; }
-@keyframes rblxShellPageEnter { from { opacity:0; } to { opacity:1; } }
-@media (prefers-reduced-motion: reduce) { body.rblx-shell-ready #rblxShellPage > * { animation:none; } }
+body.rblx-shell-ready #rblxShellPage > * { animation: rblxShellPageEnter .26s cubic-bezier(.2,.75,.25,1) both; }
+@keyframes rblxShellPageEnter { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  body.rblx-shell-ready #rblxShellPage > *,
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation:none; }
+}
 .rblx-shell-chat-bottom { position:relative; overflow:visible; z-index:3; }
 
 /* AI studio/store pages use the established tool atmosphere after the shell moves page content. */
