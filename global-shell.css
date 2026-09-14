@@ -3842,6 +3842,82 @@ body.rblx-shell-ready #rblxShellPage > * { position:relative; will-change:opacit
   ::view-transition-old(root),
   ::view-transition-new(root) { animation:none; }
 }
+
+/* Shared surface for code-post, submission, and report dialogs. These forms
+   are injected by their feature scripts, so styling the common modal classes
+   keeps every version of the workflow on the same RBLXTools visual system. */
+.post-modal,
+.tool-report-overlay {
+  background: rgba(3, 9, 19, .78) !important;
+  backdrop-filter: blur(14px) saturate(1.12) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.12) !important;
+}
+.post-card,
+.tool-report-modal {
+  position: relative !important;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(108, 166, 255, .42) !important;
+  border-radius: 22px !important;
+  background: radial-gradient(circle at 100% 0%, rgba(70, 124, 226, .22), transparent 40%), linear-gradient(145deg, #17263b, #0b131f 72%) !important;
+  box-shadow: 0 30px 82px rgba(0, 0, 0, .58), inset 0 1px 0 rgba(255, 255, 255, .09) !important;
+  animation: rblxFeatureModalEnter .22s cubic-bezier(.2,.8,.25,1) both;
+}
+.post-card::before,
+.tool-report-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(120deg, transparent 28%, rgba(255, 84, 101, .07), transparent 68%);
+}
+.post-card h2,
+.tool-report-modal h2 { color: #f5f8ff !important; letter-spacing: -.035em; }
+.post-card p,
+.tool-report-modal p,
+.post-card .note { color: #aebfd6 !important; line-height: 1.5; }
+.post-card input,
+.post-card textarea,
+.post-card select,
+.tool-report-modal input,
+.tool-report-modal textarea,
+.tool-report-modal select {
+  border-color: rgba(122, 170, 242, .34) !important;
+  border-radius: 11px !important;
+  color: #edf5ff !important;
+  background: rgba(5, 14, 27, .78) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035) !important;
+}
+.post-card input:focus,
+.post-card textarea:focus,
+.post-card select:focus,
+.tool-report-modal input:focus,
+.tool-report-modal textarea:focus,
+.tool-report-modal select:focus {
+  outline: 0;
+  border-color: #72b5ff !important;
+  box-shadow: 0 0 0 3px rgba(93, 162, 255, .14) !important;
+}
+.post-card .button,
+.tool-report-submit {
+  border: 0 !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, #ff6175, #e42e49) !important;
+  box-shadow: 0 10px 22px rgba(220, 43, 69, .24) !important;
+}
+.post-card .outline,
+.tool-report-cancel {
+  border: 1px solid rgba(129, 177, 245, .34) !important;
+  color: #d9e9ff !important;
+  background: rgba(89, 138, 214, .1) !important;
+}
+.post-card .button:hover,
+.tool-report-submit:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.post-card .outline:hover,
+.tool-report-cancel:hover { background: rgba(89, 138, 214, .2) !important; }
+@keyframes rblxFeatureModalEnter { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .post-card, .tool-report-modal { animation: none; } }
 .rblx-shell-chat-bottom { position:relative; overflow:visible; z-index:3; }
 
 /* AI studio/store pages use the established tool atmosphere after the shell moves page content. */
