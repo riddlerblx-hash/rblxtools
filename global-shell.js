@@ -3013,6 +3013,13 @@
         refreshMembershipStateFromServer();
       });
 
+      // A code submission, approval, expiry action, or deletion is relevant to
+      // the open code post as well as the staff queue. Re-broadcast it as a
+      // browser event so individual pages can update without another socket.
+      shellState.socket.on("codes-updated", function (payload) {
+        try { window.dispatchEvent(new CustomEvent("rblxtools-codes-updated", { detail: payload || {} })); } catch (_error) {}
+      });
+
       shellState.socket.on("connect_error", function (error) {
         shellState.socketReady = false;
         // The HTTP sync/post routes remain usable while Socket.IO retries.

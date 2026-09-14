@@ -80,14 +80,24 @@
     var liveCodeSocket = null;
     var liveRefreshTimer = 0;
 
+    function guideSnapshot(guide) {
+      return JSON.stringify({ lastUpdated: guide && guide.lastUpdated || "", workingCodes: guide && guide.workingCodes || [], expiredCodes: guide && guide.expiredCodes || [] });
+    }
+
     function refreshCodesFromLiveUpdate() {
       window.clearTimeout(liveRefreshTimer);
       liveRefreshTimer = window.setTimeout(function () {
         var match = location.pathname.match(/^\/codes\/([^/]+)$/);
         if (match) {
           var slug = decodeURIComponent(match[1]);
-          delete guideCache[slug];
-          renderGuide(slug).catch(function () {});
+          // A pending submission does not alter the public post. Fetch it in
+          // the background, and only redraw when its published contents did.
+          request(api + "/" + encodeURIComponent(slug)).then(function (freshGuide) {
+            var cachedGuide = guideCache[slug];
+            if (cachedGuide && guideSnapshot(cachedGuide) === guideSnapshot(freshGuide)) return;
+            guideCache[slug] = freshGuide;
+            renderGuide(slug).catch(function () {});
+          }).catch(function () {});
         } else {
           renderDirectory().catch(function () {});
         }
@@ -100,9 +110,13 @@
         window.setTimeout(function () { connectLiveCodeUpdates((attempt || 0) + 1); }, 500);
         return;
       }
-      liveCodeSocket = window.io();
+      liveCodeSocket = window.__rblxShellSocket || window.io();
       liveCodeSocket.on("codes-updated", refreshCodesFromLiveUpdate);
     }
+    // The shared shell owns the primary live connection. This listener covers
+    // code pages immediately, including when the page script ran before the
+    // Socket.IO client finished loading.
+    window.addEventListener("rblxtools-codes-updated", refreshCodesFromLiveUpdate);
     connectLiveCodeUpdates(0);
     var codePostAdMarkup = function (position) { return '<section class="code-post-ad" data-code-post-ad data-ad-position="' + position + '" aria-label="Advertisement"><div class="code-post-ad-unit"></div></section>'; };
 
