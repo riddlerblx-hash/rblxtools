@@ -11719,11 +11719,24 @@ app.patch("/admin/codes/submissions/:id", async (req, res) => {
     const admin = await requireAdminUser(req);
     const result = await codesPlatform.reviewSubmission(req.params.id, req.body?.decision, admin.id, req.body?.note);
     const submission = result.submission;
+    // The public post and every open review queue must reconcile immediately
+    // after the action itself changes, even if a separate ledger is offline.
+    publishCodesUpdate();
     if (submission) {
-      if (result.status === "approved") await awardRewardPoints({ userId: submission.submitter_user_id, sourceType: "working_code", sourceId: submission.id, title: "Working code approved", points: REWARD_POINT_AWARDS.working_code, adminUserId: admin.id, note: req.body?.note });
-      else { await rejectPendingPointTransaction("working_code", submission.id, admin.id, req.body?.note); emitAccountTransactionUpdate(submission.submitter_user_id); }
+      if (result.status === "approved") {
+        try {
+          await awardRewardPoints({ userId: submission.submitter_user_id, sourceType: "working_code", sourceId: submission.id, title: "Working code approved", points: REWARD_POINT_AWARDS.working_code, adminUserId: admin.id, note: req.body?.note });
+        } catch (error) {
+          console.error("Code was approved but reward points could not be credited:", error.message);
+          error.message = "The code was approved, but RBLX Points could not be credited. Run supabase-reward-points.sql in Supabase; it will safely backfill this approval.";
+          error.statusCode = 503;
+          throw error;
+        }
+      } else {
+        await rejectPendingPointTransaction("working_code", submission.id, admin.id, req.body?.note).catch((error) => console.warn("Could not mark rejected reward transaction:", error.message));
+        emitAccountTransactionUpdate(submission.submitter_user_id);
+      }
     }
-    if (result.status === "approved") publishCodesUpdate();
     return res.json({ ok: true, ...result });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not review this code submission." });
@@ -11734,9 +11747,20 @@ app.patch("/admin/codes/expiry-reports/:id", async (req, res) => {
   try {
     const admin = await requireAdminUser(req);
     const result = await codesPlatform.reviewExpiryReport(req.params.id, req.body?.decision, admin.id, req.body?.note);
-    if (result.status === "approved") await awardRewardPoints({ userId: result.report.reporter_user_id, sourceType: "expired_code_report", sourceId: result.report.id, title: "Inactive code report approved", points: REWARD_POINT_AWARDS.expired_code_report, adminUserId: admin.id, note: req.body?.note });
-    else { await rejectPendingPointTransaction("expired_code_report", result.report.id, admin.id, req.body?.note); emitAccountTransactionUpdate(result.report.reporter_user_id); }
-    if (result.status === "approved") publishCodesUpdate();
+    publishCodesUpdate();
+    if (result.status === "approved") {
+      try {
+        await awardRewardPoints({ userId: result.report.reporter_user_id, sourceType: "expired_code_report", sourceId: result.report.id, title: "Inactive code report approved", points: REWARD_POINT_AWARDS.expired_code_report, adminUserId: admin.id, note: req.body?.note });
+      } catch (error) {
+        console.error("Expiry report was approved but reward points could not be credited:", error.message);
+        error.message = "The report was approved, but RBLX Points could not be credited. Run supabase-reward-points.sql in Supabase; it will safely backfill this approval.";
+        error.statusCode = 503;
+        throw error;
+      }
+    } else {
+      await rejectPendingPointTransaction("expired_code_report", result.report.id, admin.id, req.body?.note).catch((error) => console.warn("Could not mark rejected reward transaction:", error.message));
+      emitAccountTransactionUpdate(result.report.reporter_user_id);
+    }
     return res.json({ ok: true, ...result });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not review this expiry report." });
