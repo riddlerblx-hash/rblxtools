@@ -3993,7 +3993,9 @@
       email: cachedUser && cachedUser.email ? String(cachedUser.email) : "",
       aiTokens: cachedUser && cachedUser.aiTokens != null ? Number(cachedUser.aiTokens) : null,
       rewardPoints: cachedUser && cachedUser.rewardPoints != null ? Number(cachedUser.rewardPoints) : null,
-      isAdmin: Boolean(cachedUser && cachedUser.isAdmin),
+      // Never render privileged UI from local storage. The server owns the
+      // allowlist and enables it after /auth/me confirms the session.
+      isAdmin: false,
       moderation: shellState.moderation
     };
   }

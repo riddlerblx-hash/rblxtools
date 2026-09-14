@@ -139,6 +139,10 @@ const ADMIN_USER_IDS = new Set([...parseAdminAllowlist("ADMIN_USER_IDS", "ADMIN_
   .map((value) => value.toLowerCase()));
 const ADMIN_USER_EMAILS = new Set([...parseAdminAllowlist("ADMIN_USER_EMAILS", "ADMIN_EMAILS", "ADMIN_USER_EMAIL", "ADMIN_EMAIL"), ...ADMIN_GENERIC_ALLOWLIST.filter((value) => String(value).includes("@"))]
   .map((value) => value.toLowerCase()));
+// Usernames are accepted only through their own explicit variable, never by
+// guessing that an ambiguous generic allowlist value is a username.
+const ADMIN_USERNAMES = new Set([...parseAdminAllowlist("ADMIN_USERNAMES", "ADMIN_USER_NAMES")]
+  .map((value) => value.toLowerCase()));
 const DEFAULT_COMPLIMENTARY_PLUS_DAYS = 14;
 const MAX_COMPLIMENTARY_PLUS_DAYS = 3650;
 const REWARD_POINT_AWARDS = Object.freeze({ working_code: 20, expired_code_report: 3 });
@@ -1845,8 +1849,14 @@ async function reconcileApprovedRewardPoints() {
       })),
     ];
     for (const action of actions) {
-      if (!action.userId || !action.sourceId || !action.adminUserId) continue;
-      const entries = await supabaseRequest(`/rest/v1/reward_point_transactions?source_type=eq.${encodeURIComponent(action.sourceType)}&source_id=eq.${encodeURIComponent(action.sourceId)}&select=status&limit=1`);
+      if (!action.userId || !action.sourceId) continue;
+      let entries;
+      try {
+        entries = await supabaseRequest(`/rest/v1/reward_point_transactions?source_type=eq.${encodeURIComponent(action.sourceType)}&source_id=eq.${encodeURIComponent(action.sourceId)}&select=status&limit=1`);
+      } catch (error) {
+        console.error(`Could not read ${action.sourceType} reward ${action.sourceId}:`, error.message);
+        continue;
+      }
       if (Array.isArray(entries) && entries.some((entry) => entry.status === "approved")) continue;
       try {
         await awardRewardPoints(action);
@@ -4772,10 +4782,12 @@ function isAdminUser(user) {
 
   const userId = String(user.id || "").trim();
   const userEmail = String(user.email || "").trim().toLowerCase();
+  const username = String(user.username || "").trim().toLowerCase();
 
   return (
     (userId && ADMIN_USER_IDS.has(userId)) ||
-    (userEmail && ADMIN_USER_EMAILS.has(userEmail))
+    (userEmail && ADMIN_USER_EMAILS.has(userEmail)) ||
+    (username && ADMIN_USERNAMES.has(username))
   );
 }
 
@@ -4796,7 +4808,7 @@ function applyDashboardAdminAccess(dashboard, user) {
 async function requireAdminUser(req) {
     const user = await requireAuthenticatedUser(req);
 
-  if (!ADMIN_USER_IDS.size && !ADMIN_USER_EMAILS.size) {
+  if (!ADMIN_USER_IDS.size && !ADMIN_USER_EMAILS.size && !ADMIN_USERNAMES.size) {
     const error = new Error("Admin allowlist is not configured.");
     error.statusCode = 500;
     throw error;
