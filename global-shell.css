@@ -3832,8 +3832,11 @@ body.rblx-shell-ready #rblxShellPage > *::before,
 body.rblx-shell-ready #rblxShellPage > *::after { display:none !important; }
 
 /* A shared, subtle entry motion gives every shell page the same polished arrival as Home. */
-body.rblx-shell-ready #rblxShellPage > * { animation: rblxShellPageEnter .26s cubic-bezier(.2,.75,.25,1) both; }
-@keyframes rblxShellPageEnter { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+/* Use relative top rather than transform here. A transform on a page wrapper
+   becomes the containing block for fixed children, which would detach drawers
+   such as Thumbnail Studio's saved-chat panel from the navigation. */
+body.rblx-shell-ready #rblxShellPage > * { position:relative; animation: rblxShellPageEnter .30s cubic-bezier(.2,.75,.25,1) both; }
+@keyframes rblxShellPageEnter { from { opacity:0; top:10px; } to { opacity:1; top:0; } }
 @media (prefers-reduced-motion: reduce) {
   body.rblx-shell-ready #rblxShellPage > *,
   ::view-transition-old(root),
