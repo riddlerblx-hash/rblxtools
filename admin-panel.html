@@ -794,6 +794,15 @@
     .admin-section-label h2 { font-size:24px; }
     .admin-note-log { padding:3px; border-radius:14px; background:rgba(0,0,0,.12); }
     .admin-note-entry { border-radius:10px; border-color:rgba(175,196,232,.08); background:rgba(255,255,255,.025); }
+    .admin-action-review-list { display:grid; gap:8px; }
+    .admin-action-review-entry { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px; align-items:center; padding:14px; border:1px solid #2c3948; border-radius:10px; background:#141b24; }
+    .admin-action-review-entry strong { display:block; color:#f4f7fb; font-size:13px; }
+    .admin-action-review-entry p { margin:5px 0 0; color:var(--admin-muted); font-size:11px; line-height:1.45; }
+    .admin-action-review-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .admin-action-review-meta span { padding:4px 7px; border-radius:6px; color:#b9c9df; background:#202a36; font-size:10px; font-weight:800; }
+    .admin-action-review-meta .reward { color:#9fe9bd; background:rgba(83,223,136,.12); }
+    .admin-action-review-actions { display:flex; gap:7px; }
+    @media (max-width:680px) { .admin-action-review-entry{grid-template-columns:1fr}.admin-action-review-actions{justify-content:flex-start} }
     @media (max-width:900px) { .admin-actions-grid,.admin-primary-ops{grid-template-columns:1fr}.admin-workspace-nav{top:4px} }
     @media (max-width:760px) { body{padding:10px}.admin-topbar{min-height:0;padding:22px}.admin-badges{justify-content:flex-start}.admin-section-label,.admin-grid-divider{align-items:flex-start;flex-direction:column;gap:3px}.admin-section-label p,.admin-grid-divider p{margin:0}.admin-primary-ops{grid-template-columns:1fr} }
   </style>
@@ -1168,11 +1177,8 @@
     <div class="admin-section-label" data-admin-workspace="review"><span>Code review</span><h2>Contributor Queue</h2><p>Approve community actions and issue their earned rewards.</p></div>
     <section class="admin-card" id="codeActionReviewCenter" data-admin-workspace="review">
       <div class="admin-card-inner">
-        <div class="admin-card-head"><div><h2 class="admin-card-title">Code Action Review Center</h2><p class="admin-card-copy">Review code submissions, inactive reports, and contributor awards in one place. Points are granted only after an admin validates the action.</p></div><button class="admin-btn ghost" id="refreshCodeSubmissionsButton" type="button">Refresh submissions</button></div>
-        <div class="admin-note-log" id="codeSubmissionsLog">Loading submissions...</div>
-        <div class="admin-card-head" style="margin-top:18px"><div><h3 class="admin-card-title" style="font-size:17px">Reported Inactive Codes</h3><p class="admin-card-copy">Confirm a report before marking a code inactive and awarding its configured points.</p></div><button class="admin-btn ghost" id="refreshExpiryReportsButton" type="button">Refresh reports</button></div>
-        <div class="admin-note-log" id="expiryReportsLog">Loading reports...</div>
-        <div id="contributorRewardsMount"></div>
+        <div class="admin-card-head"><div><h2 class="admin-card-title">Action Review Center</h2><p class="admin-card-copy">One queue for code actions. Approve a validated action and its configured RBLX Points are awarded automatically.</p></div><button class="admin-btn ghost" id="refreshCodeActionsButton" type="button">Refresh queue</button></div>
+        <div class="admin-action-review-list" id="codeActionReviewLog">Loading pending actions...</div>
       </div>
     </section>
     <section class="admin-card" data-admin-workspace="review">
@@ -1979,6 +1985,50 @@
   </script>
   <script>
     (function () {
+      var log = document.getElementById("codeActionReviewLog");
+      var refresh = document.getElementById("refreshCodeActionsButton");
+      if (!log || !refresh) return;
+      var loading = false, snapshot = "";
+      function makeButton(label, className, click) { var button = document.createElement("button"); button.type = "button"; button.className = "admin-btn " + className; button.textContent = label; button.onclick = click; return button; }
+      function makeEntry(action) {
+        var row = document.createElement("article"); row.className = "admin-action-review-entry";
+        var copy = document.createElement("div"), title = document.createElement("strong"), detail = document.createElement("p"), meta = document.createElement("div"), actions = document.createElement("div");
+        title.textContent = action.kind === "working_code" ? "Code submission · " + action.code : "Expired-code report · " + action.code;
+        detail.textContent = action.kind === "working_code" ? "Submitted by " + action.member + (action.reward ? " · Reward: " + action.reward : "") : "Reported by " + action.member + " · " + action.game;
+        meta.className = "admin-action-review-meta";
+        [action.kind === "working_code" ? "Working code" : "Expired code", new Date(action.createdAt).toLocaleString()].forEach(function (value) { var pill = document.createElement("span"); pill.textContent = value; meta.appendChild(pill); });
+        var reward = document.createElement("span"); reward.className = "reward"; reward.textContent = "+" + action.points + " RBLX Points on approval"; meta.appendChild(reward);
+        actions.className = "admin-action-review-actions";
+        function review(decision) {
+          var approve = actions.querySelector(".green"), reject = actions.querySelector(".red"); if (approve) approve.disabled = true; if (reject) reject.disabled = true;
+          fetch(action.endpoint, { method:"PATCH", credentials:"include", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ decision: decision }) }).then(async function (response) { var payload = await response.json().catch(function () { return {}; }); if (!response.ok) throw new Error(payload.error || "Could not review this action."); }).then(function () { load(true); }).catch(function (error) { alert(error.message); if (approve) approve.disabled = false; if (reject) reject.disabled = false; });
+        }
+        actions.append(makeButton("Approve", "green", function () { review("approved"); }), makeButton("Reject", "red", function () { review("rejected"); }));
+        copy.append(title, detail, meta); row.append(copy, actions); return row;
+      }
+      function load(silent) {
+        if (loading) return; loading = true;
+        if (!silent && !snapshot) log.textContent = "Loading pending actions...";
+        Promise.all([fetch("/admin/codes/submissions?status=pending", { credentials:"include" }), fetch("/admin/codes/expiry-reports", { credentials:"include" })]).then(async function (responses) {
+          var payloads = await Promise.all(responses.map(function (response) { return response.json().catch(function () { return {}; }).then(function (payload) { if (!response.ok) throw new Error(payload.error || "Could not load action reviews."); return payload; }); }));
+          var submitted = (Array.isArray(payloads[0].submissions) ? payloads[0].submissions : []).map(function (entry) { return { kind:"working_code", id:entry.id, code:entry.code || "Untitled code", reward:entry.reward || "", member:entry.submitter_name || "Member", createdAt:entry.created_at, points:20, endpoint:"/admin/codes/submissions/" + encodeURIComponent(entry.id) }; });
+          var reported = (Array.isArray(payloads[1].reports) ? payloads[1].reports : []).filter(function (entry) { return String(entry.status || "pending") === "pending"; }).map(function (entry) { return { kind:"expired_code_report", id:entry.id, code:entry.code || "Unknown code", game:entry.gameName || "Unknown code post", member:entry.reporterName || "Member", createdAt:entry.createdAt, points:3, endpoint:"/admin/codes/expiry-reports/" + encodeURIComponent(entry.id) }; });
+          var actions = submitted.concat(reported).sort(function (a,b) { return Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0); });
+          var nextSnapshot = JSON.stringify(actions);
+          if (nextSnapshot === snapshot) return;
+          snapshot = nextSnapshot; log.replaceChildren();
+          if (!actions.length) { log.textContent = "No pending code actions."; return; }
+          actions.forEach(function (action) { log.appendChild(makeEntry(action)); });
+        }).catch(function (error) { if (!snapshot) log.textContent = error.message || "Could not load action reviews."; }).finally(function () { loading = false; });
+      }
+      refresh.onclick = function () { load(false); };
+      window.addEventListener("rblxtools-codes-updated", function () { load(true); });
+      window.setInterval(function () { if (!document.hidden) load(true); }, 3000);
+      load(false);
+    }());
+  </script>
+  <script>
+    (function () {
       var log = document.getElementById("codeSubmissionsLog");
       var refresh = document.getElementById("refreshCodeSubmissionsButton");
       if (!log || !refresh) return;
@@ -2123,7 +2173,6 @@
       socket.on("codes-updated", function () { window.dispatchEvent(new CustomEvent("rblxtools-codes-updated")); });
     }());
   </script>
-  <script src="./contributor-rewards-admin.js"></script>
   <script src="./maintenance-admin.js"></script>
 </body>
 </html>
