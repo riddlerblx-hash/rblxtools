@@ -117,6 +117,10 @@
     // code pages immediately, including when the page script ran before the
     // Socket.IO client finished loading.
     window.addEventListener("rblxtools-codes-updated", refreshCodesFromLiveUpdate);
+    // Socket events are immediate. This quiet fallback protects a long-lived
+    // browser tab that briefly lost its connection; unchanged posts are never
+    // redrawn, so viewers do not see a polling refresh.
+    window.setInterval(function () { if (!document.hidden) refreshCodesFromLiveUpdate(); }, 3000);
     connectLiveCodeUpdates(0);
     var codePostAdMarkup = function (position) { return '<section class="code-post-ad" data-code-post-ad data-ad-position="' + position + '" aria-label="Advertisement"><div class="code-post-ad-unit"></div></section>'; };
 

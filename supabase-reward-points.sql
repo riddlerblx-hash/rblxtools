@@ -27,6 +27,15 @@ create unique index if not exists reward_point_transactions_source_unique
 create index if not exists reward_point_transactions_user_history_idx
   on reward_point_transactions(user_id, created_at desc);
 
+-- The application checks this before allowing an admin approval. That means a
+-- code action can never be approved without the matching reward being able to
+-- be recorded atomically.
+create or replace function reward_points_ready() returns boolean
+language sql security definer set search_path = public as $$
+  select exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'member_accounts' and column_name = 'reward_points')
+    and exists(select 1 from information_schema.tables where table_schema = 'public' and table_name = 'reward_point_transactions');
+$$;
+
 alter table game_code_expiry_reports add column if not exists status text not null default 'pending'
   check (status in ('pending','approved','rejected'));
 alter table game_code_expiry_reports add column if not exists reviewed_by_user_id uuid;

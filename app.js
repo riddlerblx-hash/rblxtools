@@ -1793,6 +1793,20 @@ async function awardRewardPoints({ userId, sourceType, sourceId, title, points, 
   return Array.isArray(rows) ? rows[0] : rows;
 }
 
+// Do this before changing the underlying code action. A successful approval
+// must always have an available, atomic points ledger behind it.
+async function assertRewardPointsReady() {
+  try {
+    const ready = await supabaseRequest("/rest/v1/rpc/reward_points_ready", { method: "POST", body: "{}" });
+    if (ready !== true) throw new Error("Reward points storage is not ready.");
+  } catch (error) {
+    const setupError = new Error("RBLX Points are not configured yet. Run the current supabase-reward-points.sql in Supabase before approving this action.");
+    setupError.statusCode = 503;
+    setupError.cause = error;
+    throw setupError;
+  }
+}
+
 async function rejectPendingPointTransaction(sourceType, sourceId, adminUserId, note = "") {
   return supabaseRequest(`/rest/v1/reward_point_transactions?source_type=eq.${encodeURIComponent(sourceType)}&source_id=eq.${encodeURIComponent(sourceId)}&status=eq.pending`, {
     method: "PATCH", headers: { Prefer: "return=minimal" },
@@ -11717,6 +11731,7 @@ app.get("/admin/codes/game-requests", async (req, res) => {
 app.patch("/admin/codes/submissions/:id", async (req, res) => {
   try {
     const admin = await requireAdminUser(req);
+    if (req.body?.decision === "approved") await assertRewardPointsReady();
     const result = await codesPlatform.reviewSubmission(req.params.id, req.body?.decision, admin.id, req.body?.note);
     const submission = result.submission;
     // The public post and every open review queue must reconcile immediately
@@ -11746,6 +11761,7 @@ app.patch("/admin/codes/submissions/:id", async (req, res) => {
 app.patch("/admin/codes/expiry-reports/:id", async (req, res) => {
   try {
     const admin = await requireAdminUser(req);
+    if (req.body?.decision === "approved") await assertRewardPointsReady();
     const result = await codesPlatform.reviewExpiryReport(req.params.id, req.body?.decision, admin.id, req.body?.note);
     publishCodesUpdate();
     if (result.status === "approved") {
