@@ -18,6 +18,15 @@
   --shell-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
 }
 
+/* The shell now waits until the page has fully parsed before mounting. Keep
+   pre-shell markup hidden during that short interval so legacy/raw tool UI
+   never becomes a visible intermediate frame. When the shell is ready, its
+   navigation and the page's real current tool UI are revealed together. */
+body:not(.rblx-shell-ready) > :not(script):not(style):not(link) {
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
 /* Chrome/Edge use this for a native, cross-document transition between site
    pages. Other browsers simply get the same fast shell entrance below. */
 @view-transition { navigation: auto; }
