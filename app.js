@@ -1781,16 +1781,35 @@ async function recordAccountTransaction({ userId, category, sourceType, sourceId
 }
 
 async function awardRewardPoints({ userId, sourceType, sourceId, title, points, adminUserId, note = "" }) {
+  const pointAmount = Math.max(0, Number(points) || 0);
+  if (!userId || !sourceId || pointAmount <= 0) {
+    throw new Error("A valid member, source action, and positive point amount are required for a reward.");
+  }
+  const memberBefore = await getAuthUserById(userId);
+  if (!memberBefore) throw new Error("The member who submitted this action no longer exists.");
+  const balanceBefore = Math.max(0, Number(memberBefore.reward_points) || 0);
   const rows = await supabaseRequest("/rest/v1/rpc/award_reward_points", {
     method: "POST",
     body: JSON.stringify({
       p_user_id: userId, p_source_type: sourceType, p_source_id: sourceId,
-      p_title: title, p_points: Math.max(0, Number(points) || 0),
+      p_title: title, p_points: pointAmount,
       p_admin_user_id: adminUserId, p_note: cleanText(note, 500),
     }),
   });
+  const transaction = Array.isArray(rows) ? rows[0] : rows;
+  if (!transaction || transaction.status !== "approved" || Number(transaction.points_delta) !== pointAmount) {
+    throw new Error("The reward ledger did not confirm this point award.");
+  }
+  // Read the canonical membership record again before reporting success. This
+  // prevents a public action from looking approved while its contributor was
+  // not actually credited, and keeps every plan type on the same reward path.
+  const memberAfter = await getAuthUserById(userId);
+  const balanceAfter = Math.max(0, Number(memberAfter?.reward_points) || 0);
+  if (balanceAfter < balanceBefore + pointAmount) {
+    throw new Error("The reward ledger did not update the member point balance.");
+  }
   emitAccountTransactionUpdate(userId);
-  return Array.isArray(rows) ? rows[0] : rows;
+  return { transaction, rewardPoints: balanceAfter };
 }
 
 // Do this before changing the underlying code action. A successful approval

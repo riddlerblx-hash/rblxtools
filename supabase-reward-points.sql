@@ -33,7 +33,8 @@ create index if not exists reward_point_transactions_user_history_idx
 create or replace function reward_points_ready() returns boolean
 language sql security definer set search_path = public as $$
   select exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'member_accounts' and column_name = 'reward_points')
-    and exists(select 1 from information_schema.tables where table_schema = 'public' and table_name = 'reward_point_transactions');
+    and exists(select 1 from information_schema.tables where table_schema = 'public' and table_name = 'reward_point_transactions')
+    and to_regprocedure('public.award_reward_points(uuid,text,uuid,text,integer,uuid,text)') is not null;
 $$;
 
 alter table game_code_expiry_reports add column if not exists status text not null default 'pending'
@@ -60,6 +61,9 @@ begin
     raise exception 'This point award was already reviewed';
   end if;
   update member_accounts set reward_points = greatest(0, coalesce(reward_points, 0) + entry.points_delta), updated_at = now() where id = p_user_id;
+  if not found then
+    raise exception 'The member account for this reward no longer exists';
+  end if;
   return entry;
 end;
 $$;
