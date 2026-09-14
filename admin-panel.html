@@ -1961,13 +1961,21 @@
       var refresh = document.getElementById("refreshCodeSubmissionsButton");
       if (!log || !refresh) return;
       function text(value) { return String(value || ""); }
-      async function load() {
-        log.textContent = "Loading submissions...";
+      var loading = false, hasLoaded = false, lastSnapshot = "";
+      async function load(options) {
+        var silent = Boolean(options && options.silent);
+        if (loading) return;
+        loading = true;
+        if (!silent && !hasLoaded) log.textContent = "Loading submissions...";
         try {
           var response = await fetch("/admin/codes/submissions?status=pending", { credentials: "include" });
           var payload = await response.json().catch(function () { return {}; });
           if (!response.ok) throw new Error(payload.error || "Could not load code submissions.");
           var submissions = Array.isArray(payload.submissions) ? payload.submissions : [];
+          var snapshot = JSON.stringify(submissions);
+          if (hasLoaded && snapshot === lastSnapshot) return;
+          lastSnapshot = snapshot;
+          hasLoaded = true;
           log.innerHTML = "";
           if (!submissions.length) { log.textContent = "No pending code submissions."; return; }
           submissions.forEach(function (submission) {
@@ -1989,11 +1997,12 @@
             approve.onclick = function () { review("approved"); }; reject.onclick = function () { review("rejected"); };
             row.append(title, meta, source, approve, reject); log.appendChild(row);
           });
-        } catch (error) { log.textContent = error.message || "Could not load code submissions."; }
+        } catch (error) { if (!hasLoaded) log.textContent = error.message || "Could not load code submissions."; }
+        finally { loading = false; }
       }
       refresh.onclick = load;
-      window.addEventListener("rblxtools-codes-updated", load);
-      window.setInterval(function () { if (!document.hidden) load(); }, 2500);
+      window.addEventListener("rblxtools-codes-updated", function () { load({ silent: true }); });
+      window.setInterval(function () { if (!document.hidden) load({ silent: true }); }, 3000);
       load();
     }());
   </script>
@@ -2002,13 +2011,21 @@
       var log = document.getElementById("expiryReportsLog");
       var refresh = document.getElementById("refreshExpiryReportsButton");
       if (!log || !refresh) return;
-      async function load() {
-        log.textContent = "Loading reports...";
+      var loading = false, hasLoaded = false, lastSnapshot = "";
+      async function load(options) {
+        var silent = Boolean(options && options.silent);
+        if (loading) return;
+        loading = true;
+        if (!silent && !hasLoaded) log.textContent = "Loading reports...";
         try {
           var response = await fetch("/admin/codes/expiry-reports", { credentials: "include" });
           var payload = await response.json().catch(function () { return {}; });
           if (!response.ok) throw new Error(payload.error || "Could not load expiry reports.");
           var reports = Array.isArray(payload.reports) ? payload.reports : [];
+          var snapshot = JSON.stringify(reports);
+          if (hasLoaded && snapshot === lastSnapshot) return;
+          lastSnapshot = snapshot;
+          hasLoaded = true;
           log.innerHTML = "";
           if (!reports.length) { log.textContent = "No code-expiry reports yet."; return; }
           reports.forEach(function (report) {
@@ -2028,11 +2045,12 @@
             if (report.gameSlug) { var link = document.createElement("a"); link.href = "/codes/" + encodeURIComponent(report.gameSlug); link.target = "_blank"; link.rel = "noopener"; link.textContent = "Open code post"; link.style.display = "inline-block"; link.style.marginTop = "8px"; row.appendChild(link); }
             log.appendChild(row);
           });
-        } catch (error) { log.textContent = error.message || "Could not load expiry reports."; }
+        } catch (error) { if (!hasLoaded) log.textContent = error.message || "Could not load expiry reports."; }
+        finally { loading = false; }
       }
       refresh.onclick = load;
-      window.addEventListener("rblxtools-codes-updated", load);
-      window.setInterval(function () { if (!document.hidden) load(); }, 2500);
+      window.addEventListener("rblxtools-codes-updated", function () { load({ silent: true }); });
+      window.setInterval(function () { if (!document.hidden) load({ silent: true }); }, 3000);
       load();
     }());
   </script>
@@ -2040,13 +2058,21 @@
     (function () {
       var log = document.getElementById("codeGameRequestsLog"), refresh = document.getElementById("refreshCodeGameRequestsButton");
       if (!log || !refresh) return;
-      async function load() {
-        log.textContent = "Loading game requests...";
+      var loading = false, hasLoaded = false, lastSnapshot = "";
+      async function load(options) {
+        var silent = Boolean(options && options.silent);
+        if (loading) return;
+        loading = true;
+        if (!silent && !hasLoaded) log.textContent = "Loading game requests...";
         try {
           var response = await fetch("/admin/codes/game-requests?status=pending", { credentials: "include" });
           var payload = await response.json().catch(function () { return {}; });
           if (!response.ok) throw new Error(payload.error || "Could not load game requests.");
           var requests = Array.isArray(payload.requests) ? payload.requests : [];
+          var snapshot = JSON.stringify(requests);
+          if (hasLoaded && snapshot === lastSnapshot) return;
+          lastSnapshot = snapshot;
+          hasLoaded = true;
           log.innerHTML = "";
           if (!requests.length) { log.textContent = "No pending game requests."; return; }
           requests.forEach(function (entry) {
@@ -2061,9 +2087,10 @@
             reviewed.onclick = function () { review("reviewed"); }; reject.onclick = function () { review("rejected"); };
             row.append(title, notes, meta, reviewed, reject); log.appendChild(row);
           });
-        } catch (error) { log.textContent = error.message || "Could not load game requests."; }
+        } catch (error) { if (!hasLoaded) log.textContent = error.message || "Could not load game requests."; }
+        finally { loading = false; }
       }
-      refresh.onclick = load; window.addEventListener("rblxtools-codes-updated", load); window.setInterval(function () { if (!document.hidden) load(); }, 2500); load();
+      refresh.onclick = load; window.addEventListener("rblxtools-codes-updated", function () { load({ silent: true }); }); window.setInterval(function () { if (!document.hidden) load({ silent: true }); }, 3000); load();
     }());
   </script>
   <script src="/socket.io/socket.io.js"></script>

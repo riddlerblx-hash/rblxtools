@@ -2303,8 +2303,11 @@
         }
       }
 
+      var rewardHistoryLoading = false, rewardHistorySnapshot = "";
       async function loadRewardHistory() {
         if (!state.user || !state.user.id || !els.acctRewardHistory) return;
+        if (rewardHistoryLoading) return;
+        rewardHistoryLoading = true;
         try {
           var payload = await apiRequest("/api/rewards/me", { method: "GET" });
           els.acctRewardPoints.textContent = Number(payload && payload.rewardPoints || 0).toLocaleString();
@@ -2340,6 +2343,10 @@
           var total = visible.filter(function (item) { var status = String(item.status || "pending").toLowerCase(); return status === "accepted" || status === "approved"; }).reduce(function (sum, item) { return sum + Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0); }, 0);
           var totalUnit = visible[0] && visible[0].unit || (type === "ai_tokens" ? "tokens" : "points");
           var totalText = totalUnit === "usd_cents" ? (total < 0 ? "-" : "+") + "$" + (Math.abs(total) / 100).toFixed(2) : (total < 0 ? "-" : "+") + Math.abs(total).toLocaleString() + " " + unitLabel(totalUnit);
+          var snapshot = JSON.stringify({ rewardPoints: Number(payload && payload.rewardPoints || 0), type: type, range: range, visible: visible });
+          try { window.dispatchEvent(new CustomEvent("rblxtools-reward-points-balance", { detail: { rewardPoints: Number(payload && payload.rewardPoints || 0) } })); } catch (_error) {}
+          if (snapshot === rewardHistorySnapshot) return;
+          rewardHistorySnapshot = snapshot;
           els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>' + labels[type] + '</span><span style="text-align:right">Amount</span></div>' + rows(visible) + '<div class="acct-transaction-total"><span>Accepted total</span><span>' + totalText + '</span></div></div>';
           if (els.acctRewardTransactionType && !els.acctRewardTransactionType.dataset.bound) {
             [els.acctRewardTransactionType, els.acctRewardTransactionRange].forEach(function (select) { select.addEventListener("change", function () { loadRewardHistory(); }); });
@@ -2363,7 +2370,7 @@
             els.acctRewardTransactionType.dataset.bound = "true";
           }
           setStatus(els.acctRewardsStatus, "", "");
-        }
+        } finally { rewardHistoryLoading = false; }
       }
 
       async function loadDiscordLinkStatus() {

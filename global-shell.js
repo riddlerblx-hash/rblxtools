@@ -3008,6 +3008,9 @@
 
       shellState.socket.on("account-transactions-updated", function () {
         try { window.dispatchEvent(new CustomEvent("rblxtools-account-transactions-updated")); } catch (_error) {}
+        // Revalidate quietly: cached balances remain on screen until the
+        // replacement values arrive.
+        refreshMembershipStateFromServer();
       });
 
       shellState.socket.on("connect_error", function (error) {
@@ -3774,7 +3777,8 @@
     if (status) status.setAttribute("data-plan", state.plan);
     if (statusText) statusText.textContent = state.message;
     applyPlanAtmosphere(state.plan);
-    shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : null };
+    var previousUser = shellState.currentUser || {};
+    shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : (previousUser.aiTokens != null ? previousUser.aiTokens : null), rewardPoints: state.rewardPoints != null && Number.isFinite(Number(state.rewardPoints)) ? Math.max(0, Number(state.rewardPoints)) : (previousUser.rewardPoints != null ? previousUser.rewardPoints : null) };
     syncMemberAdVisibility(state);
     var tokenBanner = document.getElementById("rblxShellTokenBanner");
     var tokenBalance = document.getElementById("rblxShellTokenBalance");
@@ -3782,6 +3786,8 @@
       tokenBanner.hidden = false;
       tokenBalance.textContent = state.loggedIn && shellState.currentUser.aiTokens != null ? String(shellState.currentUser.aiTokens) : "0";
     }
+    var pointsBalance = document.getElementById("rblxShellPointsBalance");
+    if (pointsBalance) pointsBalance.textContent = state.loggedIn && shellState.currentUser.rewardPoints != null ? String(shellState.currentUser.rewardPoints) : "0";
     shellState.isAdmin = Boolean(state.isAdmin);
     refreshAdminPreviewControl();
     applyAdminPreview();
@@ -3850,6 +3856,19 @@
     if (tokenBalance) tokenBalance.textContent = String(shellState.currentUser.aiTokens);
   });
 
+  window.addEventListener("rblxtools-reward-points-balance", function (event) {
+    var nextBalance = Number(event && event.detail && event.detail.rewardPoints);
+    if (!Number.isFinite(nextBalance) || !shellState.currentUser || !shellState.currentUser.loggedIn) return;
+    shellState.currentUser.rewardPoints = Math.max(0, nextBalance);
+    var cachedUser = getCachedAuthUser();
+    if (cachedUser && (!cachedUser.id || !shellState.currentUser.userId || String(cachedUser.id) === String(shellState.currentUser.userId))) {
+      cachedUser.rewardPoints = shellState.currentUser.rewardPoints;
+      saveCachedAuthUser(cachedUser);
+    }
+    var pointsBalance = document.getElementById("rblxShellPointsBalance");
+    if (pointsBalance) pointsBalance.textContent = String(shellState.currentUser.rewardPoints);
+  });
+
   function buildUserStateFromPayload(payload, moderationOverride) {
     var user = payload && payload.user ? payload.user : payload;
     if (!user || typeof user !== "object") return null;
@@ -3866,6 +3885,7 @@
       displayName: displayName,
       email: user && user.email ? String(user.email) : "",
       aiTokens: user && user.aiTokens != null ? Number(user.aiTokens) : null,
+      rewardPoints: user && user.rewardPoints != null ? Number(user.rewardPoints) : null,
       isAdmin: Boolean(user && user.isAdmin),
       moderation: moderationOverride || (payload && payload.moderation ? payload.moderation : shellState.moderation)
     };
@@ -3965,6 +3985,7 @@
       displayName: displayName,
       email: cachedUser && cachedUser.email ? String(cachedUser.email) : "",
       aiTokens: cachedUser && cachedUser.aiTokens != null ? Number(cachedUser.aiTokens) : null,
+      rewardPoints: cachedUser && cachedUser.rewardPoints != null ? Number(cachedUser.rewardPoints) : null,
       isAdmin: Boolean(cachedUser && cachedUser.isAdmin),
       moderation: shellState.moderation
     };
@@ -4033,6 +4054,8 @@
         username: user && user.username ? String(user.username) : "",
         displayName: displayName,
         email: user && user.email ? String(user.email) : "",
+        aiTokens: user && user.aiTokens != null ? Number(user.aiTokens) : null,
+        rewardPoints: user && user.rewardPoints != null ? Number(user.rewardPoints) : null,
         isAdmin: Boolean(user && user.isAdmin),
         moderation: payload && payload.moderation ? payload.moderation : null
       };
