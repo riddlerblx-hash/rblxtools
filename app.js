@@ -134,9 +134,10 @@ function parseAdminAllowlist(...environmentNames) {
 
 // These are the only server-side sources of admin access. Keep the short
 // aliases so existing environments using either spelling remain valid.
-const ADMIN_USER_IDS = new Set([...parseAdminAllowlist("ADMIN_USER_IDS", "ADMIN_IDS")]
+const ADMIN_GENERIC_ALLOWLIST = [...parseAdminAllowlist("ADMIN_ALLOWLIST", "ADMIN_USERS")];
+const ADMIN_USER_IDS = new Set([...parseAdminAllowlist("ADMIN_USER_IDS", "ADMIN_IDS"), ...ADMIN_GENERIC_ALLOWLIST.filter((value) => !String(value).includes("@"))]
   .map((value) => value.toLowerCase()));
-const ADMIN_USER_EMAILS = new Set([...parseAdminAllowlist("ADMIN_USER_EMAILS", "ADMIN_EMAILS")]
+const ADMIN_USER_EMAILS = new Set([...parseAdminAllowlist("ADMIN_USER_EMAILS", "ADMIN_EMAILS", "ADMIN_USER_EMAIL", "ADMIN_EMAIL"), ...ADMIN_GENERIC_ALLOWLIST.filter((value) => String(value).includes("@"))]
   .map((value) => value.toLowerCase()));
 const DEFAULT_COMPLIMENTARY_PLUS_DAYS = 14;
 const MAX_COMPLIMENTARY_PLUS_DAYS = 3650;

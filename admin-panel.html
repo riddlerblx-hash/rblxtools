@@ -782,6 +782,24 @@
     .admin-grid-divider h2 { margin:0; font-size:22px; letter-spacing:-.7px; }
     .admin-grid-divider p { margin:0 0 0 auto; color:var(--admin-muted); font-size:12px; font-weight:700; }
     .admin-multi-select { position:relative; } .admin-multi-select summary { min-height:44px; padding:12px 14px; border:1px solid var(--admin-line); border-radius:10px; color:var(--admin-text); background:rgba(255,255,255,.035); cursor:pointer; font-size:13px; font-weight:800; } .admin-multi-select[open] summary { border-bottom-left-radius:0; border-bottom-right-radius:0; } .admin-multi-select-list { display:grid; gap:7px; max-height:250px; overflow:auto; padding:12px; border:1px solid var(--admin-line); border-top:0; border-radius:0 0 10px 10px; background:#101827; } .admin-multi-select-list label { display:flex; align-items:center; gap:9px; color:var(--admin-text); font-size:12px; font-weight:700; cursor:pointer; }
+    /* Shared workspaces make related controls feel like one professional flow,
+       rather than a wall of unrelated utility boxes. */
+    .admin-workspace-nav { position:sticky; top:10px; z-index:8; display:flex; align-items:center; gap:8px; overflow:auto; padding:9px; border:1px solid rgba(166,193,231,.14); border-radius:18px; background:rgba(10,15,22,.82); box-shadow:0 12px 30px rgba(0,0,0,.2); backdrop-filter:blur(14px); }
+    .admin-workspace-nav a { flex:0 0 auto; padding:9px 12px; border-radius:10px; color:#b9c9df; font-size:11px; font-weight:900; letter-spacing:.02em; text-decoration:none; transition:background .16s ease,color .16s ease,transform .16s ease; }
+    .admin-workspace-nav a:hover { color:#fff; background:rgba(110,169,255,.18); transform:translateY(-1px); }
+    .admin-actions-grid { grid-template-columns:repeat(2,minmax(0,1fr)); padding:7px; border:1px solid rgba(166,193,231,.12); border-radius:28px; background:linear-gradient(145deg,rgba(38,51,69,.42),rgba(9,13,19,.42)); }
+    .admin-actions-grid > .admin-card { border-color:rgba(175,196,232,.09); border-radius:19px; background:linear-gradient(145deg,rgba(23,32,44,.96),rgba(15,21,30,.96)); box-shadow:none; }
+    .admin-actions-grid > .admin-card:hover { border-color:rgba(110,169,255,.28); }
+    .admin-primary-ops { grid-template-columns:minmax(0,1.2fr) minmax(360px,.8fr); }
+    .admin-primary-ops > .admin-card { min-height:0!important; }
+    #codeActionReviewCenter { border-color:rgba(255,204,107,.24); background:radial-gradient(circle at top right,rgba(255,204,107,.11),transparent 34%),linear-gradient(145deg,rgba(28,32,41,.98),rgba(15,20,29,.98)); }
+    #admin-live-ops > .admin-card:first-child { border-color:rgba(110,169,255,.25); }
+    #admin-live-ops > .admin-card:last-child { border-color:rgba(83,223,136,.25); }
+    .admin-section-label { padding:20px 4px 6px; margin:0; }
+    .admin-section-label h2 { font-size:28px; }
+    .admin-note-log { padding:3px; border-radius:14px; background:rgba(0,0,0,.12); }
+    .admin-note-entry { border-radius:10px; border-color:rgba(175,196,232,.08); background:rgba(255,255,255,.025); }
+    @media (max-width:900px) { .admin-actions-grid,.admin-primary-ops{grid-template-columns:1fr}.admin-workspace-nav{top:4px} }
     @media (max-width:760px) { body{padding:10px}.admin-topbar{min-height:0;padding:22px}.admin-badges{justify-content:flex-start}.admin-section-label,.admin-grid-divider{align-items:flex-start;flex-direction:column;gap:3px}.admin-section-label p,.admin-grid-divider p{margin:0}.admin-primary-ops{grid-template-columns:1fr} }
   </style>
   <link rel="stylesheet" href="./mobile-overrides.css">
@@ -800,6 +818,10 @@
         <span class="admin-pill">Backend Controlled</span>
       </div>
     </section>
+
+    <nav class="admin-workspace-nav" aria-label="Admin workspaces">
+      <a href="#admin-access">Member access</a><a href="#admin-live-ops">Live events</a><a href="#codeActionReviewCenter">Code review</a><a href="#admin-maintenance">Maintenance</a>
+    </nav>
 
     <section class="admin-card admin-session-card">
       <div class="admin-card-inner">
@@ -931,7 +953,7 @@
       </div>
     </section>
 
-    <div class="admin-section-label"><span>01 / ACCESS</span><h2>Member Operations</h2><p>Membership rewards and Discord Bot access.</p></div>
+    <div class="admin-section-label" id="admin-access"><span>01 / ACCESS</span><h2>Member Operations</h2><p>Membership rewards and Discord Bot access.</p></div>
     <section class="admin-actions-grid admin-primary-ops">
         <div class="admin-card admin-unified"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Member Rewards &amp; Membership</h2><p class="admin-card-copy">Grant Plus or Pro time as a Robux purchase or a complimentary grant. AI token grants are rewards only and never change a membership plan.</p></div></div><div class="admin-compact-grid"><div class="admin-field"><label class="admin-label" for="unifiedReward">Action</label><select class="admin-input" id="unifiedReward"><option value="plus">Grant Plus</option><option value="pro">Grant Pro</option><option value="tokens">Grant AI Tokens</option><option value="remove_plus_days">Remove Plus Days</option><option value="remove_pro_days">Remove Pro Days</option></select></div><div class="admin-field" id="unifiedSourceField"><label class="admin-label" for="unifiedGrantSource">Membership Source</label><select class="admin-input" id="unifiedGrantSource"><option value="robux">Robux Purchase</option><option value="complimentary">Complimentary</option></select></div><div class="admin-field"><label class="admin-label" for="unifiedTarget">User ID Or Email</label><input class="admin-input" id="unifiedTarget" placeholder="Target member" /></div><div class="admin-field"><label class="admin-label" id="unifiedAmountLabel" for="unifiedAmount">Days</label><input class="admin-input" id="unifiedAmount" type="number" min="1" value="14" /></div><div class="admin-field" id="unifiedTitleField"><label class="admin-label" for="unifiedTitle">Reward Title</label><input class="admin-input" id="unifiedTitle" placeholder="Optional for new grants" /></div><div class="admin-field"><label class="admin-label" for="unifiedNote">Staff Note</label><input class="admin-input" id="unifiedNote" placeholder="Required reason" /></div></div><div class="admin-buttons"><button class="admin-btn green" id="unifiedGrantButton" type="button">Apply Membership Change</button></div><div class="admin-result" id="unifiedGrantStatus"></div></div></div>
         <div class="admin-card admin-unified"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Discord Bot Complimentary Access</h2><p class="admin-card-copy">Admin-only test grants. These unlock the Bot Dashboard, but never create a Stripe purchase or alter customer checkout.</p></div></div><div class="admin-compact-grid"><div class="admin-field"><label class="admin-label" for="botGrantTarget">User ID Or Email</label><input class="admin-input" id="botGrantTarget" placeholder="Target member" /></div><div class="admin-field"><label class="admin-label" for="botGrantUses">Pay By Usage Uses</label><input class="admin-input" id="botGrantUses" type="number" min="1" max="50000" value="100" /></div><div class="admin-field"><label class="admin-label" for="botGrantNote">Staff Note</label><input class="admin-input" id="botGrantNote" placeholder="Required test reason" /></div></div><div class="admin-buttons"><button class="admin-btn green" id="grantBotUnlimitedButton" type="button">Grant Unlimited Uses</button><button class="admin-btn blue" id="grantBotUsesButton" type="button">Grant Pay By Usage</button></div><div class="admin-result" id="botGrantStatus"></div></div></div>
@@ -1074,7 +1096,8 @@
     </section>
     <section class="admin-card"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Staff Notes</h2><p class="admin-card-copy">Recent moderator notes and the admin who recorded them.</p></div><button class="admin-btn ghost" id="refreshNotesButton" type="button">Refresh</button></div><div class="admin-note-log" id="staffNotesLog">Loading notes...</div></div></section>
 
-    <section class="admin-actions-grid">
+    <div class="admin-section-label"><span>02 / LIVE</span><h2>Community Events</h2><p>Configure drops and chat rain from one workspace.</p></div>
+    <section class="admin-actions-grid" id="admin-live-ops">
       <div class="admin-card">
         <div class="admin-card-inner">
           <div class="admin-card-head">
@@ -1159,6 +1182,7 @@
         </div>
       </div>
     </section>
+    <div class="admin-section-label"><span>03 / REVIEW</span><h2>Contributor Queue</h2><p>Approve community actions and issue their earned rewards.</p></div>
     <section class="admin-card" id="codeActionReviewCenter">
       <div class="admin-card-inner">
         <div class="admin-card-head"><div><h2 class="admin-card-title">Code Action Review Center</h2><p class="admin-card-copy">Review code submissions, inactive reports, and contributor awards in one place. Points are granted only after an admin validates the action.</p></div><button class="admin-btn ghost" id="refreshCodeSubmissionsButton" type="button">Refresh submissions</button></div>
@@ -1175,7 +1199,8 @@
       </div>
     </section>
 
-    <section class="admin-card">
+    <div class="admin-section-label"><span>04 / SITE</span><h2>Operations</h2><p>Manage public availability without disrupting admin access.</p></div>
+    <section class="admin-card" id="admin-maintenance">
       <div class="admin-card-inner">
         <div class="admin-card-head">
           <div>
