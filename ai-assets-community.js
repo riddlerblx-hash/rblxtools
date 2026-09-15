@@ -452,6 +452,7 @@
   readerStyle.textContent += '@media(max-width:820px){body.rblx-mobile-shell.rblx-community-page .rblx-shell{grid-template-columns:minmax(0,1fr)!important;width:100%!important;max-width:100%!important;overflow-x:clip!important}body.rblx-mobile-shell.rblx-community-page .rblx-shell-body,body.rblx-mobile-shell.rblx-community-page .rblx-shell-center,body.rblx-mobile-shell.rblx-community-page .rblx-shell-page,body.rblx-mobile-shell.rblx-community-page .community-page{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}body.rblx-mobile-shell.rblx-community-page .community-page{padding:0 0 104px!important}body.rblx-mobile-shell.rblx-community-page .ai-assets-hub{width:100%!important;max-width:100%!important;min-width:0!important;min-height:calc(100dvh - 76px);padding:18px 12px 42px!important;background:radial-gradient(circle at 12% 0,rgba(65,111,185,.18),transparent 30%),#0b111d!important}body.rblx-mobile-shell.rblx-community-page .ai-assets-top{display:grid;min-width:0;gap:14px;margin-bottom:14px}body.rblx-mobile-shell.rblx-community-page .ai-assets-eyebrow{margin-bottom:6px;font-size:10px}body.rblx-mobile-shell.rblx-community-page .ai-assets-title{font-size:clamp(37px,12vw,52px);line-height:.9}body.rblx-mobile-shell.rblx-community-page .ai-assets-copy{max-width:36ch;margin-top:10px;font-size:13px;line-height:1.5}body.rblx-mobile-shell.rblx-community-page .ai-assets-toolbar{width:100%}body.rblx-mobile-shell.rblx-community-page .ai-assets-filter{width:100%;height:44px}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs{position:relative;width:calc(100% + 8px);margin:0 -4px 16px;padding:2px 4px 10px;gap:7px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}body.rblx-mobile-shell.rblx-community-page .ai-assets-tab{min-height:38px;padding:0 13px;scroll-snap-align:start;font-size:11px}body.rblx-mobile-shell.rblx-community-page .ai-assets-grid{width:100%;max-width:100%;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}body.rblx-mobile-shell.rblx-community-page .ai-asset-card{border-radius:12px;min-width:0;min-height:0}body.rblx-mobile-shell.rblx-community-page .ai-asset-card-controls{width:106px;gap:4px}body.rblx-mobile-shell.rblx-community-page .ai-asset-card-like,body.rblx-mobile-shell.rblx-community-page .ai-asset-card-stat{min-height:25px;font-size:9px}body.rblx-mobile-shell.rblx-community-page .ai-asset-overlay{padding:38px 8px 8px}body.rblx-mobile-shell.rblx-community-page .ai-asset-creator{overflow:hidden;font-size:10px;white-space:nowrap;text-overflow:ellipsis}body.rblx-mobile-shell.rblx-community-page .ai-community-create{margin:0 0 13px}body.rblx-mobile-shell.rblx-community-page .ai-community-create button{width:100%;min-height:43px}body.rblx-mobile-shell.rblx-community-page .ai-community-strip{width:calc(100% + 4px);margin:0 -2px;padding:2px 2px 16px;gap:10px;scroll-snap-type:x proximity}body.rblx-mobile-shell.rblx-community-page .ai-community-topic{flex-basis:min(84vw,330px);min-height:166px;padding:15px;scroll-snap-align:start}body.rblx-mobile-shell.rblx-community-page .ai-community-topic h2{font-size:17px}body.rblx-mobile-shell.rblx-community-page .ai-community-topic-footer{margin-top:10px}body.rblx-mobile-shell.rblx-community-page .ai-community-reader{padding:8px}body.rblx-mobile-shell.rblx-community-page .ai-community-reader-card{width:100%;padding:16px 14px;border-radius:15px}body.rblx-mobile-shell.rblx-community-page .ai-community-reader-card h2{font-size:24px}body.rblx-mobile-shell.rblx-community-page .ai-community-reader-actions{grid-template-columns:1fr 1fr;gap:7px}body.rblx-mobile-shell.rblx-community-page .ai-community-reader-comments{padding:14px}}@media(max-width:360px){body.rblx-mobile-shell.rblx-community-page .ai-assets-grid{grid-template-columns:1fr}body.rblx-mobile-shell.rblx-community-page .ai-community-reader-actions{grid-template-columns:1fr}}';
   readerStyle.textContent += '.ai-assets-tabs-wrap{position:relative;z-index:2;max-width:1800px;margin:0 auto}.ai-assets-tabs-scroll{display:none}@media(max-width:820px){body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs-wrap{width:calc(100% + 8px);margin:0 -4px 16px}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs{width:100%;margin:0;padding:2px 42px 10px}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs-scroll{position:absolute;z-index:3;top:50%;display:grid;width:31px;height:31px;padding:0;place-items:center;border:1px solid rgba(122,184,255,.55);border-radius:50%;background:#1b3552;color:#eff7ff;box-shadow:0 7px 18px rgba(0,0,0,.32);font:900 26px/1 system-ui;transform:translateY(-58%);cursor:pointer}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs-scroll-prev{left:5px}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs-scroll-next{right:5px}}';
   readerStyle.textContent += '@media(max-width:820px){body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs{overflow-x:scroll!important;scrollbar-width:thin!important;scrollbar-color:#78b8ff rgba(103,143,196,.3)!important;padding:2px 4px 13px!important}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs::-webkit-scrollbar{display:block!important;height:6px!important}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs::-webkit-scrollbar-track{border-radius:999px;background:rgba(103,143,196,.3)}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs::-webkit-scrollbar-thumb{border-radius:999px;background:linear-gradient(90deg,#5f9ce7,#8ecbff)}';
+  readerStyle.textContent += '.ai-asset-model-preview{display:grid;place-items:center;width:100%;aspect-ratio:.92;overflow:hidden;background:radial-gradient(circle at 50% 35%,#263b58,#0b121e 72%)}.ai-asset-model-preview canvas{display:block;width:100%!important;height:100%!important;touch-action:none}.ai-asset-model-preview.is-unavailable{color:#b7d3fa;font-size:42px;font-weight:300}.ai-asset-model-preview.is-unavailable span{filter:drop-shadow(0 4px 14px rgba(111,173,255,.42))}';
   gallery.className = 'ai-assets-hub';
   page.insertBefore(gallery, page.firstChild);
   gallery.innerHTML = '<div class="ai-assets-top"><div><p class="ai-assets-eyebrow">RBLXTools Community</p><h1 class="ai-assets-title">AI <em>Assets</em></h1><p class="ai-assets-copy">Every completed generation joins the community gallery. Explore creator work in 3D, follow the artists you like, leave a reaction, or send a token tip.</p></div><div class="ai-assets-toolbar"><select class="ai-assets-filter" id="aiAssetsSort"><option value="new">Newest</option><option value="popular">Most liked</option></select></div></div><div class="ai-assets-grid" id="aiAssetsGrid"></div>';
@@ -477,14 +478,58 @@
       + '<div class="ai-asset-card-controls"><button class="ai-asset-card-like' + (item.viewerVote === 'like' ? ' is-active' : '') + '" type="button" data-asset-card-like="' + escapeHtml(item.id) + '">&#9829; <b>' + Number(item.likes || 0) + '</b></button><span class="ai-asset-card-stat">&#9733; ' + (Number(item.rating || 0) ? Number(item.rating).toFixed(1) : '-') + '</span></div>' + (canManage ? '<button class="ai-asset-card-delete" type="button" data-delete-asset="' + escapeHtml(item.id) + '">Delete</button>' : '') + '<div class="ai-asset-overlay"><div class="ai-asset-card-bottom"><div class="ai-asset-creator">' + assetAvatar('ai-asset-avatar', item.creatorName, item.creatorAvatarUrl) + ' ' + escapeHtml(item.creatorName) + '</div><span class="ai-asset-card-views">' + Number(item.views || 0) + ' Views</span></div></div></article>';
   }
 
+  function showAssetPreviewUnavailable(stage) {
+    stage.classList.add('is-unavailable');
+    stage.innerHTML = '<span aria-label="Model preview unavailable">◇</span>';
+  }
+
+  function renderAssetModelPreview(card, assetId, image) {
+    var stage = document.createElement('div');
+    stage.className = 'ai-asset-model-preview';
+    stage.setAttribute('aria-label', 'Loading 3D model preview');
+    image.replaceWith(stage);
+    if (!window.THREE || !THREE.GLTFLoader) { showAssetPreviewUnavailable(stage); return; }
+    fetch('/api/ugc/community/' + encodeURIComponent(assetId) + '/model', { credentials: 'include' })
+      .then(function (response) { if (!response.ok) throw new Error('The model preview is unavailable.'); return response.arrayBuffer(); })
+      .then(function (buffer) {
+        var loader = new THREE.GLTFLoader();
+        return new Promise(function (resolve, reject) { loader.parse(buffer, '', resolve, reject); });
+      })
+      .then(function (gltf) {
+        if (!document.body.contains(stage)) return;
+        var width = Math.max(160, stage.clientWidth), height = Math.max(160, stage.clientHeight);
+        var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+        renderer.setSize(width, height, false);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        stage.replaceChildren(renderer.domElement);
+        var scene = new THREE.Scene();
+        var camera = new THREE.PerspectiveCamera(35, width / height, .01, 1000);
+        scene.add(new THREE.HemisphereLight(0xeaf3ff, 0x08111f, 1.4));
+        var key = new THREE.DirectionalLight(0xffffff, 1.7); key.position.set(3, 4, 5); scene.add(key);
+        var rim = new THREE.DirectionalLight(0x7caeff, 1.1); rim.position.set(-4, 2, -3); scene.add(rim);
+        var model = gltf.scene;
+        var box = new THREE.Box3().setFromObject(model), center = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+        var maxDimension = Math.max(size.x, size.y, size.z) || 1;
+        model.position.sub(center); model.scale.multiplyScalar(2.4 / maxDimension); model.rotation.y = -.42; scene.add(model);
+        camera.position.set(0, .08, 4.1); camera.lookAt(0, 0, 0);
+        stage.setAttribute('aria-label', '3D model preview');
+        (function draw() {
+          if (!document.body.contains(stage)) { renderer.dispose(); return; }
+          model.rotation.y += .004;
+          renderer.render(scene, camera);
+          requestAnimationFrame(draw);
+        }());
+      })
+      .catch(function () { if (document.body.contains(stage)) showAssetPreviewUnavailable(stage); });
+  }
+
   function bindAssetCoverFallbacks(root) {
     Array.prototype.forEach.call(root.querySelectorAll('.ai-asset-art'), function (image) {
       image.addEventListener('error', function () {
-        var fallback = document.createElement('div');
-        fallback.className = 'ai-asset-fallback';
-        fallback.setAttribute('aria-label', '3D model cover unavailable');
-        fallback.textContent = '3D';
-        image.replaceWith(fallback);
+        var card = image.closest('[data-open-asset]');
+        if (!card) return;
+        renderAssetModelPreview(card, card.dataset.openAsset, image);
       }, { once: true });
     });
   }
