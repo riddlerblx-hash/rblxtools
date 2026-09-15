@@ -2160,6 +2160,18 @@
     }
   }
 
+  // A login should always return to this site. Do not trust a return path
+  // supplied by any page or third-party script.
+  function getSafeAuthReturnUrl(value) {
+    var fallback = getCleanCurrentUrl();
+    try {
+      var destination = new URL(String(value || fallback), window.location.href);
+      return destination.origin === window.location.origin ? destination.href : fallback;
+    } catch (_error) {
+      return fallback;
+    }
+  }
+
   function saveAuthMode(mode) {
     try {
       localStorage.setItem(AUTH_MODE_KEY, mode === "signup" ? "signup" : "login");
@@ -2245,7 +2257,7 @@
     options = options || {};
     if (!shellState.authOverlay || !shellState.authModal) return;
     var mode = options.mode || shellState.authMode || readRawStorage(AUTH_MODE_KEY) || "login";
-    shellState.authReturnUrl = String(options.returnTo || getCleanCurrentUrl() || "").trim();
+    shellState.authReturnUrl = getSafeAuthReturnUrl(options.returnTo);
     setAuthMode(mode);
     if (shellState.authPassword) {
       shellState.authPassword.value = "";
@@ -2259,7 +2271,7 @@
     shellState.authOverlay.setAttribute("aria-hidden", "false");
     shellState.authModal.classList.add("is-open");
     document.body.classList.add("rblx-shell-modal-open");
-    mountModalVerticalAds(shellState.authOverlay);
+    // Do not load third-party advertising within authentication UI.
     if (shellState.authEmail && !shellState.authEmail.value) {
       var cachedUser = getCachedAuthUser();
       shellState.authEmail.value = String(cachedUser && cachedUser.email || "").trim();
@@ -2296,7 +2308,7 @@
       plan: hasPlusFromPayload(result) || hasPlusFromPayload(user) ? "plus" : "free"
     });
     window.setTimeout(function () {
-      var destination = shellState.authReturnUrl || getCleanCurrentUrl();
+      var destination = getSafeAuthReturnUrl(shellState.authReturnUrl);
       closeAuthModal();
       window.location.href = destination;
     }, 350);
@@ -4261,7 +4273,7 @@
     adFrame.height = "90";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.setAttribute("sandbox", "allow-scripts allow-forms");
+    adFrame.setAttribute("sandbox", "allow-scripts");
     adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:728px;height:90px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"fb95715336abfc09031edf4e6ef208c5",format:"iframe",height:90,width:728,params:{}};<\/script><script src="https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js"><\/script></body></html>';
     slot.appendChild(adFrame);
     var host = slot.closest("[data-rblx-banner-ad]");
@@ -4297,7 +4309,7 @@
     adFrame.height = "50";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.setAttribute("sandbox", "allow-scripts allow-forms");
+    adFrame.setAttribute("sandbox", "allow-scripts");
     adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:320px;height:50px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"4f3f88a3c4de39df646d1819202a769b",format:"iframe",height:50,width:320,params:{}};<\/script><script src="https://professionalsusceptible.com/4f3f88a3c4de39df646d1819202a769b/invoke.js"><\/script></body></html>';
     slot.appendChild(adFrame);
     var host = slot.closest("[data-rblx-mobile-banner-ad], .rblx-home-mobile-banner-ad");
@@ -4867,7 +4879,7 @@
     adFrame.height = "250";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.setAttribute("sandbox", "allow-scripts allow-forms");
+    adFrame.setAttribute("sandbox", "allow-scripts");
     adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:300px;height:250px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"d0b55a0366cbbdb50c4c68fe13fa1e3f",format:"iframe",height:250,width:300,params:{}};<\/script><script src="https://professionalsusceptible.com/d0b55a0366cbbdb50c4c68fe13fa1e3f/invoke.js"><\/script></body></html>';
     host.insertBefore(adFrame, host.querySelector(".rblx-smart-ad-timer") || null);
     host.dataset.rblxBoxAdMounted = "true";
@@ -4892,7 +4904,7 @@
     adFrame.height = "600";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.setAttribute("sandbox", "allow-scripts allow-forms");
+    adFrame.setAttribute("sandbox", "allow-scripts");
     adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};<\/script><script src="https://professionalsusceptible.com/c56a103ad60efdb3686d500b49552f97/invoke.js"><\/script></body></html>';
     host.insertBefore(adFrame, host.querySelector(".rblx-smart-ad-timer") || null);
     host.dataset.rblxVerticalAdMounted = "true";
