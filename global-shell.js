@@ -4130,7 +4130,10 @@
   }
 
   function captureStreamingPageContent(pageHost) {
-    if (document.readyState !== "loading") return;
+    // A shell can be initialized while a fast navigation is replacing the
+    // document. Do not start an observer until both its host and the body are
+    // real nodes; observing null throws and prevents the later ad mounts.
+    if (document.readyState !== "loading" || !pageHost || !document.body) return;
 
     var moveNode = function (node) {
       if (node === document.getElementById("rblxShellRoot")) return;

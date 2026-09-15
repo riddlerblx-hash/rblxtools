@@ -4373,6 +4373,8 @@ body.rblx-shell-page .notice[aria-live="polite"] {
 }
 
 .rblx-tool-banner-ad-slot {
+  position: relative;
+  z-index: 1;
   width: 728px;
   max-width: 100%;
   min-height: 90px;
@@ -4386,6 +4388,8 @@ body.rblx-shell-page .notice[aria-live="polite"] {
 }
 
 .rblx-banner-ad-frame {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 728px;
   max-width: 100%;
