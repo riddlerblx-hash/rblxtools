@@ -79,6 +79,7 @@
     var guideCache = Object.create(null);
     var liveCodeSocket = null;
     var liveRefreshTimer = 0;
+    var directorySnapshot = "";
 
     function guideSnapshot(guide) {
       return JSON.stringify({ lastUpdated: guide && guide.lastUpdated || "", workingCodes: guide && guide.workingCodes || [], expiredCodes: guide && guide.expiredCodes || [] });
@@ -176,6 +177,12 @@
     async function renderDirectory() {
       var results = await Promise.all([request(api + "?limit=100"), request(api + "/rankings?period=weekly&limit=4").catch(function () { return { games: [] }; }), request(api + "/rankings?period=popular&limit=4").catch(function () { return { games: [] }; })]);
       var payload = results[0], games = payload.games || [], weekly = (results[1].games || []).slice(0, 4), popular = (results[2].games || []).slice(0, 4);
+      // The quiet live fallback runs often. Keep its data check, but do not
+      // replace the directory DOM (and reload every advertisement) unless
+      // the directory content has genuinely changed.
+      var nextDirectorySnapshot = JSON.stringify({ games: games, weekly: weekly, popular: popular });
+      if (directorySnapshot === nextDirectorySnapshot && root.querySelector("#liveGrid")) return;
+      directorySnapshot = nextDirectorySnapshot;
       function rankingMarkup(items, gridId, emptyId, emptyText) {
         return '<div class="grid" id="' + gridId + '">' + items.map(function (game) { return '<a class="game" href="/codes/' + encodeURIComponent(game.slug) + '">' + art(game) + '<div class="game-body"><h3>' + esc(displayGameName(game.name)) + '</h3><small class="card-author">By ' + esc(game.authorName || "RBLXTools Staff") + '</small><div class="meta"><span>' + date(game.lastUpdated) + '</span><b>' + Number(game.viewCount || 0) + ' visits</b></div></div></a>'; }).join("") + '</div><div class="empty" id="' + emptyId + '">' + emptyText + '</div>';
       }
