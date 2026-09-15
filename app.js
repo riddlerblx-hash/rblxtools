@@ -7954,7 +7954,7 @@ function buildAIUGCCommunityItem(item, post, viewer) {
   const viewerId = String(viewer?.id || "");
   const sharedAvatarUrl = readCommunityProfiles()[String(item.creatorId || "")]?.avatarUrl;
   return {
-    id: item.id, title: item.title, thumbnailUrl: item.thumbnailUrl ? `/api/ugc/community/${encodeURIComponent(item.id)}/cover` : "", assetType: item.assetType, textured: item.textured,
+    id: item.id, title: item.title, thumbnailUrl: `/api/ugc/community/${encodeURIComponent(item.id)}/cover`, assetType: item.assetType, textured: item.textured,
     creatorId: item.creatorId, creatorName: item.creatorName || "RBLXTools creator", creatorAvatarUrl: cleanText(sharedAvatarUrl || item.creatorAvatarUrl || "", 2000), createdAt: item.createdAt,
     allowDownloads: Boolean(item.allowPublicDownloads), rating: ratings.length ? Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10 : 0,
     ratingCount: ratings.length, likes: votes.filter((vote) => vote === "like").length, dislikes: votes.filter((vote) => vote === "dislike").length,
@@ -7980,11 +7980,26 @@ app.get("/api/ugc/community", async (req, res) => {
 app.get("/api/ugc/community/:taskId/cover", async (req, res) => {
   try {
     const item = findPublicAIUGCItem(cleanMeshyTaskId(req.params.taskId));
-    const sourceUrl = String(item?.thumbnailUrl || "").trim();
-    if (!item || !/^https?:\/\//i.test(sourceUrl)) return res.status(404).json({ error: "This model does not have a cover image." });
-    const coverResponse = await fetch(sourceUrl, { headers: { Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" } });
+    if (!item) return res.status(404).json({ error: "This model is not available." });
+    const loadCover = async (url) => {
+      if (!/^https?:\/\//i.test(String(url || ""))) return null;
+      const response = await fetch(url, { headers: { Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" } });
+      return response.ok && String(response.headers.get("content-type") || "").toLowerCase().startsWith("image/") ? response : null;
+    };
+    let coverResponse = await loadCover(String(item.thumbnailUrl || "").trim());
+    // Meshy thumbnail URLs are temporary. If an older link has expired (or was
+    // never stored), request the current task thumbnail before showing a fallback.
+    if (!coverResponse) {
+      const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
+      const task = await requestMeshy(getUGCTaskPath(taskType) + encodeURIComponent(item.id));
+      const refreshedUrl = String(task.alpha_thumbnail_url || task.thumbnail_url || "").trim();
+      if (refreshedUrl) {
+        updatePersistentAIUGCHistory(item.creatorId, item.id, { thumbnailUrl: refreshedUrl });
+        coverResponse = await loadCover(refreshedUrl);
+      }
+    }
+    if (!coverResponse) throw new Error("The model cover is unavailable.");
     const contentType = String(coverResponse.headers.get("content-type") || "").toLowerCase();
-    if (!coverResponse.ok || !contentType.startsWith("image/")) throw new Error("The model cover is unavailable.");
     const image = Buffer.from(await coverResponse.arrayBuffer());
     if (!image.length || image.length > 12 * 1024 * 1024) throw new Error("The model cover could not be loaded.");
     res.setHeader("Cache-Control", "public, max-age=600");
