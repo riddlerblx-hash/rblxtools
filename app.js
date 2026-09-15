@@ -1307,12 +1307,6 @@ async function saveCodeGuideCover(rawImage) {
   return saveCodeGuideImage(rawImage, "cover image");
 }
 
-async function saveCodeGuideInstructionImages(rawImages) {
-  if (!Array.isArray(rawImages)) return [];
-  if (rawImages.length > 6) throw Object.assign(new Error("Upload no more than 6 tutorial images."), { statusCode: 400 });
-  return Promise.all(rawImages.map((image) => saveCodeGuideImage(image, "tutorial image")));
-}
-
 async function removeCodeGuideCover(iconUrl) {
   const publicPath = String(iconUrl || "");
   if (!publicPath.startsWith("/code-guide-covers/")) return;
@@ -11746,11 +11740,10 @@ app.post("/admin/codes/games", async (req, res) => {
     const payload = { ...(req.body || {}) };
     payload.authorUserId = adminUser.id;
     payload.authorName = cleanText(adminUser.display_name || adminUser.username || adminUser.email?.split("@")[0] || "RBLXTools Staff", 80);
-    if (!String(payload.redemptionInstructions || "").trim()) return res.status(400).json({ error: "Redemption instructions are required." });
-    if (!Array.isArray(payload.instructionImageDataUrls) || !payload.instructionImageDataUrls.length) return res.status(400).json({ error: "Add at least one tutorial image." });
     if (!payload.coverImageDataUrl) return res.status(400).json({ error: "A cover image is required." });
     if (payload.coverImageDataUrl) payload.iconUrl = await saveCodeGuideCover(payload.coverImageDataUrl);
-    if (payload.instructionImageDataUrls) payload.instructionImageUrls = await saveCodeGuideInstructionImages(payload.instructionImageDataUrls);
+    payload.redemptionInstructions = "";
+    payload.instructionImageUrls = [];
     delete payload.coverImageDataUrl;
     delete payload.instructionImageDataUrls;
     const game = await codesPlatform.upsertGame(payload);
@@ -11768,22 +11761,18 @@ app.patch("/admin/codes/:slug", async (req, res) => {
     if (!guide) return res.status(404).json({ error: "Code post not found." });
     const payload = { ...(req.body || {}) };
     const hasNewCover = Boolean(payload.coverImageDataUrl);
-    const hasNewTutorialImages = Array.isArray(payload.instructionImageDataUrls) && payload.instructionImageDataUrls.length > 0;
     const iconUrl = hasNewCover ? await saveCodeGuideCover(payload.coverImageDataUrl) : guide.game.icon;
-    const instructionImageUrls = hasNewTutorialImages ? await saveCodeGuideInstructionImages(payload.instructionImageDataUrls) : (guide.game.instructionImageUrls || []);
-    const redemptionInstructions = String(payload.redemptionInstructions || guide.game.redemptionInstructions || "").trim();
-    if (!redemptionInstructions || !instructionImageUrls.length) return res.status(400).json({ error: "Redemption instructions and at least one tutorial image are required." });
     const game = await codesPlatform.upsertGame({
       name: payload.name || guide.game.name,
       slug: guide.game.slug,
       robloxUrl: payload.robloxUrl === undefined ? guide.game.robloxUrl : payload.robloxUrl,
       iconUrl,
       description: guide.game.description,
-      redemptionInstructions,
-      instructionImageUrls,
+      redemptionInstructions: guide.game.redemptionInstructions || "",
+      instructionImageUrls: guide.game.instructionImageUrls || [],
       codesEnabled: true,
     });
-    const replacedImages = (hasNewCover ? [guide.game.icon] : []).concat(hasNewTutorialImages ? guide.game.instructionImageUrls || [] : []);
+    const replacedImages = hasNewCover ? [guide.game.icon] : [];
     await Promise.all(replacedImages.filter(Boolean).map((url) => removeCodeGuideCover(url).catch((error) => console.error("Could not remove replaced code post image:", error.message))));
     publishCodesUpdate();
     return res.json({ ok: true, game });
