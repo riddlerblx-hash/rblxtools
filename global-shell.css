@@ -4182,6 +4182,60 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
   background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
 }
 
+/* On phones the account controls live in the navigation drawer. Keep the
+   brand and admin "View as" picker on the same compact header row instead of
+   reserving a mostly empty second row for the picker. */
+@media (max-width: 820px) {
+  :root { --shell-header-height: 76px; }
+
+  body.rblx-mobile-shell .rblx-shell-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr);
+    justify-items: stretch;
+    align-items: center;
+    gap: 8px;
+    height: var(--shell-header-height);
+    min-height: var(--shell-header-height);
+    padding: 10px 12px;
+    box-sizing: border-box;
+  }
+
+  body.rblx-mobile-shell .rblx-shell-brand {
+    min-width: 0;
+    min-height: 0;
+    gap: 9px;
+    padding-right: 0;
+  }
+
+  body.rblx-mobile-shell .rblx-shell-brand-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    font-size: 15px;
+  }
+
+  body.rblx-mobile-shell .rblx-shell-brand-text { min-width: 0; }
+  body.rblx-mobile-shell .rblx-shell-brand-title { font-size: 21px; }
+  body.rblx-mobile-shell .rblx-shell-brand-subtitle { font-size: 8px; letter-spacing: .8px; }
+
+  body.rblx-mobile-shell #rblxShellAdminPreviewHost {
+    min-height: 0;
+    justify-self: end;
+  }
+
+  body.rblx-mobile-shell .rblx-shell-admin-preview summary {
+    min-height: 32px;
+    padding: 0 8px;
+    gap: 3px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  body.rblx-mobile-shell .rblx-shell-brand-subtitle { display: none; }
+  body.rblx-mobile-shell .rblx-shell-brand-title { font-size: 20px; }
+}
+
 /* AI UGC uses a canvas-style workspace; keep the global shell pinned while the studio stays in the center lane. */
 body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-header {
   position: fixed;
