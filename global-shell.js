@@ -4210,10 +4210,25 @@
     return icons[kind] || icons.spark;
   }
 
+  function getSharedAdRefreshDueAt() {
+    var now = Date.now(), dueAt = 0;
+    try { dueAt = Number(sessionStorage.getItem("rblxtools_ad_refresh_due_at") || 0); } catch (_error) {}
+    if (dueAt > now) return dueAt;
+    dueAt = now + 30000;
+    try { sessionStorage.setItem("rblxtools_ad_refresh_due_at", String(dueAt)); } catch (_error) {}
+    return dueAt;
+  }
+
+  function restartSharedAdRefreshCycle() {
+    var dueAt = Date.now() + 30000;
+    try { sessionStorage.setItem("rblxtools_ad_refresh_due_at", String(dueAt)); } catch (_error) {}
+    return dueAt;
+  }
+
   function enableSmartAdRefresh(host, refresh) {
     if (!host || host.dataset.rblxSmartAdRefresh === "true") return;
     host.dataset.rblxSmartAdRefresh = "true";
-    var remaining = 30000, lastTick = performance.now(), visible = false;
+    var dueAt = getSharedAdRefreshDueAt(), visible = false;
     var timer = document.createElement("div");
     timer.className = "rblx-smart-ad-timer";
     timer.setAttribute("aria-label", "Advertisement refresh timer");
@@ -4222,10 +4237,8 @@
     var bar = timer.querySelector("b");
     function update(now) {
       if (!host.isConnected) { if (observer) observer.disconnect(); return; }
-      var elapsed = Math.min(1000, Math.max(0, now - lastTick));
-      lastTick = now;
-      if (visible && !document.hidden) remaining -= elapsed;
-      if (remaining <= 0) { refresh(); remaining = 30000; }
+      var remaining = Math.max(0, dueAt - Date.now());
+      if (visible && !document.hidden && remaining <= 0) { refresh(); dueAt = restartSharedAdRefreshCycle(); remaining = 30000; }
       bar.style.transform = "scaleX(" + Math.max(0, remaining / 30000) + ")";
       requestAnimationFrame(update);
     }
