@@ -2271,7 +2271,9 @@
     shellState.authOverlay.setAttribute("aria-hidden", "false");
     shellState.authModal.classList.add("is-open");
     document.body.classList.add("rblx-shell-modal-open");
-    // Do not load third-party advertising within authentication UI.
+    // Login and sign-up use the same desktop ad rails as the membership and
+    // reward modals. Mount them only after the overlay is visible.
+    mountModalVerticalAds(shellState.authOverlay);
     if (shellState.authEmail && !shellState.authEmail.value) {
       var cachedUser = getCachedAuthUser();
       shellState.authEmail.value = String(cachedUser && cachedUser.email || "").trim();
