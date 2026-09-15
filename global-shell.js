@@ -4239,7 +4239,7 @@
       if (!host.isConnected) { if (observer) observer.disconnect(); return; }
       var remaining = Math.max(0, dueAt - Date.now());
       if (visible && !document.hidden && remaining <= 0) { refresh(); dueAt = restartSharedAdRefreshCycle(); remaining = 30000; }
-      bar.style.transform = "scaleX(" + Math.max(0, remaining / 30000) + ")";
+      bar.style.transform = "scaleX(" + Math.min(1, Math.max(0, 1 - (remaining / 30000))) + ")";
       requestAnimationFrame(update);
     }
     var observer = typeof IntersectionObserver === "function" ? new IntersectionObserver(function (entries) {
