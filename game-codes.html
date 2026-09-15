@@ -126,7 +126,7 @@
     window.setInterval(function () { if (!document.hidden) refreshCodesFromLiveUpdate(); }, 3000);
     connectLiveCodeUpdates(0);
     var codePostAdMarkup = function (position) { return '<section class="code-post-ad" data-code-post-ad data-ad-position="' + position + '" aria-label="Advertisement"><div class="code-post-ad-unit"></div></section>'; };
-    var codeDirectoryAdMarkup = function (position) { return '<section class="code-post-ad code-directory-ad" data-code-post-ad data-ad-position="directory-' + position + '" aria-label="Advertisement"><div class="code-post-ad-unit"></div></section>'; };
+    var codeDirectoryAdMarkup = function (position) { return '<section class="rblx-home-banner-ad code-directory-ad" data-rblx-banner-ad data-code-post-ad data-ad-position="directory-' + position + '" aria-label="Advertisement"><span class="rblx-banner-ad-label">Advertisement</span><div class="rblx-tool-banner-ad-slot code-post-ad-unit"></div></section>'; };
 
     function mountCodePostAds(container) {
       var units = Array.prototype.slice.call(container.querySelectorAll("[data-code-post-ad] .code-post-ad-unit"));
