@@ -5160,6 +5160,19 @@
       try { sessionStorage.setItem(ADMIN_PREVIEW_KEY, button.dataset.shellAdminPreview); } catch (_error) {}
       window.location.reload();
     });
+    // The preview picker is a lightweight header menu, not a persistent panel.
+    // A click anywhere outside it should put it away just like a native menu.
+    document.addEventListener("click", function (event) {
+      Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-admin-preview[open]")).forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute("open");
+      });
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") return;
+      Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-admin-preview[open]")).forEach(function (menu) {
+        menu.removeAttribute("open");
+      });
+    });
     shellState.renderedCommunityUnreadCount = shellState.communityUnreadCount;
     ensureSitePlusBackdrop();
     applyPlanAtmosphere(initialState.plan);
