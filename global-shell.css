@@ -4339,6 +4339,29 @@ body.rblx-shell-page .notice[aria-live="polite"] {
   border: 0;
 }
 
+.rblx-smart-ad-timer {
+  width: min(728px, 100%);
+  padding-top: 7px;
+}
+
+.rblx-smart-ad-timer i {
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(145, 170, 198, .22);
+}
+
+.rblx-smart-ad-timer b {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #58c6ff, #7e87ff);
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
 .rblx-home-banner-ad { margin-block: 20px; }
 
 body.rblx-pro-ad-free [data-rblx-banner-ad] { display: none !important; }

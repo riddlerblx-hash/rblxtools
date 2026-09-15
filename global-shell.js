@@ -4210,6 +4210,32 @@
     return icons[kind] || icons.spark;
   }
 
+  function enableSmartAdRefresh(host, refresh) {
+    if (!host || host.dataset.rblxSmartAdRefresh === "true") return;
+    host.dataset.rblxSmartAdRefresh = "true";
+    var remaining = 30000, lastTick = performance.now(), visible = false;
+    var timer = document.createElement("div");
+    timer.className = "rblx-smart-ad-timer";
+    timer.setAttribute("aria-label", "Advertisement refresh timer");
+    timer.innerHTML = '<i><b></b></i>';
+    host.appendChild(timer);
+    var bar = timer.querySelector("b");
+    function update(now) {
+      if (!host.isConnected) { if (observer) observer.disconnect(); return; }
+      var elapsed = Math.min(1000, Math.max(0, now - lastTick));
+      lastTick = now;
+      if (visible && !document.hidden) remaining -= elapsed;
+      if (remaining <= 0) { refresh(); remaining = 30000; }
+      bar.style.transform = "scaleX(" + Math.max(0, remaining / 30000) + ")";
+      requestAnimationFrame(update);
+    }
+    var observer = typeof IntersectionObserver === "function" ? new IntersectionObserver(function (entries) {
+      visible = Boolean(entries[0] && entries[0].isIntersecting && entries[0].intersectionRatio >= 0.5);
+    }, { threshold: [0, 0.5] }) : null;
+    if (observer) observer.observe(host); else visible = true;
+    requestAnimationFrame(update);
+  }
+
   function mountSharedBannerAd(slot) {
     if (!slot || slot.dataset.rblxBannerLoaded === "true") return;
     slot.dataset.rblxBannerLoaded = "true";
@@ -4224,6 +4250,8 @@
     adFrame.setAttribute("frameborder", "0");
     adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:728px;height:90px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"fb95715336abfc09031edf4e6ef208c5",format:"iframe",height:90,width:728,params:{}};<\/script><script src="https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js"><\/script></body></html>';
     slot.appendChild(adFrame);
+    var host = slot.closest("[data-rblx-banner-ad]");
+    enableSmartAdRefresh(host, function () { slot.textContent = ""; delete slot.dataset.rblxBannerLoaded; mountSharedBannerAd(slot); });
   }
 
   function createSharedBannerAd(id, className) {
@@ -4257,6 +4285,8 @@
     adFrame.setAttribute("frameborder", "0");
     adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:320px;height:50px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"4f3f88a3c4de39df646d1819202a769b",format:"iframe",height:50,width:320,params:{}};<\/script><script src="https://professionalsusceptible.com/4f3f88a3c4de39df646d1819202a769b/invoke.js"><\/script></body></html>';
     slot.appendChild(adFrame);
+    var host = slot.closest("[data-rblx-mobile-banner-ad], .rblx-home-mobile-banner-ad");
+    enableSmartAdRefresh(host, function () { slot.textContent = ""; delete slot.dataset.rblxMobileBannerLoaded; mountMobileHomeBannerAd(slot); });
   }
 
   function createMobileBannerAd(id, className) {
@@ -4823,8 +4853,13 @@
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
     adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:300px;height:250px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"d0b55a0366cbbdb50c4c68fe13fa1e3f",format:"iframe",height:250,width:300,params:{}};<\/script><script src="https://professionalsusceptible.com/d0b55a0366cbbdb50c4c68fe13fa1e3f/invoke.js"><\/script></body></html>';
-    host.appendChild(adFrame);
+    host.insertBefore(adFrame, host.querySelector(".rblx-smart-ad-timer") || null);
     host.dataset.rblxBoxAdMounted = "true";
+    // Membership and AI-token promo cards already rotate with their own
+    // slideshow, so only the standalone shell advertisement boxes refresh.
+    if (host.hasAttribute("data-rblx-shell-box-ad")) {
+      enableSmartAdRefresh(host, function () { Array.prototype.forEach.call(host.querySelectorAll("iframe"), function (frame) { frame.remove(); }); delete host.dataset.rblxBoxAdMounted; mountBoxAd(host); });
+    }
   }
 
   function mountDesktopShellBoxAds() {
@@ -4842,8 +4877,9 @@
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
     adFrame.srcdoc = '<!doctype html><html><head><style>html,body{width:160px;height:600px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"c56a103ad60efdb3686d500b49552f97",format:"iframe",height:600,width:160,params:{}};<\/script><script src="https://professionalsusceptible.com/c56a103ad60efdb3686d500b49552f97/invoke.js"><\/script></body></html>';
-    host.appendChild(adFrame);
+    host.insertBefore(adFrame, host.querySelector(".rblx-smart-ad-timer") || null);
     host.dataset.rblxVerticalAdMounted = "true";
+    enableSmartAdRefresh(host, function () { Array.prototype.forEach.call(host.querySelectorAll("iframe"), function (frame) { frame.remove(); }); delete host.dataset.rblxVerticalAdMounted; mountVerticalAd(host); });
   }
 
   function mountModalVerticalAds(overlay) {

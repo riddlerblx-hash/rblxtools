@@ -131,25 +131,23 @@
     var codePostAdMarkup = function (position) { return '<section class="code-post-ad" data-code-post-ad data-ad-position="' + position + '" aria-label="Advertisement"><div class="code-post-ad-unit"></div></section>'; };
     var codeDirectoryAdMarkup = function (position) { return '<section class="rblx-home-banner-ad code-directory-ad" data-rblx-banner-ad data-code-post-ad data-ad-position="directory-' + position + '" aria-label="Advertisement"><span class="rblx-banner-ad-label">Advertisement</span><div class="rblx-tool-banner-ad-slot code-post-ad-unit"></div></section>'; };
 
+    function enableCodeAdRefresh(host, reload) {
+      if (!host || host.dataset.rblxSmartAdRefresh === "true") return;
+      host.dataset.rblxSmartAdRefresh = "true";
+      var remaining = 30000, lastTick = performance.now(), visible = false;
+      var timer = document.createElement("div"); timer.className = "rblx-smart-ad-timer"; timer.innerHTML = '<i><b></b></i>'; host.appendChild(timer);
+      var bar = timer.querySelector("b"), observer = typeof IntersectionObserver === "function" ? new IntersectionObserver(function (entries) { visible = Boolean(entries[0] && entries[0].isIntersecting && entries[0].intersectionRatio >= 0.5); }, { threshold: [0, 0.5] }) : null;
+      if (observer) observer.observe(host); else visible = true;
+      function tick(now) { if (!host.isConnected) { if (observer) observer.disconnect(); return; } var elapsed = Math.min(1000, Math.max(0, now - lastTick)); lastTick = now; if (visible && !document.hidden) remaining -= elapsed; if (remaining <= 0) { reload(); remaining = 30000; } bar.style.transform = "scaleX(" + Math.max(0, remaining / 30000) + ")"; requestAnimationFrame(tick); }
+      requestAnimationFrame(tick);
+    }
+
     function mountCodePostAds(container) {
       var units = Array.prototype.slice.call(container.querySelectorAll("[data-code-post-ad] .code-post-ad-unit"));
-      function loadNext(index) {
-        if (index >= units.length) return;
-        var unit = units[index];
-        window.atOptions = { key: "fb95715336abfc09031edf4e6ef208c5", format: "iframe", height: 90, width: 728, params: {} };
-        var script = document.createElement("script");
-        script.src = "https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js";
-        script.async = false;
-        script.onload = function () {
-          setTimeout(function () {
-            if (!unit.querySelector("iframe, ins, object, embed")) unit.closest("[data-code-post-ad]").remove();
-          }, 3000);
-          setTimeout(function () { loadNext(index + 1); }, 150);
-        };
-        script.onerror = function () { unit.closest("[data-code-post-ad]").remove(); loadNext(index + 1); };
-        unit.appendChild(script);
-      }
-      loadNext(0);
+      units.forEach(function (unit) {
+        function load() { unit.textContent = ""; var frame = document.createElement("iframe"); frame.className = "rblx-banner-ad-frame"; frame.title = "Advertisement"; frame.width = "728"; frame.height = "90"; frame.scrolling = "no"; frame.setAttribute("frameborder", "0"); frame.srcdoc = '<!doctype html><html><head><style>html,body{width:728px;height:90px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"fb95715336abfc09031edf4e6ef208c5",format:"iframe",height:90,width:728,params:{}};<\/script><script src="https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js"><\/script></body></html>'; unit.appendChild(frame); }
+        load(); enableCodeAdRefresh(unit.closest("[data-code-post-ad]"), load);
+      });
     }
 
     function createCodePostAd(position) {
