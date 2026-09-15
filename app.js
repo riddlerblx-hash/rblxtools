@@ -1,5 +1,6 @@
 // The VPS `.env` file is the deployment source of truth, not stale PM2 values.
-require("dotenv").config({ path: require("path").join(__dirname, ".env"), override: true });
+const dotenv = require("dotenv");
+dotenv.config({ path: require("path").join(__dirname, ".env"), override: true });
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -116,9 +117,9 @@ const STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS = new Set([STRIPE_DISCORD_BOT_UNLIM
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "");
 const APP_BASE_URL = String(process.env.APP_BASE_URL || "https://www.rblxtools.net");
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
-function parseAdminAllowlist(...environmentNames) {
+function parseAdminAllowlistFrom(environment, ...environmentNames) {
   return new Set(environmentNames.flatMap((environmentName) => {
-    const rawValue = String(process.env[environmentName] || "").trim();
+    const rawValue = String(environment?.[environmentName] || "").trim();
     if (!rawValue) return [];
 
     // Commas are the documented format. New lines and semicolons make an
@@ -132,17 +133,30 @@ function parseAdminAllowlist(...environmentNames) {
   }).map((value) => String(value || "").trim()).filter(Boolean));
 }
 
-// These are the only server-side sources of admin access. Keep the short
-// aliases so existing environments using either spelling remain valid.
-const ADMIN_GENERIC_ALLOWLIST = [...parseAdminAllowlist("ADMIN_ALLOWLIST", "ADMIN_USERS")];
-const ADMIN_USER_IDS = new Set([...parseAdminAllowlist("ADMIN_USER_IDS", "ADMIN_IDS"), ...ADMIN_GENERIC_ALLOWLIST.filter((value) => !String(value).includes("@"))]
-  .map((value) => value.toLowerCase()));
-const ADMIN_USER_EMAILS = new Set([...parseAdminAllowlist("ADMIN_USER_EMAILS", "ADMIN_EMAILS", "ADMIN_USER_EMAIL", "ADMIN_EMAIL"), ...ADMIN_GENERIC_ALLOWLIST.filter((value) => String(value).includes("@"))]
-  .map((value) => value.toLowerCase()));
-// Usernames are accepted only through their own explicit variable, never by
-// guessing that an ambiguous generic allowlist value is a username.
-const ADMIN_USERNAMES = new Set([...parseAdminAllowlist("ADMIN_USERNAMES", "ADMIN_USER_NAMES")]
-  .map((value) => value.toLowerCase()));
+function buildAdminAccessConfig(environment) {
+  const generic = [...parseAdminAllowlistFrom(environment, "ADMIN_ALLOWLIST", "ADMIN_USERS")];
+  return {
+    userIds: new Set([...parseAdminAllowlistFrom(environment, "ADMIN_USER_IDS", "ADMIN_IDS"), ...generic.filter((value) => !String(value).includes("@"))]
+      .map((value) => value.toLowerCase())),
+    userEmails: new Set([...parseAdminAllowlistFrom(environment, "ADMIN_USER_EMAILS", "ADMIN_EMAILS", "ADMIN_USER_EMAIL", "ADMIN_EMAIL"), ...generic.filter((value) => String(value).includes("@"))]
+      .map((value) => value.toLowerCase())),
+    // Usernames are accepted only through their own explicit variable, never
+    // by guessing that an ambiguous generic value is a username.
+    usernames: new Set([...parseAdminAllowlistFrom(environment, "ADMIN_USERNAMES", "ADMIN_USER_NAMES")]
+      .map((value) => value.toLowerCase())),
+  };
+}
+
+function getRuntimeAdminAccessConfig() {
+  const envPath = path.join(__dirname, ".env");
+  try {
+    return buildAdminAccessConfig(dotenv.parse(fs.readFileSync(envPath)));
+  } catch (_error) {
+    // Local development may intentionally use process environment variables
+    // without a .env file. Production uses the file above as the sole source.
+    return buildAdminAccessConfig(process.env);
+  }
+}
 const DEFAULT_COMPLIMENTARY_PLUS_DAYS = 14;
 const MAX_COMPLIMENTARY_PLUS_DAYS = 3650;
 const REWARD_POINT_AWARDS = Object.freeze({ working_code: 20, expired_code_report: 3 });
@@ -4780,14 +4794,15 @@ function isAdminUser(user) {
     return false;
   }
 
+  const adminAccess = getRuntimeAdminAccessConfig();
   const userId = String(user.id || "").trim();
   const userEmail = String(user.email || "").trim().toLowerCase();
   const username = String(user.username || "").trim().toLowerCase();
 
   return (
-    (userId && ADMIN_USER_IDS.has(userId)) ||
-    (userEmail && ADMIN_USER_EMAILS.has(userEmail)) ||
-    (username && ADMIN_USERNAMES.has(username))
+    (userId && adminAccess.userIds.has(userId)) ||
+    (userEmail && adminAccess.userEmails.has(userEmail)) ||
+    (username && adminAccess.usernames.has(username))
   );
 }
 
@@ -4807,8 +4822,9 @@ function applyDashboardAdminAccess(dashboard, user) {
 
 async function requireAdminUser(req) {
     const user = await requireAuthenticatedUser(req);
+  const adminAccess = getRuntimeAdminAccessConfig();
 
-  if (!ADMIN_USER_IDS.size && !ADMIN_USER_EMAILS.size && !ADMIN_USERNAMES.size) {
+  if (!adminAccess.userIds.size && !adminAccess.userEmails.size && !adminAccess.usernames.size) {
     const error = new Error("Admin allowlist is not configured.");
     error.statusCode = 500;
     throw error;
