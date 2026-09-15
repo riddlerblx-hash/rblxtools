@@ -7151,6 +7151,11 @@ app.post("/auth/logout", async (req, res) => {
 });
 
 app.get("/auth/me", async (req, res) => {
+  // Identity, membership, and admin access are per-account state. Never let a
+  // browser, proxy, or LiteSpeed cache replay a previous user's privileges.
+  res.setHeader("Cache-Control", "no-store, private, max-age=0, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Vary", "Cookie, Authorization");
   try {
     const user = await requireAuthenticatedUser(req);
     const freshUser = await refreshStripeMembershipForUserIfNeeded(user);
@@ -8235,6 +8240,9 @@ app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
 
 // Fast page gate: avoids a live Stripe refresh when a tool only needs identity and entitlements.
 app.get("/auth/session", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, private, max-age=0, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Vary", "Cookie, Authorization");
   try {
     if (String(req.query?.stripeConfig || "") === "1") {
       return sendStripeCheckoutConfig(req, res);

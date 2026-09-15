@@ -3905,6 +3905,7 @@
       var response = await fetch(API_BASE + "/auth/me", {
         method: "GET",
         credentials: "include",
+        cache: "no-store",
         headers: {
           "X-RBLX-Device-Id": shellState.deviceId || getDeviceId()
         }
@@ -4023,6 +4024,7 @@
       response = await fetch(API_BASE + "/auth/me", {
         method: "GET",
         credentials: "include",
+        cache: "no-store",
         headers: {
           "X-RBLX-Device-Id": shellState.deviceId || getDeviceId()
         }

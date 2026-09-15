@@ -1917,7 +1917,8 @@
 
         try {
           var payload = await fetchJson(API_BASE + "/auth/me", {
-            method: "GET"
+            method: "GET",
+            cache: "no-store"
           });
 
           var user = payload.user || payload;
