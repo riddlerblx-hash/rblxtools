@@ -11983,11 +11983,38 @@ app.get(["/codes", "/codes/", "/game-codes"], (_req, res) => {
   return res.sendFile(path.join(STATIC_ROOT, "game-codes.html"));
 });
 
+function escapeShareMeta(value) {
+  return String(value || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function getPublicRequestOrigin(req) {
+  const forwardedProto = String(req.get("x-forwarded-proto") || "").split(",")[0].trim();
+  const protocol = forwardedProto === "https" ? "https" : req.secure ? "https" : "http";
+  const host = String(req.get("host") || "www.rblxtools.net").replace(/[^a-zA-Z0-9.:-]/g, "") || "www.rblxtools.net";
+  return `${protocol}://${host}`;
+}
+
+function renderCodeGuideSharePage(req, guide) {
+  const game = guide.game || {};
+  const origin = getPublicRequestOrigin(req);
+  const gameName = cleanText(game.name || "Roblox Game", 140);
+  const title = `${gameName} Codes (${new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date())}) | RBLXTools`;
+  const description = cleanText(game.description || `Find community-reviewed codes for ${gameName}.`, 300);
+  const canonicalUrl = `${origin}/codes/${encodeURIComponent(game.slug || "")}`;
+  const rawImage = String(game.icon || "").trim();
+  const imageUrl = rawImage && (/^https?:\/\//i.test(rawImage) ? rawImage : rawImage.startsWith("/") ? `${origin}${rawImage}` : "");
+  const imageMeta = imageUrl ? `<meta property="og:image" content="${escapeShareMeta(imageUrl)}">\n  <meta property="og:image:secure_url" content="${escapeShareMeta(imageUrl)}">\n  <meta name="twitter:image" content="${escapeShareMeta(imageUrl)}">` : "";
+  const meta = `<meta property="og:type" content="website">\n  <meta property="og:site_name" content="RBLXTools">\n  <meta property="og:title" content="${escapeShareMeta(title)}">\n  <meta property="og:description" content="${escapeShareMeta(description)}">\n  <meta property="og:url" content="${escapeShareMeta(canonicalUrl)}">\n  ${imageMeta}\n  <meta name="twitter:card" content="summary_large_image">\n  <meta name="twitter:title" content="${escapeShareMeta(title)}">\n  <meta name="twitter:description" content="${escapeShareMeta(description)}">`;
+  const page = fs.readFileSync(path.join(STATIC_ROOT, "game-codes.html"), "utf8");
+  return page.replace("</head>", `  ${meta}\n</head>`);
+}
+
 app.get("/codes/:slug", async (req, res) => {
   try {
-    if (!await codesPlatform.getGame(req.params.slug)) return res.status(404).sendFile(path.join(STATIC_ROOT, "game-codes.html"));
+    const guide = await codesPlatform.getGame(req.params.slug);
+    if (!guide) return res.status(404).sendFile(path.join(STATIC_ROOT, "game-codes.html"));
     res.setHeader("Cache-Control", "no-store");
-    return res.sendFile(path.join(STATIC_ROOT, "game-codes.html"));
+    return res.type("html").send(renderCodeGuideSharePage(req, guide));
   } catch (_error) {
     return res.status(500).sendFile(path.join(STATIC_ROOT, "game-codes.html"));
   }
