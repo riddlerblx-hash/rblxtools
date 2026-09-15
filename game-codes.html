@@ -170,8 +170,8 @@
     }
 
     async function renderDirectory() {
-      var results = await Promise.all([request(api + "?limit=100"), request(api + "/rankings?period=weekly&limit=8").catch(function () { return { games: [] }; }), request(api + "/rankings?period=popular&limit=8").catch(function () { return { games: [] }; })]);
-      var payload = results[0], games = payload.games || [], weekly = results[1].games || [], popular = results[2].games || [];
+      var results = await Promise.all([request(api + "?limit=100"), request(api + "/rankings?period=weekly&limit=4").catch(function () { return { games: [] }; }), request(api + "/rankings?period=popular&limit=4").catch(function () { return { games: [] }; })]);
+      var payload = results[0], games = payload.games || [], weekly = (results[1].games || []).slice(0, 4), popular = (results[2].games || []).slice(0, 4);
       function rankingMarkup(items, gridId, emptyId, emptyText) {
         return '<div class="grid" id="' + gridId + '">' + items.map(function (game) { return '<a class="game" href="/codes/' + encodeURIComponent(game.slug) + '">' + art(game) + '<div class="game-body"><h3>' + esc(displayGameName(game.name)) + '</h3><small class="card-author">By ' + esc(game.authorName || "RBLXTools Staff") + '</small><div class="meta"><span>' + date(game.lastUpdated) + '</span><b>' + Number(game.viewCount || 0) + ' visits</b></div></div></a>'; }).join("") + '</div><div class="empty" id="' + emptyId + '">' + emptyText + '</div>';
       }
