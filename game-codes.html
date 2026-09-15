@@ -146,7 +146,7 @@
     function mountCodePostAds(container) {
       var units = Array.prototype.slice.call(container.querySelectorAll("[data-code-post-ad] .code-post-ad-unit"));
       units.forEach(function (unit) {
-        function load() { unit.textContent = ""; var frame = document.createElement("iframe"); frame.className = "rblx-banner-ad-frame"; frame.title = "Advertisement"; frame.width = "728"; frame.height = "90"; frame.scrolling = "no"; frame.setAttribute("frameborder", "0"); frame.setAttribute("sandbox", "allow-scripts"); frame.srcdoc = '<!doctype html><html><head><style>html,body{width:728px;height:90px;margin:0;overflow:hidden}</style></head><body><script>atOptions={key:"fb95715336abfc09031edf4e6ef208c5",format:"iframe",height:90,width:728,params:{}};<\/script><script src="https://professionalsusceptible.com/fb95715336abfc09031edf4e6ef208c5/invoke.js"><\/script></body></html>'; unit.appendChild(frame); }
+        function load() { unit.textContent = ""; unit.dataset.rblxAdProvider = "disabled"; }
         load(); enableCodeAdRefresh(unit.closest("[data-code-post-ad]"), load);
       });
     }
