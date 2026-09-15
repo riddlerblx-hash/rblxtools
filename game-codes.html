@@ -383,17 +383,10 @@
       var commentsMarkup = '<section class="panel comments"><h3>Comments (' + comments.length + ')</h3>' + (session.authenticated ? '<div id="commentComposerHome"><form class="comment-form" id="commentForm"><div class="comment-form-entry">' + commentAvatar({ authorName: session.viewer && session.viewer.name, avatarUrl: session.viewer && session.viewer.avatarUrl }) + '<input id="commentBody" required maxlength="1000" autocomplete="off" placeholder="Add a comment..."></div><input id="commentParentId" type="hidden"><div class="comment-form-actions"><button class="comment-cancel" type="button" id="cancelComment">Cancel</button><button class="comment-submit" type="submit">Comment</button></div></form></div>' : '<p class="note">Want to join the conversation? <button type="button" class="comment-login-link" data-comment-login>Sign in or sign up</button> to leave a comment.</p>') + '<div class="comment-list">' + (rootComments.length ? rootComments.map(function (comment) { return commentMarkup(comment, 0); }).join("") : '<p class="note">No comments yet. Start the conversation.</p>') + '</div></section>';
       root.innerHTML = '<section class="guide live-guide open"><a class="back" href="/codes">&#8592; All code posts</a><div class="guide-top">' + art(game) + '<div class="guide-info"><div class="guide-label">Roblox game code post</div><h2>' + esc(game.name) + ' Codes</h2><div class="post-author">By <b>' + esc(game.authorName || "RBLXTools Staff") + '</b></div><p>' + esc(game.description || ('Find community-reviewed codes for ' + game.name + '.')) + '</p><div class="notice">Updated: ' + date(guide.lastUpdated) + ' · ' + active.length + ' active code' + (active.length === 1 ? "" : "s") + ' · <span class="views-stat">' + Number(game.viewCount || 0) + ' views</span>.</div>' + (game.robloxUrl ? '<a class="official" href="' + esc(game.robloxUrl) + '" target="_blank" rel="noopener">Open game on Roblox &#8599;</a>' : '') + '</div></div><div class="guide-grid"><article class="panel codes-panel"><div class="code-head"><h3>Working codes</h3><button class="outline" id="openSubmission">Submit code</button></div><div id="submissionForm" class="inline-form" hidden><input id="submitCode" placeholder="Code"><input id="submitReward" placeholder="Reward"><input id="submitSource" placeholder="Official source link, if available"><button class="button" id="sendSubmission">Send for review</button><p class="note">' + loginHint + '</p></div><div class="table-wrap active-table-wrap"><table class="code-table live-table"><thead><tr><th>Code</th><th>Reward</th><th>Added on</th><th>Success rate</th><th>Vote</th></tr></thead><tbody>' + (active.length ? active.map(codeRow).join("") : '<tr><td colspan="5">No working codes are published yet.</td></tr>') + '</tbody></table></div><div class="table-wrap expired-table-wrap"><table class="code-table live-table"><thead><tr><th>Code</th><th>Reward</th><th>Added on</th><th>Success rate</th><th>Vote</th></tr></thead><tbody>' + (expired.length ? expired.map(codeRow).join("") : '<tr><td colspan="5">No expired codes recorded.</td></tr>') + '</tbody></table></div></article><aside><article class="panel"><h3>Help verify</h3><p>Redeemed a code? Vote whether it worked. One signed-in account can update one vote per code.</p></article></aside></div>' + ratingMarkup + commentsMarkup + '<section class="saved" id="staffComposer" hidden></section></section>';
       var guideGrid = root.querySelector(".guide-grid");
-      var beforeTutorialAd = null;
-      var afterTutorialAd = null;
       if (!session.hideAds) {
         var guideSection = root.querySelector(".live-guide");
-        var guideTop = root.querySelector(".guide-top");
-        var ratingsSection = root.querySelector(".ratings");
         guideSection.insertBefore(createCodePostAd("below-shell"), guideSection.firstChild);
-        beforeTutorialAd = createCodePostAd("after-working-codes");
-        afterTutorialAd = createCodePostAd("after-tutorial");
-        guideGrid.insertAdjacentElement("afterend", beforeTutorialAd);
-        ratingsSection.insertAdjacentElement("beforebegin", afterTutorialAd);
+        guideGrid.insertAdjacentElement("afterend", createCodePostAd("between-working-codes-and-rating"));
         var commentsSection = root.querySelector(".comments");
         if (commentsSection) commentsSection.insertAdjacentElement("afterend", createCodePostAd("after-comments"));
       }
@@ -408,8 +401,6 @@
       root.querySelector(".guide-info p").textContent = currentMonthText(game.description || ("Find community-reviewed codes for " + gameName + " (" + monthYear() + ")."));
       var retiredAside = guideGrid.querySelector("aside");
       if (retiredAside) retiredAside.remove();
-      if (beforeTutorialAd) beforeTutorialAd.remove();
-      if (afterTutorialAd) afterTutorialAd.remove();
       if (!session.hideAds) mountCodePostAds(root);
       bindCopyButtons();
       var commentLogin = root.querySelector("[data-comment-login]");
