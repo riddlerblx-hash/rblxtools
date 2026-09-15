@@ -7753,7 +7753,13 @@ async function requireCommunityAdmin(req, res, next) {
   }
 }
 
-app.get(["/community", "/community.html"], (_req, res) => res.sendFile(path.join(STATIC_ROOT, "community.html")));
+app.get(["/community", "/community.html"], (_req, res) => {
+  // The Community shell includes responsive UI; never let a stale HTML snapshot hide a new mobile layout.
+  res.setHeader("Cache-Control", "no-store, private, max-age=0, must-revalidate");
+  res.setHeader("Surrogate-Control", "no-store");
+  res.setHeader("X-LiteSpeed-Cache-Control", "no-cache");
+  return res.sendFile(path.join(STATIC_ROOT, "community.html"));
+});
 
 app.get("/api/community-access", requireCommunityAdmin, (_req, res) => res.json({ ok: true }));
 
@@ -7948,7 +7954,7 @@ function buildAIUGCCommunityItem(item, post, viewer) {
   const viewerId = String(viewer?.id || "");
   const sharedAvatarUrl = readCommunityProfiles()[String(item.creatorId || "")]?.avatarUrl;
   return {
-    id: item.id, title: item.title, thumbnailUrl: item.thumbnailUrl, assetType: item.assetType, textured: item.textured,
+    id: item.id, title: item.title, thumbnailUrl: item.thumbnailUrl ? `/api/ugc/community/${encodeURIComponent(item.id)}/cover` : "", assetType: item.assetType, textured: item.textured,
     creatorId: item.creatorId, creatorName: item.creatorName || "RBLXTools creator", creatorAvatarUrl: cleanText(sharedAvatarUrl || item.creatorAvatarUrl || "", 2000), createdAt: item.createdAt,
     allowDownloads: Boolean(item.allowPublicDownloads), rating: ratings.length ? Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10 : 0,
     ratingCount: ratings.length, likes: votes.filter((vote) => vote === "like").length, dislikes: votes.filter((vote) => vote === "dislike").length,
@@ -7967,6 +7973,26 @@ app.get("/api/ugc/community", async (req, res) => {
   const state = readAIUGCCommunityState();
   const items = getPublicAIUGCItems().map((item) => buildAIUGCCommunityItem(item, getAIUGCCommunityPost(state, String(item.id)), viewer));
   return res.json({ ok: true, items, viewerId: viewer?.id || null, canManageAll: Boolean(viewer && isAdminUser(viewer)) });
+});
+
+// Meshy cover links are signed and can reject direct browser requests. Proxy the
+// stored cover through the app so published Community cards consistently render.
+app.get("/api/ugc/community/:taskId/cover", async (req, res) => {
+  try {
+    const item = findPublicAIUGCItem(cleanMeshyTaskId(req.params.taskId));
+    const sourceUrl = String(item?.thumbnailUrl || "").trim();
+    if (!item || !/^https?:\/\//i.test(sourceUrl)) return res.status(404).json({ error: "This model does not have a cover image." });
+    const coverResponse = await fetch(sourceUrl, { headers: { Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" } });
+    const contentType = String(coverResponse.headers.get("content-type") || "").toLowerCase();
+    if (!coverResponse.ok || !contentType.startsWith("image/")) throw new Error("The model cover is unavailable.");
+    const image = Buffer.from(await coverResponse.arrayBuffer());
+    if (!image.length || image.length > 12 * 1024 * 1024) throw new Error("The model cover could not be loaded.");
+    res.setHeader("Cache-Control", "public, max-age=600");
+    res.type(contentType.split(";")[0]);
+    return res.send(image);
+  } catch (_error) {
+    return res.status(404).json({ error: "The model cover is unavailable." });
+  }
 });
 
 app.get("/api/ugc/community/:taskId", async (req, res) => {

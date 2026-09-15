@@ -162,7 +162,7 @@ async function getUsageCounterSnapshots() {
     };
   }).filter(Boolean);
 }
-function accountOverviewTab(value) { return ["settings", "billing", "referrals", "bot"].includes(String(value || "").trim()) ? String(value).trim() : "settings"; }
+function accountOverviewTab(value) { return ["settings", "billing", "referrals", "rewards", "bot"].includes(String(value || "").trim()) ? String(value).trim() : "settings"; }
 async function getAccountOverviewPreference(appUserId) { const userId = String(appUserId || "").trim(); if (!userId) return { selectedTab: "settings" }; const value = (await readStore()).accountOverviewPreferencesByAppUserId[userId]; return { selectedTab: accountOverviewTab(value?.selectedTab) }; }
 async function setAccountOverviewPreference({ appUserId, selectedTab }) { const userId = String(appUserId || "").trim(); if (!userId) { const error = new Error("An account is required."); error.statusCode = 401; throw error; } return updateStore((store) => { store.accountOverviewPreferencesByAppUserId[userId] = { selectedTab: accountOverviewTab(selectedTab), updatedAt: new Date().toISOString() }; return { selectedTab: store.accountOverviewPreferencesByAppUserId[userId].selectedTab }; }); }
 

@@ -6,7 +6,7 @@
   <title>Community | RBLXTools</title>
   <meta name="description" content="Official RBLXTools announcements, changelogs, bug reports, and website updates." />
 <link rel="stylesheet" href="./global-shell.css?v=20260901-2" />
-<link rel="stylesheet" href="./mobile-overrides.css?v=20260831-2" />
+<link rel="stylesheet" href="./mobile-overrides.css?v=20260914-community-mobile-1" />
   <style>
     :root { color-scheme: dark; }
     *,
@@ -471,6 +471,56 @@
       .community-post-head { grid-template-columns:minmax(0,1fr); }
       .community-post-menu { justify-self:end; }
     }
+
+    /* Community has its own purpose-built phone layout. Desktop stays untouched. */
+    @media (max-width: 820px) {
+      body.rblx-community-page .community-page { width:100%; padding:14px 12px 112px; }
+      body.rblx-community-page .community-shell { padding:20px 16px; border-radius:20px; }
+      body.rblx-community-page .community-kicker { padding:7px 10px; font-size:10px; }
+      body.rblx-community-page .community-shell h1 { margin:13px 0 8px; font-size:clamp(34px,11vw,48px); }
+      body.rblx-community-page .community-shell > p { font-size:14px; line-height:1.55; }
+      body.rblx-community-page .community-filter-groups { gap:10px; margin-top:18px; }
+      body.rblx-community-page .community-filter-row,
+      body.rblx-community-page .community-filter-row.is-member-lane { display:block; padding:11px 0 0; border:0; border-radius:0; background:transparent; }
+      body.rblx-community-page .community-filter-row.is-member-lane { padding-top:14px; border-top:1px solid rgba(151,181,255,.18); }
+      body.rblx-community-page .community-filter-copy { margin:0 0 9px; padding:0 2px; }
+      body.rblx-community-page .community-filter-copy span { font-size:11px; }
+      body.rblx-community-page .community-toolbar { display:flex; flex-wrap:nowrap; gap:8px; width:calc(100% + 8px); margin:0 -4px; padding:2px 4px 8px; overflow-x:auto; overscroll-behavior-x:contain; scroll-snap-type:x proximity; scrollbar-width:none; }
+      body.rblx-community-page .community-toolbar::-webkit-scrollbar { display:none; }
+      body.rblx-community-page .community-pill { flex:0 0 auto; min-height:38px; padding:0 13px; scroll-snap-align:start; font-size:12px; }
+      body.rblx-community-page .community-layout { grid-template-columns:minmax(0,1fr); gap:14px; margin-top:16px; }
+      body.rblx-community-page .community-feed,
+      body.rblx-community-page .community-side { gap:12px; }
+      body.rblx-community-page .community-side { grid-template-rows:none; }
+      body.rblx-community-page .community-post,
+      body.rblx-community-page .community-card,
+      body.rblx-community-page .community-empty,
+      body.rblx-community-page .community-admin-composer { padding:17px 15px; border-radius:18px; }
+      body.rblx-community-page .community-post h2,
+      body.rblx-community-page .community-card h3,
+      body.rblx-community-page .community-empty h2 { font-size:22px; }
+      body.rblx-community-page .community-post p,
+      body.rblx-community-page .community-card p,
+      body.rblx-community-page .community-comment p { font-size:14px; line-height:1.6; }
+      body.rblx-community-page .community-post-head { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; }
+      body.rblx-community-page .community-post-head-main { gap:7px; }
+      body.rblx-community-page .community-type { padding:6px 9px; font-size:10px; }
+      body.rblx-community-page .community-date { font-size:11px; }
+      body.rblx-community-page .community-post-actions,
+      body.rblx-community-page .community-post-link,
+      body.rblx-community-page .community-form-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+      body.rblx-community-page .community-post-actions > *,
+      body.rblx-community-page .community-post-link > *,
+      body.rblx-community-page .community-form-actions > * { width:100%; min-width:0; padding-inline:10px; }
+      body.rblx-community-page .community-comment { padding:13px; border-radius:14px; gap:9px; }
+      body.rblx-community-page .community-comment-avatar { width:38px; height:38px; border-radius:12px; }
+      body.rblx-community-page .community-comment-author { gap:9px; flex-basis:0; }
+      body.rblx-community-page .community-comment-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+      body.rblx-community-page .community-comment-actions > * { width:100%; }
+      body.rblx-community-page .community-form-row { grid-template-columns:minmax(0,1fr); gap:12px; }
+      body.rblx-community-page #ugcCommunityGallery { margin-top:16px !important; }
+      body.rblx-community-page #ugcCommunityGrid { gap:10px !important; }
+    }
   </style>
   <style>
     body { background: radial-gradient(circle at 12% 92%, rgba(181,49,68,.13), transparent 27%), radial-gradient(circle at 86% 8%, rgba(68,108,177,.13), transparent 25%), #0b111d; }
@@ -484,7 +534,7 @@
     .community-pill, .community-input, .community-textarea, .community-select, .community-comment-input { border-color: rgba(94,139,224,.28); background: rgba(17,29,49,.82); }
   </style>
 </head>
-<body>
+<body class="rblx-community-page">
 <script src="./global-shell.js?v=20260910-free-basic-tools-2"></script>
   <main class="community-page">
     <section class="community-shell">
@@ -626,12 +676,13 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="./ai-assets-community.js?v=20260905-44"></script>
+  <script src="./ai-assets-community.js?v=20260914-cover-fallback-1"></script>
   <script>
     (function(){
       var grid=document.getElementById('ugcCommunityGrid'); if(!grid)return;
       function esc(value){var node=document.createElement('span');node.textContent=String(value||'');return node.innerHTML;}
-      function render(items){if(!items.length){grid.innerHTML='<p style="color:#aebbd1">Community UGC models will appear here as creators publish them.</p>';return;}grid.innerHTML=items.map(function(item){return '<article style="overflow:hidden;border:1px solid rgba(151,181,255,.2);border-radius:14px;background:rgba(7,12,22,.42)">'+(item.thumbnailUrl?'<img src="'+esc(item.thumbnailUrl)+'" alt="" style="display:block;width:100%;aspect-ratio:1.35;object-fit:cover;background:#101725">':'<div style="display:grid;place-items:center;aspect-ratio:1.35;background:#101725;color:#abc4ee">3D</div>')+'<div style="padding:11px"><strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(item.title)+'</strong><span style="display:block;margin-top:4px;color:#aebbd1;font-size:12px">by '+esc(item.creatorName)+' · '+(item.rating||'New')+' ★</span><div style="display:flex;gap:7px;margin-top:10px"><button data-ugc-vote="like" data-ugc-id="'+esc(item.id)+'" style="cursor:pointer">♥ '+Number(item.likes||0)+'</button><button data-ugc-vote="dislike" data-ugc-id="'+esc(item.id)+'" style="cursor:pointer">× '+Number(item.dislikes||0)+'</button>'+(item.allowDownloads?'<a href="/api/ugc/community/'+encodeURIComponent(item.id)+'/download" style="color:#ffbec7;font-weight:800">Download GLB</a>':'<span style="color:#8491a8;font-size:12px">Downloads off</span>')+'</div></div></article>';}).join('');}
+      function coverFallback(image){var fallback=document.createElement('div');fallback.setAttribute('aria-label','3D model cover unavailable');fallback.style.cssText='display:grid;place-items:center;aspect-ratio:1.35;background:linear-gradient(135deg,#152640,#0c1422);color:#b9d5ff;font-weight:900;letter-spacing:.08em';fallback.textContent='3D';image.replaceWith(fallback);}
+      function render(items){if(!items.length){grid.innerHTML='<p style="color:#aebbd1">Community UGC models will appear here as creators publish them.</p>';return;}grid.innerHTML=items.map(function(item){return '<article style="overflow:hidden;border:1px solid rgba(151,181,255,.2);border-radius:14px;background:rgba(7,12,22,.42)">'+(item.thumbnailUrl?'<img class="ugc-community-cover" src="'+esc(item.thumbnailUrl)+'" alt="" style="display:block;width:100%;aspect-ratio:1.35;object-fit:cover;background:#101725">':'<div style="display:grid;place-items:center;aspect-ratio:1.35;background:#101725;color:#abc4ee">3D</div>')+'<div style="padding:11px"><strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(item.title)+'</strong><span style="display:block;margin-top:4px;color:#aebbd1;font-size:12px">by '+esc(item.creatorName)+' · '+(item.rating||'New')+' ★</span><div style="display:flex;gap:7px;margin-top:10px"><button data-ugc-vote="like" data-ugc-id="'+esc(item.id)+'" style="cursor:pointer">♥ '+Number(item.likes||0)+'</button><button data-ugc-vote="dislike" data-ugc-id="'+esc(item.id)+'" style="cursor:pointer">× '+Number(item.dislikes||0)+'</button>'+(item.allowDownloads?'<a href="/api/ugc/community/'+encodeURIComponent(item.id)+'/download" style="color:#ffbec7;font-weight:800">Download GLB</a>':'<span style="color:#8491a8;font-size:12px">Downloads off</span>')+'</div></div></article>';}).join('');Array.prototype.forEach.call(grid.querySelectorAll('.ugc-community-cover'),function(image){image.addEventListener('error',function(){coverFallback(image);},{once:true});});}
       async function load(){try{var response=await fetch('/api/ugc/community',{credentials:'include'});var payload=await response.json();render(response.ok&&Array.isArray(payload.items)?payload.items:[]);}catch(_error){render([]);}}grid.addEventListener('click',function(event){var button=event.target.closest('[data-ugc-vote]');if(!button)return;fetch('/api/ugc/community/'+encodeURIComponent(button.getAttribute('data-ugc-id'))+'/feedback',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({vote:button.getAttribute('data-ugc-vote')})}).then(load);});load();
     })();
   </script>

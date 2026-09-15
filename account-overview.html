@@ -2486,7 +2486,7 @@
         if (!state.user || !state.user.id || !state.selectAccountTab) return;
         try {
           var preference = await apiRequest("/account-overview/preference", { method: "GET" });
-          var selectedTab = ["settings", "billing", "referrals", "bot"].includes(preference.selectedTab) ? preference.selectedTab : "settings";
+          var selectedTab = ["settings", "billing", "referrals", "rewards", "bot"].includes(preference.selectedTab) ? preference.selectedTab : "settings";
           state.savedAccountTab = selectedTab;
           state.accountTabPreferenceLoaded = true;
           if (selectedTab !== "bot" || els.acctBotTab?.dataset.locked !== "true") state.selectAccountTab(selectedTab, false);
