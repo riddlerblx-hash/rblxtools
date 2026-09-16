@@ -180,6 +180,7 @@ const ugcSourceImages = new Map();
 const RBLXTOOLS_RUNTIME_DATA_DIR = process.env.RBLXTOOLS_RUNTIME_DATA_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-ugc");
 const AI_UGC_HISTORY_PATH = process.env.AI_UGC_HISTORY_PATH || path.join(RBLXTOOLS_RUNTIME_DATA_DIR, "ai-ugc-history.json");
 const AI_UGC_MODEL_DIR = process.env.AI_UGC_MODEL_DIR || path.join(RBLXTOOLS_RUNTIME_DATA_DIR, "ai-ugc-models");
+const AI_UGC_COVER_DIR = process.env.AI_UGC_COVER_DIR || path.join(RBLXTOOLS_RUNTIME_DATA_DIR, "ai-ugc-covers");
 const LEGACY_AI_UGC_HISTORY_PATH = path.join(__dirname, "ai-ugc-history.json");
 const LEGACY_RUNTIME_AI_UGC_HISTORY_PATH = path.join(__dirname, ".rblxtools-runtime", "ai-ugc-history.json");
 const LEGACY_RUNTIME_AI_UGC_MODEL_DIR = path.join(__dirname, ".rblxtools-runtime", "ai-ugc-models");
@@ -955,6 +956,41 @@ function getStoredAIUGCModelPath(userId, taskId) {
   const safeUserId = String(userId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
   const safeTaskId = String(taskId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
   return path.join(AI_UGC_MODEL_DIR, safeUserId, `${safeTaskId}.glb`);
+}
+
+function getStoredAIUGCCoverPath(userId, taskId) {
+  const safeUserId = String(userId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const safeTaskId = String(taskId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+  return path.join(AI_UGC_COVER_DIR, safeUserId, `${safeTaskId}.cover`);
+}
+
+function inferAIUGCCoverMimeType(buffer, fallback = "") {
+  if (!Buffer.isBuffer(buffer) || !buffer.length) return "";
+  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return "image/jpeg";
+  if (buffer.length >= 12 && buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP") return "image/webp";
+  if (buffer.length >= 12 && buffer.subarray(4, 8).toString("ascii") === "ftyp" && buffer.subarray(8, 12).toString("ascii").includes("avif")) return "image/avif";
+  return /^image\//i.test(String(fallback || "")) ? String(fallback).split(";")[0].trim() : "";
+}
+
+function readStoredAIUGCCover(userId, taskId) {
+  try {
+    const filePath = getStoredAIUGCCoverPath(userId, taskId);
+    const buffer = fs.existsSync(filePath) ? fs.readFileSync(filePath) : null;
+    const contentType = inferAIUGCCoverMimeType(buffer);
+    return contentType ? { buffer, contentType } : null;
+  } catch (_error) { return null; }
+}
+
+function storeAIUGCCover(userId, taskId, buffer) {
+  const contentType = inferAIUGCCoverMimeType(buffer);
+  if (!contentType || !buffer.length || buffer.length > 12 * 1024 * 1024) return null;
+  const filePath = getStoredAIUGCCoverPath(userId, taskId);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tempPath, buffer);
+  fs.renameSync(tempPath, filePath);
+  return { buffer, contentType };
 }
 
 function ensureAIUGCModelDirectory() {
@@ -7978,9 +8014,12 @@ app.get("/api/ugc/community/:taskId/cover", async (req, res) => {
     const loadCover = async (url) => {
       if (!/^https?:\/\//i.test(String(url || ""))) return null;
       const response = await fetch(url, { headers: { Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" } });
-      return response.ok && String(response.headers.get("content-type") || "").toLowerCase().startsWith("image/") ? response : null;
+      if (!response.ok) return null;
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const contentType = inferAIUGCCoverMimeType(buffer, response.headers.get("content-type") || "");
+      return contentType && buffer.length <= 12 * 1024 * 1024 ? { buffer, contentType } : null;
     };
-    let coverResponse = await loadCover(String(item.thumbnailUrl || "").trim());
+    let coverResponse = readStoredAIUGCCover(item.creatorId, item.id) || await loadCover(String(item.thumbnailUrl || "").trim());
     // Meshy thumbnail URLs are temporary. If an older link has expired (or was
     // never stored), request the current task thumbnail before showing a fallback.
     if (!coverResponse) {
@@ -7993,12 +8032,10 @@ app.get("/api/ugc/community/:taskId/cover", async (req, res) => {
       }
     }
     if (!coverResponse) throw new Error("The model cover is unavailable.");
-    const contentType = String(coverResponse.headers.get("content-type") || "").toLowerCase();
-    const image = Buffer.from(await coverResponse.arrayBuffer());
-    if (!image.length || image.length > 12 * 1024 * 1024) throw new Error("The model cover could not be loaded.");
+    if (!readStoredAIUGCCover(item.creatorId, item.id)) coverResponse = storeAIUGCCover(item.creatorId, item.id, coverResponse.buffer) || coverResponse;
     res.setHeader("Cache-Control", "public, max-age=600");
-    res.type(contentType.split(";")[0]);
-    return res.send(image);
+    res.type(coverResponse.contentType);
+    return res.send(coverResponse.buffer);
   } catch (_error) {
     return res.status(404).json({ error: "The model cover is unavailable." });
   }

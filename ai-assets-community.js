@@ -475,7 +475,7 @@
     var canManage = Boolean(item.viewerCanManage || state.communityCanCreateAll || state.communityViewer?.canManageAll);
     return '<article class="ai-asset-card' + (canManage ? ' has-admin-action' : '') + '" data-open-asset="' + escapeHtml(item.id) + '">'
       + (item.thumbnailUrl ? '<img class="ai-asset-art" src="' + escapeHtml(item.thumbnailUrl) + '" alt="" loading="eager" decoding="async" />' : '<div class="ai-asset-fallback" aria-label="3D asset preview unavailable">AI</div>')
-      + '<a class="ai-asset-card-open" href="#asset-' + escapeHtml(item.id) + '" data-asset-card-open="' + escapeHtml(item.id) + '" aria-label="Open 3D asset"></a>'
+      + '<button class="ai-asset-card-open" type="button" data-asset-card-open="' + escapeHtml(item.id) + '" aria-label="Open 3D asset"></button>'
       + '<div class="ai-asset-card-controls"><button class="ai-asset-card-like' + (item.viewerVote === 'like' ? ' is-active' : '') + '" type="button" data-asset-card-like="' + escapeHtml(item.id) + '">&#9829; <b>' + Number(item.likes || 0) + '</b></button><span class="ai-asset-card-stat">&#9733; ' + (Number(item.rating || 0) ? Number(item.rating).toFixed(1) : '-') + '</span></div>' + (canManage ? '<button class="ai-asset-card-delete" type="button" data-delete-asset="' + escapeHtml(item.id) + '">Delete</button>' : '') + '<div class="ai-asset-overlay"><div class="ai-asset-card-bottom"><div class="ai-asset-creator">' + assetAvatar('ai-asset-avatar', item.creatorName, item.creatorAvatarUrl) + ' ' + escapeHtml(item.creatorName) + '</div><span class="ai-asset-card-views">' + Number(item.views || 0) + ' Views</span></div></div></article>';
   }
 
