@@ -622,11 +622,12 @@
   function open(id) {
     var modal = document.getElementById('aiAssetsModal');
     modal.hidden = false;
+    modal.style.display = 'grid';
     document.body.style.overflow = 'hidden';
     document.getElementById('aiAssetsPostPanel').innerHTML = '<div class="ai-model-loader">Loading asset details</div>';
-    request('/api/ugc/community/' + encodeURIComponent(id)).then(function (payload) { state.active = payload.item; document.getElementById('aiAssetsPostPanel').innerHTML = postPanel(state.active); loadViewer(id); request('/api/ugc/community/' + encodeURIComponent(id) + '/view', 'POST').then(function () { load(); }).catch(function () {}); }).catch(function (error) { document.getElementById('aiAssetsPostPanel').innerHTML = '<div class="ai-model-loader">' + escapeHtml(error.message || 'Could not load asset details.') + '</div>'; notify(error.message); });
+    request('/api/ugc/community/' + encodeURIComponent(id)).then(function (payload) { state.active = payload.item; document.getElementById('aiAssetsPostPanel').innerHTML = postPanel(state.active); loadViewer(id); request('/api/ugc/community/' + encodeURIComponent(id) + '/view', 'POST').then(function () { state.active.views = Number(state.active.views || 0) + 1; }).catch(function () {}); }).catch(function (error) { document.getElementById('aiAssetsPostPanel').innerHTML = '<div class="ai-model-loader">' + escapeHtml(error.message || 'Could not load asset details.') + '</div>'; notify(error.message); });
   }
-  function close() { document.getElementById('aiAssetsModal').hidden = true; document.body.style.overflow = ''; destroyViewer(); state.active = null; }
+  function close() { var modal = document.getElementById('aiAssetsModal'); modal.hidden = true; modal.style.display = ''; document.body.style.overflow = ''; destroyViewer(); state.active = null; }
   function load() {
     return Promise.all([request('/api/community-session').catch(function () { return { authenticated: false, viewer: null }; }), request('/api/ugc/community')]).then(function (responses) {
       var session = responses[0];
@@ -677,6 +678,16 @@
   // surrounding card all have the same dependable interaction path.
   document.getElementById('aiAssetsGrid').addEventListener('click', function (event) {
     if (event.target.closest('[data-asset-card-like],[data-delete-asset]')) return;
+    var cardNode = event.target.closest('[data-open-asset]');
+    if (!cardNode) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    open(cardNode.getAttribute('data-open-asset'));
+  }, true);
+  // Some mobile/browser ad layers interrupt a card click before it reaches the
+  // grid. Start the post interaction at pointer-down as the final reliable path.
+  document.addEventListener('pointerdown', function (event) {
+    if (event.target.closest('[data-asset-card-like],[data-delete-asset],#aiAssetsModal,.ai-assets-tip-modal')) return;
     var cardNode = event.target.closest('[data-open-asset]');
     if (!cardNode) return;
     event.preventDefault();
