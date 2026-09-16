@@ -7804,8 +7804,10 @@ app.delete("/ai/ugc/history/:taskId", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const item = getPersistentAIUGCHistory(user.id).find((entry) => String(entry.id) === taskId);
-    const archived = archiveAIUGCCommunityAsset(user.id, item);
-    deletePersistentAIUGCHistory(user.id, taskId, { keepStoredModel: archived });
+    // A personal-history delete must never remove a published Community AI Asset.
+    // Archive its complete record first, then remove only the owner's history entry.
+    const preservedInCommunity = archiveAIUGCCommunityAsset(user.id, item);
+    deletePersistentAIUGCHistory(user.id, taskId, { keepStoredModel: preservedInCommunity });
     return res.json({ ok: true, taskId });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete this saved generation." });
