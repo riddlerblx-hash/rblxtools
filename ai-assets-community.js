@@ -509,19 +509,21 @@
         var key = new THREE.DirectionalLight(0xffffff, 1.7); key.position.set(3, 4, 5); scene.add(key);
         var rim = new THREE.DirectionalLight(0x7caeff, 1.1); rim.position.set(-4, 2, -3); scene.add(rim);
         var model = gltf.scene;
-        var box = new THREE.Box3().setFromObject(model), center = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+        // GLBs may have a translated/scaled scene root. Put that complete
+        // scene in a neutral wrapper before measuring it, so the card preview
+        // is centered from the actual rendered bounds rather than its source
+        // origin.
+        var previewContent = new THREE.Group();
+        previewContent.add(model);
+        var box = new THREE.Box3().setFromObject(previewContent), center = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
         var maxDimension = Math.max(size.x, size.y, size.z) || 1;
-        // Scale before compensating for the model origin. Applying the old
-        // unscaled offset first made off-origin GLBs drift into the cover's
-        // top-left corner on desktop cards.
         var previewScale = 2.4 / maxDimension;
-        model.scale.multiplyScalar(previewScale);
-        model.position.sub(center.multiplyScalar(previewScale));
-        // Rotate a centered parent, rather than the offset GLB itself. This
-        // keeps the asset centered even when the source model's origin is
-        // nowhere near its geometry.
+        previewContent.scale.setScalar(previewScale);
+        previewContent.position.set(-center.x * previewScale, -center.y * previewScale, -center.z * previewScale);
+        // Rotation lives on a second parent so it cannot displace the
+        // centered content.
         var previewRoot = new THREE.Group();
-        previewRoot.add(model);
+        previewRoot.add(previewContent);
         previewRoot.rotation.y = -.42;
         scene.add(previewRoot);
         camera.position.set(0, .08, 4.1); camera.lookAt(0, 0, 0);
@@ -546,6 +548,19 @@
     });
   }
 
+  function bindAssetCardOpeners(root) {
+    Array.prototype.forEach.call(root.querySelectorAll('[data-open-asset]'), function (cardNode) {
+      cardNode.addEventListener('click', function (event) {
+        // Keep the reaction and admin controls independent from opening the
+        // model, but let every other part of the cover/canvas open its viewer.
+        if (event.target.closest('button, a, input, select, textarea, label')) return;
+        event.preventDefault();
+        event.stopPropagation();
+        open(cardNode.getAttribute('data-open-asset'));
+      });
+    });
+  }
+
   function render() {
     var sort = document.getElementById('aiAssetsSort').value;
     var items = state.items.slice();
@@ -553,6 +568,7 @@
     var grid = document.getElementById('aiAssetsGrid');
     grid.innerHTML = items.length ? items.map(card).join('') : '<div class="ai-assets-empty">No AI assets are available yet.</div>';
     bindAssetCoverFallbacks(grid);
+    bindAssetCardOpeners(grid);
   }
 
   function destroyViewer() { if (!state.viewer) return; state.viewer.active = false; window.removeEventListener('resize', state.viewer.resize); state.viewer.controls.dispose(); state.viewer.renderer.dispose(); state.viewer.container.replaceChildren(); state.viewer = null; }
