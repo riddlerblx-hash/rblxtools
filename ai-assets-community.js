@@ -673,6 +673,16 @@
   document.querySelector('.ai-assets-toolbar').addEventListener('change', function (event) { if (event.target.id === 'aiAssetsSort') render(); if (event.target.id === 'aiCommunityFilter') { state.communityFilter = event.target.value; renderCommunityPosts(); } });
   document.getElementById('aiAssetsGrid').addEventListener('click', function (event) { var cardNode = event.target.closest('[data-open-asset]'); if (cardNode) return open(cardNode.getAttribute('data-open-asset')); var likeNode = event.target.closest('[data-community-card-like]'); if (likeNode) return request('/api/community-posts/' + encodeURIComponent(likeNode.dataset.communityCardLike) + '/likes', 'POST').then(function () { return loadCommunityPosts(); }).catch(function (error) { notify(error.message); }); var manageNode = event.target.closest('[data-community-post-manage]'); if (manageNode) { var action = manageNode.dataset.communityPostManage; var post = state.communityPosts.find(function (entry) { return String(entry.id) === String(manageNode.dataset.postId); }); var payload = { action: action }; if (action === 'edit') { payload.title = prompt('Post title:', post.title); if (payload.title == null) return; payload.body = prompt('Post text:', post.body); if (payload.body == null) return; } return request('/api/community-posts/' + encodeURIComponent(manageNode.dataset.postId) + '/manage', 'POST', payload).then(function () { return loadCommunityPosts(); }).catch(function (error) { notify(error.message); }); } var postNode = event.target.closest('[data-open-community-post]'); if (postNode) openCommunityPost(postNode.getAttribute('data-open-community-post')); }); document.getElementById('aiAssetsClose').addEventListener('click', close);
   document.getElementById('aiAssetsTipAmount').max = '5000';
+  // Open a card during capture so its transparent cover, snapshot image, and
+  // surrounding card all have the same dependable interaction path.
+  document.getElementById('aiAssetsGrid').addEventListener('click', function (event) {
+    if (event.target.closest('[data-asset-card-like],[data-delete-asset]')) return;
+    var cardNode = event.target.closest('[data-open-asset]');
+    if (!cardNode) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    open(cardNode.getAttribute('data-open-asset'));
+  }, true);
   document.getElementById('aiAssetsGrid').addEventListener('click', function (event) { var button = event.target.closest('[data-asset-card-like]'); if (!button) return; event.preventDefault(); event.stopImmediatePropagation(); var item = state.items.find(function (entry) { return String(entry.id) === String(button.dataset.assetCardLike); }); if (!item) return; var previousVote = String(item.viewerVote || ''); var previousLikes = Number(item.likes || 0); item.viewerVote = previousVote === 'like' ? '' : 'like'; item.likes = Math.max(0, previousLikes + (item.viewerVote === 'like' ? 1 : -1)); render(); if (item.viewerVote === 'like') heartBurst(button); request('/api/ugc/community/' + encodeURIComponent(item.id) + '/feedback', 'POST', { vote: 'like' }).catch(function (error) { item.viewerVote = previousVote; item.likes = previousLikes; render(); notify(error.message); }); }, true);
   document.getElementById('aiAssetsGrid').addEventListener('click', function (event) {
     var button = event.target.closest('[data-delete-asset]');
