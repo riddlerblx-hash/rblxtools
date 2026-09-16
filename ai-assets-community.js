@@ -517,13 +517,18 @@
         var previewScale = 2.4 / maxDimension;
         model.scale.multiplyScalar(previewScale);
         model.position.sub(center.multiplyScalar(previewScale));
-        model.rotation.y = -.42;
-        scene.add(model);
+        // Rotate a centered parent, rather than the offset GLB itself. This
+        // keeps the asset centered even when the source model's origin is
+        // nowhere near its geometry.
+        var previewRoot = new THREE.Group();
+        previewRoot.add(model);
+        previewRoot.rotation.y = -.42;
+        scene.add(previewRoot);
         camera.position.set(0, .08, 4.1); camera.lookAt(0, 0, 0);
         stage.setAttribute('aria-label', '3D model preview');
         (function draw() {
           if (!document.body.contains(stage)) { renderer.dispose(); return; }
-          model.rotation.y += .004;
+          previewRoot.rotation.y += .004;
           renderer.render(scene, camera);
           requestAnimationFrame(draw);
         }());
