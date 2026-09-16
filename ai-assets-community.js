@@ -475,7 +475,7 @@
     var canManage = Boolean(item.viewerCanManage || state.communityCanCreateAll || state.communityViewer?.canManageAll);
     return '<article class="ai-asset-card' + (canManage ? ' has-admin-action' : '') + '" data-open-asset="' + escapeHtml(item.id) + '">'
       + (item.thumbnailUrl ? '<img class="ai-asset-art" src="' + escapeHtml(item.thumbnailUrl) + '" alt="" />' : '<div class="ai-asset-fallback">3D</div>')
-      + '<button class="ai-asset-card-open" type="button" data-asset-card-open="' + escapeHtml(item.id) + '" aria-label="Open 3D asset"></button>'
+      + '<a class="ai-asset-card-open" href="#asset-' + escapeHtml(item.id) + '" data-asset-card-open="' + escapeHtml(item.id) + '" aria-label="Open 3D asset"></a>'
       + '<div class="ai-asset-card-controls"><button class="ai-asset-card-like' + (item.viewerVote === 'like' ? ' is-active' : '') + '" type="button" data-asset-card-like="' + escapeHtml(item.id) + '">&#9829; <b>' + Number(item.likes || 0) + '</b></button><span class="ai-asset-card-stat">&#9733; ' + (Number(item.rating || 0) ? Number(item.rating).toFixed(1) : '-') + '</span></div>' + (canManage ? '<button class="ai-asset-card-delete" type="button" data-delete-asset="' + escapeHtml(item.id) + '">Delete</button>' : '') + '<div class="ai-asset-overlay"><div class="ai-asset-card-bottom"><div class="ai-asset-creator">' + assetAvatar('ai-asset-avatar', item.creatorName, item.creatorAvatarUrl) + ' ' + escapeHtml(item.creatorName) + '</div><span class="ai-asset-card-views">' + Number(item.views || 0) + ' Views</span></div></div></article>';
   }
 
@@ -526,10 +526,10 @@
         var previewRoot = new THREE.Group();
         previewRoot.add(previewContent);
         previewRoot.rotation.y = -.42;
-        // The card chrome reserves visual weight at its top and bottom. Keep
-        // the model's measured center in the visual center of the cover,
-        // rather than leaving it tucked beneath the top controls.
-        previewRoot.position.y = -.88;
+        // Mobile already has its own balanced card framing. Desktop cards
+        // reserve more visual space for their chrome, so center that layout
+        // independently instead of applying one offset to both breakpoints.
+        previewRoot.position.y = window.matchMedia && window.matchMedia('(max-width: 820px)').matches ? 0 : -1.7;
         scene.add(previewRoot);
         camera.position.set(0, .08, 4.1); camera.lookAt(0, 0, 0);
         stage.setAttribute('aria-label', '3D model preview');
@@ -556,9 +556,10 @@
   function bindAssetCardOpeners(root) {
     Array.prototype.forEach.call(root.querySelectorAll('[data-asset-card-open]'), function (openButton) {
       openButton.addEventListener('click', function (event) {
-        event.preventDefault();
         event.stopPropagation();
-        open(openButton.getAttribute('data-asset-card-open'));
+        var assetId = openButton.getAttribute('data-asset-card-open');
+        state.openedHashAsset = assetId;
+        open(assetId);
       });
     });
     Array.prototype.forEach.call(root.querySelectorAll('[data-open-asset]'), function (cardNode) {
@@ -648,10 +649,14 @@
       state.items = Array.isArray(payload.items) ? payload.items : [];
       if (state.communityCanCreateAll) state.items.forEach(function (item) { item.viewerCanManage = true; });
       render();
-      var match = String(location.hash || '').match(/^#asset-(.+)$/);
-      if (match && state.openedHashAsset !== match[1] && state.items.some(function (item) { return String(item.id) === match[1]; })) { state.openedHashAsset = match[1]; open(match[1]); }
+      openAssetFromHash();
     }).catch(function (error) { document.getElementById('aiAssetsGrid').innerHTML = '<div class="ai-assets-empty">' + escapeHtml(error.message) + '</div>'; });
   }
+  function openAssetFromHash() {
+    var match = String(location.hash || '').match(/^#asset-(.+)$/);
+    if (match && state.openedHashAsset !== match[1] && state.items.some(function (item) { return String(item.id) === match[1]; })) { state.openedHashAsset = match[1]; open(match[1]); }
+  }
+  window.addEventListener('hashchange', openAssetFromHash);
 
   var renderAssets = render; var communityTabStorageKey = 'rblxtools_community_active_tab'; var savedCommunityTab = ''; try { savedCommunityTab = String(localStorage.getItem(communityTabStorageKey) || ''); } catch (_error) {} state.currentTab = /^#asset-/.test(String(location.hash || '')) ? 'assets' : (['assets', 'announcement', 'changelog', 'known-issue', 'bug-report', 'feedback', 'q-and-a'].indexOf(savedCommunityTab) !== -1 ? savedCommunityTab : 'assets'); state.communityPosts = [];
   var communityLabels = { announcement: 'Announcements', changelog: 'Changelog', 'known-issue': 'Known Issues', 'bug-report': 'Bug Reports', feedback: 'Feedback', 'q-and-a': 'Q&A' };
