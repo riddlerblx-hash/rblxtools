@@ -4969,6 +4969,14 @@
     enableSmartAdRefresh(host, function () { Array.prototype.forEach.call(host.querySelectorAll("iframe"), function (frame) { frame.remove(); }); delete host.dataset.rblxVerticalAdMounted; mountVerticalAd(host); });
   }
 
+  // Full-screen features can be added after the shared shell initializes.
+  // They use this helper to mount the same standard, membership-aware unit.
+  window.RBLXToolsAds = window.RBLXToolsAds || {};
+  window.RBLXToolsAds.mountVerticalAds = function (root) {
+    if (!root) return;
+    Array.prototype.forEach.call(root.querySelectorAll("[data-rblx-vertical-ad]"), mountVerticalAd);
+  };
+
   function mountModalVerticalAds(overlay) {
     if (!overlay || !shouldShowMemberAds() || !window.matchMedia("(min-width: 1280px) and (min-height: 820px)").matches) return;
     Array.prototype.forEach.call(overlay.querySelectorAll("[data-rblx-modal-ad]"), mountVerticalAd);
