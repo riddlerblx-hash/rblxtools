@@ -25,6 +25,7 @@
     .tutorial h3{padding:19px 20px 10px;text-align:center}.login-required-button{border:0;padding:0;color:#8bc7ff;background:transparent;font:800 10px Arial;white-space:nowrap;cursor:pointer}.login-required-button:hover{text-decoration:underline}.game-request button{border:0;padding:0;color:#8e73ff;background:transparent;font:800 13px Arial;cursor:pointer}.game-request button:hover{text-decoration:underline}.comments .comment.reply-depth-2>.comment-main>.comment-replies{margin-left:0;padding-left:0;border-left:0}.comments .comment.reply-depth-2>.comment-main>.comment-replies>.comment-thread-item>.comment.is-reply:before{display:none}.comments .comment-replies{border-left:0!important;padding-left:0!important}.comments .comment-replies>.comment-thread-item>.comment.is-reply:before{display:none!important}.live-guide .share-card{position:relative;overflow:hidden;margin-top:20px;padding:16px;border:1px solid rgba(139,151,255,.25);border-radius:18px;background:radial-gradient(circle at top right,rgba(136,101,255,.14),transparent 34%),radial-gradient(circle at 18% 100%,rgba(255,76,76,.1),transparent 28%),linear-gradient(180deg,rgba(28,32,43,.96),rgba(16,18,26,.96));box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}.live-guide .share-kicker{display:inline-flex;align-items:center;min-height:24px;padding:0 10px;border:1px solid rgba(255,255,255,.12);border-radius:999px;color:#efe6ff;background:rgba(255,255,255,.06);font-size:9px;font-weight:900;letter-spacing:.9px;text-transform:uppercase}.live-guide .share-kicker:before{margin-right:6px;color:#fff;content:"+"}.live-guide .share-card h3{margin:12px 0 8px;padding:0;color:#f8faff;font-size:24px;font-weight:900;letter-spacing:-.8px;line-height:1}.live-guide .share-card p{max-width:62ch;padding:0;margin:0;color:#cad3df;font-size:12px;font-weight:700;line-height:1.6}.live-guide .share-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px}.live-guide .share-btn{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border:1px solid rgba(255,255,255,.08);border-radius:999px;color:#fff;box-shadow:0 12px 24px rgba(0,0,0,.18);font-size:12px;font-weight:900;cursor:pointer;transition:transform .16s ease,filter .16s ease}.live-guide .share-btn:hover,.live-guide .share-copy-btn:hover{filter:brightness(1.05);transform:translateY(-1px)}.live-guide .share-fb{background:#35599d}.live-guide .share-x{background:#0d0d0d}.live-guide .share-in{background:#2a74ae}.live-guide .share-wa{background:#25d366}.live-guide .share-tg{background:#2ca5e0}.live-guide .share-mail{background:#666d79}.live-guide .share-copy-btn{min-width:174px;margin-top:14px;border:0;border-radius:10px;color:#fff;background:linear-gradient(180deg,#ff4343,#ff1515);box-shadow:0 14px 28px rgba(255,34,58,.24);font-size:12px}@media(max-width:720px){.live-guide .share-card{margin-top:14px}.live-guide .share-card h3{font-size:21px}}
     /* Keep the magnifier inside one clean search field rather than a separate colored column. */
     .hero .search{display:block;background:transparent}.hero .search-icon{position:absolute;top:50%;left:17px;margin:0;transform:translateY(-58%)}.hero .search input{width:100%!important;flex:none;padding:0 45px!important;border:1px solid #52648f;border-radius:13px;background:#30334d;text-align:center}
+    .code-pagination{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;margin:26px 0 8px}.code-pagination button{min-height:34px;border:1px solid var(--line);border-radius:9px;padding:0 11px;color:#dcecff;background:rgba(110,179,255,.1);font:800 11px Arial;cursor:pointer}.code-pagination button:hover:not(:disabled),.code-pagination button.is-current{border-color:#6eb3ff;color:#fff;background:linear-gradient(135deg,#2f6fae,#4a8ed0)}.code-pagination button:disabled{opacity:.42;cursor:default}@media(max-width:720px){.code-pagination{justify-content:flex-start;gap:6px;margin-top:18px}.code-pagination button{min-height:32px;padding:0 9px;font-size:10px}}
     .code-rankings{margin-top:42px}
   </style>
   <style>main.codes{visibility:hidden}</style>
@@ -83,6 +84,8 @@
     var liveCodeSocket = null;
     var liveRefreshTimer = 0;
     var directorySnapshot = "";
+    var directoryPage = 1;
+    var directoryPageSize = 24;
 
     function guideSnapshot(guide) {
       return JSON.stringify({ lastUpdated: guide && guide.lastUpdated || "", workingCodes: guide && guide.workingCodes || [], expiredCodes: guide && guide.expiredCodes || [] });
@@ -175,43 +178,63 @@
       return '<tr data-code-id="' + esc(code.id) + '" data-code-status="' + esc(code.status) + '" data-reported-expired="' + (code.viewerReportedExpired ? "true" : "false") + '"><td><code>' + esc(code.code) + '</code><button class="copy" data-copy="' + esc(code.code) + '">Copy</button></td><td>' + esc(code.reward || "Reward not listed") + '</td><td>' + date(code.addedAt) + '</td><td><div class="rate"><div class="rate-line"><b>' + rate + '</b><small>' + votes + ' vote' + (votes === 1 ? "" : "s") + '</small></div><span class="rate-bar"><i class="bad" style="width:' + failurePercent + '%"></i><i class="good" style="width:' + successPercent + '%"></i></span></div></td><td>' + voteUi + '</td></tr>';
     }
 
-    async function renderDirectory() {
-      var results = await Promise.all([request(api + "?limit=100"), request(api + "/rankings?period=weekly&limit=4").catch(function () { return { games: [] }; }), request(api + "/rankings?period=popular&limit=4").catch(function () { return { games: [] }; })]);
-      var payload = results[0], games = payload.games || [], weekly = (results[1].games || []).slice(0, 4), popular = (results[2].games || []).slice(0, 4);
+    async function renderDirectory(requestedPage) {
+      directoryPage = Math.max(1, Number(requestedPage || directoryPage) || 1);
+      var results = await Promise.all([request(api + "?limit=" + directoryPageSize + "&page=" + directoryPage), request(api + "/rankings?period=weekly&limit=12").catch(function () { return { games: [] }; }), request(api + "/rankings?period=popular&limit=12").catch(function () { return { games: [] }; })]);
+      var payload = results[0], games = payload.games || [], totalGames = Number(payload.total || games.length), weekly = (results[1].games || []).slice(0, 12), popular = (results[2].games || []).slice(0, 12);
+      var totalPages = Math.max(1, Math.ceil(totalGames / directoryPageSize));
+      if (directoryPage > totalPages) return renderDirectory(totalPages);
       // The quiet live fallback runs often. Keep its data check, but do not
       // replace the directory DOM (and reload every advertisement) unless
       // the directory content has genuinely changed.
-      var nextDirectorySnapshot = JSON.stringify({ games: games, weekly: weekly, popular: popular });
+      var nextDirectorySnapshot = JSON.stringify({ games: games, totalGames: totalGames, directoryPage: directoryPage, weekly: weekly, popular: popular });
       if (directorySnapshot === nextDirectorySnapshot && root.querySelector("#liveGrid")) return;
       directorySnapshot = nextDirectorySnapshot;
       function rankingMarkup(items, gridId, emptyId, emptyText) {
         return '<div class="grid" id="' + gridId + '">' + items.map(function (game) { return '<a class="game" href="/codes/' + encodeURIComponent(game.slug) + '">' + art(game) + '<div class="game-body"><h3>' + esc(displayGameName(game.name)) + '</h3><small class="card-author">By ' + esc(game.authorName || "RBLXTools Staff") + '</small><div class="meta"><span>' + date(game.lastUpdated) + '</span><b>' + Number(game.viewCount || 0) + ' views</b></div></div></a>'; }).join("") + '</div><div class="empty" id="' + emptyId + '">' + emptyText + '</div>';
       }
-      root.innerHTML = '<section class="hero"><h1>Roblox <b>game codes</b><br>worth checking.</h1><div class="search"><span class="search-icon" aria-hidden="true"></span><input id="liveSearch" type="search" placeholder="Search for Roblox codes" autocomplete="off" aria-controls="codeSearchResults" aria-expanded="false"><div id="codeSearchResults" class="code-search-results" role="listbox" hidden></div></div><p class="game-request">Request a game? <button type="button" data-request-game>Submit it here</button></p></section>' + codeDirectoryAdMarkup("below-request") + '<section><div class="section-head"><h2>Latest code posts</h2><p>' + games.length + ' published code post' + (games.length === 1 ? "" : "s") + '.</p></div><div class="grid" id="liveGrid"></div><div class="empty" id="liveEmpty">No published code posts yet. Check back soon.</div></section>' + codeDirectoryAdMarkup("after-latest") + '<section class="code-rankings"><div class="section-head"><h2>Trending code posts</h2><p>Most viewed this week · resets every 7 days.</p></div>' + rankingMarkup(weekly, "weeklyGrid", "weeklyEmpty", "No code-post views have been recorded this week yet.") + '</section>' + codeDirectoryAdMarkup("after-trending") + '<section class="code-rankings"><div class="section-head"><h2>Most popular code posts</h2><p>Automatically ranked by total views.</p></div>' + rankingMarkup(popular, "popularGrid", "popularEmpty", "No code-post views have been recorded yet.") + '</section>' + codeDirectoryAdMarkup("bottom") + '<p class="note">Codes and rewards are controlled by each game’s developer. A success rate reflects signed-in RBLXTools member reports, not a guarantee.</p>';
+      function paginationMarkup() {
+        if (totalPages <= 1) return '';
+        return '<nav class="code-pagination" id="codeDirectoryPagination" aria-label="All code-post pages"><button type="button" data-code-page="' + Math.max(1, directoryPage - 1) + '"' + (directoryPage === 1 ? ' disabled' : '') + ' aria-label="Previous page">‹</button>' + Array.from({ length: totalPages }, function (_, index) { var page = index + 1; return '<button type="button" data-code-page="' + page + '"' + (page === directoryPage ? ' class="is-current" aria-current="page"' : '') + '>Page ' + page + '</button>'; }).join('') + '<button type="button" data-code-page="' + Math.min(totalPages, directoryPage + 1) + '"' + (directoryPage === totalPages ? ' disabled' : '') + ' aria-label="Next page">›</button></nav>';
+      }
+      root.innerHTML = '<section class="hero"><h1>Roblox <b>game codes</b><br>worth checking.</h1><div class="search"><span class="search-icon" aria-hidden="true"></span><input id="liveSearch" type="search" placeholder="Search for Roblox codes" autocomplete="off" aria-controls="codeSearchResults" aria-expanded="false"><div id="codeSearchResults" class="code-search-results" role="listbox" hidden></div></div><p class="game-request">Request a game? <button type="button" data-request-game>Submit it here</button></p></section>' + codeDirectoryAdMarkup("below-request") + '<section id="allCodePosts"><div class="section-head"><h2>All code posts</h2><p>' + totalGames + ' published code post' + (totalGames === 1 ? "" : "s") + ' · Page ' + directoryPage + ' of ' + totalPages + '.</p></div><div class="grid" id="liveGrid"></div><div class="empty" id="liveEmpty">No published code posts yet. Check back soon.</div>' + paginationMarkup() + '</section>' + codeDirectoryAdMarkup("after-latest") + '<section class="code-rankings"><div class="section-head"><h2>Trending code posts</h2><p>Most viewed this week · resets every 7 days.</p></div>' + rankingMarkup(weekly, "weeklyGrid", "weeklyEmpty", "No code-post views have been recorded this week yet.") + '</section>' + codeDirectoryAdMarkup("after-trending") + '<section class="code-rankings"><div class="section-head"><h2>Most popular code posts</h2><p>Automatically ranked by total views.</p></div>' + rankingMarkup(popular, "popularGrid", "popularEmpty", "No code-post views have been recorded yet.") + '</section>' + codeDirectoryAdMarkup("bottom") + '<p class="note">Codes and rewards are controlled by each game’s developer. A success rate reflects signed-in RBLXTools member reports, not a guarantee.</p>';
       var grid = root.querySelector("#liveGrid"), empty = root.querySelector("#liveEmpty"), input = root.querySelector("#liveSearch");
       var searchResults = root.querySelector("#codeSearchResults");
       function drawDirectory() {
         grid.innerHTML = games.map(function (game) { return '<a class="game" href="/codes/' + encodeURIComponent(game.slug) + '">' + art(game) + '<div class="game-body"><h3>' + esc(displayGameName(game.name)) + '</h3><small class="card-author">By ' + esc(game.authorName || "RBLXTools Staff") + '</small><div class="meta"><span>' + date(game.lastUpdated) + '</span><b>' + game.workingCodeCount + ' active · ' + Number(game.viewCount || 0) + ' views</b></div></div></a>'; }).join("");
         empty.style.display = games.length ? "none" : "block";
       }
+      var searchRequest = 0, searchTimer = 0;
       function drawSearchResults() {
         var query = input.value.trim().toLowerCase();
         if (!query) { searchResults.hidden = true; input.setAttribute("aria-expanded", "false"); return; }
-        var matches = games.filter(function (game) { return (game.name + " " + game.slug).toLowerCase().indexOf(query) !== -1; }).slice(0, 8);
-        searchResults.innerHTML = matches.length ? matches.map(function (game) {
-          var image = game.icon ? '<img src="' + esc(game.icon) + '" alt="">' : '<span class="code-search-art" aria-hidden="true"></span>';
-          return '<a class="code-search-result" role="option" href="/codes/' + encodeURIComponent(game.slug) + '">' + image + '<span><strong>' + esc(displayGameName(game.name)) + '</strong><small>' + Number(game.workingCodeCount || 0) + ' active codes</small></span></a>';
-        }).join("") : '<div class="code-search-empty">No code posts found for “' + esc(input.value.trim()) + '”.</div>';
-        searchResults.hidden = false;
-        input.setAttribute("aria-expanded", "true");
+        var requestId = ++searchRequest;
+        request(api + "?limit=8&page=1&search=" + encodeURIComponent(query)).then(function (response) {
+          if (requestId !== searchRequest || input.value.trim().toLowerCase() !== query) return;
+          var matches = response.games || [];
+          searchResults.innerHTML = matches.length ? matches.map(function (game) {
+            var image = game.icon ? '<img src="' + esc(game.icon) + '" alt="">' : '<span class="code-search-art" aria-hidden="true"></span>';
+            return '<a class="code-search-result" role="option" href="/codes/' + encodeURIComponent(game.slug) + '">' + image + '<span><strong>' + esc(displayGameName(game.name)) + '</strong><small>' + Number(game.workingCodeCount || 0) + ' active codes</small></span></a>';
+          }).join("") : '<div class="code-search-empty">No code posts found for “' + esc(input.value.trim()) + '”.</div>';
+          searchResults.hidden = false;
+          input.setAttribute("aria-expanded", "true");
+        }).catch(function () {});
       }
       root.querySelector("#weeklyEmpty").style.display = weekly.length ? "none" : "block";
       root.querySelector("#popularEmpty").style.display = popular.length ? "none" : "block";
-      input.oninput = drawSearchResults;
+      input.oninput = function () { window.clearTimeout(searchTimer); searchTimer = window.setTimeout(drawSearchResults, 120); };
       input.onfocus = drawSearchResults;
       input.onkeydown = function (event) { if (event.key === "Escape") { input.value = ""; drawSearchResults(); input.blur(); } };
       document.addEventListener("pointerdown", function (event) { if (!event.target.closest(".hero .search")) { searchResults.hidden = true; input.setAttribute("aria-expanded", "false"); } });
       drawDirectory();
+      var pagination = root.querySelector("#codeDirectoryPagination");
+      if (pagination) pagination.onclick = function (event) {
+        var button = event.target.closest("[data-code-page]");
+        if (!button || button.disabled) return;
+        var nextPage = Number(button.dataset.codePage);
+        if (!nextPage || nextPage === directoryPage) return;
+        renderDirectory(nextPage).then(function () { var section = root.querySelector("#allCodePosts"); if (section) section.scrollIntoView({ behavior: "smooth", block: "start" }); }).catch(function () {});
+      };
       if (!session.hideAds) mountCodePostAds(root);
       else root.querySelectorAll("[data-code-post-ad]").forEach(function (ad) { ad.remove(); });
       var rewardsLink = root.querySelector('.game-request a[href="/rewards.html"]');
