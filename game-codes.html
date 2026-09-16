@@ -446,6 +446,9 @@
       var guide = guideCache[slug] || await request(api + "/" + encodeURIComponent(slug));
       guideCache[slug] = guide;
       var game = guide.game;
+      var codeTabStorageKey = "rblxtools_code_tab_" + String(game.slug || slug);
+      var savedCodeTab = "active";
+      try { savedCodeTab = sessionStorage.getItem(codeTabStorageKey) === "expired" ? "expired" : "active"; } catch (_error) {}
       var active = guide.workingCodes || [], expired = guide.expiredCodes || [];
       var rating = guide.communityRating || { average: null, count: 0 };
       var savedRating = Number(rating.viewerScore || 0);
@@ -581,9 +584,10 @@
         expiredTable.hidden = !showExpired;
         codeTitle.textContent = showExpired ? "Expired codes" : "Working codes";
         codeTabs.querySelectorAll("[data-code-tab]").forEach(function (button) { button.classList.toggle("is-active", button.dataset.codeTab === tab); });
+        try { sessionStorage.setItem(codeTabStorageKey, showExpired ? "expired" : "active"); } catch (_error) {}
       }
       codeTabs.querySelectorAll("[data-code-tab]").forEach(function (button) { button.onclick = function () { showCodeTab(button.dataset.codeTab); }; });
-      showCodeTab("active");
+      showCodeTab(savedCodeTab);
       root.querySelectorAll("tr[data-code-id]").forEach(function (row) {
         var codeId = row.dataset.codeId;
         var isExpired = row.dataset.codeStatus === "expired";
