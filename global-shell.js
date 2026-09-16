@@ -4288,25 +4288,12 @@
     return icons[kind] || icons.spark;
   }
 
-  function getSharedAdRefreshDueAt() {
-    var now = Date.now(), dueAt = 0;
-    try { dueAt = Number(sessionStorage.getItem("rblxtools_ad_refresh_due_at") || 0); } catch (_error) {}
-    if (dueAt > now) return dueAt;
-    dueAt = now + 30000;
-    try { sessionStorage.setItem("rblxtools_ad_refresh_due_at", String(dueAt)); } catch (_error) {}
-    return dueAt;
-  }
-
-  function restartSharedAdRefreshCycle() {
-    var dueAt = Date.now() + 30000;
-    try { sessionStorage.setItem("rblxtools_ad_refresh_due_at", String(dueAt)); } catch (_error) {}
-    return dueAt;
-  }
-
   function enableSmartAdRefresh(host, refresh) {
     if (!host || host.dataset.rblxSmartAdRefresh === "true") return;
     host.dataset.rblxSmartAdRefresh = "true";
-    var dueAt = getSharedAdRefreshDueAt(), visible = false;
+    // Each placement gets its own 30 seconds of actual on-screen time. An ad
+    // below the fold, or a background tab, never advances its countdown.
+    var visible = false, isRunning = false, lastTick = 0, elapsed = 0;
     var timer = document.createElement("div");
     timer.className = "rblx-smart-ad-timer";
     timer.setAttribute("aria-label", "Advertisement refresh timer");
@@ -4315,9 +4302,24 @@
     var bar = timer.querySelector("b");
     function update(now) {
       if (!host.isConnected) { if (observer) observer.disconnect(); return; }
-      var remaining = Math.max(0, dueAt - Date.now());
-      if (visible && !document.hidden && remaining <= 0) { refresh(); dueAt = restartSharedAdRefreshCycle(); remaining = 30000; }
-      bar.style.transform = "scaleX(" + Math.min(1, Math.max(0, 1 - (remaining / 30000))) + ")";
+      var runningNow = visible && !document.hidden;
+      if (runningNow) {
+        if (!isRunning) {
+          isRunning = true;
+          lastTick = now;
+        } else {
+          elapsed += Math.max(0, now - lastTick);
+          lastTick = now;
+          if (elapsed >= 30000) {
+            elapsed = elapsed % 30000;
+            refresh();
+          }
+        }
+      } else {
+        isRunning = false;
+        lastTick = 0;
+      }
+      bar.style.transform = "scaleX(" + Math.min(1, Math.max(0, elapsed / 30000)) + ")";
       requestAnimationFrame(update);
     }
     var observer = typeof IntersectionObserver === "function" ? new IntersectionObserver(function (entries) {
