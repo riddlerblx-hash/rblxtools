@@ -111,6 +111,7 @@ const STRIPE_PUBLISHABLE_KEY = String(
 ).trim();
 const STRIPE_PRICE_ID = String(process.env.STRIPE_PRICE_ID || "");
 const STRIPE_PRO_PRODUCT_ID = String(process.env.STRIPE_PRO_PRODUCT_ID || "prod_V9rw4G9vIzpnZb").trim();
+const STRIPE_PRO_ANNUAL_PRICE_ID = String(process.env.STRIPE_PRO_ANNUAL_PRICE_ID || "price_1UGQLgGrZOEMBkuul0sUArQ9").trim();
 const STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID = String(process.env.STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID || "price_1UB5KVGrZOEMBkuuQa6uAinu").trim();
 const STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID = "price_1UB5XiGrZOEMBkuuO9ptA9mB";
 const STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS = new Set([STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID, STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID].filter(Boolean));
@@ -2430,6 +2431,12 @@ async function resolvePlusRecurringPrice(billingInterval) {
   const product = monthlyPrice?.product;
   const productId = typeof product === "string" ? product : String(product?.id || "").trim();
   return resolveRecurringProductPrice(productId, interval);
+}
+
+async function resolveProRecurringPrice(billingInterval) {
+  const interval = normalizeBillingInterval(billingInterval);
+  if (interval === "year" && STRIPE_PRO_ANNUAL_PRICE_ID) return STRIPE_PRO_ANNUAL_PRICE_ID;
+  return resolveRecurringProductPrice(STRIPE_PRO_PRODUCT_ID, interval);
 }
 
 function extractMissingSupabaseColumnName(error) {
@@ -9927,7 +9934,7 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
-    const priceId = await resolveRecurringProductPrice(STRIPE_PRO_PRODUCT_ID, billingInterval);
+    const priceId = await resolveProRecurringPrice(billingInterval);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
@@ -9951,15 +9958,16 @@ app.get("/auth/membership-pricing", async (_req, res) => {
     const plusMonthly = await stripeClient.prices.retrieve(STRIPE_PRICE_ID);
     const plusProduct = plusMonthly?.product;
     const plusProductId = typeof plusProduct === "string" ? plusProduct : String(plusProduct?.id || "").trim();
-    const [plusPrices, proPrices] = await Promise.all([
+    const [plusPrices, proPrices, configuredProAnnual] = await Promise.all([
       getRecurringProductPrices(plusProductId),
       getRecurringProductPrices(STRIPE_PRO_PRODUCT_ID),
+      STRIPE_PRO_ANNUAL_PRICE_ID ? stripeClient.prices.retrieve(STRIPE_PRO_ANNUAL_PRICE_ID) : Promise.resolve(null),
     ]);
     const byInterval = (prices, interval) => serializeMembershipPrice(prices.find((price) => price?.recurring?.interval === interval));
     return res.json({
       ok: true,
       plus: { month: serializeMembershipPrice(plusMonthly), year: byInterval(plusPrices, "year") },
-      pro: { month: byInterval(proPrices, "month"), year: byInterval(proPrices, "year") },
+      pro: { month: byInterval(proPrices, "month"), year: serializeMembershipPrice(configuredProAnnual) || byInterval(proPrices, "year") },
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load membership pricing." });

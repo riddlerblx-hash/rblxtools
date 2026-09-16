@@ -1318,7 +1318,7 @@
     .billing-toggle { display:flex; width:max-content; max-width:100%; gap:4px; margin:0 auto 20px; padding:4px; border:1px solid rgba(123,164,255,.25); border-radius:999px; background:rgba(11,20,35,.82); box-shadow:0 12px 26px rgba(0,0,0,.18); }
     .billing-toggle button { min-height:36px; border:0; border-radius:999px; padding:0 15px; cursor:pointer; color:#aebbd0; background:transparent; font:800 11px/1 Arial,sans-serif; }
     .billing-toggle button.is-active { color:#07101c; background:linear-gradient(135deg,#38e6e0,#79a4ff); box-shadow:0 7px 16px rgba(56,230,224,.2); }
-    .billing-toggle button[data-billing="year"]::after { content:'Save yearly'; margin-left:6px; color:inherit; font-size:9px; opacity:.8; }
+    .billing-toggle button[data-billing="year"]::after { content:'Save yearly'; margin-left:6px; color:inherit; font-size:9px; opacity:.8; }.price-value .annual-list-price { margin-right:7px; color:#ff8a95; text-decoration:line-through; text-decoration-color:#ff4858; text-decoration-thickness:2px; font-size:.58em; vertical-align:middle; }.price-value .annual-sale-price { color:inherit; }.price-save { min-height:18px; }
     @media (max-width:900px) { .subscriptions-main { display:block; min-height:0; padding:42px 14px 68px; } .plus-focus, .pro-focus { transform:none; } .plan-col.plus-focus { order:2; } .plan-col.pro-focus { order:3; } }
   </style>
 <link rel="stylesheet" href="./global-shell.css?v=20260904-1" />
@@ -1753,10 +1753,13 @@
             button.classList.toggle("is-active", active);
             button.setAttribute("aria-pressed", String(active));
           });
+          var annualListPrices = { plus:{ unitAmount:1199, currency:"usd" }, pro:{ unitAmount:4999, currency:"usd" } };
           priceValues.forEach(function(element) {
             var plan = element.getAttribute("data-membership-price");
             var price = membershipPricing && membershipPricing[plan] && membershipPricing[plan][billingInterval];
-            if (price) element.textContent = formatMembershipPrice(price);
+            var annualListPrice = annualListPrices[plan];
+            if (price && billingInterval === "year" && annualListPrice) element.innerHTML = '<span class="annual-list-price">' + formatMembershipPrice(annualListPrice) + '</span><span class="annual-sale-price">' + formatMembershipPrice(price) + '</span>';
+            else if (price) element.textContent = formatMembershipPrice(price);
           });
           priceSubtitles.forEach(function(element) {
             element.textContent = billingInterval === "year" ? "Per year" : "Per month";
@@ -1772,12 +1775,11 @@
           if (proTokenPerkCopy) proTokenPerkCopy.textContent = isAnnualBilling ? "All 2,400 AI credits are added instantly after your successful annual Pro payment." : "A fresh 200 AI credits are added after every successful Pro monthly payment.";
           priceSavings.forEach(function(element) {
             var plan = element.getAttribute("data-membership-save");
-            var monthlyPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan].month;
             var annualPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan].year;
-            var monthlyTotal = (Number(monthlyPrice && monthlyPrice.unitAmount) || 0) * 12;
+            var annualListPrice = annualListPrices[plan];
             var annualTotal = Number(annualPrice && annualPrice.unitAmount) || 0;
-            var savingPercent = monthlyTotal > annualTotal ? Math.round((1 - annualTotal / monthlyTotal) * 100) : 0;
-            if (plan === "pro") { element.style.display = "none"; return; }
+            var listTotal = Number(annualListPrice && annualListPrice.unitAmount) || 0;
+            var savingPercent = listTotal > annualTotal ? Math.round((1 - annualTotal / listTotal) * 100) : 0;
             element.textContent = savingPercent > 0 ? "Save " + savingPercent + "%" : "";
             element.style.display = billingInterval === "year" && savingPercent > 0 ? "inline-block" : "none";
           });
