@@ -511,7 +511,14 @@
         var model = gltf.scene;
         var box = new THREE.Box3().setFromObject(model), center = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
         var maxDimension = Math.max(size.x, size.y, size.z) || 1;
-        model.position.sub(center); model.scale.multiplyScalar(2.4 / maxDimension); model.rotation.y = -.42; scene.add(model);
+        // Scale before compensating for the model origin. Applying the old
+        // unscaled offset first made off-origin GLBs drift into the cover's
+        // top-left corner on desktop cards.
+        var previewScale = 2.4 / maxDimension;
+        model.scale.multiplyScalar(previewScale);
+        model.position.sub(center.multiplyScalar(previewScale));
+        model.rotation.y = -.42;
+        scene.add(model);
         camera.position.set(0, .08, 4.1); camera.lookAt(0, 0, 0);
         stage.setAttribute('aria-label', '3D model preview');
         (function draw() {
