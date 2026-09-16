@@ -538,10 +538,13 @@
   function bindAssetCardOpeners(root) {
     Array.prototype.forEach.call(root.querySelectorAll('[data-open-asset]'), function (cardNode) {
       cardNode.addEventListener('click', function (event) {
-        // Keep the reaction and admin controls independent from opening the
-        // model, but let every other part of the cover/canvas open its viewer.
-        if (event.target.closest('button, a, input, select, textarea, label')) return;
-        location.hash = 'asset-' + encodeURIComponent(cardNode.getAttribute('data-open-asset'));
+        // The transparent card link is the topmost element on touch devices.
+        // Open directly instead of relying on a hashchange event, which does
+        // not fire when the current URL already has this asset hash.
+        if (event.target.closest('button, input, select, textarea, label')) return;
+        event.preventDefault();
+        event.stopPropagation();
+        openAssetFromCard(cardNode.getAttribute('data-open-asset'));
       });
     });
   }
@@ -632,6 +635,14 @@
   function openAssetFromHash() {
     var match = String(location.hash || '').match(/^#asset-(.+)$/);
     if (match && state.openedHashAsset !== match[1] && state.items.some(function (item) { return String(item.id) === match[1]; })) { state.openedHashAsset = match[1]; open(match[1]); }
+  }
+  function openAssetFromCard(id) {
+    id = String(id || '');
+    if (!id || !state.items.some(function (item) { return String(item.id) === id; })) return;
+    state.openedHashAsset = id;
+    var nextUrl = location.pathname + location.search + '#asset-' + encodeURIComponent(id);
+    if (location.hash !== '#asset-' + encodeURIComponent(id) && history.pushState) history.pushState(null, '', nextUrl);
+    open(id);
   }
   window.addEventListener('hashchange', openAssetFromHash);
 

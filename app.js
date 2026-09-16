@@ -8296,15 +8296,21 @@ app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
     const taskType = ["image", "multi"].includes(requestedType) ? requestedType : "text";
     const assetType = String(req.query.assetType || "ugc") === "game" ? "game" : "ugc";
     const taskPath = taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
-    const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
-    if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) {
-      return res.status(409).json({ error: "The GLB is not ready to download yet." });
-    }
     const absoluteLimit = assetType === "ugc" ? 4000 : 15000;
     const charge = ugcGenerationCharges.get(taskId);
     const savedItem = charge?.userId === user.id ? null : getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId && item.assetType === assetType);
+    if ((!charge || charge.userId !== user.id) && !savedItem) {
+      return res.status(404).json({ error: "This UGC generation is not in your history." });
+    }
     let modelBuffer = readValidStoredAIUGCModel(user.id, taskId);
     if (!modelBuffer) {
+      // A completed generation is archived locally. Only contact Meshy again
+      // when that local file is genuinely missing; this avoids a provider
+      // request leaving the browser stuck on “Preparing GLB”.
+      const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
+      if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) {
+        return res.status(409).json({ error: "The GLB is not ready to download yet." });
+      }
       const modelResponse = await fetch(task.model_urls.glb);
       if (!modelResponse.ok) throw new Error("Could not retrieve the finished GLB.");
       modelBuffer = Buffer.from(await modelResponse.arrayBuffer());
