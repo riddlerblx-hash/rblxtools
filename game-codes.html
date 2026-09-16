@@ -28,6 +28,7 @@
     .code-pagination{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;margin:26px 0 8px}.code-pagination button{min-height:34px;border:1px solid var(--line);border-radius:9px;padding:0 11px;color:#dcecff;background:rgba(110,179,255,.1);font:800 11px Arial;cursor:pointer}.code-pagination button:hover:not(:disabled),.code-pagination button.is-current{border-color:#6eb3ff;color:#fff;background:linear-gradient(135deg,#2f6fae,#4a8ed0)}.code-pagination button:disabled{opacity:.42;cursor:default}@media(max-width:720px){.code-pagination{justify-content:flex-start;gap:6px;margin-top:18px}.code-pagination button{min-height:32px;padding:0 9px;font-size:10px}}
     .votes .code-report{display:inline-flex;align-items:center;justify-content:center;width:31px;min-width:31px;height:31px;min-height:31px;padding:0;border:0;border-radius:6px;color:#ffb2be;background:#df5d7524;font:900 14px/1 Arial;cursor:pointer}.votes .code-report:hover:not(:disabled){outline:1px solid currentColor;transform:translateY(-1px)}.votes .code-report:disabled{width:31px;min-width:31px;height:31px;min-height:31px;opacity:.72;cursor:default}
     .post-author{display:flex;align-items:center;flex-wrap:wrap;gap:6px}.post-author-separator{color:#61728b}.post-rating-inline{display:inline-flex;align-items:center;gap:4px;color:#f4f7fb}.post-rating-stars{letter-spacing:1px}.post-rating-stars span{color:#53657a;text-shadow:none}.post-rating-stars span.is-lit{color:#ffd34d;text-shadow:0 0 10px rgba(255,211,77,.66)}.post-success-rate{color:#83e7bd}.post-success-rate.is-empty{color:#aebdd0}
+    .code-bulk-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:36px;padding:0 18px 10px;color:#aebed2;font-size:11px;font-weight:800}.code-bulk-toolbar strong{color:#eaf3ff}.code-bulk-menu{position:relative}.code-bulk-trigger{display:grid;place-items:center;width:31px;height:31px;border:1px solid var(--line);border-radius:7px;color:#dcecff;background:rgba(110,179,255,.12);font:900 17px/1 Arial;cursor:pointer}.code-bulk-menu-panel{position:absolute;z-index:15;right:0;top:37px;display:grid;gap:5px;width:186px;padding:7px;border:1px solid var(--line);border-radius:10px;background:#111c28;box-shadow:0 16px 36px rgba(0,0,0,.48)}.code-bulk-menu-panel[hidden]{display:none!important}.code-bulk-menu-panel button{border:0;border-radius:7px;padding:9px;color:#eaf3ff;background:rgba(110,179,255,.1);font:800 11px Arial;text-align:left;cursor:pointer}.code-bulk-menu-panel button[data-bulk-action="delete"]{color:#ffd7d7;background:rgba(255,58,58,.15)}.code-bulk-menu-panel button:disabled{opacity:.45;cursor:default}.code-bulk-select{position:relative;display:inline-grid;appearance:none;-webkit-appearance:none;width:31px;min-width:31px;height:31px;margin:0;border:1px solid rgba(174,205,239,.45);border-radius:50%;background:rgba(110,179,255,.08);cursor:pointer}.code-bulk-select:checked{border-color:#75b9ff;background:#3679bf}.code-bulk-select:checked:after{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:900 15px/1 Arial;content:"✓"}.code-bulk-select:hover{border-color:#8ecbff;background:rgba(110,179,255,.22)}@media(max-width:720px){.code-bulk-toolbar{padding:0 14px 10px}.code-bulk-menu-panel{right:0}}
     .live-guide .share-copy-btn{display:inline-flex;align-items:center;justify-content:center;width:164px;min-width:164px;height:36px;min-height:36px;margin-top:14px;padding:0 16px;border:0;border-radius:10px;color:#fff;background:linear-gradient(180deg,#ff4343,#ff1515);box-shadow:0 14px 28px rgba(255,34,58,.24);font:900 12px/1 Arial;cursor:pointer}
     .code-rankings{margin-top:42px}
   </style>
@@ -440,7 +441,7 @@
       var rootComments = comments.filter(function (comment) { return !comment.parentId; });
       var commentsMarkup = '<section class="panel comments"><h3>Comments (' + comments.length + ')</h3>' + (session.authenticated ? '<div id="commentComposerHome"><form class="comment-form" id="commentForm"><div class="comment-form-entry">' + commentAvatar({ authorName: session.viewer && session.viewer.name, avatarUrl: session.viewer && session.viewer.avatarUrl }) + '<input id="commentBody" required maxlength="1000" autocomplete="off" placeholder="Add a comment..."></div><input id="commentParentId" type="hidden"><div class="comment-form-actions"><button class="comment-cancel" type="button" id="cancelComment">Cancel</button><button class="comment-submit" type="submit">Comment</button></div></form></div>' : '<p class="note">Want to join the conversation? <button type="button" class="comment-login-link" data-comment-login>Sign in or sign up</button> to leave a comment.</p>') + '<div class="comment-list">' + (rootComments.length ? rootComments.map(function (comment) { return commentMarkup(comment, 0); }).join("") : '<p class="note">No comments yet. Start the conversation.</p>') + '</div></section>';
       var shareMarkup = '<section class="share-card"><span class="share-kicker">Share this tool</span><h3>Send this page to another creator</h3><p>Share this code post on Facebook, X, LinkedIn, WhatsApp, Telegram, or copy the direct page link for later.</p><div class="share-row"><button class="share-btn share-fb" type="button" data-code-share="facebook" aria-label="Share on Facebook">f</button><button class="share-btn share-x" type="button" data-code-share="x" aria-label="Share on X">X</button><button class="share-btn share-in" type="button" data-code-share="linkedin" aria-label="Share on LinkedIn">in</button><button class="share-btn share-wa" type="button" data-code-share="whatsapp" aria-label="Share on WhatsApp">wa</button><button class="share-btn share-tg" type="button" data-code-share="telegram" aria-label="Share on Telegram">tg</button><button class="share-btn share-mail" type="button" data-code-share="email" aria-label="Share by email">@</button></div><button class="share-copy-btn" type="button" data-code-share-copy>Copy Page Link</button></section>';
-      root.innerHTML = '<section class="guide live-guide open"><a class="back" href="/codes">&#8592; All code posts</a><div class="guide-top">' + art(game) + '<div class="guide-info"><div class="guide-label">Roblox game code post</div><h2>' + esc(game.name) + ' Codes</h2>' + authorStatsMarkup + '<p>' + esc(game.description || ('Find community-reviewed codes for ' + game.name + '.')) + '</p><div class="notice">Updated: ' + date(guide.lastUpdated) + ' · ' + active.length + ' active code' + (active.length === 1 ? "" : "s") + '.</div>' + (game.robloxUrl ? '<a class="official" href="' + esc(game.robloxUrl) + '" target="_blank" rel="noopener">Open game on Roblox &#8599;</a>' : '') + '</div></div><div class="guide-grid"><article class="panel codes-panel"><div class="code-head"><h3>Working codes</h3><button class="outline" id="openSubmission">Submit code</button></div><div id="submissionForm" class="inline-form" hidden><input id="submitCode" placeholder="Code"><input id="submitReward" placeholder="Reward"><input id="submitSource" placeholder="Official source link, if available"><button class="button" id="sendSubmission">Send for review</button><p class="note">' + loginHint + '</p></div><div class="table-wrap active-table-wrap"><table class="code-table live-table"><thead><tr><th>Code</th><th>Reward</th><th>Added on</th><th>Success rate</th><th>Vote</th></tr></thead><tbody>' + codeRowsWithInlineAds(active, "working") + '</tbody></table></div><div class="table-wrap expired-table-wrap"><table class="code-table live-table"><thead><tr><th>Code</th><th>Reward</th><th>Added on</th><th>Success rate</th><th>Vote</th></tr></thead><tbody>' + codeRowsWithInlineAds(expired, "expired") + '</tbody></table></div></article><aside><article class="panel"><h3>Help verify</h3><p>Redeemed a code? Vote whether it worked. One signed-in account can update one vote per code.</p></article></aside></div>' + ratingMarkup + shareMarkup + commentsMarkup + '<section class="saved" id="staffComposer" hidden></section></section>';
+      root.innerHTML = '<section class="guide live-guide open"><a class="back" href="/codes">&#8592; All code posts</a><div class="guide-top">' + art(game) + '<div class="guide-info"><h2>' + esc(game.name) + ' Codes</h2>' + authorStatsMarkup + '<p>' + esc(game.description || ('Find community-reviewed codes for ' + game.name + '.')) + '</p><div class="notice">Updated: ' + date(guide.lastUpdated) + ' · ' + active.length + ' active code' + (active.length === 1 ? "" : "s") + '.</div>' + (game.robloxUrl ? '<a class="official" href="' + esc(game.robloxUrl) + '" target="_blank" rel="noopener">Open game on Roblox &#8599;</a>' : '') + '</div></div><div class="guide-grid"><article class="panel codes-panel"><div class="code-head"><h3>Working codes</h3><button class="outline" id="openSubmission">Submit code</button></div><div id="submissionForm" class="inline-form" hidden><input id="submitCode" placeholder="Code"><input id="submitReward" placeholder="Reward"><input id="submitSource" placeholder="Official source link, if available"><button class="button" id="sendSubmission">Send for review</button><p class="note">' + loginHint + '</p></div><div class="table-wrap active-table-wrap"><table class="code-table live-table"><thead><tr><th>Code</th><th>Reward</th><th>Added on</th><th>Success rate</th><th>Vote</th></tr></thead><tbody>' + codeRowsWithInlineAds(active, "working") + '</tbody></table></div><div class="table-wrap expired-table-wrap"><table class="code-table live-table"><thead><tr><th>Code</th><th>Reward</th><th>Added on</th><th>Success rate</th><th>Vote</th></tr></thead><tbody>' + codeRowsWithInlineAds(expired, "expired") + '</tbody></table></div></article><aside><article class="panel"><h3>Help verify</h3><p>Redeemed a code? Vote whether it worked. One signed-in account can update one vote per code.</p></article></aside></div>' + ratingMarkup + shareMarkup + commentsMarkup + '<section class="saved" id="staffComposer" hidden></section></section>';
       var guideGrid = root.querySelector(".guide-grid");
       if (!session.hideAds) {
         var guideSection = root.querySelector(".live-guide");
@@ -453,7 +454,6 @@
       root.querySelector("#submissionForm").remove();
       root.querySelector("#staffComposer").remove();
       root.querySelector(".back").textContent = "← All code posts";
-      root.querySelector(".guide-label").textContent = "Roblox game code post";
       request(api + "/" + encodeURIComponent(game.slug) + "/view", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ visitorKey: browserViewerKey() }) }).then(function (result) { var viewStat = root.querySelector(".views-stat"); if (viewStat && result.viewCount !== undefined) viewStat.textContent = result.viewCount + " views"; }).catch(function () {});
       var gameName = displayGameName(game.name);
       root.querySelector(".guide-info h2").textContent = gameName + " Codes (" + monthYear() + ")";
@@ -506,6 +506,52 @@
       codeTabs.className = "code-tabs";
       codeTabs.innerHTML = '<button class="code-tab is-active" type="button" data-code-tab="active">Active (' + active.length + ')</button><button class="code-tab" type="button" data-code-tab="expired">Expired (' + expired.length + ')</button>';
       codeHead.insertAdjacentElement("afterend", codeTabs);
+      var selectedCodeIds = new Set();
+      var bulkToolbar = null;
+      function selectedCodeRows() { return Array.prototype.slice.call(root.querySelectorAll("tr[data-code-id]")).filter(function (row) { return selectedCodeIds.has(String(row.dataset.codeId)); }); }
+      function syncBulkToolbar() {
+        if (!bulkToolbar) return;
+        var selectedRows = selectedCodeRows();
+        var selectedCount = selectedRows.length;
+        bulkToolbar.querySelector("[data-bulk-selection-count]").textContent = selectedCount + " post" + (selectedCount === 1 ? "" : "s") + " selected";
+        bulkToolbar.querySelector('[data-bulk-action="expire"]').disabled = !selectedRows.some(function (row) { return row.dataset.codeStatus !== "expired"; });
+        bulkToolbar.querySelector('[data-bulk-action="delete"]').disabled = !selectedCount;
+      }
+      if (session.canManageCodes) {
+        bulkToolbar = document.createElement("div");
+        bulkToolbar.className = "code-bulk-toolbar";
+        bulkToolbar.innerHTML = '<strong data-bulk-selection-count>0 posts selected</strong><div class="code-bulk-menu"><button class="code-bulk-trigger" type="button" data-bulk-menu-toggle aria-label="Selected code actions" aria-expanded="false">&#8942;</button><div class="code-bulk-menu-panel" hidden><button type="button" data-bulk-action="expire">Mark selected expired</button><button type="button" data-bulk-action="delete">Delete selected codes</button></div></div>';
+        codeTabs.insertAdjacentElement("afterend", bulkToolbar);
+        var bulkTrigger = bulkToolbar.querySelector("[data-bulk-menu-toggle]");
+        var bulkMenuPanel = bulkToolbar.querySelector(".code-bulk-menu-panel");
+        bulkTrigger.onclick = function () { bulkMenuPanel.hidden = !bulkMenuPanel.hidden; bulkTrigger.setAttribute("aria-expanded", String(!bulkMenuPanel.hidden)); };
+        bulkToolbar.querySelectorAll("[data-bulk-action]").forEach(function (button) {
+          button.onclick = async function () {
+            var action = button.dataset.bulkAction;
+            var targets = selectedCodeRows().filter(function (row) { return action !== "expire" || row.dataset.codeStatus !== "expired"; });
+            if (!targets.length) return;
+            var question = action === "expire" ? "Mark " + targets.length + " selected code" + (targets.length === 1 ? "" : "s") + " as expired?" : "Delete " + targets.length + " selected code" + (targets.length === 1 ? "" : "s") + " and their votes and expiry reports? This cannot be undone.";
+            if (!window.confirm(question)) return;
+            bulkMenuPanel.hidden = true;
+            bulkTrigger.setAttribute("aria-expanded", "false");
+            bulkToolbar.querySelectorAll("button").forEach(function (control) { control.disabled = true; });
+            try {
+              for (var index = 0; index < targets.length; index += 1) {
+                var codeId = targets[index].dataset.codeId;
+                if (action === "expire") await request("/admin/codes/" + encodeURIComponent(game.slug) + "/codes/" + encodeURIComponent(codeId), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "expire" }) });
+                else await request("/admin/codes/" + encodeURIComponent(game.slug) + "/codes/" + encodeURIComponent(codeId), { method: "DELETE" });
+              }
+              delete guideCache[game.slug];
+              renderGuide(game.slug);
+            } catch (error) {
+              bulkToolbar.querySelectorAll("button").forEach(function (control) { control.disabled = false; });
+              syncBulkToolbar();
+              alert(error.message);
+            }
+          };
+        });
+        syncBulkToolbar();
+      }
       function showCodeTab(tab) {
         var showExpired = tab === "expired";
         activeTable.hidden = showExpired;
@@ -542,6 +588,14 @@
           voteActions.appendChild(reportButton);
         }
         if (!session.canManageCodes) return;
+        var bulkSelect = document.createElement("input");
+        bulkSelect.className = "code-bulk-select";
+        bulkSelect.type = "checkbox";
+        bulkSelect.checked = selectedCodeIds.has(String(codeId));
+        bulkSelect.title = "Select this code";
+        bulkSelect.setAttribute("aria-label", "Select code " + row.querySelector("code").textContent);
+        bulkSelect.onchange = function () { if (bulkSelect.checked) selectedCodeIds.add(String(codeId)); else selectedCodeIds.delete(String(codeId)); syncBulkToolbar(); };
+        voteActions.appendChild(bulkSelect);
         var codeMenu = document.createElement("span");
         codeMenu.className = "code-menu";
         codeMenu.innerHTML = '<button class="code-menu-trigger" type="button" aria-label="Code actions">&#8942;</button>';
