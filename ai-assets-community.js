@@ -482,13 +482,57 @@
   function bindAssetCoverFallbacks(root) {
     Array.prototype.forEach.call(root.querySelectorAll('.ai-asset-art'), function (image) {
       image.addEventListener('error', function () {
-        var fallback = document.createElement('div');
-        fallback.className = 'ai-asset-fallback';
-        fallback.setAttribute('aria-label', '3D asset preview unavailable');
-        fallback.textContent = 'AI';
-        image.replaceWith(fallback);
+        var cardNode = image.closest('[data-open-asset]');
+        if (!cardNode) return;
+        renderStaticAssetCover(cardNode, cardNode.dataset.openAsset, image);
       }, { once: true });
     });
+  }
+
+  // Signed Meshy thumbnail URLs eventually expire. When that happens, make one
+  // centered still image from the saved GLB instead of leaving a blank card or
+  // running an animated model viewer in the gallery.
+  function renderStaticAssetCover(cardNode, assetId, image) {
+    var stage = document.createElement('div');
+    stage.className = 'ai-asset-model-preview';
+    stage.setAttribute('aria-label', 'Loading asset cover');
+    image.replaceWith(stage);
+    var showFallback = function () {
+      if (!document.body.contains(stage)) return;
+      var fallback = document.createElement('div');
+      fallback.className = 'ai-asset-fallback';
+      fallback.setAttribute('aria-label', 'Asset cover unavailable');
+      fallback.textContent = 'UGC';
+      stage.replaceWith(fallback);
+    };
+    if (!window.THREE || !THREE.GLTFLoader) { showFallback(); return; }
+    fetch('/api/ugc/community/' + encodeURIComponent(assetId) + '/model', { credentials: 'include' })
+      .then(function (response) { if (!response.ok) throw new Error('Could not load the asset model.'); return response.arrayBuffer(); })
+      .then(function (buffer) { var loader = new THREE.GLTFLoader(); return new Promise(function (resolve, reject) { loader.parse(buffer, '', resolve, reject); }); })
+      .then(function (gltf) {
+        if (!document.body.contains(stage)) return;
+        var width = Math.max(160, stage.clientWidth), height = Math.max(160, stage.clientHeight);
+        var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+        renderer.setSize(width, height, false);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        var scene = new THREE.Scene();
+        scene.add(new THREE.HemisphereLight(0xeaf3ff, 0x0a121e, 1.55));
+        var key = new THREE.DirectionalLight(0xffffff, 1.9); key.position.set(3, 4, 5); scene.add(key);
+        var rim = new THREE.DirectionalLight(0x79b5ff, 1.15); rim.position.set(-4, 2, -3); scene.add(rim);
+        var content = new THREE.Group(); content.add(gltf.scene);
+        var box = new THREE.Box3().setFromObject(content), center = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+        var maxDimension = Math.max(size.x, size.y, size.z) || 1;
+        content.position.sub(center); content.scale.setScalar(2.35 / maxDimension); content.rotation.y = -.35;
+        scene.add(content);
+        var camera = new THREE.PerspectiveCamera(34, width / height, .01, 1000);
+        camera.position.set(0, .08, 4.2); camera.lookAt(0, 0, 0);
+        renderer.render(scene, camera);
+        var still = new Image(); still.className = 'ai-asset-art'; still.alt = ''; still.src = renderer.domElement.toDataURL('image/png');
+        renderer.dispose();
+        if (document.body.contains(stage)) stage.replaceWith(still);
+      })
+      .catch(showFallback);
   }
 
   function bindAssetCardOpeners(root) {
@@ -576,7 +620,11 @@
   }
 
   function open(id) {
-    request('/api/ugc/community/' + encodeURIComponent(id)).then(function (payload) { state.active = payload.item; document.getElementById('aiAssetsPostPanel').innerHTML = postPanel(state.active); document.getElementById('aiAssetsModal').hidden = false; document.body.style.overflow = 'hidden'; loadViewer(id); request('/api/ugc/community/' + encodeURIComponent(id) + '/view', 'POST').then(function () { load(); }).catch(function () {}); }).catch(function (error) { notify(error.message); });
+    var modal = document.getElementById('aiAssetsModal');
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    document.getElementById('aiAssetsPostPanel').innerHTML = '<div class="ai-model-loader">Loading asset details</div>';
+    request('/api/ugc/community/' + encodeURIComponent(id)).then(function (payload) { state.active = payload.item; document.getElementById('aiAssetsPostPanel').innerHTML = postPanel(state.active); loadViewer(id); request('/api/ugc/community/' + encodeURIComponent(id) + '/view', 'POST').then(function () { load(); }).catch(function () {}); }).catch(function (error) { document.getElementById('aiAssetsPostPanel').innerHTML = '<div class="ai-model-loader">' + escapeHtml(error.message || 'Could not load asset details.') + '</div>'; notify(error.message); });
   }
   function close() { document.getElementById('aiAssetsModal').hidden = true; document.body.style.overflow = ''; destroyViewer(); state.active = null; }
   function load() {
