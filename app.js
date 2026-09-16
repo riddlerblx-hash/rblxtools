@@ -7711,6 +7711,42 @@ app.get("/ai/ugc/history", async (req, res) => {
   }
 });
 
+// Meshy thumbnail links are short-lived and can reject direct browser loads.
+// Serve the saved-generation cover through this authenticated route instead.
+app.get("/ai/ugc/history/:taskId/cover", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    const item = getPersistentAIUGCHistory(user.id).find((entry) => String(entry.id) === taskId);
+    if (!item) return res.status(404).json({ error: "This saved generation is unavailable." });
+    const loadCover = async (url) => {
+      if (!/^https?:\/\//i.test(String(url || ""))) return null;
+      const response = await fetch(url, { headers: { Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" } });
+      if (!response.ok) return null;
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const contentType = inferAIUGCCoverMimeType(buffer, response.headers.get("content-type") || "");
+      return contentType && buffer.length <= 12 * 1024 * 1024 ? { buffer, contentType } : null;
+    };
+    let coverResponse = readStoredAIUGCCover(user.id, taskId) || await loadCover(String(item.thumbnailUrl || "").trim());
+    if (!coverResponse) {
+      const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
+      const task = await requestMeshy(getUGCTaskPath(taskType) + encodeURIComponent(taskId));
+      const refreshedUrl = String(task.alpha_thumbnail_url || task.thumbnail_url || "").trim();
+      if (refreshedUrl) {
+        updatePersistentAIUGCHistory(user.id, taskId, { thumbnailUrl: refreshedUrl });
+        coverResponse = await loadCover(refreshedUrl);
+      }
+    }
+    if (!coverResponse) throw new Error("The generation cover is unavailable.");
+    if (!readStoredAIUGCCover(user.id, taskId)) coverResponse = storeAIUGCCover(user.id, taskId, coverResponse.buffer) || coverResponse;
+    res.setHeader("Cache-Control", "private, max-age=600");
+    res.type(coverResponse.contentType);
+    return res.send(coverResponse.buffer);
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the generation cover." });
+  }
+});
+
 app.post("/ai/ugc/history", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
