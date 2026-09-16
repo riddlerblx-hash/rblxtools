@@ -60,7 +60,7 @@
     .attach span { display:grid; width:28px; height:28px; place-items:center; border:1px solid rgba(110,152,255,.42); border-radius:8px; color:var(--blue); font-size:18px; }
     .attach input { display:none; }
     .counter { margin-left:auto; color:#748097; font:700 11px/1 Arial,sans-serif; }
-    .token-summary { display:inline-flex; align-items:center; gap:7px; margin-left:auto; color:#b8f8f4; font:800 11px/1 Arial,sans-serif; white-space:nowrap; }
+    .token-summary { display:inline-flex; align-items:center; gap:7px; margin-left:auto; color:#b8f8f4; font:800 11px/1 Arial,sans-serif; white-space:nowrap; }.token-summary .token-original { color:#ff909b; text-decoration:line-through; text-decoration-color:#ff4f5c; text-decoration-thickness:2px; margin-right:4px; }.token-summary .token-discounted { color:#ffe182; }.token-summary .token-discount-note { display:inline-block; margin-left:5px; padding:2px 5px; border:1px solid rgba(255,205,91,.38); border-radius:999px; background:rgba(255,191,71,.12); color:#ffe49b; font-size:8px; letter-spacing:.04em; vertical-align:1px; }
     .token-summary strong { display:grid; min-width:25px; min-height:23px; place-items:center; padding:0 6px; border:1px solid rgba(56,230,224,.3); border-radius:7px; background:rgba(56,230,224,.1); color:var(--aqua); }
     .send { width:40px; height:40px; border:0; border-radius:12px; cursor:pointer; color:#07101c; background:linear-gradient(135deg,var(--aqua),#77a5ff); font-size:19px; font-weight:900; box-shadow:0 8px 18px rgba(56,230,224,.16); }
     .send:disabled { opacity:.55; cursor:wait; }
@@ -117,7 +117,7 @@
           <div class="toolbar">
             <label class="attach" title="Add up to three reference images"><span>+</span> Add references<input id="referenceInput" type="file" accept="image/png,image/jpeg,image/webp" multiple /></label>
             <span class="counter" id="counter">0 / 3 images</span>
-            <span class="token-summary" title="Each thumbnail costs 10 AI tokens"><strong id="tokenBalance">0</strong><span>This generation will cost 10 AI tokens</span></span>
+            <span class="token-summary" id="thumbnailTokenSummary" title="Each thumbnail costs 10 AI tokens"><strong id="tokenBalance">0</strong><span id="thumbnailTokenCost">This generation will cost 10 AI tokens</span></span>
           </div>
           <button class="generate-thumbnail-button" id="generateButton" type="submit">Generate Thumbnail</button>
         </div>
@@ -126,7 +126,7 @@
     </section>
     <section class="gate" id="gate"><h2>Sign in to create thumbnails</h2><p id="gateMessage">Checking your account access...</p></section>
     <section class="token-modal" id="tokenModal" role="dialog" aria-modal="true" aria-labelledby="tokenDialogTitle">
-      <div class="token-dialog"><h2 id="tokenDialogTitle">Use 10 AI tokens?</h2><p>Creating a thumbnail costs 10 AI tokens. You currently have <strong id="modalTokenBalance">0</strong> AI tokens.</p><div class="token-dialog-actions"><button type="button" id="cancelTokenCharge">Cancel</button><button type="button" class="confirm" id="confirmTokenCharge">Continue</button><button type="button" class="confirm" id="confirmAndHideTokenCharge">Continue &amp; don't ask again</button></div></div>
+      <div class="token-dialog"><h2 id="tokenDialogTitle">Use 10 AI tokens?</h2><p id="tokenDialogCopy">Creating a thumbnail costs 10 AI tokens. You currently have <strong id="modalTokenBalance">0</strong> AI tokens.</p><div class="token-dialog-actions"><button type="button" id="cancelTokenCharge">Cancel</button><button type="button" class="confirm" id="confirmTokenCharge">Continue</button><button type="button" class="confirm" id="confirmAndHideTokenCharge">Continue &amp; don't ask again</button></div></div>
     </section>
   </main>
   <script src="./global-shell.js?v=20260915-adsterra-banner-fix"></script>
@@ -160,6 +160,10 @@
       var outputQuality = document.getElementById('outputQuality');
       var tokenModal = document.getElementById('tokenModal');
       var modalTokenBalance = document.getElementById('modalTokenBalance');
+      var thumbnailTokenCost = document.getElementById('thumbnailTokenCost');
+      var thumbnailTokenSummary = document.getElementById('thumbnailTokenSummary');
+      var tokenDialogTitle = document.getElementById('tokenDialogTitle');
+      var tokenDialogCopy = document.getElementById('tokenDialogCopy');
       var tokenBalance = 0;
       var isPro = false;
       var isAuthenticated = false;
@@ -176,6 +180,8 @@
       function getWarningHidden() { try { return localStorage.getItem(TOKEN_WARNING_KEY) === '1'; } catch (_error) { return false; } }
       function hideFutureWarning() { try { localStorage.setItem(TOKEN_WARNING_KEY, '1'); } catch (_error) {} }
       function setTokenBalance(value) { tokenBalance = Math.max(0, Number.parseInt(value, 10) || 0); tokenBalanceEl.textContent = String(tokenBalance); modalTokenBalance.textContent = String(tokenBalance); }
+      function getThumbnailGenerationCost() { return isPro ? 9 : 10; }
+      function updateThumbnailTokenCost() { var cost=getThumbnailGenerationCost(); if(isPro){thumbnailTokenCost.innerHTML='This generation will cost <span class="token-original">10 AI tokens</span><span class="token-discounted">'+cost+' AI tokens</span><span class="token-discount-note">PRO · 10% OFF</span>';thumbnailTokenSummary.title='Pro price: 10% off the standard 10 AI token cost.';tokenDialogTitle.textContent='Use '+cost+' AI tokens?';tokenDialogCopy.innerHTML='Creating a thumbnail costs <span class="token-original">10 AI tokens</span> <span class="token-discounted">'+cost+' AI tokens</span> with Pro. You currently have <strong id="modalTokenBalance">'+tokenBalance+'</strong> AI tokens.';modalTokenBalance=document.getElementById('modalTokenBalance');}else{thumbnailTokenCost.textContent='This generation will cost 10 AI tokens';thumbnailTokenSummary.title='Each thumbnail costs 10 AI tokens';tokenDialogTitle.textContent='Use 10 AI tokens?';tokenDialogCopy.innerHTML='Creating a thumbnail costs 10 AI tokens. You currently have <strong id="modalTokenBalance">'+tokenBalance+'</strong> AI tokens.';modalTokenBalance=document.getElementById('modalTokenBalance');}}
       function setStatus(message, error) { status.textContent = message || ''; status.classList.toggle('error', Boolean(error)); }
       function showGate(message) { workspace.hidden = true; gate.classList.add('visible'); gateMessage.textContent = message; }
       function getCachedUser() { try { var raw = localStorage.getItem('rblxtools_auth_user'); return raw ? JSON.parse(raw) : null; } catch (_error) { return null; } }
@@ -189,7 +195,7 @@
       function mergeHistory(serverItems, cachedItems) { var merged = {}; (serverItems || []).forEach(function (item) { if (item && item.id) merged[String(item.id)] = item; }); (cachedItems || []).forEach(function (item) { if (item && item.id) merged[String(item.id)] = Object.assign({}, merged[String(item.id)] || {}, item); }); return Object.keys(merged).map(function (key) { return merged[key]; }).sort(function (a, b) { return Number(b.createdAt || b.created_at || 0) - Number(a.createdAt || a.created_at || 0); }); }
       function cacheHistoryItem(item) { if (!canSaveChats || !item || !item.id) return; historyItems = mergeHistory([], [item].concat(historyItems)).slice(0, historyLimit); writeCachedHistory(historyItems); }
       function syncSavedChatAccess() { historySearch.disabled = !canSaveChats; historySearch.placeholder = canSaveChats ? 'Search chats...' : 'Log in to save chats'; historyStatus.innerHTML = canSaveChats ? historyItems.length + ' of ' + historyLimit + ' saved chats.' + (historyItems.length >= historyLimit ? ' <a href="./subscriptions">Upgrade for more slots.</a>' : '') : 'Log in to save up to 3 thumbnail chats.'; if (!canSaveChats) { historyItems = []; activeHistoryId = ''; } renderHistoryList(); }
-      function configureEntitlements(user) { var plan = String((user && user.plan) || '').toLowerCase(); isPro = plan === 'pro'; var isPlus = isPro || plan === 'plus' || Boolean(user && (user.plusActive || user.isPlus || user.premiumActive || user.premium)); var previousHistoryLimit = historyLimit; canSaveChats = Boolean(user && (user.id || user.userId || user.email)); historyLimit = isPro ? 30 : isPlus ? 10 : canSaveChats ? 3 : 0; if (previousHistoryLimit !== historyLimit) historyLoaded = false; MAX_REFERENCES = isPro ? 6 : 3; proSettings.classList.toggle('visible', isPro); outputQuality.innerHTML = isPro ? '<option value="720p">720p</option><option value="1080p">1080p</option><option value="1440p">1440p</option><option value="2160p">2160p (4K)</option>' : isPlus ? '<option value="720p">720p</option><option value="1080p">1080p</option>' : '<option value="720p">720p</option>'; counter.textContent = references.length + ' / ' + MAX_REFERENCES + ' images'; syncSavedChatAccess(); }
+      function configureEntitlements(user) { var plan = String((user && user.plan) || '').toLowerCase(); isPro = Boolean(user && user.premiumActive) && plan === 'pro'; var isPlus = isPro || plan === 'plus' || Boolean(user && (user.plusActive || user.isPlus || user.premiumActive || user.premium)); var previousHistoryLimit = historyLimit; canSaveChats = Boolean(user && (user.id || user.userId || user.email)); historyLimit = isPro ? 30 : isPlus ? 10 : canSaveChats ? 3 : 0; if (previousHistoryLimit !== historyLimit) historyLoaded = false; MAX_REFERENCES = isPro ? 6 : 3; proSettings.classList.toggle('visible', isPro); outputQuality.innerHTML = isPro ? '<option value="720p">720p</option><option value="1080p">1080p</option><option value="1440p">1440p</option><option value="2160p">2160p (4K)</option>' : isPlus ? '<option value="720p">720p</option><option value="1080p">1080p</option>' : '<option value="720p">720p</option>'; counter.textContent = references.length + ' / ' + MAX_REFERENCES + ' images'; updateThumbnailTokenCost(); syncSavedChatAccess(); }
       function makeHistoryTitle(item) { var text = String(item && (item.title || item.prompt) || 'Untitled thumbnail').replace(/\s+/g, ' ').trim(); return text.length > 34 ? text.slice(0, 34) + '...' : text; }
       function setHistoryOpen(open) { historyPanel.classList.toggle('visible', Boolean(open)); historyToggle.classList.toggle('is-open', Boolean(open)); historyToggle.setAttribute('aria-expanded', String(Boolean(open))); historyToggle.title = open ? 'Hide saved chats' : 'Show saved chats'; }
       function removeCachedHistoryItem(id) { try { var stored = readCachedHistory().filter(function(item){ return String(item && item.id) !== String(id); }); localStorage.setItem(getHistoryCacheKey(), JSON.stringify(stored)); } catch (_error) {} openHistoryDatabase().then(function(db){ if (!db) return; var transaction = db.transaction('items', 'readwrite'); transaction.objectStore('items').delete(getHistoryCacheKey() + ':' + id); }); }
@@ -209,7 +215,7 @@
       }
       function appendAssistantTurn(imageUrl, downloadName, sourcePrompt, sourceReferences, historyId, savedFeedback) {
         var turn = document.createElement('article'); turn.className = 'chat-turn';
-        turn.innerHTML = '<div class="chat-avatar">✦</div><div><p class="chat-copy">Here\'s your thumbnail.</p><div class="chat-output"><img alt="Generated Roblox thumbnail"><div class="result-footer"><span>PNG thumbnail</span><div class="result-actions"><a class="download">Download</a><button type="button" class="result-action" data-feedback="like" title="Like this thumbnail">&#128077;</button><button type="button" class="result-action" data-feedback="dislike" title="Dislike this thumbnail">&#128078;</button><button type="button" class="result-action regenerate" title="Regenerate for 10 AI tokens">&#8635; Regen · 10</button></div></div></div></div>';
+        var regenerateCost=getThumbnailGenerationCost(); turn.innerHTML = '<div class="chat-avatar">✦</div><div><p class="chat-copy">Here\'s your thumbnail.</p><div class="chat-output"><img alt="Generated Roblox thumbnail"><div class="result-footer"><span>PNG thumbnail</span><div class="result-actions"><a class="download">Download</a><button type="button" class="result-action" data-feedback="like" title="Like this thumbnail">&#128077;</button><button type="button" class="result-action" data-feedback="dislike" title="Dislike this thumbnail">&#128078;</button><button type="button" class="result-action regenerate" title="Regenerate for '+regenerateCost+' AI tokens">&#8635; Regen · '+regenerateCost+'</button></div></div></div></div>';
         var output = turn.querySelector('img'); var downloadLink = turn.querySelector('.download');
         output.src = imageUrl; downloadLink.href = imageUrl; downloadLink.download = downloadName || 'rblxtools-ai-thumbnail.png';
         turn.querySelectorAll('[data-feedback]').forEach(function (feedbackButton) { if (feedbackButton.getAttribute('data-feedback') === savedFeedback) feedbackButton.classList.add('active'); feedbackButton.addEventListener('click', function () { var feedback = feedbackButton.getAttribute('data-feedback'); turn.querySelectorAll('[data-feedback]').forEach(function (item) { item.classList.remove('active'); }); feedbackButton.classList.add('active'); saveFeedback(historyId, feedback); }); });
@@ -285,7 +291,7 @@
       async function beginGeneration(requestPrompt, requestReferences, isRegeneration) {
         if (!isAuthenticated) { if (window.RBLXToolsAuthModal) window.RBLXToolsAuthModal.open({ mode:'login', message:'Log in to create thumbnails and save your chat history.' }); else window.location.href = './login'; return; }
         if (!String(requestPrompt || '').trim()) { setStatus('Describe the thumbnail you want to create.', true); prompt.focus(); return; }
-        if (tokenBalance < 10) { setStatus('You need at least 10 AI tokens to create a thumbnail.', true); return; }
+        var generationCost=getThumbnailGenerationCost(); if (tokenBalance < generationCost) { setStatus('You need at least '+generationCost+' AI tokens to create a thumbnail.', true); return; }
         if (!(await requestTokenApproval())) return;
         button.disabled = true; button.textContent = '…'; setStatus('Creating your thumbnail...');
         try {
