@@ -330,13 +330,20 @@
   }
 
   function shouldShowMemberAds() {
+    // Admin preview must describe the selected membership rather than the
+    // administrator's real plan. Otherwise an admin who is Pro cannot preview
+    // the ads that guests and Plus members receive.
+    if (shellState.isAdmin) {
+      var previewMode = getAdminPreviewMode();
+      if (previewMode !== "admin") return previewMode !== "pro";
+    }
     return !isProMember();
   }
 
   function syncMemberAdVisibility(state) {
     var hideAds = isProMember(state);
     document.body.classList.toggle("rblx-pro-ad-free", hideAds);
-    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad], [data-rblx-promo-box-ad], [data-rblx-modal-ad], [data-rblx-vertical-ad], [data-rblx-banner-ad]"), function (host) {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad], [data-rblx-promo-box-ad], [data-rblx-modal-ad], [data-rblx-vertical-ad], [data-rblx-banner-ad], [data-rblx-mobile-banner-ad]"), function (host) {
       host.hidden = hideAds;
       if (!hideAds) return;
       // Remove any ad that was mounted before the account state was resolved.
@@ -354,6 +361,7 @@
     if (!hideAds) {
       mountDesktopShellBoxAds();
       mountDesktopVerticalAds();
+      Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-mobile-banner-ad] .rblx-home-mobile-banner-ad-slot"), mountMobileBannerAd);
     }
   }
 
