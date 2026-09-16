@@ -52,6 +52,12 @@
     // The active visitor is part of the room even before Socket.IO confirms its join.
     onlineCount: 1,
     isAdmin: false,
+    // Once the server has confirmed this account is an administrator, retain
+    // that UI capability for this browser session. This prevents a delayed or
+    // stale refresh from briefly removing the admin-only navigation and the
+    // View as picker. Server endpoints still independently enforce access.
+    verifiedAdminUserId: "",
+    adminFalseRefreshCount: 0,
     deviceId: "",
     moderation: null,
     profileOverlay: null,
@@ -342,6 +348,31 @@
     if (shellState.isAdmin) syncMemberAdVisibility({ plan: effectivePlan });
     window.rblxToolsPreview = { mode: mode, plan: effectivePlan, active: shellState.isAdmin && mode !== "admin" };
     document.dispatchEvent(new CustomEvent("rblxtools-admin-preview", { detail: window.rblxToolsPreview }));
+  }
+
+  function getStableAdminState(state) {
+    var incomingAdmin = Boolean(state && state.isAdmin);
+    var incomingUserId = String(state && state.userId || "");
+    var currentUserId = String(shellState.currentUser && shellState.currentUser.userId || "");
+    if (incomingAdmin && incomingUserId) {
+      shellState.verifiedAdminUserId = incomingUserId;
+      shellState.adminFalseRefreshCount = 0;
+      return true;
+    }
+    // Auth status is refreshed in the background. A mixed deployment or one
+    // incomplete response must not make the header blink out for the same
+    // signed-in administrator. A real logout or account switch clears it.
+    if (state && state.loggedIn && shellState.isAdmin && incomingUserId && incomingUserId === currentUserId && shellState.verifiedAdminUserId === incomingUserId) {
+      shellState.adminFalseRefreshCount += 1;
+      // Do not react to a single stale reply, but do eventually reconcile a
+      // deliberate admin removal without requiring the member to log out.
+      if (shellState.adminFalseRefreshCount < 5) return true;
+    }
+    if (!state || !state.loggedIn || (incomingUserId && currentUserId && incomingUserId !== currentUserId)) {
+      shellState.verifiedAdminUserId = "";
+    }
+    shellState.adminFalseRefreshCount = 0;
+    return false;
   }
 
   function shouldShowMemberAds() {
@@ -3812,14 +3843,18 @@
 
     // Only rebuild the header for real session changes. Profile/name and token
     // refreshes are data updates, not a reason to visibly replace the UI.
-    var nextSignature = [Boolean(state.loggedIn), state.userId || "", state.plan || "guest", Boolean(state.isAdmin)].join("|");
+    var stableAdmin = getStableAdminState(state);
+    var nextSignature = [Boolean(state.loggedIn), state.userId || "", state.plan || "guest", stableAdmin].join("|");
     var identityChanged = nextSignature !== shellState.authUiSignature;
     if (status) status.setAttribute("data-plan", state.plan);
     if (statusText) statusText.textContent = state.message;
     applyPlanAtmosphere(state.plan);
     var previousUser = shellState.currentUser || {};
     shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : (previousUser.aiTokens != null ? previousUser.aiTokens : null), rewardPoints: state.rewardPoints != null && Number.isFinite(Number(state.rewardPoints)) ? Math.max(0, Number(state.rewardPoints)) : (previousUser.rewardPoints != null ? previousUser.rewardPoints : null) };
-    syncMemberAdVisibility(state);
+    shellState.isAdmin = stableAdmin;
+    // The preview is a client-side visual mode. Its plan, rather than the
+    // administrator's real subscription, controls whether the ad units show.
+    syncMemberAdVisibility(shellState.isAdmin ? { plan: getEffectiveMemberPlan() } : state);
     var tokenBanner = document.getElementById("rblxShellTokenBanner");
     var tokenBalance = document.getElementById("rblxShellTokenBalance");
     if (tokenBanner && tokenBalance) {
@@ -3828,7 +3863,6 @@
     }
     var pointsBalance = document.getElementById("rblxShellPointsBalance");
     if (pointsBalance) pointsBalance.textContent = state.loggedIn && shellState.currentUser.rewardPoints != null ? String(shellState.currentUser.rewardPoints) : "0";
-    shellState.isAdmin = Boolean(state.isAdmin);
     refreshAdminPreviewControl();
     applyAdminPreview();
     shellState.authUiSignature = nextSignature;
@@ -3982,6 +4016,9 @@
     var user = payload && payload.user ? payload.user : payload;
     var cachedUser = getCachedAuthUser() || {};
     var mergedUser = Object.assign({}, cachedUser, user || {});
+    if (shellState.isAdmin && shellState.verifiedAdminUserId && String(mergedUser.id || "") === shellState.verifiedAdminUserId && !mergedUser.isAdmin) {
+      mergedUser.isAdmin = true;
+    }
     saveCachedAuthUser(mergedUser);
     writeCachedPlusStatus(nextState.plan === "plus" || nextState.plan === "pro");
     updateAuthUi(nextState);
@@ -4027,9 +4064,10 @@
       email: cachedUser && cachedUser.email ? String(cachedUser.email) : "",
       aiTokens: cachedUser && cachedUser.aiTokens != null ? Number(cachedUser.aiTokens) : null,
       rewardPoints: cachedUser && cachedUser.rewardPoints != null ? Number(cachedUser.rewardPoints) : null,
-      // Never render privileged UI from local storage. The server owns the
-      // allowlist and enables it after /auth/me confirms the session.
-      isAdmin: false,
+      // This is only used to keep an already server-verified header stable
+      // during the first auth check after navigation. All admin API routes
+      // continue to verify the allowlist on the server.
+      isAdmin: Boolean(cachedUser && cachedUser.isAdmin),
       moderation: shellState.moderation
     };
   }
@@ -4084,7 +4122,11 @@
       var user = payload && payload.user ? payload.user : payload;
       if (!user || typeof user !== "object") return getImmediateUserState();
       if (!shellState.chatAuthToken && payload && payload.chatToken) setChatAuthToken(payload.chatToken);
-      saveCachedAuthUser(user);
+      var userForCache = user;
+      if (shellState.isAdmin && shellState.verifiedAdminUserId && String(user.id || "") === shellState.verifiedAdminUserId && !user.isAdmin) {
+        userForCache = Object.assign({}, user, { isAdmin: true });
+      }
+      saveCachedAuthUser(userForCache);
       displayName = getPreferredUserName(user, payload);
       plus = plus || hasPlusFromPayload(payload) || hasPlusFromPayload(user);
       membershipPlan = getMembershipPlan(payload, user, plus) === "pro" ? "pro" : (membershipPlan === "pro" ? "pro" : (plus ? "plus" : "free"));
@@ -5288,7 +5330,7 @@
     window.addEventListener("rblxtools-membership-updated", function (event) {
       var detail = event && event.detail ? event.detail : {};
       var plan = detail.plan === "pro" ? "pro" : detail.plan === "plus" ? "plus" : "free";
-      syncMemberAdVisibility({ plan: plan });
+      syncMemberAdVisibility(shellState.isAdmin ? { plan: getEffectiveMemberPlan() } : { plan: plan });
       Array.prototype.slice.call(document.querySelectorAll(".plus-promo, body.rblx-home-page .home-grid-top > .plus-card")).forEach(function (promo) {
         if (typeof promo._rblxSetMembershipPromoPlan === "function") promo._rblxSetMembershipPromoPlan(plan);
       });
