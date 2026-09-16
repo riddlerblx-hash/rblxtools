@@ -295,8 +295,17 @@
 
   ensureAdSenseSetup();
 
+  function getEffectiveMemberPlan(state) {
+    if (state && state.plan != null) return String(state.plan || "guest").toLowerCase();
+    if (shellState.isAdmin) {
+      var previewMode = getAdminPreviewMode();
+      if (previewMode !== "admin") return previewMode;
+    }
+    return String(shellState.currentUser && shellState.currentUser.plan || "guest").toLowerCase();
+  }
+
   function isProMember(state) {
-    var plan = state && state.plan != null ? state.plan : (shellState.currentUser && shellState.currentUser.plan);
+    var plan = getEffectiveMemberPlan(state);
     return String(plan || "").toLowerCase() === "pro";
   }
 
@@ -324,19 +333,21 @@
 
   function applyAdminPreview() {
     var mode = shellState.isAdmin ? getAdminPreviewMode() : "admin";
+    var effectivePlan = mode === "admin" ? getEffectiveMemberPlan({ plan: shellState.currentUser && shellState.currentUser.plan }) : mode;
     document.body.dataset.rblxAdminPreview = mode;
-    if (shellState.isAdmin) syncMemberAdVisibility({ plan: mode === "admin" ? (shellState.currentUser && shellState.currentUser.plan) : mode });
-    document.dispatchEvent(new CustomEvent("rblxtools-admin-preview", { detail: { mode: mode, active: shellState.isAdmin && mode !== "admin" } }));
+    document.body.dataset.rblxEffectivePlan = effectivePlan;
+    document.body.classList.toggle("rblx-preview-guest", shellState.isAdmin && mode === "guest");
+    document.body.classList.toggle("rblx-preview-plus", shellState.isAdmin && mode === "plus");
+    document.body.classList.toggle("rblx-preview-pro", shellState.isAdmin && mode === "pro");
+    if (shellState.isAdmin) syncMemberAdVisibility({ plan: effectivePlan });
+    window.rblxToolsPreview = { mode: mode, plan: effectivePlan, active: shellState.isAdmin && mode !== "admin" };
+    document.dispatchEvent(new CustomEvent("rblxtools-admin-preview", { detail: window.rblxToolsPreview }));
   }
 
   function shouldShowMemberAds() {
     // Admin preview must describe the selected membership rather than the
     // administrator's real plan. Otherwise an admin who is Pro cannot preview
     // the ads that guests and Plus members receive.
-    if (shellState.isAdmin) {
-      var previewMode = getAdminPreviewMode();
-      if (previewMode !== "admin") return previewMode !== "pro";
-    }
     return !isProMember();
   }
 
