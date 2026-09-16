@@ -475,7 +475,7 @@
     var canManage = Boolean(item.viewerCanManage || state.communityCanCreateAll || state.communityViewer?.canManageAll);
     return '<article class="ai-asset-card' + (canManage ? ' has-admin-action' : '') + '" data-open-asset="' + escapeHtml(item.id) + '">'
       + (item.thumbnailUrl ? '<img class="ai-asset-art" src="' + escapeHtml(item.thumbnailUrl) + '" alt="" loading="eager" decoding="async" />' : '<div class="ai-asset-fallback" aria-label="3D asset preview unavailable">AI</div>')
-      + '<button class="ai-asset-card-open" type="button" data-asset-card-open="' + escapeHtml(item.id) + '" aria-label="Open 3D asset"></button>'
+      + '<a class="ai-asset-card-open" href="#asset-' + escapeHtml(item.id) + '" data-asset-card-open="' + escapeHtml(item.id) + '" aria-label="Open 3D asset"></a>'
       + '<div class="ai-asset-card-controls"><button class="ai-asset-card-like' + (item.viewerVote === 'like' ? ' is-active' : '') + '" type="button" data-asset-card-like="' + escapeHtml(item.id) + '">&#9829; <b>' + Number(item.likes || 0) + '</b></button><span class="ai-asset-card-stat">&#9733; ' + (Number(item.rating || 0) ? Number(item.rating).toFixed(1) : '-') + '</span></div>' + (canManage ? '<button class="ai-asset-card-delete" type="button" data-delete-asset="' + escapeHtml(item.id) + '">Delete</button>' : '') + '<div class="ai-asset-overlay"><div class="ai-asset-card-bottom"><div class="ai-asset-creator">' + assetAvatar('ai-asset-avatar', item.creatorName, item.creatorAvatarUrl) + ' ' + escapeHtml(item.creatorName) + '</div><span class="ai-asset-card-views">' + Number(item.views || 0) + ' Views</span></div></div></article>';
   }
 
@@ -536,23 +536,12 @@
   }
 
   function bindAssetCardOpeners(root) {
-    Array.prototype.forEach.call(root.querySelectorAll('[data-asset-card-open]'), function (openButton) {
-      openButton.addEventListener('click', function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        var assetId = openButton.getAttribute('data-asset-card-open');
-        state.openedHashAsset = assetId;
-        open(assetId);
-      });
-    });
     Array.prototype.forEach.call(root.querySelectorAll('[data-open-asset]'), function (cardNode) {
       cardNode.addEventListener('click', function (event) {
         // Keep the reaction and admin controls independent from opening the
         // model, but let every other part of the cover/canvas open its viewer.
         if (event.target.closest('button, a, input, select, textarea, label')) return;
-        event.preventDefault();
-        event.stopPropagation();
-        open(cardNode.getAttribute('data-open-asset'));
+        location.hash = 'asset-' + encodeURIComponent(cardNode.getAttribute('data-open-asset'));
       });
     });
   }
@@ -627,7 +616,7 @@
     document.getElementById('aiAssetsPostPanel').innerHTML = '<div class="ai-model-loader">Loading asset details</div>';
     request('/api/ugc/community/' + encodeURIComponent(id)).then(function (payload) { state.active = payload.item; document.getElementById('aiAssetsPostPanel').innerHTML = postPanel(state.active); loadViewer(id); request('/api/ugc/community/' + encodeURIComponent(id) + '/view', 'POST').then(function () { state.active.views = Number(state.active.views || 0) + 1; }).catch(function () {}); }).catch(function (error) { document.getElementById('aiAssetsPostPanel').innerHTML = '<div class="ai-model-loader">' + escapeHtml(error.message || 'Could not load asset details.') + '</div>'; notify(error.message); });
   }
-  function close() { var modal = document.getElementById('aiAssetsModal'); modal.hidden = true; modal.style.display = ''; document.body.style.overflow = ''; destroyViewer(); state.active = null; }
+  function close() { var modal = document.getElementById('aiAssetsModal'); modal.hidden = true; modal.style.display = ''; document.body.style.overflow = ''; destroyViewer(); state.active = null; state.openedHashAsset = ''; if (location.hash.indexOf('#asset-') === 0 && history.replaceState) history.replaceState(null, '', location.pathname + location.search); }
   function load() {
     return Promise.all([request('/api/community-session').catch(function () { return { authenticated: false, viewer: null }; }), request('/api/ugc/community')]).then(function (responses) {
       var session = responses[0];
@@ -672,28 +661,8 @@
   document.getElementById('aiCommunityStars').addEventListener('mouseover', function (event) { var star = event.target.closest('[data-community-rating]'); if (star) document.querySelectorAll('[data-community-rating]').forEach(function (entry) { entry.classList.toggle('is-active', Number(entry.dataset.communityRating) <= Number(star.dataset.communityRating)); }); }); document.getElementById('aiCommunityStars').addEventListener('mouseleave', function () { updateCommunityRating(state.communityRating || 5); }); document.getElementById('aiCommunityStars').addEventListener('click', function (event) { var star = event.target.closest('[data-community-rating]'); if (star) updateCommunityRating(star.dataset.communityRating); });
   document.getElementById('aiCommunityComposer').addEventListener('submit', function (event) { if (event.target.id !== 'aiCommunityCreateForm') return; event.preventDefault(); var title = String(document.getElementById('aiCommunityCreateTitle').value || '').trim(); var body = String(document.getElementById('aiCommunityCreateBody').value || '').trim(); if (!title || !body) return notify('Add a title and post text first.'); var submit = event.target.querySelector('button[type="submit"]'); var viewer = state.communityViewer || currentCommunityUser(); var category = document.getElementById('aiCommunityCreateCategory').value; submit.disabled = true; request('/api/community-posts', 'POST', { title: title, body: body, category: category, rating: category === 'feedback' ? state.communityRating || 5 : undefined, avatarUrl: viewer.avatarUrl || '' }).then(function () { event.target.reset(); document.getElementById('aiCommunityComposer').hidden = true; return loadCommunityPosts(); }).then(function () { notify('Post published.'); }).catch(function (error) { notify(error.message || 'Could not publish this post.'); }).finally(function () { submit.disabled = false; }); });
   document.querySelector('.ai-assets-toolbar').addEventListener('change', function (event) { if (event.target.id === 'aiAssetsSort') render(); if (event.target.id === 'aiCommunityFilter') { state.communityFilter = event.target.value; renderCommunityPosts(); } });
-  document.getElementById('aiAssetsGrid').addEventListener('click', function (event) { var cardNode = event.target.closest('[data-open-asset]'); if (cardNode) return open(cardNode.getAttribute('data-open-asset')); var likeNode = event.target.closest('[data-community-card-like]'); if (likeNode) return request('/api/community-posts/' + encodeURIComponent(likeNode.dataset.communityCardLike) + '/likes', 'POST').then(function () { return loadCommunityPosts(); }).catch(function (error) { notify(error.message); }); var manageNode = event.target.closest('[data-community-post-manage]'); if (manageNode) { var action = manageNode.dataset.communityPostManage; var post = state.communityPosts.find(function (entry) { return String(entry.id) === String(manageNode.dataset.postId); }); var payload = { action: action }; if (action === 'edit') { payload.title = prompt('Post title:', post.title); if (payload.title == null) return; payload.body = prompt('Post text:', post.body); if (payload.body == null) return; } return request('/api/community-posts/' + encodeURIComponent(manageNode.dataset.postId) + '/manage', 'POST', payload).then(function () { return loadCommunityPosts(); }).catch(function (error) { notify(error.message); }); } var postNode = event.target.closest('[data-open-community-post]'); if (postNode) openCommunityPost(postNode.getAttribute('data-open-community-post')); }); document.getElementById('aiAssetsClose').addEventListener('click', close);
+  document.getElementById('aiAssetsGrid').addEventListener('click', function (event) { var cardOpen = event.target.closest('[data-asset-card-open]'); if (cardOpen) return; var cardNode = event.target.closest('[data-open-asset]'); if (cardNode) { location.hash = 'asset-' + encodeURIComponent(cardNode.getAttribute('data-open-asset')); return; } var likeNode = event.target.closest('[data-community-card-like]'); if (likeNode) return request('/api/community-posts/' + encodeURIComponent(likeNode.dataset.communityCardLike) + '/likes', 'POST').then(function () { return loadCommunityPosts(); }).catch(function (error) { notify(error.message); }); var manageNode = event.target.closest('[data-community-post-manage]'); if (manageNode) { var action = manageNode.dataset.communityPostManage; var post = state.communityPosts.find(function (entry) { return String(entry.id) === String(manageNode.dataset.postId); }); var payload = { action: action }; if (action === 'edit') { payload.title = prompt('Post title:', post.title); if (payload.title == null) return; payload.body = prompt('Post text:', post.body); if (payload.body == null) return; } return request('/api/community-posts/' + encodeURIComponent(manageNode.dataset.postId) + '/manage', 'POST', payload).then(function () { return loadCommunityPosts(); }).catch(function (error) { notify(error.message); }); } var postNode = event.target.closest('[data-open-community-post]'); if (postNode) openCommunityPost(postNode.getAttribute('data-open-community-post')); }); document.getElementById('aiAssetsClose').addEventListener('click', close);
   document.getElementById('aiAssetsTipAmount').max = '5000';
-  // Open a card during capture so its transparent cover, snapshot image, and
-  // surrounding card all have the same dependable interaction path.
-  document.getElementById('aiAssetsGrid').addEventListener('click', function (event) {
-    if (event.target.closest('[data-asset-card-like],[data-delete-asset]')) return;
-    var cardNode = event.target.closest('[data-open-asset]');
-    if (!cardNode) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    open(cardNode.getAttribute('data-open-asset'));
-  }, true);
-  // Some mobile/browser ad layers interrupt a card click before it reaches the
-  // grid. Start the post interaction at pointer-down as the final reliable path.
-  document.addEventListener('pointerdown', function (event) {
-    if (event.target.closest('[data-asset-card-like],[data-delete-asset],#aiAssetsModal,.ai-assets-tip-modal')) return;
-    var cardNode = event.target.closest('[data-open-asset]');
-    if (!cardNode) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    open(cardNode.getAttribute('data-open-asset'));
-  }, true);
   document.getElementById('aiAssetsGrid').addEventListener('click', function (event) { var button = event.target.closest('[data-asset-card-like]'); if (!button) return; event.preventDefault(); event.stopImmediatePropagation(); var item = state.items.find(function (entry) { return String(entry.id) === String(button.dataset.assetCardLike); }); if (!item) return; var previousVote = String(item.viewerVote || ''); var previousLikes = Number(item.likes || 0); item.viewerVote = previousVote === 'like' ? '' : 'like'; item.likes = Math.max(0, previousLikes + (item.viewerVote === 'like' ? 1 : -1)); render(); if (item.viewerVote === 'like') heartBurst(button); request('/api/ugc/community/' + encodeURIComponent(item.id) + '/feedback', 'POST', { vote: 'like' }).catch(function (error) { item.viewerVote = previousVote; item.likes = previousLikes; render(); notify(error.message); }); }, true);
   document.getElementById('aiAssetsGrid').addEventListener('click', function (event) {
     var button = event.target.closest('[data-delete-asset]');
