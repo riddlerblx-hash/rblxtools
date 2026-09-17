@@ -148,7 +148,9 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const rows = await request(`/rest/v1/games?slug=eq.${encodeURIComponent(slugify(slug))}&codes_enabled=is.true&select=*&limit=1`);
     if (!Array.isArray(rows) || !rows[0]) return null;
     const game = toGame(rows[0]);
-    const rowsForCodes = await request(`/rest/v1/game_codes?game_id=eq.${encodeURIComponent(game.id)}&select=*&order=created_at.desc`);
+    // Keep the public list in the same order staff or a member entered it.
+    // The previous newest-first order made the last code in a batch appear first.
+    const rowsForCodes = await request(`/rest/v1/game_codes?game_id=eq.${encodeURIComponent(game.id)}&select=*&order=created_at.asc`);
     const codes = (Array.isArray(rowsForCodes) ? rowsForCodes : []).map(toCode);
     const codeIds = codes.map((code) => code.id);
     const voteRows = codeIds.length
@@ -340,7 +342,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
         reward: clean(input.reward, 300),
         source_url: clean(input.sourceUrl, 500),
         submitter_user_id: user.id,
-        submitter_name: clean(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
+        submitter_name: clean(user.username || user.display_name || user.email?.split("@")[0] || "Member", 80),
       }),
     });
     return Array.isArray(rows) ? rows[0] : null;
@@ -512,7 +514,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
         reward: submission.reward,
         status: "working",
         verificationStatus: "unconfirmed",
-        source: "Community submission approved by RBLXTools staff",
+        source: "Community submission by @" + clean(submission.submitter_name || "Member", 80).replace(/^@+/, ""),
         sourceUrl: submission.source_url,
       });
     }
