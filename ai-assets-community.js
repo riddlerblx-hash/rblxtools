@@ -457,7 +457,7 @@
   readerStyle.textContent += '.ai-assets-tabs-wrap{position:relative;z-index:2;max-width:1800px;margin:0 auto}.ai-assets-tabs-scroll{display:none}@media(max-width:820px){body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs-wrap{width:calc(100% + 8px);margin:0 -4px 16px}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs{width:100%;margin:0;padding:2px 42px 10px}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs-scroll{position:absolute;z-index:3;top:50%;display:grid;width:31px;height:31px;padding:0;place-items:center;border:1px solid rgba(122,184,255,.55);border-radius:50%;background:#1b3552;color:#eff7ff;box-shadow:0 7px 18px rgba(0,0,0,.32);font:900 26px/1 system-ui;transform:translateY(-58%);cursor:pointer}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs-scroll-prev{left:5px}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs-scroll-next{right:5px}}';
   readerStyle.textContent += '@media(max-width:820px){body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs{overflow-x:scroll!important;scrollbar-width:thin!important;scrollbar-color:#78b8ff rgba(103,143,196,.3)!important;padding:2px 4px 13px!important}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs::-webkit-scrollbar{display:block!important;height:6px!important}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs::-webkit-scrollbar-track{border-radius:999px;background:rgba(103,143,196,.3)}body.rblx-mobile-shell.rblx-community-page .ai-assets-tabs::-webkit-scrollbar-thumb{border-radius:999px;background:linear-gradient(90deg,#5f9ce7,#8ecbff)}';
   readerStyle.textContent += '.ai-asset-model-preview{display:grid;place-items:center;width:100%;aspect-ratio:.92;overflow:hidden;background:radial-gradient(circle at 50% 35%,#263b58,#0b121e 72%)}.ai-asset-model-preview canvas{display:block;width:100%!important;height:100%!important;touch-action:none}.ai-asset-model-preview.is-unavailable{color:#b7d3fa;font-size:42px;font-weight:300}.ai-asset-model-preview.is-unavailable span{filter:drop-shadow(0 4px 14px rgba(111,173,255,.42))}';
-  readerStyle.textContent += '.ai-asset-post-admin-menu{position:relative;z-index:20;margin-left:4px}.ai-asset-post-admin-menu .ai-asset-admin-trigger{display:grid;width:36px;height:36px;padding:0;place-items:center;border:1px solid rgba(130,177,235,.34);border-radius:9px;background:#152943;color:#e8f3ff;font:900 21px/1 system-ui;cursor:pointer}.ai-asset-post-admin-menu .ai-asset-admin-panel{position:absolute;z-index:30;top:42px;right:0;min-width:166px;padding:6px;border:1px solid rgba(130,177,235,.34);border-radius:10px;background:#13243b;box-shadow:0 16px 34px rgba(0,0,0,.45)}.ai-asset-post-admin-menu .ai-asset-admin-panel[hidden]{display:none}.ai-asset-post-admin-menu .ai-asset-admin-panel button{width:100%;padding:9px;border:0;border-radius:7px;background:transparent;color:#ffd1d9;text-align:left;font:800 11px system-ui;cursor:pointer}.ai-asset-post-admin-menu .ai-asset-admin-panel button:hover{background:rgba(204,69,91,.18)}.ai-assets-modal-ad-rail{display:none}@media(min-width:1520px) and (min-height:720px){.ai-assets-modal-ad-rail{position:absolute;z-index:2;top:50%;display:flex;width:160px;min-height:626px;flex-direction:column;align-items:center;transform:translateY(-50%)}.ai-assets-modal-ad-rail.is-left{right:calc(50% + 600px)}.ai-assets-modal-ad-rail.is-right{left:calc(50% + 600px)}.ai-assets-modal-ad-rail>span{padding:5px 0 3px;color:#94aabd;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}}';
+  readerStyle.textContent += '.ai-asset-post-admin-menu{position:relative;z-index:40;margin-left:8px}.ai-asset-post-admin-menu .ai-asset-admin-trigger{display:grid!important;box-sizing:border-box!important;width:40px!important;height:40px!important;min-height:40px!important;padding:0!important;place-items:center;border:1px solid rgba(130,177,235,.48)!important;border-radius:10px!important;background:#152943!important;color:#e8f3ff!important;font:900 23px/1 system-ui!important;cursor:pointer}.ai-asset-post-admin-menu .ai-asset-admin-trigger:hover,.ai-asset-post-admin-menu.is-open .ai-asset-admin-trigger{border-color:#8ecbff!important;background:#203c60!important}.ai-asset-post-admin-menu .ai-asset-admin-panel{position:absolute;z-index:50;top:46px;right:0;display:none;min-width:180px;padding:6px;border:1px solid rgba(130,177,235,.42);border-radius:10px;background:#13243b;box-shadow:0 16px 34px rgba(0,0,0,.55)}.ai-asset-post-admin-menu.is-open .ai-asset-admin-panel{display:block!important}.ai-asset-post-admin-menu .ai-asset-admin-panel button{width:100%;padding:10px;border:0;border-radius:7px;background:transparent;color:#ffd1d9;text-align:left;font:800 11px system-ui;cursor:pointer}.ai-asset-post-admin-menu .ai-asset-admin-panel button:hover{background:rgba(204,69,91,.18)}.ai-assets-modal-ad-rail{display:none}@media(min-width:1280px) and (min-height:620px){.ai-assets-modal-ad-rail{position:absolute;z-index:20;top:50%;display:flex;width:160px;min-height:626px;flex-direction:column;align-items:center;transform:translateY(-50%)}.ai-assets-modal-ad-rail.is-left{left:max(16px,calc(50% - 790px))}.ai-assets-modal-ad-rail.is-right{right:max(16px,calc(50% - 790px))}.ai-assets-modal-ad-rail>span{padding:5px 0 3px;color:#94aabd;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.ai-assets-modal-ad-rail iframe{display:block;width:160px;height:600px;border:0;border-radius:8px;background:#0a111d}}';
   gallery.className = 'ai-assets-hub';
   page.insertBefore(gallery, page.firstChild);
   gallery.innerHTML = '<div class="ai-assets-top"><div><p class="ai-assets-eyebrow">RBLXTools Community</p><h1 class="ai-assets-title">AI <em>Assets</em></h1><p class="ai-assets-copy">Every completed generation joins the community gallery. Explore creator work in 3D, follow the artists you like, leave a reaction, or send a token tip.</p></div><div class="ai-assets-toolbar"><select class="ai-assets-filter" id="aiAssetsSort"><option value="new">Newest</option><option value="popular">Most liked</option></select></div></div><div class="ai-assets-grid" id="aiAssetsGrid"></div>';
@@ -630,8 +630,11 @@
     trigger.addEventListener('click', function (event) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      var willOpen = panel.hidden;
-      panel.hidden = !willOpen;
+      var menu = trigger.closest('.ai-asset-post-admin-menu');
+      var willOpen = !menu.classList.contains('is-open');
+      document.querySelectorAll('.ai-asset-post-admin-menu.is-open').forEach(function (entry) { entry.classList.remove('is-open'); entry.querySelector('[data-asset-post-menu-toggle]').setAttribute('aria-expanded', 'false'); });
+      menu.classList.toggle('is-open', willOpen);
+      panel.hidden = false;
       trigger.setAttribute('aria-expanded', String(willOpen));
     });
   }
@@ -640,6 +643,7 @@
     var modal = document.getElementById('aiAssetsModal');
     modal.hidden = false;
     modal.style.display = 'grid';
+    if (!document.body.classList.contains('rblx-pro-ad-free')) modal.querySelectorAll('[data-rblx-vertical-ad]').forEach(function (rail) { rail.hidden = false; });
     if (window.RBLXToolsAds && typeof window.RBLXToolsAds.mountVerticalAds === 'function') window.RBLXToolsAds.mountVerticalAds(modal);
     document.body.style.overflow = 'hidden';
     document.getElementById('aiAssetsPostPanel').innerHTML = '<div class="ai-model-loader">Loading asset details</div>';
@@ -736,10 +740,11 @@
       var menu = target.closest('.ai-asset-post-admin-menu');
       var panel = menu && menu.querySelector('.ai-asset-admin-panel');
       if (!panel) return;
-      var willOpen = panel.hidden;
-      document.querySelectorAll('.ai-asset-post-admin-menu .ai-asset-admin-panel').forEach(function (entry) { entry.hidden = true; });
+      var willOpen = !menu.classList.contains('is-open');
+      document.querySelectorAll('.ai-asset-post-admin-menu').forEach(function (entry) { entry.classList.remove('is-open'); });
       document.querySelectorAll('[data-asset-post-menu-toggle]').forEach(function (entry) { entry.setAttribute('aria-expanded', 'false'); });
-      panel.hidden = !willOpen;
+      panel.hidden = false;
+      menu.classList.toggle('is-open', willOpen);
       target.setAttribute('aria-expanded', String(willOpen));
       return;
     }
@@ -822,7 +827,7 @@
   document.addEventListener('click', function (event) {
     if (!event.target.closest('.ai-assets-comment-menu')) document.querySelectorAll('[data-asset-comment-panel]').forEach(function (panel) { panel.hidden = true; });
     if (!event.target.closest('.ai-asset-post-admin-menu')) {
-      document.querySelectorAll('.ai-asset-post-admin-menu .ai-asset-admin-panel').forEach(function (panel) { panel.hidden = true; });
+      document.querySelectorAll('.ai-asset-post-admin-menu').forEach(function (menu) { menu.classList.remove('is-open'); });
       document.querySelectorAll('[data-asset-post-menu-toggle]').forEach(function (button) { button.setAttribute('aria-expanded', 'false'); });
     }
   });
