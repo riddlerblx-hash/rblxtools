@@ -2026,13 +2026,14 @@
         );
       }).join("");
     Array.prototype.forEach.call(target.querySelectorAll("[data-chat-action='profile']"), function (button) {
-      button.addEventListener("mouseenter", function () {
+      button.addEventListener("mouseenter", function (event) {
         var index = Number(button.getAttribute("data-chat-index"));
         var message = shellState.chatMessages[index];
         if (!message) return;
         message.__chatIndex = index;
-        openProfileModal(message, button);
+        window.RBLXToolsProfile.preview(message, event);
       });
+      button.addEventListener("mouseleave", function () { window.RBLXToolsProfile.hidePreview(); });
     });
     if (shouldStickToBottom) {
       target.scrollTop = target.scrollHeight;
@@ -2177,12 +2178,56 @@
     shellState.profileOverlay.setAttribute("aria-hidden", "true");
   }
 
+  var profilePreview = null;
+  var profilePreviewHideTimer = null;
+  function ensureProfilePreview() {
+    if (profilePreview) return profilePreview;
+    profilePreview = document.createElement("div");
+    profilePreview.className = "rblx-shell-profile-preview";
+    profilePreview.setAttribute("role", "status");
+    profilePreview.hidden = true;
+    document.body.appendChild(profilePreview);
+    return profilePreview;
+  }
+
+  function positionProfilePreview(x, y) {
+    var preview = ensureProfilePreview();
+    var width = preview.offsetWidth || 220;
+    var height = preview.offsetHeight || 64;
+    preview.style.left = Math.max(10, Math.min(window.innerWidth - width - 10, Number(x || 0) + 16)) + "px";
+    preview.style.top = Math.max(10, Math.min(window.innerHeight - height - 10, Number(y || 0) + 16)) + "px";
+  }
+
+  function previewProfile(profile, eventOrAnchor) {
+    if (!profile) return;
+    if (profilePreviewHideTimer) window.clearTimeout(profilePreviewHideTimer);
+    var preview = ensureProfilePreview();
+    var plan = String(profile.plan || "free").toLowerCase();
+    var avatar = profile.avatarUrl ? '<img src="' + escapeHtml(profile.avatarUrl) + '" alt="">' : '<span>' + escapeHtml(profile.avatarText || getInitials(profile.displayName)) + '</span>';
+    preview.className = "rblx-shell-profile-preview is-" + (plan === "pro" || plan === "plus" ? plan : "free");
+    preview.innerHTML = '<span class="rblx-shell-profile-preview-avatar">' + avatar + '</span><span class="rblx-shell-profile-preview-copy"><strong>' + escapeHtml(profile.displayName || "Member") + '</strong><small>' + escapeHtml(plan) + ' member · View profile</small></span>';
+    preview.hidden = false;
+    var x = eventOrAnchor && Number.isFinite(eventOrAnchor.clientX) ? eventOrAnchor.clientX : 0;
+    var y = eventOrAnchor && Number.isFinite(eventOrAnchor.clientY) ? eventOrAnchor.clientY : 0;
+    if (!x && eventOrAnchor && typeof eventOrAnchor.getBoundingClientRect === "function") { var rect = eventOrAnchor.getBoundingClientRect(); x = rect.right; y = rect.top + (rect.height / 2); }
+    positionProfilePreview(x, y);
+  }
+
+  function hideProfilePreview(delay) {
+    if (profilePreviewHideTimer) window.clearTimeout(profilePreviewHideTimer);
+    profilePreviewHideTimer = window.setTimeout(function () { if (profilePreview) profilePreview.hidden = true; }, Number(delay || 0));
+  }
+
+  document.addEventListener("pointermove", function (event) { if (profilePreview && !profilePreview.hidden) positionProfilePreview(event.clientX, event.clientY); }, { passive: true });
+
   window.RBLXToolsProfile = {
     open: function (profile, anchorEl) {
       if (!profile) return;
       openProfileModal(profile, anchorEl || null);
     },
     close: closeProfileModal,
+    preview: previewProfile,
+    hidePreview: hideProfilePreview,
     getCurrentIdentity: function () {
       var identity = getSocketChatIdentity() || {};
       return {

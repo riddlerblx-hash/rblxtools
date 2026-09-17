@@ -8038,6 +8038,43 @@ app.get("/api/community-members/:userId", async (req, res) => {
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member." }); }
 });
 
+app.get("/api/members/:userId", async (req, res) => {
+  try {
+    const memberId = String(req.params.userId || "").trim();
+    const user = await getAuthUserById(memberId);
+    if (!user) return res.status(404).json({ error: "This member is unavailable." });
+    const membership = await resolveMembershipSnapshot(user);
+    const member = {
+      id: user.id,
+      name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
+      username: cleanText(user.username || user.display_name || "member", 80).replace(/^@+/, ""),
+      avatarUrl: getCommunityAvatarUrl(user),
+      plan: String(membership?.plan || "free").toLowerCase(),
+      joinedAt: user.created_at || null,
+    };
+    const communityState = readAIUGCCommunityState();
+    const followerIds = Object.keys(communityState.follows?.[memberId] || {});
+    const followingIds = Object.keys(communityState.follows || {}).filter((creatorId) => Boolean(communityState.follows?.[creatorId]?.[memberId]));
+    const publicIdentity = async (id) => {
+      const profile = await getAuthUserById(String(id)).catch(() => null);
+      return profile ? { id: profile.id, name: cleanText(profile.display_name || profile.username || profile.email?.split("@")[0] || "Member", 80), avatarUrl: getCommunityAvatarUrl(profile) } : null;
+    };
+    const [followers, following, listedCodes] = await Promise.all([
+      Promise.all(followerIds.slice(0, 100).map(publicIdentity)),
+      Promise.all(followingIds.slice(0, 100).map(publicIdentity)),
+      codesPlatform.list({ limit: 100, page: 1 }).catch(() => ({ games: [] })),
+    ]);
+    const codePosts = (listedCodes.games || []).filter((game) => String(game.authorUserId || "") === memberId).map((game) => ({
+      slug: game.slug, name: game.name, icon: game.icon || "", workingCodeCount: Number(game.workingCodeCount || 0), viewCount: Number(game.viewCount || 0), lastUpdated: game.lastUpdated || null,
+    }));
+    const aiAssets = getPublicAIUGCItems().filter((item) => String(item.creatorId || "") === memberId).map((item) => {
+      const publicItem = buildAIUGCCommunityItem(item, getAIUGCCommunityPost(communityState, String(item.id)), null);
+      return { id: publicItem.id, title: publicItem.title, thumbnailUrl: publicItem.thumbnailUrl, createdAt: publicItem.createdAt, rating: publicItem.rating, views: publicItem.views };
+    });
+    return res.json({ ok: true, member, followers: followers.filter(Boolean), following: following.filter(Boolean), followerCount: followerIds.length, followingCount: followingIds.length, aiAssets, codePosts });
+  } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member profile." }); }
+});
+
 function buildAIUGCCommunityItem(item, post, viewer) {
   const ratings = Object.values(post.ratings).map(Number).filter((value) => value >= 1 && value <= 5);
   const votes = Object.values(post.votes);

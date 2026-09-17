@@ -305,7 +305,7 @@
     if (userId && window.RBLXToolsMembers) return window.RBLXToolsMembers.open(userId);
   }
 
-  function previewCommunityProfileFromButton(button) {
+  function previewCommunityProfileFromButton(button, event) {
     if (!button || !window.RBLXToolsProfile || typeof window.RBLXToolsProfile.open !== "function") return;
     window.RBLXToolsProfile.open({
       displayName: button.getAttribute("data-community-profile-name") || "Member",
@@ -313,13 +313,18 @@
       avatarUrl: button.getAttribute("data-community-profile-avatar") || "",
       bio: button.getAttribute("data-community-profile-bio") || "",
       plan: button.getAttribute("data-community-profile-plan") || "free"
-    }, button);
+    }, event || button);
   }
 
   document.addEventListener("mouseover", function (event) {
     var profileButton = event.target.closest && event.target.closest("[data-community-profile]");
     if (!profileButton || profileButton.contains(event.relatedTarget)) return;
-    previewCommunityProfileFromButton(profileButton);
+    previewCommunityProfileFromButton(profileButton, event);
+  });
+
+  document.addEventListener("mouseout", function (event) {
+    var profileButton = event.target.closest && event.target.closest("[data-community-profile]");
+    if (profileButton && !profileButton.contains(event.relatedTarget) && window.RBLXToolsProfile) window.RBLXToolsProfile.hidePreview();
   });
 
   function buildBugStatus(post) {

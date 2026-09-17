@@ -248,8 +248,13 @@
       if (!profileId || !window.RBLXToolsProfile || typeof window.RBLXToolsProfile.open !== 'function') return;
       request('/api/community-members/' + encodeURIComponent(profileId)).then(function (payload) {
         var member = payload.member || {};
-        window.RBLXToolsProfile.open({ userId: String(member.id || profileId), displayName: String(member.name || 'Member'), avatarUrl: String(member.avatarUrl || ''), plan: String(member.plan || 'free') }, profileTarget);
+        window.RBLXToolsProfile.preview({ userId: String(member.id || profileId), displayName: String(member.name || 'Member'), avatarUrl: String(member.avatarUrl || ''), plan: String(member.plan || 'free') }, event);
       }).catch(function () {});
+    }, true);
+
+    document.addEventListener('mouseout', function (event) {
+      var profileTarget = event.target.closest && event.target.closest('[data-community-profile]');
+      if (profileTarget && !profileTarget.contains(event.relatedTarget) && window.RBLXToolsProfile) window.RBLXToolsProfile.hidePreview();
     }, true);
 
     document.addEventListener('click', function (event) {

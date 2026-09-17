@@ -504,15 +504,16 @@
       var recommendationsMarkup = '<section class="code-recommendations" id="codeRecommendations"><div class="code-recommendations-head"><h3>You may also like</h3><p>More Roblox code posts</p></div><div class="code-recommendation-grid" id="codeRecommendationGrid" aria-live="polite"></div><div class="code-recommendation-progress" aria-hidden="true"><i></i></div></section>';
       root.innerHTML = '<section class="guide live-guide open"><a class="back" href="/codes">&#8592; All code posts</a><div class="guide-top">' + art(game) + '<div class="guide-info"><h2>' + esc(game.name) + ' Codes</h2>' + authorStatsMarkup + '<p>' + esc(game.description || ('Find community-reviewed codes for ' + game.name + '.')) + '</p><div class="notice">Updated: ' + date(guide.lastUpdated) + ' · ' + active.length + ' published code' + (active.length === 1 ? "" : "s") + '.</div>' + (game.robloxUrl ? '<a class="official" href="' + esc(game.robloxUrl) + '" target="_blank" rel="noopener">Open game on Roblox &#8599;</a>' : '') + '</div></div><div class="guide-grid"><article class="panel codes-panel"><div class="code-head"><h3>Working codes</h3><button class="outline" id="openSubmission">Submit code</button></div><div id="submissionForm" class="inline-form" hidden><input id="submitCode" placeholder="Code"><input id="submitReward" placeholder="Reward"><input id="submitSource" placeholder="Official source link, if available"><button class="button" id="sendSubmission">Send for review</button><p class="note">' + loginHint + '</p></div><div class="table-wrap active-table-wrap"><table class="code-table live-table"><thead><tr><th>Code</th><th>Reward</th><th>Added on</th><th>Success rate</th><th>Vote</th></tr></thead><tbody>' + codeRowsWithInlineAds(active, "working") + '</tbody></table></div><div class="table-wrap expired-table-wrap"><table class="code-table live-table"><thead><tr><th>Code</th><th>Reward</th><th>Added on</th><th>Success rate</th><th>Vote</th></tr></thead><tbody>' + codeRowsWithInlineAds(expired, "expired") + '</tbody></table></div></article><aside><article class="panel"><h3>Help verify</h3><p>Redeemed a code? Vote whether it worked. One signed-in account can update one vote per code.</p></article></aside></div>' + ratingMarkup + shareMarkup + recommendationsMarkup + commentsMarkup + '<section class="saved" id="staffComposer" hidden></section></section>';
       root.querySelectorAll('[data-member-profile]').forEach(function (profileLink) {
-        profileLink.addEventListener('mouseenter', function () {
+        profileLink.addEventListener('mouseenter', function (event) {
           if (!window.RBLXToolsProfile || typeof window.RBLXToolsProfile.open !== 'function') return;
-          window.RBLXToolsProfile.open({
+          window.RBLXToolsProfile.preview({
             userId: profileLink.dataset.memberProfileId || '',
             displayName: profileLink.dataset.memberProfileName || 'Member',
             avatarUrl: profileLink.dataset.memberProfileAvatar || '',
             plan: 'free'
-          }, profileLink);
+          }, event);
         });
+        profileLink.addEventListener('mouseleave', function () { if (window.RBLXToolsProfile) window.RBLXToolsProfile.hidePreview(); });
       });
       var guideGrid = root.querySelector(".guide-grid");
       if (!session.hideAds) {
