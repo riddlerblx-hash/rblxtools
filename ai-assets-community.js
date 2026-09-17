@@ -644,7 +644,11 @@
     modal.hidden = false;
     modal.style.display = 'grid';
     var rails = modal.querySelectorAll('[data-ai-assets-modal-rail]');
-    if (!document.body.classList.contains('rblx-pro-ad-free')) {
+    var isAssetAdmin = Boolean(state.communityCanCreateAll || state.communityViewer?.canManageAll);
+    // Administrators need the real placements while reviewing an asset post.
+    // A deliberate Pro preview remains ad-free, matching the member experience.
+    var shouldShowRails = !document.body.classList.contains('rblx-pro-ad-free') || (isAssetAdmin && !document.body.classList.contains('rblx-preview-pro'));
+    if (shouldShowRails) {
       rails.forEach(function (rail) {
         rail.hidden = false;
         if (!rail.querySelector('iframe')) {
