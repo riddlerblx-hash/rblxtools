@@ -2181,6 +2181,8 @@
   var profilePreview = null;
   var profilePreviewHideTimer = null;
   var profilePreviewStatsCache = Object.create(null);
+  var profilePreviewMemberCache = Object.create(null);
+  var profilePreviewRequest = 0;
   function ensureProfilePreview() {
     if (profilePreview) return profilePreview;
     profilePreview = document.createElement("div");
@@ -2203,10 +2205,13 @@
     if (!profile) return;
     if (profilePreviewHideTimer) window.clearTimeout(profilePreviewHideTimer);
     var preview = ensureProfilePreview();
+    var profileId = String(profile.userId || "");
+    var requestId = ++profilePreviewRequest;
+    var savedMember = profilePreviewMemberCache[profileId];
+    if (savedMember) profile = Object.assign({}, profile, savedMember);
     var plan = String(profile.plan || "free").toLowerCase();
     var avatarFallback = escapeHtml(profile.avatarText || getInitials(profile.displayName));
     var avatar = profile.avatarUrl ? '<img src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\';"><span class="rblx-shell-profile-preview-avatar-fallback" style="display:none">' + avatarFallback + '</span>' : '<span class="rblx-shell-profile-preview-avatar-fallback">' + avatarFallback + '</span>';
-    var profileId = String(profile.userId || "");
     var cachedStats = profilePreviewStatsCache[profileId];
     var statsText = cachedStats ? Number(cachedStats.followerCount || 0) + ' followers · ' + Number(cachedStats.followingCount || 0) + ' following' : 'Loading profile…';
     preview.className = "rblx-shell-profile-preview is-" + (plan === "pro" || plan === "plus" ? plan : "free");
@@ -2222,16 +2227,36 @@
       fetch('/api/members/' + encodeURIComponent(profileId), { credentials: 'include', headers: getToken() ? { Authorization: 'Bearer ' + getToken() } : {} }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) {
         if (!payload) return;
         profilePreviewStatsCache[profileId] = { followerCount: payload.followerCount, followingCount: payload.followingCount };
-        if (profilePreview && !profilePreview.hidden && profilePreview.dataset.memberId === profileId) {
+        if (requestId === profilePreviewRequest && profilePreview && !profilePreview.hidden && profilePreview.dataset.memberId === profileId) {
           var stats = profilePreview.querySelector('.rblx-shell-profile-preview-stats');
           if (stats) stats.textContent = Number(payload.followerCount || 0) + ' followers · ' + Number(payload.followingCount || 0) + ' following';
         }
       }).catch(function () {}).finally(function () { delete profilePreviewStatsCache[profileId + ':loading']; });
     }
+    if (profileId && !savedMember) {
+      fetch('/api/community-members/' + encodeURIComponent(profileId), { credentials: 'include', headers: getToken() ? { Authorization: 'Bearer ' + getToken() } : {} })
+        .then(function (response) { return response.ok ? response.json() : null; })
+        .then(function (payload) {
+          var member = payload && payload.member;
+          if (!member) return;
+          var resolved = { displayName: String(member.name || profile.displayName || 'Member'), avatarUrl: String(member.avatarUrl || ''), plan: String(member.plan || profile.plan || 'free') };
+          profilePreviewMemberCache[profileId] = resolved;
+          // A fetch that finishes after the cursor has left must never resurrect
+          // a preview at the pointer location.
+          if (requestId !== profilePreviewRequest || !profilePreview || profilePreview.hidden || profilePreview.dataset.memberId !== profileId) return;
+          var avatarNode = profilePreview.querySelector('.rblx-shell-profile-preview-avatar');
+          var fallback = escapeHtml(getInitials(resolved.displayName));
+          if (avatarNode) avatarNode.innerHTML = resolved.avatarUrl ? '<img src="' + escapeHtml(resolved.avatarUrl) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\';"><span class="rblx-shell-profile-preview-avatar-fallback" style="display:none">' + fallback + '</span>' : '<span class="rblx-shell-profile-preview-avatar-fallback">' + fallback + '</span>';
+          var nameNode = profilePreview.querySelector('.rblx-shell-profile-preview-copy strong');
+          if (nameNode) nameNode.textContent = resolved.displayName;
+          profilePreview.className = 'rblx-shell-profile-preview is-' + (resolved.plan === 'pro' || resolved.plan === 'plus' ? resolved.plan : 'free');
+        }).catch(function () {});
+    }
   }
 
   function hideProfilePreview(delay) {
     if (profilePreviewHideTimer) window.clearTimeout(profilePreviewHideTimer);
+    profilePreviewRequest += 1;
     profilePreviewHideTimer = window.setTimeout(function () { if (profilePreview) profilePreview.hidden = true; }, Number(delay || 0));
   }
 

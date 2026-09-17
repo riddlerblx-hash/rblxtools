@@ -246,7 +246,9 @@
       if (!profileTarget || profileTarget.contains(event.relatedTarget)) return;
       var profileId = String(profileTarget.dataset.communityProfile || '');
       if (!profileId || !window.RBLXToolsProfile || typeof window.RBLXToolsProfile.open !== 'function') return;
+      profileTarget.dataset.communityProfileHover = 'true';
       request('/api/community-members/' + encodeURIComponent(profileId)).then(function (payload) {
+        if (!document.body.contains(profileTarget) || profileTarget.dataset.communityProfileHover !== 'true') return;
         var member = payload.member || {};
         window.RBLXToolsProfile.preview({ userId: String(member.id || profileId), displayName: String(member.name || 'Member'), avatarUrl: String(member.avatarUrl || ''), plan: String(member.plan || 'free') }, event);
       }).catch(function () {});
@@ -254,7 +256,7 @@
 
     document.addEventListener('mouseout', function (event) {
       var profileTarget = event.target.closest && event.target.closest('[data-community-profile]');
-      if (profileTarget && !profileTarget.contains(event.relatedTarget) && window.RBLXToolsProfile) window.RBLXToolsProfile.hidePreview();
+      if (profileTarget && !profileTarget.contains(event.relatedTarget) && window.RBLXToolsProfile) { delete profileTarget.dataset.communityProfileHover; window.RBLXToolsProfile.hidePreview(); }
     }, true);
 
     document.addEventListener('click', function (event) {
