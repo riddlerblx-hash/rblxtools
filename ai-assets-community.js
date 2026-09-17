@@ -645,10 +645,10 @@
     modal.hidden = false;
     modal.style.display = 'grid';
     var rails = document.querySelectorAll('[data-ai-assets-modal-rail]');
-    var isAssetAdmin = Boolean(state.communityCanCreateAll || state.communityViewer?.canManageAll);
+    var isAssetAdmin = Boolean(state.communityCanCreateAll || state.communityViewer?.canManageAll || document.querySelector('.rblx-shell-admin-preview'));
     // Administrators need the real placements while reviewing an asset post.
     // A deliberate Pro preview remains ad-free, matching the member experience.
-    var shouldShowRails = !document.body.classList.contains('rblx-pro-ad-free') || (isAssetAdmin && !document.body.classList.contains('rblx-preview-pro'));
+    var shouldShowRails = !document.body.classList.contains('rblx-preview-pro') && (!document.body.classList.contains('rblx-pro-ad-free') || isAssetAdmin);
     if (shouldShowRails) {
       rails.forEach(function (rail) {
         rail.hidden = false;
