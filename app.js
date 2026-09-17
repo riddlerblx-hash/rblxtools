@@ -8058,6 +8058,7 @@ app.get("/api/community-members/:userId", async (req, res) => {
 app.get("/api/members/:userId", async (req, res) => {
   try {
     const memberId = String(req.params.userId || "").trim();
+    const viewer = await getOptionalCommunityUser(req);
     const user = await getAuthUserById(memberId);
     if (!user) return res.status(404).json({ error: "This member is unavailable." });
     const membership = await resolveMembershipSnapshot(user);
@@ -8091,7 +8092,11 @@ app.get("/api/members/:userId", async (req, res) => {
       codeReports = Array.isArray(reports) ? reports.length : 0;
     }
     const profileComments = (readMemberProfileComments()[memberId] || []).slice(-100).map((comment) => ({ id: String(comment.id || ""), userId: String(comment.userId || ""), authorName: cleanText(comment.authorName || "Member", 80), avatarUrl: cleanText(comment.avatarUrl || "", 2000), body: cleanText(comment.body || "", 600), createdAt: comment.createdAt || null })).filter((comment) => comment.id && comment.body);
-    return res.json({ ok: true, member, followerCount: followerIds.length, followingCount: followingIds.length, aiAssets, codePosts, comments: profileComments, stats: { aiTokensTipped, codeVotes, codeReports } });
+    const viewerMembership = viewer ? getEffectiveMembership(viewer) : null;
+    const viewerId = String(viewer?.id || "");
+    const viewerFollowing = Boolean(viewerId && communityState.follows?.[memberId]?.[viewerId]);
+    const hideAds = Boolean(viewerMembership?.premiumActive) && String(viewerMembership?.plan || "").toLowerCase() === "pro";
+    return res.json({ ok: true, member, followerCount: followerIds.length, followingCount: followingIds.length, canFollow: Boolean(viewerId && viewerId !== memberId), viewerFollowing, hideAds, aiAssets, codePosts, comments: profileComments, stats: { aiTokensTipped, codeVotes, codeReports } });
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member profile." }); }
 });
 
@@ -11790,6 +11795,8 @@ app.get("/api/codes/:slug", async (req, res) => {
     const viewer = await getOptionalCommunityUser(req);
     const guide = await codesPlatform.getGame(req.params.slug, viewer?.id);
     if (guide?.game?.authorUserId) {
+      const communityState = readAIUGCCommunityState();
+      guide.game.viewerFollowingAuthor = Boolean(viewer?.id && communityState.follows?.[String(guide.game.authorUserId)]?.[String(viewer.id)]);
       const author = await getAuthUserById(String(guide.game.authorUserId)).catch(() => null);
       if (author) {
         guide.game.authorName = cleanText(author.display_name || author.username || guide.game.authorName || "RBLXTools Staff", 80);

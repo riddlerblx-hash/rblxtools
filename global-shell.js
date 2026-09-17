@@ -2180,6 +2180,7 @@
 
   var profilePreview = null;
   var profilePreviewHideTimer = null;
+  var profilePreviewStatsCache = Object.create(null);
   function ensureProfilePreview() {
     if (profilePreview) return profilePreview;
     profilePreview = document.createElement("div");
@@ -2203,14 +2204,30 @@
     if (profilePreviewHideTimer) window.clearTimeout(profilePreviewHideTimer);
     var preview = ensureProfilePreview();
     var plan = String(profile.plan || "free").toLowerCase();
-    var avatar = profile.avatarUrl ? '<img src="' + escapeHtml(profile.avatarUrl) + '" alt="">' : '<span>' + escapeHtml(profile.avatarText || getInitials(profile.displayName)) + '</span>';
+    var avatarFallback = escapeHtml(profile.avatarText || getInitials(profile.displayName));
+    var avatar = profile.avatarUrl ? '<img src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\';"><span class="rblx-shell-profile-preview-avatar-fallback" style="display:none">' + avatarFallback + '</span>' : '<span class="rblx-shell-profile-preview-avatar-fallback">' + avatarFallback + '</span>';
+    var profileId = String(profile.userId || "");
+    var cachedStats = profilePreviewStatsCache[profileId];
+    var statsText = cachedStats ? Number(cachedStats.followerCount || 0) + ' followers · ' + Number(cachedStats.followingCount || 0) + ' following' : 'Loading profile…';
     preview.className = "rblx-shell-profile-preview is-" + (plan === "pro" || plan === "plus" ? plan : "free");
-    preview.innerHTML = '<span class="rblx-shell-profile-preview-avatar">' + avatar + '</span><span class="rblx-shell-profile-preview-copy"><strong>' + escapeHtml(profile.displayName || "Member") + '</strong><small>' + escapeHtml(plan) + ' member · View profile</small></span>';
+    preview.dataset.memberId = profileId;
+    preview.innerHTML = '<span class="rblx-shell-profile-preview-avatar">' + avatar + '</span><span class="rblx-shell-profile-preview-copy"><strong>' + escapeHtml(profile.displayName || "Member") + '</strong><small class="rblx-shell-profile-preview-stats">' + escapeHtml(statsText) + '</small><small>View profile</small></span>';
     preview.hidden = false;
     var x = eventOrAnchor && Number.isFinite(eventOrAnchor.clientX) ? eventOrAnchor.clientX : 0;
     var y = eventOrAnchor && Number.isFinite(eventOrAnchor.clientY) ? eventOrAnchor.clientY : 0;
     if (!x && eventOrAnchor && typeof eventOrAnchor.getBoundingClientRect === "function") { var rect = eventOrAnchor.getBoundingClientRect(); x = rect.right; y = rect.top + (rect.height / 2); }
     positionProfilePreview(x, y);
+    if (profileId && !cachedStats && !profilePreviewStatsCache[profileId + ':loading']) {
+      profilePreviewStatsCache[profileId + ':loading'] = true;
+      fetch('/api/members/' + encodeURIComponent(profileId), { credentials: 'include' }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) {
+        if (!payload) return;
+        profilePreviewStatsCache[profileId] = { followerCount: payload.followerCount, followingCount: payload.followingCount };
+        if (profilePreview && !profilePreview.hidden && profilePreview.dataset.memberId === profileId) {
+          var stats = profilePreview.querySelector('.rblx-shell-profile-preview-stats');
+          if (stats) stats.textContent = Number(payload.followerCount || 0) + ' followers · ' + Number(payload.followingCount || 0) + ' following';
+        }
+      }).catch(function () {}).finally(function () { delete profilePreviewStatsCache[profileId + ':loading']; });
+    }
   }
 
   function hideProfilePreview(delay) {
