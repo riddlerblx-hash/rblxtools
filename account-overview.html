@@ -577,24 +577,18 @@
       width: 22px;
       height: 22px;
       border-radius: 8px;
-      background: linear-gradient(115deg, #ffffff 0%, #d8dde6 18%, #ffffff 36%, #b9c0cb 52%, #f5f7fb 66%, #c1c8d3 82%, #ffffff 100%);
-      background-size: 220% 100%;
+      background: #dce4ef;
       color: #171717;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), 0 7px 15px rgba(255,255,255,0.09);
-      animation: acctSilverFlow 3.2s linear infinite, acctPlanPulse 1.9s ease-in-out infinite;
+      animation: none;
     }
 
     #rbtools-account-overview .acct-pill-plus-text,
     #rbtools-account-overview .acct-plus-name {
       display: inline-block;
-      background: linear-gradient(115deg, #ffffff 0%, #d8dde6 18%, #ffffff 36%, #b9c0cb 52%, #f5f7fb 66%, #c1c8d3 82%, #ffffff 100%);
-      background-size: 220% 100%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      color: transparent;
-      animation: acctSilverFlow 3.2s linear infinite, acctPlanPulse 1.9s ease-in-out infinite;
-      text-shadow: 0 0 10px rgba(255,255,255,0.12);
+      color: #edf3fb;
+      animation: none;
+      text-shadow: none;
     }
 
     #rbtools-account-overview .acct-plus-tag {
@@ -609,8 +603,8 @@
 
     #rbtools-account-overview .acct-plus-tag.hidden { display: none; }
     #rbtools-account-overview .acct-pill-value.is-pro { display:inline-flex; align-items:center; gap:7px; font-size:15px; line-height:1; }
-    #rbtools-account-overview .acct-pro-mark { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:22px; border-radius:8px; color:#251600; background:linear-gradient(115deg,#fff4b8 0%,#e8aa25 32%,#fff0a4 54%,#bd7211 76%,#fff0b0 100%); background-size:220% 100%; box-shadow:0 0 14px rgba(255,190,55,.34); animation:acctSilverFlow 3.2s linear infinite,acctPlanPulse 1.9s ease-in-out infinite; }
-    #rbtools-account-overview .acct-pro-name { display:inline-block; background:linear-gradient(115deg,#fff7c9 0%,#eeb43a 28%,#fff3b0 50%,#bf7913 74%,#fff3b0 100%); background-size:220% 100%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; color:transparent; animation:acctSilverFlow 3.2s linear infinite,acctPlanPulse 1.9s ease-in-out infinite; }
+    #rbtools-account-overview .acct-pro-mark { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:22px; border-radius:8px; color:#251600; background:#f1c45f; box-shadow:0 0 10px rgba(255,190,55,.22); animation:none; }
+    #rbtools-account-overview .acct-pro-name { display:inline-block; color:#ffe2a0; animation:none; }
 
     #rbtools-account-overview .acct-actions {
       margin-top: 12px;
@@ -1165,6 +1159,11 @@
     }
     #rbtools-account-overview .acct-profile-header .acct-profile,
     #rbtools-account-overview .acct-profile-header .acct-profile-edit { position: relative; z-index: 2; }
+    #rbtools-account-overview .acct-public-stats { position:relative;z-index:2;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;width:100%;padding-top:14px;border-top:1px solid rgba(180,205,242,.18); }
+    #rbtools-account-overview .acct-public-stats[hidden] { display:none; }
+    #rbtools-account-overview .acct-public-stat { min-width:0;color:#aebfd5;font-size:9px;font-weight:800;text-align:center; }
+    #rbtools-account-overview .acct-public-stat b { display:block;overflow:hidden;margin-bottom:4px;color:#f5f9ff;font-size:14px;text-overflow:ellipsis;white-space:nowrap; }
+    @media(max-width:720px){#rbtools-account-overview .acct-public-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
     #rbtools-account-overview .acct-profile-plus { display: none; position: absolute; z-index: 1; color: rgba(242, 246, 255, .44); font-weight: 900; text-shadow: 0 0 14px rgba(255,255,255,.26); animation: acctFloatPlus 5.5s ease-in-out infinite; }
     #rbtools-account-overview .acct-card.is-plus .acct-profile-plus { display: block; }
     #rbtools-account-overview .acct-profile-plus.one { top: 18%; left: 31%; font-size: 16px; }
@@ -1461,6 +1460,13 @@
                     </div>
                 </div>
                 <div id="acctDiscordVerified" class="acct-discord-verified hidden"><span class="acct-discord-verified-mark">&#10003;</span><span>Discord Verified</span></div>
+                <div id="acctPublicStats" class="acct-public-stats" hidden>
+                  <div class="acct-public-stat"><b id="acctProfileFollowers">0</b>Followers</div>
+                  <div class="acct-public-stat"><b id="acctProfileFollowing">0</b>Following</div>
+                  <div class="acct-public-stat"><b id="acctProfileTokensTipped">0</b>Tokens tipped</div>
+                  <div class="acct-public-stat"><b id="acctProfileCodeVotes">0</b>Code votes</div>
+                  <div class="acct-public-stat"><b id="acctProfileCodeReports">0</b>Reports</div>
+                </div>
               </div>
 
               <div class="acct-tabs" role="tablist" aria-label="Account sections">
@@ -1921,6 +1927,12 @@
         acctDisplaySubname: document.getElementById("acctDisplaySubname"),
         acctPlusCosmetic: document.getElementById("acctPlusCosmetic"),
         acctDiscordVerified: document.getElementById("acctDiscordVerified"),
+        acctPublicStats: document.getElementById("acctPublicStats"),
+        acctProfileFollowers: document.getElementById("acctProfileFollowers"),
+        acctProfileFollowing: document.getElementById("acctProfileFollowing"),
+        acctProfileTokensTipped: document.getElementById("acctProfileTokensTipped"),
+        acctProfileCodeVotes: document.getElementById("acctProfileCodeVotes"),
+        acctProfileCodeReports: document.getElementById("acctProfileCodeReports"),
         acctEmailTop: document.getElementById("acctEmailTop"),
         acctEmail: document.getElementById("acctEmail"),
         acctSettingsEmail: document.getElementById("acctSettingsEmail"),
@@ -2248,6 +2260,7 @@
 
       async function apiRequest(path, options) {
         var requestOptions = Object.assign({ credentials: "include" }, options || {});
+        requestOptions.headers = Object.assign({}, requestOptions.headers || {}, state.token ? { Authorization: "Bearer " + state.token } : {});
         var response = await fetch(API_BASE + path, requestOptions);
         var contentType = response.headers.get("content-type") || "";
         var payload = null;
@@ -2271,6 +2284,22 @@
         }
 
         return payload;
+      }
+
+      async function loadPublicProfileStats() {
+        if (!state.user || !state.user.id || !els.acctPublicStats) return;
+        var requestedUserId = String(state.user.id);
+        try {
+          var payload = await apiRequest("/api/members/" + encodeURIComponent(requestedUserId), { method: "GET" });
+          if (!state.user || String(state.user.id) !== requestedUserId) return;
+          var stats = payload.stats || {};
+          els.acctProfileFollowers.textContent = Number(payload.followerCount || 0).toLocaleString();
+          els.acctProfileFollowing.textContent = Number(payload.followingCount || 0).toLocaleString();
+          els.acctProfileTokensTipped.textContent = Number(stats.aiTokensTipped || 0).toLocaleString();
+          els.acctProfileCodeVotes.textContent = Number(stats.codeVotes || 0).toLocaleString();
+          els.acctProfileCodeReports.textContent = Number(stats.codeReports || 0).toLocaleString();
+          els.acctPublicStats.hidden = false;
+        } catch (_error) { els.acctPublicStats.hidden = true; }
       }
 
       function formatReferralMoney(cents) {
@@ -2791,7 +2820,7 @@
         syncBioCount();
         els.acctAvatarFallback.textContent = getInitials(displayName);
         els.acctPlusCosmetic.classList.toggle("hidden", !(state.user && state.user.premiumActive));
-        els.acctPlusCosmetic.innerHTML = currentPlan === "pro" ? '<div class="acct-pro-mark">&#128736;</div><div class="acct-pro-name">Pro Member</div>' : '<div class="acct-plus-mark">+</div><div class="acct-plus-name">Plus Member</div>';
+        els.acctPlusCosmetic.innerHTML = currentPlan === "pro" ? '<div class="acct-pro-mark">&#128736;</div><div class="acct-pro-name">Pro Plan</div>' : '<div class="acct-plus-mark">+</div><div class="acct-plus-name">Plus Plan</div>';
         els.acctCard.classList.toggle("is-plus", currentPlan === "plus");
         els.acctCard.classList.toggle("is-pro", currentPlan === "pro");
         els.acctDropzone.style.setProperty("--acct-avatar-scale", String(avatarScale));
@@ -2848,9 +2877,9 @@
         els.acctPlan.classList.toggle("is-plus", displayPlan === "plus");
         els.acctPlan.classList.toggle("is-pro", displayPlan === "pro");
         if (displayPlan === "plus") {
-          els.acctPlan.innerHTML = '<span class="acct-pill-plus-mark">+</span><span class="acct-pill-plus-text">plus</span>';
+          els.acctPlan.innerHTML = '<span class="acct-pill-plus-mark">+</span><span class="acct-pill-plus-text">Plus Plan</span>';
         } else if (displayPlan === "pro") {
-          els.acctPlan.innerHTML = '<span class="acct-pro-mark">&#128736;</span><span class="acct-pro-name">pro</span>';
+          els.acctPlan.innerHTML = '<span class="acct-pro-mark">&#128736;</span><span class="acct-pro-name">Pro Plan</span>';
         } else {
           els.acctPlan.textContent = displayPlan;
         }
@@ -2873,6 +2902,7 @@
         els.acctCustomerId.textContent = state.user.stripeCustomerId || "-";
         els.acctUpsell.classList.toggle("hidden", Boolean(state.user.premiumActive));
         renderProfilePresentation();
+        loadPublicProfileStats();
         broadcastMembershipSnapshot(state.user);
       }
 

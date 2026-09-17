@@ -2219,7 +2219,7 @@
     positionProfilePreview(x, y);
     if (profileId && !cachedStats && !profilePreviewStatsCache[profileId + ':loading']) {
       profilePreviewStatsCache[profileId + ':loading'] = true;
-      fetch('/api/members/' + encodeURIComponent(profileId), { credentials: 'include' }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) {
+      fetch('/api/members/' + encodeURIComponent(profileId), { credentials: 'include', headers: getToken() ? { Authorization: 'Bearer ' + getToken() } : {} }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) {
         if (!payload) return;
         profilePreviewStatsCache[profileId] = { followerCount: payload.followerCount, followingCount: payload.followingCount };
         if (profilePreview && !profilePreview.hidden && profilePreview.dataset.memberId === profileId) {

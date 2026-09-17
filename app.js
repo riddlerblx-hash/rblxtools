@@ -8079,7 +8079,7 @@ app.get("/api/members/:userId", async (req, res) => {
     }));
     const aiAssets = getPublicAIUGCItems().filter((item) => String(item.creatorId || "") === memberId).map((item) => {
       const publicItem = buildAIUGCCommunityItem(item, getAIUGCCommunityPost(communityState, String(item.id)), null);
-      return { id: publicItem.id, title: publicItem.title, thumbnailUrl: publicItem.thumbnailUrl, createdAt: publicItem.createdAt, rating: publicItem.rating, views: publicItem.views };
+      return { id: publicItem.id, title: publicItem.title, thumbnailUrl: `/api/ugc/community/${encodeURIComponent(publicItem.id)}/cover?profile=1&v=${encodeURIComponent(String(publicItem.createdAt || item.createdAt || ""))}`, createdAt: publicItem.createdAt, rating: publicItem.rating, views: publicItem.views };
     });
     const aiTokensTipped = getPublicAIUGCItems().filter((item) => String(item.creatorId || "") === memberId).reduce((total, item) => total + getAIUGCCommunityPost(communityState, String(item.id)).tips.reduce((sum, tip) => sum + Math.max(0, Number(tip?.amount) || 0), 0), 0);
     let codeVotes = 0, codeReports = 0;

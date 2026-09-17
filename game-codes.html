@@ -73,7 +73,10 @@
     var displayGameName = function (value) { return String(value || "Roblox game").replace(/\s+codes?\s*(?:\((?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}\))?\s*$/i, "").trim() || "Roblox game"; };
     var currentMonthText = function (value) { return String(value || "").replace(/\((?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}\)/gi, "(" + monthYear() + ")"); };
     var request = async function (url, options) {
-      var response = await fetch(url, options || {});
+      var requestOptions = Object.assign({}, options || {}), token = "";
+      try { token = localStorage.getItem("rblxtools_auth_token") || ""; } catch (_error) {}
+      requestOptions.headers = Object.assign({}, requestOptions.headers || {}, token ? { Authorization: "Bearer " + token } : {});
+      var response = await fetch(url, requestOptions);
       var payload = await response.json().catch(function () { return {}; });
       if (!response.ok) throw new Error(payload.error || "Something went wrong.");
       return payload;

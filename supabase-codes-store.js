@@ -106,7 +106,9 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const current = Math.max(1, Number(page) || 1);
     const filters = ["codes_enabled=is.true"];
     if (query) filters.push(`or=${encodeURIComponent(`(name.ilike.*${query}*,slug.ilike.*${query}*)`)}`);
-    const rows = await request(`/rest/v1/games?${filters.join("&")}&select=*&order=updated_at.desc`);
+    // Keep directory order based on publication time.  `updated_at` still drives
+    // the visible "Updated" date, but ordinary edits must not jump a post to top.
+    const rows = await request(`/rest/v1/games?${filters.join("&")}&select=*&order=created_at.desc`);
     const games = (Array.isArray(rows) ? rows : []).map(toGame);
     const pageGames = games.slice((current - 1) * size, current * size);
     const ids = pageGames.map((game) => game.id);
@@ -128,7 +130,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
 
   async function listRankedFromDatabase({ period = "popular", limit = 8 } = {}) {
     const size = Math.max(1, Math.min(Number(limit) || 8, 24));
-    const games = (await request("/rest/v1/games?codes_enabled=is.true&select=*&order=updated_at.desc")).map(toGame);
+    const games = (await request("/rest/v1/games?codes_enabled=is.true&select=*&order=created_at.desc")).map(toGame);
     const viewFilter = period === "weekly" ? `&week_start=eq.${currentWeekStart()}` : "";
     const viewRows = await request(`/rest/v1/game_code_page_views?select=game_id${viewFilter}&limit=10000`);
     const codeRows = await request("/rest/v1/game_codes?status=eq.working&select=game_id,status&limit=10000");
@@ -138,7 +140,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const codes = (Array.isArray(codeRows) ? codeRows : []).map((row) => ({ gameId: row.game_id, status: row.status }));
     return {
       games: games.filter((game) => (counts.get(String(game.id)) || 0) > 0)
-        .sort((left, right) => (counts.get(String(right.id)) || 0) - (counts.get(String(left.id)) || 0) || String(right.updatedAt).localeCompare(String(left.updatedAt)))
+        .sort((left, right) => (counts.get(String(right.id)) || 0) - (counts.get(String(left.id)) || 0) || String(right.createdAt).localeCompare(String(left.createdAt)))
         .slice(0, size).map((game) => publicGame(game, codes, views)),
       period,
       weekStart: period === "weekly" ? currentWeekStart() : null,
