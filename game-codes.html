@@ -223,7 +223,6 @@
     }
 
     async function renderDirectory(requestedPage) {
-      if (root._codeDirectoryRecommendationTimer) { window.clearInterval(root._codeDirectoryRecommendationTimer); root._codeDirectoryRecommendationTimer = 0; }
       directoryPage = Math.max(1, Number(requestedPage || directoryPage) || 1);
       var results = await Promise.all([request(api + "?limit=" + directoryPageSize + "&page=" + directoryPage), request(api + "/rankings?period=weekly&limit=12").catch(function () { return { games: [] }; }), request(api + "/rankings?period=popular&limit=12").catch(function () { return { games: [] }; })]);
       var payload = results[0], games = payload.games || [], totalGames = Number(payload.total || games.length), weekly = (results[1].games || []).slice(0, 12), popular = (results[2].games || []).slice(0, 12);
@@ -234,6 +233,7 @@
       // the directory content has genuinely changed.
       var nextDirectorySnapshot = JSON.stringify({ games: games, totalGames: totalGames, directoryPage: directoryPage, weekly: weekly, popular: popular });
       if (directorySnapshot === nextDirectorySnapshot && root.querySelector("#liveGrid")) return;
+      if (root._codeDirectoryRecommendationTimer) { window.clearInterval(root._codeDirectoryRecommendationTimer); root._codeDirectoryRecommendationTimer = 0; }
       directorySnapshot = nextDirectorySnapshot;
       function rankingMarkup(items, gridId, emptyId, emptyText) {
         return '<div class="grid" id="' + gridId + '">' + items.map(function (game) { return '<a class="game" href="/codes/' + encodeURIComponent(game.slug) + '">' + art(game) + '<div class="game-body"><h3>' + esc(displayGameName(game.name)) + '</h3><small class="card-author">By ' + esc(game.authorName || "RBLXTools Staff") + '</small><div class="meta"><span>' + date(game.lastUpdated) + '</span><b>' + Number(game.viewCount || 0) + ' views</b></div></div></a>'; }).join("") + '</div><div class="empty" id="' + emptyId + '">' + emptyText + '</div>';
