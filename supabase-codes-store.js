@@ -148,9 +148,10 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const rows = await request(`/rest/v1/games?slug=eq.${encodeURIComponent(slugify(slug))}&codes_enabled=is.true&select=*&limit=1`);
     if (!Array.isArray(rows) || !rows[0]) return null;
     const game = toGame(rows[0]);
-    // Keep the public list in the same order staff or a member entered it.
-    // The previous newest-first order made the last code in a batch appear first.
-    const rowsForCodes = await request(`/rest/v1/game_codes?game_id=eq.${encodeURIComponent(game.id)}&select=*&order=created_at.asc`);
+    // New batches belong at the top. `added_at` is assigned in reverse
+    // millisecond order by the posting form, preserving first-entered-first
+    // within the same batch without pushing new codes to the bottom.
+    const rowsForCodes = await request(`/rest/v1/game_codes?game_id=eq.${encodeURIComponent(game.id)}&select=*&order=added_at.desc,created_at.desc`);
     const codes = (Array.isArray(rowsForCodes) ? rowsForCodes : []).map(toCode);
     const codeIds = codes.map((code) => code.id);
     const voteRows = codeIds.length

@@ -431,7 +431,13 @@
         submit.textContent = staff ? "Posting..." : "Submitting...";
         try {
           var endpoint = staff ? "/admin/codes/" + encodeURIComponent(game.slug) : api + "/" + encodeURIComponent(game.slug) + "/submissions";
-          for (var index = 0; index < entries.length; index += 1) await request(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(entries[index]) });
+          var batchStartedAt = Date.now();
+          for (var index = 0; index < entries.length; index += 1) {
+            // New batches sort first, while the first field entered is still
+            // the first code shown within that batch.
+            entries[index].addedAt = new Date(batchStartedAt + (entries.length - index)).toISOString();
+            await request(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(entries[index]) });
+          }
           modal.remove();
           if (staff) renderGuide(game.slug);
           else alert(entries.length + " code" + (entries.length === 1 ? " was" : "s were") + " submitted for staff review. RBLX Points are awarded only after each code is approved.");
