@@ -467,11 +467,6 @@
   document.body.insertAdjacentHTML('beforeend', '<section class="ai-community-reader" id="aiCommunityReader" hidden><article class="ai-community-reader-card" id="aiCommunityReaderCard"></article></section><section class="ai-community-profile-card" id="aiCommunityProfileCard" hidden></section>');
 
   var aiAssetsModal = document.getElementById('aiAssetsModal');
-  // These must be siblings of the modal. As modal children, CSS grid placed
-  // them above and below the post instead of at the viewport's outer edges.
-  if (aiAssetsModal && !document.querySelector('[data-ai-assets-modal-rail]')) {
-    document.body.insertAdjacentHTML('beforeend', '<aside class="ai-assets-modal-ad-rail is-left" data-ai-assets-modal-rail aria-label="Advertisement" hidden><span>Advertisement</span></aside><aside class="ai-assets-modal-ad-rail is-right" data-ai-assets-modal-rail aria-label="Advertisement" hidden><span>Advertisement</span></aside>');
-  }
 
   function assetAvatar(className, name, avatarUrl) {
     return '<i class="' + className + '">' + (/^(?:https?:|\/|data:image\/)/i.test(String(avatarUrl || '')) ? '<img src="' + escapeHtml(avatarUrl) + '" alt="" />' : initials(name)) + '</i>';
@@ -644,29 +639,11 @@
     var modal = document.getElementById('aiAssetsModal');
     modal.hidden = false;
     modal.style.display = 'grid';
-    var rails = document.querySelectorAll('[data-ai-assets-modal-rail]');
-    var isAssetAdmin = Boolean(state.communityCanCreateAll || state.communityViewer?.canManageAll || document.querySelector('.rblx-shell-admin-preview'));
-    // Administrators need the real placements while reviewing an asset post.
-    // A deliberate Pro preview remains ad-free, matching the member experience.
-    var shouldShowRails = !document.body.classList.contains('rblx-preview-pro') && (!document.body.classList.contains('rblx-pro-ad-free') || isAssetAdmin);
-    if (shouldShowRails) {
-      rails.forEach(function (rail) {
-        rail.hidden = false;
-        if (!rail.querySelector('iframe')) {
-          var frame = document.createElement('iframe');
-          frame.className = 'rblx-vertical-ad-frame';
-          frame.title = 'Advertisement';
-          frame.width = '160'; frame.height = '600'; frame.scrolling = 'no'; frame.setAttribute('frameborder', '0');
-          frame.src = '/ad-slot-160x600.html';
-          rail.appendChild(frame);
-        }
-      });
-    } else rails.forEach(function (rail) { rail.hidden = true; });
     document.body.style.overflow = 'hidden';
     document.getElementById('aiAssetsPostPanel').innerHTML = '<div class="ai-model-loader">Loading asset details</div>';
     request('/api/ugc/community/' + encodeURIComponent(id)).then(function (payload) { state.active = payload.item; document.getElementById('aiAssetsPostPanel').innerHTML = postPanel(state.active); bindAssetPostMenu(); loadViewer(id); request('/api/ugc/community/' + encodeURIComponent(id) + '/view', 'POST').then(function () { state.active.views = Number(state.active.views || 0) + 1; }).catch(function () {}); }).catch(function (error) { document.getElementById('aiAssetsPostPanel').innerHTML = '<div class="ai-model-loader">' + escapeHtml(error.message || 'Could not load asset details.') + '</div>'; notify(error.message); });
   }
-  function close() { var modal = document.getElementById('aiAssetsModal'); modal.hidden = true; modal.style.display = ''; document.querySelectorAll('[data-ai-assets-modal-rail]').forEach(function (rail) { rail.hidden = true; }); document.body.style.overflow = ''; destroyViewer(); state.active = null; state.openedHashAsset = ''; if (location.hash.indexOf('#asset-') === 0 && history.replaceState) history.replaceState(null, '', location.pathname + location.search); }
+  function close() { var modal = document.getElementById('aiAssetsModal'); modal.hidden = true; modal.style.display = ''; document.body.style.overflow = ''; destroyViewer(); state.active = null; state.openedHashAsset = ''; if (location.hash.indexOf('#asset-') === 0 && history.replaceState) history.replaceState(null, '', location.pathname + location.search); }
   function load() {
     return Promise.all([request('/api/community-session').catch(function () { return { authenticated: false, viewer: null }; }), request('/api/ugc/community')]).then(function (responses) {
       var session = responses[0];
