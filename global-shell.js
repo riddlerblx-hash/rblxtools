@@ -4963,7 +4963,7 @@
     adFrame.height = "600";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.src = "/ad-slot-160x600";
+    adFrame.src = "/ad-slot-160x600.html";
     host.insertBefore(adFrame, host.querySelector(".rblx-smart-ad-timer") || null);
     host.dataset.rblxVerticalAdMounted = "true";
     enableSmartAdRefresh(host, function () { Array.prototype.forEach.call(host.querySelectorAll("iframe"), function (frame) { frame.remove(); }); delete host.dataset.rblxVerticalAdMounted; mountVerticalAd(host); });

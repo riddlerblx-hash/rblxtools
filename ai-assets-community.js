@@ -652,7 +652,7 @@
           frame.className = 'rblx-vertical-ad-frame';
           frame.title = 'Advertisement';
           frame.width = '160'; frame.height = '600'; frame.scrolling = 'no'; frame.setAttribute('frameborder', '0');
-          frame.src = '/ad-slot-160x600';
+          frame.src = '/ad-slot-160x600.html';
           rail.appendChild(frame);
         }
       });
