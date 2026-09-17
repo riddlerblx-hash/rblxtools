@@ -192,6 +192,7 @@ const COMMUNITY_POSTS_PATH = process.env.COMMUNITY_POSTS_PATH || path.join(proce
 const LEGACY_COMMUNITY_POSTS_PATH = path.join(__dirname, "community-posts.json");
 const COMMUNITY_NOTIFICATIONS_PATH = process.env.COMMUNITY_NOTIFICATIONS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-notifications.json");
 const COMMUNITY_PROFILES_PATH = process.env.COMMUNITY_PROFILES_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-profiles.json");
+const MEMBER_PROFILE_COMMENTS_PATH = process.env.MEMBER_PROFILE_COMMENTS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "member-profile-comments.json");
 const COMMUNITY_AVATAR_DIR = process.env.COMMUNITY_AVATAR_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-avatars");
 const CODE_GUIDE_COVER_DIR = process.env.CODE_GUIDE_COVER_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "code-guide-covers");
 const RBLXTOOLS_CODES_DATA_PATH = process.env.RBLXTOOLS_CODES_DATA_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "codes.json");
@@ -1311,6 +1312,22 @@ function writeCommunityProfiles(profiles) {
   const tempPath = `${COMMUNITY_PROFILES_PATH}.${process.pid}.${Date.now()}.tmp`;
   fs.writeFileSync(tempPath, JSON.stringify(profiles) + "\n", "utf8");
   fs.renameSync(tempPath, COMMUNITY_PROFILES_PATH);
+}
+
+function readMemberProfileComments() {
+  try {
+    fs.mkdirSync(path.dirname(MEMBER_PROFILE_COMMENTS_PATH), { recursive: true });
+    if (!fs.existsSync(MEMBER_PROFILE_COMMENTS_PATH)) fs.writeFileSync(MEMBER_PROFILE_COMMENTS_PATH, "{}\n", { encoding: "utf8", flag: "wx" });
+    const comments = JSON.parse(fs.readFileSync(MEMBER_PROFILE_COMMENTS_PATH, "utf8"));
+    return comments && typeof comments === "object" ? comments : {};
+  } catch (error) { console.error("[MEMBERS] Could not read profile comments:", error.message); return {}; }
+}
+
+function writeMemberProfileComments(comments) {
+  fs.mkdirSync(path.dirname(MEMBER_PROFILE_COMMENTS_PATH), { recursive: true });
+  const tempPath = `${MEMBER_PROFILE_COMMENTS_PATH}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(comments) + "\n", "utf8");
+  fs.renameSync(tempPath, MEMBER_PROFILE_COMMENTS_PATH);
 }
 
 function saveCommunityAvatar(userId, rawAvatarUrl) {
@@ -8055,15 +8072,7 @@ app.get("/api/members/:userId", async (req, res) => {
     const communityState = readAIUGCCommunityState();
     const followerIds = Object.keys(communityState.follows?.[memberId] || {});
     const followingIds = Object.keys(communityState.follows || {}).filter((creatorId) => Boolean(communityState.follows?.[creatorId]?.[memberId]));
-    const publicIdentity = async (id) => {
-      const profile = await getAuthUserById(String(id)).catch(() => null);
-      return profile ? { id: profile.id, name: cleanText(profile.display_name || profile.username || profile.email?.split("@")[0] || "Member", 80), avatarUrl: getCommunityAvatarUrl(profile) } : null;
-    };
-    const [followers, following, listedCodes] = await Promise.all([
-      Promise.all(followerIds.slice(0, 100).map(publicIdentity)),
-      Promise.all(followingIds.slice(0, 100).map(publicIdentity)),
-      codesPlatform.list({ limit: 100, page: 1 }).catch(() => ({ games: [] })),
-    ]);
+    const listedCodes = await codesPlatform.list({ limit: 100, page: 1 }).catch(() => ({ games: [] }));
     const codePosts = (listedCodes.games || []).filter((game) => String(game.authorUserId || "") === memberId).map((game) => ({
       slug: game.slug, name: game.name, icon: game.icon || "", workingCodeCount: Number(game.workingCodeCount || 0), viewCount: Number(game.viewCount || 0), lastUpdated: game.lastUpdated || null,
     }));
@@ -8071,8 +8080,35 @@ app.get("/api/members/:userId", async (req, res) => {
       const publicItem = buildAIUGCCommunityItem(item, getAIUGCCommunityPost(communityState, String(item.id)), null);
       return { id: publicItem.id, title: publicItem.title, thumbnailUrl: publicItem.thumbnailUrl, createdAt: publicItem.createdAt, rating: publicItem.rating, views: publicItem.views };
     });
-    return res.json({ ok: true, member, followers: followers.filter(Boolean), following: following.filter(Boolean), followerCount: followerIds.length, followingCount: followingIds.length, aiAssets, codePosts });
+    const aiTokensTipped = getPublicAIUGCItems().filter((item) => String(item.creatorId || "") === memberId).reduce((total, item) => total + getAIUGCCommunityPost(communityState, String(item.id)).tips.reduce((sum, tip) => sum + Math.max(0, Number(tip?.amount) || 0), 0), 0);
+    let codeVotes = 0, codeReports = 0;
+    if (SUPABASE_URL && SUPABASE_KEY) {
+      const [votes, reports] = await Promise.all([
+        supabaseRequest(`/rest/v1/game_code_votes?voter_user_id=eq.${encodeURIComponent(memberId)}&select=id`).catch(() => []),
+        supabaseRequest(`/rest/v1/game_code_expiry_reports?reporter_user_id=eq.${encodeURIComponent(memberId)}&select=id`).catch(() => []),
+      ]);
+      codeVotes = Array.isArray(votes) ? votes.length : 0;
+      codeReports = Array.isArray(reports) ? reports.length : 0;
+    }
+    const profileComments = (readMemberProfileComments()[memberId] || []).slice(-100).map((comment) => ({ id: String(comment.id || ""), userId: String(comment.userId || ""), authorName: cleanText(comment.authorName || "Member", 80), avatarUrl: cleanText(comment.avatarUrl || "", 2000), body: cleanText(comment.body || "", 600), createdAt: comment.createdAt || null })).filter((comment) => comment.id && comment.body);
+    return res.json({ ok: true, member, followerCount: followerIds.length, followingCount: followingIds.length, aiAssets, codePosts, comments: profileComments, stats: { aiTokensTipped, codeVotes, codeReports } });
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member profile." }); }
+});
+
+app.post("/api/members/:userId/comments", async (req, res) => {
+  try {
+    const memberId = String(req.params.userId || "").trim();
+    const profileOwner = await getAuthUserById(memberId);
+    if (!profileOwner) return res.status(404).json({ error: "This member is unavailable." });
+    const user = await requireAuthenticatedUser(req);
+    const body = cleanText(req.body?.body || "", 600);
+    if (!body) return res.status(400).json({ error: "Write a comment before posting." });
+    const comments = readMemberProfileComments();
+    const entry = { id: randomUUID(), userId: String(user.id), authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), avatarUrl: getCommunityAvatarUrl(user), body, createdAt: new Date().toISOString() };
+    comments[memberId] = [...(Array.isArray(comments[memberId]) ? comments[memberId] : []), entry].slice(-100);
+    writeMemberProfileComments(comments);
+    return res.status(201).json({ ok: true, comment: entry });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not post this profile comment." }); }
 });
 
 function buildAIUGCCommunityItem(item, post, viewer) {
