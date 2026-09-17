@@ -8034,7 +8034,7 @@ app.get("/api/community-members/:userId", async (req, res) => {
   try {
     const user = await getAuthUserById(String(req.params.userId || "")); if (!user) return res.status(404).json({ error: "This member is unavailable." });
     const membership = await resolveMembershipSnapshot(user);
-    return res.json({ ok: true, member: { id: user.id, name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), avatarUrl: getCommunityAvatarUrl(user), plan: String(membership?.plan || "free").toLowerCase(), joinedAt: user.created_at || null } });
+    return res.json({ ok: true, member: { id: user.id, name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), username: cleanText(user.username || user.display_name || "member", 80).replace(/^@+/, ""), avatarUrl: getCommunityAvatarUrl(user), plan: String(membership?.plan || "free").toLowerCase(), joinedAt: user.created_at || null } });
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member." }); }
 });
 
@@ -11716,6 +11716,13 @@ app.get("/api/codes/:slug", async (req, res) => {
   try {
     const viewer = await getOptionalCommunityUser(req);
     const guide = await codesPlatform.getGame(req.params.slug, viewer?.id);
+    if (guide?.game?.authorUserId) {
+      const author = await getAuthUserById(String(guide.game.authorUserId)).catch(() => null);
+      if (author) {
+        guide.game.authorName = cleanText(author.display_name || author.username || guide.game.authorName || "RBLXTools Staff", 80);
+        guide.game.authorAvatarUrl = getCommunityAvatarUrl(author);
+      }
+    }
     return guide ? res.json(guide) : res.status(404).json({ error: "Code guide not found." });
   } catch (_error) { return res.status(500).json({ error: "Could not load this Roblox code guide." }); }
 });
@@ -12215,6 +12222,11 @@ app.delete("/discord-tools/link", async (req, res) => {
 
 app.get(["/ai-tokens", "/ai-tokens.html"], async (req, res) => {
   return res.sendFile(path.join(STATIC_ROOT, "ai-tokens.html"));
+});
+
+app.get(["/members/:userId", "/members/:userId/"], (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  return res.sendFile(path.join(STATIC_ROOT, "members.html"));
 });
 
 app.use(express.static(STATIC_ROOT, {

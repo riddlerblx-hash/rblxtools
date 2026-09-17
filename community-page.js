@@ -300,6 +300,12 @@
   }
 
   function openCommunityProfileFromButton(button) {
+    if (!button) return;
+    var userId = button.getAttribute("data-community-profile-user-id") || "";
+    if (userId && window.RBLXToolsMembers) return window.RBLXToolsMembers.open(userId);
+  }
+
+  function previewCommunityProfileFromButton(button) {
     if (!button || !window.RBLXToolsProfile || typeof window.RBLXToolsProfile.open !== "function") return;
     window.RBLXToolsProfile.open({
       displayName: button.getAttribute("data-community-profile-name") || "Member",
@@ -309,6 +315,12 @@
       plan: button.getAttribute("data-community-profile-plan") || "free"
     }, button);
   }
+
+  document.addEventListener("mouseover", function (event) {
+    var profileButton = event.target.closest && event.target.closest("[data-community-profile]");
+    if (!profileButton || profileButton.contains(event.relatedTarget)) return;
+    previewCommunityProfileFromButton(profileButton);
+  });
 
   function buildBugStatus(post) {
     if (String(post.category || "") !== "bug-report") return "";
@@ -471,7 +483,11 @@
           '</div>';
       }
       var authorBits = [];
-      if (post.authorName) authorBits.push("Posted by " + escapeHtml(post.authorName));
+      if (post.authorName) {
+        var authorProfile = { userId: post.authorId || "", displayName: post.authorName, avatarUrl: post.authorAvatarUrl || "", plan: post.authorPlan || "free" };
+        var authorAttrs = buildCommunityProfileAttrs(authorProfile);
+        authorBits.push("Posted by " + (post.authorId ? '<a href="/members/' + encodeURIComponent(post.authorId) + '"' + authorAttrs + '>' + escapeHtml(post.authorName) + '</a>' : escapeHtml(post.authorName)));
+      }
       if (post.pinned) authorBits.push("Pinned");
       var attachment = post.attachment && post.attachment.dataUrl ? post.attachment : null;
       var attachmentMarkup = "";

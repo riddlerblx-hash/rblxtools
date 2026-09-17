@@ -2025,6 +2025,15 @@
         "</article>"
         );
       }).join("");
+    Array.prototype.forEach.call(target.querySelectorAll("[data-chat-action='profile']"), function (button) {
+      button.addEventListener("mouseenter", function () {
+        var index = Number(button.getAttribute("data-chat-index"));
+        var message = shellState.chatMessages[index];
+        if (!message) return;
+        message.__chatIndex = index;
+        openProfileModal(message, button);
+      });
+    });
     if (shouldStickToBottom) {
       target.scrollTop = target.scrollHeight;
     } else {
@@ -2185,6 +2194,17 @@
         plan: identity.plan || "free",
         isPlus: Boolean(identity.isPlus)
       };
+    }
+  };
+
+  window.RBLXToolsMembers = {
+    href: function (userId) {
+      var id = String(userId || "").trim();
+      return id ? "/members/" + encodeURIComponent(id) : "";
+    },
+    open: function (userId) {
+      var href = this.href(userId);
+      if (href) window.location.assign(href);
     }
   };
 
@@ -2980,8 +3000,8 @@
       var index = Number(button.getAttribute("data-chat-index"));
       if (!isFinite(index) || index < 0 || index >= shellState.chatMessages.length) return;
       var message = shellState.chatMessages[index];
-      message.__chatIndex = index;
-      openProfileModal(message, button);
+      var profile = shellState.profileCache[index] || getMessageProfile(message);
+      if (profile && profile.userId && !profile.isGuest) window.RBLXToolsMembers.open(profile.userId);
     });
 
     form.addEventListener("submit", async function (event) {

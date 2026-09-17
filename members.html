@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Member profile | RBLXTools</title>
+  <link rel="stylesheet" href="/global-shell.css?v=20260917-members">
+  <style>
+    :root{color-scheme:dark}*{box-sizing:border-box}body{min-height:100vh;margin:0;color:#edf5ff;background:radial-gradient(circle at 12% 5%,rgba(75,131,255,.2),transparent 27%),radial-gradient(circle at 85% 15%,rgba(76,228,212,.08),transparent 22%),#08111f;font-family:Inter,Arial,sans-serif}.members-page{width:min(760px,calc(100% - 32px));margin:0 auto;padding:64px 0 90px}.member-card{position:relative;overflow:hidden;border:1px solid rgba(131,179,243,.34);border-radius:24px;background:linear-gradient(145deg,rgba(25,45,75,.98),rgba(11,21,37,.98));box-shadow:0 28px 70px rgba(0,0,0,.32)}.member-card:before{position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(123,166,255,.2),transparent 35%);content:"";pointer-events:none}.member-card-inner{position:relative;padding:34px}.member-kicker{margin:0 0 12px;color:#8bc7ff;font-size:11px;font-weight:900;letter-spacing:.13em;text-transform:uppercase}.member-top{display:flex;align-items:center;gap:18px}.member-avatar{display:grid;place-items:center;width:92px;height:92px;flex:0 0 auto;overflow:hidden;border:2px solid rgba(149,201,255,.76);border-radius:50%;color:#eff7ff;background:linear-gradient(145deg,#355981,#192b43);font-size:28px;font-weight:900;box-shadow:0 12px 30px rgba(0,0,0,.24)}.member-avatar img{width:100%;height:100%;object-fit:cover}.member-copy{min-width:0}.member-copy h1{overflow:hidden;margin:0;color:#fff;font-size:clamp(28px,5vw,42px);letter-spacing:-.055em;text-overflow:ellipsis;white-space:nowrap}.member-handle{margin:6px 0 0;color:#aabed7;font-size:14px;font-weight:700}.member-plan{display:inline-flex;align-items:center;min-height:27px;margin-top:14px;border:1px solid rgba(126,187,255,.45);border-radius:999px;padding:0 11px;color:#dff2ff;background:rgba(100,166,255,.13);font-size:11px;font-weight:900;text-transform:uppercase}.member-plan.is-plus{border-color:rgba(107,240,201,.52);color:#bfffe9;background:rgba(52,206,152,.13)}.member-plan.is-pro{border-color:rgba(255,203,79,.58);color:#ffe19a;background:rgba(255,193,52,.13)}.member-meta{display:grid;grid-template-columns:1fr;gap:8px;margin-top:27px;border-top:1px solid rgba(181,209,247,.16);padding-top:22px;color:#b5c4d8;font-size:13px}.member-meta strong{display:block;margin-top:4px;color:#eff6ff;font-size:15px}.member-state{padding:54px 28px;color:#b6c6db;text-align:center}.member-state h1{margin:0 0 9px;color:#f6f9ff;font-size:26px}.member-state p{margin:0;font-size:14px;line-height:1.55}.member-back{display:inline-block;margin-bottom:15px;color:#9ed1ff;font-size:12px;font-weight:900;text-decoration:none}.member-back:hover{text-decoration:underline}@media(max-width:600px){.members-page{width:min(100% - 20px,760px);padding:26px 0 54px}.member-card-inner{padding:24px 18px}.member-top{align-items:flex-start;gap:13px}.member-avatar{width:68px;height:68px;font-size:21px}.member-copy h1{font-size:27px}}
+  </style>
+</head>
+<body>
+  <script src="/global-shell.js?v=20260917-members"></script>
+  <main class="members-page">
+    <a class="member-back" href="/community">← Back to Community</a>
+    <section class="member-card" id="memberCard" aria-live="polite"><div class="member-state"><h1>Loading member profile…</h1><p>Getting the latest public profile details.</p></div></section>
+  </main>
+  <script>
+    (function(){
+      var card=document.getElementById('memberCard');
+      function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,function(char){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[char];});}
+      function initials(value){return String(value||'Member').trim().split(/\s+/).slice(0,2).map(function(part){return part.charAt(0).toUpperCase();}).join('')||'M';}
+      function failure(title,message){card.innerHTML='<div class="member-state"><h1>'+escapeHtml(title)+'</h1><p>'+escapeHtml(message)+'</p></div>';}
+      var memberId=decodeURIComponent(location.pathname.replace(/^\/members\/?/,'').split('/')[0]||'');
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(memberId)){failure('Member not found','That profile link is not valid.');return;}
+      fetch('/api/community-members/'+encodeURIComponent(memberId),{credentials:'include'}).then(function(response){return response.json().then(function(payload){if(!response.ok)throw new Error(payload.error||'This member is unavailable.');return payload;});}).then(function(payload){
+        var member=payload.member||{},plan=String(member.plan||'free').toLowerCase(),joined=member.joinedAt?new Date(member.joinedAt):null,joinedText=joined&&!isNaN(joined.getTime())?joined.toLocaleDateString(undefined,{month:'long',year:'numeric'}):'Recently';
+        var avatar=member.avatarUrl?'<img src="'+escapeHtml(member.avatarUrl)+'" alt="">':escapeHtml(initials(member.name));
+        card.innerHTML='<div class="member-card-inner"><p class="member-kicker">RBLXTools member</p><div class="member-top"><div class="member-avatar">'+avatar+'</div><div class="member-copy"><h1>'+escapeHtml(member.name||'Member')+'</h1><p class="member-handle">@'+escapeHtml(member.username||'member')+'</p><span class="member-plan '+(plan==='pro'?'is-pro':plan==='plus'?'is-plus':'')+'">'+escapeHtml(plan)+' member</span></div></div><div class="member-meta"><div>Member since<strong>'+escapeHtml(joinedText)+'</strong></div></div></div>';
+        var avatarImage=card.querySelector('.member-avatar img');
+        if(avatarImage) avatarImage.addEventListener('error',function(){avatarImage.remove();var avatarNode=card.querySelector('.member-avatar');if(avatarNode)avatarNode.textContent=initials(member.name);},{once:true});
+        document.title=(member.name||'Member')+' | RBLXTools';
+      }).catch(function(error){failure('Member unavailable',error.message||'This profile could not be loaded.');});
+    }());
+  </script>
+</body>
+</html>

@@ -227,6 +227,7 @@
       if (!profileId) return;
       event.preventDefault();
       event.stopPropagation();
+      if (window.RBLXToolsMembers) return window.RBLXToolsMembers.open(profileId);
       request('/api/community-members/' + encodeURIComponent(profileId)).then(function (payload) {
         var member = payload.member || {};
         if (!window.RBLXToolsProfile || typeof window.RBLXToolsProfile.open !== 'function') throw new Error('The live profile card is not ready yet.');
@@ -238,6 +239,17 @@
           bio: String(member.bio || '')
         }, profileTarget);
       }).catch(function (error) { notify(error.message || 'Could not open this profile.'); });
+    }, true);
+
+    document.addEventListener('mouseover', function (event) {
+      var profileTarget = event.target.closest && event.target.closest('[data-community-profile]');
+      if (!profileTarget || profileTarget.contains(event.relatedTarget)) return;
+      var profileId = String(profileTarget.dataset.communityProfile || '');
+      if (!profileId || !window.RBLXToolsProfile || typeof window.RBLXToolsProfile.open !== 'function') return;
+      request('/api/community-members/' + encodeURIComponent(profileId)).then(function (payload) {
+        var member = payload.member || {};
+        window.RBLXToolsProfile.open({ userId: String(member.id || profileId), displayName: String(member.name || 'Member'), avatarUrl: String(member.avatarUrl || ''), plan: String(member.plan || 'free') }, profileTarget);
+      }).catch(function () {});
     }, true);
 
     document.addEventListener('click', function (event) {
