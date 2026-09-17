@@ -994,6 +994,17 @@ function storeAIUGCCover(userId, taskId, buffer) {
   return { buffer, contentType };
 }
 
+async function fetchAIUGCCover(url) {
+  if (!/^https?:\/\//i.test(String(url || ""))) return null;
+  try {
+    const response = await fetch(url, { headers: { Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" } });
+    if (!response.ok) return null;
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const contentType = inferAIUGCCoverMimeType(buffer, response.headers.get("content-type") || "");
+    return contentType && buffer.length <= 12 * 1024 * 1024 ? { buffer, contentType } : null;
+  } catch (_error) { return null; }
+}
+
 function ensureAIUGCModelDirectory() {
   if (!fs.existsSync(AI_UGC_MODEL_DIR) && AI_UGC_MODEL_DIR !== LEGACY_RUNTIME_AI_UGC_MODEL_DIR && fs.existsSync(LEGACY_RUNTIME_AI_UGC_MODEL_DIR)) {
     fs.cpSync(LEGACY_RUNTIME_AI_UGC_MODEL_DIR, AI_UGC_MODEL_DIR, { recursive: true, force: false });
@@ -7790,6 +7801,11 @@ app.post("/ai/ugc/history", async (req, res) => {
       allowPublicDownloads: Boolean(req.body?.allowPublicDownloads),
       createdAt: new Date().toISOString(),
     };
+    // Capture the provider's 2D thumbnail while its signed URL is fresh. This
+    // gives saved-generation cards a permanent local cover instead of relying
+    // on an expiring Meshy URL later.
+    const cover = await fetchAIUGCCover(item.thumbnailUrl);
+    if (cover) storeAIUGCCover(user.id, taskId, cover.buffer);
     savePersistentAIUGCHistory(user.id, item);
     syncAIUGCCommunityOwnerEngagement(user.id, item);
     const historyLimit = getAIUGCHistoryLimit(await resolveMembershipSnapshot(user));
