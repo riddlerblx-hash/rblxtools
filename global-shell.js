@@ -4396,44 +4396,10 @@
   }
 
   function enableSmartAdRefresh(host, refresh) {
-    if (!host || host.dataset.rblxSmartAdRefresh === "true") return;
-    host.dataset.rblxSmartAdRefresh = "true";
-    // Each placement gets its own 30 seconds of actual on-screen time. An ad
-    // below the fold, or a background tab, never advances its countdown.
-    var visible = false, isRunning = false, lastTick = 0, elapsed = 0;
-    var timer = document.createElement("div");
-    timer.className = "rblx-smart-ad-timer";
-    timer.setAttribute("aria-label", "Advertisement refresh timer");
-    timer.innerHTML = '<i><b></b></i>';
-    host.appendChild(timer);
-    var bar = timer.querySelector("b");
-    function update(now) {
-      if (!host.isConnected) { if (observer) observer.disconnect(); return; }
-      var runningNow = visible && !document.hidden;
-      if (runningNow) {
-        if (!isRunning) {
-          isRunning = true;
-          lastTick = now;
-        } else {
-          elapsed += Math.max(0, now - lastTick);
-          lastTick = now;
-          if (elapsed >= 30000) {
-            elapsed = elapsed % 30000;
-            refresh();
-          }
-        }
-      } else {
-        isRunning = false;
-        lastTick = 0;
-      }
-      bar.style.transform = "scaleX(" + Math.min(1, Math.max(0, elapsed / 30000)) + ")";
-      requestAnimationFrame(update);
-    }
-    var observer = typeof IntersectionObserver === "function" ? new IntersectionObserver(function (entries) {
-      visible = Boolean(entries[0] && entries[0].isIntersecting && entries[0].intersectionRatio >= 0.5);
-    }, { threshold: [0, 0.5] }) : null;
-    if (observer) observer.observe(host); else visible = true;
-    requestAnimationFrame(update);
+    // Auto-refresh is paused globally. Each placement loads once per page view
+    // so the publisher can evaluate traffic quality without inflated repeats.
+    void host;
+    void refresh;
   }
 
   function mountSharedBannerAd(slot) {

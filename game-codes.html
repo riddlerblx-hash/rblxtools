@@ -158,14 +158,9 @@
     var codeDirectoryAdMarkup = function (position) { return '<section class="rblx-home-banner-ad code-directory-ad" data-rblx-banner-ad data-code-post-ad data-ad-position="directory-' + position + '" aria-label="Advertisement"><span class="rblx-banner-ad-label">Advertisement</span><div class="rblx-tool-banner-ad-slot code-post-ad-unit"></div></section>'; };
 
     function enableCodeAdRefresh(host, reload) {
-      if (!host || host.dataset.rblxSmartAdRefresh === "true") return;
-      host.dataset.rblxSmartAdRefresh = "true";
-      var dueAt = 0, visible = false; try { dueAt = Number(sessionStorage.getItem("rblxtools_ad_refresh_due_at") || 0); } catch (_error) {} if (dueAt <= Date.now()) { dueAt = Date.now() + 30000; try { sessionStorage.setItem("rblxtools_ad_refresh_due_at", String(dueAt)); } catch (_error) {} }
-      var timer = document.createElement("div"); timer.className = "rblx-smart-ad-timer"; timer.innerHTML = '<i><b></b></i>'; host.appendChild(timer);
-      var bar = timer.querySelector("b"), observer = typeof IntersectionObserver === "function" ? new IntersectionObserver(function (entries) { visible = Boolean(entries[0] && entries[0].isIntersecting && entries[0].intersectionRatio >= 0.5); }, { threshold: [0, 0.5] }) : null;
-      if (observer) observer.observe(host); else visible = true;
-      function tick(now) { if (!host.isConnected) { if (observer) observer.disconnect(); return; } var remaining = Math.max(0, dueAt - Date.now()); if (visible && !document.hidden && remaining <= 0) { reload(); dueAt = Date.now() + 30000; try { sessionStorage.setItem("rblxtools_ad_refresh_due_at", String(dueAt)); } catch (_error) {} remaining = 30000; } bar.style.transform = "scaleX(" + Math.min(1, Math.max(0, 1 - (remaining / 30000))) + ")"; requestAnimationFrame(tick); }
-      requestAnimationFrame(tick);
+      // Auto-refresh is paused globally; code-page placements load once.
+      void host;
+      void reload;
     }
 
     function mountCodePostAds(container) {
