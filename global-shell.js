@@ -2183,6 +2183,10 @@
   var profilePreviewStatsCache = Object.create(null);
   var profilePreviewMemberCache = Object.create(null);
   var profilePreviewRequest = 0;
+  function profilePreviewIdMarkup(profileId, allowed) {
+    var style = ' style="overflow:hidden;max-width:205px;color:#7f94ae;font-size:8px;font-weight:700;letter-spacing:.015em;text-overflow:ellipsis;white-space:nowrap"';
+    return allowed && profileId ? '<small class="rblx-shell-profile-preview-id"' + style + '>User ID: ' + escapeHtml(profileId) + '</small>' : '<small class="rblx-shell-profile-preview-id"' + style + ' hidden></small>';
+  }
   function ensureProfilePreview() {
     if (profilePreview) return profilePreview;
     profilePreview = document.createElement("div");
@@ -2216,7 +2220,7 @@
     var statsText = cachedStats ? Number(cachedStats.followerCount || 0) + ' followers · ' + Number(cachedStats.followingCount || 0) + ' following' : 'Loading profile…';
     preview.className = "rblx-shell-profile-preview is-" + (plan === "pro" || plan === "plus" ? plan : "free");
     preview.dataset.memberId = profileId;
-    preview.innerHTML = '<span class="rblx-shell-profile-preview-avatar">' + avatar + '</span><span class="rblx-shell-profile-preview-copy"><strong>' + escapeHtml(profile.displayName || "Member") + '</strong><small class="rblx-shell-profile-preview-stats">' + escapeHtml(statsText) + '</small><small>View profile</small></span>';
+    preview.innerHTML = '<span class="rblx-shell-profile-preview-avatar">' + avatar + '</span><span class="rblx-shell-profile-preview-copy"><strong>' + escapeHtml(profile.displayName || "Member") + '</strong><small class="rblx-shell-profile-preview-stats">' + escapeHtml(statsText) + '</small><small>View profile</small>' + profilePreviewIdMarkup(profileId, Boolean(cachedStats && cachedStats.canViewMemberId)) + '</span>';
     preview.hidden = false;
     var x = eventOrAnchor && Number.isFinite(eventOrAnchor.clientX) ? eventOrAnchor.clientX : 0;
     var y = eventOrAnchor && Number.isFinite(eventOrAnchor.clientY) ? eventOrAnchor.clientY : 0;
@@ -2226,10 +2230,12 @@
       profilePreviewStatsCache[profileId + ':loading'] = true;
       fetch('/api/members/' + encodeURIComponent(profileId), { credentials: 'include', headers: getToken() ? { Authorization: 'Bearer ' + getToken() } : {} }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) {
         if (!payload) return;
-        profilePreviewStatsCache[profileId] = { followerCount: payload.followerCount, followingCount: payload.followingCount };
+        profilePreviewStatsCache[profileId] = { followerCount: payload.followerCount, followingCount: payload.followingCount, canViewMemberId: Boolean(payload.canViewMemberId) };
         if (requestId === profilePreviewRequest && profilePreview && !profilePreview.hidden && profilePreview.dataset.memberId === profileId) {
           var stats = profilePreview.querySelector('.rblx-shell-profile-preview-stats');
           if (stats) stats.textContent = Number(payload.followerCount || 0) + ' followers · ' + Number(payload.followingCount || 0) + ' following';
+          var memberIdLine = profilePreview.querySelector('.rblx-shell-profile-preview-id');
+          if (memberIdLine && payload.canViewMemberId) { memberIdLine.hidden = false; memberIdLine.textContent = 'User ID: ' + profileId; }
         }
       }).catch(function () {}).finally(function () { delete profilePreviewStatsCache[profileId + ':loading']; });
     }

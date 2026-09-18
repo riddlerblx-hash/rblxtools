@@ -8098,7 +8098,7 @@ app.get("/api/members/:userId", async (req, res) => {
     const viewerId = String(viewer?.id || "");
     const viewerFollowing = Boolean(viewerId && communityState.follows?.[memberId]?.[viewerId]);
     const hideAds = Boolean(viewerMembership?.premiumActive) && String(viewerMembership?.plan || "").toLowerCase() === "pro";
-    return res.json({ ok: true, member, followerCount: followerIds.length, followingCount: followingIds.length, canFollow: Boolean(viewerId && viewerId !== memberId), viewerFollowing, hideAds, aiAssets, codePosts, comments: profileComments, stats: { aiTokensTipped, codeVotes, codeReports } });
+    return res.json({ ok: true, member, followerCount: followerIds.length, followingCount: followingIds.length, canFollow: Boolean(viewerId && viewerId !== memberId), viewerFollowing, canViewMemberId: Boolean(viewer && isAdminUser(viewer)), hideAds, aiAssets, codePosts, comments: profileComments, stats: { aiTokensTipped, codeVotes, codeReports } });
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member profile." }); }
 });
 
