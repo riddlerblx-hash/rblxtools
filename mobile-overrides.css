@@ -972,6 +972,25 @@ body {
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-profile-menu-panel .rblx-shell-profile-menu-item.is-danger { border-color: rgba(255, 126, 126, .3); background: rgba(197, 61, 68, .12); }
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-notification-head { order: -1; padding: 0 0 10px; }
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-notification-head strong { margin-right: auto; }
+  /* Preserve only the mobile navigation ad in standalone account views. It is
+     anchored independently, so it never participates in the panel layout. */
+  body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) .rblx-shell-left-foot {
+    display: block !important;
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    z-index: 2;
+    margin: 0;
+  }
+  body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) .rblx-shell-left-foot > :not(#rblxMobileNavBannerAd) { display: none !important; }
+  body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) #rblxMobileNavBannerAd { display: flex !important; margin: 0; }
+  body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) .rblx-shell-auth details[open] > .rblx-shell-profile-menu-panel,
+  body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) .rblx-shell-auth details[open] > .rblx-shell-notification-panel {
+    max-height: calc(100dvh - 118px);
+    overflow: auto;
+    padding-bottom: 94px;
+  }
 
   body.rblx-mobile-shell .rblx-mobile-side-menu-button {
     position: fixed;
