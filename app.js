@@ -7595,8 +7595,8 @@ app.post("/ai/ugc/batch", async (req, res) => {
     user = await requireAuthenticatedUser(req);
     if (ugcSubmissionLocks.has(user.id)) return res.status(409).json({ error: "A UGC request is already being submitted. Please wait." });
     ugcSubmissionLocks.add(user.id);
-    const imageDataUrls = Array.isArray(req.body?.imageDataUrls) ? req.body.imageDataUrls.filter(Boolean).slice(0, 4) : [];
-    if (imageDataUrls.length < 2) return res.status(400).json({ error: "Add at least two separate reference images for a batch." });
+    const imageDataUrls = Array.isArray(req.body?.imageDataUrls) ? req.body.imageDataUrls.filter(Boolean).slice(0, 10) : [];
+    if (!imageDataUrls.length) return res.status(400).json({ error: "Add at least one separate reference image for the batch." });
     const resolvedSourceImageUrls = await Promise.all(imageDataUrls.map((dataUrl) => storeUGCSourceImage(dataUrl)));
     const assetType = String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc";
     const isUgcAsset = assetType === "ugc";
