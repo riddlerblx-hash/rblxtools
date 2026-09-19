@@ -5700,6 +5700,113 @@
         redeem.disabled = true;
         try { var response = await fetch("/api/rewards/redeem", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brand: selectedBrand, amount: selectedAmount, basePoints: basePoints }) }), payload = await response.json().catch(function () { return {}; }); if (!response.ok) throw Error(payload.error || "Could not submit this request."); alert("Your gift-card request is pending fulfillment."); modal.hidden = true; } catch (error) { alert(error.message); } finally { redeem.disabled = false; }
       };
+
+      // The rewards page has some older inline handlers which also populate the
+      // shared modal.  Give those handlers a moment to finish, then make this
+      // controller the single owner of the amount controls.  This prevents a
+      // cash slider from being left behind when the next reward is a gift card.
+      function removeLegacyAmountControls() {
+        Array.prototype.forEach.call(price.parentNode.querySelectorAll(".modal-options, .modal-options-prompt, .cash-conversion"), function (node) {
+          node.remove();
+        });
+      }
+      function setModalCopyText(nextTitle, nextDescription, nextTerms, nextPrice) {
+        title.textContent = nextTitle;
+        if (desc) desc.textContent = nextDescription;
+        if (terms) terms.textContent = nextTerms;
+        price.textContent = nextPrice;
+      }
+      function redeemCash() {
+        return (async function () {
+          var pointsNeeded = selectedCashCents * 10;
+          if (pointBalance < pointsNeeded) return alert("You need more approved RBLX Points for this cash amount.");
+          redeem.disabled = true;
+          try {
+            var response = await fetch("/api/rewards/redeem-cash", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cashCents: selectedCashCents }) });
+            var payload = await response.json().catch(function () { return {}; });
+            if (!response.ok) throw Error(payload.error || "Could not convert your points.");
+            pointBalance = Math.max(0, Number(payload.rewardPoints) || 0);
+            var pointsElement = document.getElementById("points");
+            if (pointsElement) pointsElement.textContent = pointBalance.toLocaleString();
+            try { window.dispatchEvent(new CustomEvent("rblxtools-reward-points-balance", { detail: { rewardPoints: pointBalance } })); } catch (_) {}
+            alert("$" + (selectedCashCents / 100).toFixed(2) + " was added to your RBLXTools balance.");
+            modal.hidden = true;
+          } catch (error) { alert(error.message); }
+          finally { redeem.disabled = false; }
+        }());
+      }
+      function redeemGiftCard() {
+        return (async function () {
+          redeem.disabled = true;
+          try {
+            var response = await fetch("/api/rewards/redeem", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brand: selectedBrand, amount: selectedAmount, basePoints: selectedBasePoints }) });
+            var payload = await response.json().catch(function () { return {}; });
+            if (!response.ok) throw Error(payload.error || "Could not submit this request.");
+            alert("Your gift-card request is pending fulfillment.");
+            modal.hidden = true;
+          } catch (error) { alert(error.message); }
+          finally { redeem.disabled = false; }
+        }());
+      }
+      function mountCashConversion() {
+        var cash = document.createElement("section");
+        cash.className = "cash-conversion";
+        cash.innerHTML = '<div class="cash-conversion-head"><span>Choose exact cash amount</span><small>10 points = $0.01</small></div><input type="range" min="100" max="10000" step="1" value="100" data-cash-range><div class="cash-conversion-values"><output data-cash-output>$1.00</output><label>$<input type="number" min="1" max="100" step="0.01" value="1.00" inputmode="decimal" data-cash-input></label></div><div class="cash-conversion-note" data-cash-note></div>';
+        price.parentNode.insertBefore(cash, price);
+        var range = cash.querySelector("[data-cash-range]"), input = cash.querySelector("[data-cash-input]"), output = cash.querySelector("[data-cash-output]"), note = cash.querySelector("[data-cash-note]");
+        function syncCashAmount(nextCents) {
+          selectedCashCents = Math.max(100, Math.min(10000, Math.round(Number(nextCents) || 100)));
+          var pointsNeeded = selectedCashCents * 10;
+          range.value = String(selectedCashCents);
+          input.value = (selectedCashCents / 100).toFixed(2);
+          output.textContent = "$" + (selectedCashCents / 100).toFixed(2);
+          note.textContent = pointBalance >= pointsNeeded ? pointsNeeded.toLocaleString() + " points will be added to your RBLXTools balance instantly." : "You need " + (pointsNeeded - pointBalance).toLocaleString() + " more approved points for this amount.";
+          setModalCopyText("RBLXTools Cash", "Convert approved RBLX Points directly into RBLXTools Cash. This is not a gift card.", "The selected amount is credited instantly to your RBLXTools balance.", pointsNeeded.toLocaleString() + " PTS");
+          redeem.textContent = pointBalance >= pointsNeeded ? "Convert to RBLXTools Cash" : "Not enough points";
+          redeem.disabled = pointBalance < pointsNeeded;
+        }
+        range.addEventListener("input", function () { syncCashAmount(range.value); });
+        input.addEventListener("input", function () { syncCashAmount(Math.round(Number(input.value) * 100)); });
+        redeem.onclick = redeemCash;
+        syncCashAmount(selectedCashCents);
+      }
+      function mountGiftCardAmounts() {
+        var prompt = document.createElement("p"), giftOptions = document.createElement("div");
+        prompt.className = "modal-options-prompt";
+        prompt.innerHTML = "<b>Select a gift-card amount:</b>";
+        giftOptions.className = "modal-options";
+        price.parentNode.insertBefore(prompt, price);
+        price.parentNode.insertBefore(giftOptions, price);
+        function syncGiftAmount(nextAmount) {
+          selectedAmount = Number(nextAmount) || 5;
+          giftOptions.innerHTML = amounts.map(function (amount) { return '<button type="button" class="' + (selectedAmount === amount ? "selected" : "") + '" data-amount="' + amount + '">$' + amount + " gift card</button>"; }).join("");
+          giftOptions.querySelectorAll("button").forEach(function (button) { button.onclick = function () { syncGiftAmount(button.dataset.amount); }; });
+          setModalCopyText("$" + selectedAmount + " " + selectedBrand, "Choose $5, $10, $25, $50, or $100. Point costs scale from this card's $5 price.", "Your request is shown in Account Overview and fulfilled within 1-7 days.", Math.round(selectedBasePoints * selectedAmount / 5).toLocaleString() + " PTS");
+          redeem.textContent = "Request $" + selectedAmount + " gift card";
+          redeem.disabled = false;
+        }
+        redeem.onclick = redeemGiftCard;
+        syncGiftAmount(selectedAmount);
+      }
+      function configureRewardModal(card) {
+        if (!card || !modal || modal.hidden) return;
+        var isCashReward = String(card.dataset.id || "") === "cash";
+        selectedAmount = 5;
+        selectedCashCents = 100;
+        selectedBrand = isCashReward ? "" : String(card.dataset.rewardBrand || "");
+        selectedBasePoints = Number(card.dataset.rewardBasePoints || 0);
+        if (!isCashReward && !selectedBrand) return;
+        cashMode = isCashReward;
+        removeLegacyAmountControls();
+        if (isCashReward) mountCashConversion();
+        else mountGiftCardAmounts();
+      }
+      document.addEventListener("click", function (event) {
+        var card = event.target.closest(".reward");
+        if (!card) return;
+        // This runs after the inline legacy reward listener (which waits 25ms).
+        window.setTimeout(function () { configureRewardModal(card); }, 60);
+      });
     }, 0);
   }
 
