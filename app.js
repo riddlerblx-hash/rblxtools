@@ -94,7 +94,6 @@ const REFERRAL_PENDING_MS = 14 * 24 * 60 * 60 * 1000;
 const REFERRAL_MINIMUM_PAYOUT_CENTS = 1000;
 const AI_THUMBNAIL_HISTORY_TABLE = process.env.AI_THUMBNAIL_HISTORY_TABLE || "ai_thumbnail_history";
 const AI_THUMBNAIL_HISTORY_PATH = path.join(__dirname, "ai-thumbnail-history.json");
-const AI_THUMBNAIL_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MODERATION_ACTIONS_TABLE = process.env.MODERATION_ACTIONS_TABLE || "member_moderation_actions";
 const DEVICE_LINKS_TABLE = process.env.DEVICE_LINKS_TABLE || "member_device_links";
 const AUTH_JWT_SECRET = String(process.env.AUTH_JWT_SECRET || "");
@@ -185,7 +184,6 @@ const AI_UGC_COVER_DIR = process.env.AI_UGC_COVER_DIR || path.join(RBLXTOOLS_RUN
 const LEGACY_AI_UGC_HISTORY_PATH = path.join(__dirname, "ai-ugc-history.json");
 const LEGACY_RUNTIME_AI_UGC_HISTORY_PATH = path.join(__dirname, ".rblxtools-runtime", "ai-ugc-history.json");
 const LEGACY_RUNTIME_AI_UGC_MODEL_DIR = path.join(__dirname, ".rblxtools-runtime", "ai-ugc-models");
-const AI_UGC_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const AI_UGC_COMMUNITY_PATH = process.env.AI_UGC_COMMUNITY_PATH || path.join(RBLXTOOLS_RUNTIME_DATA_DIR, "ai-ugc-community.json");
 const LEGACY_AI_UGC_COMMUNITY_FEEDBACK_PATH = path.join(__dirname, "ai-ugc-community-feedback.json");
 const COMMUNITY_POSTS_PATH = process.env.COMMUNITY_POSTS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-posts.json");
@@ -782,12 +780,9 @@ function buildAIThumbnailHistoryRecord(row) {
   };
 }
 
-function pruneAIThumbnailHistory(items, now = Date.now()) {
+function pruneAIThumbnailHistory(items) {
   return (Array.isArray(items) ? items : [])
-    .filter((item) => {
-      const timestamp = Date.parse(String(item?.createdAt || item?.created_at || ""));
-      return item?.id && Number.isFinite(timestamp) && timestamp >= now - AI_THUMBNAIL_HISTORY_RETENTION_MS;
-    })
+    .filter((item) => item?.id)
     .sort((left, right) => Date.parse(String(right.createdAt || 0)) - Date.parse(String(left.createdAt || 0)))
     .slice(0, 50);
 }
@@ -882,11 +877,9 @@ async function saveAIThumbnailHistory(userId, payload) {
   return item;
 }
 
-function pruneAIUGCHistory(items, now = Date.now()) {
-  return (Array.isArray(items) ? items : []).filter((item) => {
-    const createdAt = Date.parse(String(item?.createdAt || ""));
-    return item?.id && Number.isFinite(createdAt) && createdAt >= now - AI_UGC_HISTORY_RETENTION_MS;
-  }).sort((left, right) => Date.parse(String(right.createdAt || 0)) - Date.parse(String(left.createdAt || 0))).slice(0, 18);
+function pruneAIUGCHistory(items) {
+  return (Array.isArray(items) ? items : []).filter((item) => item?.id)
+    .sort((left, right) => Date.parse(String(right.createdAt || 0)) - Date.parse(String(left.createdAt || 0))).slice(0, 18);
 }
 
 function ensureAIUGCHistoryDirectory() {
@@ -7841,8 +7834,8 @@ app.delete("/ai/ugc/history/:taskId", async (req, res) => {
     const item = getPersistentAIUGCHistory(user.id).find((entry) => String(entry.id) === taskId);
     // A personal-history delete must never remove a published Community AI Asset.
     // Archive its complete record first, then remove only the owner's history entry.
-    const preservedInCommunity = archiveAIUGCCommunityAsset(user.id, item);
-    deletePersistentAIUGCHistory(user.id, taskId, { keepStoredModel: preservedInCommunity });
+    archiveAIUGCCommunityAsset(user.id, item);
+    deletePersistentAIUGCHistory(user.id, taskId, { keepStoredModel: true });
     return res.json({ ok: true, taskId });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not delete this saved generation." });
@@ -8642,18 +8635,11 @@ app.get("/ai/thumbnail-history", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
     const historyLimit = getAIThumbnailHistoryLimit(await resolveMembershipSnapshot(user));
-    const retentionCutoff = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)).toISOString();
     const localItems = getPersistentAIThumbnailHistory(user.id);
-    // History is account-owned and retained for 30 days. Remove expired rows
-    // while loading, so old chats cannot reappear after a server restart.
-    await supabaseRequest(
-      buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?user_id=eq.${encodeURIComponent(user.id)}&created_at=lt.${encodeURIComponent(retentionCutoff)}`),
-      { method: "DELETE" }
-    ).catch((error) => console.warn("Could not prune expired AI thumbnail history:", error.message));
     let databaseItems = [];
     try {
       const rows = await supabaseRequest(
-        buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?user_id=eq.${encodeURIComponent(user.id)}&created_at=gte.${encodeURIComponent(retentionCutoff)}&order=created_at.desc&limit=50&select=id,prompt,reference_images,image_data_url,download_filename,feedback,created_at`)
+        buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, `?user_id=eq.${encodeURIComponent(user.id)}&order=created_at.desc&limit=50&select=id,prompt,reference_images,image_data_url,download_filename,feedback,created_at`)
       );
       databaseItems = (Array.isArray(rows) ? rows : []).map(buildAIThumbnailHistoryRecord).filter(Boolean);
       databaseItems.forEach((item) => savePersistentAIThumbnailHistory(user.id, item));
