@@ -923,39 +923,31 @@ body {
   /* A mobile details panel becomes its own drawer view, so no desktop dropdown
      can reflow the navigation beneath it. */
   body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) .rblx-shell-panel-head,
-  body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) .rblx-shell-nav-scroll { display: none !important; }
-  body.rblx-mobile-shell .rblx-shell-left-inner:has(.rblx-shell-auth details[open]) {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 8px;
+  body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) .rblx-shell-nav-scroll,
+  body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) .rblx-shell-left-foot { display: none !important; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-header-actions:has(.rblx-shell-auth details[open]) {
+    display: block !important;
+    padding: 0 !important;
+    border: 0 !important;
   }
-  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-header-actions:has(.rblx-shell-auth details[open]),
-  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth:has(details[open]) { display: contents !important; }
-  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > details[open] { display: contents; }
-  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > .rblx-shell-profile-menu > summary { grid-column: 1 / 6; grid-row: 1; }
-  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > .rblx-shell-notification-menu > summary { grid-column: 6; grid-row: 1; }
-  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > #rblxShellTokenBanner { grid-column: 1 / 4; grid-row: 2; }
-  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > a[href="./rewards"] { grid-column: 4 / 7; grid-row: 2; }
-  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > .rblx-shell-referral-balance { grid-column: 1 / -1; grid-row: 3; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth:has(details[open]) { display: block !important; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth:has(details[open]) > :not(details[open]) { display: none !important; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > details[open] { display: block; width: 100%; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > details[open] > summary { display: none !important; }
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth details[open] > .rblx-shell-profile-menu-panel,
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth details[open] > .rblx-shell-notification-panel {
     display: grid;
-    grid-column: 1 / -1;
-    grid-row: 4;
-    align-self: stretch;
+    grid-auto-rows: max-content;
     align-content: start;
     width: 100%;
-    min-height: 0;
+    min-height: min(560px, calc(100dvh - 56px));
     margin: 0;
-    padding: 14px 0;
+    padding: 16px;
     box-sizing: border-box;
-    border-top: 1px solid rgba(132, 176, 229, .26);
-    border-bottom: 1px solid rgba(132, 176, 229, .22);
-    border-radius: 0;
-    background: linear-gradient(90deg, rgba(28, 51, 80, .26), rgba(13, 25, 42, .1));
-    box-shadow: none;
+    border: 1px solid rgba(110, 179, 255, .24);
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(25, 43, 69, .9), rgba(11, 20, 35, .96));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
   }
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-mobile-panel-back {
     display: inline-flex;
@@ -980,7 +972,6 @@ body {
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-profile-menu-panel .rblx-shell-profile-menu-item.is-danger { border-color: rgba(255, 126, 126, .3); background: rgba(197, 61, 68, .12); }
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-notification-head { order: -1; padding: 0 0 10px; }
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-notification-head strong { margin-right: auto; }
-  body.rblx-mobile-shell .rblx-shell-left-inner:has(.rblx-shell-auth details[open]) .rblx-shell-left-foot { grid-column: 1 / -1; grid-row: 5; width: 100%; margin-top: 0; align-self: end; }
 
   body.rblx-mobile-shell .rblx-mobile-side-menu-button {
     position: fixed;
