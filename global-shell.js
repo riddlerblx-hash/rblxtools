@@ -1530,7 +1530,7 @@
               '<span class="rblx-shell-notification-count" id="rblxShellNotificationCount"' + (shellState.communityUnreadCount > 0 ? '' : ' hidden') + '>' + (shellState.communityUnreadCount > 99 ? '99+' : shellState.communityUnreadCount) + '</span>' +
             '</summary>' +
             '<div class="rblx-shell-notification-panel">' +
-              '<div class="rblx-shell-notification-head"><strong>Notifications</strong><button type="button" data-shell-notifications-read-all="true">Mark all read</button></div>' +
+              '<div class="rblx-shell-notification-head"><button type="button" class="rblx-shell-mobile-panel-back" data-shell-mobile-panel-back="true">‹ Navigation</button><strong>Notifications</strong><button type="button" data-shell-notifications-read-all="true">Mark all read</button></div>' +
               '<div class="rblx-shell-notification-list" id="rblxShellNotificationList"></div>' +
             '</div>' +
           '</details>' +
@@ -1553,6 +1553,7 @@
               '</span>' +
             '</summary>' +
             '<div class="rblx-shell-profile-menu-panel">' +
+              '<button class="rblx-shell-mobile-panel-back" type="button" data-shell-mobile-panel-back="true">‹ Navigation</button>' +
               '<a class="rblx-shell-profile-menu-item" href="./account-overview">Account Overview</a>' +
               '<button class="rblx-shell-profile-menu-item is-danger" type="button" data-shell-logout="true">Log Out</button>' +
             "</div>" +
@@ -1562,7 +1563,7 @@
     }
 
     return (
-      '<div class="rblx-shell-auth" id="rblxShellAuth">' +
+      '<div class="rblx-shell-auth is-guest" id="rblxShellAuth">' +
         '<a class="rblx-shell-btn rblx-shell-login-button" href="./login">Login / Sign Up</a>' +
       "</div>"
     );
@@ -5463,6 +5464,13 @@
     document.addEventListener("click", function (event) {
       var profileMenu = document.querySelector(".rblx-shell-profile-menu[open]");
       if (profileMenu && !profileMenu.contains(event.target)) profileMenu.open = false;
+      var mobilePanelBack = event.target && event.target.closest ? event.target.closest("[data-shell-mobile-panel-back]") : null;
+      if (mobilePanelBack) {
+        event.preventDefault();
+        var openPanel = mobilePanelBack.closest("details");
+        if (openPanel) openPanel.open = false;
+        return;
+      }
       var markAllTrigger = event.target && event.target.closest ? event.target.closest("[data-shell-notifications-read-all]") : null;
       if (markAllTrigger) {
         event.preventDefault();

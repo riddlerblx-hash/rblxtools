@@ -890,6 +890,63 @@ body {
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-profile-menu-panel,
   body.rblx-mobile-shell .rblx-shell-left .rblx-shell-notification-panel { position: static; width: auto; margin-top: 8px; }
 
+  /* The drawer account header is deliberately ordered for touch: account first,
+     notifications beside it, wallets beneath.  Desktop keeps its original row. */
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth:not(.is-guest) {
+    grid-template-columns: minmax(0, 1fr) 58px;
+    gap: 8px;
+  }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth.is-guest { grid-template-columns: minmax(0, 1fr); }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth.is-guest .rblx-shell-login-button { width: 100%; min-width: 0; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > .rblx-shell-profile-menu { order: 1; grid-column: 1; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > .rblx-shell-notification-menu { order: 2; grid-column: 2; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > #rblxShellTokenBanner { order: 3; grid-column: 1; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > a[href="./rewards"] { order: 4; grid-column: 2; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth > .rblx-shell-referral-balance { order: 5; grid-column: 1 / -1; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-profile-card { min-height: 54px; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-notification-trigger { width: 58px; min-width: 58px; height: 54px; border-radius: 14px; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-header-token-balance { width: 100%; min-width: 0; min-height: 52px; box-sizing: border-box; }
+
+  /* A mobile details panel becomes its own drawer view, so no desktop dropdown
+     can reflow the navigation beneath it. */
+  body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) .rblx-shell-panel-head,
+  body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) .rblx-shell-nav-scroll,
+  body.rblx-mobile-shell .rblx-shell-left:has(.rblx-shell-auth details[open]) .rblx-shell-left-foot { display: none !important; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-header-actions:has(.rblx-shell-auth details[open]) { display: block !important; padding: 0 !important; border: 0 !important; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth:has(details[open]) { display: block !important; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth:has(details[open]) > :not(details[open]) { display: none !important; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth details[open] { display: block; width: 100%; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth details[open] > summary { display: none !important; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth details[open] > .rblx-shell-profile-menu-panel,
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-auth details[open] > .rblx-shell-notification-panel {
+    display: grid;
+    width: 100%;
+    min-height: min(590px, calc(100dvh - 76px));
+    margin: 0;
+    padding: 14px;
+    box-sizing: border-box;
+    border-radius: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-mobile-panel-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: fit-content;
+    min-height: 36px;
+    padding: 0 4px;
+    border: 0;
+    color: #9bd5ff;
+    background: transparent;
+    font: 900 12px Arial, sans-serif;
+    cursor: pointer;
+  }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-profile-menu-panel .rblx-shell-profile-menu-item { margin-top: 8px; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-notification-head { order: -1; padding: 0 0 10px; }
+  body.rblx-mobile-shell .rblx-shell-left .rblx-shell-notification-head strong { margin-right: auto; }
+
   body.rblx-mobile-shell .rblx-mobile-side-menu-button {
     position: fixed;
     top: 50%;
