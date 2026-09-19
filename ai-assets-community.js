@@ -245,13 +245,12 @@
       var profileTarget = event.target.closest && event.target.closest('[data-community-profile]');
       if (!profileTarget || profileTarget.contains(event.relatedTarget)) return;
       var profileId = String(profileTarget.dataset.communityProfile || '');
-      if (!profileId || !window.RBLXToolsProfile || typeof window.RBLXToolsProfile.open !== 'function') return;
+      if (!profileId || !window.RBLXToolsProfile || typeof window.RBLXToolsProfile.preview !== 'function') return;
       profileTarget.dataset.communityProfileHover = 'true';
-      request('/api/community-members/' + encodeURIComponent(profileId)).then(function (payload) {
-        if (!document.body.contains(profileTarget) || profileTarget.dataset.communityProfileHover !== 'true') return;
-        var member = payload.member || {};
-        window.RBLXToolsProfile.preview({ userId: String(member.id || profileId), displayName: String(member.name || 'Member'), avatarUrl: String(member.avatarUrl || ''), plan: String(member.plan || 'free') }, event);
-      }).catch(function () {});
+      var avatar = profileTarget.querySelector && profileTarget.querySelector('img');
+      var profile = { userId: profileId, displayName: String(profileTarget.dataset.communityProfileName || profileTarget.getAttribute('aria-label') || profileTarget.textContent || 'Member').replace(/^Open profile for\s*/i, '').trim() || 'Member', avatarUrl: avatar ? String(avatar.currentSrc || avatar.src || '') : '', plan: 'free' };
+      window.RBLXToolsProfile.preview(profile, event);
+      if (typeof window.RBLXToolsProfile.preload === 'function') window.RBLXToolsProfile.preload(profile);
     }, true);
 
     document.addEventListener('mouseout', function (event) {
@@ -588,6 +587,7 @@
   function bindAssetCardCreatorProfiles(root) {
     if (!root) return;
     root.querySelectorAll('[data-asset-member-profile]').forEach(function (profileLink) {
+      if (window.RBLXToolsProfile && typeof window.RBLXToolsProfile.preload === 'function') window.RBLXToolsProfile.preload({ userId: profileLink.dataset.assetMemberProfileId || '', displayName: profileLink.dataset.assetMemberProfileName || 'Member', avatarUrl: profileLink.dataset.assetMemberProfileAvatar || '', plan: 'free' });
       if (profileLink.dataset.assetMemberProfileBound === 'true') return;
       profileLink.dataset.assetMemberProfileBound = 'true';
       profileLink.addEventListener('mouseenter', function (event) {
@@ -679,6 +679,7 @@
     var host = document.getElementById('aiAssetsPostPanel');
     if (!host) return;
     host.querySelectorAll('[data-asset-member-profile]').forEach(function (profileLink) {
+      if (window.RBLXToolsProfile && typeof window.RBLXToolsProfile.preload === 'function') window.RBLXToolsProfile.preload({ userId: profileLink.dataset.assetMemberProfileId || '', displayName: profileLink.dataset.assetMemberProfileName || 'Member', avatarUrl: profileLink.dataset.assetMemberProfileAvatar || '', plan: 'free' });
       if (profileLink.dataset.assetMemberProfileBound === 'true') return;
       profileLink.dataset.assetMemberProfileBound = 'true';
       profileLink.addEventListener('mouseenter', function (event) {

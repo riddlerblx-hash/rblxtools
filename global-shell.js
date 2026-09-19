@@ -2035,6 +2035,7 @@
       });
       button.addEventListener("mouseleave", function () { window.RBLXToolsProfile.hidePreview(); });
     });
+    shellState.chatMessages.slice(-30).forEach(function (message) { warmProfilePreview(message); });
     if (shouldStickToBottom) {
       target.scrollTop = target.scrollHeight;
     } else {
@@ -2205,6 +2206,28 @@
     preview.style.top = Math.max(10, Math.min(window.innerHeight - height - 10, Number(y || 0) + 16)) + "px";
   }
 
+  // Start the two small member lookups while cards/messages are rendered, so a
+  // hover can use cached identity and follower data instead of making users wait.
+  function warmProfilePreview(profile) {
+    var profileId = String(profile && profile.userId || "");
+    if (!profileId) return;
+    var headers = getToken() ? { Authorization: 'Bearer ' + getToken() } : {};
+    if (!profilePreviewStatsCache[profileId] && !profilePreviewStatsCache[profileId + ':loading']) {
+      profilePreviewStatsCache[profileId + ':loading'] = true;
+      fetch('/api/members/' + encodeURIComponent(profileId), { credentials: 'include', headers: headers })
+        .then(function (response) { return response.ok ? response.json() : null; })
+        .then(function (payload) { if (payload) profilePreviewStatsCache[profileId] = { followerCount: payload.followerCount, followingCount: payload.followingCount, canViewMemberId: Boolean(payload.canViewMemberId) }; })
+        .catch(function () {}).finally(function () { delete profilePreviewStatsCache[profileId + ':loading']; });
+    }
+    if (!profilePreviewMemberCache[profileId] && !profilePreviewMemberCache[profileId + ':loading']) {
+      profilePreviewMemberCache[profileId + ':loading'] = true;
+      fetch('/api/community-members/' + encodeURIComponent(profileId), { credentials: 'include', headers: headers })
+        .then(function (response) { return response.ok ? response.json() : null; })
+        .then(function (payload) { var member = payload && payload.member; if (member) profilePreviewMemberCache[profileId] = { displayName: String(member.name || profile.displayName || 'Member'), avatarUrl: String(member.avatarUrl || ''), plan: String(member.plan || profile.plan || 'free') }; })
+        .catch(function () {}).finally(function () { delete profilePreviewMemberCache[profileId + ':loading']; });
+    }
+  }
+
   function previewProfile(profile, eventOrAnchor) {
     if (!profile) return;
     if (profilePreviewHideTimer) window.clearTimeout(profilePreviewHideTimer);
@@ -2239,7 +2262,8 @@
         }
       }).catch(function () {}).finally(function () { delete profilePreviewStatsCache[profileId + ':loading']; });
     }
-    if (profileId && !savedMember) {
+    if (profileId && !savedMember && !profilePreviewMemberCache[profileId + ':loading']) {
+      profilePreviewMemberCache[profileId + ':loading'] = true;
       fetch('/api/community-members/' + encodeURIComponent(profileId), { credentials: 'include', headers: getToken() ? { Authorization: 'Bearer ' + getToken() } : {} })
         .then(function (response) { return response.ok ? response.json() : null; })
         .then(function (payload) {
@@ -2256,7 +2280,7 @@
           var nameNode = profilePreview.querySelector('.rblx-shell-profile-preview-copy strong');
           if (nameNode) nameNode.textContent = resolved.displayName;
           profilePreview.className = 'rblx-shell-profile-preview is-' + (resolved.plan === 'pro' || resolved.plan === 'plus' ? resolved.plan : 'free');
-        }).catch(function () {});
+        }).catch(function () {}).finally(function () { delete profilePreviewMemberCache[profileId + ':loading']; });
     }
   }
 
@@ -2275,6 +2299,7 @@
     },
     close: closeProfileModal,
     preview: previewProfile,
+    preload: warmProfilePreview,
     hidePreview: hideProfilePreview,
     getCurrentIdentity: function () {
       var identity = getSocketChatIdentity() || {};

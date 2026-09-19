@@ -2205,9 +2205,12 @@
         assets.forEach(function (asset) {
           var row = document.createElement("article"); row.className = "admin-action-review-entry";
           row.style.display = "grid"; row.style.gridTemplateColumns = "58px minmax(0,1fr) auto"; row.style.gap = "12px"; row.style.alignItems = "center";
+          var cover = document.createElement("span"); cover.style.cssText = "position:relative;display:grid;place-items:center;width:58px;height:58px;overflow:hidden;border:1px solid rgba(130,177,235,.35);border-radius:10px;background:#13243b;color:#a8c9ef;font:900 13px system-ui";
           var image = document.createElement("img"); image.src = asset.coverUrl; image.alt = ""; image.width = 58; image.height = 58;
-          image.style.cssText = "width:58px;height:58px;object-fit:cover;border-radius:10px;background:#13243b;border:1px solid rgba(130,177,235,.35)";
-          image.onerror = function () { image.remove(); };
+          image.style.cssText = "width:58px;height:58px;object-fit:cover";
+          var fallback = makeText("span", String(asset.title || "UGC").trim().slice(0, 2).toUpperCase()); fallback.hidden = true;
+          image.onerror = function () { image.hidden = true; fallback.hidden = false; };
+          cover.append(image, fallback);
           var info = document.createElement("div");
           var title = makeText("strong", asset.title || "Untitled UGC");
           var creator = makeText("div", "Made by " + (asset.creatorName || "RBLXTools member") + " · " + formatBytes(asset.modelBytes));
@@ -2227,7 +2230,7 @@
               await load();
             } catch (error) { status.textContent = error.message || "Could not remove the stored GLB."; action.disabled = false; action.textContent = "Remove GLB"; }
           };
-          row.append(image, info, action); list.appendChild(row);
+          row.append(cover, info, action); list.appendChild(row);
         });
       }
       async function load() {

@@ -8298,7 +8298,24 @@ app.get("/admin/ai-ugc-storage/:creatorId/:taskId/cover", async (req, res) => {
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const item = getPersistentAIUGCHistory(creatorId).find((entry) => String(entry.id) === taskId);
     if (!item) return res.status(404).json({ error: "This saved generation was not found." });
-    const cover = readStoredAIUGCCover(creatorId, taskId);
+    let cover = readStoredAIUGCCover(creatorId, taskId);
+    // Some older saved generations predate local-cover storage. Restore their
+    // cover on demand so admin cleanup still shows the actual UGC, not a blank
+    // placeholder. The saved GLB is never touched by this request.
+    if (!cover) {
+      let refreshedUrl = String(item.thumbnailUrl || "").trim();
+      let fetched = await fetchAIUGCCover(refreshedUrl);
+      if (!fetched) {
+        try {
+          const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
+          const task = await requestMeshy(getUGCTaskPath(taskType) + encodeURIComponent(taskId));
+          refreshedUrl = String(task.alpha_thumbnail_url || task.thumbnail_url || "").trim();
+          fetched = await fetchAIUGCCover(refreshedUrl);
+          if (refreshedUrl) updatePersistentAIUGCHistory(creatorId, taskId, { thumbnailUrl: refreshedUrl });
+        } catch (_error) {}
+      }
+      if (fetched) cover = storeAIUGCCover(creatorId, taskId, fetched.buffer) || fetched;
+    }
     if (!cover) return res.status(404).json({ error: "No local cover is available." });
     res.setHeader("Cache-Control", "private, max-age=600");
     res.type(cover.contentType);
