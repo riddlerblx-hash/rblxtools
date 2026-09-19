@@ -1487,13 +1487,13 @@
               '<div class="rblx-shell-footer-links">' +
                 '<a href="https://discord.gg/TMmBQgYK32" target="_blank" rel="noopener noreferrer">Discord</a>' +
                 '<a href="https://x.com/Reese28575571" target="_blank" rel="noopener noreferrer">X</a>' +
-                '<a href="https://www.youtube.com/@ItzReeseRBLX" target="_blank" rel="noopener noreferrer">YouTube</a>' +
+                '<a href="https://www.youtube.com/@OfficialRBLXTools" target="_blank" rel="noopener noreferrer">YouTube</a>' +
                 '<a href="https://www.twitch.tv/2muchreese" target="_blank" rel="noopener noreferrer">Twitch</a>' +
               "</div>" +
               '<div class="rblx-shell-footer-socials">' +
                 '<a href="https://discord.gg/TMmBQgYK32" target="_blank" rel="noopener noreferrer" aria-label="Discord">' + getSocialIcon("discord") + "</a>" +
                 '<a href="https://x.com/Reese28575571" target="_blank" rel="noopener noreferrer" aria-label="X">' + getSocialIcon("x") + "</a>" +
-                '<a href="https://www.youtube.com/@ItzReeseRBLX" target="_blank" rel="noopener noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + "</a>" +
+                '<a href="https://www.youtube.com/@OfficialRBLXTools" target="_blank" rel="noopener noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + "</a>" +
                 '<a href="https://www.twitch.tv/2muchreese" target="_blank" rel="noopener noreferrer" aria-label="Twitch">' + getSocialIcon("twitch") + "</a>" +
               "</div>" +
             "</section>" +
@@ -1710,7 +1710,7 @@
                 '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span>$5.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a></div>' +
                 '<div class="rblx-shell-socials">' +
                   '<a href="https://x.com/Reese28575571" target="_blank" rel="noreferrer" aria-label="X">' + getSocialIcon("x") + '</a>' +
-                  '<a href="https://www.youtube.com/@ItzReeseRBLX" target="_blank" rel="noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + '</a>' +
+                  '<a href="https://www.youtube.com/@OfficialRBLXTools" target="_blank" rel="noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + '</a>' +
                   '<a href="https://discord.gg/TMmBQgYK32" target="_blank" rel="noreferrer" aria-label="Discord">' + getSocialIcon("discord") + '</a>' +
                   '<a href="https://www.twitch.tv/2muchreese" target="_blank" rel="noreferrer" aria-label="Twitch">' + getSocialIcon("twitch") + '</a>' +
                 "</div>" +
@@ -4310,9 +4310,19 @@
     var nodes = Array.prototype.slice.call(document.body.childNodes);
     nodes.forEach(function (node) {
       if (node === document.getElementById("rblxShellRoot")) return;
-      if (node.nodeType === 1 && node.tagName === "SCRIPT") return;
+      if (node.nodeType === 1 && (node.tagName === "SCRIPT" || node.hasAttribute("data-rblx-shell-overlay"))) return;
       pageHost.appendChild(node);
     });
+  }
+
+  function promotePageOverlays(pageHost) {
+    if (!/^\/rewards\/?$/.test(window.location.pathname) || !pageHost) return;
+    var rewardModal = pageHost.querySelector("#modal.modal");
+    if (!rewardModal) return;
+    // Fixed overlays must be direct body children. Keeping this inside the
+    // shell content column makes some browsers position it at the page bottom.
+    rewardModal.setAttribute("data-rblx-shell-overlay", "true");
+    document.body.appendChild(rewardModal);
   }
 
   function placeSharedFooter(pageHost) {
@@ -4339,6 +4349,7 @@
 
     var moveNode = function (node) {
       if (node === document.getElementById("rblxShellRoot")) return;
+      if (node.nodeType === 1 && node.hasAttribute("data-rblx-shell-overlay")) return;
       pageHost.appendChild(node);
     };
     var observer = new MutationObserver(function (records) {
@@ -5414,6 +5425,7 @@
     applyPlanAtmosphere(initialState.plan);
     var pageHost = document.getElementById("rblxShellPage");
     movePageContent(pageHost);
+    promotePageOverlays(pageHost);
     removePageFaqs(pageHost);
     // Keep the shared footer outside individual page layouts so it always spans the shell center.
     pageHost.parentElement.insertAdjacentHTML("beforeend", buildFooterMarkup());

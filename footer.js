@@ -91,13 +91,13 @@ if (!shellJs.includes("function buildFooterMarkup() {")) {
               '<div class="rblx-shell-footer-links">' +
                 '<a href="https://discord.gg/TMmBQgYK32" target="_blank" rel="noopener noreferrer">Discord</a>' +
                 '<a href="https://x.com/Reese28575571" target="_blank" rel="noopener noreferrer">X</a>' +
-                '<a href="https://www.youtube.com/@ItzReeseRBLX" target="_blank" rel="noopener noreferrer">YouTube</a>' +
+                '<a href="https://www.youtube.com/@OfficialRBLXTools" target="_blank" rel="noopener noreferrer">YouTube</a>' +
                 '<a href="https://www.twitch.tv/2muchreese" target="_blank" rel="noopener noreferrer">Twitch</a>' +
               "</div>" +
               '<div class="rblx-shell-footer-socials">' +
                 '<a href="https://discord.gg/TMmBQgYK32" target="_blank" rel="noopener noreferrer" aria-label="Discord">' + getSocialIcon("discord") + "</a>" +
                 '<a href="https://x.com/Reese28575571" target="_blank" rel="noopener noreferrer" aria-label="X">' + getSocialIcon("x") + "</a>" +
-                '<a href="https://www.youtube.com/@ItzReeseRBLX" target="_blank" rel="noopener noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + "</a>" +
+                '<a href="https://www.youtube.com/@OfficialRBLXTools" target="_blank" rel="noopener noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + "</a>" +
                 '<a href="https://www.twitch.tv/2muchreese" target="_blank" rel="noopener noreferrer" aria-label="Twitch">' + getSocialIcon("twitch") + "</a>" +
               "</div>" +
             "</section>" +
