@@ -812,7 +812,7 @@
 
   <div class="admin-panel">
     <nav class="admin-workspace-nav" aria-label="Admin workspaces">
-      <button class="admin-workspace-tab" type="button" data-admin-tab="access" aria-selected="true">Member access</button><button class="admin-workspace-tab" type="button" data-admin-tab="live" aria-selected="false">Live events</button><button class="admin-workspace-tab" type="button" data-admin-tab="review" aria-selected="false">Code review</button><button class="admin-workspace-tab" type="button" data-admin-tab="maintenance" aria-selected="false">Maintenance</button>
+      <button class="admin-workspace-tab" type="button" data-admin-tab="access" aria-selected="true">Member access</button><button class="admin-workspace-tab" type="button" data-admin-tab="live" aria-selected="false">Live events</button><button class="admin-workspace-tab" type="button" data-admin-tab="review" aria-selected="false">Code review</button><button class="admin-workspace-tab" type="button" data-admin-tab="storage" aria-selected="false">UGC storage</button><button class="admin-workspace-tab" type="button" data-admin-tab="maintenance" aria-selected="false">Maintenance</button>
     </nav>
 
     <section class="admin-card admin-session-card" data-admin-workspace="access">
@@ -1185,6 +1185,15 @@
       <div class="admin-card-inner">
         <div class="admin-card-head"><div><h2 class="admin-card-title">Requested Games</h2><p class="admin-card-copy">Review member game requests and optional code notes here, away from the public Codes page.</p></div><button class="admin-btn ghost" id="refreshCodeGameRequestsButton" type="button">Refresh</button></div>
         <div class="admin-note-log" id="codeGameRequestsLog">Loading game requests...</div>
+      </div>
+    </section>
+
+    <div class="admin-section-label" data-admin-workspace="storage"><span>AI UGC storage</span><h2>Saved Model Storage</h2><p>Review locally stored GLBs without changing members’ saved-generation records.</p></div>
+    <section class="admin-card" data-admin-workspace="storage">
+      <div class="admin-card-inner">
+        <div class="admin-card-head"><div><h2 class="admin-card-title">AI UGC GLB Cleanup</h2><p class="admin-card-copy">Removing a GLB frees only the local server copy. It does not remove the member’s saved-generation card or their Community history.</p></div><button class="admin-btn ghost" id="refreshAIUGCStorageButton" type="button">Refresh</button></div>
+        <div class="admin-result" id="aiUGCStorageStatus">Loading stored UGC models...</div>
+        <div class="admin-action-review-list" id="aiUGCStorageList"></div>
       </div>
     </section>
 
@@ -1975,7 +1984,7 @@
       var tabs = Array.prototype.slice.call(document.querySelectorAll("[data-admin-tab]"));
       var panels = Array.prototype.slice.call(document.querySelectorAll("[data-admin-workspace]"));
       function selectWorkspace(name) {
-        var active = ["access", "live", "review", "maintenance"].includes(name) ? name : "access";
+        var active = ["access", "live", "review", "storage", "maintenance"].includes(name) ? name : "access";
         panels.forEach(function (panel) { panel.hidden = panel.dataset.adminWorkspace !== active; });
         tabs.forEach(function (tab) { tab.setAttribute("aria-selected", String(tab.dataset.adminTab === active)); });
         try { history.replaceState(null, "", location.pathname + "#" + active); } catch (_error) {}
@@ -2175,6 +2184,65 @@
     }());
   </script>
   <script src="./maintenance-admin.js"></script>
+  <script>
+    (function () {
+      var list = document.getElementById("aiUGCStorageList");
+      var refresh = document.getElementById("refreshAIUGCStorageButton");
+      var status = document.getElementById("aiUGCStorageStatus");
+      if (!list || !refresh || !status) return;
+      function formatBytes(value) {
+        var bytes = Math.max(0, Number(value || 0));
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+        return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+      }
+      function makeText(tag, value) { var node = document.createElement(tag); node.textContent = value; return node; }
+      function render(payload) {
+        var assets = Array.isArray(payload.assets) ? payload.assets : [];
+        status.textContent = assets.length + " saved generation" + (assets.length === 1 ? "" : "s") + " · " + formatBytes(payload.totalBytes) + " stored locally.";
+        list.replaceChildren();
+        if (!assets.length) { list.appendChild(makeText("p", "No saved AI UGC generations were found.")); return; }
+        assets.forEach(function (asset) {
+          var row = document.createElement("article"); row.className = "admin-action-review-entry";
+          row.style.display = "grid"; row.style.gridTemplateColumns = "58px minmax(0,1fr) auto"; row.style.gap = "12px"; row.style.alignItems = "center";
+          var image = document.createElement("img"); image.src = asset.coverUrl; image.alt = ""; image.width = 58; image.height = 58;
+          image.style.cssText = "width:58px;height:58px;object-fit:cover;border-radius:10px;background:#13243b;border:1px solid rgba(130,177,235,.35)";
+          image.onerror = function () { image.remove(); };
+          var info = document.createElement("div");
+          var title = makeText("strong", asset.title || "Untitled UGC");
+          var creator = makeText("div", "Made by " + (asset.creatorName || "RBLXTools member") + " · " + formatBytes(asset.modelBytes));
+          creator.className = "admin-status-copy";
+          var meta = makeText("div", (asset.isPublic ? "Listed in Community" : "Not listed in Community") + (asset.createdAt ? " · " + new Date(asset.createdAt).toLocaleDateString() : ""));
+          meta.className = "admin-status-copy";
+          info.append(title, creator, meta);
+          var action = document.createElement("button"); action.className = "admin-btn red"; action.type = "button";
+          action.textContent = asset.modelBytes ? "Remove GLB" : "GLB removed"; action.disabled = !asset.modelBytes;
+          action.onclick = async function () {
+            if (!window.confirm("Remove the local GLB for “" + (asset.title || "this generation") + "”? This keeps the saved-generation entry and only frees " + formatBytes(asset.modelBytes) + " from server storage.")) return;
+            action.disabled = true; action.textContent = "Removing...";
+            try {
+              var response = await fetch("/admin/ai-ugc-storage/" + encodeURIComponent(asset.creatorId) + "/" + encodeURIComponent(asset.id) + "/model", { method: "DELETE", credentials: "include" });
+              var result = await response.json().catch(function () { return {}; });
+              if (!response.ok) throw new Error(result.error || "Could not remove the stored GLB.");
+              await load();
+            } catch (error) { status.textContent = error.message || "Could not remove the stored GLB."; action.disabled = false; action.textContent = "Remove GLB"; }
+          };
+          row.append(image, info, action); list.appendChild(row);
+        });
+      }
+      async function load() {
+        refresh.disabled = true; status.textContent = "Loading stored UGC models...";
+        try {
+          var response = await fetch("/admin/ai-ugc-storage", { credentials: "include", cache: "no-store" });
+          var payload = await response.json().catch(function () { return {}; });
+          if (!response.ok) throw new Error(payload.error || "Could not load AI UGC storage.");
+          render(payload);
+        } catch (error) { status.textContent = error.message || "Could not load AI UGC storage."; }
+        finally { refresh.disabled = false; }
+      }
+      refresh.addEventListener("click", load); load();
+    }());
+  </script>
 </body>
 </html>
 

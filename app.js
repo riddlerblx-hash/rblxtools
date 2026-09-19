@@ -8253,10 +8253,75 @@ app.delete("/api/ugc/community/:taskId", async (req, res) => {
       title: cleanText(item.title || "Untitled UGC", 90),
     };
     writeAIUGCCommunityState(state);
-    try { fs.rmSync(getStoredAIUGCModelPath(item.creatorId, taskId), { force: true }); } catch (_error) {}
     return res.json({ ok: true, taskId });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Only admins can delete AI community assets." });
+  }
+});
+
+// Community moderation only changes the public gallery. The creator's saved
+// generation and its archived GLB remain untouched unless an admin explicitly
+// runs the separate storage-cleanup action below.
+app.get("/admin/ai-ugc-storage", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const history = readPersistentAIUGCHistory();
+    const community = readAIUGCCommunityState();
+    const assets = Object.entries(history.users || {}).flatMap(([creatorId, entries]) =>
+      (Array.isArray(entries) ? entries : []).map((item) => {
+        const taskId = String(item?.id || "");
+        const modelPath = getStoredAIUGCModelPath(creatorId, taskId);
+        let modelBytes = 0;
+        try { modelBytes = fs.existsSync(modelPath) ? fs.statSync(modelPath).size : 0; } catch (_error) {}
+        return {
+          id: taskId,
+          creatorId: String(creatorId),
+          creatorName: cleanText(item?.creatorName || "RBLXTools member", 80),
+          title: cleanText(item?.title || "Untitled UGC", 90),
+          createdAt: item?.createdAt || null,
+          modelBytes,
+          isPublic: Boolean(community.assets?.[taskId]),
+          coverUrl: `/admin/ai-ugc-storage/${encodeURIComponent(creatorId)}/${encodeURIComponent(taskId)}/cover`,
+        };
+      })
+    ).filter((item) => item.id).sort((left, right) => Number(right.modelBytes) - Number(left.modelBytes) || Date.parse(String(right.createdAt || 0)) - Date.parse(String(left.createdAt || 0)));
+    return res.json({ ok: true, assets, totalBytes: assets.reduce((total, item) => total + Number(item.modelBytes || 0), 0) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load AI UGC storage." });
+  }
+});
+
+app.get("/admin/ai-ugc-storage/:creatorId/:taskId/cover", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const creatorId = String(req.params.creatorId || "");
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    const item = getPersistentAIUGCHistory(creatorId).find((entry) => String(entry.id) === taskId);
+    if (!item) return res.status(404).json({ error: "This saved generation was not found." });
+    const cover = readStoredAIUGCCover(creatorId, taskId);
+    if (!cover) return res.status(404).json({ error: "No local cover is available." });
+    res.setHeader("Cache-Control", "private, max-age=600");
+    res.type(cover.contentType);
+    return res.send(cover.buffer);
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the UGC cover." });
+  }
+});
+
+app.delete("/admin/ai-ugc-storage/:creatorId/:taskId/model", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const creatorId = String(req.params.creatorId || "");
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    const item = getPersistentAIUGCHistory(creatorId).find((entry) => String(entry.id) === taskId);
+    if (!item) return res.status(404).json({ error: "This saved generation was not found." });
+    const modelPath = getStoredAIUGCModelPath(creatorId, taskId);
+    let reclaimedBytes = 0;
+    try { reclaimedBytes = fs.existsSync(modelPath) ? fs.statSync(modelPath).size : 0; } catch (_error) {}
+    fs.rmSync(modelPath, { force: true });
+    return res.json({ ok: true, taskId, reclaimedBytes });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not remove the stored GLB." });
   }
 });
 
