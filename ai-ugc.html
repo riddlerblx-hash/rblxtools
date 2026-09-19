@@ -124,9 +124,19 @@
     .ugc-history-item{border-color:rgba(137,183,244,.2);background:rgba(8,17,31,.6);transition:transform .16s ease,border-color .16s ease,background .16s ease}
     .ugc-history-item:hover{transform:translateY(-2px);border-color:rgba(131,188,255,.62);background:rgba(25,56,96,.72)}
     body.ugc-generation-active .ugc-workspace-head{box-shadow:inset 0 -2px #ff6f82}body.ugc-generation-active .ugc-kicker#ugcPhase{color:#ffb7c1}
+    /* Keep the final model handoff in the same polished loading state. */
+    .ugc-result.is-loading .ugc-preview-wrap { display:grid; place-items:center; background:radial-gradient(circle at 50% 44%,rgba(96,157,255,.2),rgba(11,20,39,.88) 50%,rgba(5,10,20,.98) 100%); }
+    .ugc-result.is-loading .ugc-hologram-loader { inset:0; overflow:hidden; background:radial-gradient(circle at 50% 50%,rgba(80,151,255,.12),transparent 48%); }
+    .ugc-result.is-loading .ugc-hologram-loader::before { inset:auto; width:210px; height:210px; border:0; border-radius:50%; background:conic-gradient(from 25deg,rgba(255,103,129,.18),#ff657d 16%,#7d9cff 39%,#6ee4ff 62%,#ff657d 84%,rgba(255,103,129,.18)); -webkit-mask:radial-gradient(transparent 57%,#000 59%); mask:radial-gradient(transparent 57%,#000 59%); box-shadow:0 0 32px rgba(104,174,255,.34),0 0 86px rgba(110,125,255,.2); animation:ugcLoaderOrbit 2.4s linear infinite; }
+    .ugc-result.is-loading .ugc-hologram-loader::after { content:"✦"; position:absolute; display:grid; place-items:center; width:62px; height:62px; border:1px solid rgba(202,224,255,.5); border-radius:20px; color:#fff; font-size:27px; background:linear-gradient(145deg,rgba(255,112,135,.96),rgba(110,140,255,.96)); box-shadow:0 12px 36px rgba(4,10,26,.55),0 0 30px rgba(133,167,255,.34); animation:ugcLoaderCore 1.8s ease-in-out infinite; }
+    .ugc-result.is-loading .ugc-hologram-loader span { display:block; z-index:1; margin-top:304px; color:#f7fbff; font-size:13px; letter-spacing:.11em; text-shadow:0 2px 16px rgba(0,0,0,.7); }
+    .ugc-result.is-loading .ugc-hologram-loader small { display:block; z-index:1; margin-top:344px; color:#aabbd8; font-size:11px; letter-spacing:.01em; }
+    @keyframes ugcLoaderOrbit { to { transform:rotate(360deg); } }
+    @keyframes ugcLoaderCore { 0%,100% { transform:scale(.92) rotate(0deg); } 50% { transform:scale(1.08) rotate(10deg); } }
     @media(max-width:1180px){ .ugc-layout{grid-template-columns:minmax(220px,250px) minmax(0,1fr);}.ugc-library{grid-column:1/-1; max-height:260px;} .ugc-history-list{max-height:150px;} }
     @media(max-width:900px){ .ugc-layout{grid-template-columns:minmax(190px,224px) minmax(0,1fr);} .ugc-studio{padding:10px;} .ugc-stage{padding:24px 18px;} .ugc-viewer-footer{white-space:normal;} }
     @media(max-width:720px){ body.rblx-ugc-studio-page{overflow-x:hidden;overflow-y:auto;} .ugc-studio{width:100%;padding:10px 10px 120px;overflow:visible;}.ugc-layout{width:100%;min-height:auto;display:grid;grid-template-columns:1fr;gap:12px;}.ugc-left{order:1;margin-bottom:0;}.ugc-workspace{order:2;min-height:560px;}.ugc-library{order:3;display:flex;max-height:none;}.ugc-history-list{max-height:260px;}.ugc-stage{min-height:430px;padding:22px 15px;}.ugc-panel{border-radius:14px;}.ugc-poly-guide{width:min(275px,calc(100vw - 24px));}.ugc-viewer-footer{left:10px;right:10px;bottom:14px;max-width:none;transform:none;justify-content:center;flex-wrap:wrap;white-space:normal;}.ugc-result.is-loading .ugc-preview-wrap{width:142px;height:142px;}.ugc-result h2{font-size:21px;}.ugc-empty h1{font-size:28px;} }
+    @media(max-width:720px){ .ugc-result.is-loading .ugc-preview-wrap{inset:0;width:100%;height:100%;} .ugc-result.is-loading .ugc-hologram-loader::before{width:172px;height:172px;} .ugc-result.is-loading .ugc-hologram-loader span{margin-top:262px;font-size:11px;} .ugc-result.is-loading .ugc-hologram-loader small{margin-top:296px;font-size:10px;} }
   </style>
 </head>
 <body class="rblx-shell-page rblx-ugc-studio-page">
@@ -242,6 +252,72 @@
       document.querySelectorAll('[data-ugc-feedback]').forEach(function(button){button.addEventListener('click',function(event){event.stopImmediatePropagation();persistViewerFeedback(button.getAttribute('data-ugc-feedback'),0);},true);});
       document.querySelectorAll('[data-ugc-rating]').forEach(function(button){button.addEventListener('click',function(event){event.stopImmediatePropagation();persistViewerFeedback('',Number(button.getAttribute('data-ugc-rating')));},true);});
       document.getElementById('ugcDownload').addEventListener('click',async function(event){event.preventDefault();event.stopImmediatePropagation();if(!download.href)return;var oldText=download.textContent;download.textContent='Preparing GLB...';download.setAttribute('aria-busy','true');try{var response=await fetchDownload(download.href);if(!response.ok){var payload=await response.json().catch(function(){return null;});throw new Error(payload&&payload.error||'Could not download this GLB.');}var buffer=await response.arrayBuffer();var header=String.fromCharCode.apply(null,new Uint8Array(buffer.slice(0,4)));if(header!=='glTF')throw new Error('The downloaded model was not a valid GLB. Please regenerate it.');var blob=new Blob([buffer],{type:'model/gltf-binary'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='rblxtools-'+currentAssetType+'-'+currentTaskId+'.glb';document.body.appendChild(link);link.click();link.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);showToast('Downloaded Roblox-ready GLB.');}catch(error){console.warn(error);showToast(error.message||'Could not download this GLB.');}finally{download.textContent=oldText;download.removeAttribute('aria-busy');}},true);
+      /* Do not drop the loader until the WebGL viewer has actually mounted. */
+      async function pollBatchTasks() {
+        if (!batchTasks.length) return;
+        try {
+          var responses=await Promise.all(batchTasks.map(function(item){
+            return fetch('/ai/ugc/tasks/'+encodeURIComponent(item.id)+'?type=image',authOptions('GET')).then(function(response){return response.json().then(function(payload){return {response:response,payload:payload};});});
+          }));
+          var completed=0,totalProgress=0,firstReady=null;
+          responses.forEach(function(entry,index){
+            var item=batchTasks[index],task=entry.payload&&entry.payload.task;
+            if(!entry.response.ok||!task){ item.status='FAILED'; completed++; return; }
+            item.status=task.status;
+            item.progress=Math.max(3,Math.min(100,Number(task.progress)||0));
+            totalProgress+=item.progress;
+            if(task.status==='SUCCEEDED'){
+              completed++;
+              if(!item.saved){ item.saved=true; saveHistory(item.id,item.label); }
+              if(!firstReady) firstReady={item:item,task:task};
+            } else if(task.status==='FAILED'||task.status==='CANCELED') completed++;
+          });
+          progress.style.width=Math.max(4,Math.round(totalProgress/batchTasks.length))+'%';
+          if(firstReady&&!currentTaskId){
+            currentTaskId=firstReady.item.id; currentTaskType='image'; currentStage='image';
+            preview.src=firstReady.task.thumbnailUrl||'';
+            download.href='/ai/ugc/tasks/'+encodeURIComponent(currentTaskId)+'/download?type=image&assetType='+encodeURIComponent(currentAssetType);
+            download.hidden=false;
+          }
+          if(completed>=batchTasks.length){
+            phase.textContent='Preparing 3D preview';
+            title.textContent='Preparing your first batch model';
+            status.textContent='All models are complete. Loading the first one in the interactive 3D viewer...';
+            progress.style.width='100%';
+            if(currentTaskId) return loadViewer(download.href);
+            setBusy(false); return;
+          }
+          status.textContent=completed+' of '+batchTasks.length+' models complete. Remaining models are still generating.';
+          timer=setTimeout(pollBatchTasks,3000);
+        } catch(error) { setBusy(false); phase.textContent='Connection issue'; status.textContent=error.message||'Could not check the image batch.'; showToast(status.textContent); }
+      }
+      async function pollTask() {
+        if (!currentTaskId) return;
+        try {
+          var response=await fetch('/ai/ugc/tasks/'+encodeURIComponent(currentTaskId)+'?type='+encodeURIComponent(currentTaskType),authOptions('GET'));
+          var payload=await response.json().catch(function(){return null;});
+          if(!response.ok||!payload||!payload.task) throw new Error(payload&&payload.error||'Could not check the UGC task.');
+          var task=payload.task, pct=Math.max(3,Math.min(100,Number(task.progress)||0));
+          progress.style.width=pct+'%';
+          if(task.thumbnailUrl) preview.src=task.thumbnailUrl;
+          if(task.status==='SUCCEEDED'){
+            if(currentStage==='preview'&&currentTextureMode==='texture'){ status.textContent='Preview complete. Starting the selected texture pass...'; return startRefine(); }
+            progress.style.width='100%';
+            var textured=currentTextureMode==='texture';
+            phase.textContent='Preparing 3D preview';
+            title.textContent=textured?'Your textured model is ready':'Your geometry-only model is ready';
+            status.textContent='Final model ready. Loading the interactive 3D preview...';
+            if(task.modelUrls&&task.modelUrls.glb){
+              var modelUrl='/ai/ugc/tasks/'+encodeURIComponent(currentTaskId)+'/download?type='+encodeURIComponent(currentTaskType)+'&assetType='+encodeURIComponent(currentAssetType);
+              download.href=modelUrl; download.hidden=false; saveHistory(); return loadViewer(modelUrl);
+            }
+            saveHistory(); setBusy(false); return;
+          }
+          if(task.status==='FAILED'||task.status==='CANCELED'){ setBusy(false); phase.textContent='Generation failed'; status.textContent=task.error||'The UGC task could not be completed.'; showToast(status.textContent); return; }
+          status.textContent=(currentStage==='refine'?'Texturing':'Building your UGC')+' - '+pct+'% complete';
+          timer=setTimeout(pollTask,3000);
+        } catch(error) { setBusy(false); phase.textContent='Connection issue'; status.textContent=error.message||'Could not check task status.'; showToast(status.textContent); }
+      }
       setInputMode('text'); setTextureMode('texture'); setAssetType('ugc'); loadEntitlements().then(loadHistory);
     })();
   </script>
