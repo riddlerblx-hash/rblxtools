@@ -5610,7 +5610,6 @@
       cards.forEach(function (card) {
         var heading = card.querySelector("h3"), pointText = card.querySelector(".price"), pill = card.querySelector(".pill.manual"), cardTitle = heading && heading.textContent || "";
         if (pill) pill.textContent = "1-7 days";
-        if (/RBLXTools Cash/i.test(cardTitle)) card.dataset.rewardCash = "true";
         if (/Gift Card/i.test(cardTitle)) {
           card.dataset.rewardBrand = cardTitle.replace(/^\$5\s*-\s*\$100\s*/i, "").trim();
           card.dataset.rewardBasePoints = String(Number((String(pointText && pointText.textContent || "").match(/[\d,]+/) || ["0"])[0].replace(/,/g, "")) || 0);
@@ -5650,7 +5649,7 @@
         terms.textContent = "The amount is credited instantly to your RBLXTools balance and can be selected to the cent.";
         redeem.textContent = pointBalance >= pointsNeeded ? "Convert to RBLXTools Cash" : "Not enough points"; redeem.disabled = pointBalance < pointsNeeded;
         range.oninput = function () { selectedCashCents = Number(range.value); renderCashControls(); };
-        input.onchange = function () { selectedCashCents = Math.round(Number(input.value) * 100); renderCashControls(); };
+        input.oninput = function () { selectedCashCents = Math.round(Number(input.value) * 100); renderCashControls(); };
       }
       function renderOptions() {
         var gift = isGift(), base = selectedBasePoints; options.hidden = !gift; prompt.hidden = !gift; cashControls.hidden = true;
@@ -5664,7 +5663,7 @@
       document.addEventListener("click", function (event) {
         var card = event.target.closest(".reward");
         if (!card) return;
-        setTimeout(function () { cashMode = card.dataset.rewardCash === "true"; selectedBrand = cashMode ? "" : String(card.dataset.rewardBrand || ""); selectedBasePoints = Number(card.dataset.rewardBasePoints || 0); selectedAmount = 5; selectedCashCents = 100; if (cashMode) renderCashControls(); else { renderOptions(); if (isGift()) { desc.textContent = "Choose $5, $10, $25, $50, or $100. Point costs scale from this card’s $5 price."; terms.textContent = "Your request is shown in Account Overview and fulfilled within 1-7 days."; } } }, 0);
+        setTimeout(function () { cashMode = String(card.dataset.id || "") === "cash"; selectedBrand = cashMode ? "" : String(card.dataset.rewardBrand || ""); selectedBasePoints = Number(card.dataset.rewardBasePoints || 0); selectedAmount = 5; selectedCashCents = 100; if (cashMode) renderCashControls(); else { renderOptions(); if (isGift()) { desc.textContent = "Choose $5, $10, $25, $50, or $100. Point costs scale from this card’s $5 price."; terms.textContent = "Your request is shown in Account Overview and fulfilled within 1-7 days."; } } }, 0);
       });
       redeem.onclick = async function () {
         if (cashMode) {
