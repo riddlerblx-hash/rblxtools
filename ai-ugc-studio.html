@@ -133,6 +133,15 @@
     .ugc-result.is-loading .ugc-hologram-loader small { display:block; z-index:1; margin-top:344px; color:#aabbd8; font-size:11px; letter-spacing:.01em; }
     @keyframes ugcLoaderOrbit { to { transform:rotate(360deg); } }
     @keyframes ugcLoaderCore { 0%,100% { transform:scale(.92) rotate(0deg); } 50% { transform:scale(1.08) rotate(10deg); } }
+    .ugc-history-list { padding-right:2px; }
+    .ugc-history-capacity { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:10px; }
+    .ugc-history-capacity-slot { min-height:72px; padding:9px; border:1px dashed rgba(138,184,244,.25); border-radius:11px; background:linear-gradient(145deg,rgba(20,39,68,.55),rgba(8,16,30,.68)); display:grid; align-content:center; gap:3px; color:#d9e7ff; text-align:left; }
+    .ugc-history-capacity-slot strong { font-size:10px; letter-spacing:.02em; }.ugc-history-capacity-slot small { color:#91a3bf; font-size:9px; font-weight:700; line-height:1.25; }
+    .ugc-history-capacity-slot .ugc-slot-mark { color:#79b6ff; font-size:16px; line-height:1; }
+    .ugc-history-capacity-slot.is-locked { border-style:solid; border-color:rgba(255,138,157,.18); background:linear-gradient(145deg,rgba(37,22,38,.56),rgba(11,16,29,.82)); opacity:.78; }
+    .ugc-history-capacity-slot.is-locked .ugc-slot-mark { color:#ff9ba9; }.ugc-history-capacity-slot.is-locked strong { color:#d3c2cb; }.ugc-history-capacity-slot.is-locked small { color:#a794a0; }
+    .ugc-history-capacity-slot.is-locked a { color:#ffabb7; text-decoration:none; font-weight:900; }
+    .ugc-history-slot { margin-bottom:8px; }
     @media(max-width:1180px){ .ugc-layout{grid-template-columns:minmax(220px,250px) minmax(0,1fr);}.ugc-library{grid-column:1/-1; max-height:260px;} .ugc-history-list{max-height:150px;} }
     @media(max-width:900px){ .ugc-layout{grid-template-columns:minmax(190px,224px) minmax(0,1fr);} .ugc-studio{padding:10px;} .ugc-stage{padding:24px 18px;} .ugc-viewer-footer{white-space:normal;} }
     @media(max-width:720px){ body.rblx-ugc-studio-page{overflow-x:hidden;overflow-y:auto;} .ugc-studio{width:100%;padding:10px 10px 120px;overflow:visible;}.ugc-layout{width:100%;min-height:auto;display:grid;grid-template-columns:1fr;gap:12px;}.ugc-left{order:1;margin-bottom:0;}.ugc-workspace{order:2;min-height:560px;}.ugc-library{order:3;display:flex;max-height:none;}.ugc-history-list{max-height:260px;}.ugc-stage{min-height:430px;padding:22px 15px;}.ugc-panel{border-radius:14px;}.ugc-poly-guide{width:min(275px,calc(100vw - 24px));}.ugc-viewer-footer{left:10px;right:10px;bottom:14px;max-width:none;transform:none;justify-content:center;flex-wrap:wrap;white-space:normal;}.ugc-result.is-loading .ugc-preview-wrap{width:142px;height:142px;}.ugc-result h2{font-size:21px;}.ugc-empty h1{font-size:28px;} }
@@ -317,6 +326,47 @@
           status.textContent=(currentStage==='refine'?'Texturing':'Building your UGC')+' - '+pct+'% complete';
           timer=setTimeout(pollTask,3000);
         } catch(error) { setBusy(false); phase.textContent='Connection issue'; status.textContent=error.message||'Could not check task status.'; showToast(status.textContent); }
+      }
+      function updateHistorySlot() {
+        var used=Math.min(historyItems.length,historyLimit);
+        historySlot.textContent=used+' of '+historyLimit+' saved slots used';
+      }
+      function renderHistory() {
+        var query=String(historySearch.value||'').trim().toLowerCase();
+        historyList.replaceChildren();
+        var items=historyItems.filter(function(item){return !query||historyLabel(item).toLowerCase().indexOf(query)>=0;});
+        if(!items.length&&query){ var emptyState=document.createElement('p'); emptyState.className='ugc-history-empty'; emptyState.textContent='No saved generation matches that search.'; historyList.appendChild(emptyState); }
+        items.forEach(function(item){
+          var row=document.createElement('div'); row.className='ugc-history-row';
+          var button=document.createElement('button'); button.type='button'; button.className='ugc-history-item';
+          var image=document.createElement('span'); image.className='ugc-history-image'; var thumbnail=document.createElement('img'); thumbnail.alt=''; image.appendChild(thumbnail); loadHistoryCover(thumbnail,item);
+          var copy=document.createElement('span'); copy.className='ugc-history-copy'; var itemTitle=document.createElement('strong'); itemTitle.textContent=historyLabel(item);
+          var meta=document.createElement('span'); meta.textContent=(item.assetType==='game'?'Game asset':'UGC')+' · '+(item.textured?'Textured':'Geometry');
+          copy.appendChild(itemTitle); copy.appendChild(meta); button.appendChild(image); button.appendChild(copy); button.addEventListener('click',function(){openHistoryItem(item);});
+          var remove=document.createElement('button'); remove.type='button'; remove.className='ugc-history-delete'; remove.setAttribute('aria-label','Delete '+historyLabel(item)); remove.title='Delete saved generation'; remove.innerHTML='&times;'; remove.addEventListener('click',function(event){event.stopPropagation();deleteHistoryItem(item);});
+          row.appendChild(button); row.appendChild(remove); historyList.appendChild(row);
+        });
+        if(!query){
+          var capacity=document.createElement('div'); capacity.className='ugc-history-capacity';
+          var maxSlots=18;
+          for(var slot=items.length;slot<maxSlots;slot++){
+            var tier=slot<3?'Starter':slot<6?'Plus':'Pro', unlocked=slot<historyLimit, card=document.createElement('div');
+            card.className='ugc-history-capacity-slot'+(unlocked?'':' is-locked');
+            if(unlocked){ card.innerHTML='<span class="ugc-slot-mark">＋</span><strong>Empty '+tier+' slot</strong><small>Ready for your next model</small>'; }
+            else { var upgrade=tier==='Plus'?'Upgrade to Plus or Pro':'Upgrade to Pro'; card.innerHTML='<span class="ugc-slot-mark">🔒</span><strong>'+tier+' slot locked</strong><small><a href="./subscriptions">'+upgrade+'</a> for more space</small>'; }
+            capacity.appendChild(card);
+          }
+          historyList.appendChild(capacity);
+        }
+        updateHistorySlot();
+      }
+      function openHistoryItem(item) {
+        currentTaskId=item.id; currentTaskType=item.taskType==='multi'?'multi':item.inputMode==='image'?'image':'text'; currentAssetType=item.assetType==='game'?'game':'ugc'; currentTextureMode=item.textured?'texture':'none';
+        document.getElementById('ugcAllowPublicDownloads').checked=Boolean(item.allowPublicDownloads);
+        showResult(); result.classList.remove('is-viewer-mode'); setBusy(true); updateViewerFeedback(item);
+        title.textContent='Preparing your 3D preview'; status.textContent='Opening your saved model...'; phase.textContent='Preparing 3D preview'; progress.style.width='16%'; preview.hidden=true; preview.removeAttribute('src');
+        var modelUrl='/ai/ugc/tasks/'+encodeURIComponent(currentTaskId)+'/download?type='+encodeURIComponent(currentTaskType)+'&assetType='+encodeURIComponent(currentAssetType);
+        download.href=modelUrl; download.hidden=false; loadViewer(modelUrl);
       }
       setInputMode('text'); setTextureMode('texture'); setAssetType('ugc'); loadEntitlements().then(loadHistory);
     })();
