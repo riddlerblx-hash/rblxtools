@@ -84,3 +84,46 @@ begin
   return redemption;
 end;
 $$;
+
+-- Instant cash conversion is server-only. The API uses the service-role key
+-- after authenticating the member, so browser clients cannot debit another
+-- member by calling this RPC with a different UUID.
+alter table reward_point_transactions drop constraint if exists reward_point_transactions_source_type_check;
+alter table reward_point_transactions add constraint reward_point_transactions_source_type_check
+  check (source_type in ('working_code','expired_code_report','gift_card_request','rblxtools_cash_conversion'));
+
+create or replace function redeem_rblxtools_cash(p_user_id uuid, p_cash_cents integer)
+returns table(reward_points integer, rblxtools_cash_cents integer, points_spent integer)
+language plpgsql security definer set search_path = public
+as $$
+declare
+  account member_accounts;
+  spend integer;
+begin
+  if p_cash_cents is null or p_cash_cents < 100 or p_cash_cents > 10000 then
+    raise exception 'Choose an RBLXTools Cash amount from $1.00 to $100.00';
+  end if;
+  spend := p_cash_cents * 10;
+  select * into account from member_accounts where id = p_user_id for update;
+  if not found then raise exception 'Account not found'; end if;
+  if coalesce(account.reward_points, 0) < spend then raise exception 'You do not have enough approved RBLX Points for that amount'; end if;
+
+  update member_accounts
+  set reward_points = reward_points - spend,
+      rblxtools_cash_cents = coalesce(rblxtools_cash_cents, 0) + p_cash_cents,
+      updated_at = now()
+  where id = p_user_id
+  returning member_accounts.reward_points, member_accounts.rblxtools_cash_cents into reward_points, rblxtools_cash_cents;
+
+  insert into reward_point_transactions (user_id, source_type, source_id, title, points_delta, status, note)
+  values (p_user_id, 'rblxtools_cash_conversion', gen_random_uuid(),
+    'Converted points into $' || to_char(p_cash_cents / 100.0, 'FM999999990.00') || ' RBLXTools Cash',
+    -spend, 'approved', 'Instant RBLXTools Cash conversion');
+
+  points_spent := spend;
+  return next;
+end;
+$$;
+
+revoke all on function redeem_rblxtools_cash(uuid, integer) from public, anon, authenticated;
+grant execute on function redeem_rblxtools_cash(uuid, integer) to service_role;

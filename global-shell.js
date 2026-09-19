@@ -4022,7 +4022,7 @@
         .then(function (response) { return response.ok ? response.json() : null; })
         .then(function (payload) {
           var balance = document.getElementById("rblxShellReferralBalance");
-          if (balance && payload && payload.referral) balance.textContent = "$" + ((Number(payload.referral.availableCents) || 0) / 100).toFixed(2);
+          if (balance && payload && payload.referral) balance.textContent = "$" + ((Number(payload.referral.totalBalanceCents != null ? payload.referral.totalBalanceCents : payload.referral.availableCents) || 0) / 100).toFixed(2);
         }).catch(function () {});
     }
     refreshCommunityNotifications();
@@ -5595,13 +5595,17 @@
     style.textContent = ".modal-options{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0 23px}.modal-options button{min-height:45px;border:1px solid #465777;border-radius:9px;color:#e9f1ff;background:#202a3d;font-weight:800;cursor:pointer}.modal-options button:hover,.modal-options button.selected{border-color:#d9e5ff;background:#dce7ff;color:#132039}.modal-copy h2{font-size:36px}.modal-art img{object-fit:contain!important}.reward .art img[src*='rblxtoolscash']{object-fit:contain!important;background:#080b10}.modal button.action:disabled{opacity:.48;cursor:not-allowed}.goal-controls{display:grid;gap:8px;margin-top:14px}.goal-controls select{width:100%;border:1px solid #536683;border-radius:9px;padding:10px;color:#f7f9ff;background:#111a29;font:700 12px Arial}.goal-progress{height:9px;overflow:hidden;border-radius:99px;background:#0d1523}.goal-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#8ec5ff,#a68bff)}.goal-meta{display:flex;justify-content:space-between;gap:8px;margin-top:8px;color:#cbd8ef;font-size:12px;font-weight:800}.goal-box{border:0;cursor:pointer;text-align:left;color:#fff;font:inherit}.reward .pill.manual{background:#7fe6b526;color:#a4f5c7}@media(max-width:420px){.modal-options{grid-template-columns:repeat(2,1fr)}}";
     document.head.appendChild(style);
     style.textContent += ".points-chart{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 28px;padding:19px;border:1px solid #394a63;border-radius:18px;background:linear-gradient(145deg,#202b3e,#172131)}.points-chart h2{grid-column:1/-1;margin:0;font-size:21px}.points-chart p{grid-column:1/-1;margin:0;color:#aebbd0;font-size:13px}.points-chart-item{padding:14px;border:1px solid #465777;border-radius:12px;background:#111a29}.points-chart-item b{display:block;color:#ffdb70;font-size:22px}.points-chart-item span{display:block;margin-top:5px;color:#e8f0ff;font-weight:800}.points-chart-item small{display:block;margin-top:5px;color:#aebbd0;line-height:1.4}@media(max-width:600px){.points-chart{grid-template-columns:1fr}}";
+    style.textContent += ".cash-conversion{display:grid;gap:10px;margin:14px 0 19px;padding:13px;border:1px solid rgba(102,229,194,.34);border-radius:12px;background:rgba(29,116,95,.13)}.cash-conversion-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;color:#dffcf1;font-weight:900}.cash-conversion-head small{color:#a1c9bd;font-size:10px}.cash-conversion input[type=range]{width:100%;accent-color:#62e4bc}.cash-conversion-values{display:flex;align-items:center;justify-content:space-between;gap:12px}.cash-conversion-values output{color:#76f4c5;font-size:22px;font-weight:900}.cash-conversion-values label{display:flex;align-items:center;gap:4px;color:#cce8df;font-size:12px;font-weight:900}.cash-conversion-values input{width:84px;border:1px solid rgba(125,225,200,.42);border-radius:8px;padding:8px;color:#f1fffb;background:#102b29;font:800 14px Arial}.cash-conversion-note{color:#a6c9c0;font-size:10px;font-weight:700}";
     setTimeout(function () {
       var modal = document.getElementById("modal"), modalArt = document.getElementById("modalArt"), price = document.getElementById("modalPrice"), title = document.getElementById("title"), redeem = document.getElementById("redeem"), desc = document.getElementById("desc"), terms = document.getElementById("terms");
       if (!modal || !price || !title || !redeem) return;
-      var options = document.createElement("div"), prompt = document.createElement("p"), amounts = [5, 10, 25, 50, 100], selectedAmount = 5, selectedBrand = "", selectedBasePoints = 0;
+      var options = document.createElement("div"), prompt = document.createElement("p"), cashControls = document.createElement("section"), amounts = [5, 10, 25, 50, 100], selectedAmount = 5, selectedBrand = "", selectedBasePoints = 0, cashMode = false, selectedCashCents = 100;
       options.className = "modal-options"; options.hidden = true;
       prompt.hidden = true; prompt.innerHTML = "<b>Select a gift-card amount:</b>";
       price.parentNode.insertBefore(prompt, price); price.parentNode.insertBefore(options, price);
+      cashControls.className = "cash-conversion"; cashControls.hidden = true;
+      cashControls.innerHTML = '<div class="cash-conversion-head"><span>Choose exact cash amount</span><small>10 points = $0.01</small></div><input type="range" min="100" max="10000" step="1" value="100" data-cash-range><div class="cash-conversion-values"><output data-cash-output>$1.00</output><label>$<input type="number" min="1" max="100" step="0.01" value="1.00" inputmode="decimal" data-cash-input></label></div><div class="cash-conversion-note" data-cash-note></div>';
+      price.parentNode.insertBefore(cashControls, price);
       var cards = document.querySelectorAll(".reward");
       cards.forEach(function (card) {
         var heading = card.querySelector("h3"), pointText = card.querySelector(".price"), pill = card.querySelector(".pill.manual"), cardTitle = heading && heading.textContent || "";
@@ -5628,10 +5632,32 @@
         if (edit) edit.onclick = function () { renderGoal(true); };
         if (save) save.onclick = function () { var next = { brand: goal.querySelector("[data-goal-brand]").value, amount: Number(goal.querySelector("[data-goal-amount]").value) }; localStorage.setItem(goalKey, JSON.stringify(next)); renderGoal(false); };
       }
-      fetch("/api/rewards/me", { credentials: "include" }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) { pointBalance = Number(payload && payload.rewardPoints || 0); renderGoal(false); }).catch(function () { renderGoal(false); });
+      fetch("/api/rewards/me", { credentials: "include" }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) { pointBalance = Number(payload && payload.rewardPoints || 0); renderGoal(false); if (cashMode) renderCashControls(); }).catch(function () { renderGoal(false); });
       function isGift() { return Boolean(selectedBrand); }
+      function renderCashControls() {
+        var range = cashControls.querySelector("[data-cash-range]"), input = cashControls.querySelector("[data-cash-input]"), output = cashControls.querySelector("[data-cash-output]"), note = cashControls.querySelector("[data-cash-note]"), maxCents = Math.min(10000, Math.floor(pointBalance / 10));
+        cashControls.hidden = !cashMode;
+        if (!cashMode) return;
+        options.hidden = true; prompt.hidden = true;
+        if (maxCents < 100) {
+          range.disabled = true; input.disabled = true; selectedCashCents = 100;
+          output.textContent = "$1.00"; note.textContent = "You need at least 1,000 approved RBLX Points to convert cash.";
+          redeem.textContent = "Need 1,000 points"; redeem.disabled = true;
+          return;
+        }
+        selectedCashCents = Math.max(100, Math.min(maxCents, Math.round(Number(selectedCashCents) || 100)));
+        range.disabled = false; input.disabled = false; range.max = String(maxCents); range.value = String(selectedCashCents); input.max = (maxCents / 100).toFixed(2); input.value = (selectedCashCents / 100).toFixed(2);
+        output.textContent = "$" + (selectedCashCents / 100).toFixed(2);
+        note.textContent = (selectedCashCents * 10).toLocaleString() + " points will be added to your RBLXTools balance instantly.";
+        title.textContent = "RBLXTools Cash"; price.textContent = (selectedCashCents * 10).toLocaleString() + " PTS";
+        desc.textContent = "Convert approved RBLX Points directly into RBLXTools Cash. This is not a gift card.";
+        terms.textContent = "The amount is credited instantly to your RBLXTools balance and can be selected to the cent.";
+        redeem.textContent = "Convert to RBLXTools Cash"; redeem.disabled = false;
+        range.oninput = function () { selectedCashCents = Number(range.value); renderCashControls(); };
+        input.onchange = function () { selectedCashCents = Math.round(Number(input.value) * 100); renderCashControls(); };
+      }
       function renderOptions() {
-        var gift = isGift(), base = selectedBasePoints; options.hidden = !gift; prompt.hidden = !gift;
+        var gift = isGift(), base = selectedBasePoints; options.hidden = !gift; prompt.hidden = !gift; cashControls.hidden = true;
         if (!gift) return;
         options.innerHTML = amounts.map(function (amount) { return '<button type="button" class="' + (selectedAmount === amount ? "selected" : "") + '" data-amount="' + amount + '">$' + amount + " gift card</button>"; }).join("");
         options.querySelectorAll("button").forEach(function (button) { button.onclick = function () { selectedAmount = Number(button.dataset.amount); renderOptions(); }; });
@@ -5642,9 +5668,26 @@
       document.addEventListener("click", function (event) {
         var card = event.target.closest(".reward");
         if (!card) return;
-        setTimeout(function () { selectedBrand = String(card.dataset.rewardBrand || ""); selectedBasePoints = Number(card.dataset.rewardBasePoints || 0); selectedAmount = 5; renderOptions(); if (/RBLXTools Cash/.test(title.textContent || "") && modalArt) modalArt.innerHTML = '<img src="/assets/rewards/gift-cards/rblxtoolscash.png" alt="RBLXTools Cash">'; if (isGift()) { desc.textContent = "Choose $5, $10, $25, $50, or $100. Point costs scale from this card’s $5 price."; terms.textContent = "Your request is shown in Account Overview and fulfilled within 1-7 days."; } }, 0);
+        setTimeout(function () { var cardTitle = String(card.querySelector("h3") && card.querySelector("h3").textContent || ""); cashMode = /RBLXTools Cash/i.test(cardTitle); selectedBrand = cashMode ? "" : String(card.dataset.rewardBrand || ""); selectedBasePoints = Number(card.dataset.rewardBasePoints || 0); selectedAmount = 5; selectedCashCents = 100; if (cashMode) renderCashControls(); else { renderOptions(); if (isGift()) { desc.textContent = "Choose $5, $10, $25, $50, or $100. Point costs scale from this card’s $5 price."; terms.textContent = "Your request is shown in Account Overview and fulfilled within 1-7 days."; } } }, 0);
       });
       redeem.onclick = async function () {
+        if (cashMode) {
+          if (pointBalance < 1000) return alert("You need at least 1,000 approved RBLX Points to convert RBLXTools Cash.");
+          redeem.disabled = true;
+          try {
+            var cashResponse = await fetch("/api/rewards/redeem-cash", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cashCents: selectedCashCents }) });
+            var cashPayload = await cashResponse.json().catch(function () { return {}; });
+            if (!cashResponse.ok) throw Error(cashPayload.error || "Could not convert your points.");
+            pointBalance = Math.max(0, Number(cashPayload.rewardPoints) || 0);
+            var pointsElement = document.getElementById("points"); if (pointsElement) pointsElement.textContent = pointBalance.toLocaleString();
+            try { window.dispatchEvent(new CustomEvent("rblxtools-reward-points-balance", { detail: { rewardPoints: pointBalance } })); } catch (_) {}
+            fetch("/referrals/me", { credentials: "include" }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) { var balance = document.getElementById("rblxShellReferralBalance"); if (balance && payload && payload.referral) balance.textContent = "$" + ((Number(payload.referral.totalBalanceCents) || 0) / 100).toFixed(2); }).catch(function () {});
+            alert("$" + (selectedCashCents / 100).toFixed(2) + " was added to your RBLXTools balance.");
+            modal.hidden = true;
+          } catch (error) { alert(error.message); }
+          finally { redeem.disabled = false; }
+          return;
+        }
         if (!isGift()) return alert("This reward is not available for redemption yet.");
         var basePoints = selectedBasePoints;
         redeem.disabled = true;

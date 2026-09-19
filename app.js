@@ -7054,7 +7054,9 @@ function buildCheckoutSessionResponse(checkoutSession) {
 app.get("/referrals/me", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    return res.json({ ok: true, referral: getReferralDashboard(user.id) });
+    const referral = getReferralDashboard(user.id);
+    const rblxtoolsCashCents = Math.max(0, Number(user.rblxtools_cash_cents) || 0);
+    return res.json({ ok: true, referral: { ...referral, rblxtoolsCashCents, totalBalanceCents: referral.availableCents + rblxtoolsCashCents } });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load referral details." });
   }
@@ -12226,6 +12228,37 @@ app.post("/api/rewards/redeem", async (req, res) => {
     return res.status(201).json({ ok: true, transaction: Array.isArray(rows) ? rows[0] : null });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not submit your gift-card request." });
+  }
+});
+
+app.post("/api/rewards/redeem-cash", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const cashCents = Math.round(Number(req.body?.cashCents));
+    if (!Number.isInteger(cashCents) || cashCents < 100 || cashCents > 10000) {
+      return res.status(400).json({ error: "Choose an RBLXTools Cash amount from $1.00 to $100.00." });
+    }
+    const rows = await supabaseRequest("/rest/v1/rpc/redeem_rblxtools_cash", {
+      method: "POST",
+      body: JSON.stringify({ p_user_id: user.id, p_cash_cents: cashCents }),
+    });
+    const result = Array.isArray(rows) ? rows[0] : rows;
+    if (!result || !Number.isFinite(Number(result.reward_points)) || !Number.isFinite(Number(result.rblxtools_cash_cents))) {
+      throw new Error("The cash conversion could not be confirmed.");
+    }
+    emitAccountTransactionUpdate(user.id);
+    return res.json({
+      ok: true,
+      rewardPoints: Math.max(0, Number(result.reward_points) || 0),
+      rblxtoolsCashCents: Math.max(0, Number(result.rblxtools_cash_cents) || 0),
+      pointsSpent: Math.max(0, Number(result.points_spent) || 0),
+    });
+  } catch (error) {
+    const message = String(error?.message || "");
+    if (/function.*redeem_rblxtools_cash|does not exist/i.test(message)) {
+      return res.status(503).json({ error: "RBLXTools Cash is not ready yet. Run the latest supabase-contributor-rewards.sql migration first." });
+    }
+    return res.status(error.statusCode || 500).json({ error: message || "Could not convert points into RBLXTools Cash." });
   }
 });
 
