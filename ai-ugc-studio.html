@@ -135,9 +135,9 @@
     @keyframes ugcLoaderCore { 0%,100% { transform:scale(.92) rotate(0deg); } 50% { transform:scale(1.08) rotate(10deg); } }
     .ugc-history-list { padding-right:2px; }
     .ugc-history-capacity { display:grid; grid-template-columns:1fr; gap:7px; margin-top:10px; }
-    .ugc-history-capacity-slot { min-height:54px; padding:8px 10px; border:1px dashed rgba(138,184,244,.25); border-radius:10px; background:linear-gradient(145deg,rgba(20,39,68,.55),rgba(8,16,30,.68)); display:grid; grid-template-columns:minmax(0,1fr) 30px; grid-template-rows:auto auto; align-items:center; column-gap:8px; color:#d9e7ff; text-align:left; }
-    .ugc-history-capacity-slot strong { grid-column:1; grid-row:1; font-size:11px; letter-spacing:.02em; }.ugc-history-capacity-slot small { grid-column:1; grid-row:2; color:#91a3bf; font-size:9px; font-weight:800; line-height:1.2; }
-    .ugc-history-capacity-slot .ugc-slot-mark { grid-column:2; grid-row:1 / span 2; display:grid; place-items:center; width:28px; height:28px; border-radius:8px; color:#79b6ff; background:rgba(92,157,255,.12); font-size:15px; line-height:1; }
+    .ugc-history-capacity-slot { min-height:70px; padding:6px; border:1px solid rgba(103,150,235,.22); border-radius:10px; background:rgba(8,15,27,.48); display:grid; grid-template-columns:58px minmax(0,1fr); grid-template-rows:auto auto; align-items:center; column-gap:8px; color:#d9e7ff; text-align:left; }
+    .ugc-history-capacity-slot strong { grid-column:2; grid-row:1; font-size:11px; letter-spacing:.02em; }.ugc-history-capacity-slot small { grid-column:2; grid-row:2; color:#91a3bf; font-size:9px; font-weight:800; line-height:1.2; }.ugc-history-capacity-slot small a{display:inline-block;margin-top:3px;color:#ffabb7;font-weight:900;text-decoration:none;}
+    .ugc-history-capacity-slot .ugc-slot-mark { grid-column:1; grid-row:1 / span 2; display:grid; place-items:center; width:58px; height:58px; border-radius:7px; color:#79b6ff; background:rgba(92,157,255,.12); font-size:18px; line-height:1; }
     .ugc-history-capacity-slot.is-locked { border-style:solid; border-color:rgba(255,138,157,.18); background:linear-gradient(145deg,rgba(37,22,38,.56),rgba(11,16,29,.82)); opacity:.84; }
     .ugc-history-capacity-slot.is-locked .ugc-slot-mark { color:#f5f8ff; background:rgba(0,0,0,.46); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06); }.ugc-history-capacity-slot.is-locked strong { color:#d3c2cb; }.ugc-history-capacity-slot.is-locked small { color:#a794a0; }
     .ugc-history-slot { margin-bottom:8px; }
@@ -326,10 +326,7 @@
           timer=setTimeout(pollTask,3000);
         } catch(error) { setBusy(false); phase.textContent='Connection issue'; status.textContent=error.message||'Could not check task status.'; showToast(status.textContent); }
       }
-      function updateHistorySlot() {
-        var used=Math.min(historyItems.length,historyLimit);
-        historySlot.textContent=used+' of '+historyLimit+' saved slots used';
-      }
+      function updateHistorySlot() { historySlot.textContent='Your saved models'; }
       function renderHistory() {
         var query=String(historySearch.value||'').trim().toLowerCase();
         historyList.replaceChildren();
@@ -347,15 +344,10 @@
         });
         if(!query){
           var capacity=document.createElement('div'); capacity.className='ugc-history-capacity';
-          var maxSlots=18;
-          for(var slot=items.length;slot<maxSlots;slot++){
-            var slotNumber=slot+1, tier=slotNumber<=3?'Starter':slotNumber<=8?'Plus':'Pro', unlocked=slot<historyLimit, card=document.createElement('div');
-            card.className='ugc-history-capacity-slot'+(unlocked?'':' is-locked');
-            if(unlocked){ card.innerHTML='<span class="ugc-slot-mark">＋</span><strong>Slot '+slotNumber+'</strong><small>'+tier+' slot · Ready for your next model</small>'; }
-            else { card.innerHTML='<span class="ugc-slot-mark">🔒</span><strong>Slot '+slotNumber+'</strong><small>'+tier+' slot</small>'; }
-            capacity.appendChild(card);
-          }
-          historyList.appendChild(capacity);
+          function addLockedRange(label,tier){ var card=document.createElement('div'); card.className='ugc-history-capacity-slot is-locked'; card.innerHTML='<span class="ugc-slot-mark">🔒</span><strong>'+label+'</strong><small>This requires '+tier+'<br /><a href="./subscriptions">View plans</a></small>'; capacity.appendChild(card); }
+          if(historyLimit<8) addLockedRange('Slot 4 - 8','Plus');
+          if(historyLimit<18) addLockedRange('Slot 9 - 18','Pro');
+          if(capacity.childElementCount) historyList.appendChild(capacity);
         }
         updateHistorySlot();
       }
