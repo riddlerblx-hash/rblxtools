@@ -5644,13 +5644,25 @@
         output.textContent = "$" + (selectedCashCents / 100).toFixed(2);
         pointsNeeded = selectedCashCents * 10;
         note.textContent = pointBalance >= pointsNeeded ? pointsNeeded.toLocaleString() + " points will be added to your RBLXTools balance instantly." : "You need " + (pointsNeeded - pointBalance).toLocaleString() + " more approved points for this amount.";
-        title.textContent = "RBLXTools Cash"; price.textContent = (selectedCashCents * 10).toLocaleString() + " PTS";
+        if (title.textContent !== "RBLXTools Cash") title.textContent = "RBLXTools Cash"; price.textContent = (selectedCashCents * 10).toLocaleString() + " PTS";
         desc.textContent = "Convert approved RBLX Points directly into RBLXTools Cash. This is not a gift card.";
         terms.textContent = "The amount is credited instantly to your RBLXTools balance and can be selected to the cent.";
         redeem.textContent = pointBalance >= pointsNeeded ? "Convert to RBLXTools Cash" : "Not enough points"; redeem.disabled = pointBalance < pointsNeeded;
         range.oninput = function () { selectedCashCents = Number(range.value); renderCashControls(); };
         input.oninput = function () { selectedCashCents = Math.round(Number(input.value) * 100); renderCashControls(); };
       }
+      new MutationObserver(function () {
+        var showingCash = /RBLXTools Cash/i.test(String(title.textContent || ""));
+        if (!showingCash) {
+          cashMode = false;
+          cashControls.hidden = true;
+          return;
+        }
+        if (!cashMode) {
+          cashMode = true;
+          renderCashControls();
+        }
+      }).observe(title, { childList: true, characterData: true, subtree: true });
       function renderOptions() {
         var gift = isGift(), base = selectedBasePoints; options.hidden = !gift; prompt.hidden = !gift; cashControls.hidden = true;
         if (!gift) return;
