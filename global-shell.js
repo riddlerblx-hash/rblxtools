@@ -8,8 +8,19 @@
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
   var REFERRAL_CODE_KEY = "rblxtools_referral_code";
+  function ensureMediavineAdBlocklist() {
+    if (document.getElementById("ad-management-config-settings")) return;
+    var config = document.createElement("div");
+    config.id = "ad-management-config-settings";
+    config.dataset.blocklistAdhesionMobile = "1";
+    config.dataset.blocklistAdhesionTablet = "1";
+    config.dataset.blocklistAdhesionDesktop = "1";
+    config.dataset.blocklistInterstitialMobile = "1";
+    (document.body || document.documentElement).appendChild(config);
+  }
   function ensureMediavineSetup() {
     var head = document.head || document.getElementsByTagName("head")[0];
+    ensureMediavineAdBlocklist();
     if (!head || document.querySelector('script[data-rblxtools-mediavine="true"], script[src*="a1cf4906-b1b9-4be4-97ad-05c3fdc9fbbb.js"]')) return;
     var script = document.createElement("script");
     script.type = "text/javascript";
