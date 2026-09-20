@@ -5177,3 +5177,17 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
 body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-promo)::after {
   background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
 }
+/* Legacy advertising placements are retired while the new platform is integrated. */
+[data-rblx-shell-box-ad],
+[data-rblx-promo-box-ad],
+[data-rblx-modal-ad],
+[data-rblx-vertical-ad],
+[data-rblx-banner-ad],
+[data-rblx-mobile-banner-ad],
+.rblx-home-mobile-banner-ad,
+.community-rail-ad,
+.member-ad,
+.calculator-vertical-ad,
+.code-post-ad-pair,
+.code-post-ad,
+.code-directory-ad { display:none !important; }

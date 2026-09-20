@@ -3,7 +3,6 @@
   window.__rblxShellReady = true;
 
   var API_BASE = window.location.origin;
-  var ADSENSE_CLIENT = "ca-pub-1298532626039613";
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
@@ -276,31 +275,6 @@
     closeMobilePanels();
   });
 
-  function ensureAdSenseSetup() {
-    var head = document.head || document.getElementsByTagName("head")[0];
-    if (!head) return;
-
-    var existingMeta = document.querySelector('meta[name="google-adsense-account"]');
-    if (!existingMeta) {
-      var meta = document.createElement("meta");
-      meta.name = "google-adsense-account";
-      meta.content = ADSENSE_CLIENT;
-      head.appendChild(meta);
-    }
-
-    var existingScript = document.querySelector('script[data-rblxtools-adsense="true"]');
-    if (!existingScript) {
-      var script = document.createElement("script");
-      script.async = true;
-      script.crossOrigin = "anonymous";
-      script.dataset.rblxtoolsAdsense = "true";
-      script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + encodeURIComponent(ADSENSE_CLIENT);
-      head.appendChild(script);
-    }
-  }
-
-  ensureAdSenseSetup();
-
   function getEffectiveMemberPlan(state) {
     if (state && state.plan != null) return String(state.plan || "guest").toLowerCase();
     if (shellState.isAdmin) {
@@ -376,10 +350,7 @@
   }
 
   function shouldShowMemberAds() {
-    // Admin preview must describe the selected membership rather than the
-    // administrator's real plan. Otherwise an admin who is Pro cannot preview
-    // the ads that guests and Plus members receive.
-    return !isProMember();
+    return false;
   }
 
   function syncMemberAdVisibility(state) {
@@ -505,8 +476,7 @@
   }
 
   function buildModalAdRailsMarkup() {
-    return '<aside class="rblx-shell-modal-ad-rail is-left" data-rblx-modal-ad aria-label="Advertisement"><span>Advertisement</span></aside>' +
-      '<aside class="rblx-shell-modal-ad-rail is-right" data-rblx-modal-ad aria-label="Advertisement"><span>Advertisement</span></aside>';
+    return '';
   }
 
   function buildAnimationMembershipGateMarkup() {
@@ -1706,7 +1676,6 @@
               "</div>" +
               '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + "</div>" +
               '<div class="rblx-shell-left-foot">' +
-                '<div class="rblx-shell-box-ad" data-rblx-shell-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' +
                 '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span>$5.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a></div>' +
                 '<div class="rblx-shell-socials">' +
                   '<a href="https://x.com/Reese28575571" target="_blank" rel="noreferrer" aria-label="X">' + getSocialIcon("x") + '</a>' +
@@ -1749,7 +1718,6 @@
                   '<a class="rblx-shell-chat-rules" href="#" id="rblxShellRulesLink">Chat Rules</a>' +
                 "</div>" +
               "</div>" +
-              '<div class="rblx-shell-box-ad" data-rblx-shell-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' +
             "</div>" +
           "</aside>" +
         "</div>" +
@@ -4446,7 +4414,7 @@
   }
 
   function mountSharedBannerAd(slot) {
-    if (!slot || slot.dataset.rblxBannerLoaded === "true") return;
+    if (!slot || !shouldShowMemberAds() || slot.dataset.rblxBannerLoaded === "true") return;
     slot.dataset.rblxBannerLoaded = "true";
     var adFrame = document.createElement("iframe");
     adFrame.className = "rblx-banner-ad-frame";
@@ -4455,7 +4423,6 @@
     adFrame.height = "90";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.src = "/ad-slot-728x90";
     slot.appendChild(adFrame);
     var host = slot.closest("[data-rblx-banner-ad]");
     enableSmartAdRefresh(host, function () { slot.textContent = ""; delete slot.dataset.rblxBannerLoaded; mountSharedBannerAd(slot); });
@@ -4489,7 +4456,6 @@
     adFrame.height = "50";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.src = "/ad-slot-320x50";
     slot.appendChild(adFrame);
     var host = slot.closest("[data-rblx-mobile-banner-ad], .rblx-home-mobile-banner-ad");
     enableSmartAdRefresh(host, function () { slot.textContent = ""; delete slot.dataset.rblxMobileBannerLoaded; mountMobileHomeBannerAd(slot); });
@@ -5010,7 +4976,7 @@
       subtitle: "Monthly membership",
       title: "Pro",
       action: actionLabel || "Try Now",
-      generalPerks: ["Includes All Plus Benefits", "Discord Bot Access", "No Annoying Ads", "Bulk Downloads (5-10)", "Premium Giveaways", "Custom Chat Tag"],
+      generalPerks: ["Includes All Plus Benefits", "Discord Bot Access", "Bulk Downloads (5-10)", "Premium Giveaways", "Custom Chat Tag"],
       aiPerks: ["200 AI Credits Every Month", "30 Savable Thumbnail Generations (+27)", "18 Savable AI UGC Slots (+15)", "6 AI Thumbnail References", "All Thumbnail Aspect Ratios", "4K AI Thumbnail Quality", "4K High-Quality AI UGC Textures", "UGC AI PBR Texture Enhancements", "10% Off Your AI Generations"]
     } : {
       price: "$1.00",
@@ -5025,7 +4991,7 @@
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
       '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price">' + config.price + '</span><small>' + config.subtitle + '</small></div>',
       '<div class="rblx-membership-promo-perks"><div class="rblx-membership-promo-section">General benefits</div>' + config.generalPerks.map(function (perk) { return perk === "Includes All Plus Benefits" ? '<span class="rblx-membership-promo-included"><b>+</b>Includes All Plus Benefits</span>' : '<span><b>+</b>' + perk + '</span>'; }).join("") + '<div class="rblx-membership-promo-section">AI benefits</div>' + config.aiPerks.map(function (perk) { return '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
-      showBoxAd ? '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' : '',
+      '',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous membership plan"></button><div class="rblx-membership-promo-progress" aria-label="Membership plan rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next membership plan"></button></div><a class="rblx-membership-promo-action" href="./subscriptions">' + config.action + '</a></div>'
     ].join("");
   }
@@ -5036,7 +5002,7 @@
       '<h3 class="rblx-token-promo-title">Keep creating<br><span>without waiting</span></h3>',
       '<p class="rblx-token-promo-copy">Power RBLXTools AI features with a token pack whenever you need more generations.</p>',
       '<div class="rblx-token-promo-pack"><div class="rblx-token-promo-coin">AI</div><strong>' + tokenPack.tokens + ' Tokens</strong><span>AI generation credits</span><b>' + tokenPack.price + '</b><small>' + tokenPack.note + '</small></div>',
-      shouldShowMemberAds() ? '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad aria-label="Advertisement"><span>Advertisement</span></div>' : '',
+      '',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous offer"></button><div class="rblx-membership-promo-progress" aria-label="Offer rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next offer"></button></div><a class="rblx-membership-promo-action" href="./ai-tokens">Buy tokens</a></div>'
     ].join("");
   }
@@ -5057,7 +5023,6 @@
     adFrame.height = "250";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.src = "/ad-slot-300x250";
     host.insertBefore(adFrame, host.querySelector(".rblx-smart-ad-timer") || null);
     host.dataset.rblxBoxAdMounted = "true";
     if (host.hasAttribute("data-rblx-shell-box-ad")) {
@@ -5079,7 +5044,6 @@
     adFrame.height = "600";
     adFrame.scrolling = "no";
     adFrame.setAttribute("frameborder", "0");
-    adFrame.src = "/ad-slot-160x600.html";
     host.insertBefore(adFrame, host.querySelector(".rblx-smart-ad-timer") || null);
     host.dataset.rblxVerticalAdMounted = "true";
     enableSmartAdRefresh(host, function () { Array.prototype.forEach.call(host.querySelectorAll("iframe"), function (frame) { frame.remove(); }); delete host.dataset.rblxVerticalAdMounted; mountVerticalAd(host); });
