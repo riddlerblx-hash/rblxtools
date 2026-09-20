@@ -15,7 +15,6 @@
     config.dataset.blocklistAdhesionMobile = "1";
     config.dataset.blocklistAdhesionTablet = "1";
     config.dataset.blocklistAdhesionDesktop = "1";
-    config.dataset.blocklistInterstitialMobile = "1";
     (document.body || document.documentElement).appendChild(config);
   }
   function ensureMediavineSetup() {
