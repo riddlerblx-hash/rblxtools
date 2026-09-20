@@ -258,21 +258,17 @@
       background: #35353a;
     }
 
-    .rblx-cleaner-file {
-      padding: 8px 10px;
-    }
-
-    .rblx-cleaner-file::file-selector-button {
-      border: none;
-      border-radius: 8px;
-      padding: 8px 12px;
-      margin-right: 10px;
-      background: linear-gradient(180deg, #ff2a2a 0%, #ff0000 100%);
-      color: #ffffff;
-      font-size: 12px;
-      font-weight: 800;
-      cursor: pointer;
-    }
+    .rblx-cleaner-file { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+    .rblx-cleaner-upload-zone { display:flex; align-items:center; gap:11px; min-height:62px; padding:10px 12px; border:1px dashed rgba(110,169,255,.52); border-radius:12px; background:linear-gradient(135deg, rgba(39,79,137,.25), rgba(14,25,43,.84)); color:#eef5ff; cursor:pointer; transition:border-color .18s ease, transform .18s ease, background .18s ease; }
+    .rblx-cleaner-upload-zone:hover, .rblx-cleaner-upload-zone:focus-within { border-color:#85b8ff; background:linear-gradient(135deg, rgba(53,103,177,.34), rgba(14,25,43,.92)); transform:translateY(-1px); }
+    .rblx-cleaner-upload-icon { display:grid; width:34px; height:34px; flex:0 0 34px; place-items:center; border-radius:10px; background:linear-gradient(135deg, #559eff, #746ef2); box-shadow:0 7px 16px rgba(70,116,255,.25); font-size:19px; }
+    .rblx-cleaner-upload-copy { display:grid; gap:3px; min-width:0; }
+    .rblx-cleaner-upload-copy strong { color:#f6f9ff; font-size:12px; font-weight:900; }
+    .rblx-cleaner-upload-copy small { color:#aebfda; font-size:10px; font-weight:700; line-height:1.35; }
+    .rblx-cleaner-upload-help { margin-top:7px; color:#91a4c2; font-size:10px; font-weight:700; line-height:1.4; }
+    .rblx-cleaner-upload-help strong { color:#dce9ff; }
+    .rblx-cleaner-upload-help a { color:#98c5ff; font-weight:900; text-decoration:none; }
+    .rblx-cleaner-upload-help a:hover { color:#d9eaff; text-decoration:underline; }
 
     .rblx-cleaner-actions {
       display: grid;
@@ -828,7 +824,6 @@
   <main>
     <section class="hero">
       <h1><span>Roblox</span><span>Background Changer</span></h1>
-      <p>Restore the official Roblox shirt or pants template background while keeping the uploaded clothing artwork in place.</p>
     </section>
 
     <section class="top-grid">
@@ -845,14 +840,6 @@
           <span>Background Changer</span>
         </h2>
 
-        <p class="rblx-cleaner-subtitle">
-          Restore the official Roblox shirt or pants template background while keeping the uploaded clothing artwork in place.
-        </p>
-
-        <div class="rblx-cleaner-plus-note">
-          Free users can restore unlimited templates 1 by 1. <span class="rblx-plus-word">Plus</span> users can restore 2-5 templates at a time. <span class="rblx-pro-word">Pro</span> users can restore 5-10 templates at a time.
-        </div>
-
         <div class="rblx-cleaner-grid">
           <div class="rblx-cleaner-field">
             <label class="rblx-cleaner-label" for="rblx-cleaner-type">Template Type</label>
@@ -863,8 +850,13 @@
           </div>
 
           <div class="rblx-cleaner-field">
-            <label class="rblx-cleaner-label" for="rblx-cleaner-upload">Upload Template</label>
+            <span class="rblx-cleaner-label">Upload Templates</span>
+            <label class="rblx-cleaner-upload-zone" for="rblx-cleaner-upload">
+              <span class="rblx-cleaner-upload-icon" aria-hidden="true">↑</span>
+              <span class="rblx-cleaner-upload-copy"><strong>Choose template images</strong><small>PNG, JPG, or WEBP &middot; click to browse</small></span>
+            </label>
             <input class="rblx-cleaner-file" id="rblx-cleaner-upload" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+            <div class="rblx-cleaner-upload-help" id="rblx-cleaner-upload-help">Multiple uploads: <strong>Plus 2–5</strong> &middot; <strong>Pro 6–10</strong>. <a href="./subscriptions">View plans</a></div>
           </div>
         </div>
 
@@ -1060,6 +1052,7 @@
       };
 
       var uploadInput = document.getElementById("rblx-cleaner-upload");
+      var uploadHelp = document.getElementById("rblx-cleaner-upload-help");
       var typeSelect = document.getElementById("rblx-cleaner-type");
       var typePill = document.getElementById("rblx-cleaner-pill-type");
       var countPill = document.getElementById("rblx-cleaner-pill-count");
@@ -1078,6 +1071,20 @@
       var templateCache = {};
       var accountHasPlus = false;
       var hasInteracted = false;
+
+      function getUploadLimit() {
+        return window.RBLXToolsAssetBatch ? window.RBLXToolsAssetBatch.getLimit() : 1;
+      }
+
+      function updateUploadAccess() {
+        if (!uploadHelp) return;
+        var limit = getUploadLimit();
+        uploadHelp.innerHTML = limit === 10
+          ? 'Pro members can upload up to <strong>10 templates</strong> at once. <a href="./subscriptions">View plans</a>'
+          : limit === 5
+            ? 'Plus members can upload <strong>2–5 templates</strong> at once. <a href="./subscriptions">View plans</a>'
+            : 'Multiple uploads: <strong>Plus 2–5</strong> &middot; <strong>Pro 6–10</strong>. <a href="./subscriptions">View plans</a>';
+      }
 
       function setStatus(message, type) {
         statusEl.innerHTML = message;
@@ -1406,8 +1413,10 @@
         hasInteracted = true;
         updateEmptyPreviewState();
 
-        if (files.length > 10) {
-          setStatus("You can restore up to 10 templates at a time.", "error");
+        var uploadLimit = getUploadLimit();
+        if (files.length > uploadLimit) {
+          setStatus("Your current plan allows up to " + uploadLimit + " template" + (uploadLimit === 1 ? "" : "s") + " at a time.", "error");
+          uploadInput.value = "";
           renderEntryPreview();
           return;
         }
@@ -1536,7 +1545,9 @@
         new ResizeObserver(scheduleHeightReport).observe(document.getElementById("rblx-template-cleaner"));
       }
 
+      window.addEventListener("rblxtools-membership-updated", updateUploadAccess);
       window.addEventListener("load", function () {
+        updateUploadAccess();
         updateTypePill();
         updateEmptyPreviewState();
         drawTemplatePreview().catch(function () {

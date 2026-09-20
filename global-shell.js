@@ -25,7 +25,9 @@
     var configs = [
       { sourceId: "robloxId", buttonId: "templateButton", label: "Roblox Clothing Asset ID" },
       { sourceId: "audioInput", buttonId: "audioButton", label: "Roblox Audio Asset ID" },
-      { sourceId: "ugcId", buttonId: "ugcButton", label: "Roblox Catalog Asset ID" }
+      { sourceId: "ugcId", buttonId: "ugcButton", label: "Roblox Catalog Asset ID" },
+      { sourceId: "mediaInput", buttonId: "fetchButton", label: "Roblox Media Asset ID" },
+      { sourceId: "animationAssetId", buttonId: "animationButton", label: "Roblox Animation Asset ID" }
     ];
     configs.forEach(function (config) {
       var source = document.getElementById(config.sourceId);
@@ -80,8 +82,15 @@
         allInputs().forEach(function (input, index) { var remove = input.nextElementSibling; if (remove) remove.hidden = index === 0 && count === 1; });
         add.disabled = paid && count >= limit;
         add.classList.toggle("is-locked", !paid);
-        add.innerHTML = paid ? "+ Add another ID" : "🔒 Add another ID <span>Plus / Pro</span>";
-        note.textContent = paid ? (limit === 10 ? "Pro members can add up to 10 IDs." : "Plus members can add up to 5 IDs.") : "Multiple IDs are available with Plus or Pro.";
+        add.setAttribute("aria-label", paid ? "Add another asset ID" : "More IDs require Plus or Pro");
+        add.innerHTML = paid
+          ? "+ Add another ID"
+          : '<span class="rblx-id-batch-lock" aria-hidden="true"></span><span class="rblx-id-batch-add-copy">Add another ID <em>Plus / Pro</em></span>';
+        note.innerHTML = paid
+          ? (limit === 10
+            ? 'Pro members can add up to 10 IDs at once. <a href="./subscriptions">View plans</a>'
+            : 'Plus members can add 2–5 IDs at once. <a href="./subscriptions">View plans</a>')
+          : 'Multiple IDs: <strong>Plus 2–5</strong> &middot; <strong>Pro 6–10</strong>. <a href="./subscriptions">View plans</a>';
       }
       add.addEventListener("click", function () {
         var limit = getAssetBatchLimit();

@@ -4193,10 +4193,17 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
 .rblx-id-batch-row input:focus { outline:0; border-color:#6caaff !important; box-shadow:0 0 0 3px rgba(93,151,255,.14); }
 .rblx-id-batch-remove { width:38px; min-width:38px; height:38px; border:1px solid rgba(255,118,118,.28); border-radius:10px; background:rgba(255,86,86,.10); color:#ffb7b7; font:900 21px/1 var(--shell-font); cursor:pointer; }
 .rblx-id-batch-add { justify-self:start; min-height:34px; padding:0 12px; border:1px solid rgba(108,170,255,.40); border-radius:10px; background:rgba(77,132,225,.12); color:#dceaff; font:800 12px/1 var(--shell-font); cursor:pointer; }
-.rblx-id-batch-add span { margin-left:5px; color:#ffe48d; font-size:10px; letter-spacing:.04em; text-transform:uppercase; }
-.rblx-id-batch-add.is-locked { border-color:rgba(255,214,112,.36); background:rgba(117,88,28,.16); color:#f7e6aa; }
+.rblx-id-batch-add.is-locked { display:inline-flex; align-items:center; gap:8px; border-color:rgba(133,155,186,.18); background:rgba(8,16,29,.76); color:rgba(188,203,226,.48); box-shadow:inset 0 1px 0 rgba(255,255,255,.025), 0 7px 18px rgba(0,0,0,.18); filter:saturate(.62); }
+.rblx-id-batch-add.is-locked:hover { border-color:rgba(255,218,125,.42); color:rgba(242,226,180,.86); filter:saturate(.9); }
+.rblx-id-batch-lock { position:relative; display:inline-block; width:12px; height:10px; border-radius:2px; background:currentColor; opacity:.78; }
+.rblx-id-batch-lock::before { content:""; position:absolute; width:8px; height:7px; left:2px; top:-6px; border:2px solid currentColor; border-bottom:0; border-radius:7px 7px 0 0; box-sizing:border-box; }
+.rblx-id-batch-add-copy { display:inline-flex; align-items:center; gap:6px; }
+.rblx-id-batch-add-copy em { color:rgba(255,224,143,.72); font-size:10px; font-style:normal; letter-spacing:.04em; text-transform:uppercase; }
 .rblx-id-batch-add:disabled { opacity:.55; cursor:default; }
 .rblx-id-batch-note { color:#90a0b6; font:700 11px/1.35 var(--shell-font); }
+.rblx-id-batch-note strong { color:#dce8fb; }
+.rblx-id-batch-note a { color:#91bfff; font-weight:900; text-decoration:none; }
+.rblx-id-batch-note a:hover { color:#cfe2ff; text-decoration:underline; }
 
 /* On phones the account controls live in the navigation drawer. Keep the
    brand and admin "View as" picker on the same compact header row instead of

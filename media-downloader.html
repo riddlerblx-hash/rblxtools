@@ -705,12 +705,6 @@
         <span>Media</span>
       </h2>
 
-      <p class="rblx-subtitle">Download Roblox game thumbnails, logos, group icons, badge icons, game pass icons, and more.</p>
-
-      <div class="rblx-notice">
-        <strong>Choose the exact Roblox media type first.</strong> Games with multiple thumbnails will show in a slideshow, and you can download the current file or all files.
-      </div>
-
       <div class="rblx-label">Roblox Asset ID</div>
       <input id="mediaInput" class="rblx-field" type="text" placeholder="Enter one Roblox asset ID for the media type you selected" />
 
@@ -1246,12 +1240,18 @@
     }
 
     async function fetchMedia() {
-      const input = mediaInput.value.trim();
+      const ids = mediaInput.value.split(",").map(function (value) { return value.replace(/\D/g, "").trim(); }).filter(Boolean);
       const kind = mediaKind.value.trim();
 
-      if (!input) {
+      if (!ids.length) {
         setStatus("Enter a Roblox asset ID first.", "error");
         mediaInput.focus();
+        return;
+      }
+
+      const batchLimit = window.RBLXToolsAssetBatch ? window.RBLXToolsAssetBatch.getLimit() : 1;
+      if (ids.length > batchLimit) {
+        setStatus("Your current plan allows up to " + batchLimit + " media ID" + (batchLimit === 1 ? "" : "s") + " at a time.", "error");
         return;
       }
 
@@ -1262,35 +1262,30 @@
       }
 
       fetchButton.disabled = true;
-      fetchButton.textContent = "Loading...";
+      fetchButton.textContent = ids.length > 1 ? "Loading Media..." : "Loading...";
       setStatus("Fetching media...");
       resultBox.innerHTML = buildDefaultPreview();
       scheduleEmbedHeightReport();
 
       try {
-        const params = new URLSearchParams({
-          input: input,
+        const groups = await Promise.all(ids.map(async function (id) {
+          const params = new URLSearchParams({ input: id, kind: kind, displayName: getActivityNameFromCache() });
+          const response = await fetch(API_BASE + "/media?" + params.toString());
+          const payload = await response.json().catch(function () { return null; });
+          if (!response.ok) throw new Error((payload && payload.error) || "Could not fetch media for ID " + id + ".");
+          const group = payload && Array.isArray(payload.results) ? payload.results[0] : null;
+          if (!group || !Array.isArray(group.items) || !group.items.length) throw new Error("No Roblox media was found for ID " + id + ".");
+          return group;
+        }));
+        const combined = groups.length === 1 ? groups[0] : {
+          title: "Media downloads",
           kind: kind,
-          displayName: getActivityNameFromCache()
-        });
-
-        const response = await fetch(API_BASE + "/media?" + params.toString());
-        const payload = await response.json().catch(function () {
-          return null;
-        });
-
-        if (!response.ok) {
-          throw new Error((payload && payload.error) || "Could not fetch media.");
-        }
-
-        const firstGroup = payload && Array.isArray(payload.results) ? payload.results[0] : null;
-        if (!firstGroup || !Array.isArray(firstGroup.items) || !firstGroup.items.length) {
-          throw new Error("No Roblox media was found for that ID.");
-        }
-
-        renderPreview(firstGroup);
+          id: ids.join(", "),
+          items: groups.reduce(function (items, group) { return items.concat(group.items || []); }, [])
+        };
+        renderPreview(combined);
         rememberToolActivity("Media");
-        setStatus("Media loaded. Download is ready.", "success");
+        setStatus(ids.length > 1 ? "Media loaded. Downloads are ready." : "Media loaded. Download is ready.", "success");
       } catch (error) {
         resultBox.innerHTML = buildDefaultPreview();
         setStatus(error.message || "Could not fetch media.", "error");

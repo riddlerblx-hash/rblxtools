@@ -1372,17 +1372,8 @@
               <span>Animations</span>
             </h2>
 
-            <p id="animation-spoofer-subtitle">
-              Download Roblox animation or emote assets by pasting the asset ID.
-            </p>
-
-            <div id="plusNotice">
-              <strong>TIP:</strong> Free users download 1 at a time. <a class="plus-word" href="./subscriptions">Plus</a> users can download 2-5, while <a class="plus-word" href="./subscriptions">Pro</a> users can download 5-10 at a time with comma-separated IDs.
-              <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
-            </div>
-
             <label class="field-label" for="animationAssetId">Roblox Animation Asset ID</label>
-            <textarea id="animationAssetId" placeholder="Enter one Roblox animation asset ID, or comma-separated IDs for Plus / Pro"></textarea>
+            <textarea id="animationAssetId" placeholder="Enter a Roblox animation asset ID"></textarea>
 
             <button id="animationButton" onclick="generateAnimation()">Download Animation</button>
 
@@ -2257,8 +2248,9 @@
           return;
         }
 
-        if (ids.length > 5) {
-          setStatus('<span class="plus-word">Plus</span> users can download up to 5 animations at a time.', "error");
+        const batchLimit = window.RBLXToolsAssetBatch ? window.RBLXToolsAssetBatch.getLimit() : 5;
+        if (ids.length > batchLimit) {
+          setStatus("Your current plan allows up to " + batchLimit + " animation" + (batchLimit === 1 ? "" : "s") + " at a time.", "error");
           return;
         }
 
