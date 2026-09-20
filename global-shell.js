@@ -10,7 +10,7 @@
   var REFERRAL_CODE_KEY = "rblxtools_referral_code";
   function ensureMediavineSetup() {
     var head = document.head || document.getElementsByTagName("head")[0];
-    if (!head || document.querySelector('script[data-rblxtools-mediavine="true"]')) return;
+    if (!head || document.querySelector('script[data-rblxtools-mediavine="true"], script[src*="a1cf4906-b1b9-4be4-97ad-05c3fdc9fbbb.js"]')) return;
     var script = document.createElement("script");
     script.type = "text/javascript";
     script.async = true;
