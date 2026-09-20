@@ -3491,11 +3491,13 @@ body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-panel-title {
   }
 
   .rblx-shell-journey-sidebar {
-    display: block;
+    display: flex;
+    flex: 1 1 250px;
+    flex-direction: column;
+    justify-content: flex-end;
     width: 300px;
     min-height: 250px;
-    margin: auto auto 0;
-    flex: 0 0 auto;
+    margin: 0 auto;
   }
 }
 
