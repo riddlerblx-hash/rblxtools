@@ -917,20 +917,13 @@
         <span>UGC</span>
       </h2>
 
-      <p id="roblox-ugc-subtitle">Preview a textured Roblox model, then choose the export format that fits your workflow.</p>
-
-      <div id="plusNotice">
-        Everyone can download textured GLB files for up to 5 asset IDs at a time.
-        <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
-      </div>
-
       <div class="ugc-mode-picker" role="group" aria-label="Roblox catalog item type">
         <button class="ugc-mode-option is-active" type="button" data-ugc-mode="ugc">Modern / UGC / Multi-mesh</button>
         <button class="ugc-mode-option" type="button" data-ugc-mode="classic">Legacy Classic / Single-mesh</button>
       </div>
       <p class="ugc-mode-help"><strong>Not sure?</strong> Start with Modern mode for UGC, multi-mesh items, and newer Roblox-made items. Use Legacy Classic only for older single-mesh catalog items.</p>
       <label class="field-label" for="ugcId">Roblox Catalog Asset ID</label>
-      <textarea id="ugcId" placeholder="Enter one Roblox catalog asset ID, or comma-separated IDs"></textarea>
+      <textarea id="ugcId" placeholder="Enter a Roblox catalog asset ID"></textarea>
 
       <button id="ugcButton" onclick="generateUgc()">Create Textured Preview</button>
 
@@ -1615,16 +1608,17 @@
       return;
     }
 
-    if (ids.length > 5) {
+    const batchLimit = window.RBLXToolsAssetBatch ? window.RBLXToolsAssetBatch.getLimit() : 1;
+    if (ids.length > batchLimit) {
       status.className = "error";
-      status.innerText = "You can download up to 5 assets at a time.";
+      status.innerText = "Your current plan allows up to " + batchLimit + " asset" + (batchLimit === 1 ? "" : "s") + " at a time.";
       scheduleEmbedHeightReport();
       return;
     }
 
     if (ids.some((id) => !/^\d+$/.test(id))) {
       status.className = "error";
-      status.innerText = "Use only Roblox asset IDs separated by commas.";
+      status.innerText = "Use a valid numeric Roblox asset ID.";
       scheduleEmbedHeightReport();
       return;
     }
@@ -1683,9 +1677,6 @@
       document.querySelectorAll("[data-ugc-mode]").forEach(function (option) {
         option.classList.toggle("is-active", option === button);
       });
-      ugcIdInput.placeholder = selectedItemMode === "classic"
-        ? "Enter an older single-mesh catalog asset ID, or comma-separated IDs"
-        : "Enter a modern, UGC, or multi-mesh catalog asset ID, or comma-separated IDs";
     });
   });
 

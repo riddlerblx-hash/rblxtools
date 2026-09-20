@@ -618,15 +618,8 @@
         <span>Audio</span>
       </h2>
 
-      <p class="rblx-subtitle">Download Roblox audio assets using the raw Roblox audio asset ID.</p>
-
-      <div id="plusNotice">
-        <strong>TIP:</strong> Free users download 1 at a time. <a class="plusWord" href="./subscriptions">Plus</a> users can download 2-5, while <a class="plusWord" href="./subscriptions">Pro</a> users can download 5-10 at a time with comma-separated IDs.
-        <code>Ex: 1843529606, 142376088, 9048375034</code>
-      </div>
-
       <div class="rblx-label">Roblox Audio Asset ID</div>
-      <textarea id="audioInput" class="rblx-field" placeholder="Enter one Roblox audio asset ID, or comma-separated IDs"></textarea>
+      <textarea id="audioInput" class="rblx-field" placeholder="Enter a Roblox audio asset ID"></textarea>
 
       <button id="audioButton" class="rblx-button" type="button">Fetch Audio</button>
 
@@ -1142,8 +1135,9 @@
         return;
       }
 
-      if (ids.length > 5) {
-        setStatus("You can download up to 5 audios at a time.", "error");
+      const batchLimit = window.RBLXToolsAssetBatch ? window.RBLXToolsAssetBatch.getLimit() : 1;
+      if (ids.length > batchLimit) {
+        setStatus("Your current plan allows up to " + batchLimit + " audio" + (batchLimit === 1 ? "" : "s") + " at a time.", "error");
         return;
       }
 

@@ -7,6 +7,96 @@
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
   var REFERRAL_CODE_KEY = "rblxtools_referral_code";
+  function getAssetBatchPlan() {
+    if (document.body && document.body.classList.contains("rblx-shell-pro-user")) return "pro";
+    if (document.body && document.body.classList.contains("rblx-shell-plus-user")) return "plus";
+    try {
+      var saved = JSON.parse(localStorage.getItem(USER_KEY) || "{}");
+      var plan = String(saved.plan || saved.subscription || saved.tier || "").toLowerCase();
+      return plan === "pro" ? "pro" : plan === "plus" || saved.premiumActive || saved.plusActive ? "plus" : "free";
+    } catch (_error) { return "free"; }
+  }
+  function getAssetBatchLimit() {
+    var plan = getAssetBatchPlan();
+    return plan === "pro" ? 10 : plan === "plus" ? 5 : 1;
+  }
+  window.RBLXToolsAssetBatch = { getPlan: getAssetBatchPlan, getLimit: getAssetBatchLimit };
+  function initAssetBatchInputs() {
+    var configs = [
+      { sourceId: "robloxId", buttonId: "templateButton", label: "Roblox Clothing Asset ID" },
+      { sourceId: "audioInput", buttonId: "audioButton", label: "Roblox Audio Asset ID" },
+      { sourceId: "ugcId", buttonId: "ugcButton", label: "Roblox Catalog Asset ID" }
+    ];
+    configs.forEach(function (config) {
+      var source = document.getElementById(config.sourceId);
+      if (!source || source.dataset.batchInputsReady === "true") return;
+      source.dataset.batchInputsReady = "true";
+      source.hidden = true;
+      source.setAttribute("aria-hidden", "true");
+      var batch = document.createElement("div");
+      batch.className = "rblx-id-batch";
+      batch.setAttribute("data-rblx-id-batch", config.sourceId);
+      var rows = document.createElement("div");
+      rows.className = "rblx-id-batch-rows";
+      var add = document.createElement("button");
+      add.type = "button";
+      add.className = "rblx-id-batch-add";
+      var note = document.createElement("div");
+      note.className = "rblx-id-batch-note";
+      batch.appendChild(rows);
+      batch.appendChild(add);
+      batch.appendChild(note);
+      source.parentNode.insertBefore(batch, source.nextSibling);
+      function allInputs() { return Array.prototype.slice.call(rows.querySelectorAll("input")); }
+      function syncSource() { source.value = allInputs().map(function (input) { return input.value.trim(); }).filter(Boolean).join(","); }
+      function removeRow(row) { row.remove(); syncSource(); renderAccess(); }
+      function addRow(value) {
+        var row = document.createElement("div");
+        row.className = "rblx-id-batch-row";
+        var input = document.createElement("input");
+        input.type = "text";
+        input.inputMode = "numeric";
+        input.autocomplete = "off";
+        input.placeholder = config.label;
+        input.value = value || "";
+        input.addEventListener("input", function () { input.value = input.value.replace(/\D/g, ""); syncSource(); });
+        input.addEventListener("keydown", function (event) {
+          if (event.key === "Enter") { event.preventDefault(); var button = document.getElementById(config.buttonId); if (button) button.click(); }
+        });
+        row.appendChild(input);
+        var remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "rblx-id-batch-remove";
+        remove.textContent = "×";
+        remove.setAttribute("aria-label", "Remove asset ID");
+        remove.addEventListener("click", function () { removeRow(row); });
+        row.appendChild(remove);
+        rows.appendChild(row);
+      }
+      function renderAccess() {
+        var limit = getAssetBatchLimit();
+        var count = allInputs().length;
+        var paid = limit > 1;
+        allInputs().forEach(function (input, index) { var remove = input.nextElementSibling; if (remove) remove.hidden = index === 0 && count === 1; });
+        add.disabled = paid && count >= limit;
+        add.classList.toggle("is-locked", !paid);
+        add.innerHTML = paid ? "+ Add another ID" : "🔒 Add another ID <span>Plus / Pro</span>";
+        note.textContent = paid ? (limit === 10 ? "Pro members can add up to 10 IDs." : "Plus members can add up to 5 IDs.") : "Multiple IDs are available with Plus or Pro.";
+      }
+      add.addEventListener("click", function () {
+        var limit = getAssetBatchLimit();
+        if (limit === 1) { window.location.href = "./subscriptions"; return; }
+        if (allInputs().length >= limit) return;
+        addRow(""); renderAccess();
+        var inputs = allInputs(); if (inputs.length) inputs[inputs.length - 1].focus();
+      });
+      addRow(source.value.trim());
+      syncSource(); renderAccess();
+      window.addEventListener("rblxtools-membership-updated", renderAccess);
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initAssetBatchInputs);
+  else initAssetBatchInputs();
   function getReferralCode() {
     try { return String(localStorage.getItem(REFERRAL_CODE_KEY) || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20); } catch (_error) { return ""; }
   }

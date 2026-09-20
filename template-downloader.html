@@ -1231,15 +1231,8 @@
       <article class="card">
         <div class="badge">Classic Clothing</div>
         <h2 class="tool-card-title"><span>Clothing</span></h2>
-        <p class="subtitle">Pull clean shirt and pants templates instantly.</p>
-
-        <div class="notice">
-          <strong>TIP:</strong> Free users download 1 at a time. <a class="plus-word" href="./subscriptions">Plus</a> users can download 2-5, while <a class="plus-word" href="./subscriptions">Pro</a> users can download 5-10 at a time with comma-separated IDs.
-          <code>Ex: 23453456, 6575678, 122323456, 4367685, 23123213</code>
-        </div>
-
         <label class="field-label" for="robloxId">Roblox Clothing Asset ID</label>
-        <textarea id="robloxId" placeholder="Enter one Roblox clothing asset ID, or comma-separated IDs"></textarea>
+        <textarea id="robloxId" placeholder="Enter a Roblox clothing asset ID"></textarea>
         <button id="templateButton" class="btn" onclick="generate()">Download Template</button>
         <div id="status"></div>
         <div id="result"></div>
@@ -1932,8 +1925,9 @@
       const button = document.getElementById("templateButton");
 
       if (!ids.length) { status.className = "error"; status.innerText = "Enter at least one Roblox item ID."; return; }
-      if (ids.length > 5) { status.className = "error"; status.innerText = "You can download up to 5 templates at a time."; return; }
-      if (ids.some((id) => !/^\d+$/.test(id))) { status.className = "error"; status.innerText = "Use only Roblox asset IDs separated by commas."; return; }
+      const batchLimit = window.RBLXToolsAssetBatch ? window.RBLXToolsAssetBatch.getLimit() : 1;
+      if (ids.length > batchLimit) { status.className = "error"; status.innerText = "Your current plan allows up to " + batchLimit + " template" + (batchLimit === 1 ? "" : "s") + " at a time."; return; }
+      if (ids.some((id) => !/^\d+$/.test(id))) { status.className = "error"; status.innerText = "Use a valid numeric Roblox asset ID."; return; }
 
       status.className = "";
       status.innerText = ids.length > 1 ? "Fetching templates..." : "Fetching template...";
