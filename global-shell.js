@@ -1742,6 +1742,7 @@
                   '<a class="rblx-shell-chat-rules" href="#" id="rblxShellRulesLink">Chat Rules</a>' +
                 "</div>" +
               "</div>" +
+              '<div class="rblx-shell-journey-sidebar" aria-label="Advertisement"></div>' +
             "</div>" +
           "</aside>" +
         "</div>" +

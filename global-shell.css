@@ -1064,6 +1064,11 @@ body.rblx-pro-ad-free [data-rblx-vertical-ad] {
   flex: 0 0 auto;
 }
 
+/* Dedicated, static Journey target beneath the live-chat controls. */
+.rblx-shell-journey-sidebar {
+  display: none;
+}
+
 .rblx-shell-chat-room {
   display: flex;
   align-items: center;
@@ -3451,6 +3456,7 @@ body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-chat-card,
 body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-chat-specials,
 body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-chat-scroll,
 body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-chat-bottom,
+body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-journey-sidebar,
 body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-box-ad,
 body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-panel-title {
   display: none;
@@ -3482,6 +3488,14 @@ body.rblx-shell-right-collapsed .rblx-shell-right .rblx-shell-panel-title {
     font-weight: 800;
     letter-spacing: .1em;
     text-transform: uppercase;
+  }
+
+  .rblx-shell-journey-sidebar {
+    display: block;
+    width: 300px;
+    min-height: 250px;
+    margin: auto auto 0;
+    flex: 0 0 auto;
   }
 }
 
