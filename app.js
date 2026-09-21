@@ -2061,7 +2061,7 @@ async function getStripePromotionOptions(req, priceId) {
   const promotionCode = await stripeClient.promotionCodes.retrieve(listedPromotionCode.id, {
     expand: ["coupon", "promotion.coupon"],
   });
-  const couponReference = promotionCode.coupon || promotionCode.promotion?.coupon || null;
+  const couponReference = promotionCode.promotion?.coupon || promotionCode.coupon || null;
   const coupon = typeof couponReference === "string"
     ? await stripeClient.coupons.retrieve(couponReference)
     : couponReference || {};
