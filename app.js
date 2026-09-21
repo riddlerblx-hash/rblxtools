@@ -2053,7 +2053,7 @@ async function getStripePromotionOptions(req) {
   if (!code) return {};
   const matches = await stripeClient.promotionCodes.list({ code, limit: 1, expand: ["data.coupon"] });
   const promotionCode = matches.data?.[0];
-  if (!promotionCode) {
+  if (!promotionCode || normalizeCouponCode(promotionCode.code) !== code) {
     const error = new Error("This promotion code does not exist.");
     error.statusCode = 400;
     throw error;
