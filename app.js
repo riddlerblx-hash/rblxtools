@@ -2058,9 +2058,10 @@ async function getStripePromotionOptions(req, priceId) {
     error.statusCode = 400;
     throw error;
   }
-  const coupon = typeof promotionCode.coupon === "string"
-    ? await stripeClient.coupons.retrieve(promotionCode.coupon)
-    : promotionCode.coupon || {};
+  const couponReference = promotionCode.coupon || promotionCode.promotion?.coupon || null;
+  const coupon = typeof couponReference === "string"
+    ? await stripeClient.coupons.retrieve(couponReference)
+    : couponReference || {};
   const expiresAt = Number(promotionCode.expires_at || coupon.redeem_by || 0) * 1000;
   if (!promotionCode.active || (expiresAt && expiresAt <= Date.now())) {
     const error = new Error("This promotion code has expired.");
