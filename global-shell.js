@@ -81,16 +81,11 @@
         var paid = limit > 1;
         allInputs().forEach(function (input, index) { var remove = input.nextElementSibling; if (remove) remove.hidden = index === 0 && count === 1; });
         add.disabled = paid && count >= limit;
-        add.classList.toggle("is-locked", !paid);
+        add.classList.remove("is-locked");
         add.setAttribute("aria-label", paid ? "Add another asset ID" : "More IDs require Plus or Pro");
-        add.innerHTML = paid
-          ? "+ Add another ID"
-          : '<span class="rblx-id-batch-lock" aria-hidden="true"></span><span class="rblx-id-batch-add-copy">Add another ID <em>Plus / Pro</em></span>';
-        note.innerHTML = paid
-          ? (limit === 10
-            ? 'Pro members can add up to 10 IDs at once. <a href="./subscriptions">View plans</a>'
-            : 'Plus members can add 2–5 IDs at once. <a href="./subscriptions">View plans</a>')
-          : 'Multiple IDs: <strong>Plus 2–5</strong> &middot; <strong>Pro 6–10</strong>. <a href="./subscriptions">View plans</a>';
+        add.textContent = "+ Add another ID";
+        note.hidden = paid;
+        note.innerHTML = 'Multiple IDs: <strong>Plus 2–5</strong> &middot; <strong>Pro 6–10</strong>. <a href="./subscriptions">View plans</a>';
       }
       add.addEventListener("click", function () {
         var limit = getAssetBatchLimit();

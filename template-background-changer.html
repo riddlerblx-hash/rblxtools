@@ -345,6 +345,15 @@
       font-weight: 900;
     }
 
+    .rblx-cleaner-upload-strip { margin-top:10px; padding:10px; border:1px solid rgba(107,161,255,.24); border-radius:12px; background:rgba(9,18,33,.48); }
+    .rblx-cleaner-upload-strip-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; color:#dce9ff; font-size:10px; letter-spacing:.06em; text-transform:uppercase; }
+    .rblx-cleaner-upload-strip-head span { color:#9bbdf0; font-weight:900; }
+    .rblx-cleaner-upload-thumbnails { display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; }
+    .rblx-cleaner-upload-thumb { position:relative; width:58px; height:58px; flex:0 0 58px; overflow:hidden; border:1px solid rgba(123,174,255,.34); border-radius:9px; background:#0c1626; }
+    .rblx-cleaner-upload-thumb img { display:block; width:100%; height:100%; object-fit:cover; }
+    .rblx-cleaner-upload-thumb button { position:absolute; top:3px; right:3px; display:grid; width:18px; height:18px; place-items:center; padding:0; border:1px solid rgba(255,255,255,.32); border-radius:50%; background:rgba(9,14,24,.82); color:#fff; font-size:15px; line-height:1; cursor:pointer; }
+    .rblx-cleaner-upload-thumb button:hover { background:#d53b51; }
+
     .rblx-cleaner-preview-shell,
     .rblx-cleaner-promo-preview-shell {
       margin-top: 14px;
@@ -870,9 +879,12 @@
           </button>
         </div>
 
-        <div class="rblx-cleaner-status" id="rblx-cleaner-status">
-          Upload a template to begin.
+        <div class="rblx-cleaner-upload-strip" id="rblx-cleaner-upload-strip" hidden>
+          <div class="rblx-cleaner-upload-strip-head"><strong>Selected templates</strong><span id="rblx-cleaner-upload-count"></span></div>
+          <div class="rblx-cleaner-upload-thumbnails" id="rblx-cleaner-upload-thumbnails"></div>
         </div>
+
+        <div class="rblx-cleaner-status" id="rblx-cleaner-status"></div>
 
         <div class="rblx-cleaner-preview-shell">
           <div class="rblx-cleaner-carousel">
@@ -1050,6 +1062,9 @@
 
       var uploadInput = document.getElementById("rblx-cleaner-upload");
       var uploadHelp = document.getElementById("rblx-cleaner-upload-help");
+      var uploadStrip = document.getElementById("rblx-cleaner-upload-strip");
+      var uploadCount = document.getElementById("rblx-cleaner-upload-count");
+      var uploadThumbnails = document.getElementById("rblx-cleaner-upload-thumbnails");
       var typeSelect = document.getElementById("rblx-cleaner-type");
       var typePill = document.getElementById("rblx-cleaner-pill-type");
       var countPill = document.getElementById("rblx-cleaner-pill-count");
@@ -1081,6 +1096,16 @@
           : limit === 5
             ? 'Plus members can upload <strong>2–5 templates</strong> at once. <a href="./subscriptions">View plans</a>'
             : 'Multiple uploads: <strong>Plus 2–5</strong> &middot; <strong>Pro 6–10</strong>. <a href="./subscriptions">View plans</a>';
+      }
+
+      function renderUploadStrip() {
+        if (!uploadStrip || !uploadCount || !uploadThumbnails) return;
+        var limit = getUploadLimit();
+        uploadStrip.hidden = !uploadedEntries.length;
+        uploadCount.textContent = uploadedEntries.length + " / " + limit;
+        uploadThumbnails.innerHTML = uploadedEntries.map(function (entry, index) {
+          return '<div class="rblx-cleaner-upload-thumb"><img src="' + entry.dataUrl + '" alt="Selected template ' + (index + 1) + '"><button type="button" data-rblx-remove-template="' + index + '" aria-label="Remove selected template ' + (index + 1) + '">&times;</button></div>';
+        }).join("");
       }
 
       function setStatus(message, type) {
@@ -1225,7 +1250,7 @@
       }
 
       function updateArrowState() {
-        var showArrows = uploadedEntries.length > 1;
+        var showArrows = restoredEntries.length > 1;
         prevBtn.classList.toggle("hidden", !showArrows);
         nextBtn.classList.toggle("hidden", !showArrows);
       }
@@ -1320,7 +1345,7 @@
       }
 
       function renderEntryPreview() {
-        var entry = restoredEntries[currentPreviewIndex] || uploadedEntries[currentPreviewIndex];
+        var entry = restoredEntries[currentPreviewIndex];
 
         if (!entry) {
           updateEmptyPreviewState();
@@ -1344,9 +1369,6 @@
             if (entry.image) ctx.drawImage(entry.image, 0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
             scheduleHeightReport();
           });
-        } else if (entry.image) {
-          ctx.drawImage(entry.image, 0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT);
-          scheduleHeightReport();
         }
 
         updateCountPill();
@@ -1402,7 +1424,8 @@
         processBtn.disabled = true;
 
         if (!files.length) {
-          setStatus("Upload a template to begin.");
+          setStatus("");
+          renderUploadStrip();
           renderEntryPreview();
           return;
         }
@@ -1414,6 +1437,7 @@
         if (files.length > uploadLimit) {
           setStatus("Your current plan allows up to " + uploadLimit + " template" + (uploadLimit === 1 ? "" : "s") + " at a time.", "error");
           uploadInput.value = "";
+          renderUploadStrip();
           renderEntryPreview();
           return;
         }
@@ -1423,6 +1447,7 @@
         try {
           uploadedEntries = await Promise.all(files.map(readUploadedFile));
           processBtn.disabled = false;
+          renderUploadStrip();
           updateEmptyPreviewState();
           renderEntryPreview();
           setStatus(
@@ -1433,6 +1458,7 @@
           );
         } catch (error) {
           uploadedEntries = [];
+          renderUploadStrip();
           updateEmptyPreviewState();
           renderEntryPreview();
           setStatus("That image could not be loaded. Try PNG, JPG, or WEBP files.", "error");
@@ -1515,6 +1541,22 @@
         handleUploadChange();
       });
 
+      uploadThumbnails.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-rblx-remove-template]");
+        if (!button) return;
+        var index = Number(button.getAttribute("data-rblx-remove-template"));
+        if (!Number.isInteger(index) || index < 0 || index >= uploadedEntries.length) return;
+        uploadedEntries.splice(index, 1);
+        restoredEntries = [];
+        currentPreviewIndex = 0;
+        uploadInput.value = "";
+        processBtn.disabled = !uploadedEntries.length;
+        downloadBtn.disabled = true;
+        renderUploadStrip();
+        renderEntryPreview();
+        setStatus("");
+      });
+
       typeSelect.addEventListener("change", function () {
         hasInteracted = true;
         updateTypePill();
@@ -1545,6 +1587,7 @@
       window.addEventListener("rblxtools-membership-updated", updateUploadAccess);
       window.addEventListener("load", function () {
         updateUploadAccess();
+        renderUploadStrip();
         updateTypePill();
         updateEmptyPreviewState();
         drawTemplatePreview().catch(function () {
