@@ -1419,7 +1419,9 @@
       if (!viewer || !fallbackImage || !window.THREE || !window.THREE.OBJLoader) return;
 
       disposeMappedRigPreview();
-      fallbackImage.style.display = "block";
+      // Keep the flat source hidden while switching carousel slides. It is
+      // only revealed by the explicit "Preview template" control below.
+      fallbackImage.style.display = "none";
       const THREE = window.THREE;
       const width = Math.max(1, viewer.clientWidth || 560);
       const height = Math.max(320, viewer.clientHeight || 420);
