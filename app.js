@@ -2049,12 +2049,27 @@ function buildCheckoutReturnOptions(req, successUrl, cancelUrl) {
 }
 
 async function getStripePromotionOptions(req) {
-  const code = String(req.body?.promotionCode || "").trim();
+  const code = normalizeCouponCode(req.body?.promotionCode);
   if (!code) return {};
-  const matches = await stripeClient.promotionCodes.list({ code, active: true, limit: 1 });
+  const matches = await stripeClient.promotionCodes.list({ code, limit: 1, expand: ["data.coupon"] });
   const promotionCode = matches.data?.[0];
   if (!promotionCode) {
-    const error = new Error("That promotion code is not valid.");
+    const error = new Error("This promotion code does not exist.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const coupon = promotionCode.coupon || {};
+  const expiresAt = Number(promotionCode.expires_at || coupon.redeem_by || 0) * 1000;
+  if (!promotionCode.active || (expiresAt && expiresAt <= Date.now())) {
+    const error = new Error("This promotion code has expired.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const maxRedemptions = Number.isFinite(promotionCode.max_redemptions)
+    ? promotionCode.max_redemptions
+    : Number.isFinite(coupon.max_redemptions) ? coupon.max_redemptions : null;
+  if (maxRedemptions !== null && Number(promotionCode.times_redeemed || 0) >= maxRedemptions) {
+    const error = new Error("This promotion code is no longer available.");
     error.statusCode = 400;
     throw error;
   }
