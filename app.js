@@ -2076,6 +2076,14 @@ async function getStripePromotionOptions(req) {
   return { discounts: [{ promotion_code: promotionCode.id }] };
 }
 
+function assertStripePromotionDiscount(req, checkoutSession) {
+  if (!normalizeCouponCode(req.body?.promotionCode)) return;
+  if (Number(checkoutSession?.total_details?.amount_discount || 0) > 0) return;
+  const error = new Error("Stripe could not apply this promotion code to the selected plan. Check that its coupon includes this plan's Stripe product and price.");
+  error.statusCode = 400;
+  throw error;
+}
+
 function assertStripePortalConfigured() {
   if (!STRIPE_SECRET_KEY || !stripeClient) {
     const error = new Error("Stripe customer portal is not configured.");
@@ -9813,6 +9821,7 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
       },
     });
 
+    assertStripePromotionDiscount(req, checkoutSession);
     return res.json(buildCheckoutSessionResponse(checkoutSession));
   } catch (error) {
     console.error("POST /store/create-ai-token-checkout failed:", error.message);
@@ -10030,6 +10039,7 @@ async function createDiscordBotUseCheckout(req, res) {
       client_reference_id: user.id,
       metadata: { appUserId: user.id, productType: "discord_bot_uses", discordBotUses: String(uses), referralCode },
     });
+    assertStripePromotionDiscount(req, checkoutSession);
     return res.json(buildCheckoutSessionResponse(checkoutSession));
   } catch (error) {
     console.error("POST /store/create-discord-bot-use-checkout failed:", error.message);
@@ -10083,6 +10093,7 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
       metadata: { appUserId: user.id, productType: "discord_bot_unlimited", billingPeriod, referralCode },
       subscription_data: { metadata: { appUserId: user.id, discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod, referralCode } },
     });
+    assertStripePromotionDiscount(req, checkoutSession);
     return res.json(buildCheckoutSessionResponse(checkoutSession));
   } catch (error) {
     console.error("POST /store/create-discord-bot-unlimited-checkout failed:", error.message);
@@ -10158,6 +10169,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
       },
     });
 
+    assertStripePromotionDiscount(req, checkoutSession);
     return res.json(buildCheckoutSessionResponse(checkoutSession));
   } catch (error) {
     console.error("POST /auth/create-checkout-session failed:", error.message);
@@ -10187,6 +10199,7 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
       metadata: { appUserId: user.id, plan: "pro", billingInterval, referralCode },
       subscription_data: { metadata: { appUserId: user.id, plan: "pro", billingInterval } },
     });
+    assertStripePromotionDiscount(req, checkoutSession);
     return res.json(buildCheckoutSessionResponse(checkoutSession));
   } catch (error) {
     console.error("POST /auth/create-pro-checkout-session failed:", error.message);
