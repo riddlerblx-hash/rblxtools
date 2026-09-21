@@ -2047,14 +2047,14 @@ function buildCheckoutReturnOptions(req, successUrl, cancelUrl) {
     };
   }
   return {
-    ui_mode: wantsCustomCheckout(req) ? "custom" : "embedded",
+    ui_mode: wantsCustomCheckout(req) ? "elements" : "embedded",
     return_url: successUrl,
   };
 }
 
 function createStripeCheckoutSession(req, options) {
   const requestOptions = wantsCustomCheckout(req)
-    ? { apiVersion: "2025-03-31.basil" }
+    ? { apiVersion: "2025-08-27.basil" }
     : undefined;
   return stripeClient.checkout.sessions.create(options, requestOptions);
 }
@@ -7051,6 +7051,7 @@ function buildCheckoutSessionResponse(checkoutSession) {
     url: checkoutSession.url,
     clientSecret: checkoutSession.client_secret || null,
     publishableKey: STRIPE_PUBLISHABLE_KEY || null,
+    uiMode: checkoutSession.ui_mode || null,
     embeddedCheckoutEnabled: Boolean(STRIPE_PUBLISHABLE_KEY && stripeClient),
   };
 }
