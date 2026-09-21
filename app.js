@@ -2374,22 +2374,43 @@ function getOrCreateReferral(state, userId) {
   return referral;
 }
 
-function refreshReferralCommissionAvailability(state, now = Date.now()) {
+async function releaseMatureReferralCommissions(targetUserId = "") {
+  const state = readReferralProgram();
+  const now = Date.now();
+  const target = String(targetUserId || "");
   let changed = false;
-  state.commissions.forEach((commission) => {
-    if (commission.status !== "pending" || !commission.availableAt) return;
-    if (Date.parse(commission.availableAt) <= now) { commission.status = "available"; changed = true; }
-  });
+  for (const commission of state.commissions) {
+    if (commission.status !== "pending" || !commission.availableAt || Date.parse(commission.availableAt) > now) continue;
+    if (target && String(commission.referrerUserId || "") !== target) continue;
+    try {
+      const rows = await supabaseRequest("/rest/v1/rpc/credit_affiliate_cash", {
+        method: "POST",
+        body: JSON.stringify({ p_user_id: commission.referrerUserId, p_commission_id: commission.id, p_cash_cents: Math.max(0, Number(commission.amountCents) || 0) }),
+      });
+      const result = Array.isArray(rows) ? rows[0] : rows;
+      if (!result || !Number.isFinite(Number(result.rblxtools_cash_cents))) throw new Error("Affiliate cash credit was not confirmed.");
+      commission.status = "credited";
+      commission.creditedAt = new Date().toISOString();
+      changed = true;
+      await supabaseRequest(`/rest/v1/account_transactions?source_type=eq.affiliate_commission&source_id=eq.${encodeURIComponent(commission.id)}`, {
+        method: "PATCH", headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ title: "Affiliate commission added to RBLXTools Cash", status: "confirmed", note: "14-day holding period completed; credited to RBLXTools Cash.", reviewed_at: commission.creditedAt }),
+      }).catch((error) => console.warn("Could not update affiliate cash transaction:", error.message));
+      emitAccountTransactionUpdate(commission.referrerUserId);
+    } catch (error) {
+      console.warn(`Could not credit affiliate commission ${commission.id}:`, error.message);
+    }
+  }
+  if (changed) writeReferralProgram(state);
   return changed;
 }
 
 async function getReferralDashboard(userId) {
+  await releaseMatureReferralCommissions(userId);
   const state = readReferralProgram();
-  const now = Date.now();
   const hadReferral = state.referrals.some((entry) => String(entry.userId || "") === String(userId || ""));
   const referral = getOrCreateReferral(state, userId);
-  const changed = refreshReferralCommissionAvailability(state, now);
-  if (changed || !hadReferral) writeReferralProgram(state);
+  if (!hadReferral) writeReferralProgram(state);
   const commissions = state.commissions.filter((entry) => String(entry.referrerUserId || "") === String(userId || ""));
   const sum = (status) => commissions.filter((entry) => entry.status === status).reduce((total, entry) => total + Math.max(0, Number(entry.amountCents) || 0), 0);
   const referrerUserId = String(userId || "");
@@ -2410,7 +2431,6 @@ async function getReferralDashboard(userId) {
     return { name: member ? getActionTargetLabel(member) : "RBLXTools member", username: member ? cleanText(member.username || member.display_name || member.email?.split("@")[0] || "member", 32).replace(/^@+/, "") : "member", status: entry.status, createdAt: entry.createdAt, updatedAt: entry.updatedAt };
   }))).sort((a, b) => Date.parse(b.updatedAt || b.createdAt || 0) - Date.parse(a.updatedAt || a.createdAt || 0));
   const referrals = linkUsers.filter((entry) => entry.status === "confirmed").length;
-  const availableCents = sum("available");
   return {
     code: referral.code,
     link: getSanitizedAppBaseUrl() + "/?ref=" + encodeURIComponent(referral.code),
@@ -2420,13 +2440,16 @@ async function getReferralDashboard(userId) {
     optedOutMembers: linkUsers.filter((entry) => entry.status === "opted_out").length,
     linkUsers: linkUsers.slice(0, 50),
     pendingCents: sum("pending"),
-    availableCents,
+    creditedCents: sum("credited"),
     requestedCents: sum("requested"),
     paidCents: sum("paid"),
     minimumPayoutCents: REFERRAL_MINIMUM_PAYOUT_CENTS,
     payoutRequests: state.payoutRequests.filter((entry) => String(entry.userId || "") === String(userId || "")).slice(-8).reverse(),
   };
 }
+
+setTimeout(() => { releaseMatureReferralCommissions().catch((error) => console.warn("Could not start affiliate cash release:", error.message)); }, 15000).unref();
+setInterval(() => { releaseMatureReferralCommissions().catch((error) => console.warn("Could not run affiliate cash release:", error.message)); }, 60 * 60 * 1000).unref();
 
 function getReferralCheckoutDetails(session) {
   const code = normalizeReferralCode(session?.metadata?.referralCode);
@@ -7296,8 +7319,9 @@ app.get("/referrals/me", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
     const referral = await getReferralDashboard(user.id);
-    const rblxtoolsCashCents = Math.max(0, Number(user.rblxtools_cash_cents) || 0);
-    return res.json({ ok: true, referral: { ...referral, rblxtoolsCashCents, totalBalanceCents: referral.availableCents + rblxtoolsCashCents } });
+    const refreshedUser = await getAuthUserById(user.id).catch(() => user);
+    const rblxtoolsCashCents = Math.max(0, Number(refreshedUser?.rblxtools_cash_cents) || 0);
+    return res.json({ ok: true, referral: { ...referral, rblxtoolsCashCents, totalBalanceCents: rblxtoolsCashCents } });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load referral details." });
   }
@@ -7337,22 +7361,7 @@ app.post("/referrals/opt-out", async (req, res) => {
 app.post("/referrals/request-payout", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    const state = readReferralProgram();
-    refreshReferralCommissionAvailability(state);
-    const available = state.commissions.filter((entry) => String(entry.referrerUserId || "") === String(user.id) && entry.status === "available");
-    const availableCents = available.reduce((total, entry) => total + Math.max(0, Number(entry.amountCents) || 0), 0);
-    if (availableCents < REFERRAL_MINIMUM_PAYOUT_CENTS) {
-      return res.status(400).json({ error: "A $10.00 available balance is required before requesting a payout." });
-    }
-    if (state.payoutRequests.some((entry) => String(entry.userId || "") === String(user.id) && entry.status === "requested")) {
-      return res.status(409).json({ error: "You already have a payout request waiting for review." });
-    }
-    const request = { id: randomUUID(), userId: user.id, amountCents: availableCents, currency: "usd", status: "requested", createdAt: new Date().toISOString() };
-    available.forEach((entry) => { entry.status = "requested"; entry.payoutRequestId = request.id; });
-    state.payoutRequests.push(request);
-    writeReferralProgram(state);
-    await recordAccountTransaction({ userId: user.id, category: "affiliate", sourceType: "affiliate_payout", sourceId: request.id, title: "Affiliate payout requested", amountDelta: -availableCents, unit: "usd_cents", status: "pending", note: "Awaiting staff payout review" });
-    return res.json({ ok: true, request, referral: await getReferralDashboard(user.id) });
+    return res.status(410).json({ error: "Affiliate commissions are now credited directly to RBLXTools Cash after the 14-day hold. Use the RBLXTools Cash withdrawal flow instead." });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not request a payout." });
   }
