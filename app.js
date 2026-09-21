@@ -2089,6 +2089,18 @@ async function getStripePromotionOptions(req, priceId) {
     discountAmount = coupon.percent_off
       ? Math.round(priceAmount * (Number(coupon.percent_off) / 100))
       : Math.min(priceAmount, Math.max(0, Number(coupon.amount_off) || 0));
+    console.info("Stripe promotion diagnostic", {
+      code,
+      promotionCodeId: promotionCode.id,
+      couponId: coupon.id || null,
+      couponAmountOff: coupon.amount_off ?? null,
+      couponPercentOff: coupon.percent_off ?? null,
+      couponProductIds: allowedProducts,
+      checkoutPriceId: priceId,
+      checkoutProductId: product || null,
+      checkoutPriceAmount: priceAmount,
+      calculatedDiscountAmount: discountAmount,
+    });
   }
   const options = { discounts: [{ promotion_code: promotionCode.id }] };
   Object.defineProperty(options, "promotion", {
