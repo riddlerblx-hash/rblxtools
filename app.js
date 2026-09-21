@@ -109,6 +109,7 @@ const STRIPE_PUBLISHABLE_KEY = String(
     ""
 ).trim();
 const STRIPE_PRICE_ID = String(process.env.STRIPE_PRICE_ID || "");
+const STRIPE_AFFILIATE_COUPON_ID = String(process.env.STRIPE_AFFILIATE_COUPON_ID || "iljKaXjU").trim();
 const STRIPE_PRO_PRODUCT_ID = String(process.env.STRIPE_PRO_PRODUCT_ID || "prod_V9rw4G9vIzpnZb").trim();
 const STRIPE_PRO_ANNUAL_PRICE_ID = String(process.env.STRIPE_PRO_ANNUAL_PRICE_ID || "price_1UGQLgGrZOEMBkuul0sUArQ9").trim();
 const STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID = String(process.env.STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID || "price_1UB5KVGrZOEMBkuuQa6uAinu").trim();
@@ -2136,6 +2137,45 @@ async function getStripePromotionOptions(req, priceId) {
     enumerable: false,
   });
   return options;
+}
+
+async function getStripeAffiliateDiscountOptions(req, user, priceId, baseAmountCents) {
+  const code = normalizeReferralCode(req.body?.referralCode);
+  if (!code || !STRIPE_AFFILIATE_COUPON_ID) return {};
+  const referral = readReferralProgram().referrals.find((entry) => entry.code === code);
+  if (!referral || String(referral.userId || "") === String(user?.id || "")) return {};
+
+  const coupon = await stripeClient.coupons.retrieve(STRIPE_AFFILIATE_COUPON_ID);
+  if (!coupon?.valid) return {};
+
+  let priceAmount = Math.max(0, Number(baseAmountCents) || 0);
+  let priceCurrency = "usd";
+  let product = null;
+  if (priceId) {
+    const price = await stripeClient.prices.retrieve(priceId);
+    priceAmount = Math.max(0, Number(price?.unit_amount) || 0);
+    priceCurrency = String(price?.currency || "usd").toLowerCase();
+    product = typeof price?.product === "string" ? price.product : price?.product?.id;
+  }
+  const allowedProducts = Array.isArray(coupon.applies_to?.products) ? coupon.applies_to.products : [];
+  if (allowedProducts.length && (!product || !allowedProducts.includes(product))) return {};
+  const amountOff = Math.max(0, Number(coupon.amount_off ?? coupon.currency_options?.[priceCurrency]?.amount_off ?? 0) || 0);
+  const discountAmount = coupon.percent_off
+    ? Math.round(priceAmount * (Number(coupon.percent_off) / 100))
+    : Math.min(priceAmount, amountOff);
+  if (!discountAmount) return {};
+
+  const options = { discounts: [{ coupon: coupon.id }] };
+  Object.defineProperty(options, "promotion", {
+    value: { code: "Affiliate discount", discountAmount, couponId: coupon.id, couponAmountOff: amountOff, couponPercentOff: coupon.percent_off ?? null, checkoutPriceId: priceId || null, checkoutProductId: product, checkoutPriceAmount: priceAmount, checkoutCurrency: priceCurrency, affiliate: true },
+    enumerable: false,
+  });
+  return options;
+}
+
+async function getStripeCheckoutDiscountOptions(req, user, priceId, baseAmountCents) {
+  if (normalizeCouponCode(req.body?.promotionCode)) return getStripePromotionOptions(req, priceId);
+  return getStripeAffiliateDiscountOptions(req, user, priceId, baseAmountCents);
 }
 
 function assertStripePromotionDiscount(req, checkoutSession, promotion) {
@@ -9875,7 +9915,7 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const priceId = await resolveAITokenPackagePrice(packageDefinition);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
-    const promotionOptions = await getStripePromotionOptions(req, priceId);
+    const promotionOptions = await getStripeCheckoutDiscountOptions(req, user, priceId);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
       ...customerParams,
@@ -10092,7 +10132,7 @@ async function createDiscordBotUseCheckout(req, res) {
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const checkoutCents = Math.max(1, Math.round(uses / 5));
     const referralCode = normalizeReferralCode(req.body?.referralCode);
-    const promotionOptions = await getStripePromotionOptions(req);
+    const promotionOptions = await getStripeCheckoutDiscountOptions(req, user, null, checkoutCents);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
       ...customerParams,
@@ -10152,7 +10192,7 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const unlimitedLineItem = { price: priceId, quantity: 1 };
     const referralCode = normalizeReferralCode(req.body?.referralCode);
-    const promotionOptions = await getStripePromotionOptions(req, priceId);
+    const promotionOptions = await getStripeCheckoutDiscountOptions(req, user, priceId);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       ...customerParams,
@@ -10211,7 +10251,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
     const priceId = await resolvePlusRecurringPrice(billingInterval);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
 
-    const promotionOptions = await getStripePromotionOptions(req, priceId);
+    const promotionOptions = await getStripeCheckoutDiscountOptions(req, user, priceId);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       ...customerParams,
@@ -10258,7 +10298,7 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
     const priceId = await resolveProRecurringPrice(billingInterval);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
-    const promotionOptions = await getStripePromotionOptions(req, priceId);
+    const promotionOptions = await getStripeCheckoutDiscountOptions(req, user, priceId);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       ...customerParams,
