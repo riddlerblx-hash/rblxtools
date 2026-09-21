@@ -7219,6 +7219,7 @@ app.get("/referrals/lookup", async (req, res) => {
       code,
       commissionRate: REFERRAL_COMMISSION_RATE * 100,
       referrerName: referrer ? getActionTargetLabel(referrer) : "a RBLXTools creator",
+      referrerUsername: referrer ? cleanText(referrer.username || referrer.display_name || referrer.email?.split("@")[0] || "creator", 32).replace(/^@+/, "") : "creator",
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load affiliate details." });
