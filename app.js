@@ -2052,12 +2052,15 @@ async function getStripePromotionOptions(req, priceId) {
   const code = normalizeCouponCode(req.body?.promotionCode);
   if (!code) return {};
   const matches = await stripeClient.promotionCodes.list({ code, active: true, limit: 1, expand: ["data.coupon"] });
-  const promotionCode = matches.data?.[0];
-  if (!promotionCode || normalizeCouponCode(promotionCode.code) !== code) {
+  const listedPromotionCode = matches.data?.[0];
+  if (!listedPromotionCode || normalizeCouponCode(listedPromotionCode.code) !== code) {
     const error = new Error("This promotion code does not exist.");
     error.statusCode = 400;
     throw error;
   }
+  const promotionCode = await stripeClient.promotionCodes.retrieve(listedPromotionCode.id, {
+    expand: ["coupon", "promotion.coupon"],
+  });
   const couponReference = promotionCode.coupon || promotionCode.promotion?.coupon || null;
   const coupon = typeof couponReference === "string"
     ? await stripeClient.coupons.retrieve(couponReference)
