@@ -5678,7 +5678,7 @@
     setTimeout(function () {
       var modal = document.getElementById("modal"), modalArt = document.getElementById("modalArt"), price = document.getElementById("modalPrice"), title = document.getElementById("title"), redeem = document.getElementById("redeem"), desc = document.getElementById("desc"), terms = document.getElementById("terms");
       if (!modal || !price || !title || !redeem) return;
-      var options = document.createElement("div"), prompt = document.createElement("p"), cashControls = document.createElement("section"), amounts = [5, 10, 25, 50, 100], selectedAmount = 5, selectedBrand = "", selectedBasePoints = 0, cashMode = false, selectedCashCents = 100;
+      var options = document.createElement("div"), prompt = document.createElement("p"), cashControls = document.createElement("section"), amounts = [5, 10, 25, 50, 100], selectedAmount = 5, selectedBrand = "", selectedBasePoints = 0, cashMode = false, selectedCashCents = 100, giftCashGuard = null;
       options.className = "modal-options"; options.hidden = true;
       prompt.hidden = true; prompt.innerHTML = "<b>Select a gift-card amount:</b>";
       price.parentNode.insertBefore(prompt, price); price.parentNode.insertBefore(options, price);
@@ -5828,6 +5828,7 @@
         }());
       }
       function mountCashConversion() {
+        if (giftCashGuard) { giftCashGuard.disconnect(); giftCashGuard = null; }
         var cash = document.createElement("section");
         cash.className = "cash-conversion";
         cash.innerHTML = '<div class="cash-conversion-head"><span>Choose exact cash amount</span><small>10 points = $0.01</small></div><input type="range" min="100" max="10000" step="1" value="100" data-cash-range><div class="cash-conversion-values"><output data-cash-output>$1.00</output><label>$<input type="number" min="1" max="100" step="0.01" value="1.00" inputmode="decimal" data-cash-input></label></div><div class="cash-conversion-note" data-cash-note></div>';
@@ -5850,9 +5851,17 @@
         syncCashAmount(selectedCashCents);
       }
       function mountGiftCardAmounts() {
+        if (giftCashGuard) giftCashGuard.disconnect();
+        function removeGiftCashControls() {
+          Array.prototype.forEach.call(price.parentNode.querySelectorAll(".cash-conversion"), function (node) { node.remove(); });
+        }
+        // Other legacy rewards listeners may run after this controller. Keep the
+        // cash-only panel out for the entire gift-card modal, not just one frame.
+        giftCashGuard = new MutationObserver(removeGiftCashControls);
+        giftCashGuard.observe(price.parentNode, { childList: true, subtree: true });
         // A gift card has fixed denominations.  Remove every cash-only control
         // before adding those choices so no old slider can survive a modal swap.
-        Array.prototype.forEach.call(price.parentNode.querySelectorAll(".cash-conversion"), function (node) { node.remove(); });
+        removeGiftCashControls();
         var prompt = document.createElement("p"), giftOptions = document.createElement("div");
         prompt.className = "modal-options-prompt";
         prompt.innerHTML = "<b>Select a gift-card amount:</b>";
