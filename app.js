@@ -2035,15 +2035,19 @@ function wantsEmbeddedCheckout(req) {
   return req.body?.embedded === true || String(req.body?.checkoutMode || "").toLowerCase() === "embedded";
 }
 
+function wantsCustomCheckout(req) {
+  return req.body?.custom === true || String(req.body?.checkoutMode || "").toLowerCase() === "custom";
+}
+
 function buildCheckoutReturnOptions(req, successUrl, cancelUrl) {
-  if (!wantsEmbeddedCheckout(req)) {
+  if (!wantsEmbeddedCheckout(req) && !wantsCustomCheckout(req)) {
     return {
       success_url: successUrl,
       cancel_url: cancelUrl,
     };
   }
   return {
-    ui_mode: "embedded",
+    ui_mode: wantsCustomCheckout(req) ? "custom" : "embedded",
     return_url: successUrl,
   };
 }
@@ -9752,7 +9756,7 @@ app.get("/admin/staff-notes", async (req, res) => {
 app.post("/store/create-ai-token-checkout", async (req, res) => {
   try {
     assertStripePortalConfigured();
-    if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
+    if (wantsEmbeddedCheckout(req) || wantsCustomCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const packageDefinition = getAITokenPackage(req.body?.packageKey);
     if (!packageDefinition) {
@@ -9971,7 +9975,7 @@ app.post("/discord-bot/service/usage-counter", async (req, res) => {
 async function createDiscordBotUseCheckout(req, res) {
   try {
     assertStripePortalConfigured();
-    if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
+    if (wantsEmbeddedCheckout(req) || wantsCustomCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const uses = Number.parseInt(req.body?.uses, 10);
     if (!Number.isFinite(uses) || uses < 5 || uses > 50000 || uses % 5 !== 0) {
@@ -10025,7 +10029,7 @@ app.post("/store/confirm-discord-bot-use-checkout", async (req, res) => {
 async function createDiscordBotUnlimitedCheckout(req, res) {
   try {
     assertDiscordBotUnlimitedCheckoutConfigured();
-    if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
+    if (wantsEmbeddedCheckout(req) || wantsCustomCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const existingSubscription = await getUnlimitedSubscription(user.id);
     if (isUnlimitedActive(existingSubscription)) {
@@ -10088,7 +10092,7 @@ app.post("/store/confirm-discord-bot-unlimited-checkout", async (req, res) => {
 app.post("/auth/create-checkout-session", async (req, res) => {
     try {
     assertStripeCheckoutConfigured();
-    if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
+    if (wantsEmbeddedCheckout(req) || wantsCustomCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
@@ -10134,7 +10138,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
 app.post("/auth/create-pro-checkout-session", async (req, res) => {
   try {
     assertStripePortalConfigured();
-    if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
+    if (wantsEmbeddedCheckout(req) || wantsCustomCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
@@ -10145,6 +10149,7 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
       ...customerParams,
       line_items: [{ price: priceId, quantity: 1 }],
       ...buildCheckoutReturnOptions(req, getSafeCheckoutSuccessUrl(), getSafeCheckoutCancelUrl()),
+      allow_promotion_codes: true,
       client_reference_id: user.id,
       metadata: { appUserId: user.id, plan: "pro", billingInterval, referralCode },
       subscription_data: { metadata: { appUserId: user.id, plan: "pro", billingInterval } },
