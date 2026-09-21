@@ -1682,8 +1682,22 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
         }
 
         if (session.payment_status === "paid") {
-          recordReferralCommissionFromCheckout(session);
+          await updateReferralCheckoutStatus(session, "confirmed");
+          await recordReferralCommissionFromCheckout(session);
         }
+        break;
+      }
+
+      case "checkout.session.async_payment_succeeded": {
+        const session = event.data.object;
+        await updateReferralCheckoutStatus(session, "confirmed");
+        await recordReferralCommissionFromCheckout(session);
+        break;
+      }
+
+      case "checkout.session.expired":
+      case "checkout.session.async_payment_failed": {
+        await updateReferralCheckoutStatus(event.data.object, "cancelled");
         break;
       }
 
@@ -2322,12 +2336,14 @@ function writeJsonFile(filePath, value) {
 }
 
 function readReferralProgram() {
-  const state = readJsonFile(REFERRAL_PROGRAM_PATH, { referrals: [], attributions: [], commissions: [], payoutRequests: [] });
+  const state = readJsonFile(REFERRAL_PROGRAM_PATH, { referrals: [], attributions: [], commissions: [], payoutRequests: [], referralSessions: [], referralOptOuts: [] });
   return {
     referrals: Array.isArray(state.referrals) ? state.referrals : [],
     attributions: Array.isArray(state.attributions) ? state.attributions : [],
     commissions: Array.isArray(state.commissions) ? state.commissions : [],
     payoutRequests: Array.isArray(state.payoutRequests) ? state.payoutRequests : [],
+    referralSessions: Array.isArray(state.referralSessions) ? state.referralSessions : [],
+    referralOptOuts: Array.isArray(state.referralOptOuts) ? state.referralOptOuts : [],
   };
 }
 
@@ -2337,6 +2353,8 @@ function writeReferralProgram(state) {
     attributions: (state.attributions || []).slice(-25000),
     commissions: (state.commissions || []).slice(-25000),
     payoutRequests: (state.payoutRequests || []).slice(-10000),
+    referralSessions: (state.referralSessions || []).slice(-25000),
+    referralOptOuts: (state.referralOptOuts || []).slice(-10000),
   });
 }
 
@@ -2365,7 +2383,7 @@ function refreshReferralCommissionAvailability(state, now = Date.now()) {
   return changed;
 }
 
-function getReferralDashboard(userId) {
+async function getReferralDashboard(userId) {
   const state = readReferralProgram();
   const now = Date.now();
   const hadReferral = state.referrals.some((entry) => String(entry.userId || "") === String(userId || ""));
@@ -2374,13 +2392,33 @@ function getReferralDashboard(userId) {
   if (changed || !hadReferral) writeReferralProgram(state);
   const commissions = state.commissions.filter((entry) => String(entry.referrerUserId || "") === String(userId || ""));
   const sum = (status) => commissions.filter((entry) => entry.status === status).reduce((total, entry) => total + Math.max(0, Number(entry.amountCents) || 0), 0);
-  const referrals = state.attributions.filter((entry) => String(entry.referrerUserId || "") === String(userId || "")).length;
+  const referrerUserId = String(userId || "");
+  const participants = new Map();
+  state.attributions.filter((entry) => String(entry.referrerUserId || "") === referrerUserId).forEach((entry) => {
+    participants.set(String(entry.buyerUserId || ""), { userId: String(entry.buyerUserId || ""), status: "confirmed", createdAt: entry.createdAt || null });
+  });
+  state.referralSessions.filter((entry) => String(entry.referrerUserId || "") === referrerUserId).forEach((entry) => {
+    const key = String(entry.buyerUserId || "");
+    const current = participants.get(key);
+    if (!current || Date.parse(entry.updatedAt || entry.createdAt || 0) >= Date.parse(current.updatedAt || current.createdAt || 0)) participants.set(key, { userId: key, status: entry.status || "pending", createdAt: entry.createdAt || null, updatedAt: entry.updatedAt || null });
+  });
+  state.referralOptOuts.filter((entry) => String(entry.referrerUserId || "") === referrerUserId).forEach((entry) => {
+    participants.set(String(entry.buyerUserId || ""), { userId: String(entry.buyerUserId || ""), status: "opted_out", createdAt: entry.createdAt || null, updatedAt: entry.updatedAt || entry.createdAt || null });
+  });
+  const linkUsers = (await Promise.all(Array.from(participants.values()).filter((entry) => entry.userId).map(async (entry) => {
+    const member = await getAuthUserById(entry.userId).catch(() => null);
+    return { name: member ? getActionTargetLabel(member) : "RBLXTools member", username: member ? cleanText(member.username || member.display_name || member.email?.split("@")[0] || "member", 32).replace(/^@+/, "") : "member", status: entry.status, createdAt: entry.createdAt, updatedAt: entry.updatedAt };
+  }))).sort((a, b) => Date.parse(b.updatedAt || b.createdAt || 0) - Date.parse(a.updatedAt || a.createdAt || 0));
+  const referrals = linkUsers.filter((entry) => entry.status === "confirmed").length;
   const availableCents = sum("available");
   return {
     code: referral.code,
     link: getSanitizedAppBaseUrl() + "/?ref=" + encodeURIComponent(referral.code),
     commissionRate: REFERRAL_COMMISSION_RATE * 100,
     referredMembers: referrals,
+    peopleUsingLink: linkUsers.filter((entry) => entry.status !== "opted_out").length,
+    optedOutMembers: linkUsers.filter((entry) => entry.status === "opted_out").length,
+    linkUsers: linkUsers.slice(0, 50),
     pendingCents: sum("pending"),
     availableCents,
     requestedCents: sum("requested"),
@@ -2388,6 +2426,66 @@ function getReferralDashboard(userId) {
     minimumPayoutCents: REFERRAL_MINIMUM_PAYOUT_CENTS,
     payoutRequests: state.payoutRequests.filter((entry) => String(entry.userId || "") === String(userId || "")).slice(-8).reverse(),
   };
+}
+
+function getReferralCheckoutDetails(session) {
+  const code = normalizeReferralCode(session?.metadata?.referralCode);
+  const buyerUserId = String(session?.metadata?.appUserId || session?.client_reference_id || "").trim();
+  const checkoutSessionId = String(session?.id || "").trim();
+  if (!code || !buyerUserId || !checkoutSessionId) return null;
+  const state = readReferralProgram();
+  const referral = state.referrals.find((entry) => entry.code === code);
+  if (!referral || String(referral.userId || "") === buyerUserId) return null;
+  return { state, referral, code, buyerUserId, checkoutSessionId, amountCents: Math.max(0, Number(session?.amount_total) || 0), currency: String(session?.currency || "usd").toLowerCase() };
+}
+
+async function recordReferralCheckoutStarted(session) {
+  const details = getReferralCheckoutDetails(session);
+  if (!details) return null;
+  const { state, referral, code, buyerUserId, checkoutSessionId, amountCents, currency } = details;
+  if (state.referralSessions.some((entry) => String(entry.checkoutSessionId || "") === checkoutSessionId)) return null;
+  const now = new Date().toISOString();
+  const entry = { id: randomUUID(), checkoutSessionId, buyerUserId, referrerUserId: referral.userId, code, amountCents, commissionCents: Math.round(amountCents * REFERRAL_COMMISSION_RATE), currency, status: "pending", createdAt: now, updatedAt: now };
+  state.referralSessions.push(entry);
+  state.referralOptOuts = state.referralOptOuts.filter((item) => !(String(item.buyerUserId || "") === buyerUserId && String(item.referrerUserId || "") === String(referral.userId || "")));
+  writeReferralProgram(state);
+  await recordAccountTransaction({ userId: referral.userId, category: "affiliate", sourceType: "affiliate_payment", sourceId: checkoutSessionId, title: "Affiliate payment pending", amountDelta: entry.commissionCents, unit: "usd_cents", status: "pending", note: "Waiting for the customer to complete Stripe checkout" });
+  return entry;
+}
+
+async function updateReferralCheckoutStatus(session, status) {
+  const details = getReferralCheckoutDetails(session);
+  if (!details) return null;
+  const { state, referral, buyerUserId, checkoutSessionId } = details;
+  let entry = state.referralSessions.find((item) => String(item.checkoutSessionId || "") === checkoutSessionId);
+  if (!entry) {
+    await recordReferralCheckoutStarted(session);
+    return updateReferralCheckoutStatus(session, status);
+  }
+  entry.status = status;
+  entry.updatedAt = new Date().toISOString();
+  writeReferralProgram(state);
+  const title = status === "confirmed" ? "Affiliate payment confirmed" : "Affiliate payment cancelled";
+  const note = status === "confirmed" ? "Stripe confirmed this payment. Commission is held for 14 days." : "The Stripe checkout was cancelled or expired.";
+  try {
+    await supabaseRequest(`/rest/v1/account_transactions?source_type=eq.affiliate_payment&source_id=eq.${encodeURIComponent(checkoutSessionId)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ title, status, note, reviewed_at: entry.updatedAt }) });
+    emitAccountTransactionUpdate(referral.userId);
+  } catch (error) { console.warn("Could not update affiliate payment transaction:", error.message); }
+  return { ...entry, buyerUserId };
+}
+
+function recordReferralOptOut(userId, referralCode) {
+  const code = normalizeReferralCode(referralCode);
+  const buyerUserId = String(userId || "").trim();
+  if (!code || !buyerUserId) return null;
+  const state = readReferralProgram();
+  const referral = state.referrals.find((entry) => entry.code === code);
+  if (!referral || String(referral.userId || "") === buyerUserId) return null;
+  const existing = state.referralOptOuts.find((entry) => String(entry.buyerUserId || "") === buyerUserId && String(entry.referrerUserId || "") === String(referral.userId || ""));
+  if (existing) existing.updatedAt = new Date().toISOString();
+  else state.referralOptOuts.push({ id: randomUUID(), buyerUserId, referrerUserId: referral.userId, code, createdAt: new Date().toISOString() });
+  writeReferralProgram(state);
+  return referral;
 }
 
 function recordReferralCommissionFromCheckout(session) {
@@ -7197,7 +7295,7 @@ function buildCheckoutSessionResponse(checkoutSession, promotion) {
 app.get("/referrals/me", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    const referral = getReferralDashboard(user.id);
+    const referral = await getReferralDashboard(user.id);
     const rblxtoolsCashCents = Math.max(0, Number(user.rblxtools_cash_cents) || 0);
     return res.json({ ok: true, referral: { ...referral, rblxtoolsCashCents, totalBalanceCents: referral.availableCents + rblxtoolsCashCents } });
   } catch (error) {
@@ -7226,6 +7324,16 @@ app.get("/referrals/lookup", async (req, res) => {
   }
 });
 
+app.post("/referrals/opt-out", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    recordReferralOptOut(user.id, req.body?.referralCode);
+    return res.json({ ok: true });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not remove the affiliate referral." });
+  }
+});
+
 app.post("/referrals/request-payout", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
@@ -7244,7 +7352,7 @@ app.post("/referrals/request-payout", async (req, res) => {
     state.payoutRequests.push(request);
     writeReferralProgram(state);
     await recordAccountTransaction({ userId: user.id, category: "affiliate", sourceType: "affiliate_payout", sourceId: request.id, title: "Affiliate payout requested", amountDelta: -availableCents, unit: "usd_cents", status: "pending", note: "Awaiting staff payout review" });
-    return res.json({ ok: true, request, referral: getReferralDashboard(user.id) });
+    return res.json({ ok: true, request, referral: await getReferralDashboard(user.id) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not request a payout." });
   }
@@ -9932,6 +10040,7 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
       },
     });
 
+    await recordReferralCheckoutStarted(checkoutSession);
     assertStripePromotionDiscount(req, checkoutSession, promotionOptions.promotion);
     return res.json(buildCheckoutSessionResponse(checkoutSession, promotionOptions.promotion));
   } catch (error) {
@@ -10150,6 +10259,7 @@ async function createDiscordBotUseCheckout(req, res) {
       client_reference_id: user.id,
       metadata: { appUserId: user.id, productType: "discord_bot_uses", discordBotUses: String(uses), referralCode },
     });
+    await recordReferralCheckoutStarted(checkoutSession);
     assertStripePromotionDiscount(req, checkoutSession, promotionOptions.promotion);
     return res.json(buildCheckoutSessionResponse(checkoutSession, promotionOptions.promotion));
   } catch (error) {
@@ -10204,6 +10314,7 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
       metadata: { appUserId: user.id, productType: "discord_bot_unlimited", billingPeriod, referralCode },
       subscription_data: { metadata: { appUserId: user.id, discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod, referralCode } },
     });
+    await recordReferralCheckoutStarted(checkoutSession);
     assertStripePromotionDiscount(req, checkoutSession, promotionOptions.promotion);
     return res.json(buildCheckoutSessionResponse(checkoutSession, promotionOptions.promotion));
   } catch (error) {
@@ -10280,6 +10391,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
       },
     });
 
+    await recordReferralCheckoutStarted(checkoutSession);
     assertStripePromotionDiscount(req, checkoutSession, promotionOptions.promotion);
     return res.json(buildCheckoutSessionResponse(checkoutSession, promotionOptions.promotion));
   } catch (error) {
@@ -10310,6 +10422,7 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
       metadata: { appUserId: user.id, plan: "pro", billingInterval, referralCode },
       subscription_data: { metadata: { appUserId: user.id, plan: "pro", billingInterval } },
     });
+    await recordReferralCheckoutStarted(checkoutSession);
     assertStripePromotionDiscount(req, checkoutSession, promotionOptions.promotion);
     return res.json(buildCheckoutSessionResponse(checkoutSession, promotionOptions.promotion));
   } catch (error) {

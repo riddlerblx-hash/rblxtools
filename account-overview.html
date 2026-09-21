@@ -1718,9 +1718,15 @@
                       <div><span>Pending</span><strong id="acctReferralPending">$0.00</strong></div>
                       <div><span>Paid out</span><strong id="acctReferralPaid">$0.00</strong></div>
                     </div>
+                    <div class="acct-info-grid">
+                      <div class="acct-pill-card"><div class="acct-pill-label">People using your link</div><div id="acctReferralPeopleUsing" class="acct-pill-value">0</div></div>
+                      <div class="acct-pill-card"><div class="acct-pill-label">Opted out</div><div id="acctReferralOptedOut" class="acct-pill-value">0</div></div>
+                    </div>
                     <div class="acct-field-label">Your referral link</div>
                     <div class="acct-referral-link-row"><input id="acctReferralLink" class="acct-input" type="text" readonly value="Loading your link..."><button id="acctReferralCopyButton" class="acct-button secondary" type="button">Copy</button></div>
                     <div class="acct-actions"><button id="acctReferralPayoutButton" class="acct-button plans" type="button" disabled>Withdraw earnings</button></div>
+                    <div class="acct-field-label">People on your link</div>
+                    <div id="acctReferralPeopleList" class="acct-referral-request-list"><div class="acct-referral-empty">No one has used your link yet.</div></div>
                     <div id="acctReferralStatus" class="acct-status">Loading referral program...</div>
                   </section>
 
@@ -2007,6 +2013,9 @@
         acctReferralPaid: document.getElementById("acctReferralPaid"),
         acctReferralRequested: document.getElementById("acctReferralRequested"),
         acctReferralMembers: document.getElementById("acctReferralMembers"),
+        acctReferralPeopleUsing: document.getElementById("acctReferralPeopleUsing"),
+        acctReferralOptedOut: document.getElementById("acctReferralOptedOut"),
+        acctReferralPeopleList: document.getElementById("acctReferralPeopleList"),
         acctReferralLink: document.getElementById("acctReferralLink"),
         acctReferralCopyButton: document.getElementById("acctReferralCopyButton"),
         acctReferralPayoutButton: document.getElementById("acctReferralPayoutButton"),
@@ -2313,12 +2322,21 @@
         els.acctReferralPaid.textContent = formatReferralMoney(referral.paidCents);
         els.acctReferralRequested.textContent = formatReferralMoney(referral.requestedCents);
         els.acctReferralMembers.textContent = String(referral.referredMembers || 0);
+        if (els.acctReferralPeopleUsing) els.acctReferralPeopleUsing.textContent = String(referral.peopleUsingLink || 0);
+        if (els.acctReferralOptedOut) els.acctReferralOptedOut.textContent = String(referral.optedOutMembers || 0);
         els.acctReferralLink.value = referral.link || "";
         els.acctReferralPayoutButton.disabled = Number(referral.availableCents || 0) < Number(referral.minimumPayoutCents || 1000);
         var requests = Array.isArray(referral.payoutRequests) ? referral.payoutRequests : [];
         els.acctReferralRequestList.innerHTML = requests.length
           ? requests.map(function (request) { var date = new Date(request.createdAt || ""); return '<div class="acct-referral-request"><strong>' + formatReferralMoney(request.amountCents) + '</strong> - ' + String(request.status || 'in review') + '<br><span>' + (Number.isNaN(date.getTime()) ? 'Withdrawal request' : date.toLocaleDateString()) + '</span></div>'; }).join("")
           : '<div class="acct-referral-empty">Your withdrawal history will appear here.</div>';
+        if (els.acctReferralPeopleList) {
+          var esc = function (value) { return String(value || "").replace(/[&<>]/g, function (char) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]; }); };
+          var people = Array.isArray(referral.linkUsers) ? referral.linkUsers : [];
+          els.acctReferralPeopleList.innerHTML = people.length
+            ? people.map(function (person) { var status = String(person.status || "pending").replace(/_/g, " "); var date = new Date(person.updatedAt || person.createdAt || ""); return '<div class="acct-referral-request"><strong>@' + esc(person.username || "member") + '</strong> · ' + esc(status) + '<br><span>' + (Number.isNaN(date.getTime()) ? 'Referral activity' : date.toLocaleDateString()) + '</span></div>'; }).join("")
+            : '<div class="acct-referral-empty">No one has used your link yet.</div>';
+        }
       }
 
       async function loadReferralDashboard() {
@@ -2365,18 +2383,18 @@
             return items.length ? items.map(function (item) {
               var rawStatus = String(item.status || "pending").toLowerCase(), status = rawStatus === "approved" ? "accepted" : rawStatus;
               var date = new Date(item.created_at), details = item.note ? " · " + esc(item.note) : "";
-              var amountClass = status === "pending" ? " is-pending" : status === "rejected" ? " is-rejected" : Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0) < 0 ? " is-outgoing" : "";
+              var amountClass = status === "pending" ? " is-pending" : (status === "rejected" || status === "cancelled") ? " is-rejected" : Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0) < 0 ? " is-outgoing" : "";
               return '<div class="acct-transaction-row"><div><strong>' + esc(item.title || "Account activity") + '</strong><small>' + (Number.isNaN(date.getTime()) ? "Transaction" : date.toLocaleDateString()) + details + '</small></div><div class="acct-transaction-amount' + amountClass + '">' + amountFor(item) + ' <span class="acct-transaction-status ' + esc(status) + '">(' + esc(status) + ')</span></div></div>';
             }).join("") : '<div class="acct-transaction-empty">No transactions in this category yet.</div>';
           }
-          var total = visible.filter(function (item) { var status = String(item.status || "pending").toLowerCase(); return status === "accepted" || status === "approved"; }).reduce(function (sum, item) { return sum + Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0); }, 0);
+          var total = visible.filter(function (item) { var status = String(item.status || "pending").toLowerCase(); return status === "accepted" || status === "approved" || status === "confirmed"; }).reduce(function (sum, item) { return sum + Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0); }, 0);
           var totalUnit = visible[0] && visible[0].unit || (type === "ai_tokens" ? "tokens" : "points");
           var totalText = totalUnit === "usd_cents" ? (total < 0 ? "-" : "+") + "$" + (Math.abs(total) / 100).toFixed(2) : (total < 0 ? "-" : "+") + Math.abs(total).toLocaleString() + " " + unitLabel(totalUnit);
           var snapshot = JSON.stringify({ rewardPoints: Number(payload && payload.rewardPoints || 0), type: type, range: range, visible: visible });
           try { window.dispatchEvent(new CustomEvent("rblxtools-reward-points-balance", { detail: { rewardPoints: Number(payload && payload.rewardPoints || 0) } })); } catch (_error) {}
           if (snapshot === rewardHistorySnapshot) return;
           rewardHistorySnapshot = snapshot;
-          els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>' + labels[type] + '</span><span style="text-align:right">Amount</span></div>' + rows(visible) + '<div class="acct-transaction-total"><span>Accepted total</span><span>' + totalText + '</span></div></div>';
+          els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>' + labels[type] + '</span><span style="text-align:right">Amount</span></div>' + rows(visible) + '<div class="acct-transaction-total"><span>Confirmed total</span><span>' + totalText + '</span></div></div>';
           if (els.acctRewardTransactionType && !els.acctRewardTransactionType.dataset.bound) {
             [els.acctRewardTransactionType, els.acctRewardTransactionRange].forEach(function (select) { select.addEventListener("change", function () { loadRewardHistory(); }); });
             els.acctRewardTransactionType.dataset.bound = "true";
