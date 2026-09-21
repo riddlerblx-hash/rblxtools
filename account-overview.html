@@ -1345,6 +1345,14 @@
     #rbtools-account-overview .acct-referral-view { padding:0; border:0; background:transparent; color:#82e9dc; font:800 11px inherit; cursor:pointer; }
     #rbtools-account-overview .acct-referral-view:hover { color:#d6fffa; text-decoration:underline; }
     #rbtools-account-overview .acct-referral-members-modal .acct-modal-card { width:min(100%,470px); }
+    #acctReferralPeopleModal { position:fixed; z-index:80; inset:0; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(3,8,18,.76); }
+    #acctReferralPeopleModal.is-open { display:flex; }
+    #acctReferralPeopleModal .acct-modal-card { width:min(100%,470px); border:1px solid rgba(111,146,205,.3); border-radius:17px; overflow:hidden; background:linear-gradient(180deg,rgba(33,48,75,.98),rgba(10,18,31,.99)); box-shadow:0 24px 64px rgba(0,0,0,.5); }
+    #acctReferralPeopleModal .acct-modal-head { padding:18px 18px 14px; border-bottom:1px solid rgba(255,255,255,.08); }
+    #acctReferralPeopleModal .acct-modal-title { margin:0; color:#fff; font-size:16px; font-weight:900; }
+    #acctReferralPeopleModal .acct-modal-body { padding:18px; display:grid; gap:16px; }
+    #acctReferralPeopleModal .acct-modal-actions { display:flex; justify-content:flex-end; gap:10px; padding:0 18px 18px; }
+    #acctReferralPeopleModal .acct-button { min-height:38px; border:1px solid rgba(116,160,244,.35); border-radius:10px; padding:0 14px; background:rgba(78,117,184,.16); color:#eaf2ff; font:800 13px inherit; cursor:pointer; }
     #rbtools-account-overview .acct-referral-request-list { display: grid; gap: 8px; margin-top: 14px; }
     #rbtools-account-overview .acct-referral-request, #rbtools-account-overview .acct-referral-empty { padding: 12px; border: 1px solid rgba(111, 146, 205, .2); border-radius: 12px; background: rgba(8, 16, 28, .52); color: #b7c7dd; font-size: 12px; font-weight: 700; }
     #rbtools-account-overview .acct-referral-request strong { color: #ecf8ff; }
