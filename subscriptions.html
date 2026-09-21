@@ -2048,6 +2048,12 @@
         else window.location.href = payload.url;
       }
 
+      function openRblxToolsCheckout(item, params) {
+        var search = new URLSearchParams(Object.assign({ item: item }, params || {}));
+        if (window.RBLXToolsReferral) search.set("ref", window.RBLXToolsReferral.getCode() || "");
+        window.location.href = "./checkout?" + search.toString();
+      }
+
       function applyPlanState(plan) {
         var isPlus = plan === "plus";
         var isPro = plan === "pro";
@@ -2148,10 +2154,7 @@
         plusCheckoutBtn.disabled = true;
         setStatus(plusStatusEl, "Opening secure RBLXTools checkout...", "success");
         try {
-          await openHostedCheckout("/auth/create-checkout-session", {
-            billingInterval: billingInterval,
-            referralCode: window.RBLXToolsReferral ? window.RBLXToolsReferral.getCode() : ""
-          }, token);
+          openRblxToolsCheckout("plus", { billing: billingInterval });
         } catch (error) {
           plusCheckoutBtn.disabled = false;
           setStatus(plusStatusEl, error.message || "Could not open Stripe checkout.");
@@ -2177,10 +2180,7 @@
           proCheckoutBtn.disabled = true;
           setStatus(proStatusEl, "Opening secure RBLXTools checkout...", "success");
           try {
-            await openHostedCheckout("/auth/create-pro-checkout-session", {
-              billingInterval: billingInterval,
-              referralCode: window.RBLXToolsReferral ? window.RBLXToolsReferral.getCode() : ""
-            }, token);
+            openRblxToolsCheckout("pro", { billing: billingInterval });
           } catch (error) {
             proCheckoutBtn.disabled = false;
             setStatus(proStatusEl, error.message || "Could not open Stripe checkout.");
