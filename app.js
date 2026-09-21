@@ -2052,6 +2052,13 @@ function buildCheckoutReturnOptions(req, successUrl, cancelUrl) {
   };
 }
 
+function createStripeCheckoutSession(req, options) {
+  const requestOptions = wantsCustomCheckout(req)
+    ? { apiVersion: "2025-03-31.basil" }
+    : undefined;
+  return stripeClient.checkout.sessions.create(options, requestOptions);
+}
+
 function assertStripePortalConfigured() {
   if (!STRIPE_SECRET_KEY || !stripeClient) {
     const error = new Error("Stripe customer portal is not configured.");
@@ -9769,7 +9776,7 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const priceId = await resolveAITokenPackagePrice(packageDefinition);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
-    const checkoutSession = await stripeClient.checkout.sessions.create({
+    const checkoutSession = await createStripeCheckoutSession(req, {
       mode: "payment",
       ...customerParams,
       line_items: [{ price: priceId, quantity: 1 }],
@@ -9984,7 +9991,7 @@ async function createDiscordBotUseCheckout(req, res) {
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const checkoutCents = Math.max(1, Math.round(uses / 5));
     const referralCode = normalizeReferralCode(req.body?.referralCode);
-    const checkoutSession = await stripeClient.checkout.sessions.create({
+    const checkoutSession = await createStripeCheckoutSession(req, {
       mode: "payment",
       ...customerParams,
       line_items: [{
@@ -10042,7 +10049,7 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const unlimitedLineItem = { price: priceId, quantity: 1 };
     const referralCode = normalizeReferralCode(req.body?.referralCode);
-    const checkoutSession = await stripeClient.checkout.sessions.create({
+    const checkoutSession = await createStripeCheckoutSession(req, {
       mode: "subscription",
       ...customerParams,
       line_items: [unlimitedLineItem],
@@ -10099,7 +10106,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
     const priceId = await resolvePlusRecurringPrice(billingInterval);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
 
-    const checkoutSession = await stripeClient.checkout.sessions.create({
+    const checkoutSession = await createStripeCheckoutSession(req, {
       mode: "subscription",
       ...customerParams,
       line_items: [
@@ -10144,7 +10151,7 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
     const priceId = await resolveProRecurringPrice(billingInterval);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
-    const checkoutSession = await stripeClient.checkout.sessions.create({
+    const checkoutSession = await createStripeCheckoutSession(req, {
       mode: "subscription",
       ...customerParams,
       line_items: [{ price: priceId, quantity: 1 }],
