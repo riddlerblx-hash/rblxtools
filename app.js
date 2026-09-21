@@ -2051,7 +2051,7 @@ function buildCheckoutReturnOptions(req, successUrl, cancelUrl) {
 async function getStripePromotionOptions(req, priceId) {
   const code = normalizeCouponCode(req.body?.promotionCode);
   if (!code) return {};
-  const matches = await stripeClient.promotionCodes.list({ code, limit: 1, expand: ["data.coupon"] });
+  const matches = await stripeClient.promotionCodes.list({ code, active: true, limit: 1, expand: ["data.coupon"] });
   const promotionCode = matches.data?.[0];
   if (!promotionCode || normalizeCouponCode(promotionCode.code) !== code) {
     const error = new Error("This promotion code does not exist.");
