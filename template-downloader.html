@@ -1402,6 +1402,10 @@
         templateRigAnimationFrame = 0;
       }
       if (templateRigRenderer) {
+        var previousCanvas = templateRigRenderer.domElement;
+        if (previousCanvas && previousCanvas.parentNode) {
+          previousCanvas.parentNode.removeChild(previousCanvas);
+        }
         templateRigRenderer.dispose();
         templateRigRenderer = null;
       }
