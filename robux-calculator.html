@@ -928,6 +928,10 @@
     .calc-side { display: block; }
     .calc-side-card { position: sticky; top: calc(var(--shell-header-height) + 22px); padding: 18px; }
     .chart-wrap { min-height: 250px; }
+    .rblx-calc-share-card { margin-top:18px; padding:18px; }
+    .rblx-calc-share-card .share-row { justify-content:flex-start; margin:16px 0 12px; }
+    .rblx-calc-share-card .share-copy-btn { display:inline-flex; width:auto; min-height:40px; align-items:center; justify-content:center; padding:0 18px; border:0; border-radius:11px; color:#fff; background:linear-gradient(135deg,#ff6074,#ef2443); box-shadow:0 10px 22px rgba(238,36,67,.26); font:900 12px Arial,sans-serif; cursor:pointer; }
+    .rblx-calc-share-card .share-copy-btn:hover { transform:translateY(-1px); filter:brightness(1.06); }
     @media (max-width: 820px) {
       .calc-page { padding: 20px 12px 58px; }
       .calc-hero { padding: 26px 20px; border-radius: 22px; }
@@ -1410,9 +1414,9 @@
             </section>
           </aside>
         </div>
+      </section>
 
-        <section class="share-card rblx-calc-share-card">
-          <span class="share-kicker">Share This Tool</span>
+      <section class="share-card rblx-calc-share-card">
           <h3>Send this calculator to another creator</h3>
           <p>Share the current calculator with Facebook, X, LinkedIn, WhatsApp, Telegram, or copy its direct link.</p>
           <div class="share-row">
@@ -1424,7 +1428,6 @@
             <button class="share-btn share-mail" type="button" data-share="email">@</button>
           </div>
           <button class="mini-btn primary share-copy-btn" type="button" id="rblx-copy-page-link">Copy Page Link</button>
-        </section>
       </section>
     </div>
   </main>
