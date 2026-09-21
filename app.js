@@ -2076,23 +2076,30 @@ async function getStripePromotionOptions(req, priceId) {
     throw error;
   }
   let discountAmount = 0;
+  let product = null;
+  let allowedProducts = [];
+  let priceAmount = 0;
+  let priceCurrency = "usd";
+  const couponAmountOff = Math.max(0, Number(
+    coupon.amount_off ?? coupon.currency_options?.usd?.amount_off ?? 0
+  ) || 0);
   if (priceId) {
     const price = await stripeClient.prices.retrieve(priceId);
-    const product = typeof price?.product === "string" ? price.product : price?.product?.id;
-    const allowedProducts = Array.isArray(coupon.applies_to?.products) ? coupon.applies_to.products : [];
+    product = typeof price?.product === "string" ? price.product : price?.product?.id;
+    allowedProducts = Array.isArray(coupon.applies_to?.products) ? coupon.applies_to.products : [];
     if (allowedProducts.length && !allowedProducts.includes(product)) {
       const error = new Error("This promotion code is not valid for this purchase.");
       error.statusCode = 400;
       throw error;
     }
-    const priceAmount = Math.max(0, Number(price?.unit_amount) || 0);
-    const priceCurrency = String(price?.currency || "usd").toLowerCase();
-    const couponAmountOff = Math.max(0, Number(
-      coupon.amount_off ?? coupon.currency_options?.[priceCurrency]?.amount_off ?? 0
+    priceAmount = Math.max(0, Number(price?.unit_amount) || 0);
+    priceCurrency = String(price?.currency || "usd").toLowerCase();
+    const currencySpecificAmountOff = Math.max(0, Number(
+      coupon.currency_options?.[priceCurrency]?.amount_off ?? 0
     ) || 0);
     discountAmount = coupon.percent_off
       ? Math.round(priceAmount * (Number(coupon.percent_off) / 100))
-      : Math.min(priceAmount, couponAmountOff);
+      : Math.min(priceAmount, Math.max(couponAmountOff, currencySpecificAmountOff));
     console.info("Stripe promotion diagnostic", {
       code,
       promotionCodeId: promotionCode.id,
@@ -2109,7 +2116,19 @@ async function getStripePromotionOptions(req, priceId) {
   }
   const options = { discounts: [{ promotion_code: promotionCode.id }] };
   Object.defineProperty(options, "promotion", {
-    value: { code, discountAmount, promotionCodeId: promotionCode.id },
+    value: {
+      code,
+      discountAmount,
+      promotionCodeId: promotionCode.id,
+      couponId: coupon.id || null,
+      couponAmountOff,
+      couponPercentOff: coupon.percent_off ?? null,
+      couponProductIds: allowedProducts,
+      checkoutPriceId: priceId || null,
+      checkoutProductId: product || null,
+      checkoutPriceAmount: priceAmount,
+      checkoutCurrency: priceCurrency,
+    },
     enumerable: false,
   });
   return options;
@@ -7126,6 +7145,7 @@ function buildCheckoutSessionResponse(checkoutSession, promotion) {
     amountSubtotal: subtotal,
     amountTotal: discountedTotal,
     amountDiscount: discount,
+    promotionDiagnostic: promotion || null,
     embeddedCheckoutEnabled: Boolean(STRIPE_PUBLISHABLE_KEY && stripeClient),
   };
 }
