@@ -586,7 +586,7 @@
     #rbtools-account-overview .acct-pill-plus-text,
     #rbtools-account-overview .acct-plus-name {
       display: inline-block;
-      color: #edf3fb;
+      color: inherit;
       animation: none;
       text-shadow: none;
     }
@@ -604,7 +604,7 @@
     #rbtools-account-overview .acct-plus-tag.hidden { display: none; }
     #rbtools-account-overview .acct-pill-value.is-pro { display:inline-flex; align-items:center; gap:7px; font-size:15px; line-height:1; }
     #rbtools-account-overview .acct-pro-mark { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:22px; border-radius:8px; color:#251600; background:#f1c45f; box-shadow:0 0 10px rgba(255,190,55,.22); animation:none; }
-    #rbtools-account-overview .acct-pro-name { display:inline-block; color:#ffe2a0; animation:none; }
+    #rbtools-account-overview .acct-pro-name { display:inline-block; color:inherit; animation:none; }
 
     #rbtools-account-overview .acct-actions {
       margin-top: 12px;
@@ -1337,6 +1337,8 @@
     #rbtools-account-overview .acct-referral-link-row { display: flex; gap: 8px; margin: 7px 0 8px; }
     #rbtools-account-overview .acct-referral-link-row .acct-input { min-width: 0; flex: 1; }
     #rbtools-account-overview .acct-referral-link-row .acct-button { flex: 0 0 auto; }
+    #rbtools-account-overview .acct-referral-code-lock { margin: -1px 0 10px; color: #afbdd0; font-size: 12px; font-weight: 700; }
+    #rbtools-account-overview .acct-referral-code-lock[hidden] { display: none; }
     #rbtools-account-overview .acct-referral-hero .acct-info-grid { margin: 18px 0 20px; }
     #rbtools-account-overview .acct-referral-link-label { margin-top: 18px; }
     #rbtools-account-overview .acct-referral-hero .acct-actions { grid-template-columns: 1fr; margin-top: 14px; }
@@ -1735,8 +1737,9 @@
                     </div>
                     <div class="acct-field-label acct-referral-link-label">Your referral link</div>
                     <div class="acct-referral-link-row"><input id="acctReferralLink" class="acct-input" type="text" readonly value="Loading your link..."><button id="acctReferralCopyButton" class="acct-button secondary" type="button">Copy</button></div>
-                    <div class="acct-field-label">Custom affiliate code <span style="color:#82e9dc">Pro only</span></div>
+                    <div class="acct-field-label">Custom affiliate code <span>Pro only</span></div>
                     <div class="acct-referral-link-row"><input id="acctReferralCustomCode" class="acct-input" type="text" minlength="4" maxlength="12" autocomplete="off" placeholder="4–12 letters or numbers"><button id="acctReferralCustomCodeButton" class="acct-button secondary" type="button">Save</button></div>
+                    <div id="acctReferralCustomCodeLock" class="acct-referral-code-lock" hidden>🔒 An active Pro subscription is required to use a custom affiliate code.</div>
                     <div id="acctReferralStatus" class="acct-status">Loading referral program...</div>
                   </section>
 
@@ -2038,6 +2041,7 @@
         acctReferralLink: document.getElementById("acctReferralLink"),
         acctReferralCustomCode: document.getElementById("acctReferralCustomCode"),
         acctReferralCustomCodeButton: document.getElementById("acctReferralCustomCodeButton"),
+        acctReferralCustomCodeLock: document.getElementById("acctReferralCustomCodeLock"),
         acctReferralCopyButton: document.getElementById("acctReferralCopyButton"),
         acctReferralStatus: document.getElementById("acctReferralStatus"),
         acctRewardPoints: document.getElementById("acctRewardPoints"),
@@ -2344,7 +2348,13 @@
         if (els.acctReferralPeopleUsing) els.acctReferralPeopleUsing.textContent = String(referral.peopleUsingLink || 0);
         if (els.acctReferralOptedOut) els.acctReferralOptedOut.textContent = String(referral.optedOutMembers || 0);
         els.acctReferralLink.value = referral.link || "";
-        if (els.acctReferralCustomCode) els.acctReferralCustomCode.value = referral.customCode || "";
+        var hasActivePro = String(state.user && state.user.plan || "").toLowerCase() === "pro" && Boolean(state.user && state.user.premiumActive);
+        if (els.acctReferralCustomCode) {
+          els.acctReferralCustomCode.value = referral.customCode || "";
+          els.acctReferralCustomCode.disabled = !hasActivePro;
+        }
+        if (els.acctReferralCustomCodeButton) els.acctReferralCustomCodeButton.disabled = !hasActivePro;
+        if (els.acctReferralCustomCodeLock) els.acctReferralCustomCodeLock.hidden = hasActivePro;
         var requests = Array.isArray(referral.payoutRequests) ? referral.payoutRequests : [];
         els.acctReferralRequestList.innerHTML = requests.length
           ? requests.map(function (request) { var date = new Date(request.createdAt || ""); return '<div class="acct-referral-request"><strong>' + formatReferralMoney(request.amountCents) + '</strong> - ' + String(request.status || 'in review') + '<br><span>' + (Number.isNaN(date.getTime()) ? 'Withdrawal request' : date.toLocaleDateString()) + '</span></div>'; }).join("")
@@ -3057,6 +3067,11 @@
 
       async function saveReferralCustomCode() {
         if (!els.acctReferralCustomCode || !els.acctReferralCustomCodeButton) return;
+        var hasActivePro = String(state.user && state.user.plan || "").toLowerCase() === "pro" && Boolean(state.user && state.user.premiumActive);
+        if (!hasActivePro) {
+          setStatus(els.acctReferralStatus, "An active Pro subscription is required to use a custom affiliate code.", "error");
+          return;
+        }
         var code = String(els.acctReferralCustomCode.value || "").trim().toUpperCase();
         els.acctReferralCustomCodeButton.disabled = true;
         try {

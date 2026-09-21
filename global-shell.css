@@ -5216,3 +5216,42 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
 .code-post-ad-pair,
 .code-post-ad,
 .code-directory-ad { display:none !important; }
+
+/* Plan names are ordinary text: membership cards can keep their design, but the
+   words “Plus” and “Pro” no longer receive a color, gradient, or animation. */
+.rblx-plus-word,
+.rblx-pro-word,
+.plus-word:not(.plus-floater),
+.pro-word,
+.plusWord,
+.proWord,
+.accent-plus,
+.accent-pro,
+.rblx-shell-gate-plus,
+.rblx-shell-gate-pro,
+.rblx-shell-profile-plan.is-plus,
+.rblx-shell-profile-plan.is-pro {
+  color: inherit !important;
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
+  animation: none !important;
+  filter: none !important;
+}
+
+body.rblx-shell-ready .rblx-shell-page .notice .plus-word,
+body.rblx-shell-ready .rblx-shell-page #plusNotice .plus-word,
+body.rblx-shell-ready .rblx-shell-page #plusNotice .plusWord {
+  color: inherit !important;
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
+  animation: none !important;
+  filter: none !important;
+}
