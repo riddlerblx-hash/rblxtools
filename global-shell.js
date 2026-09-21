@@ -94,7 +94,17 @@
       }
       add.addEventListener("click", function () {
         var limit = getAssetBatchLimit();
-        if (limit === 1) { window.location.href = "./subscriptions"; return; }
+        if (limit === 1) {
+          if (window.RBLXToolsMembershipGate && typeof window.RBLXToolsMembershipGate.open === "function") {
+            window.RBLXToolsMembershipGate.open({
+              title: 'Add more IDs with <span class="rblx-shell-gate-plus">Plus</span> or <span class="rblx-shell-gate-pro">Pro</span>.',
+              copy: "Choose a membership to unlock multi-ID downloads and other creator benefits."
+            });
+          } else {
+            window.location.href = "./subscriptions";
+          }
+          return;
+        }
         if (allInputs().length >= limit) return;
         addRow(""); renderAccess();
         var inputs = allInputs(); if (inputs.length) inputs[inputs.length - 1].focus();
@@ -602,11 +612,22 @@
       return plan === "plus" || plan === "pro";
     }
 
-    function showGate() {
+    var title = gate.querySelector("#rblxShellAnimationGateTitle");
+    var copy = gate.querySelector(".rblx-shell-membership-gate-card > p");
+    var defaultTitle = title ? title.innerHTML : "";
+    var defaultCopy = copy ? copy.textContent : "";
+    function showGate(options) {
+      var settings = options && typeof options === "object" ? options : {};
+      if (title) title.innerHTML = settings.title || defaultTitle;
+      if (copy) copy.textContent = settings.copy || defaultCopy;
       gate.classList.add("is-open");
       gate.setAttribute("aria-hidden", "false");
       mountModalVerticalAds(gate);
     }
+
+    window.RBLXToolsMembershipGate = {
+      open: function (options) { showGate(options); }
+    };
 
     var cancelButton = gate.querySelector("[data-rblx-animation-gate-cancel]");
     if (cancelButton) cancelButton.addEventListener("click", function () {
