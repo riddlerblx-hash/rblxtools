@@ -1337,6 +1337,14 @@
     #rbtools-account-overview .acct-referral-link-row { display: flex; gap: 8px; margin: 7px 0 8px; }
     #rbtools-account-overview .acct-referral-link-row .acct-input { min-width: 0; flex: 1; }
     #rbtools-account-overview .acct-referral-link-row .acct-button { flex: 0 0 auto; }
+    #rbtools-account-overview .acct-referral-hero .acct-info-grid { margin: 18px 0 20px; }
+    #rbtools-account-overview .acct-referral-link-label { margin-top: 18px; }
+    #rbtools-account-overview .acct-referral-hero .acct-actions { grid-template-columns: 1fr; margin-top: 14px; }
+    #rbtools-account-overview .acct-referral-hero .acct-actions .acct-button { width: 100%; }
+    #rbtools-account-overview .acct-referral-stat-label { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    #rbtools-account-overview .acct-referral-view { padding:0; border:0; background:transparent; color:#82e9dc; font:800 11px inherit; cursor:pointer; }
+    #rbtools-account-overview .acct-referral-view:hover { color:#d6fffa; text-decoration:underline; }
+    #rbtools-account-overview .acct-referral-members-modal .acct-modal-card { width:min(100%,470px); }
     #rbtools-account-overview .acct-referral-request-list { display: grid; gap: 8px; margin-top: 14px; }
     #rbtools-account-overview .acct-referral-request, #rbtools-account-overview .acct-referral-empty { padding: 12px; border: 1px solid rgba(111, 146, 205, .2); border-radius: 12px; background: rgba(8, 16, 28, .52); color: #b7c7dd; font-size: 12px; font-weight: 700; }
     #rbtools-account-overview .acct-referral-request strong { color: #ecf8ff; }
@@ -1719,14 +1727,12 @@
                       <div><span>Paid out</span><strong id="acctReferralPaid">$0.00</strong></div>
                     </div>
                     <div class="acct-info-grid">
-                      <div class="acct-pill-card"><div class="acct-pill-label">People using your link</div><div id="acctReferralPeopleUsing" class="acct-pill-value">0</div></div>
+                      <div class="acct-pill-card"><div class="acct-pill-label acct-referral-stat-label"><span>People using your link</span><button id="acctReferralPeopleView" class="acct-referral-view" type="button">View</button></div><div id="acctReferralPeopleUsing" class="acct-pill-value">0</div></div>
                       <div class="acct-pill-card"><div class="acct-pill-label">Opted out</div><div id="acctReferralOptedOut" class="acct-pill-value">0</div></div>
                     </div>
-                    <div class="acct-field-label">Your referral link</div>
+                    <div class="acct-field-label acct-referral-link-label">Your referral link</div>
                     <div class="acct-referral-link-row"><input id="acctReferralLink" class="acct-input" type="text" readonly value="Loading your link..."><button id="acctReferralCopyButton" class="acct-button secondary" type="button">Copy</button></div>
                     <div class="acct-actions"><button id="acctReferralPayoutButton" class="acct-button plans" type="button" disabled>Withdraw earnings</button></div>
-                    <div class="acct-field-label">People on your link</div>
-                    <div id="acctReferralPeopleList" class="acct-referral-request-list"><div class="acct-referral-empty">No one has used your link yet.</div></div>
                     <div id="acctReferralStatus" class="acct-status">Loading referral program...</div>
                   </section>
 
@@ -1883,6 +1889,13 @@
         </div>
       </div>
     </section>
+    <div id="acctReferralPeopleModal" class="acct-modal acct-referral-members-modal" role="dialog" aria-modal="true" aria-labelledby="acctReferralPeopleModalTitle">
+      <div class="acct-modal-card">
+        <div class="acct-modal-head"><h4 id="acctReferralPeopleModalTitle" class="acct-modal-title">People using your referral link</h4></div>
+        <div class="acct-modal-body"><div id="acctReferralPeopleModalList" class="acct-referral-request-list" style="margin-top:0"><div class="acct-referral-empty">No one has used your link yet.</div></div></div>
+        <div class="acct-modal-actions"><button id="acctReferralPeopleModalClose" class="acct-button secondary" type="button">Close</button></div>
+      </div>
+    </div>
   </main>
 
   <script>
@@ -2015,7 +2028,10 @@
         acctReferralMembers: document.getElementById("acctReferralMembers"),
         acctReferralPeopleUsing: document.getElementById("acctReferralPeopleUsing"),
         acctReferralOptedOut: document.getElementById("acctReferralOptedOut"),
-        acctReferralPeopleList: document.getElementById("acctReferralPeopleList"),
+        acctReferralPeopleView: document.getElementById("acctReferralPeopleView"),
+        acctReferralPeopleModal: document.getElementById("acctReferralPeopleModal"),
+        acctReferralPeopleModalList: document.getElementById("acctReferralPeopleModalList"),
+        acctReferralPeopleModalClose: document.getElementById("acctReferralPeopleModalClose"),
         acctReferralLink: document.getElementById("acctReferralLink"),
         acctReferralCopyButton: document.getElementById("acctReferralCopyButton"),
         acctReferralPayoutButton: document.getElementById("acctReferralPayoutButton"),
@@ -2330,10 +2346,10 @@
         els.acctReferralRequestList.innerHTML = requests.length
           ? requests.map(function (request) { var date = new Date(request.createdAt || ""); return '<div class="acct-referral-request"><strong>' + formatReferralMoney(request.amountCents) + '</strong> - ' + String(request.status || 'in review') + '<br><span>' + (Number.isNaN(date.getTime()) ? 'Withdrawal request' : date.toLocaleDateString()) + '</span></div>'; }).join("")
           : '<div class="acct-referral-empty">Your withdrawal history will appear here.</div>';
-        if (els.acctReferralPeopleList) {
+        if (els.acctReferralPeopleModalList) {
           var esc = function (value) { return String(value || "").replace(/[&<>]/g, function (char) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]; }); };
-          var people = Array.isArray(referral.linkUsers) ? referral.linkUsers : [];
-          els.acctReferralPeopleList.innerHTML = people.length
+          var people = (Array.isArray(referral.linkUsers) ? referral.linkUsers : []).filter(function (person) { return String(person.status || "") !== "opted_out"; });
+          els.acctReferralPeopleModalList.innerHTML = people.length
             ? people.map(function (person) { var status = String(person.status || "pending").replace(/_/g, " "); var date = new Date(person.updatedAt || person.createdAt || ""); return '<div class="acct-referral-request"><strong>@' + esc(person.username || "member") + '</strong> · ' + esc(status) + '<br><span>' + (Number.isNaN(date.getTime()) ? 'Referral activity' : date.toLocaleDateString()) + '</span></div>'; }).join("")
             : '<div class="acct-referral-empty">No one has used your link yet.</div>';
         }
@@ -3469,6 +3485,9 @@
       }
       if (els.acctReferralCopyButton) els.acctReferralCopyButton.addEventListener("click", copyReferralLink);
       if (els.acctReferralPayoutButton) els.acctReferralPayoutButton.addEventListener("click", requestReferralPayout);
+      if (els.acctReferralPeopleView) els.acctReferralPeopleView.addEventListener("click", function () { if (els.acctReferralPeopleModal) els.acctReferralPeopleModal.classList.add("is-open"); });
+      if (els.acctReferralPeopleModalClose) els.acctReferralPeopleModalClose.addEventListener("click", function () { if (els.acctReferralPeopleModal) els.acctReferralPeopleModal.classList.remove("is-open"); });
+      if (els.acctReferralPeopleModal) els.acctReferralPeopleModal.addEventListener("click", function (event) { if (event.target === els.acctReferralPeopleModal) els.acctReferralPeopleModal.classList.remove("is-open"); });
       if (els.acctDiscordLinkButton) els.acctDiscordLinkButton.addEventListener("click", createDiscordLinkCode);
       if (els.acctDiscordUnlinkButton) els.acctDiscordUnlinkButton.addEventListener("click", unlinkDiscordAccount);
       if (els.acctBotInfoButton) els.acctBotInfoButton.addEventListener("click", toggleBotInfo);
