@@ -2048,7 +2048,7 @@ function buildCheckoutReturnOptions(req, successUrl, cancelUrl) {
   };
 }
 
-async function getStripePromotionOptions(req) {
+async function getStripePromotionOptions(req, priceId) {
   const code = normalizeCouponCode(req.body?.promotionCode);
   if (!code) return {};
   const matches = await stripeClient.promotionCodes.list({ code, limit: 1, expand: ["data.coupon"] });
@@ -2073,13 +2073,33 @@ async function getStripePromotionOptions(req) {
     error.statusCode = 400;
     throw error;
   }
-  return { discounts: [{ promotion_code: promotionCode.id }] };
+  let discountAmount = 0;
+  if (priceId) {
+    const price = await stripeClient.prices.retrieve(priceId);
+    const product = typeof price?.product === "string" ? price.product : price?.product?.id;
+    const allowedProducts = Array.isArray(coupon.applies_to?.products) ? coupon.applies_to.products : [];
+    if (allowedProducts.length && !allowedProducts.includes(product)) {
+      const error = new Error("This promotion code is not valid for this purchase.");
+      error.statusCode = 400;
+      throw error;
+    }
+    const priceAmount = Math.max(0, Number(price?.unit_amount) || 0);
+    discountAmount = coupon.percent_off
+      ? Math.round(priceAmount * (Number(coupon.percent_off) / 100))
+      : Math.min(priceAmount, Math.max(0, Number(coupon.amount_off) || 0));
+  }
+  const options = { discounts: [{ promotion_code: promotionCode.id }] };
+  Object.defineProperty(options, "promotion", {
+    value: { code, discountAmount, promotionCodeId: promotionCode.id },
+    enumerable: false,
+  });
+  return options;
 }
 
-function assertStripePromotionDiscount(req, checkoutSession) {
+function assertStripePromotionDiscount(req, checkoutSession, promotion) {
   if (!normalizeCouponCode(req.body?.promotionCode)) return;
-  if (Number(checkoutSession?.total_details?.amount_discount || 0) > 0) return;
-  const error = new Error("Stripe could not apply this promotion code to the selected plan. Check that its coupon includes this plan's Stripe product and price.");
+  if (Number(checkoutSession?.total_details?.amount_discount || 0) > 0 || Number(promotion?.discountAmount || 0) > 0) return;
+  const error = new Error("This promotion code is not valid for this purchase.");
   error.statusCode = 400;
   throw error;
 }
@@ -7070,16 +7090,23 @@ app.get("/auth/stripe/diagnostic", (_req, res) => {
   });
 });
 
-function buildCheckoutSessionResponse(checkoutSession) {
+function buildCheckoutSessionResponse(checkoutSession, promotion) {
+  const subtotal = checkoutSession.amount_subtotal ?? null;
+  const stripeDiscount = Number(checkoutSession.total_details?.amount_discount || 0);
+  const discount = Math.max(stripeDiscount, Number(promotion?.discountAmount || 0));
+  const total = Number(checkoutSession.amount_total);
+  const discountedTotal = discount > 0 && Number.isFinite(Number(subtotal)) && Number.isFinite(total)
+    ? Math.min(total, Math.max(0, Number(subtotal) - discount))
+    : checkoutSession.amount_total ?? null;
   return {
     ok: true,
     url: checkoutSession.url,
     clientSecret: checkoutSession.client_secret || null,
     publishableKey: STRIPE_PUBLISHABLE_KEY || null,
     uiMode: checkoutSession.ui_mode || null,
-    amountSubtotal: checkoutSession.amount_subtotal ?? null,
-    amountTotal: checkoutSession.amount_total ?? null,
-    amountDiscount: checkoutSession.total_details?.amount_discount ?? 0,
+    amountSubtotal: subtotal,
+    amountTotal: discountedTotal,
+    amountDiscount: discount,
     embeddedCheckoutEnabled: Boolean(STRIPE_PUBLISHABLE_KEY && stripeClient),
   };
 }
@@ -9805,7 +9832,7 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const priceId = await resolveAITokenPackagePrice(packageDefinition);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
-    const promotionOptions = await getStripePromotionOptions(req);
+    const promotionOptions = await getStripePromotionOptions(req, priceId);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
       ...customerParams,
@@ -9821,8 +9848,8 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
       },
     });
 
-    assertStripePromotionDiscount(req, checkoutSession);
-    return res.json(buildCheckoutSessionResponse(checkoutSession));
+    assertStripePromotionDiscount(req, checkoutSession, promotionOptions.promotion);
+    return res.json(buildCheckoutSessionResponse(checkoutSession, promotionOptions.promotion));
   } catch (error) {
     console.error("POST /store/create-ai-token-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({
@@ -10039,8 +10066,8 @@ async function createDiscordBotUseCheckout(req, res) {
       client_reference_id: user.id,
       metadata: { appUserId: user.id, productType: "discord_bot_uses", discordBotUses: String(uses), referralCode },
     });
-    assertStripePromotionDiscount(req, checkoutSession);
-    return res.json(buildCheckoutSessionResponse(checkoutSession));
+    assertStripePromotionDiscount(req, checkoutSession, promotionOptions.promotion);
+    return res.json(buildCheckoutSessionResponse(checkoutSession, promotionOptions.promotion));
   } catch (error) {
     console.error("POST /store/create-discord-bot-use-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create the Discord bot use checkout." });
@@ -10082,7 +10109,7 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const unlimitedLineItem = { price: priceId, quantity: 1 };
     const referralCode = normalizeReferralCode(req.body?.referralCode);
-    const promotionOptions = await getStripePromotionOptions(req);
+    const promotionOptions = await getStripePromotionOptions(req, priceId);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       ...customerParams,
@@ -10093,8 +10120,8 @@ async function createDiscordBotUnlimitedCheckout(req, res) {
       metadata: { appUserId: user.id, productType: "discord_bot_unlimited", billingPeriod, referralCode },
       subscription_data: { metadata: { appUserId: user.id, discordBotUnlimited: "true", productType: "discord_bot_unlimited", billingPeriod, referralCode } },
     });
-    assertStripePromotionDiscount(req, checkoutSession);
-    return res.json(buildCheckoutSessionResponse(checkoutSession));
+    assertStripePromotionDiscount(req, checkoutSession, promotionOptions.promotion);
+    return res.json(buildCheckoutSessionResponse(checkoutSession, promotionOptions.promotion));
   } catch (error) {
     console.error("POST /store/create-discord-bot-unlimited-checkout failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create the Discord Bot Unlimited checkout." });
@@ -10141,7 +10168,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
     const priceId = await resolvePlusRecurringPrice(billingInterval);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
 
-    const promotionOptions = await getStripePromotionOptions(req);
+    const promotionOptions = await getStripePromotionOptions(req, priceId);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       ...customerParams,
@@ -10169,8 +10196,8 @@ app.post("/auth/create-checkout-session", async (req, res) => {
       },
     });
 
-    assertStripePromotionDiscount(req, checkoutSession);
-    return res.json(buildCheckoutSessionResponse(checkoutSession));
+    assertStripePromotionDiscount(req, checkoutSession, promotionOptions.promotion);
+    return res.json(buildCheckoutSessionResponse(checkoutSession, promotionOptions.promotion));
   } catch (error) {
     console.error("POST /auth/create-checkout-session failed:", error.message);
     return res.status(error.statusCode || 500).json({
@@ -10188,7 +10215,7 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
     const priceId = await resolveProRecurringPrice(billingInterval);
     const referralCode = normalizeReferralCode(req.body?.referralCode);
-    const promotionOptions = await getStripePromotionOptions(req);
+    const promotionOptions = await getStripePromotionOptions(req, priceId);
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "subscription",
       ...customerParams,
@@ -10199,8 +10226,8 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
       metadata: { appUserId: user.id, plan: "pro", billingInterval, referralCode },
       subscription_data: { metadata: { appUserId: user.id, plan: "pro", billingInterval } },
     });
-    assertStripePromotionDiscount(req, checkoutSession);
-    return res.json(buildCheckoutSessionResponse(checkoutSession));
+    assertStripePromotionDiscount(req, checkoutSession, promotionOptions.promotion);
+    return res.json(buildCheckoutSessionResponse(checkoutSession, promotionOptions.promotion));
   } catch (error) {
     console.error("POST /auth/create-pro-checkout-session failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create a Pro checkout session." });
