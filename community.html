@@ -118,15 +118,36 @@
       background: linear-gradient(180deg, rgba(255, 92, 106, 0.18), rgba(255, 92, 106, 0.08));
       color: #ffe2e6;
     }
-    .community-admin-composer { margin-top: 22px; padding: 24px; }
+    .community-admin-composer {
+      position: fixed !important;
+      z-index: 11050 !important;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      overflow: auto;
+      margin: 0;
+      padding: 24px;
+      border: 0;
+      border-radius: 0;
+      background: rgba(3, 9, 19, 0.78);
+      box-shadow: none;
+      backdrop-filter: blur(14px) saturate(1.12);
+      -webkit-backdrop-filter: blur(14px) saturate(1.12);
+    }
     .community-admin-composer[hidden] { display: none !important; }
-    .community-admin-composer { position: relative; z-index: auto; display: block; overflow: visible; padding: 24px; margin-top: 22px; background: rgba(17, 23, 35, 0.88); }
     .community-composer-dialog {
-      width: 100%;
-      padding: 0;
+      width: min(720px, 100%);
+      max-height: calc(100dvh - 48px);
+      overflow: auto;
+      padding: 24px;
+      border: 1px solid rgba(108, 166, 255, .42);
+      border-radius: 24px;
+      background: radial-gradient(circle at 100% 0%, rgba(70, 124, 226, .22), transparent 40%), linear-gradient(145deg, #17263b, #0b131f 72%);
+      box-shadow: 0 30px 82px rgba(0, 0, 0, .58), inset 0 1px 0 rgba(255, 255, 255, .09);
     }
     .community-composer-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-    .community-composer-close,
+    .community-composer-close { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; border: 1px solid rgba(151,181,255,.34); border-radius: 50%; color: #eef5ff; background: rgba(89,138,214,.12); font-size: 25px; line-height: 1; cursor: pointer; }
+    .community-composer-close:hover { background: rgba(89,138,214,.24); }
     .community-open-composer { display: none; }
     .community-attachment-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
     .community-attachment-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
@@ -380,7 +401,7 @@
       .community-empty,
       .community-post,
       .community-card,
-      .community-admin-composer {
+      .community-composer-dialog {
         border-radius: 22px;
         padding: 22px;
       }
@@ -535,7 +556,7 @@
   </style>
 </head>
 <body class="rblx-community-page">
-<script src="./global-shell.js?v=20260918-profile-preload"></script>
+<script src="./global-shell.js?v=20260921-gift-controls"></script>
   <main class="community-page">
     <section class="community-shell">
       <h1>Community</h1>
@@ -671,7 +692,7 @@
     </section>
   </main>
 
-  <script src="./community-page.js?v=20260904-1"></script>
+  <script src="./community-page.js?v=20260921-composer-modal"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>

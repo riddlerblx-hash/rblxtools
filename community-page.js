@@ -631,7 +631,7 @@
     var activeFilter = getActiveFilter();
     var memberCategory = activeFilter === "feedback" ? "feedback" : activeFilter === "q-and-a" ? "q-and-a" : "bug-report";
     var memberCanPost = isLoggedIn && !isAdminUser && (activeFilter === "bug-report" || activeFilter === "feedback" || activeFilter === "q-and-a");
-    composer.hidden = !(isAdminUser || memberCanPost);
+    composer.hidden = !(composerOpen && (isAdminUser || memberCanPost));
     composer.classList.toggle("is-member-report", memberCanPost);
     composer.classList.toggle("is-member-feedback", memberCanPost && memberCategory === "feedback");
     if (ratingField) ratingField.hidden = !(memberCanPost && memberCategory === "feedback");
@@ -1090,6 +1090,12 @@
     });
     var closeButton = document.getElementById("communityCloseComposer");
     if (closeButton) closeButton.addEventListener("click", function () { setComposerOpen(false); });
+    if (composer) composer.addEventListener("click", function (event) {
+      if (event.target === composer) setComposerOpen(false);
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && composerOpen) setComposerOpen(false);
+    });
     var attachmentInput = document.getElementById("communityPostAttachment");
     if (attachmentInput) attachmentInput.addEventListener("change", updateAttachmentFromInput);
     document.querySelectorAll("[data-community-rating]").forEach(function (star) {

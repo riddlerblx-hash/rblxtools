@@ -5850,6 +5850,9 @@
         syncCashAmount(selectedCashCents);
       }
       function mountGiftCardAmounts() {
+        // A gift card has fixed denominations.  Remove every cash-only control
+        // before adding those choices so no old slider can survive a modal swap.
+        Array.prototype.forEach.call(price.parentNode.querySelectorAll(".cash-conversion"), function (node) { node.remove(); });
         var prompt = document.createElement("p"), giftOptions = document.createElement("div");
         prompt.className = "modal-options-prompt";
         prompt.innerHTML = "<b>Select a gift-card amount:</b>";
