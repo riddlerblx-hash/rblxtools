@@ -2156,8 +2156,13 @@ async function getStripePromotionOptions(req, priceId) {
 async function getStripeAffiliateDiscountOptions(req, user, priceId, baseAmountCents) {
   const code = normalizeReferralCode(req.body?.referralCode);
   if (!code || !STRIPE_AFFILIATE_COUPON_ID) return {};
-  const referral = readReferralProgram().referrals.find((entry) => entry.code === code);
+  const referral = findReferralByCode(readReferralProgram(), code);
   if (!referral || String(referral.userId || "") === String(user?.id || "")) return {};
+  if (referral.customCode === code) {
+    const referrer = await getAuthUserById(referral.userId).catch(() => null);
+    const membership = referrer ? await resolveMembershipSnapshot(referrer).catch(() => null) : null;
+    if (!membership?.premiumActive || String(membership.plan || "").toLowerCase() !== "pro") return {};
+  }
 
   const coupon = await stripeClient.coupons.retrieve(STRIPE_AFFILIATE_COUPON_ID);
   if (!coupon?.valid) return {};
@@ -2362,6 +2367,10 @@ function normalizeReferralCode(value) {
   return String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20);
 }
 
+function findReferralByCode(state, code) {
+  return (state?.referrals || []).find((entry) => entry.code === code || entry.customCode === code) || null;
+}
+
 function getOrCreateReferral(state, userId) {
   const normalizedUserId = String(userId || "").trim();
   let referral = state.referrals.find((entry) => String(entry.userId || "") === normalizedUserId);
@@ -2433,7 +2442,8 @@ async function getReferralDashboard(userId) {
   const referrals = linkUsers.filter((entry) => entry.status === "confirmed").length;
   return {
     code: referral.code,
-    link: getSanitizedAppBaseUrl() + "/?ref=" + encodeURIComponent(referral.code),
+    link: getSanitizedAppBaseUrl() + "/?ref=" + encodeURIComponent(referral.customCode || referral.code),
+    customCode: referral.customCode || "",
     commissionRate: REFERRAL_COMMISSION_RATE * 100,
     referredMembers: referrals,
     peopleUsingLink: linkUsers.filter((entry) => entry.status !== "opted_out").length,
@@ -2457,7 +2467,7 @@ function getReferralCheckoutDetails(session) {
   const checkoutSessionId = String(session?.id || "").trim();
   if (!code || !buyerUserId || !checkoutSessionId) return null;
   const state = readReferralProgram();
-  const referral = state.referrals.find((entry) => entry.code === code);
+  const referral = findReferralByCode(state, code);
   if (!referral || String(referral.userId || "") === buyerUserId) return null;
   return { state, referral, code, buyerUserId, checkoutSessionId, amountCents: Math.max(0, Number(session?.amount_total) || 0), currency: String(session?.currency || "usd").toLowerCase() };
 }
@@ -2502,7 +2512,7 @@ function recordReferralOptOut(userId, referralCode) {
   const buyerUserId = String(userId || "").trim();
   if (!code || !buyerUserId) return null;
   const state = readReferralProgram();
-  const referral = state.referrals.find((entry) => entry.code === code);
+  const referral = findReferralByCode(state, code);
   if (!referral || String(referral.userId || "") === buyerUserId) return null;
   const existing = state.referralOptOuts.find((entry) => String(entry.buyerUserId || "") === buyerUserId && String(entry.referrerUserId || "") === String(referral.userId || ""));
   if (existing) existing.updatedAt = new Date().toISOString();
@@ -2520,7 +2530,7 @@ function recordReferralCommissionFromCheckout(session) {
   const state = readReferralProgram();
   if (state.commissions.some((entry) => String(entry.checkoutSessionId || "") === checkoutSessionId)) return null;
   if (state.attributions.some((entry) => String(entry.buyerUserId || "") === buyerUserId)) return null;
-  const referral = state.referrals.find((entry) => entry.code === code);
+  const referral = findReferralByCode(state, code);
   if (!referral || String(referral.userId || "") === buyerUserId) return null;
   const now = Date.now();
   const commission = {
@@ -7332,7 +7342,7 @@ app.get("/referrals/lookup", async (req, res) => {
     const code = normalizeReferralCode(req.query?.code);
     if (!code) return res.json({ ok: true, valid: false });
     const state = readReferralProgram();
-    const referral = state.referrals.find((entry) => entry.code === code);
+    const referral = findReferralByCode(state, code);
     if (!referral) return res.json({ ok: true, valid: false, code });
     const referrer = await getAuthUserById(referral.userId).catch(() => null);
     return res.json({
@@ -7355,6 +7365,27 @@ app.post("/referrals/opt-out", async (req, res) => {
     return res.json({ ok: true });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not remove the affiliate referral." });
+  }
+});
+
+app.post("/referrals/custom-code", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const membership = await resolveMembershipSnapshot(user);
+    if (!membership?.premiumActive || String(membership.plan || "").toLowerCase() !== "pro") {
+      return res.status(403).json({ error: "An active Pro subscription is required for a custom affiliate code." });
+    }
+    const code = String(req.body?.code || "").trim().toUpperCase();
+    if (!/^[A-Z0-9]{4,12}$/.test(code)) return res.status(400).json({ error: "Use 4–12 letters or numbers for your custom affiliate code." });
+    const state = readReferralProgram();
+    const referral = getOrCreateReferral(state, user.id);
+    const owner = findReferralByCode(state, code);
+    if (owner && String(owner.userId || "") !== String(user.id)) return res.status(409).json({ error: "That affiliate code is already in use." });
+    referral.customCode = code;
+    writeReferralProgram(state);
+    return res.json({ ok: true, referral: await getReferralDashboard(user.id) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not save your custom affiliate code." });
   }
 });
 

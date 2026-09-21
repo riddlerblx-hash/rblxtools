@@ -1697,12 +1697,8 @@
                   </section>
 
                   <section class="acct-block" data-account-section="rewards">
-                    <div class="acct-section-kicker">RBLX Rewards</div>
                     <h3 class="acct-section-title">My transactions</h3>
-                    <p class="acct-section-copy">Approved code contributions add points. Gift-card requests deduct points; pending and rejected activity is clearly shown below.</p>
-                    <div class="acct-info-grid"><div class="acct-pill-card"><div class="acct-pill-label">My RBLX Points balance</div><div id="acctRewardPoints" class="acct-pill-value">0</div></div></div>
                     <div class="acct-transactions">
-                      <div class="acct-transaction-top"><div><div class="acct-section-kicker">Transaction history</div><h4>Transaction details</h4></div></div>
                       <div class="acct-transaction-controls"><label>Type of transaction<select id="acctRewardTransactionType"><option value="points">Points</option><option value="ai_tokens">AI Tokens</option><option value="purchases">Purchases</option><option value="sales">Sales of goods</option><option value="affiliate">Affiliate marketing</option></select></label><label>Date range<select id="acctRewardTransactionRange"><option value="1">Past day</option><option value="7">Past 7 days</option><option value="30" selected>Past 30 days</option><option value="365">Past year</option></select></label></div>
                       <div id="acctRewardHistory">Loading transaction history...</div>
                     </div>
@@ -1730,9 +1726,8 @@
                     <h3 class="acct-section-title">Share &amp; earn 5%</h3>
                     <p class="acct-section-copy">Share your link. If a new member buys through it, you earn 5%. Earnings unlock after 14 days.</p>
                     <div class="acct-referral-balance-grid">
-                      <div><span>RBLXTools Cash</span><strong id="acctReferralAvailable">$0.00</strong></div>
                       <div><span>Pending</span><strong id="acctReferralPending">$0.00</strong></div>
-                      <div><span>Credited to cash</span><strong id="acctReferralPaid">$0.00</strong></div>
+                      <div><span>Total profited</span><strong id="acctReferralPaid">$0.00</strong></div>
                     </div>
                     <div class="acct-info-grid">
                       <div class="acct-pill-card"><div class="acct-pill-label acct-referral-stat-label"><span>People using your link</span><button id="acctReferralPeopleView" class="acct-referral-view" type="button">View</button></div><div id="acctReferralPeopleUsing" class="acct-pill-value">0</div></div>
@@ -1740,6 +1735,8 @@
                     </div>
                     <div class="acct-field-label acct-referral-link-label">Your referral link</div>
                     <div class="acct-referral-link-row"><input id="acctReferralLink" class="acct-input" type="text" readonly value="Loading your link..."><button id="acctReferralCopyButton" class="acct-button secondary" type="button">Copy</button></div>
+                    <div class="acct-field-label">Custom affiliate code <span style="color:#82e9dc">Pro only</span></div>
+                    <div class="acct-referral-link-row"><input id="acctReferralCustomCode" class="acct-input" type="text" minlength="4" maxlength="12" autocomplete="off" placeholder="4–12 letters or numbers"><button id="acctReferralCustomCodeButton" class="acct-button secondary" type="button">Save</button></div>
                     <div id="acctReferralStatus" class="acct-status">Loading referral program...</div>
                   </section>
 
@@ -2028,7 +2025,6 @@
         acctDeleteTimer: document.getElementById("acctDeleteTimer"),
         acctDeleteCancelButton: document.getElementById("acctDeleteCancelButton"),
         acctDeleteConfirmButton: document.getElementById("acctDeleteConfirmButton"),
-        acctReferralAvailable: document.getElementById("acctReferralAvailable"),
         acctReferralPending: document.getElementById("acctReferralPending"),
         acctReferralPaid: document.getElementById("acctReferralPaid"),
         acctReferralRequested: document.getElementById("acctReferralRequested"),
@@ -2040,6 +2036,8 @@
         acctReferralPeopleModalList: document.getElementById("acctReferralPeopleModalList"),
         acctReferralPeopleModalClose: document.getElementById("acctReferralPeopleModalClose"),
         acctReferralLink: document.getElementById("acctReferralLink"),
+        acctReferralCustomCode: document.getElementById("acctReferralCustomCode"),
+        acctReferralCustomCodeButton: document.getElementById("acctReferralCustomCodeButton"),
         acctReferralCopyButton: document.getElementById("acctReferralCopyButton"),
         acctReferralStatus: document.getElementById("acctReferralStatus"),
         acctRewardPoints: document.getElementById("acctRewardPoints"),
@@ -2339,14 +2337,14 @@
 
       function renderReferralDashboard(referral) {
         if (!referral) return;
-        els.acctReferralAvailable.textContent = formatReferralMoney(referral.rblxtoolsCashCents);
         els.acctReferralPending.textContent = formatReferralMoney(referral.pendingCents);
-        els.acctReferralPaid.textContent = formatReferralMoney(referral.creditedCents);
+        els.acctReferralPaid.textContent = formatReferralMoney(Number(referral.pendingCents || 0) + Number(referral.creditedCents || 0));
         els.acctReferralRequested.textContent = formatReferralMoney(referral.requestedCents);
         els.acctReferralMembers.textContent = String(referral.referredMembers || 0);
         if (els.acctReferralPeopleUsing) els.acctReferralPeopleUsing.textContent = String(referral.peopleUsingLink || 0);
         if (els.acctReferralOptedOut) els.acctReferralOptedOut.textContent = String(referral.optedOutMembers || 0);
         els.acctReferralLink.value = referral.link || "";
+        if (els.acctReferralCustomCode) els.acctReferralCustomCode.value = referral.customCode || "";
         var requests = Array.isArray(referral.payoutRequests) ? referral.payoutRequests : [];
         els.acctReferralRequestList.innerHTML = requests.length
           ? requests.map(function (request) { var date = new Date(request.createdAt || ""); return '<div class="acct-referral-request"><strong>' + formatReferralMoney(request.amountCents) + '</strong> - ' + String(request.status || 'in review') + '<br><span>' + (Number.isNaN(date.getTime()) ? 'Withdrawal request' : date.toLocaleDateString()) + '</span></div>'; }).join("")
@@ -2378,7 +2376,7 @@
         rewardHistoryLoading = true;
         try {
           var payload = await apiRequest("/api/rewards/me", { method: "GET" });
-          els.acctRewardPoints.textContent = Number(payload && payload.rewardPoints || 0).toLocaleString();
+          if (els.acctRewardPoints) els.acctRewardPoints.textContent = Number(payload && payload.rewardPoints || 0).toLocaleString();
           var transactions = Array.isArray(payload && payload.transactions) ? payload.transactions : [];
           var esc = function (value) { return String(value || "").replace(/[&<>]/g, function (char) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]; }); };
           var type = els.acctRewardTransactionType ? els.acctRewardTransactionType.value : "points";
@@ -2431,7 +2429,7 @@
         } catch (_error) {
           // A missing migration or a brief API outage must not leave the entire
           // transaction area stuck on a loading message.
-          els.acctRewardPoints.textContent = Number(state.user && state.user.rewardPoints || 0).toLocaleString();
+          if (els.acctRewardPoints) els.acctRewardPoints.textContent = Number(state.user && state.user.rewardPoints || 0).toLocaleString();
           els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>Incoming RBLX Points</span><span style="text-align:right">Amount</span></div><div class="acct-transaction-empty">No reward transactions have been recorded yet.</div><div class="acct-transaction-total"><span>Total incoming</span><span>+0 pts</span></div></div><div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>Outgoing RBLX Points</span><span style="text-align:right">Amount</span></div><div class="acct-transaction-empty">No purchases have been recorded yet.</div><div class="acct-transaction-total"><span>Total outgoing</span><span>-0 pts</span></div></div>';
           if (els.acctRewardTransactionType && !els.acctRewardTransactionType.dataset.bound) {
             [els.acctRewardTransactionType, els.acctRewardTransactionRange].forEach(function (select) { select.addEventListener("change", function () { loadRewardHistory(); }); });
@@ -3057,6 +3055,19 @@
         });
       }
 
+      async function saveReferralCustomCode() {
+        if (!els.acctReferralCustomCode || !els.acctReferralCustomCodeButton) return;
+        var code = String(els.acctReferralCustomCode.value || "").trim().toUpperCase();
+        els.acctReferralCustomCodeButton.disabled = true;
+        try {
+          var payload = await apiRequest("/referrals/custom-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code }) });
+          renderReferralDashboard(payload && payload.referral);
+          setStatus(els.acctReferralStatus, "Custom affiliate code saved. Your referral link was updated.", "success");
+        } catch (error) {
+          setStatus(els.acctReferralStatus, error.message || "Could not save your custom affiliate code.", "error");
+        } finally { els.acctReferralCustomCodeButton.disabled = false; }
+      }
+
       async function saveProfileChanges() {
         state.profile.displayName = els.acctDisplayNameInput.value.trim();
         state.profile.bio = String((els.acctBioInput && els.acctBioInput.value) || "").trim().slice(0, 150);
@@ -3476,6 +3487,7 @@
         els.acctOpenPlansButton.addEventListener("click", function () { redirectTop(PLANS_PAGE_URL); });
       }
       if (els.acctReferralCopyButton) els.acctReferralCopyButton.addEventListener("click", copyReferralLink);
+      if (els.acctReferralCustomCodeButton) els.acctReferralCustomCodeButton.addEventListener("click", saveReferralCustomCode);
       if (els.acctReferralPeopleView) els.acctReferralPeopleView.addEventListener("click", function () { if (els.acctReferralPeopleModal) els.acctReferralPeopleModal.classList.add("is-open"); });
       if (els.acctReferralPeopleModalClose) els.acctReferralPeopleModalClose.addEventListener("click", function () { if (els.acctReferralPeopleModal) els.acctReferralPeopleModal.classList.remove("is-open"); });
       if (els.acctReferralPeopleModal) els.acctReferralPeopleModal.addEventListener("click", function (event) { if (event.target === els.acctReferralPeopleModal) els.acctReferralPeopleModal.classList.remove("is-open"); });
