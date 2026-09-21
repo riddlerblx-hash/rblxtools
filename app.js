@@ -2086,14 +2086,19 @@ async function getStripePromotionOptions(req, priceId) {
       throw error;
     }
     const priceAmount = Math.max(0, Number(price?.unit_amount) || 0);
+    const priceCurrency = String(price?.currency || "usd").toLowerCase();
+    const couponAmountOff = Math.max(0, Number(
+      coupon.amount_off ?? coupon.currency_options?.[priceCurrency]?.amount_off ?? 0
+    ) || 0);
     discountAmount = coupon.percent_off
       ? Math.round(priceAmount * (Number(coupon.percent_off) / 100))
-      : Math.min(priceAmount, Math.max(0, Number(coupon.amount_off) || 0));
+      : Math.min(priceAmount, couponAmountOff);
     console.info("Stripe promotion diagnostic", {
       code,
       promotionCodeId: promotionCode.id,
       couponId: coupon.id || null,
-      couponAmountOff: coupon.amount_off ?? null,
+      couponAmountOff,
+      couponCurrency: priceCurrency,
       couponPercentOff: coupon.percent_off ?? null,
       couponProductIds: allowedProducts,
       checkoutPriceId: priceId,
