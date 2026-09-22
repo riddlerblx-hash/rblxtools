@@ -4545,6 +4545,22 @@ body.rblx-pro-ad-free [data-rblx-video-slider-ad] { display: none !important; }
 
 .rblx-shell-video-slider-ad > * { pointer-events: auto; }
 
+/* Small tool-directory status, placed immediately before each tool's icon. */
+#tools-section .rblx-tool-ad-status {
+  margin-left: auto;
+  color: rgba(191, 210, 234, .76);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .01em;
+  line-height: 1.2;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  #tools-section .rblx-tool-ad-status { font-size: 8px; }
+}
+
 @media (max-width: 1180px) {
   .rblx-shell-video-slider-ad {
     left: 14px;

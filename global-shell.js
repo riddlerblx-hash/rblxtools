@@ -551,6 +551,7 @@
     if (hideAds) {
       removeTutorialVideoAds();
       removeVideoSliderAd();
+      renderToolInterstitialStatus();
     } else if (shellState.authResolved) {
       mountDesktopShellBoxAds();
       mountDesktopVerticalAds();
@@ -558,6 +559,7 @@
       Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-mobile-banner-ad] .rblx-home-mobile-banner-ad-slot"), mountMobileBannerAd);
       initTutorialVideoAds();
       initVideoSliderAd();
+      initToolUseInterstitial();
     }
   }
 
@@ -4620,7 +4622,8 @@
     box: "12207186",
     skyscraper: "12207194",
     mobileWide: "12207202",
-    videoSlider: "12207294"
+    videoSlider: "12207294",
+    interstitial: "12207406"
   };
   var adcashLibraryPromise = null;
 
@@ -4702,6 +4705,73 @@
       host.hidden = true;
       delete host.dataset.rblxVideoSliderMounted;
     });
+  }
+
+  var TOOL_INTERSTITIAL_ROUTES = [
+    "/template-downloader", "/ugc-downloader", "/template-background-changer",
+    "/media-downloader", "/audio-downloader", "/robux-calculator",
+    "/animation-spoofer", "/ai-clothing-studio", "/ai-ugc", "/ai-ugc-studio",
+    "/ai-thumbnail-studio", "/thumbnail-ai", "/game-launcher"
+  ];
+
+  function getToolInterstitialCounterKey() {
+    var identity = String(shellState.currentUser && shellState.currentUser.userId || getDeviceId() || "visitor").trim() || "visitor";
+    return "rblxtools_tool_interstitial_uses:" + identity;
+  }
+
+  function getToolInterstitialUses() {
+    try { return Math.max(0, Number(localStorage.getItem(getToolInterstitialCounterKey()) || 0) || 0); } catch (_error) { return 0; }
+  }
+
+  function setToolInterstitialUses(uses) {
+    try { localStorage.setItem(getToolInterstitialCounterKey(), String(Math.max(0, Number(uses) || 0))); } catch (_error) {}
+  }
+
+  function renderToolInterstitialStatus() {
+    var usesUntilAd = 5 - (getToolInterstitialUses() % 5);
+    Array.prototype.forEach.call(document.querySelectorAll("#tools-section .tool-card"), function (card) {
+      var status = card.querySelector(".rblx-tool-ad-status");
+      if (!shouldShowMemberAds()) {
+        if (status) status.remove();
+        return;
+      }
+      if (!status) {
+        status = document.createElement("span");
+        status.className = "rblx-tool-ad-status";
+        var header = card.querySelector(".tool-head, .ai-studio-head");
+        var icon = header && header.querySelector(".tool-icon");
+        if (header) header.insertBefore(status, icon || null);
+        else return;
+      }
+      status.textContent = usesUntilAd + "/5 uses until an ad";
+    });
+  }
+
+  function triggerToolUseInterstitial() {
+    if (!shouldShowMemberAds()) return;
+    ensureAdcashLibrary().then(function () {
+      if (!shouldShowMemberAds() || !window.aclib || typeof window.aclib.runInterstitial !== "function") return;
+      window.aclib.runInterstitial({ zoneId: ADCASH_DISPLAY_ZONES.interstitial });
+    }).catch(function () {});
+  }
+
+  function initToolUseInterstitial() {
+    if (!shellState.authResolved || !shouldShowMemberAds()) {
+      renderToolInterstitialStatus();
+      return;
+    }
+    renderToolInterstitialStatus();
+    var path = normalizePath(window.location.pathname || "/").replace(/\.html$/, "");
+    if (TOOL_INTERSTITIAL_ROUTES.indexOf(path) === -1) return;
+    var visitKey = "rblxtools_tool_interstitial_last_visit:" + getToolInterstitialCounterKey();
+    try {
+      if (sessionStorage.getItem(visitKey) === path) return;
+      sessionStorage.setItem(visitKey, path);
+    } catch (_error) {}
+    var nextUses = getToolInterstitialUses() + 1;
+    setToolInterstitialUses(nextUses);
+    renderToolInterstitialStatus();
+    if (nextUses % 5 === 0) triggerToolUseInterstitial();
   }
 
   function mountSharedBannerAd(slot) {
