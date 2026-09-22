@@ -1619,7 +1619,7 @@
                       </div>
                     </div>
 
-                    <div class="acct-billing-actions"><button id="acctBillingPaymentButton" class="acct-button secondary" type="button">Update payment method</button><button id="acctBillingCancelButton" class="acct-button danger" type="button" hidden>Cancel at period end</button><button id="acctBillingResumeButton" class="acct-button secondary" type="button" hidden>Resume subscription</button></div>
+                    <div class="acct-billing-actions"><button id="acctBillingPaymentButton" class="acct-button secondary" type="button">Update payment method</button><button id="acctBillingRemovePaymentButton" class="acct-button secondary" type="button" hidden>Remove payment method</button><button id="acctBillingCancelButton" class="acct-button danger" type="button" hidden>Cancel at period end</button><button id="acctBillingResumeButton" class="acct-button secondary" type="button" hidden>Resume subscription</button></div>
                     <div id="acctBillingPaymentPanel" class="acct-billing-panel" hidden><h4>Secure payment method</h4><p>Your card details are entered directly into Stripe’s secure form and never pass through RBLXTools.</p><div id="acctStripePaymentElement" class="acct-stripe-element"></div><div class="acct-billing-actions"><button id="acctBillingPaymentSaveButton" class="acct-button plans" type="button">Save payment method</button><button id="acctBillingPaymentCloseButton" class="acct-button secondary" type="button">Close</button></div></div>
                     <div class="acct-billing-history"><h4>Billing history</h4><div id="acctBillingInvoices" class="acct-transaction-empty">Loading invoices...</div></div>
                     <div id="acctBillingStatus" class="acct-status"></div>
@@ -1936,6 +1936,7 @@
         acctBillingPlan: document.getElementById("acctBillingPlan"),
         acctBillingRenewal: document.getElementById("acctBillingRenewal"),
         acctBillingPaymentButton: document.getElementById("acctBillingPaymentButton"),
+        acctBillingRemovePaymentButton: document.getElementById("acctBillingRemovePaymentButton"),
         acctBillingCancelButton: document.getElementById("acctBillingCancelButton"),
         acctBillingResumeButton: document.getElementById("acctBillingResumeButton"),
         acctBillingPaymentPanel: document.getElementById("acctBillingPaymentPanel"),
@@ -3053,6 +3054,7 @@
           els.acctBillingPaymentButton.textContent = method ? "Update " + String(method.brand || "card").toUpperCase() + " •••• " + String(method.last4 || "") : "Add payment method";
           els.acctBillingPaymentButton.disabled = !(details && details.hasCustomer);
         }
+        if (els.acctBillingRemovePaymentButton) els.acctBillingRemovePaymentButton.hidden = !(details && details.paymentMethod);
         if (els.acctBillingCancelButton) els.acctBillingCancelButton.hidden = !subscription || Boolean(subscription.cancelAtPeriodEnd);
         if (els.acctBillingResumeButton) els.acctBillingResumeButton.hidden = !subscription || !Boolean(subscription.cancelAtPeriodEnd);
         if (els.acctBillingInvoices) {
@@ -3112,6 +3114,15 @@
           setStatus(els.acctBillingStatus, "Payment method updated securely.", "success");
         } catch (error) { setStatus(els.acctBillingStatus, error.message || "Could not save the payment method.", "error"); }
         finally { els.acctBillingPaymentSaveButton.disabled = false; }
+      }
+
+      async function removeBillingPaymentMethod() {
+        if (!window.confirm("Remove the saved payment method from this RBLXTools billing account? This is only available when there is no active subscription.")) return;
+        try {
+          await apiRequest("/auth/billing/payment-method", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "remove" }) });
+          await loadBillingDetails();
+          setStatus(els.acctBillingStatus, "Payment method removed.", "success");
+        } catch (error) { setStatus(els.acctBillingStatus, error.message || "Could not remove the payment method.", "error"); }
       }
 
       async function updateBillingSubscription(action) {
@@ -3548,6 +3559,7 @@
       }
 
       if (els.acctBillingPaymentButton) els.acctBillingPaymentButton.addEventListener("click", openBillingPaymentEditor);
+      if (els.acctBillingRemovePaymentButton) els.acctBillingRemovePaymentButton.addEventListener("click", removeBillingPaymentMethod);
       if (els.acctBillingPaymentSaveButton) els.acctBillingPaymentSaveButton.addEventListener("click", saveBillingPaymentMethod);
       if (els.acctBillingPaymentCloseButton) els.acctBillingPaymentCloseButton.addEventListener("click", closeBillingPaymentEditor);
       if (els.acctBillingCancelButton) els.acctBillingCancelButton.addEventListener("click", function () { updateBillingSubscription("cancel"); });

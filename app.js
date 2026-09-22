@@ -10680,6 +10680,23 @@ app.post("/auth/billing/payment-method", async (req, res) => {
   try {
     assertStripePortalConfigured();
     const user = await requireAuthenticatedUser(req);
+    const action = String(req.body?.action || "").trim().toLowerCase();
+    if (action === "remove") {
+      const customerId = String(user.stripe_customer_id || "").trim();
+      if (!customerId) return res.status(400).json({ error: "This account does not have a Stripe billing profile yet." });
+      const subscription = await getPrimaryStripeSubscriptionForCustomer(customerId, { includeCanceled: false });
+      if (subscription && isPremiumStatus(subscription.status)) {
+        return res.status(409).json({ error: "Keep a payment method while this subscription is active. Cancel the subscription first, then remove it after the current billing period ends." });
+      }
+      const customer = await stripeClient.customers.retrieve(customerId);
+      const defaultPaymentMethodId = typeof customer?.invoice_settings?.default_payment_method === "string"
+        ? customer.invoice_settings.default_payment_method
+        : customer?.invoice_settings?.default_payment_method?.id;
+      if (!defaultPaymentMethodId) return res.status(400).json({ error: "There is no saved payment method to remove." });
+      await stripeClient.customers.update(customerId, { invoice_settings: { default_payment_method: null } });
+      await stripeClient.paymentMethods.detach(defaultPaymentMethodId);
+      return res.json({ ok: true, removed: true });
+    }
     const paymentMethodId = String(req.body?.paymentMethodId || "").trim();
     if (!paymentMethodId) return res.status(400).json({ error: "Stripe did not return a payment method." });
     const method = await stripeClient.paymentMethods.retrieve(paymentMethodId);
