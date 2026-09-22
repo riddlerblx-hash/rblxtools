@@ -5421,7 +5421,7 @@
       subtitle: "Monthly membership",
       title: "Plus",
       action: actionLabel || "Try Now",
-      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "10 free tool uses before ads", "Bulk Downloads (1-5) <span class=\"rblx-membership-promo-info\" data-rblx-info-tooltip=\"A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad.\" aria-label=\"More information about bulk downloads\" tabindex=\"0\">(!)</span>"],
+      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "10 free tool uses before ads", "Bulk Downloads (1-5) <span class=\"rblx-membership-promo-info\" data-rblx-info-tooltip=\"A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad.\" aria-label=\"More information about bulk downloads\" tabindex=\"0\">!</span>"],
       aiPerks: ["30 Tokens Every Month", "10 Savable Thumbnail Generations", "8 Savable AI UGC Slots (+5)", "1440p AI Thumbnail Quality"]
     };
     return [
