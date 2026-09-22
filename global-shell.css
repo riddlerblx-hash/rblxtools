@@ -3807,6 +3807,23 @@ body.rblx-shell-left-collapsed #rblxShellLeftToggle { right: -20px; }
 .rblx-shell-profile-menu-item:hover{background:rgba(255,255,255,.06)}
 .rblx-shell-profile-menu-item.is-danger{color:#ffb0aa}
 
+/* Back-to-navigation controls belong to the mobile drawer only. */
+.rblx-shell-mobile-panel-back{display:none}
+@media (max-width:820px){.rblx-shell-mobile-panel-back{display:inline-flex;align-items:center;min-height:30px;padding:0 7px;border:1px solid rgba(124,174,246,.3);border-radius:8px;background:rgba(35,61,96,.5);color:#cfe3ff;font:800 10px/1 var(--shell-font);cursor:pointer}}
+
+/* Desktop header menus use the same layered midnight treatment as the site's dialogs. */
+@media (min-width:821px){
+  .rblx-shell-profile-menu-panel,.rblx-shell-notification-panel,.rblx-shell-admin-preview-panel{border-color:rgba(104,180,255,.32);background:linear-gradient(145deg,rgba(24,48,80,.98),rgba(9,18,34,.99));box-shadow:0 24px 60px rgba(1,7,18,.58),inset 0 1px 0 rgba(207,237,255,.12);backdrop-filter:blur(18px)}
+  .rblx-shell-profile-menu-panel{min-width:238px;padding:10px}
+  .rblx-shell-profile-menu-item{min-height:44px;border:1px solid transparent;color:#eaf4ff}
+  .rblx-shell-profile-menu-item:hover{border-color:rgba(107,195,255,.28);background:rgba(83,142,213,.15);color:#fff}
+  .rblx-shell-profile-menu-item.is-danger:hover{border-color:rgba(255,123,138,.28);background:rgba(214,68,88,.15);color:#ffd2d7}
+  .rblx-shell-notification-head{border-bottom:1px solid rgba(131,184,246,.18)}
+  .rblx-shell-admin-preview-panel{padding:8px;border-radius:14px}
+  .rblx-shell-admin-preview-panel button{border:1px solid transparent;border-radius:9px}
+  .rblx-shell-admin-preview-panel button:hover{border-color:rgba(255,210,105,.24);background:rgba(221,167,46,.13)}
+}
+
 .rblx-shell-notification-menu{position:relative}
 .rblx-shell-notification-trigger{list-style:none;position:relative;width:50px;min-width:50px;height:50px;border:1px solid rgba(132,167,235,.28);border-radius:14px;background:linear-gradient(180deg,rgba(31,51,84,.9),rgba(18,29,48,.95));color:#ddebff;display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 26px rgba(4,10,22,.24)}
 .rblx-shell-notification-trigger::-webkit-details-marker{display:none}

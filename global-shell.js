@@ -5847,16 +5847,17 @@
       if (!renew) return;
       beginRenewalCheckout(renew);
     });
-    // The preview picker is a lightweight header menu, not a persistent panel.
-    // A click anywhere outside it should put it away just like a native menu.
+    // Header menus are lightweight overlays, not persistent panels. Keep only
+    // the menu the member is interacting with open and dismiss them on any
+    // outside click, like native desktop menus.
     document.addEventListener("click", function (event) {
-      Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-admin-preview[open]")).forEach(function (menu) {
+      Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-admin-preview[open], .rblx-shell-profile-menu[open], .rblx-shell-notification-menu[open]")).forEach(function (menu) {
         if (!menu.contains(event.target)) menu.removeAttribute("open");
       });
     });
     document.addEventListener("keydown", function (event) {
       if (event.key !== "Escape") return;
-      Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-admin-preview[open]")).forEach(function (menu) {
+      Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-admin-preview[open], .rblx-shell-profile-menu[open], .rblx-shell-notification-menu[open]")).forEach(function (menu) {
         menu.removeAttribute("open");
       });
     });
@@ -5918,8 +5919,6 @@
     setupAuthModal();
     initLoginRequiredNavigation();
     document.addEventListener("click", function (event) {
-      var profileMenu = document.querySelector(".rblx-shell-profile-menu[open]");
-      if (profileMenu && !profileMenu.contains(event.target)) profileMenu.open = false;
       var mobilePanelBack = event.target && event.target.closest ? event.target.closest("[data-shell-mobile-panel-back]") : null;
       if (mobilePanelBack) {
         event.preventDefault();
