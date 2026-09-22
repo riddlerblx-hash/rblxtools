@@ -6079,10 +6079,20 @@
 
     addStylesheet(assetUrls.videoCss);
     addStylesheet(assetUrls.imaCss);
+    if (!document.getElementById("rblxTutorialAdIconFont")) {
+      var fontPreload = document.createElement("link");
+      fontPreload.id = "rblxTutorialAdIconFont";
+      fontPreload.rel = "preload";
+      fontPreload.as = "font";
+      fontPreload.type = "font/woff";
+      fontPreload.crossOrigin = "anonymous";
+      fontPreload.href = "https://vjs.zencdn.net/8.23.4/font/VideoJS.woff";
+      document.head.appendChild(fontPreload);
+    }
     if (!document.getElementById("rblxTutorialAdPlayerStyle")) {
       var style = document.createElement("style");
       style.id = "rblxTutorialAdPlayerStyle";
-      style.textContent = "@font-face{font-family:'VideoJS';src:url('https://vjs.zencdn.net/8.23.4/font/VideoJS.woff') format('woff');font-style:normal;font-weight:400;font-display:block}.rblx-tutorial-ad-player.video-js{width:100%!important;min-height:220px;border-radius:inherit;background:#0f131b}.rblx-tutorial-ad-player .vjs-tech{border-radius:inherit}.rblx-tutorial-ad-player .vjs-icon-placeholder:before{font-family:'VideoJS'!important}";
+      style.textContent = "@font-face{font-family:'RBLXVideoJS';src:url('https://vjs.zencdn.net/8.23.4/font/VideoJS.woff') format('woff');font-style:normal;font-weight:400;font-display:block}.rblx-tutorial-ad-player.video-js{width:100%!important;min-height:220px;border-radius:inherit;background:#0f131b}.rblx-tutorial-ad-player .vjs-tech{border-radius:inherit}.rblx-tutorial-ad-player .vjs-icon-placeholder:before,.rblx-tutorial-ad-player .ima-play-pause-div,.rblx-tutorial-ad-player .ima-mute-div,.rblx-tutorial-ad-player .ima-fullscreen-div{font-family:'RBLXVideoJS'!important}";
       document.head.appendChild(style);
     }
 
