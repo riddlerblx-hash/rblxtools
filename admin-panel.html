@@ -844,6 +844,13 @@
       </div>
     </section>
 
+    <section class="admin-card" data-admin-workspace="access">
+      <div class="admin-card-inner">
+        <div class="admin-card-head"><div><h2 class="admin-card-title">Renewal Notice Preview</h2><p class="admin-card-copy">Open the shared-shell renewal strip on your own Account Overview without changing your real membership dates.</p></div></div>
+        <div class="admin-buttons"><button class="admin-btn red" type="button" data-admin-renewal-preview="upcoming">Preview 7-day notice</button><button class="admin-btn ghost" type="button" data-admin-renewal-preview="overdue">Preview overdue notice</button></div>
+      </div>
+    </section>
+
     <section class="admin-overview" data-admin-workspace="access">
       <div class="admin-card admin-lookup-card">
         <div class="admin-card-inner">
@@ -2244,6 +2251,16 @@
         finally { refresh.disabled = false; }
       }
       refresh.addEventListener("click", load); load();
+    }());
+  </script>
+  <script>
+    (function () {
+      Array.prototype.forEach.call(document.querySelectorAll("[data-admin-renewal-preview]"), function (button) {
+        button.addEventListener("click", function () {
+          try { sessionStorage.setItem("rblxtools_renewal_notice_preview", button.dataset.adminRenewalPreview); } catch (_error) {}
+          window.location.href = "./account-overview";
+        });
+      });
     }());
   </script>
 </body>

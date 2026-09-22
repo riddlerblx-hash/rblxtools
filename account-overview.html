@@ -3045,7 +3045,9 @@
           els.acctBillingInvoices.innerHTML = history.length ? history.map(function (entry) {
             var href = entry.receiptUrl;
             var action = href ? '<a href="' + String(href).replace(/"/g, "&quot;") + '" target="_blank" rel="noopener">View receipt</a>' : '<span>Unavailable</span>';
-            return '<div class="acct-billing-invoice"><span><strong>' + safe(entry.title || "RBLXTools purchase") + '</strong><br><small>' + formatBillingDate(entry.createdAt) + ' · ' + safe(String(entry.status || "paid").replace(/_/g, " ")) + ' · ' + formatBillingMoney(entry.amount, entry.currency) + '</small></span>' + action + '</div>';
+            var rawStatus = String(entry.status || "paid").toLowerCase();
+            var displayStatus = rawStatus === "open" ? "pending" : (rawStatus === "void" || rawStatus === "uncollectible" ? "rejected" : rawStatus).replace(/_/g, " ");
+            return '<div class="acct-billing-invoice"><span><strong>' + safe(entry.title || "RBLXTools purchase") + '</strong><br><small>' + formatBillingDate(entry.createdAt) + ' · ' + safe(displayStatus) + ' · ' + formatBillingMoney(entry.amount, entry.currency) + '</small></span>' + action + '</div>';
           }).join("") : '<div class="acct-transaction-empty">No paid purchases yet.</div>';
         }
       }

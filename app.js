@@ -10669,10 +10669,10 @@ app.get("/auth/billing-details", async (req, res) => {
       invoicePdf: invoice.invoice_pdf || null,
       productName: invoice.lines?.data?.map((line) => line?.description || line?.price?.product?.name).filter(Boolean).join(", ") || invoice.description || "RBLXTools subscription",
     })) : [];
-    const checkoutHistory = Array.isArray(checkoutResult?.data) ? checkoutResult.data.filter((session) => session && session.mode === "payment" && String(session.payment_status || "").toLowerCase() === "paid").map((session) => ({
+    const checkoutHistory = Array.isArray(checkoutResult?.data) ? checkoutResult.data.filter((session) => session && session.mode === "payment").map((session) => ({
       id: session.id,
       title: getStripeCheckoutPurchaseTitle(session),
-      status: "paid",
+      status: String(session.payment_status || "").toLowerCase() === "paid" ? "paid" : String(session.status || "").toLowerCase() === "expired" ? "rejected" : "pending",
       amount: Number(session.amount_total || 0),
       currency: String(session.currency || "usd").toUpperCase(),
       createdAt: getIsoFromUnixSeconds(session.created),

@@ -428,6 +428,49 @@
     document.dispatchEvent(new CustomEvent("rblxtools-admin-preview", { detail: window.rblxToolsPreview }));
   }
 
+  var RENEWAL_NOTICE_PREVIEW_KEY = "rblxtools_renewal_notice_preview";
+  function getRenewalNoticePreview() {
+    try {
+      var preview = String(sessionStorage.getItem(RENEWAL_NOTICE_PREVIEW_KEY) || "").toLowerCase();
+      return preview === "upcoming" || preview === "overdue" ? preview : "";
+    } catch (_error) { return ""; }
+  }
+
+  function renderRenewalNotice(user) {
+    var notice = document.getElementById("rblxShellRenewalNotice");
+    var message = document.getElementById("rblxShellRenewalNoticeMessage");
+    if (!notice || !message) return;
+    var member = user || {};
+    var preview = getRenewalNoticePreview();
+    var expiry = String(member.plusExpiresAt || member.currentPeriodEndAt || "").trim();
+    var userId = String(member.id || member.userId || shellState.currentUser && shellState.currentUser.userId || "").trim();
+    var plan = String(member.plan || shellState.currentUser && shellState.currentUser.plan || "membership").toLowerCase() === "pro" ? "Pro" : "Plus";
+    var source = String(member.membershipSource || "").toLowerCase();
+    var expiresAt = expiry ? new Date(expiry) : null;
+    if (preview) expiresAt = new Date(Date.now() + (preview === "upcoming" ? 3 : -3) * 86400000);
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || (!member.premiumActive && !expiry && !preview)) {
+      notice.hidden = true;
+      return;
+    }
+    var days = Math.ceil((expiresAt.getTime() - Date.now()) / 86400000);
+    var phase = days < 0 ? "overdue" : "upcoming";
+    if (!preview && days > 7) { notice.hidden = true; return; }
+    var noticeKey = "rblxtools_renewal_notice_dismissed:" + (userId || "member") + ":" + phase + ":" + expiresAt.toISOString().slice(0, 10);
+    try { if (!preview && localStorage.getItem(noticeKey) === "1") { notice.hidden = true; return; } } catch (_error) {}
+    var dateText = expiresAt.toLocaleDateString();
+    var sourceText = source.includes("robux") ? "Robux" : source.includes("complimentary") ? "complimentary" : "Stripe";
+    if (days < 0) {
+      var elapsed = Math.abs(days);
+      message.textContent = "Your " + plan + " access expired " + elapsed + " day" + (elapsed === 1 ? "" : "s") + " ago. Renew to restore your membership benefits.";
+    } else if (sourceText === "Stripe") {
+      message.textContent = "Your Stripe " + plan + " subscription renews on " + dateText + ". Payment will be due then to keep your membership benefits active.";
+    } else {
+      message.textContent = "Your " + sourceText + " " + plan + " access expires on " + dateText + ". Renew before then to keep your membership benefits active.";
+    }
+    notice.dataset.dismissKey = noticeKey;
+    notice.hidden = false;
+  }
+
   function getStableAdminState(state) {
     var incomingAdmin = Boolean(state && state.isAdmin);
     var incomingUserId = String(state && state.userId || "");
@@ -1783,6 +1826,7 @@
           "</div>" +
         "</header>" +
         '<div class="rblx-shell-body">' +
+          '<section class="rblx-shell-renewal-notice" id="rblxShellRenewalNotice" hidden role="status"><span id="rblxShellRenewalNoticeMessage"></span><div><a href="./subscriptions">Renew membership</a><button type="button" data-shell-renewal-dismiss>Dismiss</button></div></section>' +
           '<aside class="rblx-shell-left">' +
             '<div class="rblx-shell-left-inner">' +
               '<div class="rblx-shell-panel-head">' +
@@ -4242,6 +4286,7 @@
       mergedUser.isAdmin = true;
     }
     saveCachedAuthUser(mergedUser);
+    renderRenewalNotice(mergedUser);
     writeCachedPlusStatus(nextState.plan === "plus" || nextState.plan === "pro");
     updateAuthUi(nextState);
     dispatchMembershipUpdate({
@@ -5485,6 +5530,15 @@
       if (!button || !shellState.isAdmin) return;
       try { sessionStorage.setItem(ADMIN_PREVIEW_KEY, button.dataset.shellAdminPreview); } catch (_error) {}
       window.location.reload();
+    });
+    document.addEventListener("click", function (event) {
+      var dismiss = event.target && event.target.closest ? event.target.closest("[data-shell-renewal-dismiss]") : null;
+      if (!dismiss) return;
+      var notice = document.getElementById("rblxShellRenewalNotice");
+      if (!notice) return;
+      try { if (notice.dataset.dismissKey) localStorage.setItem(notice.dataset.dismissKey, "1"); } catch (_error) {}
+      try { sessionStorage.removeItem(RENEWAL_NOTICE_PREVIEW_KEY); } catch (_error) {}
+      notice.hidden = true;
     });
     // The preview picker is a lightweight header menu, not a persistent panel.
     // A click anywhere outside it should put it away just like a native menu.
