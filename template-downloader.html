@@ -1170,7 +1170,7 @@
   }
 }
 </style>
-<link rel="stylesheet" href="./global-shell.css?v=20260922-tool-interstitial-status" />
+<link rel="stylesheet" href="./global-shell.css?v=20260922-tool-use-actions" />
   <link rel="stylesheet" href="./template-tool-layout.css" />
   <link rel="stylesheet" href="./mobile-overrides.css" />
   <style>
@@ -1213,7 +1213,7 @@
 </head>
   <body data-tool-report="Clothing">
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20260922-tool-interstitial-status"></script>
+<script src="./global-shell.js?v=20260922-tool-use-actions"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1947,6 +1947,7 @@
         status.innerText = ids.length > 1 ? "Templates found ✓ Ready to download" : "Template found ✓ Ready to download";
         renderSlides(slides);
         rememberToolActivity("Clothing");
+        window.dispatchEvent(new CustomEvent("rblxtools-tool-use"));
       } catch (err) {
         status.className = "error";
         status.innerText = err.message || "Failed to fetch template";

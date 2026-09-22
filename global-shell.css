@@ -342,6 +342,37 @@ body.rblx-shell-ready {
 
 .rblx-shell-tool-use-status[hidden] { display: none !important; }
 
+.rblx-tool-use-card { position: relative; }
+
+.rblx-tool-use-indicator {
+  position: absolute;
+  top: 17px;
+  right: 17px;
+  display: grid;
+  min-height: 27px;
+  align-content: center;
+  padding: 0 9px;
+  border: 1px solid rgba(128, 176, 234, .32);
+  border-radius: 9px;
+  background: rgba(13, 29, 50, .9);
+  color: rgba(211, 231, 255, .92);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.rblx-tool-use-indicator[hidden] { display: none !important; }
+
+@media (max-width: 620px) {
+  .rblx-tool-use-indicator {
+    position: static;
+    width: fit-content;
+    margin: 10px 0 0 auto;
+  }
+}
+
 .rblx-shell-referral-balance {
   min-height: 50px;
   display: grid;

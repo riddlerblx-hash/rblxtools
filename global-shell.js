@@ -4737,13 +4737,41 @@
   function renderToolInterstitialStatus() {
     var usesUntilAd = 5 - (getToolInterstitialUses() % 5);
     var status = document.getElementById("rblxShellToolUseStatus");
-    if (!status) return;
     if (!shouldShowMemberAds()) {
-      status.hidden = true;
+      if (status) status.hidden = true;
+      var hiddenIndicator = document.querySelector("[data-rblx-tool-use-indicator]");
+      if (hiddenIndicator) hiddenIndicator.hidden = true;
       return;
     }
-    status.textContent = usesUntilAd + "/5 uses until an ad";
-    status.hidden = false;
+    if (status) {
+      status.textContent = usesUntilAd + "/5 uses until an ad";
+      status.hidden = false;
+    }
+    mountToolUseIndicator(usesUntilAd);
+  }
+
+  function isToolInterstitialPage() {
+    var path = normalizePath(window.location.pathname || "/").replace(/\.html$/, "");
+    return TOOL_INTERSTITIAL_ROUTES.indexOf(path) !== -1;
+  }
+
+  function mountToolUseIndicator(usesUntilAd) {
+    if (!isToolInterstitialPage()) return;
+    var indicator = document.querySelector("[data-rblx-tool-use-indicator]");
+    if (!indicator) {
+      var title = document.querySelector(".tool-card-title");
+      if (!title) return;
+      var card = title.parentElement && title.parentElement.closest("article, [class*='card']");
+      if (!card) return;
+      card.classList.add("rblx-tool-use-card");
+      indicator = document.createElement("span");
+      indicator.className = "rblx-tool-use-indicator";
+      indicator.setAttribute("data-rblx-tool-use-indicator", "");
+      indicator.setAttribute("aria-live", "polite");
+      card.appendChild(indicator);
+    }
+    indicator.textContent = usesUntilAd + "/5 uses until an ad";
+    indicator.hidden = false;
   }
 
   function triggerToolUseInterstitial() {
@@ -4755,22 +4783,24 @@
   }
 
   function initToolUseInterstitial() {
+    if (!shellState.toolUseInterstitialBound) {
+      shellState.toolUseInterstitialBound = true;
+      window.addEventListener("rblxtools-tool-use", function () {
+        if (!shouldShowMemberAds()) return;
+        var nextUses = getToolInterstitialUses() + 1;
+        setToolInterstitialUses(nextUses);
+        renderToolInterstitialStatus();
+        if (nextUses % 5 === 0) triggerToolUseInterstitial();
+      });
+      window.addEventListener("storage", function (event) {
+        if (event && event.key === getToolInterstitialCounterKey()) renderToolInterstitialStatus();
+      });
+    }
     if (!shellState.authResolved || !shouldShowMemberAds()) {
       renderToolInterstitialStatus();
       return;
     }
     renderToolInterstitialStatus();
-    var path = normalizePath(window.location.pathname || "/").replace(/\.html$/, "");
-    if (TOOL_INTERSTITIAL_ROUTES.indexOf(path) === -1) return;
-    var visitKey = "rblxtools_tool_interstitial_last_visit:" + getToolInterstitialCounterKey();
-    try {
-      if (sessionStorage.getItem(visitKey) === path) return;
-      sessionStorage.setItem(visitKey, path);
-    } catch (_error) {}
-    var nextUses = getToolInterstitialUses() + 1;
-    setToolInterstitialUses(nextUses);
-    renderToolInterstitialStatus();
-    if (nextUses % 5 === 0) triggerToolUseInterstitial();
   }
 
   function mountSharedBannerAd(slot) {
