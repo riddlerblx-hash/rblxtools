@@ -436,6 +436,18 @@
     } catch (_error) { return ""; }
   }
 
+  function getServerRenewalNoticeSnapshot() {
+    try {
+      var match = String(document.cookie || "").match(/(?:^|;\s*)rblxtools_renewal_notice=([^;]+)/);
+      if (!match || !match[1]) return null;
+      var encoded = String(match[1]).replace(/-/g, "+").replace(/_/g, "/");
+      var padded = encoded + "=".repeat((4 - encoded.length % 4) % 4);
+      var snapshot = JSON.parse(window.atob(padded));
+      if (!snapshot || !snapshot.id || !snapshot.issuedAt || Date.now() - Number(snapshot.issuedAt) > 2 * 60 * 1000) return null;
+      return snapshot;
+    } catch (_error) { return null; }
+  }
+
   function renderRenewalNotice(user) {
     var notice = document.getElementById("rblxShellRenewalNotice");
     var message = document.getElementById("rblxShellRenewalNoticeMessage");
@@ -5546,6 +5558,7 @@
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
+    renderRenewalNotice(getServerRenewalNoticeSnapshot() || {});
     applyAdminPreview();
     document.addEventListener("click", function (event) {
       var button = event.target.closest("[data-shell-admin-preview]");

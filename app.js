@@ -80,6 +80,7 @@ app.get(["/thumbnail-ai", "/thumbnail-ai.html"], (_req, res) => {
 });
 const httpServer = createServer(app);
 const AUTH_COOKIE_NAME = "rblxtools_auth_token";
+const RENEWAL_NOTICE_COOKIE_NAME = "rblxtools_renewal_notice";
 const ROBLOSECURITY = process.env.ROBLOSECURITY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
@@ -2907,6 +2908,9 @@ function getAuthCookieOptions(req) {
 
 function setAuthCookie(req, res, token) {
   res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieBaseOptions(req));
+  // Do not carry one account's UI notice into a new sign-in. /auth/me writes
+  // a fresh, short-lived server snapshot after it verifies the new account.
+  res.clearCookie(RENEWAL_NOTICE_COOKIE_NAME, { ...getAuthCookieOptions(req), httpOnly: false });
   res.cookie(AUTH_COOKIE_NAME, token, {
     ...getAuthCookieOptions(req),
     maxAge: 1000 * 60 * 60 * 24 * 30,
@@ -2916,6 +2920,24 @@ function setAuthCookie(req, res, token) {
 function clearAuthCookie(req, res) {
   res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieBaseOptions(req));
   res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions(req));
+  res.clearCookie(RENEWAL_NOTICE_COOKIE_NAME, { ...getAuthCookieOptions(req), httpOnly: false });
+}
+
+function setRenewalNoticeCookie(req, res, user) {
+  const snapshot = {
+    id: String(user?.id || ""),
+    plan: String(user?.plan || "free"),
+    premiumActive: Boolean(user?.premiumActive),
+    plusExpiresAt: user?.plusExpiresAt || null,
+    currentPeriodEndAt: user?.currentPeriodEndAt || null,
+    issuedAt: Date.now(),
+  };
+  const value = Buffer.from(JSON.stringify(snapshot)).toString("base64url");
+  res.cookie(RENEWAL_NOTICE_COOKIE_NAME, value, {
+    ...getAuthCookieOptions(req),
+    httpOnly: false,
+    maxAge: 2 * 60 * 1000,
+  });
 }
 
 function getBearerToken(req) {
@@ -7583,6 +7605,7 @@ app.get("/auth/me", async (req, res) => {
     const botInviteUrl = /^\d+$/.test(DISCORD_TOOLS_BOT_CLIENT_ID)
       ? `https://discord.com/oauth2/authorize?client_id=${DISCORD_TOOLS_BOT_CLIENT_ID}&scope=bot%20applications.commands&permissions=35856`
       : null;
+    setRenewalNoticeCookie(req, res, publicUser);
     return res.json({
       ok: true,
       chatToken: createAuthToken(resolvedUser),
@@ -7592,6 +7615,7 @@ app.get("/auth/me", async (req, res) => {
       botInviteUrl,
     });
   } catch (error) {
+    if (error.statusCode === 401 || error.statusCode === 403) clearAuthCookie(req, res);
     return res.status(error.statusCode || 500).json({
       error: error.message || "Could not load the current user.",
     });
