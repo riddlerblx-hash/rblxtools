@@ -324,24 +324,6 @@ body.rblx-shell-ready {
   gap: 12px;
 }
 
-.rblx-shell-tool-use-status {
-  display: grid;
-  min-height: 50px;
-  max-width: 105px;
-  align-content: center;
-  padding: 0 10px;
-  border: 1px solid rgba(128, 176, 234, .3);
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(28, 52, 83, .88), rgba(13, 26, 44, .96));
-  color: rgba(207, 229, 255, .9);
-  font-size: 9px;
-  font-weight: 800;
-  line-height: 1.25;
-  text-align: center;
-}
-
-.rblx-shell-tool-use-status[hidden] { display: none !important; }
-
 .rblx-tool-use-card { position: relative; }
 
 .rblx-tool-use-indicator {
@@ -2796,13 +2778,17 @@ body.rblx-shell-modal-open {
 .rblx-shell-membership-gate { --rblx-modal-half: 300px; --rblx-modal-gap: 52px; }
 .rblx-shell-auth-overlay { --rblx-modal-half: 280px; }
 .rblx-shell-reward-overlay { --rblx-modal-half: 260px; }
+.rblx-shell-support-overlay { --rblx-modal-half: 310px; }
+.rblx-shell-checkout-overlay { --rblx-modal-half: 280px; }
 .rblx-shell-modal-ad-rail { display: none; }
 .rblx-vertical-ad-frame { display: block; width: 160px; height: 600px; border: 0; }
 
 @media (min-width: 1280px) and (min-height: 820px) {
   .rblx-shell-membership-gate.is-open .rblx-shell-modal-ad-rail,
   .rblx-shell-auth-overlay.is-open .rblx-shell-modal-ad-rail,
-  .rblx-shell-reward-overlay.is-open .rblx-shell-modal-ad-rail {
+  .rblx-shell-reward-overlay.is-open .rblx-shell-modal-ad-rail,
+  .rblx-shell-support-overlay.is-open .rblx-shell-modal-ad-rail,
+  .rblx-shell-checkout-overlay.is-open .rblx-shell-modal-ad-rail {
     position: absolute;
     top: 50%;
     z-index: 1;

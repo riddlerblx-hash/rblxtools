@@ -665,7 +665,10 @@
   }
 
   function buildModalAdRailsMarkup() {
-    return '';
+    return (
+      '<aside class="rblx-shell-modal-ad-rail is-left" data-rblx-modal-ad aria-label="Advertisement"><span>Advertisement</span></aside>' +
+      '<aside class="rblx-shell-modal-ad-rail is-right" data-rblx-modal-ad aria-label="Advertisement"><span>Advertisement</span></aside>'
+    );
   }
 
   function buildAnimationMembershipGateMarkup() {
@@ -1694,7 +1697,6 @@
           '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong></a>' +
           '<a class="rblx-shell-header-token-balance" href="./rewards" title="View RBLX Points"><small>RBLX Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
-          '<span class="rblx-shell-tool-use-status" id="rblxShellToolUseStatus" hidden aria-live="polite"></span>' +
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
             '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
               '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 10.5a6 6 0 0 0-12 0c0 7-2.5 7-2.5 8.5h17C20.5 17.5 18 17.5 18 10.5ZM9.5 21h5"></path></svg>' +
@@ -1735,7 +1737,6 @@
 
     return (
       '<div class="rblx-shell-auth is-guest" id="rblxShellAuth">' +
-        '<span class="rblx-shell-tool-use-status" id="rblxShellToolUseStatus" hidden aria-live="polite"></span>' +
         '<a class="rblx-shell-btn rblx-shell-login-button" href="./login">Login / Sign Up</a>' +
       "</div>"
     );
@@ -1964,6 +1965,7 @@
             '<div class="rblx-shell-checkout-thankyou">Thank you for supporting the tools, updates, and everything we are building next.</div>' +
             '<button class="rblx-shell-btn is-primary rblx-shell-checkout-button" type="button" id="rblxShellCheckoutClose" disabled>Back To Account (10)</button>' +
           '</div>' +
+          buildModalAdRailsMarkup() +
         '</div>' +
         '<div class="rblx-shell-reward-overlay" id="rblxShellRewardOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-reward-modal" id="rblxShellRewardModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellRewardTitle">' +
@@ -2054,6 +2056,7 @@
               '<button class="rblx-shell-btn is-primary" type="button" id="rblxShellSupportSubmit">Submit Report</button>' +
             '</div>' +
           '</div>' +
+          buildModalAdRailsMarkup() +
         '</div>' +        '<div class="rblx-shell-site-lock" id="rblxShellSiteLock" aria-hidden="true">' +
           '<div class="rblx-shell-site-lock-card">' +
             '<div class="rblx-shell-site-lock-kicker">Website Locked</div>' +
@@ -2970,6 +2973,7 @@
     setSupportStatus("", "");
     shellState.supportOverlay.classList.add("is-open");
     shellState.supportOverlay.setAttribute("aria-hidden", "false");
+    mountModalVerticalAds(shellState.supportOverlay);
   }
 
   function closeSupportModal() {
@@ -3865,6 +3869,7 @@
     shellState.checkoutSuccessOverlay.classList.add("is-open");
     shellState.checkoutSuccessOverlay.setAttribute("aria-hidden", "false");
     shellState.checkoutSuccessModal.classList.add("is-open");
+    mountModalVerticalAds(shellState.checkoutSuccessOverlay);
     clearCheckoutSuccessTimer();
     shellState.checkoutSuccessTimer = setInterval(function () {
       shellState.checkoutSuccessCountdown -= 1;
@@ -4717,7 +4722,7 @@
   var TOOL_INTERSTITIAL_ROUTES = [
     "/template-downloader", "/ugc-downloader", "/template-background-changer",
     "/media-downloader", "/audio-downloader", "/robux-calculator",
-    "/animation-spoofer", "/ai-clothing-studio", "/ai-ugc", "/ai-ugc-studio",
+    "/ai-clothing-studio", "/ai-ugc", "/ai-ugc-studio",
     "/ai-thumbnail-studio", "/thumbnail-ai", "/game-launcher"
   ];
 
@@ -4736,16 +4741,10 @@
 
   function renderToolInterstitialStatus() {
     var usesUntilAd = 5 - (getToolInterstitialUses() % 5);
-    var status = document.getElementById("rblxShellToolUseStatus");
     if (!shouldShowMemberAds()) {
-      if (status) status.hidden = true;
       var hiddenIndicator = document.querySelector("[data-rblx-tool-use-indicator]");
       if (hiddenIndicator) hiddenIndicator.hidden = true;
       return;
-    }
-    if (status) {
-      status.textContent = usesUntilAd + "/5 uses until an ad";
-      status.hidden = false;
     }
     mountToolUseIndicator(usesUntilAd);
   }
@@ -4759,9 +4758,10 @@
     if (!isToolInterstitialPage()) return;
     var indicator = document.querySelector("[data-rblx-tool-use-indicator]");
     if (!indicator) {
-      var title = document.querySelector(".tool-card-title");
+      var title = document.querySelector(".tool-card-title, #roblox-ugc-title");
       if (!title) return;
       var card = title.parentElement && title.parentElement.closest("article, [class*='card']");
+      if (!card && title.id === "roblox-ugc-title") card = document.getElementById("roblox-ugc-card");
       if (!card) return;
       card.classList.add("rblx-tool-use-card");
       indicator = document.createElement("span");
