@@ -757,6 +757,33 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   position: relative;
 }
 
+.rblx-shell-sidebar-ad { display:none; }
+
+@media (min-width:1180px) {
+  body:not(.rblx-pro-ad-free) .rblx-shell-sidebar-ad {
+    display:grid;
+    width:160px;
+    min-height:618px;
+    margin:0 auto;
+    place-items:center;
+    overflow:hidden;
+    border:1px solid rgba(103,177,255,.3);
+    border-radius:12px;
+    background:#07101d;
+  }
+  .rblx-shell-sidebar-ad > span {
+    padding:5px 0 3px;
+    color:#94aabd;
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+  }
+  .rblx-shell-sidebar-ad > .rblx-adcash-unit { width:160px; min-height:600px; }
+  body.rblx-shell-left-collapsed .rblx-shell-sidebar-ad,
+  body.rblx-shell-right-collapsed .rblx-shell-sidebar-ad { display:none !important; }
+}
+
 .rblx-shell-panel-head {
   display: flex;
   align-items: center;

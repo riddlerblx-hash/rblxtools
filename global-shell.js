@@ -527,7 +527,7 @@
   }
 
   function shouldShowMemberAds() {
-    return false;
+    return !isProMember(shellState.currentUser);
   }
 
   function syncMemberAdVisibility(state) {
@@ -551,6 +551,7 @@
     if (!hideAds) {
       mountDesktopShellBoxAds();
       mountDesktopVerticalAds();
+      initShellSidebarAds();
       Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-mobile-banner-ad] .rblx-home-mobile-banner-ad-slot"), mountMobileBannerAd);
     }
   }
@@ -5284,6 +5285,38 @@
     Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-vertical-ad]"), mountVerticalAd);
   }
 
+  function createShellSidebarAd(id) {
+    var host = document.createElement("section");
+    host.id = id;
+    host.className = "rblx-shell-sidebar-ad";
+    host.setAttribute("data-rblx-vertical-ad", "");
+    host.setAttribute("aria-label", "Advertisement");
+    host.innerHTML = '<span>Advertisement</span>';
+    return host;
+  }
+
+  function initShellSidebarAds() {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initShellSidebarAds, { once: true });
+      return;
+    }
+    if (!shouldShowMemberAds() || !window.matchMedia("(min-width: 1180px)").matches) return;
+
+    var leftFoot = document.querySelector(".rblx-shell-left-foot");
+    if (leftFoot && leftFoot.parentNode && !document.getElementById("rblxShellNavigationAd")) {
+      var navigationAd = createShellSidebarAd("rblxShellNavigationAd");
+      leftFoot.parentNode.insertBefore(navigationAd, leftFoot);
+      mountVerticalAd(navigationAd);
+    }
+
+    var chatBottom = document.getElementById("rblxShellChatBottom");
+    if (chatBottom && chatBottom.parentNode && !document.getElementById("rblxShellLiveChatAd")) {
+      var liveChatAd = createShellSidebarAd("rblxShellLiveChatAd");
+      chatBottom.insertAdjacentElement("afterend", liveChatAd);
+      mountVerticalAd(liveChatAd);
+    }
+  }
+
   function initMembershipPromoRotation() {
     var selector = ".plus-promo, body.rblx-home-page .home-grid-top > .plus-card";
     Array.prototype.slice.call(document.querySelectorAll(selector)).forEach(function (promo) {
@@ -5639,6 +5672,7 @@
     initSharedToolHeaderBannerAd();
     initSharedHomeBannerAds();
     initSharedMobileBannerAds();
+    initShellSidebarAds();
     initSharedToolShowcase();
     initSharedToolStats();
     document.body.classList.add("rblx-shell-ready");
