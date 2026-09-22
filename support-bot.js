@@ -270,16 +270,29 @@ function buildRobuxMembershipPricing() {
   ];
 }
 
+function buildRobuxTokenPricing() {
+  return [
+    "🤖 **AI Token Packs**",
+    "• 200 Tokens — Game Pass: **1,425 Robux** | Roblox Plus: **998 Robux**",
+    "• 450 Tokens — Game Pass: **2,252 Robux** | Roblox Plus: **1,576 Robux**",
+    "• 1,300 Tokens — Game Pass: **5,448 Robux** | Roblox Plus: **3,814 Robux**",
+    "• 2,450 Tokens — Game Pass: **9,395 Robux** | Roblox Plus: **6,577 Robux**",
+    "• 5,000 Tokens — Game Pass: **18,042 Robux** | Roblox Plus: **12,629 Robux**",
+  ];
+}
+
 function buildPaymentsPanelEmbed() {
   return new EmbedBuilder()
     .setTitle("💸 Robux Payments")
     .setColor(0xf1c40f)
     .setDescription(
       [
-        "✨ Make payments with **Robux** for website subscriptions and future purchases.",
+        "✨ Make payments with **Robux** for website subscriptions and AI token packs.",
         "",
         "📦 **Membership prices**",
         ...buildRobuxMembershipPricing(),
+        "",
+        ...buildRobuxTokenPricing(),
         "",
         "📌 **Why Robux prices can be higher**",
         "DevEx rates, Roblox taxes, and payout loss mean Robux pricing may cost more than normal cash pricing.",
@@ -290,7 +303,7 @@ function buildPaymentsPanelEmbed() {
     )
     .addFields({
       name: "🧾 What this is for",
-      value: "Use the button below, then tell us the membership, billing period (monthly or annual), and whether you are paying through a Game Pass or Roblox Plus.",
+      value: "Use the button below, then tell us the product, token pack or membership term, and whether you are paying through a Game Pass or Roblox Plus.",
       inline: false,
     })
     .setFooter({ text: PAYMENT_PANEL_SIGNATURE });
@@ -357,7 +370,9 @@ function buildPaymentTicketEmbed(interaction) {
         "🛍️ **Available right now**",
         ...buildRobuxMembershipPricing(),
         "",
-        "📨 Tell us the membership, monthly or annual billing, and whether you are using a Game Pass or Roblox Plus.",
+        ...buildRobuxTokenPricing(),
+        "",
+        "📨 Tell us the product, token pack or membership term, and whether you are using a Game Pass or Roblox Plus.",
         "⚠️ Support reports are not handled here. If you need support, submit it on the website instead.",
       ].join("\n")
     )
