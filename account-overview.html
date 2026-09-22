@@ -858,27 +858,11 @@
       cursor: pointer;
     }
 
-    #rbtools-account-overview .acct-modal {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background: rgba(7, 7, 10, 0.76);
-      z-index: 40;
-    }
+    #rbtools-account-overview .acct-modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(3,8,18,.76); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:80; }
 
     #rbtools-account-overview .acct-modal.is-open { display: flex; }
 
-    #rbtools-account-overview .acct-modal-card {
-      width: min(100%, 760px);
-      border-radius: 22px;
-      background: linear-gradient(180deg, rgba(33,33,36,0.98), rgba(22,22,24,0.99));
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 30px 60px rgba(0,0,0,0.4);
-      overflow: hidden;
-    }
+    #rbtools-account-overview .acct-modal-card { width:min(100%,470px); max-height:calc(100dvh - 40px); border:1px solid rgba(111,146,205,.3); border-radius:17px; overflow:auto; background:linear-gradient(180deg,rgba(33,48,75,.98),rgba(10,18,31,.99)); box-shadow:0 24px 64px rgba(0,0,0,.5); }
 
     #rbtools-account-overview .acct-modal-head {
       padding: 18px 18px 14px;

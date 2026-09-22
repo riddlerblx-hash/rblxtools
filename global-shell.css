@@ -5217,6 +5217,57 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
 .code-post-ad,
 .code-directory-ad { display:none !important; }
 
+/* Shared dialog system: keep login, membership, and rewards dialogs as focused
+   panels with the same restrained structure as the referral-member dialog. */
+.rblx-shell-auth-overlay,
+.rblx-shell-membership-gate,
+.rblx-shell-reward-overlay {
+  background: rgba(3, 8, 18, .76) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.rblx-shell-auth-modal,
+.rblx-shell-membership-gate-card,
+.rblx-shell-reward-modal {
+  width: min(520px, calc(100vw - 32px)) !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 32px);
+  overflow: auto !important;
+  padding: 22px 20px 20px !important;
+  border: 1px solid rgba(111, 146, 205, .30) !important;
+  border-radius: 17px !important;
+  background: linear-gradient(180deg, rgba(33, 48, 75, .98), rgba(10, 18, 31, .99)) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .50) !important;
+  animation: none !important;
+}
+
+.rblx-shell-auth-modal::before,
+.rblx-shell-membership-gate-card::before,
+.rblx-shell-reward-modal::before { display: none !important; }
+.rblx-shell-auth-title,
+.rblx-shell-membership-gate-card h3,
+.rblx-shell-reward-modal h3 { margin: 0 0 10px !important; color: #fff !important; font-size: 18px !important; line-height: 1.25 !important; }
+.rblx-shell-auth-copy,
+.rblx-shell-membership-gate-card > p,
+.rblx-shell-reward-modal > p { margin: 0 0 16px !important; color: #b7c7dd !important; font-size: 12px !important; line-height: 1.55 !important; }
+.rblx-shell-auth-modal > .rblx-shell-auth-close {
+  top: 12px !important;
+  right: 12px !important;
+  width: 32px !important;
+  height: 32px !important;
+  border: 1px solid rgba(116, 160, 244, .35) !important;
+  border-radius: 9px !important;
+  color: #eaf2ff !important;
+  background: rgba(78, 117, 184, .16) !important;
+  font-size: 20px !important;
+}
+.rblx-shell-auth-close:hover { background: rgba(78, 117, 184, .28) !important; }
+.rblx-shell-gate-benefits { margin: 16px 0 !important; gap: 8px !important; }
+.rblx-shell-gate-benefits section { min-height: 0 !important; padding: 12px !important; border-color: rgba(111, 146, 205, .22) !important; border-radius: 11px !important; background: rgba(8, 16, 28, .52) !important; }
+.rblx-shell-membership-gate-actions,
+.rblx-shell-reward-modal .rblx-shell-reward-actions { margin-top: 16px !important; }
+
 /* Plan names are ordinary text: membership cards can keep their design, but the
    words “Plus” and “Pro” no longer receive a color, gradient, or animation. */
 .rblx-plus-word,
