@@ -4124,6 +4124,10 @@
     var status = document.getElementById("rblxShellStatus");
     var statusText = document.getElementById("rblxShellStatusText");
     if (!auth) return;
+    if (!state || !state.loggedIn) {
+      var renewalNotice = document.getElementById("rblxShellRenewalNotice");
+      if (renewalNotice) renewalNotice.hidden = true;
+    }
 
     // Only rebuild the header for real session changes. Profile/name and token
     // refreshes are data updates, not a reason to visibly replace the UI.
@@ -5542,10 +5546,6 @@
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
-    // Use the verified cached membership snapshot immediately, then reconcile
-    // it with /auth/me in the background. This avoids a visible banner flash
-    // during normal page-to-page navigation.
-    renderRenewalNotice(getCachedAuthUser() || {});
     applyAdminPreview();
     document.addEventListener("click", function (event) {
       var button = event.target.closest("[data-shell-admin-preview]");
