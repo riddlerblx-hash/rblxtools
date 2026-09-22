@@ -5218,6 +5218,7 @@ body.rblx-shell-ready .rblx-shell-page .top-grid > .side-stack > .promo-card .ba
   letter-spacing: .09em;
   text-transform: uppercase;
 }
+body.rblx-shell-ready .rblx-shell-page .top-grid > .side-stack > .promo-card .badge[hidden] { display: none !important; }
 body.rblx-shell-ready .rblx-shell-page .top-grid > .side-stack > .promo-card h2 {
   margin: 12px 0 15px !important;
   color: #f7f9ff !important;
@@ -5232,6 +5233,8 @@ body.rblx-shell-ready .rblx-shell-page .tutorial-video-box {
   background: #070c15 !important;
   box-shadow: 0 18px 32px rgba(2, 5, 13, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
+.rblx-tutorial-ad-player.rblx-tutorial-ad-active .vjs-control-bar,
+.rblx-tutorial-ad-player.rblx-tutorial-ad-active .vjs-big-play-button { display: none !important; }
 body.rblx-shell-ready .rblx-shell-page .tutorial-video { border-radius: 16px !important; }
 body.rblx-shell-ready .rblx-shell-page .tutorial-video-cover {
   gap: 12px !important;

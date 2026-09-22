@@ -5828,7 +5828,9 @@
     initSharedToolShowcase();
     initSharedToolStats();
     document.body.classList.add("rblx-shell-ready");
-    initMembershipTextTreatment();
+    // Do not run a whole-page text-rewriting observer. It touched every newly
+    // added node (including ads and tool results), which adds avoidable work
+    // and can make busy tool pages feel sluggish.
     initMembershipPromoRotation();
     initSidebarPlanRotation();
     mountDesktopShellBoxAds();
@@ -6219,6 +6221,12 @@
   }
 
   function initTutorialVideoAds() {
+    // The tutorial card already has a clear title. The extra "How To Use"
+    // badge is redundant, but remains in the markup as a stable hook for
+    // locating tutorial videos.
+    Array.prototype.forEach.call(document.querySelectorAll(".promo-card .badge"), function (badge) {
+      if (String(badge.textContent || "").trim().toLowerCase() === "how to use") badge.hidden = true;
+    });
     // Do not request or initialize an ad player until the account has been
     // verified. This prevents a Pro member from briefly receiving a pre-roll
     // while the page resolves their actual membership from the server.
@@ -6298,6 +6306,19 @@
         adTagUrl: adTagUrl,
         showControlsForJSAds: true,
         adsRenderingSettings: { enablePreloading: true }
+      });
+      // VAST supplies its own controls, countdown, and progress bar. Hide the
+      // Video.js controls only while the pre-roll is active, then restore them
+      // immediately for the tutorial itself.
+      function setAdPlayback(active) {
+        if (active) player.addClass("rblx-tutorial-ad-active");
+        else player.removeClass("rblx-tutorial-ad-active");
+      }
+      ["adstart", "ads-ad-started", "ima3-ad-started"].forEach(function (eventName) {
+        player.on(eventName, function () { setAdPlayback(true); });
+      });
+      ["adend", "ads-ad-ended", "ima3-ad-ended", "contentplay", "adserror"].forEach(function (eventName) {
+        player.on(eventName, function () { setAdPlayback(false); });
       });
       // If the ad network is unavailable, Video.js-IMA returns control to the
       // original tutorial instead of preventing the member from watching it.

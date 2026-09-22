@@ -12940,6 +12940,16 @@ app.get(["/members/:userId", "/members/:userId/"], (_req, res) => {
   return res.sendFile(path.join(STATIC_ROOT, "members.html"));
 });
 
+// Old local backup files must never be reachable as website pages. The live
+// site uses the current HTML files only, while these patterns are developer
+// leftovers that can otherwise be requested directly from the static folder.
+app.use((req, res, next) => {
+  if (/(?:\.bak(?:[-.]|$)|\.old(?:[-.]|$)|~$)/i.test(req.path || "")) {
+    return res.status(404).end();
+  }
+  return next();
+});
+
 app.use(express.static(STATIC_ROOT, {
   extensions: ["html"],
   setHeaders(res, filePath) {
