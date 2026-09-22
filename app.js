@@ -10558,7 +10558,7 @@ app.get("/auth/membership-pricing", async (_req, res) => {
     }
   });
   
-  app.post("/auth/create-portal-session", async (req, res) => {
+app.post("/auth/create-portal-session", async (req, res) => {
     try {
     assertStripePortalConfigured();
     const user = await requireAuthenticatedUser(req);
@@ -10584,6 +10584,111 @@ app.get("/auth/membership-pricing", async (_req, res) => {
     return res.status(error.statusCode || 500).json({
       error: error.message || "Could not create a Stripe portal session.",
     });
+  }
+});
+
+app.get("/auth/billing-details", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const customerId = String(user.stripe_customer_id || "").trim();
+    if (!customerId) {
+      return res.json({ ok: true, hasCustomer: false, subscription: null, paymentMethod: null, invoices: [] });
+    }
+
+    const [customer, subscription, invoiceResult] = await Promise.all([
+      stripeClient.customers.retrieve(customerId),
+      getPrimaryStripeSubscriptionForCustomer(customerId, { includeCanceled: true }),
+      stripeClient.invoices.list({ customer: customerId, limit: 12 }),
+    ]);
+    let paymentMethod = null;
+    const defaultPaymentMethodId = typeof customer?.invoice_settings?.default_payment_method === "string"
+      ? customer.invoice_settings.default_payment_method
+      : customer?.invoice_settings?.default_payment_method?.id;
+    if (defaultPaymentMethodId) {
+      const method = await stripeClient.paymentMethods.retrieve(defaultPaymentMethodId);
+      if (method?.card) {
+        paymentMethod = { brand: method.card.brand || "card", last4: method.card.last4 || "", expMonth: method.card.exp_month || null, expYear: method.card.exp_year || null };
+      }
+    }
+    const invoices = Array.isArray(invoiceResult?.data) ? invoiceResult.data.filter(Boolean).map((invoice) => ({
+      id: invoice.id,
+      number: invoice.number || null,
+      status: invoice.status || "unknown",
+      amountPaid: Number(invoice.amount_paid || 0),
+      amountDue: Number(invoice.amount_due || 0),
+      currency: String(invoice.currency || "usd").toUpperCase(),
+      createdAt: getIsoFromUnixSeconds(invoice.created),
+      hostedInvoiceUrl: invoice.hosted_invoice_url || null,
+      invoicePdf: invoice.invoice_pdf || null,
+    })) : [];
+    const price = subscription?.items?.data?.[0]?.price || null;
+    return res.json({
+      ok: true,
+      hasCustomer: true,
+      paymentMethod,
+      subscription: subscription ? {
+        id: subscription.id,
+        status: subscription.status || "unknown",
+        cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
+        currentPeriodEndAt: getIsoFromUnixSeconds(subscription.current_period_end),
+        interval: price?.recurring?.interval || null,
+        amount: Number(price?.unit_amount || 0),
+        currency: String(price?.currency || "usd").toUpperCase(),
+        productName: typeof price?.product === "object" ? price.product.name || null : null,
+      } : null,
+      invoices,
+      publishableKey: STRIPE_PUBLISHABLE_KEY || null,
+    });
+  } catch (error) {
+    console.error("GET /auth/billing-details failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load billing details." });
+  }
+});
+
+app.post("/auth/billing/subscription", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const action = String(req.body?.action || "").trim().toLowerCase();
+    const subscription = await getPrimaryStripeSubscriptionForCustomer(user.stripe_customer_id, { includeCanceled: false });
+    if (!subscription) return res.status(400).json({ error: "There is no active Stripe subscription to update." });
+    if (action !== "cancel" && action !== "resume") return res.status(400).json({ error: "Choose a valid subscription action." });
+    const updated = await stripeClient.subscriptions.update(subscription.id, { cancel_at_period_end: action === "cancel" });
+    await syncStripeSubscriptionObject(updated);
+    return res.json({ ok: true, cancelAtPeriodEnd: Boolean(updated.cancel_at_period_end), currentPeriodEndAt: getIsoFromUnixSeconds(updated.current_period_end) });
+  } catch (error) {
+    console.error("POST /auth/billing/subscription failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not update the subscription." });
+  }
+});
+
+app.post("/auth/billing/setup-intent", async (req, res) => {
+  try {
+    assertStripeEmbeddedCheckoutConfigured();
+    const user = await requireAuthenticatedUser(req);
+    if (!user.stripe_customer_id) return res.status(400).json({ error: "This account does not have a Stripe billing profile yet." });
+    const intent = await stripeClient.setupIntents.create({ customer: user.stripe_customer_id, usage: "off_session", payment_method_types: ["card"] });
+    return res.json({ ok: true, clientSecret: intent.client_secret, publishableKey: STRIPE_PUBLISHABLE_KEY });
+  } catch (error) {
+    console.error("POST /auth/billing/setup-intent failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not prepare secure card entry." });
+  }
+});
+
+app.post("/auth/billing/payment-method", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const paymentMethodId = String(req.body?.paymentMethodId || "").trim();
+    if (!paymentMethodId) return res.status(400).json({ error: "Stripe did not return a payment method." });
+    const method = await stripeClient.paymentMethods.retrieve(paymentMethodId);
+    if (String(method?.customer || "") !== String(user.stripe_customer_id || "")) return res.status(403).json({ error: "That payment method does not belong to this billing account." });
+    await stripeClient.customers.update(user.stripe_customer_id, { invoice_settings: { default_payment_method: paymentMethodId } });
+    return res.json({ ok: true, paymentMethod: method?.card ? { brand: method.card.brand || "card", last4: method.card.last4 || "", expMonth: method.card.exp_month || null, expYear: method.card.exp_year || null } : null });
+  } catch (error) {
+    console.error("POST /auth/billing/payment-method failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not update the payment method." });
   }
 });
 

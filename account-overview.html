@@ -1086,6 +1086,18 @@
         grid-template-columns: 1fr;
       }
     }
+    #rbtools-account-overview .acct-billing-actions { display:flex; flex-wrap:wrap; gap:9px; margin:18px 0; }
+    #rbtools-account-overview .acct-billing-panel { margin-top:18px; padding-top:18px; border-top:1px solid rgba(111,146,205,.2); }
+    #rbtools-account-overview .acct-billing-panel[hidden] { display:none; }
+    #rbtools-account-overview .acct-billing-panel h4 { margin:0 0 7px; color:#f1f6ff; font-size:13px; }
+    #rbtools-account-overview .acct-billing-panel p { margin:0 0 12px; color:#aebdd2; font-size:12px; line-height:1.5; }
+    #rbtools-account-overview .acct-stripe-element { min-height:52px; padding:14px; border:1px solid rgba(116,160,244,.32); border-radius:11px; background:rgba(7,15,27,.52); }
+    #rbtools-account-overview .acct-billing-history { margin-top:20px; padding-top:18px; border-top:1px solid rgba(111,146,205,.2); }
+    #rbtools-account-overview .acct-billing-history h4 { margin:0 0 10px; color:#f1f6ff; font-size:13px; }
+    #rbtools-account-overview .acct-billing-invoice { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 0; border-top:1px solid rgba(111,146,205,.16); color:#c5d3e7; font-size:12px; font-weight:700; }
+    #rbtools-account-overview .acct-billing-invoice:first-child { border-top:0; }
+    #rbtools-account-overview .acct-billing-invoice a { color:#8cd9ff; font-weight:900; text-decoration:none; }
+    #rbtools-account-overview .acct-billing-invoice a:hover { text-decoration:underline; }
   </style>
 <link rel="stylesheet" href="./global-shell.css?v=20260901-2" />
   <style>
@@ -1387,6 +1399,7 @@
   <link rel="stylesheet" href="./mobile-overrides.css">
 </head>
 <body>
+<script src="https://js.stripe.com/v3/"></script>
 <script src="./global-shell.js?v=20260918-profile-preload"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
@@ -1606,7 +1619,9 @@
                       </div>
                     </div>
 
-                    <div class="acct-actions"><button id="acctOpenPortalButton" class="acct-button plans" type="button">Open secure Stripe billing</button></div>
+                    <div class="acct-billing-actions"><button id="acctBillingPaymentButton" class="acct-button secondary" type="button">Update payment method</button><button id="acctBillingCancelButton" class="acct-button danger" type="button" hidden>Cancel at period end</button><button id="acctBillingResumeButton" class="acct-button secondary" type="button" hidden>Resume subscription</button></div>
+                    <div id="acctBillingPaymentPanel" class="acct-billing-panel" hidden><h4>Secure payment method</h4><p>Your card details are entered directly into Stripe’s secure form and never pass through RBLXTools.</p><div id="acctStripePaymentElement" class="acct-stripe-element"></div><div class="acct-billing-actions"><button id="acctBillingPaymentSaveButton" class="acct-button plans" type="button">Save payment method</button><button id="acctBillingPaymentCloseButton" class="acct-button secondary" type="button">Close</button></div></div>
+                    <div class="acct-billing-history"><h4>Billing history</h4><div id="acctBillingInvoices" class="acct-transaction-empty">Loading invoices...</div></div>
                     <div id="acctBillingStatus" class="acct-status"></div>
                   </section>
 
@@ -1870,6 +1885,9 @@
         deleteCountdown: 10,
         deleteCountdownTimer: null,
         membershipPollTimer: null,
+        billing: null,
+        billingStripe: null,
+        billingElements: null,
         botDashboard: null,
         selectedAccountTab: "settings",
         savedAccountTab: "",
@@ -1917,6 +1935,14 @@
         acctBillingTitle: document.getElementById("acctBillingTitle"),
         acctBillingPlan: document.getElementById("acctBillingPlan"),
         acctBillingRenewal: document.getElementById("acctBillingRenewal"),
+        acctBillingPaymentButton: document.getElementById("acctBillingPaymentButton"),
+        acctBillingCancelButton: document.getElementById("acctBillingCancelButton"),
+        acctBillingResumeButton: document.getElementById("acctBillingResumeButton"),
+        acctBillingPaymentPanel: document.getElementById("acctBillingPaymentPanel"),
+        acctStripePaymentElement: document.getElementById("acctStripePaymentElement"),
+        acctBillingPaymentSaveButton: document.getElementById("acctBillingPaymentSaveButton"),
+        acctBillingPaymentCloseButton: document.getElementById("acctBillingPaymentCloseButton"),
+        acctBillingInvoices: document.getElementById("acctBillingInvoices"),
         acctStripeStatus: document.getElementById("acctStripeStatus"),
         acctMembershipSource: document.getElementById("acctMembershipSource"),
         acctPlusDaysLeft: document.getElementById("acctPlusDaysLeft"),
@@ -2913,6 +2939,7 @@
             loadReferralDashboard();
             loadRewardHistory();
             loadDiscordLinkStatus();
+            loadBillingDetails();
             var checkoutSummary = await loadCheckoutSummary();
             if (state.checkoutStatus === "success") {
               dispatchCheckoutCelebration(checkoutSummary, loadedUser);
@@ -3003,6 +3030,98 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ avatarUrl: String(state.profile.avatarUrl || "") })
         });
+      }
+
+      function formatBillingMoney(amount, currency) {
+        try { return new Intl.NumberFormat("en-US", { style: "currency", currency: String(currency || "USD").toUpperCase() }).format((Number(amount) || 0) / 100); } catch (_error) { return "$" + ((Number(amount) || 0) / 100).toFixed(2); }
+      }
+
+      function formatBillingDate(value) {
+        var date = new Date(value || "");
+        return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
+      }
+
+      function renderBillingDetails(details) {
+        state.billing = details || null;
+        var subscription = details && details.subscription;
+        if (els.acctBillingPlan) els.acctBillingPlan.textContent = subscription ? (subscription.productName || "Subscription") : "No active subscription";
+        if (els.acctStripeStatus) els.acctStripeStatus.textContent = subscription ? String(subscription.status || "-").replace(/_/g, " ") : "-";
+        if (els.acctBillingRenewal) els.acctBillingRenewal.textContent = subscription ? (subscription.cancelAtPeriodEnd ? "Ends " : "Renews ") + formatBillingDate(subscription.currentPeriodEndAt) : "-";
+        if (els.acctCustomerId) els.acctCustomerId.textContent = details && details.hasCustomer ? "Connected" : "Not connected";
+        if (els.acctBillingPaymentButton) {
+          var method = details && details.paymentMethod;
+          els.acctBillingPaymentButton.textContent = method ? "Update " + String(method.brand || "card").toUpperCase() + " •••• " + String(method.last4 || "") : "Add payment method";
+          els.acctBillingPaymentButton.disabled = !(details && details.hasCustomer);
+        }
+        if (els.acctBillingCancelButton) els.acctBillingCancelButton.hidden = !subscription || Boolean(subscription.cancelAtPeriodEnd);
+        if (els.acctBillingResumeButton) els.acctBillingResumeButton.hidden = !subscription || !Boolean(subscription.cancelAtPeriodEnd);
+        if (els.acctBillingInvoices) {
+          var invoices = Array.isArray(details && details.invoices) ? details.invoices : [];
+          els.acctBillingInvoices.innerHTML = invoices.length ? invoices.map(function (invoice) {
+            var href = invoice.hostedInvoiceUrl || invoice.invoicePdf;
+            var action = href ? '<a href="' + String(href).replace(/"/g, "&quot;") + '" target="_blank" rel="noopener">View receipt</a>' : '<span>Unavailable</span>';
+            return '<div class="acct-billing-invoice"><span>' + formatBillingDate(invoice.createdAt) + ' · ' + String(invoice.status || "unknown") + ' · ' + formatBillingMoney(invoice.amountPaid || invoice.amountDue, invoice.currency) + '</span>' + action + '</div>';
+          }).join("") : '<div class="acct-transaction-empty">No Stripe invoices yet.</div>';
+        }
+      }
+
+      async function loadBillingDetails() {
+        if (!state.user || !state.user.id) return;
+        try {
+          var details = await apiRequest("/auth/billing-details", { method: "GET" });
+          renderBillingDetails(details);
+        } catch (error) {
+          setStatus(els.acctBillingStatus, error.message || "Could not load Stripe billing details.", "error");
+        }
+      }
+
+      function closeBillingPaymentEditor() {
+        if (state.billingElements) { try { state.billingElements.unmount(); } catch (_error) {} }
+        state.billingElements = null;
+        if (els.acctStripePaymentElement) els.acctStripePaymentElement.innerHTML = "";
+        if (els.acctBillingPaymentPanel) els.acctBillingPaymentPanel.hidden = true;
+      }
+
+      async function openBillingPaymentEditor() {
+        if (!state.billing || !state.billing.hasCustomer) return;
+        setStatus(els.acctBillingStatus, "Preparing Stripe's secure payment form...", "");
+        try {
+          var payload = await apiRequest("/auth/billing/setup-intent", { method: "POST" });
+          if (!payload || !payload.clientSecret || !payload.publishableKey || !window.Stripe) throw new Error("Stripe's secure payment form is unavailable right now.");
+          closeBillingPaymentEditor();
+          state.billingStripe = window.Stripe(payload.publishableKey);
+          var stripeElements = state.billingStripe.elements({ clientSecret: payload.clientSecret, appearance: { theme: "night" } });
+          state.billingElements = stripeElements.create("payment");
+          state.billingElements.mount(els.acctStripePaymentElement);
+          els.acctBillingPaymentPanel.hidden = false;
+          setStatus(els.acctBillingStatus, "", "");
+        } catch (error) { setStatus(els.acctBillingStatus, error.message || "Could not prepare secure card entry.", "error"); }
+      }
+
+      async function saveBillingPaymentMethod() {
+        if (!state.billingStripe || !state.billingElements) return;
+        els.acctBillingPaymentSaveButton.disabled = true;
+        setStatus(els.acctBillingStatus, "Saving your payment method securely with Stripe...", "");
+        try {
+          var result = await state.billingStripe.confirmSetup({ elements: state.billingElements, redirect: "if_required" });
+          if (result.error) throw new Error(result.error.message || "Stripe could not save this payment method.");
+          var paymentMethodId = result.setupIntent && result.setupIntent.payment_method;
+          await apiRequest("/auth/billing/payment-method", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentMethodId: paymentMethodId }) });
+          closeBillingPaymentEditor();
+          await loadBillingDetails();
+          setStatus(els.acctBillingStatus, "Payment method updated securely.", "success");
+        } catch (error) { setStatus(els.acctBillingStatus, error.message || "Could not save the payment method.", "error"); }
+        finally { els.acctBillingPaymentSaveButton.disabled = false; }
+      }
+
+      async function updateBillingSubscription(action) {
+        var isCancel = action === "cancel";
+        if (isCancel && !window.confirm("Cancel this subscription at the end of its current billing period?")) return;
+        try {
+          var result = await apiRequest("/auth/billing/subscription", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: action }) });
+          await loadBillingDetails();
+          setStatus(els.acctBillingStatus, result.cancelAtPeriodEnd ? "Your subscription will end at the close of the current billing period." : "Your subscription will continue as scheduled.", "success");
+        } catch (error) { setStatus(els.acctBillingStatus, error.message || "Could not update the subscription.", "error"); }
       }
 
       async function saveReferralCustomCode() {
@@ -3428,11 +3547,11 @@
         renderUser(null);
       }
 
-      if (els.acctOpenPortalButton) {
-        els.acctOpenPortalButton.addEventListener("click", function () {
-          openPortal(els.acctOpenPortalButton, els.acctBillingStatus);
-        });
-      }
+      if (els.acctBillingPaymentButton) els.acctBillingPaymentButton.addEventListener("click", openBillingPaymentEditor);
+      if (els.acctBillingPaymentSaveButton) els.acctBillingPaymentSaveButton.addEventListener("click", saveBillingPaymentMethod);
+      if (els.acctBillingPaymentCloseButton) els.acctBillingPaymentCloseButton.addEventListener("click", closeBillingPaymentEditor);
+      if (els.acctBillingCancelButton) els.acctBillingCancelButton.addEventListener("click", function () { updateBillingSubscription("cancel"); });
+      if (els.acctBillingResumeButton) els.acctBillingResumeButton.addEventListener("click", function () { updateBillingSubscription("resume"); });
       if (els.acctOpenPlansButton) {
         els.acctOpenPlansButton.addEventListener("click", function () { redirectTop(PLANS_PAGE_URL); });
       }
