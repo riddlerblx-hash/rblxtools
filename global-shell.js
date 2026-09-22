@@ -6050,8 +6050,7 @@
     }
 
     function preparePlayer(video) {
-      if (video.dataset.rblxTutorialAdReady === "true" || !window.videojs || !window.videojs.ima) return;
-      video.dataset.rblxTutorialAdReady = "true";
+      if (video.dataset.rblxTutorialAdReady === "true" || !window.videojs) return;
       video.classList.add("video-js", "vjs-big-play-centered");
       var player = window.videojs(video, {
         controls: true,
@@ -6059,6 +6058,14 @@
         responsive: true,
         fluid: true
       });
+      // videojs-ima registers its API on the player instance in Video.js 8;
+      // it does not expose a reliable window.videojs.ima static property.
+      if (typeof player.ima !== "function") {
+        player.dispose();
+        video.classList.remove("video-js", "vjs-big-play-centered");
+        return;
+      }
+      video.dataset.rblxTutorialAdReady = "true";
       player.addClass("rblx-tutorial-ad-player");
       player.ima({
         adTagUrl: adTagUrl,
