@@ -720,6 +720,23 @@
       font-weight: 700;
     }
 
+    .perk-info {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      margin-left: 4px;
+      border: 1px solid rgba(184, 255, 213, 0.68);
+      border-radius: 50%;
+      color: #b8ffd5;
+      font-size: 8px;
+      font-weight: 900;
+      line-height: 1;
+      cursor: help;
+      vertical-align: middle;
+    }
+
     .section-kicker {
       margin-top: 14px;
       margin-bottom: 8px;
@@ -1459,7 +1476,8 @@
               <li class="perk-section-label">General benefits</li>
               <li>Chat Tag Cosmetic</li>
               <li>Animation Tool</li>
-              <li>Bulk Downloads (1-5)</li>
+              <li>10 free tool uses before ads</li>
+              <li>Bulk Downloads (1-5) <span class="perk-info" title="A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad." aria-label="A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad.">!</span></li>
               <li class="perk-section-label">AI benefits</li>
               <li id="plusTokenBenefit">30 Tokens Every Month</li>
               <li>10 Savable Thumbnail Generations</li>
@@ -1499,10 +1517,17 @@
                 </div>
               </div>
               <div class="perk-card">
+                <div class="perk-icon plus">10</div>
+                <div>
+                  <h3 class="perk-title">10 free tool uses before ads</h3>
+                  <p class="perk-desc">Each successful multi-download request counts as one use, even when it includes up to 5 asset IDs.</p>
+                </div>
+              </div>
+              <div class="perk-card">
                 <div class="perk-icon plus">5</div>
                 <div>
-                  <h3 class="perk-title">Bulk downloads and tool usage (1-5)</h3>
-                  <p class="perk-desc">Use supported tools in bigger 1 to 5 item batches instead of grinding through everything one by one.</p>
+                  <h3 class="perk-title">Bulk downloads (1-5) <span class="perk-info" title="A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad." aria-label="A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad.">!</span></h3>
+                  <p class="perk-desc">Run up to 5 supported asset IDs in one download request.</p>
                 </div>
               </div>
               <div class="perk-card">

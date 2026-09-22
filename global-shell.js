@@ -4728,7 +4728,9 @@
 
   function getToolInterstitialCounterKey() {
     var identity = String(shellState.currentUser && shellState.currentUser.userId || getDeviceId() || "visitor").trim() || "visitor";
-    return "rblxtools_tool_interstitial_uses:" + identity;
+    // Keep Plus runs independent from a visitor's free-plan counter, so an
+    // upgrade starts with the full ten-use allowance.
+    return "rblxtools_tool_interstitial_uses:" + identity + (getToolInterstitialLimit() === 10 ? ":plus" : "");
   }
 
   function getToolInterstitialUses() {
@@ -4739,8 +4741,16 @@
     try { localStorage.setItem(getToolInterstitialCounterKey(), String(Math.max(0, Number(uses) || 0))); } catch (_error) {}
   }
 
+  function getToolInterstitialLimit() {
+    // Pro is entirely ad-free. Plus still sees ads, but earns a longer run
+    // between them without splitting a multi-ID request into separate uses.
+    var memberState = shellState.isAdmin ? { plan: getEffectiveMemberPlan() } : shellState.currentUser;
+    return getMembershipPlan(memberState, memberState, hasPlusFromPayload(memberState)) === "plus" ? 10 : 5;
+  }
+
   function renderToolInterstitialStatus() {
-    var usesUntilAd = 5 - (getToolInterstitialUses() % 5);
+    var useLimit = getToolInterstitialLimit();
+    var usesUntilAd = useLimit - (getToolInterstitialUses() % useLimit);
     if (!shouldShowMemberAds()) {
       var hiddenIndicator = document.querySelector("[data-rblx-tool-use-indicator]");
       if (hiddenIndicator) hiddenIndicator.hidden = true;
@@ -4770,7 +4780,7 @@
       indicator.setAttribute("aria-live", "polite");
       card.appendChild(indicator);
     }
-    indicator.textContent = usesUntilAd + "/5 uses until an ad";
+    indicator.textContent = usesUntilAd + "/" + getToolInterstitialLimit() + " uses until an ad";
     indicator.hidden = false;
   }
 
@@ -4790,7 +4800,7 @@
         var nextUses = getToolInterstitialUses() + 1;
         setToolInterstitialUses(nextUses);
         renderToolInterstitialStatus();
-        if (nextUses % 5 === 0) triggerToolUseInterstitial();
+        if (nextUses % getToolInterstitialLimit() === 0) triggerToolUseInterstitial();
       });
       window.addEventListener("storage", function (event) {
         if (event && event.key === getToolInterstitialCounterKey()) renderToolInterstitialStatus();
@@ -5362,7 +5372,7 @@
       subtitle: "Monthly membership",
       title: "Plus",
       action: actionLabel || "Try Now",
-      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "Bulk Downloads (1-5)"],
+      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "10 free tool uses before ads", "Bulk Downloads (1-5) <span class=\"rblx-membership-promo-info\" title=\"A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad.\" aria-label=\"A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad.\">(!)</span>"],
       aiPerks: ["30 Tokens Every Month", "10 Savable Thumbnail Generations", "8 Savable AI UGC Slots (+5)", "1440p AI Thumbnail Quality"]
     };
     return [
