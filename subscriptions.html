@@ -1335,7 +1335,8 @@
     .billing-toggle { display:flex; width:max-content; max-width:100%; gap:4px; margin:0 auto 20px; padding:4px; border:1px solid rgba(123,164,255,.25); border-radius:999px; background:rgba(11,20,35,.82); box-shadow:0 12px 26px rgba(0,0,0,.18); }
     .billing-toggle button { min-height:36px; border:0; border-radius:999px; padding:0 15px; cursor:pointer; color:#aebbd0; background:transparent; font:800 11px/1 Arial,sans-serif; }
     .billing-toggle button.is-active { color:#07101c; background:linear-gradient(135deg,#38e6e0,#79a4ff); box-shadow:0 7px 16px rgba(56,230,224,.2); }
-    .billing-toggle button[data-billing="year"]::after { content:'Save yearly'; margin-left:6px; color:inherit; font-size:9px; opacity:.8; }.price-value .annual-list-price { margin-right:7px; color:#ff8a95; text-decoration:line-through; text-decoration-color:#ff4858; text-decoration-thickness:2px; font-size:.58em; vertical-align:middle; }.price-value .annual-sale-price { color:inherit; }.price-save { min-height:18px; }
+    .billing-toggle button[data-billing="year"]::after { content:'Save 17%+'; margin-left:6px; color:#7ff3a8; font-size:9px; font-weight:900; }.price-value .annual-list-price { margin-right:7px; color:#ff8a95; text-decoration:line-through; text-decoration-color:#ff4858; text-decoration-thickness:2px; font-size:.58em; vertical-align:middle; }.price-value .annual-sale-price { color:inherit; }.price-save { min-height:18px; }
+    .pro-sale-callout { display:inline-flex; align-items:center; gap:5px; margin-top:7px; padding:5px 8px; border:1px solid rgba(112,255,220,.38); border-radius:999px; color:#bfffee; background:rgba(22,119,99,.18); font-size:9px; font-weight:900; letter-spacing:.03em; }.pro-sale-callout strong { color:#fff2b7; }.sale-price-old { margin-right:7px; color:#ff9ca6; text-decoration:line-through; text-decoration-color:#ff4858; text-decoration-thickness:2px; font-size:.58em; vertical-align:middle; }.annual-credit-old { color:#ff9ca6; text-decoration:line-through; text-decoration-color:#ff4858; text-decoration-thickness:2px; }.annual-credit-bonus { display:block; margin-top:3px; color:#90f6d5; font-size:9px; font-weight:900; }
     @media (max-width:900px) { .subscriptions-main { display:block; min-height:0; padding:42px 14px 68px; } .plus-focus, .pro-focus { transform:none; } .plan-col.plus-focus { order:2; } .plan-col.pro-focus { order:3; } }
   </style>
 <link rel="stylesheet" href="./global-shell.css?v=20260904-1" />
@@ -1583,6 +1584,7 @@
                 <div class="price-value" data-membership-price="pro">$5.00</div>
                 <div class="price-sub" data-membership-price-sub="pro">Per month</div>
                 <div class="price-save" data-membership-save="pro"></div>
+                <div class="pro-sale-callout" id="proSaleCallout"><strong>LETSGOPRO</strong><span id="proSaleAvailability">6/6 left</span></div>
               </div>
             </div>
 
@@ -1608,7 +1610,7 @@
 
             <div class="plus-highlight" style="background: radial-gradient(circle at top right, rgba(255, 190, 78, 0.18), transparent 35%), linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));">
               <div class="plus-highlight-title">Pro creator upgrades</div>
-              <div class="plus-highlight-copy">Choose annual Pro to receive all 2,400 AI credits instantly, or get 200 AI credits after each successful monthly Pro payment.</div>
+              <div class="plus-highlight-copy" id="proAnnualTokenHighlight">Choose annual Pro to receive <span class="annual-credit-old">2,400</span> 3,000 AI credits instantly <span class="annual-credit-bonus">+600 Bonus AI Tokens</span>, or get 200 AI credits after each successful monthly Pro payment.</div>
             </div>
 
             <div class="plan-grid">
@@ -1755,8 +1757,12 @@
       var proTokenPerkIcon = document.getElementById("proTokenPerkIcon");
       var proTokenPerkTitle = document.getElementById("proTokenPerkTitle");
       var proTokenPerkCopy = document.getElementById("proTokenPerkCopy");
+      var proAnnualTokenHighlight = document.getElementById("proAnnualTokenHighlight");
+      var proSaleCallout = document.getElementById("proSaleCallout");
+      var proSaleAvailability = document.getElementById("proSaleAvailability");
       var billingInterval = "month";
       var membershipPricing = null;
+      var proSaleStatus = { active:true, code:"LETSGOPRO", remaining:6, maxRedemptions:6 };
         var loginRedirectTimer = 0;
         var loginCountdownTimer = 0;
         var planCards = Array.prototype.slice.call(document.querySelectorAll(".plan-card"));
@@ -1783,21 +1789,25 @@
             var plan = element.getAttribute("data-membership-price");
             var price = membershipPricing && membershipPricing[plan] && membershipPricing[plan][billingInterval];
             var annualListPrice = annualListPrices[plan];
-            if (price && billingInterval === "year" && annualListPrice) element.innerHTML = '<span class="annual-list-price">' + formatMembershipPrice(annualListPrice) + '</span><span class="annual-sale-price">' + formatMembershipPrice(price) + '</span>';
+            if (plan === "pro" && billingInterval === "month" && proSaleStatus.active) element.innerHTML = '<span class="sale-price-old">$5.00</span><span class="annual-sale-price">$2.50</span>';
+            else if (price && billingInterval === "year" && annualListPrice) element.innerHTML = '<span class="annual-list-price">' + formatMembershipPrice(annualListPrice) + '</span><span class="annual-sale-price">' + formatMembershipPrice(price) + '</span>';
             else if (price) element.textContent = formatMembershipPrice(price);
           });
           priceSubtitles.forEach(function(element) {
             element.textContent = billingInterval === "year" ? "Per year" : "Per month";
           });
           var isAnnualBilling = billingInterval === "year";
-          if (plusTokenBenefit) plusTokenBenefit.textContent = isAnnualBilling ? "360 Tokens Every Year" : "30 Tokens Every Month";
-          if (plusTokenPerkIcon) plusTokenPerkIcon.textContent = isAnnualBilling ? "360" : "30";
-          if (plusTokenPerkTitle) plusTokenPerkTitle.textContent = isAnnualBilling ? "360 tokens every year" : "30 tokens every month";
-          if (plusTokenPerkCopy) plusTokenPerkCopy.textContent = isAnnualBilling ? "All 360 AI tokens are added instantly after your successful annual Plus payment." : "A fresh 30 AI tokens are added after every successful Plus monthly payment.";
-          if (proTokenBenefit) proTokenBenefit.textContent = isAnnualBilling ? "2,400 AI Credits Every Year" : "200 AI Credits Every Month";
-          if (proTokenPerkIcon) proTokenPerkIcon.textContent = isAnnualBilling ? "2400" : "200";
-          if (proTokenPerkTitle) proTokenPerkTitle.textContent = isAnnualBilling ? "2,400 AI Credits Every Year" : "200 AI Credits Every Month";
-          if (proTokenPerkCopy) proTokenPerkCopy.textContent = isAnnualBilling ? "All 2,400 AI credits are added instantly after your successful annual Pro payment." : "A fresh 200 AI credits are added after every successful Pro monthly payment.";
+          if (plusTokenBenefit) plusTokenBenefit.innerHTML = isAnnualBilling ? '<span class="annual-credit-old">360</span> 500 AI Credits Every Year <small class="annual-credit-bonus">+140 Bonus AI Tokens</small>' : "30 Tokens Every Month";
+          if (plusTokenPerkIcon) plusTokenPerkIcon.textContent = isAnnualBilling ? "500" : "30";
+          if (plusTokenPerkTitle) plusTokenPerkTitle.innerHTML = isAnnualBilling ? '<span class="annual-credit-old">360</span> 500 AI Credits Every Year <small class="annual-credit-bonus">+140 Bonus AI Tokens</small>' : "30 tokens every month";
+          if (plusTokenPerkCopy) plusTokenPerkCopy.textContent = isAnnualBilling ? "All 500 AI tokens are added instantly after your successful annual Plus payment." : "A fresh 30 AI tokens are added after every successful Plus monthly payment.";
+          if (proTokenBenefit) proTokenBenefit.innerHTML = isAnnualBilling ? '<span class="annual-credit-old">2,400</span> 3,000 AI Credits Every Year <small class="annual-credit-bonus">+600 Bonus AI Tokens</small>' : "200 AI Credits Every Month";
+          if (proTokenPerkIcon) proTokenPerkIcon.textContent = isAnnualBilling ? "3000" : "200";
+          if (proTokenPerkTitle) proTokenPerkTitle.innerHTML = isAnnualBilling ? '<span class="annual-credit-old">2,400</span> 3,000 AI Credits Every Year <small class="annual-credit-bonus">+600 Bonus AI Tokens</small>' : "200 AI Credits Every Month";
+          if (proTokenPerkCopy) proTokenPerkCopy.textContent = isAnnualBilling ? "All 3,000 AI credits are added instantly after your successful annual Pro payment." : "A fresh 200 AI credits are added after every successful Pro monthly payment.";
+          if (proAnnualTokenHighlight) proAnnualTokenHighlight.innerHTML = isAnnualBilling ? 'Annual Pro includes <span class="annual-credit-old">2,400</span> 3,000 AI credits instantly <span class="annual-credit-bonus">+600 Bonus AI Tokens</span>.' : "Choose annual Pro for 3,000 AI credits instantly, or get 200 AI credits after each successful monthly Pro payment.";
+          if (proSaleCallout) proSaleCallout.hidden = billingInterval !== "month" || !proSaleStatus.active;
+          if (proSaleAvailability) proSaleAvailability.textContent = Math.max(0, Number(proSaleStatus.remaining || 0)) + "/" + (Number(proSaleStatus.maxRedemptions || 0) || 6) + " left";
           priceSavings.forEach(function(element) {
             var plan = element.getAttribute("data-membership-save");
             var annualPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan].year;
@@ -1825,6 +1835,14 @@
           } catch (_error) {
             updateBillingUi();
           }
+        }
+
+        async function loadProSaleStatus() {
+          try {
+            var payload = await apiRequest("/auth/pro-sale-status");
+            if (payload) proSaleStatus = payload;
+            updateBillingUi();
+          } catch (_error) {}
         }
 
         billingButtons.forEach(function(button) {
@@ -2205,7 +2223,7 @@
           proCheckoutBtn.disabled = true;
           setStatus(proStatusEl, "Opening secure RBLXTools checkout...", "success");
           try {
-            openRblxToolsCheckout("pro", { billing: billingInterval });
+            openRblxToolsCheckout("pro", { billing: billingInterval, promo: billingInterval === "month" && proSaleStatus.active ? "LETSGOPRO" : "" });
           } catch (error) {
             proCheckoutBtn.disabled = false;
             setStatus(proStatusEl, error.message || "Could not open Stripe checkout.");
@@ -2287,6 +2305,8 @@
       window.addEventListener("pageshow", syncInitialMobilePlan);
 
       loadMembershipPricing();
+      loadProSaleStatus();
+      window.setInterval(loadProSaleStatus, 30000);
       detectPlanState();
     }());
   </script>

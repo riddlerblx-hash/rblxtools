@@ -1879,7 +1879,7 @@
               "</div>" +
               '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + "</div>" +
               '<div class="rblx-shell-left-foot">' +
-                '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span>$5.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a></div>' +
+                '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span data-rblx-pro-sale-price><s>$5.00</s> $2.50 / month</span><small data-rblx-pro-sale>LETSGOPRO · 6/6 left</small><i class="rblx-shell-plan-timer"><b></b></i></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a></div>' +
                 '<div class="rblx-shell-socials">' +
                   '<a href="https://x.com/Reese28575571" target="_blank" rel="noreferrer" aria-label="X">' + getSocialIcon("x") + '</a>' +
                   '<a href="https://www.youtube.com/@OfficialRBLXTools" target="_blank" rel="noreferrer" aria-label="YouTube">' + getSocialIcon("youtube") + '</a>' +
@@ -5406,11 +5406,40 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
+  var proSaleStatus = { active: true, code: "LETSGOPRO", remaining: 6, maxRedemptions: 6 };
+
+  function applyProSaleStatus() {
+    var remaining = Math.max(0, Number(proSaleStatus.remaining || 0));
+    var maximum = Math.max(0, Number(proSaleStatus.maxRedemptions || 0));
+    var copy = proSaleStatus.active ? proSaleStatus.code + " · " + remaining + "/" + (maximum || 6) + " left" : "Pro sale ended";
+    Array.prototype.slice.call(document.querySelectorAll("[data-rblx-pro-sale]")).forEach(function (element) {
+      element.textContent = copy;
+      element.hidden = !proSaleStatus.active;
+    });
+    Array.prototype.slice.call(document.querySelectorAll("[data-rblx-pro-sale-price]")).forEach(function (element) {
+      element.innerHTML = proSaleStatus.active ? "<s>$5.00</s> <b>$2.50</b> / month" : "$5.00 / month";
+    });
+  }
+
+  function initProSalePolling() {
+    if (shellState.proSalePollingBound) return;
+    shellState.proSalePollingBound = true;
+    var refresh = function () {
+      fetch(API_BASE + "/auth/pro-sale-status", { credentials: "include" }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) {
+        if (!payload) return;
+        proSaleStatus = payload;
+        applyProSaleStatus();
+      }).catch(function () {});
+    };
+    refresh();
+    window.setInterval(refresh, 30000);
+  }
+
   function buildMembershipPromoMarkup(plan, actionLabel, showBoxAd) {
     var isPro = plan === "pro";
     var floatingMark = isPro ? "&#128736;" : "+";
     var config = isPro ? {
-      price: "$5.00",
+      price: '<s>$5.00</s> <b>$2.50</b>',
       subtitle: "Monthly membership",
       title: "Pro",
       action: actionLabel || "Try Now",
@@ -5427,7 +5456,7 @@
     return [
       '<div class="rblx-membership-promo-floaters ' + (isPro ? 'is-pro' : 'is-plus') + '" aria-hidden="true"><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span></div>',
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
-      '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price">' + config.price + '</span><small>' + config.subtitle + '</small></div>',
+      '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price"' + (isPro ? ' data-rblx-pro-sale-price' : '') + '>' + config.price + '</span><small>' + config.subtitle + '</small>' + (isPro ? '<em data-rblx-pro-sale>LETSGOPRO · 6/6 left</em>' : '') + '</div>',
       '<div class="rblx-membership-promo-perks"><div class="rblx-membership-promo-section">General benefits</div>' + config.generalPerks.map(function (perk) { return perk === "Includes All Plus Benefits" ? '<span class="rblx-membership-promo-included"><b>+</b>Includes All Plus Benefits</span>' : '<span><b>+</b>' + perk + '</span>'; }).join("") + '<div class="rblx-membership-promo-section">AI benefits</div>' + config.aiPerks.map(function (perk) { return '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
       showBoxAd ? '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad><span>Advertisement</span></div>' : '',
       '',
@@ -5590,6 +5619,7 @@
         promo.innerHTML = offer.type === "token"
           ? buildAiTokenPromoMarkup(offer.pack)
           : buildMembershipPromoMarkup(offer.plan, document.body.classList.contains("rblx-home-page") ? "View" : "Try Now", showPromoBoxAd);
+        applyProSaleStatus();
         if (showPromoBoxAd) mountAiTokenPromoAd(promo);
 
         var progress = promo.querySelector(".rblx-membership-promo-progress span");
@@ -5892,6 +5922,7 @@
     // added node (including ads and tool results), which adds avoidable work
     // and can make busy tool pages feel sluggish.
     initMembershipPromoRotation();
+    initProSalePolling();
     initInstantInfoTooltips();
     initSidebarPlanRotation();
     mountDesktopShellBoxAds();

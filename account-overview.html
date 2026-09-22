@@ -1632,7 +1632,7 @@
                   <section class="acct-block" data-account-section="rewards">
                     <h3 class="acct-section-title">My transactions</h3>
                     <div class="acct-transactions">
-                      <div class="acct-transaction-controls"><label>Type of transaction<select id="acctRewardTransactionType"><option value="points">Points</option><option value="ai_tokens">AI Tokens</option><option value="purchases">Purchases</option><option value="sales">Sales of goods</option><option value="affiliate">Affiliate marketing</option></select></label><label>Date range<select id="acctRewardTransactionRange"><option value="1">Past day</option><option value="7">Past 7 days</option><option value="30" selected>Past 30 days</option><option value="365">Past year</option></select></label></div>
+                      <div class="acct-transaction-controls"><label>Type of transaction<select id="acctRewardTransactionType"><option value="points">Points</option><option value="ai_tokens">AI Tokens</option><option value="purchases">Purchases</option><option value="sales">Sales of goods</option><option value="affiliate">Affiliate marketing</option></select></label><label id="acctRewardTransactionSubTypeWrap" hidden>Show<select id="acctRewardTransactionSubType"></select></label><label>Date range<select id="acctRewardTransactionRange"><option value="1">Past day</option><option value="7">Past 7 days</option><option value="30" selected>Past 30 days</option><option value="365">Past year</option></select></label></div>
                       <div id="acctRewardHistory">Loading transaction history...</div>
                     </div>
                     <div id="acctRewardsStatus" class="acct-status"></div>
@@ -2326,6 +2326,22 @@
       }
 
       var rewardHistoryLoading = false, rewardHistorySnapshot = "", rewardHistoryPage = 1;
+      function syncTransactionSubTypeControl() {
+        var type = els.acctRewardTransactionType ? els.acctRewardTransactionType.value : "points";
+        var wrap = document.getElementById("acctRewardTransactionSubTypeWrap");
+        var select = document.getElementById("acctRewardTransactionSubType");
+        if (!wrap || !select) return;
+        var options = type === "points"
+          ? [["all", "All activity"], ["earned", "Earned"], ["spent", "Spent"]]
+          : type === "ai_tokens"
+            ? [["all", "All activity"], ["spent", "Spent"], ["purchased", "Purchased"], ["complimentary", "Complimentary"], ["refunded", "Refunded"]]
+            : [];
+        if (!options.length) { wrap.hidden = true; select.innerHTML = ""; return; }
+        var current = select.value || "all";
+        select.innerHTML = options.map(function (option) { return '<option value="' + option[0] + '">' + option[1] + '</option>'; }).join("");
+        select.value = options.some(function (option) { return option[0] === current; }) ? current : "all";
+        wrap.hidden = false;
+      }
       async function loadRewardHistory() {
         if (!state.user || !state.user.id || !els.acctRewardHistory) return;
         if (rewardHistoryLoading) return;
@@ -2336,6 +2352,8 @@
           var transactions = Array.isArray(payload && payload.transactions) ? payload.transactions : [];
           var esc = function (value) { return String(value || "").replace(/[&<>]/g, function (char) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]; }); };
           var type = els.acctRewardTransactionType ? els.acctRewardTransactionType.value : "points";
+          syncTransactionSubTypeControl();
+          var subType = document.getElementById("acctRewardTransactionSubType") && document.getElementById("acctRewardTransactionSubType").value || "all";
           var range = els.acctRewardTransactionRange ? els.acctRewardTransactionRange.value : "30";
           var cutoff = Date.now() - Math.max(1, Number(range) || 30) * 24 * 60 * 60 * 1000;
           var categoryFor = function (item) {
@@ -2345,7 +2363,15 @@
           };
           var visible = transactions.filter(function (item) {
             var created = Date.parse(item.created_at || "") || 0;
-            return (!created || created >= cutoff) && categoryFor(item) === type;
+            if ((created && created < cutoff) || categoryFor(item) !== type) return false;
+            var delta = Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0);
+            var source = String(item.source_type || "").toLowerCase();
+            if (subType === "earned") return delta > 0;
+            if (subType === "spent") return delta < 0;
+            if (subType === "purchased") return /purchase|stripe/.test(source);
+            if (subType === "complimentary") return /complimentary|reward|grant/.test(source);
+            if (subType === "refunded") return /refund/.test(source);
+            return true;
           });
           var labels = { points: "Points earned", ai_tokens: "AI token activity", purchases: "Purchases", sales: "Sales of goods", affiliate: "Affiliate marketing" };
           var unitLabel = function (unit) { return unit === "tokens" ? "tokens" : unit === "usd_cents" ? "USD" : "points"; };
@@ -2369,8 +2395,8 @@
           var total = visible.filter(function (item) { var status = String(item.status || "pending").toLowerCase(); return status === "accepted" || status === "approved" || status === "confirmed"; }).reduce(function (sum, item) { return sum + Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0); }, 0);
           var totalUnitItem = visible.find(function (item) { return item.unit; });
           var totalUnit = totalUnitItem ? totalUnitItem.unit : (type === "ai_tokens" ? "tokens" : (type === "purchases" || type === "sales" || type === "affiliate" ? "usd_cents" : "points"));
-          var totalText = totalUnit === "usd_cents" ? (total < 0 ? "-" : "+") + "$" + (Math.abs(total) / 100).toFixed(2) : (total < 0 ? "-" : "+") + Math.abs(total).toLocaleString() + " " + unitLabel(totalUnit);
-          var totalLabel = type === "points" ? "Confirmed points" : type === "ai_tokens" ? "Confirmed tokens" : type === "purchases" ? "Confirmed purchase total" : type === "sales" ? "Confirmed sales total" : "Confirmed affiliate earnings";
+          var totalText = totalUnit === "usd_cents" ? "$" + (Math.abs(total) / 100).toFixed(2) : Math.abs(total).toLocaleString() + " " + unitLabel(totalUnit);
+          var totalLabel = type === "points" ? (subType === "spent" ? "Points spent" : subType === "earned" ? "Points earned" : "Points total") : type === "ai_tokens" ? (subType === "spent" ? "AI tokens spent" : subType === "purchased" ? "AI tokens purchased" : subType === "complimentary" ? "Complimentary AI tokens" : subType === "refunded" ? "Refunded AI tokens" : "AI token total") : type === "purchases" ? "Total spent" : type === "sales" ? "Total sales" : "Affiliate earnings";
           var pagination = pageCount > 1 ? '<nav class="acct-transaction-pagination" aria-label="Transaction pages"><button class="acct-transaction-page" type="button" data-acct-transaction-page="' + (rewardHistoryPage - 1) + '"' + (rewardHistoryPage === 1 ? ' disabled' : '') + ' aria-label="Previous page">‹</button>' + Array.from({ length: pageCount }, function (_value, index) { var page = index + 1; return '<button class="acct-transaction-page' + (page === rewardHistoryPage ? ' is-active' : '') + '" type="button" data-acct-transaction-page="' + page + '"' + (page === rewardHistoryPage ? ' aria-current="page"' : '') + '>' + page + '</button>'; }).join("") + '<button class="acct-transaction-page" type="button" data-acct-transaction-page="' + (rewardHistoryPage + 1) + '"' + (rewardHistoryPage === pageCount ? ' disabled' : '') + ' aria-label="Next page">›</button></nav>' : "";
           var snapshot = JSON.stringify({ rewardPoints: Number(payload && payload.rewardPoints || 0), type: type, range: range, page: rewardHistoryPage, visible: visible });
           try { window.dispatchEvent(new CustomEvent("rblxtools-reward-points-balance", { detail: { rewardPoints: Number(payload && payload.rewardPoints || 0) } })); } catch (_error) {}
@@ -2378,7 +2404,9 @@
           rewardHistorySnapshot = snapshot;
           els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>' + labels[type] + '</span><span style="text-align:right">Amount</span></div>' + rows(pageItems) + '<div class="acct-transaction-total"><span>' + totalLabel + '</span><span>' + totalText + '</span></div>' + pagination + '</div>';
           if (els.acctRewardTransactionType && !els.acctRewardTransactionType.dataset.bound) {
-            [els.acctRewardTransactionType, els.acctRewardTransactionRange].forEach(function (select) { select.addEventListener("change", function () { rewardHistoryPage = 1; rewardHistorySnapshot = ""; loadRewardHistory(); }); });
+            [els.acctRewardTransactionType, els.acctRewardTransactionRange].forEach(function (select) { select.addEventListener("change", function () { if (select === els.acctRewardTransactionType) syncTransactionSubTypeControl(); rewardHistoryPage = 1; rewardHistorySnapshot = ""; loadRewardHistory(); }); });
+            var subTypeSelect = document.getElementById("acctRewardTransactionSubType");
+            if (subTypeSelect) subTypeSelect.addEventListener("change", function () { rewardHistoryPage = 1; rewardHistorySnapshot = ""; loadRewardHistory(); });
             els.acctRewardTransactionType.dataset.bound = "true";
           }
           if (!els.acctRewardHistory.dataset.paginationBound) {
@@ -2396,14 +2424,17 @@
         } catch (_error) {
           // A missing migration or a brief API outage must not leave the entire
           // transaction area stuck on a loading message.
+          syncTransactionSubTypeControl();
           if (els.acctRewardPoints) els.acctRewardPoints.textContent = Number(state.user && state.user.rewardPoints || 0).toLocaleString();
           var fallbackType = els.acctRewardTransactionType ? els.acctRewardTransactionType.value : "points";
           var fallbackLabels = { points: "Points earned", ai_tokens: "AI token activity", purchases: "Purchases", sales: "Sales of goods", affiliate: "Affiliate marketing" };
-          var fallbackTotalLabel = fallbackType === "points" ? "Confirmed points" : fallbackType === "ai_tokens" ? "Confirmed tokens" : fallbackType === "purchases" ? "Confirmed purchase total" : fallbackType === "sales" ? "Confirmed sales total" : "Confirmed affiliate earnings";
-          var fallbackTotal = fallbackType === "points" ? "+0 points" : fallbackType === "ai_tokens" ? "+0 tokens" : "+$0.00";
+          var fallbackTotalLabel = fallbackType === "points" ? "Points total" : fallbackType === "ai_tokens" ? "AI token total" : fallbackType === "purchases" ? "Total spent" : fallbackType === "sales" ? "Total sales" : "Affiliate earnings";
+          var fallbackTotal = fallbackType === "points" ? "0 points" : fallbackType === "ai_tokens" ? "0 tokens" : "$0.00";
           els.acctRewardHistory.innerHTML = '<div class="acct-transaction-group"><div class="acct-transaction-group-head"><span>' + (fallbackLabels[fallbackType] || "Transactions") + '</span><span style="text-align:right">Amount</span></div><div class="acct-transaction-empty">No transactions in this category yet.</div><div class="acct-transaction-total"><span>' + fallbackTotalLabel + '</span><span>' + fallbackTotal + '</span></div></div>';
           if (els.acctRewardTransactionType && !els.acctRewardTransactionType.dataset.bound) {
-            [els.acctRewardTransactionType, els.acctRewardTransactionRange].forEach(function (select) { select.addEventListener("change", function () { rewardHistoryPage = 1; rewardHistorySnapshot = ""; loadRewardHistory(); }); });
+            [els.acctRewardTransactionType, els.acctRewardTransactionRange].forEach(function (select) { select.addEventListener("change", function () { if (select === els.acctRewardTransactionType) syncTransactionSubTypeControl(); rewardHistoryPage = 1; rewardHistorySnapshot = ""; loadRewardHistory(); }); });
+            var fallbackSubTypeSelect = document.getElementById("acctRewardTransactionSubType");
+            if (fallbackSubTypeSelect) fallbackSubTypeSelect.addEventListener("change", function () { rewardHistoryPage = 1; rewardHistorySnapshot = ""; loadRewardHistory(); });
             els.acctRewardTransactionType.dataset.bound = "true";
           }
           setStatus(els.acctRewardsStatus, "", "");
@@ -3049,6 +3080,7 @@
           cards.push({ label: "Current plan", value: "Free" });
           cards.push({ label: "Billing account", value: details && details.hasCustomer ? "Stripe account connected" : "No billing account" });
         }
+        cards.push({ label: "Total saved", value: formatBillingMoney(details && details.totalSavingsCents || 0, "USD") });
         if (els.acctBillingInfo) els.acctBillingInfo.innerHTML = cards.map(function (card) { return '<div class="acct-pill-card"><div class="acct-pill-label">' + safe(card.label) + '</div><div class="acct-pill-value">' + safe(card.value) + '</div></div>'; }).join("");
         if (els.acctBillingPaymentButton) {
           var method = details && details.paymentMethod;

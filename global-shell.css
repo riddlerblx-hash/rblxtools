@@ -4866,6 +4866,10 @@ body.rblx-home-page .home-grid-top > .plus-card.rblx-pro-promo {
 .rblx-membership-promo-topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .rblx-membership-promo-badge { border: 1px solid rgba(255, 224, 128, .7); border-radius: 999px; padding: 5px 9px; color: #fff1bb; background: rgba(79, 50, 7, .5); font-size: 10px; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
 .rblx-membership-promo-price { color: #fff0b5; font-size: 12px; font-weight: 900; }
+.rblx-membership-promo-price s,.rblx-shell-mini-banner-pro s { color: rgba(255, 183, 190, .82); text-decoration-color: #ff5768; text-decoration-thickness: 2px; }
+.rblx-membership-promo-price b { color: #fff4bd; font-size: 1.3em; }
+.rblx-membership-promo-price-box em { display:block; margin-top:5px; color:#9ffff0; font-size:9px; font-style:normal; font-weight:900; letter-spacing:.04em; }
+.rblx-shell-mini-banner-pro small[data-rblx-pro-sale] { display:block; margin-top:3px; color:#d7fff0; font-size:9px; font-weight:900; letter-spacing:.03em; }
 .rblx-membership-promo-title { margin: 18px 0 8px !important; color: #fff8d8 !important; font-size: clamp(27px, 3vw, 42px) !important; line-height: .94 !important; letter-spacing: -1.3px; }
 .rblx-membership-promo-copy { margin: 0 !important; color: #f3e5bd !important; font-size: 12px !important; font-weight: 700; line-height: 1.5; }
 .rblx-membership-promo-perks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 16px; }

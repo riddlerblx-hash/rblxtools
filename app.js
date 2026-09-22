@@ -224,9 +224,9 @@ const AI_THUMBNAIL_TOKEN_COST = 10;
 const AI_THUMBNAIL_FREE_REFERENCES = 3;
 const AI_THUMBNAIL_PRO_REFERENCES = 6;
 const PLUS_MONTHLY_AI_TOKEN_CREDITS = 30;
-const PLUS_ANNUAL_AI_TOKEN_CREDITS = 360;
+const PLUS_ANNUAL_AI_TOKEN_CREDITS = 500;
 const PRO_MONTHLY_AI_TOKEN_CREDITS = 200;
-const PRO_ANNUAL_AI_TOKEN_CREDITS = 2400;
+const PRO_ANNUAL_AI_TOKEN_CREDITS = 3000;
 const AI_TOKEN_PACKAGES = [
   { key: "20", title: "200 Tokens", tokens: 200, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9siwVVdZ6u716").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_20 || "price_1U9YwwGrZOEMBkuuGypX9VtO").trim() },
   { key: "45", title: "450 Tokens", tokens: 450, priceCents: 599, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
@@ -10645,6 +10645,39 @@ app.post("/auth/create-portal-session", async (req, res) => {
   }
 });
 
+app.get("/auth/pro-sale-status", async (_req, res) => {
+  const code = "LETSGOPRO";
+  const unavailable = { ok: true, active: false, code, remaining: 0, maxRedemptions: 0, timesRedeemed: 0, percentOff: 0, amountOff: 0 };
+  try {
+    assertStripeCheckoutConfigured();
+    const matches = await stripeClient.promotionCodes.list({ code, active: true, limit: 1, expand: ["data.coupon"] });
+    const listed = matches?.data?.[0];
+    if (!listed || normalizeCouponCode(listed.code) !== code) return res.json(unavailable);
+    const promotionCode = await stripeClient.promotionCodes.retrieve(listed.id, { expand: ["coupon", "promotion.coupon"] });
+    const couponReference = promotionCode?.promotion?.coupon || promotionCode?.coupon || null;
+    const coupon = typeof couponReference === "string" ? await stripeClient.coupons.retrieve(couponReference) : couponReference || {};
+    const maxRedemptions = Number.isFinite(promotionCode?.max_redemptions)
+      ? Number(promotionCode.max_redemptions)
+      : Number.isFinite(coupon?.max_redemptions) ? Number(coupon.max_redemptions) : 0;
+    const timesRedeemed = Math.max(0, Number(promotionCode?.times_redeemed || 0));
+    const expiresAt = Number(promotionCode?.expires_at || coupon?.redeem_by || 0) * 1000;
+    const active = Boolean(promotionCode?.active && coupon?.valid !== false && (!expiresAt || expiresAt > Date.now()) && (!maxRedemptions || timesRedeemed < maxRedemptions));
+    return res.json({
+      ok: true,
+      active,
+      code,
+      remaining: maxRedemptions ? Math.max(0, maxRedemptions - timesRedeemed) : 0,
+      maxRedemptions,
+      timesRedeemed,
+      percentOff: Number(coupon?.percent_off || 0),
+      amountOff: Math.max(0, Number(coupon?.amount_off || coupon?.currency_options?.usd?.amount_off || 0)),
+    });
+  } catch (error) {
+    console.warn("GET /auth/pro-sale-status failed:", error.message);
+    return res.json(unavailable);
+  }
+});
+
 app.get("/auth/billing-details", async (req, res) => {
   try {
     assertStripePortalConfigured();
@@ -10681,23 +10714,33 @@ app.get("/auth/billing-details", async (req, res) => {
         paymentMethod = { brand: method.card.brand || "card", last4: method.card.last4 || "", expMonth: method.card.exp_month || null, expYear: method.card.exp_year || null };
       }
     }
-    const invoices = Array.isArray(invoiceResult?.data) ? invoiceResult.data.filter(Boolean).map((invoice) => ({
+    const invoices = Array.isArray(invoiceResult?.data) ? invoiceResult.data.filter((invoice) => {
+      const status = String(invoice?.status || "").toLowerCase();
+      return status === "paid" || status === "void" || status === "uncollectible";
+    }).map((invoice) => ({
       id: invoice.id,
       number: invoice.number || null,
       status: invoice.status || "unknown",
       amountPaid: Number(invoice.amount_paid || 0),
       amountDue: Number(invoice.amount_due || 0),
+      discountAmount: Math.max(0, Number(invoice.total_details?.amount_discount || 0)),
       currency: String(invoice.currency || "usd").toUpperCase(),
       createdAt: getIsoFromUnixSeconds(invoice.created),
       hostedInvoiceUrl: invoice.hosted_invoice_url || null,
       invoicePdf: invoice.invoice_pdf || null,
       productName: invoice.lines?.data?.map((line) => line?.description || line?.price?.product?.name).filter(Boolean).join(", ") || invoice.description || "RBLXTools subscription",
     })) : [];
-    const checkoutHistory = Array.isArray(checkoutResult?.data) ? checkoutResult.data.filter((session) => session && session.mode === "payment").map((session) => ({
+    const checkoutHistory = Array.isArray(checkoutResult?.data) ? checkoutResult.data.filter((session) => {
+      if (!session || session.mode !== "payment") return false;
+      const paymentStatus = String(session.payment_status || "").toLowerCase();
+      const status = String(session.status || "").toLowerCase();
+      return paymentStatus === "paid" || status === "expired";
+    }).map((session) => ({
       id: session.id,
       title: getStripeCheckoutPurchaseTitle(session),
       status: String(session.payment_status || "").toLowerCase() === "paid" ? "paid" : String(session.status || "").toLowerCase() === "expired" ? "rejected" : "pending",
       amount: Number(session.amount_total || 0),
+      discountAmount: Math.max(0, Number(session.total_details?.amount_discount || 0)),
       currency: String(session.currency || "usd").toUpperCase(),
       createdAt: getIsoFromUnixSeconds(session.created),
       receiptUrl: session.url || null,
@@ -10707,10 +10750,12 @@ app.get("/auth/billing-details", async (req, res) => {
       title: invoice.productName,
       status: invoice.status,
       amount: invoice.amountPaid || invoice.amountDue,
+      discountAmount: invoice.discountAmount,
       currency: invoice.currency,
       createdAt: invoice.createdAt,
       receiptUrl: invoice.hostedInvoiceUrl || invoice.invoicePdf,
     })).concat(checkoutHistory).sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0));
+    const totalSavingsCents = history.reduce((sum, entry) => sum + Math.max(0, Number(entry.discountAmount || 0)), 0);
     const price = subscription?.items?.data?.[0]?.price || null;
     return res.json({
       ok: true,
@@ -10728,6 +10773,7 @@ app.get("/auth/billing-details", async (req, res) => {
       } : null,
       invoices,
       history,
+      totalSavingsCents,
       membership: membershipDetails,
       publishableKey: STRIPE_PUBLISHABLE_KEY || null,
     });
