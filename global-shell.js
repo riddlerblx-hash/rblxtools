@@ -527,7 +527,11 @@
   }
 
   function shouldShowMemberAds() {
-    return !isProMember(shellState.currentUser);
+    // "View as" is an administrator-only preview, but it must control ad
+    // eligibility too. Otherwise an admin with Pro could never test guest
+    // ads or the interstitial flow.
+    var memberState = shellState.isAdmin ? { plan: getEffectiveMemberPlan() } : shellState.currentUser;
+    return !isProMember(memberState);
   }
 
   function syncMemberAdVisibility(state) {
@@ -1690,6 +1694,7 @@
           '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong></a>' +
           '<a class="rblx-shell-header-token-balance" href="./rewards" title="View RBLX Points"><small>RBLX Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
+          '<span class="rblx-shell-tool-use-status" id="rblxShellToolUseStatus" hidden aria-live="polite"></span>' +
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
             '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
               '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 10.5a6 6 0 0 0-12 0c0 7-2.5 7-2.5 8.5h17C20.5 17.5 18 17.5 18 10.5ZM9.5 21h5"></path></svg>' +
@@ -1730,6 +1735,7 @@
 
     return (
       '<div class="rblx-shell-auth is-guest" id="rblxShellAuth">' +
+        '<span class="rblx-shell-tool-use-status" id="rblxShellToolUseStatus" hidden aria-live="polite"></span>' +
         '<a class="rblx-shell-btn rblx-shell-login-button" href="./login">Login / Sign Up</a>' +
       "</div>"
     );
@@ -4186,6 +4192,7 @@
     syncChatIdentity();
     if (shellState.socket && shellState.socketReady) shellState.socket.emit("join-room", getSocketJoinPayload());
     auth.innerHTML = buildAuthMarkup().replace('<div class="rblx-shell-auth" id="rblxShellAuth">', "").replace(/<\/div>$/, "");
+    renderToolInterstitialStatus();
     if (state.loggedIn) {
       fetch(API_BASE + "/referrals/me", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } })
         .then(function (response) { return response.ok ? response.json() : null; })
@@ -4729,22 +4736,14 @@
 
   function renderToolInterstitialStatus() {
     var usesUntilAd = 5 - (getToolInterstitialUses() % 5);
-    Array.prototype.forEach.call(document.querySelectorAll("#tools-section .tool-card"), function (card) {
-      var status = card.querySelector(".rblx-tool-ad-status");
-      if (!shouldShowMemberAds()) {
-        if (status) status.remove();
-        return;
-      }
-      if (!status) {
-        status = document.createElement("span");
-        status.className = "rblx-tool-ad-status";
-        var header = card.querySelector(".tool-head, .ai-studio-head");
-        var icon = header && header.querySelector(".tool-icon");
-        if (header) header.insertBefore(status, icon || null);
-        else return;
-      }
-      status.textContent = usesUntilAd + "/5 uses until an ad";
-    });
+    var status = document.getElementById("rblxShellToolUseStatus");
+    if (!status) return;
+    if (!shouldShowMemberAds()) {
+      status.hidden = true;
+      return;
+    }
+    status.textContent = usesUntilAd + "/5 uses until an ad";
+    status.hidden = false;
   }
 
   function triggerToolUseInterstitial() {

@@ -324,6 +324,24 @@ body.rblx-shell-ready {
   gap: 12px;
 }
 
+.rblx-shell-tool-use-status {
+  display: grid;
+  min-height: 50px;
+  max-width: 105px;
+  align-content: center;
+  padding: 0 10px;
+  border: 1px solid rgba(128, 176, 234, .3);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(28, 52, 83, .88), rgba(13, 26, 44, .96));
+  color: rgba(207, 229, 255, .9);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.rblx-shell-tool-use-status[hidden] { display: none !important; }
+
 .rblx-shell-referral-balance {
   min-height: 50px;
   display: grid;
@@ -4544,22 +4562,6 @@ body.rblx-pro-ad-free [data-rblx-video-slider-ad] { display: none !important; }
 }
 
 .rblx-shell-video-slider-ad > * { pointer-events: auto; }
-
-/* Small tool-directory status, placed immediately before each tool's icon. */
-#tools-section .rblx-tool-ad-status {
-  margin-left: auto;
-  color: rgba(191, 210, 234, .76);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .01em;
-  line-height: 1.2;
-  text-align: right;
-  white-space: nowrap;
-}
-
-@media (max-width: 520px) {
-  #tools-section .rblx-tool-ad-status { font-size: 8px; }
-}
 
 @media (max-width: 1180px) {
   .rblx-shell-video-slider-ad {
