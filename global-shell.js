@@ -5270,6 +5270,12 @@
   // Full-screen features can be added after the shared shell initializes.
   // They use this helper to mount the same standard, membership-aware unit.
   window.RBLXToolsAds = window.RBLXToolsAds || {};
+  window.RBLXToolsAds.mountHorizontalAds = function (root) {
+    if (!root || !shouldShowMemberAds()) return;
+    Array.prototype.forEach.call(root.querySelectorAll("[data-rblx-horizontal-ad-slot]"), function (slot) {
+      mountAdcashBanner(slot, ADCASH_DISPLAY_ZONES.horizontal, "rblxHorizontalAdMounted");
+    });
+  };
   window.RBLXToolsAds.mountVerticalAds = function (root) {
     if (!root) return;
     Array.prototype.forEach.call(root.querySelectorAll("[data-rblx-vertical-ad]"), mountVerticalAd);
