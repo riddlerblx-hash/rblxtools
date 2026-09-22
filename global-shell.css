@@ -4528,6 +4528,38 @@ body.rblx-shell-page .notice[aria-live="polite"] {
 .rblx-home-banner-ad { margin-block: 20px; }
 
 body.rblx-pro-ad-free [data-rblx-banner-ad] { display: none !important; }
+body.rblx-pro-ad-free [data-rblx-video-slider-ad] { display: none !important; }
+
+/* The video slider sits in the unused lower-left shell margin on desktop.
+   It follows the nav width when a member collapses that panel, and drops to
+   the phone-safe lower-left corner on smaller layouts. */
+.rblx-shell-video-slider-ad {
+  position: fixed;
+  z-index: 1400;
+  left: max(18px, calc(var(--shell-left-width) + 24px));
+  bottom: 22px;
+  width: min(340px, calc(100vw - var(--shell-left-width) - var(--shell-right-width) - 48px));
+  min-height: 1px;
+  pointer-events: none;
+}
+
+.rblx-shell-video-slider-ad > * { pointer-events: auto; }
+
+@media (max-width: 1180px) {
+  .rblx-shell-video-slider-ad {
+    left: 14px;
+    bottom: 14px;
+    width: min(340px, calc(100vw - 28px));
+  }
+}
+
+@media (max-width: 720px) {
+  .rblx-shell-video-slider-ad {
+    left: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: min(320px, calc(100vw - 20px));
+  }
+}
 
 .rblx-home-mobile-banner-ad {
   display: none;

@@ -533,7 +533,7 @@
   function syncMemberAdVisibility(state) {
     var hideAds = isProMember(state);
     document.body.classList.toggle("rblx-pro-ad-free", hideAds);
-    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad], [data-rblx-promo-box-ad], [data-rblx-modal-ad], [data-rblx-vertical-ad], [data-rblx-banner-ad], [data-rblx-mobile-banner-ad]"), function (host) {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad], [data-rblx-promo-box-ad], [data-rblx-modal-ad], [data-rblx-vertical-ad], [data-rblx-banner-ad], [data-rblx-mobile-banner-ad], [data-rblx-video-slider-ad]"), function (host) {
       host.hidden = hideAds;
       if (!hideAds) return;
       // Remove any ad that was mounted before the account state was resolved.
@@ -548,11 +548,16 @@
       delete host.dataset.rblxBoxAdMounted;
       delete host.dataset.rblxVerticalAdMounted;
     });
-    if (!hideAds) {
+    if (hideAds) {
+      removeTutorialVideoAds();
+      removeVideoSliderAd();
+    } else if (shellState.authResolved) {
       mountDesktopShellBoxAds();
       mountDesktopVerticalAds();
       initShellSidebarAds();
       Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-mobile-banner-ad] .rblx-home-mobile-banner-ad-slot"), mountMobileBannerAd);
+      initTutorialVideoAds();
+      initVideoSliderAd();
     }
   }
 
@@ -4614,7 +4619,8 @@
     horizontal: "12207158",
     box: "12207186",
     skyscraper: "12207194",
-    mobileWide: "12207202"
+    mobileWide: "12207202",
+    videoSlider: "12207294"
   };
   var adcashLibraryPromise = null;
 
@@ -4654,6 +4660,47 @@
       unit.appendChild(invocation);
     }).catch(function () {
       delete host.dataset[mountedKey];
+    });
+  }
+
+  function removeVideoSliderAd() {
+    var host = document.getElementById("rblxShellVideoSliderAd");
+    if (!host) return;
+    host.textContent = "";
+    host.hidden = true;
+    delete host.dataset.rblxVideoSliderMounted;
+  }
+
+  function initVideoSliderAd() {
+    if (!shellState.authResolved || !shouldShowMemberAds()) {
+      removeVideoSliderAd();
+      return;
+    }
+    var host = document.getElementById("rblxShellVideoSliderAd");
+    if (!host) {
+      host = document.createElement("aside");
+      host.id = "rblxShellVideoSliderAd";
+      host.className = "rblx-shell-video-slider-ad";
+      host.setAttribute("data-rblx-video-slider-ad", "");
+      host.setAttribute("aria-label", "Advertisement");
+      document.body.appendChild(host);
+    }
+    if (host.dataset.rblxVideoSliderMounted === "true") return;
+    host.hidden = false;
+    host.dataset.rblxVideoSliderMounted = "true";
+    ensureAdcashLibrary().then(function () {
+      if (!shouldShowMemberAds() || !window.aclib || typeof window.aclib.runVideoSlider !== "function") throw new Error("Adcash video slider unavailable");
+      var unit = document.createElement("div");
+      unit.className = "rblx-adcash-video-slider-unit";
+      host.appendChild(unit);
+      var invocation = document.createElement("script");
+      invocation.type = "text/javascript";
+      invocation.text = "window.aclib.runVideoSlider({zoneId:" + JSON.stringify(ADCASH_DISPLAY_ZONES.videoSlider) + "});";
+      unit.appendChild(invocation);
+    }).catch(function () {
+      host.textContent = "";
+      host.hidden = true;
+      delete host.dataset.rblxVideoSliderMounted;
     });
   }
 
@@ -6062,7 +6109,24 @@
   // Adcash VAST pre-rolls for the first-party "How To Use" tutorial videos.
   // This is intentionally scoped to tutorial cards so regular videos and every
   // other advertising placement on the site are left alone.
+  function removeTutorialVideoAds() {
+    Array.prototype.forEach.call(document.querySelectorAll("video[data-rblx-tutorial-ad-ready]"), function (video) {
+      var player = window.videojs && typeof window.videojs.getPlayer === "function" ? window.videojs.getPlayer(video) : null;
+      if (player && typeof player.dispose === "function") player.dispose();
+      delete video.dataset.rblxTutorialAdReady;
+      video.classList.remove("video-js", "vjs-big-play-centered");
+      video.dataset.rblxTutorialAdSuppressed = "true";
+    });
+  }
+
   function initTutorialVideoAds() {
+    // Do not request or initialize an ad player until the account has been
+    // verified. This prevents a Pro member from briefly receiving a pre-roll
+    // while the page resolves their actual membership from the server.
+    if (!shellState.authResolved || !shouldShowMemberAds()) {
+      if (shellState.authResolved) removeTutorialVideoAds();
+      return;
+    }
     var tutorialVideos = [];
     Array.prototype.forEach.call(document.querySelectorAll(".promo-card .badge"), function (badge) {
       if (String(badge.textContent || "").trim().toLowerCase() !== "how to use") return;
@@ -6113,7 +6177,8 @@
     }
 
     function preparePlayer(video) {
-      if (video.dataset.rblxTutorialAdReady === "true" || !window.videojs) return;
+      if (!shouldShowMemberAds() || video.dataset.rblxTutorialAdReady === "true" || !window.videojs) return;
+      delete video.dataset.rblxTutorialAdSuppressed;
       video.classList.add("video-js", "vjs-big-play-centered");
       var player = window.videojs(video, {
         controls: true,
@@ -6163,7 +6228,7 @@
       .then(function () { return loadScript(assetUrls.contribAds); })
       .then(function () { return loadScript(assetUrls.imaSdk); })
       .then(function () { return loadScript(assetUrls.imaPlugin); })
-      .then(function () { tutorialVideos.forEach(preparePlayer); })
+      .then(function () { if (shouldShowMemberAds()) tutorialVideos.forEach(preparePlayer); })
       .catch(function () {
         // Network/ad-provider failures must leave the native tutorial player usable.
       });
