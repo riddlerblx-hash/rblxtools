@@ -5996,6 +5996,101 @@
   }
 
   enhanceRewardsGiftCardPicker();
+  // Adcash VAST pre-rolls for the first-party "How To Use" tutorial videos.
+  // This is intentionally scoped to tutorial cards so regular videos and every
+  // other advertising placement on the site are left alone.
+  function initTutorialVideoAds() {
+    var tutorialVideos = [];
+    Array.prototype.forEach.call(document.querySelectorAll(".promo-card .badge"), function (badge) {
+      if (String(badge.textContent || "").trim().toLowerCase() !== "how to use") return;
+      var card = badge.closest(".promo-card");
+      if (!card) return;
+      Array.prototype.forEach.call(card.querySelectorAll("video"), function (video) {
+        if (tutorialVideos.indexOf(video) === -1) tutorialVideos.push(video);
+      });
+    });
+    if (!tutorialVideos.length) return;
+
+    var adTagUrl = "https://youradexchange.com/video/select.php?r=12207082";
+    var assetUrls = {
+      videoCss: "https://vjs.zencdn.net/8.23.4/video-js.css",
+      imaCss: "https://cdn.jsdelivr.net/npm/videojs-ima@2.2.0/dist/videojs.ima.css",
+      videoJs: "https://vjs.zencdn.net/8.23.4/video.min.js",
+      contribAds: "https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-ads/7.5.2/videojs-contrib-ads.min.js",
+      imaSdk: "https://imasdk.googleapis.com/js/sdkloader/ima3.js",
+      imaPlugin: "https://cdn.jsdelivr.net/npm/videojs-ima@2.2.0/dist/videojs.ima.min.js"
+    };
+
+    function addStylesheet(url) {
+      if (document.querySelector('link[data-rblx-tutorial-ad-asset="' + url + '"]')) return;
+      var link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = url;
+      link.dataset.rblxTutorialAdAsset = url;
+      document.head.appendChild(link);
+    }
+
+    function loadScript(url) {
+      return new Promise(function (resolve, reject) {
+        var existing = document.querySelector('script[data-rblx-tutorial-ad-asset="' + url + '"]');
+        if (existing) {
+          if (existing.dataset.rblxTutorialAdReady === "true") { resolve(); return; }
+          existing.addEventListener("load", resolve, { once: true });
+          existing.addEventListener("error", reject, { once: true });
+          return;
+        }
+        var script = document.createElement("script");
+        script.src = url;
+        script.async = true;
+        script.dataset.rblxTutorialAdAsset = url;
+        script.onload = function () { script.dataset.rblxTutorialAdReady = "true"; resolve(); };
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    function preparePlayer(video) {
+      if (video.dataset.rblxTutorialAdReady === "true" || !window.videojs || !window.videojs.ima) return;
+      video.dataset.rblxTutorialAdReady = "true";
+      video.classList.add("video-js", "vjs-big-play-centered");
+      var player = window.videojs(video, {
+        controls: true,
+        preload: "metadata",
+        responsive: true,
+        fluid: true
+      });
+      player.addClass("rblx-tutorial-ad-player");
+      player.ima({
+        adTagUrl: adTagUrl,
+        showControlsForJSAds: true,
+        adsRenderingSettings: { enablePreloading: true }
+      });
+      // If the ad network is unavailable, Video.js-IMA returns control to the
+      // original tutorial instead of preventing the member from watching it.
+      player.on("adserror", function () { player.removeClass("rblx-tutorial-ad-loading"); });
+    }
+
+    addStylesheet(assetUrls.videoCss);
+    addStylesheet(assetUrls.imaCss);
+    if (!document.getElementById("rblxTutorialAdPlayerStyle")) {
+      var style = document.createElement("style");
+      style.id = "rblxTutorialAdPlayerStyle";
+      style.textContent = ".rblx-tutorial-ad-player.video-js{width:100%!important;min-height:220px;border-radius:inherit;background:#0f131b}.rblx-tutorial-ad-player .vjs-tech{border-radius:inherit}";
+      document.head.appendChild(style);
+    }
+
+    loadScript(assetUrls.videoJs)
+      .then(function () { return loadScript(assetUrls.contribAds); })
+      .then(function () { return loadScript(assetUrls.imaSdk); })
+      .then(function () { return loadScript(assetUrls.imaPlugin); })
+      .then(function () { tutorialVideos.forEach(preparePlayer); })
+      .catch(function () {
+        // Network/ad-provider failures must leave the native tutorial player usable.
+      });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initTutorialVideoAds, { once: true });
+  else initTutorialVideoAds();
   // Several legacy tool pages load this shared script before their <main>.
   // Mounting immediately created an empty shell over content the HTML parser
   // had not inserted yet. Waiting for parsing means the shell and tool DOM are
