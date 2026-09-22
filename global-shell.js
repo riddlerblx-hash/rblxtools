@@ -2,26 +2,6 @@
   if (window.__rblxShellReady) return;
   window.__rblxShellReady = true;
 
-  // Adcash Autotag: load the provider library once for shared-shell pages,
-  // then register the site-wide zone supplied for rblxtools.net.
-  (function initAdcashAutotag() {
-    var zoneId = "ogicujnoov";
-    function run() {
-      if (window.__rblxAdcashAutotagStarted || !window.aclib || typeof window.aclib.runAutoTag !== "function") return;
-      window.__rblxAdcashAutotagStarted = true;
-      window.aclib.runAutoTag({ zoneId: zoneId });
-    }
-    if (window.aclib && typeof window.aclib.runAutoTag === "function") { run(); return; }
-    var existing = document.getElementById("rblxAdcashLibrary");
-    if (existing) { existing.addEventListener("load", run, { once: true }); return; }
-    var script = document.createElement("script");
-    script.id = "rblxAdcashLibrary";
-    script.src = "https://acscdn.com/script/aclib.js";
-    script.async = true;
-    script.addEventListener("load", run, { once: true });
-    (document.head || document.documentElement).appendChild(script);
-  }());
-
   var API_BASE = window.location.origin;
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
