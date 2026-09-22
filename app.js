@@ -1682,6 +1682,7 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
         }
 
         if (session.payment_status === "paid") {
+          await recordStripeCheckoutPurchase(session);
           await updateReferralCheckoutStatus(session, "confirmed");
           await recordReferralCommissionFromCheckout(session);
         }
@@ -2151,6 +2152,36 @@ async function getStripePromotionOptions(req, priceId) {
     enumerable: false,
   });
   return options;
+}
+
+function getStripeCheckoutPurchaseTitle(session) {
+  const metadata = session?.metadata || {};
+  const plan = String(metadata.plan || "").trim().toLowerCase();
+  const interval = String(metadata.billingInterval || metadata.billingPeriod || "").trim().toLowerCase();
+  if (plan === "plus" || plan === "pro") return `RBLXTools ${plan === "pro" ? "Pro" : "Plus"}${interval ? ` (${interval})` : ""}`;
+  if (metadata.productType === "discord_bot_uses") return `RBLXTools Discord Bot — ${Number(metadata.discordBotUses || 0).toLocaleString("en-US")} uses`;
+  if (metadata.productType === "discord_bot_unlimited") return `RBLXTools Discord Bot Unlimited${interval ? ` (${interval})` : ""}`;
+  if (metadata.aiTokenQuantity) return `${Number(metadata.aiTokenQuantity || 0).toLocaleString("en-US")} AI tokens`;
+  if (metadata.productName) return cleanText(metadata.productName, 160);
+  return session?.mode === "subscription" ? "RBLXTools subscription" : "RBLXTools purchase";
+}
+
+async function recordStripeCheckoutPurchase(session) {
+  const userId = String(session?.metadata?.appUserId || session?.client_reference_id || "").trim();
+  const sessionId = String(session?.id || "").trim();
+  if (!userId || !sessionId || String(session?.payment_status || "").toLowerCase() !== "paid") return null;
+  try {
+    const existing = await supabaseRequest(`/rest/v1/account_transactions?user_id=eq.${encodeURIComponent(userId)}&source_type=eq.stripe_checkout_payment&source_id=eq.${encodeURIComponent(sessionId)}&select=id&limit=1`);
+    if (Array.isArray(existing) && existing.length) return existing[0];
+  } catch (_error) {
+    // The normal ledger writer below remains the fallback if the optional
+    // display table has not been migrated yet.
+  }
+  return recordAccountTransaction({
+    userId, category: "purchases", sourceType: "stripe_checkout_payment", sourceId: sessionId,
+    title: getStripeCheckoutPurchaseTitle(session), amountDelta: -Math.abs(Number(session?.amount_total || 0)),
+    unit: "usd_cents", status: "confirmed", note: "Paid securely with Stripe",
+  });
 }
 
 async function getStripeAffiliateDiscountOptions(req, user, priceId, baseAmountCents) {
@@ -4652,7 +4683,7 @@ async function getPrimaryStripeSubscriptionForCustomer(customerId, options = {})
     ? items
     : items.filter((subscription) => {
         const status = String(subscription?.status || "").toLowerCase();
-        return !["canceled", "incomplete_expired"].includes(status);
+        return isPremiumStatus(status);
       });
   if (!filtered.length) {
     return null;
@@ -10116,6 +10147,7 @@ app.post("/store/confirm-ai-token-checkout", async (req, res) => {
     }
 
     await grantAITokensFromStripeCheckout(session);
+    await recordStripeCheckoutPurchase(session);
     const refreshedUser = await getAuthUserById(user.id);
     return res.json({
       ok: true,
@@ -10321,6 +10353,7 @@ app.post("/store/confirm-discord-bot-use-checkout", async (req, res) => {
     }
     if (session.payment_status !== "paid") return res.status(409).json({ error: "Stripe is still confirming this payment. Refresh in a moment." });
     const unclaimedUses = await grantPurchasedUses(session);
+    await recordStripeCheckoutPurchase(session);
     return res.json({ ok: true, unclaimedUses, creditedUses: Number.parseInt(session.metadata.discordBotUses, 10) || 0 });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not confirm the Discord bot use purchase." });
@@ -10386,6 +10419,7 @@ app.post("/store/confirm-discord-bot-unlimited-checkout", async (req, res) => {
     if (!subscriptionId) return res.status(409).json({ error: "Stripe is still creating this subscription. Refresh in a moment." });
     const subscription = await stripeClient.subscriptions.retrieve(subscriptionId);
     const entitlement = await setUnlimitedSubscription(subscription, user.id);
+    await recordStripeCheckoutPurchase(session);
     return res.json({ ok: true, active: isUnlimitedActive(entitlement), status: entitlement.status, currentPeriodEndAt: entitlement.currentPeriodEndAt });
   } catch (error) {
     console.error("POST /store/confirm-discord-bot-unlimited-checkout failed:", error.message);
@@ -10591,15 +10625,25 @@ app.get("/auth/billing-details", async (req, res) => {
   try {
     assertStripePortalConfigured();
     const user = await requireAuthenticatedUser(req);
+    const membership = await resolveMembershipSnapshot(user);
+    const rawMembershipSource = String(membership?.membershipSource || "none").toLowerCase();
+    const membershipSource = rawMembershipSource.includes("robux") ? "robux" : rawMembershipSource.includes("complimentary") ? "complimentary" : rawMembershipSource.includes("stripe") ? "stripe" : "none";
+    const membershipDetails = {
+      active: Boolean(membership?.premiumActive),
+      planName: membership?.premiumActive ? `RBLXTools ${String(membership.plan || "Plus").toLowerCase() === "pro" ? "Pro" : "Plus"}` : "Free",
+      source: membershipSource,
+      expiresAt: membershipSource === "stripe" ? membership?.currentPeriodEndAt : membership?.plusExpiresAt,
+    };
     const customerId = String(user.stripe_customer_id || "").trim();
     if (!customerId) {
-      return res.json({ ok: true, hasCustomer: false, subscription: null, paymentMethod: null, invoices: [] });
+      return res.json({ ok: true, hasCustomer: false, subscription: null, paymentMethod: null, invoices: [], history: [], membership: membershipDetails });
     }
 
-    const [customer, subscription, invoiceResult] = await Promise.all([
+    const [customer, subscription, invoiceResult, checkoutResult] = await Promise.all([
       stripeClient.customers.retrieve(customerId),
-      getPrimaryStripeSubscriptionForCustomer(customerId, { includeCanceled: true }),
-      stripeClient.invoices.list({ customer: customerId, limit: 12 }),
+      getPrimaryStripeSubscriptionForCustomer(customerId, { includeCanceled: false }),
+      stripeClient.invoices.list({ customer: customerId, limit: 24, expand: ["data.lines.data.price.product"] }),
+      stripeClient.checkout.sessions.list({ customer: customerId, limit: 50 }),
     ]);
     let paymentMethod = null;
     const defaultPaymentMethodId = typeof customer?.invoice_settings?.default_payment_method === "string"
@@ -10621,7 +10665,26 @@ app.get("/auth/billing-details", async (req, res) => {
       createdAt: getIsoFromUnixSeconds(invoice.created),
       hostedInvoiceUrl: invoice.hosted_invoice_url || null,
       invoicePdf: invoice.invoice_pdf || null,
+      productName: invoice.lines?.data?.map((line) => line?.description || line?.price?.product?.name).filter(Boolean).join(", ") || invoice.description || "RBLXTools subscription",
     })) : [];
+    const checkoutHistory = Array.isArray(checkoutResult?.data) ? checkoutResult.data.filter((session) => session && session.mode === "payment" && String(session.payment_status || "").toLowerCase() === "paid").map((session) => ({
+      id: session.id,
+      title: getStripeCheckoutPurchaseTitle(session),
+      status: "paid",
+      amount: Number(session.amount_total || 0),
+      currency: String(session.currency || "usd").toUpperCase(),
+      createdAt: getIsoFromUnixSeconds(session.created),
+      receiptUrl: session.url || null,
+    })) : [];
+    const history = invoices.map((invoice) => ({
+      id: invoice.id,
+      title: invoice.productName,
+      status: invoice.status,
+      amount: invoice.amountPaid || invoice.amountDue,
+      currency: invoice.currency,
+      createdAt: invoice.createdAt,
+      receiptUrl: invoice.hostedInvoiceUrl || invoice.invoicePdf,
+    })).concat(checkoutHistory).sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0));
     const price = subscription?.items?.data?.[0]?.price || null;
     return res.json({
       ok: true,
@@ -10638,6 +10701,8 @@ app.get("/auth/billing-details", async (req, res) => {
         productName: typeof price?.product === "object" ? price.product.name || null : null,
       } : null,
       invoices,
+      history,
+      membership: membershipDetails,
       publishableKey: STRIPE_PUBLISHABLE_KEY || null,
     });
   } catch (error) {

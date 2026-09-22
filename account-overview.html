@@ -1581,31 +1581,13 @@
                       Securely manage your payment method, invoices, renewal, cancellation, and subscription details through Stripe.
                     </p>
 
-                    <div class="acct-info-grid">
-                      <div class="acct-pill-card">
-                        <div class="acct-pill-label">Subscription</div>
-                        <div id="acctBillingPlan" class="acct-pill-value">No active subscription</div>
-                      </div>
-
-                      <div class="acct-pill-card">
-                        <div class="acct-pill-label">Stripe status</div>
-                        <div id="acctStripeStatus" class="acct-pill-value">-</div>
-                      </div>
-
-                      <div class="acct-pill-card">
-                        <div class="acct-pill-label">Renewal</div>
-                        <div id="acctBillingRenewal" class="acct-pill-value">-</div>
-                      </div>
-
-                      <div class="acct-pill-card">
-                        <div class="acct-pill-label">Billing account</div>
-                        <div id="acctCustomerId" class="acct-pill-value">-</div>
-                      </div>
+                    <div id="acctBillingInfo" class="acct-info-grid">
+                      <div class="acct-pill-card"><div class="acct-pill-label">Plan</div><div id="acctBillingPlan" class="acct-pill-value">Loading...</div></div>
                     </div>
 
                     <div class="acct-billing-actions"><button id="acctBillingPaymentButton" class="acct-button secondary" type="button">Update payment method</button><button id="acctBillingRemovePaymentButton" class="acct-button secondary" type="button" hidden>Remove payment method</button><button id="acctBillingCancelButton" class="acct-button danger" type="button" hidden>Cancel at period end</button><button id="acctBillingResumeButton" class="acct-button secondary" type="button" hidden>Resume subscription</button></div>
                     <div id="acctBillingPaymentPanel" class="acct-billing-panel" hidden><h4>Secure payment method</h4><p>Your card details are entered directly into Stripe’s secure form and never pass through RBLXTools.</p><div id="acctStripePaymentElement" class="acct-stripe-element"></div><div class="acct-billing-actions"><button id="acctBillingPaymentSaveButton" class="acct-button plans" type="button">Save payment method</button><button id="acctBillingPaymentCloseButton" class="acct-button secondary" type="button">Close</button></div></div>
-                    <div class="acct-billing-history"><h4>Billing history</h4><div id="acctBillingInvoices" class="acct-transaction-empty">Loading invoices...</div></div>
+                    <div class="acct-billing-history"><h4>Billing history</h4><div id="acctBillingInvoices" class="acct-transaction-empty">Loading purchases...</div></div>
                     <div id="acctBillingStatus" class="acct-status"></div>
                   </section>
 
@@ -1917,6 +1899,7 @@
         acctMembershipTitle: document.getElementById("acctMembershipTitle"),
         acctBillingKicker: document.getElementById("acctBillingKicker"),
         acctBillingTitle: document.getElementById("acctBillingTitle"),
+        acctBillingInfo: document.getElementById("acctBillingInfo"),
         acctBillingPlan: document.getElementById("acctBillingPlan"),
         acctBillingRenewal: document.getElementById("acctBillingRenewal"),
         acctBillingPaymentButton: document.getElementById("acctBillingPaymentButton"),
@@ -3029,25 +3012,41 @@
       function renderBillingDetails(details) {
         state.billing = details || null;
         var subscription = details && details.subscription;
-        if (els.acctBillingPlan) els.acctBillingPlan.textContent = subscription ? (subscription.productName || "Subscription") : "No active subscription";
-        if (els.acctStripeStatus) els.acctStripeStatus.textContent = subscription ? String(subscription.status || "-").replace(/_/g, " ") : "-";
-        if (els.acctBillingRenewal) els.acctBillingRenewal.textContent = subscription ? (subscription.cancelAtPeriodEnd ? "Ends " : "Renews ") + formatBillingDate(subscription.currentPeriodEndAt) : "-";
-        if (els.acctCustomerId) els.acctCustomerId.textContent = details && details.hasCustomer ? "Connected" : "Not connected";
+        var membership = details && details.membership || {};
+        var safe = function (value) { return String(value == null ? "" : value).replace(/[&<>]/g, function (char) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]; }); };
+        var sourceLabels = { stripe: "Paid with Stripe", robux: "Purchased with Robux", complimentary: "Complimentary access" };
+        var source = String(membership.source || "none").toLowerCase();
+        var cards = [];
+        if (membership.active) {
+          cards.push({ label: "Current plan", value: membership.planName || "Membership" });
+          cards.push({ label: "Access", value: sourceLabels[source] || "Membership access" });
+          if (subscription && source === "stripe") {
+            cards.push({ label: "Stripe status", value: String(subscription.status || "active").replace(/_/g, " ") });
+            cards.push({ label: subscription.cancelAtPeriodEnd ? "Ends" : "Renews", value: formatBillingDate(subscription.currentPeriodEndAt) });
+          } else if (membership.expiresAt) {
+            cards.push({ label: "Expires", value: formatBillingDate(membership.expiresAt) });
+          }
+        } else {
+          cards.push({ label: "Current plan", value: "Free" });
+          cards.push({ label: "Billing account", value: details && details.hasCustomer ? "Stripe account connected" : "No billing account" });
+        }
+        if (els.acctBillingInfo) els.acctBillingInfo.innerHTML = cards.map(function (card) { return '<div class="acct-pill-card"><div class="acct-pill-label">' + safe(card.label) + '</div><div class="acct-pill-value">' + safe(card.value) + '</div></div>'; }).join("");
         if (els.acctBillingPaymentButton) {
           var method = details && details.paymentMethod;
           els.acctBillingPaymentButton.textContent = method ? "Update " + String(method.brand || "card").toUpperCase() + " •••• " + String(method.last4 || "") : "Add payment method";
+          els.acctBillingPaymentButton.hidden = !(details && details.hasCustomer && (subscription || method));
           els.acctBillingPaymentButton.disabled = !(details && details.hasCustomer);
         }
         if (els.acctBillingRemovePaymentButton) els.acctBillingRemovePaymentButton.hidden = !(details && details.paymentMethod);
         if (els.acctBillingCancelButton) els.acctBillingCancelButton.hidden = !subscription || Boolean(subscription.cancelAtPeriodEnd);
         if (els.acctBillingResumeButton) els.acctBillingResumeButton.hidden = !subscription || !Boolean(subscription.cancelAtPeriodEnd);
         if (els.acctBillingInvoices) {
-          var invoices = Array.isArray(details && details.invoices) ? details.invoices : [];
-          els.acctBillingInvoices.innerHTML = invoices.length ? invoices.map(function (invoice) {
-            var href = invoice.hostedInvoiceUrl || invoice.invoicePdf;
+          var history = Array.isArray(details && details.history) ? details.history : [];
+          els.acctBillingInvoices.innerHTML = history.length ? history.map(function (entry) {
+            var href = entry.receiptUrl;
             var action = href ? '<a href="' + String(href).replace(/"/g, "&quot;") + '" target="_blank" rel="noopener">View receipt</a>' : '<span>Unavailable</span>';
-            return '<div class="acct-billing-invoice"><span>' + formatBillingDate(invoice.createdAt) + ' · ' + String(invoice.status || "unknown") + ' · ' + formatBillingMoney(invoice.amountPaid || invoice.amountDue, invoice.currency) + '</span>' + action + '</div>';
-          }).join("") : '<div class="acct-transaction-empty">No Stripe invoices yet.</div>';
+            return '<div class="acct-billing-invoice"><span><strong>' + safe(entry.title || "RBLXTools purchase") + '</strong><br><small>' + formatBillingDate(entry.createdAt) + ' · ' + safe(String(entry.status || "paid").replace(/_/g, " ")) + ' · ' + formatBillingMoney(entry.amount, entry.currency) + '</small></span>' + action + '</div>';
+          }).join("") : '<div class="acct-transaction-empty">No paid purchases yet.</div>';
         }
       }
 
