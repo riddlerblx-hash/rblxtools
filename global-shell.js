@@ -5289,7 +5289,7 @@
     var host = document.createElement("section");
     host.id = id;
     host.className = "rblx-shell-sidebar-ad";
-    host.setAttribute("data-rblx-vertical-ad", "");
+    host.setAttribute("data-rblx-shell-box-ad", "");
     host.setAttribute("aria-label", "Advertisement");
     host.innerHTML = '<span>Advertisement</span>';
     return host;
@@ -5306,14 +5306,14 @@
     if (leftFoot && leftFoot.parentNode && !document.getElementById("rblxShellNavigationAd")) {
       var navigationAd = createShellSidebarAd("rblxShellNavigationAd");
       leftFoot.parentNode.insertBefore(navigationAd, leftFoot);
-      mountVerticalAd(navigationAd);
+      mountBoxAd(navigationAd);
     }
 
     var chatBottom = document.getElementById("rblxShellChatBottom");
     if (chatBottom && chatBottom.parentNode && !document.getElementById("rblxShellLiveChatAd")) {
       var liveChatAd = createShellSidebarAd("rblxShellLiveChatAd");
       chatBottom.insertAdjacentElement("afterend", liveChatAd);
-      mountVerticalAd(liveChatAd);
+      mountBoxAd(liveChatAd);
     }
   }
 

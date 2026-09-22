@@ -762,8 +762,8 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
 @media (min-width:1180px) {
   body:not(.rblx-pro-ad-free) .rblx-shell-sidebar-ad {
     display:grid;
-    width:160px;
-    min-height:618px;
+    width:300px;
+    min-height:268px;
     margin:0 auto;
     place-items:center;
     overflow:hidden;
@@ -779,7 +779,7 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
     letter-spacing:.1em;
     text-transform:uppercase;
   }
-  .rblx-shell-sidebar-ad > .rblx-adcash-unit { width:160px; min-height:600px; }
+  .rblx-shell-sidebar-ad > .rblx-adcash-unit { width:300px; min-height:250px; }
   body.rblx-shell-left-collapsed .rblx-shell-sidebar-ad,
   body.rblx-shell-right-collapsed .rblx-shell-sidebar-ad { display:none !important; }
 }
