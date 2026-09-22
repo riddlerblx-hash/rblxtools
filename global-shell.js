@@ -6082,7 +6082,7 @@
     if (!document.getElementById("rblxTutorialAdPlayerStyle")) {
       var style = document.createElement("style");
       style.id = "rblxTutorialAdPlayerStyle";
-      style.textContent = ".rblx-tutorial-ad-player.video-js{width:100%!important;min-height:220px;border-radius:inherit;background:#0f131b}.rblx-tutorial-ad-player .vjs-tech{border-radius:inherit}";
+      style.textContent = "@font-face{font-family:'VideoJS';src:url('https://vjs.zencdn.net/8.23.4/font/VideoJS.woff') format('woff');font-style:normal;font-weight:400;font-display:block}.rblx-tutorial-ad-player.video-js{width:100%!important;min-height:220px;border-radius:inherit;background:#0f131b}.rblx-tutorial-ad-player .vjs-tech{border-radius:inherit}.rblx-tutorial-ad-player .vjs-icon-placeholder:before{font-family:'VideoJS'!important}";
       document.head.appendChild(style);
     }
 
