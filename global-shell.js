@@ -445,7 +445,6 @@
     var expiry = String(member.plusExpiresAt || member.currentPeriodEndAt || "").trim();
     var userId = String(member.id || member.userId || shellState.currentUser && shellState.currentUser.userId || "").trim();
     var plan = String(member.plan || shellState.currentUser && shellState.currentUser.plan || "membership").toLowerCase() === "pro" ? "Pro" : "Plus";
-    var source = String(member.membershipSource || "").toLowerCase();
     var expiresAt = expiry ? new Date(expiry) : null;
     if (preview) expiresAt = new Date(Date.now() + (preview === "upcoming" ? 3 : -3) * 86400000);
     if (!expiresAt || Number.isNaN(expiresAt.getTime()) || (!member.premiumActive && !expiry && !preview)) {
@@ -453,22 +452,41 @@
       return;
     }
     var days = Math.ceil((expiresAt.getTime() - Date.now()) / 86400000);
-    var phase = days < 0 ? "overdue" : "upcoming";
     if (!preview && days > 7) { notice.hidden = true; return; }
-    var noticeKey = "rblxtools_renewal_notice_dismissed:" + (userId || "member") + ":" + phase + ":" + expiresAt.toISOString().slice(0, 10);
+    var noticeKey = "rblxtools_renewal_notice_dismissed:" + (userId || "member") + ":" + expiresAt.toISOString().slice(0, 10);
     try { if (!preview && localStorage.getItem(noticeKey) === "1") { notice.hidden = true; return; } } catch (_error) {}
     var dateText = expiresAt.toLocaleDateString();
-    var sourceText = source.includes("robux") ? "Robux" : source.includes("complimentary") ? "complimentary" : "Stripe";
     if (days < 0) {
       var elapsed = Math.abs(days);
-      message.textContent = "Your " + plan + " access expired " + elapsed + " day" + (elapsed === 1 ? "" : "s") + " ago. Renew to restore your membership benefits.";
-    } else if (sourceText === "Stripe") {
-      message.textContent = "Your Stripe " + plan + " subscription renews on " + dateText + ". Payment will be due then to keep your membership benefits active.";
+      message.textContent = "Your " + plan + " plan expired " + elapsed + " day" + (elapsed === 1 ? "" : "s") + " ago. Renew to restore your membership benefits.";
     } else {
-      message.textContent = "Your " + sourceText + " " + plan + " access expires on " + dateText + ". Renew before then to keep your membership benefits active.";
+      message.textContent = "Your " + plan + " plan expires on " + dateText + ". Renew before then to keep your membership benefits active.";
     }
     notice.dataset.dismissKey = noticeKey;
+    notice.dataset.plan = plan.toLowerCase();
     notice.hidden = false;
+  }
+
+  async function beginRenewalCheckout(button) {
+    var notice = document.getElementById("rblxShellRenewalNotice");
+    var plan = String(notice && notice.dataset.plan || "plus").toLowerCase() === "pro" ? "pro" : "plus";
+    button.disabled = true;
+    button.textContent = "Opening secure checkout...";
+    try {
+      var response = await fetch(API_BASE + (plan === "pro" ? "/auth/create-pro-checkout-session" : "/auth/create-checkout-session"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() },
+        body: JSON.stringify({ billingInterval: "monthly" })
+      });
+      var payload = await response.json().catch(function () { return null; });
+      if (!response.ok || !payload || !payload.url) throw new Error(payload && payload.error || "Could not open secure checkout.");
+      window.location.assign(payload.url);
+    } catch (error) {
+      button.disabled = false;
+      button.textContent = "Renew membership";
+      window.alert(error.message || "Could not open secure checkout.");
+    }
   }
 
   function getStableAdminState(state) {
@@ -1826,7 +1844,7 @@
           "</div>" +
         "</header>" +
         '<div class="rblx-shell-body">' +
-          '<section class="rblx-shell-renewal-notice" id="rblxShellRenewalNotice" hidden role="status"><span id="rblxShellRenewalNoticeMessage"></span><div><a href="./subscriptions">Renew membership</a><button type="button" data-shell-renewal-dismiss>Dismiss</button></div></section>' +
+          '<section class="rblx-shell-renewal-notice" id="rblxShellRenewalNotice" hidden role="status"><span id="rblxShellRenewalNoticeMessage"></span><div><button type="button" data-shell-renew-membership>Renew membership</button><button type="button" data-shell-renewal-dismiss>I’m not renewing</button></div></section>' +
           '<aside class="rblx-shell-left">' +
             '<div class="rblx-shell-left-inner">' +
               '<div class="rblx-shell-panel-head">' +
@@ -5524,6 +5542,10 @@
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
+    // Use the verified cached membership snapshot immediately, then reconcile
+    // it with /auth/me in the background. This avoids a visible banner flash
+    // during normal page-to-page navigation.
+    renderRenewalNotice(getCachedAuthUser() || {});
     applyAdminPreview();
     document.addEventListener("click", function (event) {
       var button = event.target.closest("[data-shell-admin-preview]");
@@ -5539,6 +5561,11 @@
       try { if (notice.dataset.dismissKey) localStorage.setItem(notice.dataset.dismissKey, "1"); } catch (_error) {}
       try { sessionStorage.removeItem(RENEWAL_NOTICE_PREVIEW_KEY); } catch (_error) {}
       notice.hidden = true;
+    });
+    document.addEventListener("click", function (event) {
+      var renew = event.target && event.target.closest ? event.target.closest("[data-shell-renew-membership]") : null;
+      if (!renew) return;
+      beginRenewalCheckout(renew);
     });
     // The preview picker is a lightweight header menu, not a persistent panel.
     // A click anywhere outside it should put it away just like a native menu.
