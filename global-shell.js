@@ -4813,6 +4813,55 @@
     renderToolInterstitialStatus();
   }
 
+  function initInstantInfoTooltips() {
+    if (shellState.instantInfoTooltipsBound) return;
+    shellState.instantInfoTooltipsBound = true;
+    var tooltip = document.createElement("div");
+    tooltip.id = "rblxShellInfoTooltip";
+    tooltip.className = "rblx-shell-info-tooltip";
+    tooltip.setAttribute("role", "tooltip");
+    tooltip.hidden = true;
+    document.body.appendChild(tooltip);
+
+    var activeTrigger = null;
+    function hideTooltip() {
+      activeTrigger = null;
+      tooltip.hidden = true;
+    }
+    function showTooltip(trigger) {
+      var copy = trigger && trigger.getAttribute("data-rblx-info-tooltip");
+      if (!copy) return;
+      activeTrigger = trigger;
+      tooltip.textContent = copy;
+      tooltip.hidden = false;
+      var rect = trigger.getBoundingClientRect();
+      var tooltipRect = tooltip.getBoundingClientRect();
+      var left = Math.max(12, Math.min(window.innerWidth - tooltipRect.width - 12, rect.left + (rect.width / 2) - (tooltipRect.width / 2)));
+      var top = rect.top - tooltipRect.height - 10;
+      if (top < 12) top = Math.min(window.innerHeight - tooltipRect.height - 12, rect.bottom + 10);
+      tooltip.style.left = Math.round(left) + "px";
+      tooltip.style.top = Math.round(top) + "px";
+    }
+    document.addEventListener("pointerover", function (event) {
+      var trigger = event.target && event.target.closest ? event.target.closest("[data-rblx-info-tooltip]") : null;
+      if (trigger) showTooltip(trigger);
+    });
+    document.addEventListener("pointerout", function (event) {
+      if (!activeTrigger || !activeTrigger.contains(event.target)) return;
+      if (event.relatedTarget && activeTrigger.contains(event.relatedTarget)) return;
+      hideTooltip();
+    });
+    document.addEventListener("focusin", function (event) {
+      var trigger = event.target && event.target.closest ? event.target.closest("[data-rblx-info-tooltip]") : null;
+      if (trigger) showTooltip(trigger);
+    });
+    document.addEventListener("focusout", function (event) {
+      if (activeTrigger && activeTrigger.contains(event.target)) hideTooltip();
+    });
+    document.addEventListener("scroll", hideTooltip, true);
+    window.addEventListener("resize", hideTooltip, { passive: true });
+  }
+
   function mountSharedBannerAd(slot) {
     if (!slot || !shouldShowMemberAds() || slot.dataset.rblxBannerLoaded === "true") return;
     mountAdcashBanner(slot, ADCASH_DISPLAY_ZONES.horizontal, "rblxBannerLoaded");
@@ -5372,7 +5421,7 @@
       subtitle: "Monthly membership",
       title: "Plus",
       action: actionLabel || "Try Now",
-      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "10 free tool uses before ads", "Bulk Downloads (1-5) <span class=\"rblx-membership-promo-info\" title=\"A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad.\" aria-label=\"A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad.\">(!)</span>"],
+      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "10 free tool uses before ads", "Bulk Downloads (1-5) <span class=\"rblx-membership-promo-info\" data-rblx-info-tooltip=\"A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad.\" aria-label=\"More information about bulk downloads\" tabindex=\"0\">(!)</span>"],
       aiPerks: ["30 Tokens Every Month", "10 Savable Thumbnail Generations", "8 Savable AI UGC Slots (+5)", "1440p AI Thumbnail Quality"]
     };
     return [
@@ -5842,6 +5891,7 @@
     // added node (including ads and tool results), which adds avoidable work
     // and can make busy tool pages feel sluggish.
     initMembershipPromoRotation();
+    initInstantInfoTooltips();
     initSidebarPlanRotation();
     mountDesktopShellBoxAds();
     mountDesktopVerticalAds();
