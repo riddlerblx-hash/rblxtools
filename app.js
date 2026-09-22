@@ -10642,7 +10642,9 @@ app.get("/auth/billing-details", async (req, res) => {
     const [customer, subscription, invoiceResult, checkoutResult] = await Promise.all([
       stripeClient.customers.retrieve(customerId),
       getPrimaryStripeSubscriptionForCustomer(customerId, { includeCanceled: false }),
-      stripeClient.invoices.list({ customer: customerId, limit: 24, expand: ["data.lines.data.price.product"] }),
+      // Stripe limits nested expansions to four levels. Invoice line descriptions
+      // already contain the product/plan label, so no deep product expansion is needed.
+      stripeClient.invoices.list({ customer: customerId, limit: 24 }),
       stripeClient.checkout.sessions.list({ customer: customerId, limit: 50 }),
     ]);
     let paymentMethod = null;
