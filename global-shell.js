@@ -1844,7 +1844,6 @@
           "</div>" +
         "</header>" +
         '<div class="rblx-shell-body">' +
-          '<section class="rblx-shell-renewal-notice" id="rblxShellRenewalNotice" hidden role="status"><span id="rblxShellRenewalNoticeMessage"></span><div><button type="button" data-shell-renew-membership>Renew membership</button><button type="button" data-shell-renewal-dismiss>I’m not renewing</button></div></section>' +
           '<aside class="rblx-shell-left">' +
             '<div class="rblx-shell-left-inner">' +
               '<div class="rblx-shell-panel-head">' +
@@ -1864,6 +1863,7 @@
             "</div>" +
           "</aside>" +
           '<div class="rblx-shell-center" role="main">' +
+            '<section class="rblx-shell-renewal-notice" id="rblxShellRenewalNotice" hidden role="status"><span id="rblxShellRenewalNoticeMessage"></span><div><button type="button" data-shell-renew-membership>Renew membership</button><button type="button" data-shell-renewal-dismiss>I’m not renewing</button></div></section>' +
             '<div class="rblx-shell-page" id="rblxShellPage"></div>' +
           "</div>" +
           '<aside class="rblx-shell-right">' +

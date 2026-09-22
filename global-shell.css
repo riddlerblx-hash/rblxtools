@@ -658,7 +658,6 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
 }
 
 .rblx-shell-body {
-  position: relative;
   display: grid;
   grid-template-columns: var(--shell-left-width) minmax(0, 1fr) var(--shell-right-width);
   gap: 0;
@@ -671,17 +670,13 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
 /* A member-specific, dismissible renewal cue sits directly under the shared
    header so it is visible without interrupting the page workspace. */
 .rblx-shell-renewal-notice {
-  position: absolute;
-  z-index: 24;
-  top: 0;
-  right: 0;
-  left: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   min-height: 46px;
-  margin: 0;
+  width: calc(100% + 36px);
+  margin: -18px -18px 18px;
   padding: 10px 13px 10px 15px;
   border: 1px solid rgba(255, 115, 128, .58);
   border-radius: 8px;
@@ -712,7 +707,7 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
 .rblx-shell-renewal-notice a:hover,
 .rblx-shell-renewal-notice button:hover { background: rgba(255, 255, 255, .22); }
 @media (max-width: 720px) {
-  .rblx-shell-renewal-notice { align-items: flex-start; flex-direction: column; border-radius: 7px; }
+  .rblx-shell-renewal-notice { width: 100%; align-items: flex-start; flex-direction: column; margin: 0 0 14px; border-radius: 7px; }
   .rblx-shell-renewal-notice > div { width: 100%; justify-content: flex-end; }
 }
 
