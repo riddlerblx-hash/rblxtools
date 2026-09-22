@@ -4607,17 +4607,58 @@
     void refresh;
   }
 
+  // Adcash display inventory. The library is loaded once and each zone is
+  // rendered inside its own script parent, as required by aclib.runBanner().
+  var ADCASH_DISPLAY_ZONES = {
+    horizontal: "12207158",
+    box: "12207186",
+    skyscraper: "12207194",
+    mobileWide: "12207202"
+  };
+  var adcashLibraryPromise = null;
+
+  function ensureAdcashLibrary() {
+    if (window.aclib && typeof window.aclib.runBanner === "function") return Promise.resolve();
+    if (adcashLibraryPromise) return adcashLibraryPromise;
+    adcashLibraryPromise = new Promise(function (resolve, reject) {
+      var existing = document.getElementById("aclib");
+      if (existing) {
+        existing.addEventListener("load", resolve, { once: true });
+        existing.addEventListener("error", reject, { once: true });
+        return;
+      }
+      var library = document.createElement("script");
+      library.id = "aclib";
+      library.type = "text/javascript";
+      library.src = "https://acscdn.com/script/aclib.js";
+      library.onload = resolve;
+      library.onerror = reject;
+      document.head.appendChild(library);
+    });
+    return adcashLibraryPromise;
+  }
+
+  function mountAdcashBanner(host, zoneId, mountedKey) {
+    if (!host || !zoneId || host.dataset[mountedKey] === "true") return;
+    host.dataset[mountedKey] = "true";
+    ensureAdcashLibrary().then(function () {
+      if (!window.aclib || typeof window.aclib.runBanner !== "function") throw new Error("Adcash library unavailable");
+      var unit = document.createElement("div");
+      unit.className = "rblx-adcash-unit";
+      unit.setAttribute("aria-label", "Advertisement");
+      host.appendChild(unit);
+      var invocation = document.createElement("script");
+      invocation.type = "text/javascript";
+      invocation.text = "window.aclib.runBanner({zoneId:" + JSON.stringify(String(zoneId)) + "});";
+      unit.appendChild(invocation);
+    }).catch(function () {
+      delete host.dataset[mountedKey];
+    });
+  }
+
   function mountSharedBannerAd(slot) {
     if (!slot || !shouldShowMemberAds() || slot.dataset.rblxBannerLoaded === "true") return;
-    slot.dataset.rblxBannerLoaded = "true";
-    var adFrame = document.createElement("iframe");
-    adFrame.className = "rblx-banner-ad-frame";
-    adFrame.title = "Advertisement";
-    adFrame.width = "728";
-    adFrame.height = "90";
-    adFrame.scrolling = "no";
-    adFrame.setAttribute("frameborder", "0");
-    slot.appendChild(adFrame);
+    mountAdcashBanner(slot, ADCASH_DISPLAY_ZONES.horizontal, "rblxBannerLoaded");
     var host = slot.closest("[data-rblx-banner-ad]");
     enableSmartAdRefresh(host, function () { slot.textContent = ""; delete slot.dataset.rblxBannerLoaded; mountSharedBannerAd(slot); });
   }
@@ -4642,16 +4683,13 @@
 
   function mountMobileHomeBannerAd(slot) {
     if (!slot || !shouldShowMemberAds() || slot.dataset.rblxMobileBannerLoaded === "true") return;
-    slot.dataset.rblxMobileBannerLoaded = "true";
-    var adFrame = document.createElement("iframe");
-    adFrame.className = "rblx-mobile-home-banner-ad-frame";
-    adFrame.title = "Advertisement";
-    adFrame.width = "320";
-    adFrame.height = "50";
-    adFrame.scrolling = "no";
-    adFrame.setAttribute("frameborder", "0");
-    slot.appendChild(adFrame);
     var host = slot.closest("[data-rblx-mobile-banner-ad], .rblx-home-mobile-banner-ad");
+    // The provided mobile unit is 468px wide. Do not squeeze it into a phone.
+    if (window.innerWidth < 480) {
+      if (host) host.hidden = true;
+      return;
+    }
+    mountAdcashBanner(slot, ADCASH_DISPLAY_ZONES.mobileWide, "rblxMobileBannerLoaded");
     enableSmartAdRefresh(host, function () { slot.textContent = ""; delete slot.dataset.rblxMobileBannerLoaded; mountMobileHomeBannerAd(slot); });
   }
 
@@ -5185,6 +5223,7 @@
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
       '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price">' + config.price + '</span><small>' + config.subtitle + '</small></div>',
       '<div class="rblx-membership-promo-perks"><div class="rblx-membership-promo-section">General benefits</div>' + config.generalPerks.map(function (perk) { return perk === "Includes All Plus Benefits" ? '<span class="rblx-membership-promo-included"><b>+</b>Includes All Plus Benefits</span>' : '<span><b>+</b>' + perk + '</span>'; }).join("") + '<div class="rblx-membership-promo-section">AI benefits</div>' + config.aiPerks.map(function (perk) { return '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
+      showBoxAd ? '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad><span>Advertisement</span></div>' : '',
       '',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous membership plan"></button><div class="rblx-membership-promo-progress" aria-label="Membership plan rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next membership plan"></button></div><a class="rblx-membership-promo-action" href="./subscriptions">' + config.action + '</a></div>'
     ].join("");
@@ -5210,15 +5249,7 @@
 
   function mountBoxAd(host) {
     if (!host || !shouldShowMemberAds() || host.dataset.rblxBoxAdMounted === "true") return;
-    var adFrame = document.createElement("iframe");
-    adFrame.className = "rblx-box-ad-frame";
-    adFrame.title = "Advertisement";
-    adFrame.width = "300";
-    adFrame.height = "250";
-    adFrame.scrolling = "no";
-    adFrame.setAttribute("frameborder", "0");
-    host.insertBefore(adFrame, host.querySelector(".rblx-smart-ad-timer") || null);
-    host.dataset.rblxBoxAdMounted = "true";
+    mountAdcashBanner(host, ADCASH_DISPLAY_ZONES.box, "rblxBoxAdMounted");
     if (host.hasAttribute("data-rblx-shell-box-ad")) {
       enableSmartAdRefresh(host, function () { Array.prototype.forEach.call(host.querySelectorAll("iframe"), function (frame) { frame.remove(); }); delete host.dataset.rblxBoxAdMounted; mountBoxAd(host); });
     }
@@ -5231,15 +5262,7 @@
 
   function mountVerticalAd(host) {
     if (!host || !shouldShowMemberAds() || host.dataset.rblxVerticalAdMounted === "true") return;
-    var adFrame = document.createElement("iframe");
-    adFrame.className = "rblx-vertical-ad-frame";
-    adFrame.title = "Advertisement";
-    adFrame.width = "160";
-    adFrame.height = "600";
-    adFrame.scrolling = "no";
-    adFrame.setAttribute("frameborder", "0");
-    host.insertBefore(adFrame, host.querySelector(".rblx-smart-ad-timer") || null);
-    host.dataset.rblxVerticalAdMounted = "true";
+    mountAdcashBanner(host, ADCASH_DISPLAY_ZONES.skyscraper, "rblxVerticalAdMounted");
     enableSmartAdRefresh(host, function () { Array.prototype.forEach.call(host.querySelectorAll("iframe"), function (frame) { frame.remove(); }); delete host.dataset.rblxVerticalAdMounted; mountVerticalAd(host); });
   }
 
