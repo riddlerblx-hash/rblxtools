@@ -1341,14 +1341,15 @@
     #rbtools-account-overview .acct-promotion-section h4 { margin:0; padding-bottom:10px; border-bottom:1px solid rgba(111,146,205,.22); color:#f1f6ff; font-size:13px; }
     #rbtools-account-overview .acct-promotion-offer { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 0; border-bottom:1px solid rgba(111,146,205,.18); }
     #rbtools-account-overview .acct-promotion-code-row { display:flex; align-items:center; flex-wrap:wrap; gap:9px; }
-    #rbtools-account-overview .acct-promotion-code { color:#80f5af; font-size:22px; font-weight:1000; letter-spacing:.055em; text-shadow:0 0 10px rgba(68,239,133,.62), 0 0 24px rgba(68,239,133,.23); animation:acct-promo-glow 2.25s ease-in-out infinite; }
-    #rbtools-account-overview .acct-promotion-copy { min-height:30px; padding:6px 10px; border:1px solid rgba(75,230,132,.54); border-radius:8px; color:#d9ffe7; background:rgba(29,151,77,.16); font:900 11px Arial; cursor:pointer; transition:background .18s ease, transform .18s ease; }
-    #rbtools-account-overview .acct-promotion-copy:hover { background:rgba(29,151,77,.29); transform:translateY(-1px); }
+    #rbtools-account-overview .acct-promotion-code { padding:0; border:0; color:#80f5af; background:transparent; font:1000 22px Arial; letter-spacing:.055em; text-shadow:0 0 10px rgba(68,239,133,.62), 0 0 24px rgba(68,239,133,.23); cursor:pointer; animation:acct-promo-glow 2.25s ease-in-out infinite; }
+    #rbtools-account-overview .acct-promotion-code:hover, #rbtools-account-overview .acct-promotion-code:focus-visible { color:#c2ffda; outline:0; filter:brightness(1.25); }
+    #rbtools-account-overview .acct-promotion-code.is-copied { animation:acct-promo-copied .55s ease; }
     #rbtools-account-overview .acct-promotion-offer p { margin:6px 0 0; color:#dce8fa; font-size:13px; font-weight:850; }
     #rbtools-account-overview .acct-promotion-availability { min-width:132px; padding-left:20px; border-left:1px solid rgba(111,146,205,.22); text-align:right; }
     #rbtools-account-overview .acct-promotion-availability strong { display:block; color:#90f8b7; font-size:23px; line-height:1.05; text-shadow:0 0 16px rgba(68,239,133,.32); }
     #rbtools-account-overview .acct-promotion-empty { padding:18px 0; border-bottom:1px solid rgba(111,146,205,.18); color:#9fb3d5; font-size:12px; font-weight:700; }
     @keyframes acct-promo-glow { 0%,100% { filter:brightness(1); transform:translateY(0); } 50% { filter:brightness(1.18); transform:translateY(-1px); } }
+    @keyframes acct-promo-copied { 50% { color:#fff; text-shadow:0 0 20px rgba(144,248,183,.9); transform:scale(1.05); } }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr); min-height: clamp(470px, 58vh, 680px); }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-block { min-width: 0; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-section-title { margin: 3px 0 8px; font-size: clamp(22px, 2.1vw, 29px); line-height: 1.03; }
@@ -1950,7 +1951,6 @@
         acctBillingInvoices: document.getElementById("acctBillingInvoices"),
         acctPromotionSavings: document.getElementById("acctPromotionSavings"),
         acctPromotionCodes: document.getElementById("acctPromotionCodes"),
-        acctPromotionCopyButton: document.getElementById("acctPromotionCopyButton"),
         acctStripeStatus: document.getElementById("acctStripeStatus"),
         acctMembershipSource: document.getElementById("acctMembershipSource"),
         acctPlusDaysLeft: document.getElementById("acctPlusDaysLeft"),
@@ -3166,9 +3166,9 @@
           var maximum = Math.max(0, Number(promotion.maxRedemptions || 0));
           var discount = Number(promotion.percentOff || 0) ? Number(promotion.percentOff) + "% off a Pro monthly membership" : "Available for a Pro monthly membership";
           var code = String(promotion.code || "LETSGOPRO").replace(/[&<>]/g, function (char) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]; });
-          els.acctPromotionCodes.innerHTML = '<div class="acct-promotion-offer"><div><div class="acct-promotion-code-row"><strong id="acctPromotionCode" class="acct-promotion-code">' + code + '</strong><button id="acctPromotionCopyButton" class="acct-promotion-copy" type="button">Copy code</button></div><p>' + discount + '</p></div><div class="acct-promotion-availability" aria-live="polite"><strong>' + remaining + '/' + (maximum || 6) + '</strong><span>uses remaining</span></div></div>';
-          els.acctPromotionCopyButton = document.getElementById("acctPromotionCopyButton");
-          if (els.acctPromotionCopyButton) els.acctPromotionCopyButton.addEventListener("click", copyPromotionCode);
+          els.acctPromotionCodes.innerHTML = '<div class="acct-promotion-offer"><div><div class="acct-promotion-code-row"><button id="acctPromotionCode" class="acct-promotion-code" type="button" title="Copy code" aria-label="Copy promo code ' + code + '">' + code + '</button></div><p>' + discount + '</p></div><div class="acct-promotion-availability" aria-live="polite"><strong>' + remaining + '/' + (maximum || 6) + '</strong><span>uses remaining</span></div></div>';
+          var codeButton = document.getElementById("acctPromotionCode");
+          if (codeButton) codeButton.addEventListener("click", copyPromotionCode);
         } catch (_error) {
           els.acctPromotionCodes.innerHTML = '<div class="acct-promotion-empty">Active promotions are unavailable right now.</div>';
         }
@@ -3176,12 +3176,15 @@
 
       async function copyPromotionCode() {
         var code = document.getElementById("acctPromotionCode");
-        var button = els.acctPromotionCopyButton;
-        if (!code || !button) return;
-        var original = button.textContent;
-        try { await navigator.clipboard.writeText(code.textContent.trim()); button.textContent = "Copied"; }
-        catch (_error) { button.textContent = "Copy unavailable"; }
-        window.setTimeout(function () { if (button.isConnected) button.textContent = original; }, 1400);
+        if (!code) return;
+        try {
+          await navigator.clipboard.writeText(code.textContent.trim());
+          code.classList.remove("is-copied");
+          void code.offsetWidth;
+          code.classList.add("is-copied");
+          code.title = "Copied";
+          window.setTimeout(function () { if (code.isConnected) { code.classList.remove("is-copied"); code.title = "Copy code"; } }, 1400);
+        } catch (_error) { code.title = "Copy unavailable"; }
       }
 
       function closeBillingPaymentEditor() {
