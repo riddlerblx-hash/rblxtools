@@ -408,7 +408,7 @@
     if (!shellState.isAdmin) return "";
     var mode = getAdminPreviewMode();
     var label = mode === "admin" ? "Admin" : mode.charAt(0).toUpperCase() + mode.slice(1);
-    return '<details class="rblx-shell-admin-preview"><summary>View as <strong>' + label + '</strong></summary><div class="rblx-shell-admin-preview-panel"><button type="button" data-shell-admin-preview="guest">View as guest</button><button type="button" data-shell-admin-preview="plus">View as Plus</button><button type="button" data-shell-admin-preview="pro">View as Pro</button><button type="button" data-shell-admin-preview="admin">Exit preview</button></div></details>';
+    return '<details class="rblx-shell-admin-preview"><summary>View as <strong>' + label + '</strong></summary><div class="rblx-shell-admin-preview-panel"><button type="button" data-shell-admin-preview="guest">View as guest</button><button type="button" data-shell-admin-preview="plus">View as Plus</button><button type="button" data-shell-admin-preview="pro">View as Pro</button><button type="button" data-shell-admin-preview="admin">View as Admin</button></div></details>';
   }
 
   function refreshAdminPreviewControl() {

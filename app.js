@@ -1057,6 +1057,7 @@ function persistPendingAIUGCGeneration(user, settings) {
   savePersistentAIUGCHistory(user.id, {
     id: settings.taskId,
     title: cleanText(settings.prompt || (settings.inputMode === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
+    description: "",
     assetType: settings.assetType,
     inputMode: settings.inputMode,
     taskType: settings.taskType,
@@ -8150,6 +8151,7 @@ app.post("/ai/ugc/history", async (req, res) => {
     const item = {
       id: taskId,
       title: cleanText(req.body?.title || charge?.prompt || (taskType === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
+      description: cleanText(req.body?.description || existingItem?.description || "", 500),
       assetType: charge?.assetType || (String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc"),
       inputMode: charge?.inputMode || (taskType === "text" ? "text" : "image"),
       taskType,
@@ -8826,6 +8828,7 @@ app.post("/ai/ugc/history/:taskId/feedback", async (req, res) => {
       item = {
         id: taskId,
         title: cleanText(req.body?.title || charge?.prompt || task.prompt || (taskType === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
+        description: cleanText(req.body?.description || "", 500),
         assetType: charge?.assetType || (String(req.body?.assetType || "ugc") === "game" ? "game" : "ugc"),
         inputMode: charge?.inputMode || (taskType === "text" ? "text" : "image"), taskType,
         targetPolycount: charge?.targetPolycount || Number.parseInt(req.body?.targetPolycount, 10) || 4000,
