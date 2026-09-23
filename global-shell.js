@@ -2357,7 +2357,7 @@
 
   function buildHeaderNavigationMarkup() {
     function menu(label, links) { return '<details class="rblx-header-menu"><summary>' + label + '<span>⌄</span></summary><div>' + links.map(function (link) { return '<a href="' + link[0] + '">' + link[1] + '</a>'; }).join('') + '</div></details>'; }
-    return '<nav class="rblx-header-nav" aria-label="Primary navigation"><a href="./index">Home</a>' + menu('Tools', [['./template-background-changer', 'Background Changer'], ['./media-downloader', 'Media'], ['./audio-downloader', 'Audio'], ['./robux-calculator', 'Robux Calculator'], ['./animation-spoofer', 'Animations']]) + menu('AI tools', [['./ai-clothing-studio', 'AI Clothing Studio'], ['./ai-ugc', 'AI UGC Studio'], ['./thumbnail-ai', 'AI Thumbnail Studio']]) + '<a class="rblx-header-popular" href="./template-downloader">Clothing <small>Popular</small></a><a class="rblx-header-popular" href="./ugc-downloader">UGC <small>Popular</small></a>' + menu('More', [['./subscriptions', 'Subscriptions'], ['./ai-tokens', 'AI Tokens'], ['./discord-bot', 'Discord Bot'], ['./rewards', 'Redeem Rewards'], ['./codes', 'Game Codes'], ['./community', 'Community']]) + '</nav>';
+    return '<nav class="rblx-header-nav" aria-label="Primary navigation"><a href="./index">Home</a>' + menu('Tools', [['./template-background-changer', 'Background Changer'], ['./media-downloader', 'Media'], ['./audio-downloader', 'Audio'], ['./robux-calculator', 'Robux Calculator'], ['./animation-spoofer', 'Animations']]) + menu('AI tools', [['./ai-clothing-studio', 'AI Clothing Studio'], ['./ai-ugc', 'AI UGC Studio'], ['./thumbnail-ai', 'AI Thumbnail Studio']]) + '<a class="rblx-header-popular" href="./template-downloader">Clothing <small>Popular</small></a><a class="rblx-header-popular" href="./ugc-downloader">UGC <small>Popular</small></a><a href="./subscriptions">Subscriptions</a><a href="./ai-tokens">AI Tokens</a><a href="./discord-bot">Discord Bot</a><a href="./rewards">Redeem</a>' + menu('More', [['./codes', 'Game Codes'], ['./community', 'Community']]) + '</nav>';
   }
 
   var profilePreview = null;
@@ -5887,13 +5887,13 @@
     // the menu the member is interacting with open and dismiss them on any
     // outside click, like native desktop menus.
     document.addEventListener("click", function (event) {
-      Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-admin-preview[open], .rblx-shell-profile-menu[open], .rblx-shell-notification-menu[open]")).forEach(function (menu) {
+      Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-admin-preview[open], .rblx-shell-profile-menu[open], .rblx-shell-notification-menu[open], .rblx-header-menu[open]")).forEach(function (menu) {
         if (!menu.contains(event.target)) menu.removeAttribute("open");
       });
     });
     document.addEventListener("keydown", function (event) {
       if (event.key !== "Escape") return;
-      Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-admin-preview[open], .rblx-shell-profile-menu[open], .rblx-shell-notification-menu[open]")).forEach(function (menu) {
+      Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-admin-preview[open], .rblx-shell-profile-menu[open], .rblx-shell-notification-menu[open], .rblx-header-menu[open]")).forEach(function (menu) {
         menu.removeAttribute("open");
       });
     });
