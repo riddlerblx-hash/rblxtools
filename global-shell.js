@@ -1865,6 +1865,7 @@
               '<span class="rblx-shell-brand-subtitle">Roblox creator toolkit</span>' +
             "</span>" +
           "</a>" +
+          buildHeaderNavigationMarkup() +
           '<div id="rblxShellAdminPreviewHost">' + buildAdminPreviewMarkup() + '</div>' +
           '<div class="rblx-shell-header-actions">' +
             buildAuthMarkup() +
@@ -2352,6 +2353,11 @@
     if (!shellState.profileOverlay) return;
     shellState.profileOverlay.classList.remove("is-open");
     shellState.profileOverlay.setAttribute("aria-hidden", "true");
+  }
+
+  function buildHeaderNavigationMarkup() {
+    function menu(label, links) { return '<details class="rblx-header-menu"><summary>' + label + '<span>⌄</span></summary><div>' + links.map(function (link) { return '<a href="' + link[0] + '">' + link[1] + '</a>'; }).join('') + '</div></details>'; }
+    return '<nav class="rblx-header-nav" aria-label="Primary navigation"><a href="./index">Home</a>' + menu('Tools', [['./template-background-changer', 'Background Changer'], ['./media-downloader', 'Media'], ['./audio-downloader', 'Audio'], ['./robux-calculator', 'Robux Calculator'], ['./animation-spoofer', 'Animations']]) + menu('AI tools', [['./ai-clothing-studio', 'AI Clothing Studio'], ['./ai-ugc', 'AI UGC Studio'], ['./thumbnail-ai', 'AI Thumbnail Studio']]) + '<a class="rblx-header-popular" href="./template-downloader">Clothing <small>Popular</small></a><a class="rblx-header-popular" href="./ugc-downloader">UGC <small>Popular</small></a>' + menu('More', [['./subscriptions', 'Subscriptions'], ['./ai-tokens', 'AI Tokens'], ['./discord-bot', 'Discord Bot'], ['./rewards', 'Redeem Rewards'], ['./codes', 'Game Codes'], ['./community', 'Community']]) + '</nav>';
   }
 
   var profilePreview = null;
