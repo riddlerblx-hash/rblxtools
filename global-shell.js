@@ -3,6 +3,7 @@
   window.__rblxShellReady = true;
 
   var API_BASE = window.location.origin;
+  var BRAND_LOGO_URL = "/assets/rblxtools-logo.png";
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
@@ -1859,7 +1860,7 @@
       '<div class="rblx-shell" id="rblxShellRoot">' +
         '<header class="rblx-shell-header">' +
           '<a class="rblx-shell-brand" href="./index">' +
-            '<span class="rblx-shell-brand-mark">RB</span>' +
+            '<span class="rblx-shell-brand-mark"><img src="' + BRAND_LOGO_URL + '" alt="RBLXTools"></span>' +
             '<span class="rblx-shell-brand-text">' +
               '<span class="rblx-shell-brand-title">RBLXTools</span>' +
               '<span class="rblx-shell-brand-subtitle">Roblox creator toolkit</span>' +
@@ -5846,6 +5847,11 @@
   }
 
   function initShell() {
+    var favicon = document.querySelector('link[rel="icon"]') || document.createElement("link");
+    favicon.rel = "icon";
+    favicon.type = "image/png";
+    favicon.href = BRAND_LOGO_URL;
+    if (!favicon.parentNode) document.head.appendChild(favicon);
     var initialState = getImmediateUserState();
     shellState.currentUser = {
       loggedIn: Boolean(initialState.loggedIn),
