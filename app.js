@@ -30,6 +30,7 @@ const fetch = (...args) =>
 const { installSiteOpsFeature } = require("./site-ops-feature");
 const { createCodesPlatform } = require("./codes-platform");
 const { createSupabaseCodesStore } = require("./supabase-codes-store");
+const { createRewardsEngine } = require("./rewards-engine");
 const {
   createDiscordLinkCode,
   getDiscordLinkByAppUserId,
@@ -89,6 +90,7 @@ const AI_TOKEN_PURCHASES_TABLE = process.env.AI_TOKEN_PURCHASES_TABLE || "ai_tok
 // LiteSpeed serves the site directory read-only. Keep small application state outside it.
 const RBLXTOOLS_STATE_DIR = String(process.env.RBLXTOOLS_STATE_DIR || path.join(tmpdir(), "rblxtools-state")).trim();
 const MEMBER_REWARDS_PATH = path.join(RBLXTOOLS_STATE_DIR, "member-rewards.json");
+const REWARDS_LEVELING_PATH = path.join(RBLXTOOLS_STATE_DIR, "rewards-leveling.json");
 const REFERRAL_PROGRAM_PATH = path.join(RBLXTOOLS_STATE_DIR, "referral-program.json");
 const REFERRAL_COMMISSION_RATE = 0.05;
 const REFERRAL_PENDING_MS = 14 * 24 * 60 * 60 * 1000;
@@ -1685,6 +1687,7 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
 
         if (session.payment_status === "paid") {
           await recordStripeCheckoutPurchase(session);
+          recordVerifiedRewardsPurchase(session);
           await updateReferralCheckoutStatus(session, "confirmed");
           await recordReferralCommissionFromCheckout(session);
         }
@@ -1693,8 +1696,21 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
 
       case "checkout.session.async_payment_succeeded": {
         const session = event.data.object;
+        recordVerifiedRewardsPurchase(session);
         await updateReferralCheckoutStatus(session, "confirmed");
         await recordReferralCommissionFromCheckout(session);
+        break;
+      }
+
+      case "charge.refunded": {
+        const charge = event.data.object;
+        rewardsEngine.markPurchaseReversed({ paymentIntentId: typeof charge?.payment_intent === "string" ? charge.payment_intent : String(charge?.payment_intent?.id || ""), reason: "Stripe payment refunded" });
+        break;
+      }
+
+      case "charge.dispute.created": {
+        const dispute = event.data.object;
+        rewardsEngine.markPurchaseReversed({ paymentIntentId: typeof dispute?.payment_intent === "string" ? dispute.payment_intent : String(dispute?.payment_intent?.id || ""), reason: "Stripe payment disputed" });
         break;
       }
 
@@ -2186,6 +2202,25 @@ async function recordStripeCheckoutPurchase(session) {
   });
 }
 
+// Stripe is the source of truth for both XP and cashback.  Never accept an
+// amount, rank, or percentage from a checkout page/browser.
+function recordVerifiedRewardsPurchase(session) {
+  const userId = String(session?.metadata?.appUserId || session?.client_reference_id || "").trim();
+  const sourceId = String(session?.id || "").trim();
+  const paidCents = Math.max(0, Number(session?.amount_total || 0));
+  if (!userId || !sourceId || !paidCents) return null;
+  const metadata = session?.metadata || {};
+  const productType = String(metadata.productType || (metadata.aiTokenQuantity ? "ai_tokens" : session?.mode === "subscription" ? "membership" : "default")).trim() || "default";
+  const paymentIntentId = typeof session?.payment_intent === "string" ? session.payment_intent : String(session?.payment_intent?.id || "");
+  return rewardsEngine.recordPurchase({
+    userId, sourceId, productType,
+    title: getStripeCheckoutPurchaseTitle(session),
+    externalPaidCents: paidCents,
+    paymentIntentId,
+    metadata: { stripeSessionId: sourceId, currency: String(session?.currency || "usd").toLowerCase() },
+  });
+}
+
 async function getStripeAffiliateDiscountOptions(req, user, priceId, baseAmountCents) {
   const code = normalizeReferralCode(req.body?.referralCode);
   if (!code || !STRIPE_AFFILIATE_COUPON_ID) return {};
@@ -2385,6 +2420,30 @@ function readReferralProgram() {
   };
 }
 
+// Rewards state is server-owned and stored outside the deploy checkout.  The
+// only value that reaches the member cash balance is released through the
+// service-only Supabase RPC in releaseMatureRewardsCashback below.
+const rewardsEngine = createRewardsEngine({ readJsonFile, writeJsonFile, statePath: REWARDS_LEVELING_PATH, randomUUID });
+
+async function creditMatureRewardsCashback(entry) {
+  try {
+    const rows = await supabaseRequest("/rest/v1/rpc/credit_rewards_cashback", {
+      method: "POST",
+      body: JSON.stringify({ p_user_id: entry.userId, p_cashback_id: entry.id, p_cash_cents: entry.cashbackCents }),
+    });
+    const result = Array.isArray(rows) ? rows[0] : rows;
+    if (!result || !Number.isFinite(Number(result.rblxtools_cash_cents))) throw new Error("Cashback credit was not confirmed.");
+    await recordAccountTransaction({ userId: entry.userId, category: "cashback", sourceType: "rewards_cashback", sourceId: entry.id, title: entry.title, amountDelta: entry.cashbackCents, unit: "usd_cents", status: "confirmed", note: "Verified purchase cashback released after the holding period." });
+    return { credited: Boolean(result.credited), alreadyCredited: !Boolean(result.credited) };
+  } catch (error) {
+    console.warn("Could not release rewards cashback:", error.message);
+    return { credited: false };
+  }
+}
+
+setTimeout(() => { rewardsEngine.releaseMatureCashback(creditMatureRewardsCashback).catch((error) => console.warn("Could not start cashback release:", error.message)); }, 20000).unref();
+setInterval(() => { rewardsEngine.releaseMatureCashback(creditMatureRewardsCashback).catch((error) => console.warn("Could not run cashback release:", error.message)); }, 60 * 60 * 1000).unref();
+
 function writeReferralProgram(state) {
   writeJsonFile(REFERRAL_PROGRAM_PATH, {
     referrals: (state.referrals || []).slice(-10000),
@@ -2574,6 +2633,7 @@ function recordReferralCommissionFromCheckout(session) {
   state.attributions.push({ id: randomUUID(), buyerUserId, referrerUserId: referral.userId, code, createdAt: commission.createdAt });
   state.commissions.push(commission);
   writeReferralProgram(state);
+  rewardsEngine.recordActivity({ userId: referral.userId, sourceKey: `referral-first-purchase:${buyerUserId}`, action: "referral_first_purchase", title: "Referred member's first purchase", amount: rewardsEngine.getConfig().xp.referralFirstPurchase, note: "Verified first qualifying purchase", metadata: { buyerUserId, checkoutSessionId } });
   recordAccountTransaction({ userId: referral.userId, category: "affiliate", sourceType: "affiliate_commission", sourceId: commission.id, title: "Affiliate commission earned", amountDelta: commission.amountCents, unit: "usd_cents", status: "pending", note: "Available after the 14-day holding period" });
   return commission;
 }
@@ -3109,6 +3169,7 @@ function getEffectiveMembership(row) {
 
 function buildPublicUser(row) {
   const membership = getEffectiveMembership(row);
+  const rewards = rewardsEngine.getOverview(row.id);
   return {
     id: row.id,
     email: row.email,
@@ -3127,6 +3188,8 @@ function buildPublicUser(row) {
     plusExpiresAt: membership.plusExpiresAt,
     aiTokens: getAITokenBalance(row),
     rewardPoints: Math.max(0, Number(row.reward_points) || 0),
+    rewardsRank: rewards.rank,
+    lifetimeXp: rewards.lifetimeXp,
     currentPeriodStartAt: membership.currentPeriodStartAt,
     currentPeriodEndAt: membership.currentPeriodEndAt,
     createdAt: row.created_at || null,
@@ -3808,6 +3871,7 @@ async function buildResolvedPublicUser(row) {
   }
 
   const membership = await resolveMembershipSnapshot(row);
+  const rewards = rewardsEngine.getOverview(row.id);
   return {
     id: row.id,
     email: row.email,
@@ -3826,6 +3890,8 @@ async function buildResolvedPublicUser(row) {
     plusExpiresAt: membership.plusExpiresAt,
     aiTokens: getAITokenBalance(row),
     rewardPoints: Math.max(0, Number(row.reward_points) || 0),
+    rewardsRank: rewards.rank,
+    lifetimeXp: rewards.lifetimeXp,
     currentPeriodStartAt: membership.currentPeriodStartAt,
     currentPeriodEndAt: membership.currentPeriodEndAt,
     membershipBreakdown: membership.membershipBreakdown,
@@ -7591,6 +7657,9 @@ app.get("/auth/me", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const freshUser = await refreshStripeMembershipForUserIfNeeded(user);
     const resolvedUser = freshUser || user;
+    // One idempotent event per UTC day. Refreshing the page cannot extend a
+    // streak or earn additional XP.
+    rewardsEngine.recordActivity({ userId: resolvedUser.id, sourceKey: `daily-login:${resolvedUser.id}:${getTodayDate()}`, action: "daily_login", title: "Daily activity", amount: rewardsEngine.getConfig().xp.dailyLogin, note: "Authenticated account activity" });
     const deviceId = getRequestDeviceId(req);
     if (deviceId) {
       await linkDeviceToUser(resolvedUser, deviceId).catch(() => null);
@@ -8069,6 +8138,7 @@ app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
         };
         savePersistentAIUGCHistory(user.id, item);
         syncAIUGCCommunityOwnerEngagement(user.id, item);
+        rewardsEngine.recordActivity({ userId: user.id, sourceKey: `ai-generation:ugc:${taskId}`, action: "ai_generation", title: "AI UGC Studio", amount: rewardsEngine.getConfig().xp.aiGeneration, note: "Completed AI UGC generation", metadata: { taskId, studio: "ugc" }, limitKey: "aiGenerationsPerDay" });
       }
     }
     return res.json({ ok: true, task: { id: task.id, status: task.status, progress: Number(task.progress || 0), prompt: task.prompt || "", thumbnailUrl: task.alpha_thumbnail_url || task.thumbnail_url || "", modelUrls: task.model_urls || {}, textureUrls: Array.isArray(task.texture_urls) ? task.texture_urls : [], consumedCredits: task.consumed_credits, error: task.task_error && task.task_error.message ? task.task_error.message : "" } });
@@ -8899,6 +8969,9 @@ app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
     const limit = Math.max(minimumLimit, Math.min(absoluteLimit, Number.isFinite(requestedLimit) ? requestedLimit : absoluteLimit));
     const prepared = await prepareRobloxGLBDownload(modelBuffer, limit, assetType === "ugc" ? 1024 : 4096);
     assertGLBBinary(prepared.buffer);
+    // The downloaded file was prepared server-side for this authenticated
+    // account, so this is an eligible creator-tool action—not a browser ping.
+    rewardsEngine.recordActivity({ userId: user.id, sourceKey: `tool-use:ugc-download:${taskId}`, action: "eligible_tool_use", title: "UGC Studio download", amount: rewardsEngine.getConfig().xp.eligibleToolUse, note: "Prepared a completed UGC download", metadata: { taskId, tool: "ugc" }, limitKey: "eligibleToolUsesPerDay" });
     res.setHeader("Content-Type", "model/gltf-binary");
     res.setHeader("Content-Disposition", `attachment; filename="rblxtools-${assetType}-${taskId}.glb"`);
     res.setHeader("Cache-Control", "no-store");
@@ -8965,6 +9038,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
     } catch (historyError) {
       console.warn("Could not save AI thumbnail history:", historyError.message);
     }
+    rewardsEngine.recordActivity({ userId: user.id, sourceKey: `ai-generation:thumbnail:${historyItem?.id || downloadFileName}`, action: "ai_generation", title: "AI Thumbnail Studio", amount: rewardsEngine.getConfig().xp.aiGeneration, note: "Completed AI thumbnail generation", metadata: { historyId: historyItem?.id || null, studio: "thumbnail" }, limitKey: "aiGenerationsPerDay" });
     return res.json({
       ok: true,
       aiTokens,
@@ -12828,6 +12902,17 @@ app.patch("/admin/codes/expiry-reports/:id", async (req, res) => {
     return res.json({ ok: true, ...result });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not review this expiry report." });
+  }
+});
+
+app.get("/rewards/overview", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    res.setHeader("Cache-Control", "no-store, private, max-age=0");
+    const overview = rewardsEngine.getOverview(user.id);
+    return res.json({ ok: true, rewards: { ...overview, rblxtoolsCashCents: Math.max(0, Number(user.rblxtools_cash_cents) || 0) } });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load rewards progress." });
   }
 });
 

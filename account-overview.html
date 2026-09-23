@@ -1398,6 +1398,23 @@
     #rbtools-account-overview .acct-referral-request-list { display: grid; gap: 8px; margin-top: 14px; }
     #rbtools-account-overview .acct-referral-request, #rbtools-account-overview .acct-referral-empty { padding: 12px; border: 1px solid rgba(111, 146, 205, .2); border-radius: 12px; background: rgba(8, 16, 28, .52); color: #b7c7dd; font-size: 12px; font-weight: 700; }
     #rbtools-account-overview .acct-referral-request strong { color: #ecf8ff; }
+    #rbtools-account-overview .acct-levels { grid-column:1 / -1; }
+    #rbtools-account-overview .acct-levels-loading { padding:22px 0; color:#a9bad1; font-size:13px; font-weight:700; }
+    #rbtools-account-overview .acct-level-hero { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(220px,.7fr); gap:24px; padding:18px 0 22px; border-bottom:1px solid rgba(112,159,226,.2); }
+    #rbtools-account-overview .acct-level-rank { color:#fff; font-size:clamp(26px,3vw,39px); line-height:.95; font-weight:950; letter-spacing:-1px; }
+    #rbtools-account-overview .acct-level-rank small { display:block; margin-bottom:7px; color:#88d9ff; font-size:11px; letter-spacing:1.4px; text-transform:uppercase; }
+    #rbtools-account-overview .acct-level-xp { margin-top:14px; color:#eaf5ff; font-size:14px; font-weight:900; }
+    #rbtools-account-overview .acct-level-progress { height:9px; margin:9px 0 7px; overflow:hidden; border-radius:99px; background:rgba(122,151,198,.17); }
+    #rbtools-account-overview .acct-level-progress span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#49b5ff,#7a81ff 55%,#f35368); box-shadow:0 0 16px rgba(89,174,255,.56); }
+    #rbtools-account-overview .acct-level-note { color:#9eafc7; font-size:12px; font-weight:700; }
+    #rbtools-account-overview .acct-level-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border-top:1px solid rgba(112,159,226,.2); border-bottom:1px solid rgba(112,159,226,.2); }
+    #rbtools-account-overview .acct-level-stats div { padding:13px 10px; } #rbtools-account-overview .acct-level-stats div:nth-child(odd) { border-right:1px solid rgba(112,159,226,.2); } #rbtools-account-overview .acct-level-stats div:nth-child(-n+2) { border-bottom:1px solid rgba(112,159,226,.2); }
+    #rbtools-account-overview .acct-level-stats span { display:block; color:#8ca0bd; font-size:10px; font-weight:900; letter-spacing:.6px; text-transform:uppercase; } #rbtools-account-overview .acct-level-stats strong { display:block; margin-top:5px; color:#fff; font-size:17px; }
+    #rbtools-account-overview .acct-quest-grid,#rbtools-account-overview .acct-rank-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:13px; }
+    #rbtools-account-overview .acct-quest,#rbtools-account-overview .acct-rank { min-width:0; padding:13px 0; border-bottom:1px solid rgba(112,159,226,.18); }
+    #rbtools-account-overview .acct-quest strong,#rbtools-account-overview .acct-rank strong { display:block; color:#eaf4ff; font-size:13px; } #rbtools-account-overview .acct-quest span,#rbtools-account-overview .acct-rank span { display:block; margin-top:5px; color:#9cb0cb; font-size:11px; font-weight:700; }
+    #rbtools-account-overview .acct-quest.is-complete strong { color:#86f3bd; } #rbtools-account-overview .acct-rank.is-current { border-bottom-color:#f6bf47; } #rbtools-account-overview .acct-rank.is-current strong { color:#ffd46c; }
+    #rbtools-account-overview .acct-level-heading { margin:24px 0 0; color:#dce9fb; font-size:12px; font-weight:900; letter-spacing:.8px; text-transform:uppercase; }
     @media (max-width: 700px) { main { padding: 26px 12px 38px; } .hero { text-align: center; } .hero p { margin-left: auto; } }
     @keyframes acctProfileGlare { 0%, 38% { transform: translateX(-42%); opacity: 0; } 48% { opacity: 1; } 62%, 100% { transform: translateX(42%); opacity: 0; } }
     @media (max-width: 1040px) {
@@ -1414,6 +1431,7 @@
       #rbtools-account-overview .acct-tabs { flex-direction: column; }
       #rbtools-account-overview .acct-referral-balance-grid { grid-template-columns: 1fr; }
       #rbtools-account-overview .acct-referral-link-row { flex-direction: column; }
+      #rbtools-account-overview .acct-level-hero { grid-template-columns:1fr; } #rbtools-account-overview .acct-quest-grid,#rbtools-account-overview .acct-rank-list { grid-template-columns:1fr; }
       #rbtools-account-overview .acct-bot-metrics { grid-template-columns:1fr; }
       #rbtools-account-overview .acct-bot-setting { grid-template-columns:1fr; }
       #rbtools-account-overview .acct-bot-action-row, #rbtools-account-overview .acct-bot-role-entry, #rbtools-account-overview .acct-bot-admin-grid { grid-template-columns:1fr; }
@@ -1539,6 +1557,7 @@
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="billing">Payments &amp; Billing</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="promotions">Promotions</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="referrals">Affiliate Marketing</button>
+                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="levels">Rewards &amp; Levels</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="rewards">My Transactions</button>
                 <div id="acctBotTabWrap" class="acct-bot-tab-wrap" role="presentation">
                   <button id="acctBotTab" class="acct-tab" type="button" role="tab" aria-selected="false" aria-disabled="false" data-account-tab="bot">Bot Dashboard</button>
@@ -1687,6 +1706,12 @@
                       <div id="acctRewardHistory">Loading transaction history...</div>
                     </div>
                     <div id="acctRewardsStatus" class="acct-status"></div>
+                  </section>
+
+                  <section class="acct-block acct-levels" data-account-section="levels">
+                    <div class="acct-section-kicker">RBLXTools rewards</div>
+                    <h3 class="acct-section-title">Levels, quests &amp; cashback</h3>
+                    <div id="acctLevelsContent" class="acct-levels-loading">Loading your rewards progress...</div>
                   </section>
 
                   <section id="acctBotDashboard" class="acct-block acct-bot-dashboard" data-account-section="bot">
@@ -2044,6 +2069,7 @@
         acctReferralCopyButton: document.getElementById("acctReferralCopyButton"),
         acctReferralStatus: document.getElementById("acctReferralStatus"),
         acctRewardPoints: document.getElementById("acctRewardPoints"),
+        acctLevelsContent: document.getElementById("acctLevelsContent"),
         acctRewardHistory: document.getElementById("acctRewardHistory"),
         acctRewardTransactionType: document.getElementById("acctRewardTransactionType"),
         acctRewardTransactionRange: document.getElementById("acctRewardTransactionRange"),
@@ -2379,6 +2405,22 @@
       }
 
       var rewardHistoryLoading = false, rewardHistorySnapshot = "", rewardHistoryPage = 1;
+      function escapeRewards(value) { return String(value || "").replace(/[&<>]/g, function (char) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]; }); }
+      function renderRewardsLevels(rewards) {
+        if (!els.acctLevelsContent || !rewards) return;
+        var rank = rewards.rank || {}, next = rewards.nextRank || null, current = Math.max(0, Number(rewards.lifetimeXp || 0));
+        var start = Math.max(0, Number(rank.requiredXp || 0)), end = next ? Math.max(start + 1, Number(next.requiredXp || 0)) : Math.max(1, current);
+        var progress = next ? Math.min(100, Math.max(0, ((current - start) / (end - start)) * 100)) : 100;
+        var money = function (cents) { return formatReferralMoney(cents); };
+        var renderQuestGroup = function (title, quests) { return '<div class="acct-level-heading">' + title + '</div><div class="acct-quest-grid">' + (quests || []).map(function (quest) { return '<div class="acct-quest' + (quest.completed ? ' is-complete' : '') + '"><strong>' + escapeRewards(quest.title) + '</strong><span>' + Number(quest.progress || 0) + ' / ' + Number(quest.target || 0) + ' · +' + Number(quest.xp || 0) + ' XP' + (quest.completed ? ' · Complete' : '') + '</span></div>'; }).join('') + '</div>'; };
+        var ranks = (rewards.ranks || []).map(function (item) { return '<div class="acct-rank' + (item.key === rank.key ? ' is-current' : '') + '"><strong>Level ' + Number(item.level || 0) + ' · ' + escapeRewards(item.name) + '</strong><span>' + Number(item.requiredXp || 0).toLocaleString() + ' XP · ' + Number(item.cashbackPercent || 0) + '% cashback</span></div>'; }).join('');
+        els.acctLevelsContent.innerHTML = '<div class="acct-level-hero"><div><div class="acct-level-rank"><small>Level ' + Number(rank.level || 1) + '</small>' + escapeRewards(rank.name || 'Builder') + '</div><div class="acct-level-xp">' + current.toLocaleString() + ' lifetime XP</div><div class="acct-level-progress"><span style="width:' + progress.toFixed(2) + '%"></span></div><div class="acct-level-note">' + (next ? Number(rewards.xpToNextRank || 0).toLocaleString() + ' XP until ' + escapeRewards(next.name) : 'You reached the highest RBLXTools rank.') + '</div></div><div class="acct-level-stats"><div><span>Cashback rate</span><strong>' + Number(rank.cashbackPercent || 0) + '%</strong></div><div><span>Current streak</span><strong>🔥 ' + Number(rewards.currentStreak || 0) + ' days</strong></div><div><span>Cashback pending</span><strong>' + money(rewards.cashback?.pendingCents) + '</strong></div><div><span>Cash earned</span><strong>' + money(rewards.cashback?.availableCents) + '</strong></div></div></div>' + renderQuestGroup('Daily quests', rewards.quests?.daily) + renderQuestGroup('Weekly quests', rewards.quests?.weekly) + renderQuestGroup('Milestones', rewards.quests?.milestone) + '<div class="acct-level-heading">All ranks</div><div class="acct-rank-list">' + ranks + '</div>';
+      }
+      async function loadRewardsLevels() {
+        if (!state.user || !state.user.id || !els.acctLevelsContent) return;
+        try { var payload = await apiRequest('/rewards/overview', { method: 'GET' }); renderRewardsLevels(payload && payload.rewards); }
+        catch (error) { els.acctLevelsContent.textContent = error.message || 'Could not load rewards progress.'; }
+      }
       function syncTransactionSubTypeControl() {
         var type = els.acctRewardTransactionType ? els.acctRewardTransactionType.value : "points";
         var wrap = document.getElementById("acctRewardTransactionSubTypeWrap");
@@ -3620,7 +3662,7 @@
         if (!grid || !tabs.length || grid.dataset.tabsReady === "true") return;
 
         var panels = {};
-        ["settings", "billing", "promotions", "referrals", "rewards", "bot"].forEach(function (name) {
+        ["settings", "billing", "promotions", "referrals", "levels", "rewards", "bot"].forEach(function (name) {
           var panel = document.createElement("div");
           panel.className = "acct-tab-panel";
           panel.dataset.accountPanel = name;
@@ -3660,6 +3702,7 @@
           if (persist !== false) saveAccountTabPreference(name);
           if (name === "bot") requestAnimationFrame(function () { drawBotChart(state.botDashboard?.server?.activityByDate || {}); });
           if (name === "promotions") loadPromotionDetails();
+          if (name === "levels") loadRewardsLevels();
         }
 
         state.selectAccountTab = selectTab;
@@ -3672,7 +3715,7 @@
         });
         var requestedTab = new URLSearchParams(window.location.search || "").get("tab"), storedTab = "";
         try { storedTab = window.localStorage.getItem("rblxtools-account-tab") || ""; } catch (_error) { storedTab = ""; }
-        selectTab(["settings", "billing", "promotions", "referrals", "rewards"].includes(requestedTab) ? requestedTab : ["settings", "billing", "promotions", "referrals", "rewards"].includes(storedTab) ? storedTab : "settings", false);
+        selectTab(["settings", "billing", "promotions", "referrals", "levels", "rewards"].includes(requestedTab) ? requestedTab : ["settings", "billing", "promotions", "referrals", "levels", "rewards"].includes(storedTab) ? storedTab : "settings", false);
       }
 
       setupAccountTabs();
