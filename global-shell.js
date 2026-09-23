@@ -2382,10 +2382,13 @@
         currentResults.forEach(function (item) {
           var link = document.createElement("a");
           link.href = String(item.href || "/"); link.setAttribute("role", "option");
+          var thumbnail = String(item.thumbnail || "").trim();
+          if (thumbnail) { var image = document.createElement("img"); image.src = thumbnail; image.alt = ""; image.loading = "lazy"; link.appendChild(image); }
+          var copy = document.createElement("div"); copy.className = "rblx-header-search-result-copy";
           var type = document.createElement("small"); type.textContent = String(item.type || "Page");
           var title = document.createElement("strong"); title.textContent = String(item.title || "RBLXTools");
           var detail = document.createElement("span"); detail.textContent = String(item.description || "");
-          link.append(type, title); if (detail.textContent) link.appendChild(detail); results.appendChild(link);
+          copy.append(type, title); if (detail.textContent) copy.appendChild(detail); link.appendChild(copy); results.appendChild(link);
         });
       }
       results.hidden = false;
@@ -5515,7 +5518,7 @@
     return [
       '<div class="rblx-membership-promo-floaters ' + (isPro ? 'is-pro' : 'is-plus') + '" aria-hidden="true"><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span></div>',
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
-      '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price"' + (isPro ? ' data-rblx-pro-sale-price' : '') + '>' + config.price + '</span><small>' + config.subtitle + '</small>' + (isPro ? '<em data-rblx-pro-sale>LETSGOPRO · 6/6 left</em>' : '') + '</div>',
+      '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price"' + (isPro ? ' data-rblx-pro-sale-price' : '') + '>' + config.price + '</span><small>' + config.subtitle + '</small></div>',
       '<div class="rblx-membership-promo-perks"><div class="rblx-membership-promo-section">General benefits</div>' + config.generalPerks.map(function (perk) { return perk === "Includes All Plus Benefits" ? '<span class="rblx-membership-promo-included"><b>+</b>Includes All Plus Benefits</span>' : '<span><b>+</b>' + perk + '</span>'; }).join("") + '<div class="rblx-membership-promo-section">AI benefits</div>' + config.aiPerks.map(function (perk) { return '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
       showBoxAd ? '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad><span>Advertisement</span></div>' : '',
       '',
@@ -5987,7 +5990,6 @@
     // added node (including ads and tool results), which adds avoidable work
     // and can make busy tool pages feel sluggish.
     initMembershipPromoRotation();
-    initProSalePolling();
     initInstantInfoTooltips();
     initSidebarPlanRotation();
     mountDesktopShellBoxAds();

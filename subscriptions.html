@@ -1584,7 +1584,6 @@
                 <div class="price-value" data-membership-price="pro">$5.00</div>
                 <div class="price-sub" data-membership-price-sub="pro">Per month</div>
                 <div class="price-save" data-membership-save="pro"></div>
-                <div class="pro-sale-callout" id="proSaleCallout"><strong>LETSGOPRO</strong><span id="proSaleAvailability">6/6 left</span></div>
               </div>
             </div>
 
@@ -1758,8 +1757,6 @@
       var proTokenPerkTitle = document.getElementById("proTokenPerkTitle");
       var proTokenPerkCopy = document.getElementById("proTokenPerkCopy");
       var proAnnualTokenHighlight = document.getElementById("proAnnualTokenHighlight");
-      var proSaleCallout = document.getElementById("proSaleCallout");
-      var proSaleAvailability = document.getElementById("proSaleAvailability");
       var billingInterval = "month";
       var membershipPricing = null;
       var proSaleStatus = { active:true, code:"LETSGOPRO", remaining:6, maxRedemptions:6 };
@@ -1806,8 +1803,6 @@
           if (proTokenPerkTitle) proTokenPerkTitle.innerHTML = isAnnualBilling ? '<span class="annual-credit-old">2,400</span> 3,000 AI Credits Every Year <small class="annual-credit-bonus">+600 Bonus AI Tokens</small>' : "200 AI Credits Every Month";
           if (proTokenPerkCopy) proTokenPerkCopy.textContent = isAnnualBilling ? "All 3,000 AI credits are added instantly after your successful annual Pro payment." : "A fresh 200 AI credits are added after every successful Pro monthly payment.";
           if (proAnnualTokenHighlight) proAnnualTokenHighlight.innerHTML = isAnnualBilling ? 'Annual Pro includes <span class="annual-credit-old">2,400</span> 3,000 AI credits instantly <span class="annual-credit-bonus">+600 Bonus AI Tokens</span>.' : "Choose annual Pro for 3,000 AI credits instantly, or get 200 AI credits after each successful monthly Pro payment.";
-          if (proSaleCallout) proSaleCallout.hidden = billingInterval !== "month" || !proSaleStatus.active;
-          if (proSaleAvailability) proSaleAvailability.textContent = Math.max(0, Number(proSaleStatus.remaining || 0)) + "/" + (Number(proSaleStatus.maxRedemptions || 0) || 6) + " left";
           priceSavings.forEach(function(element) {
             var plan = element.getAttribute("data-membership-save");
             var annualPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan].year;
@@ -1835,14 +1830,6 @@
           } catch (_error) {
             updateBillingUi();
           }
-        }
-
-        async function loadProSaleStatus() {
-          try {
-            var payload = await apiRequest("/auth/pro-sale-status");
-            if (payload) proSaleStatus = payload;
-            updateBillingUi();
-          } catch (_error) {}
         }
 
         billingButtons.forEach(function(button) {
@@ -2305,8 +2292,6 @@
       window.addEventListener("pageshow", syncInitialMobilePlan);
 
       loadMembershipPricing();
-      loadProSaleStatus();
-      window.setInterval(loadProSaleStatus, 30000);
       detectPlanState();
     }());
   </script>

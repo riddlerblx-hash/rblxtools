@@ -12479,7 +12479,7 @@ app.get("/api/site-search", async (req, res) => {
   const results = publicPages.filter(matches);
   try {
     const listedCodes = await codesPlatform.list({ search: query, limit: 8, page: 1 });
-    (listedCodes.games || []).forEach((game) => results.push({ title: String(game.name || "Roblox code guide"), description: `${Number(game.workingCodeCount || 0)} working codes`, href: `/codes/${encodeURIComponent(String(game.slug || ""))}`, type: "Code guide" }));
+    (listedCodes.games || []).forEach((game) => results.push({ title: String(game.name || "Roblox codes"), description: `${Number(game.workingCodeCount || 0)} working codes`, href: `/codes/${encodeURIComponent(String(game.slug || ""))}`, thumbnail: String(game.icon || game.thumbnail || ""), type: "Codes" }));
   } catch (error) { console.error("Header code search failed:", error.message); }
   try {
     readCommunityPosts().filter((post) => matches({ title: post.title, description: post.body })).slice(0, 6).forEach((post) => results.push({ title: String(post.title), description: String(post.body || "").replace(/\s+/g, " ").slice(0, 110), href: `/community#post-${encodeURIComponent(String(post.id))}`, type: "Community post" }));
