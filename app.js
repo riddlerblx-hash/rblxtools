@@ -3169,11 +3169,12 @@ function getEffectiveMembership(row) {
 
 function buildPublicUser(row) {
   const membership = getEffectiveMembership(row);
-  const rewards = rewardsEngine.getOverview(row.id);
+  const admin = isAdminUser(row);
+  const rewards = admin ? rewardsEngine.getOverview(row.id) : null;
   return {
     id: row.id,
     email: row.email,
-    isAdmin: isAdminUser(row),
+    isAdmin: admin,
     plan: membership.plan,
     premiumActive: membership.premiumActive,
     plusActive: membership.plan === "plus",
@@ -3188,8 +3189,7 @@ function buildPublicUser(row) {
     plusExpiresAt: membership.plusExpiresAt,
     aiTokens: getAITokenBalance(row),
     rewardPoints: Math.max(0, Number(row.reward_points) || 0),
-    rewardsRank: rewards.rank,
-    lifetimeXp: rewards.lifetimeXp,
+    ...(rewards ? { rewardsRank: rewards.rank, lifetimeXp: rewards.lifetimeXp } : {}),
     currentPeriodStartAt: membership.currentPeriodStartAt,
     currentPeriodEndAt: membership.currentPeriodEndAt,
     createdAt: row.created_at || null,
@@ -3871,11 +3871,12 @@ async function buildResolvedPublicUser(row) {
   }
 
   const membership = await resolveMembershipSnapshot(row);
-  const rewards = rewardsEngine.getOverview(row.id);
+  const admin = isAdminUser(row);
+  const rewards = admin ? rewardsEngine.getOverview(row.id) : null;
   return {
     id: row.id,
     email: row.email,
-    isAdmin: isAdminUser(row),
+    isAdmin: admin,
     plan: membership.plan,
     premiumActive: membership.premiumActive,
     plusActive: membership.plan === "plus",
@@ -3890,8 +3891,7 @@ async function buildResolvedPublicUser(row) {
     plusExpiresAt: membership.plusExpiresAt,
     aiTokens: getAITokenBalance(row),
     rewardPoints: Math.max(0, Number(row.reward_points) || 0),
-    rewardsRank: rewards.rank,
-    lifetimeXp: rewards.lifetimeXp,
+    ...(rewards ? { rewardsRank: rewards.rank, lifetimeXp: rewards.lifetimeXp } : {}),
     currentPeriodStartAt: membership.currentPeriodStartAt,
     currentPeriodEndAt: membership.currentPeriodEndAt,
     membershipBreakdown: membership.membershipBreakdown,
@@ -12907,7 +12907,7 @@ app.patch("/admin/codes/expiry-reports/:id", async (req, res) => {
 
 app.get("/rewards/overview", async (req, res) => {
   try {
-    const user = await requireAuthenticatedUser(req);
+    const user = await requireAdminUser(req);
     res.setHeader("Cache-Control", "no-store, private, max-age=0");
     const overview = rewardsEngine.getOverview(user.id);
     return res.json({ ok: true, rewards: { ...overview, rblxtoolsCashCents: Math.max(0, Number(user.rblxtools_cash_cents) || 0) } });

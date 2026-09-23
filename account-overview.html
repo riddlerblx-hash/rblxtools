@@ -1580,8 +1580,8 @@
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="billing">Payments &amp; Billing</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="promotions">Promotions</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="referrals">Affiliate Marketing</button>
-                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="levels">Quests &amp; Levels</button>
-                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="rakeback">Rakeback &amp; Levels</button>
+                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="levels" hidden>Quests &amp; Levels</button>
+                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="rakeback" hidden>Rakeback &amp; Levels</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="rewards">My Transactions</button>
                 <div id="acctBotTabWrap" class="acct-bot-tab-wrap" role="presentation">
                   <button id="acctBotTab" class="acct-tab" type="button" role="tab" aria-selected="false" aria-disabled="false" data-account-tab="bot">Bot Dashboard</button>
@@ -3022,6 +3022,9 @@
 
       function renderUser(user) {
         state.user = user || null;
+        Array.prototype.slice.call(document.querySelectorAll('[data-account-tab="levels"], [data-account-tab="rakeback"]')).forEach(function (tab) {
+          tab.hidden = !Boolean(state.user && state.user.isAdmin);
+        });
         if (!state.user) {
           els.acctCard.classList.remove("is-plus", "is-pro");
           setBotTabLocked(true);
@@ -3731,6 +3734,7 @@
 
         function selectTab(name, persist) {
           if (!Object.prototype.hasOwnProperty.call(panels, name)) return;
+          if ((name === "levels" || name === "rakeback") && !Boolean(state.user && state.user.isAdmin)) name = "settings";
           tabs.forEach(function (tab) {
             var active = tab.dataset.accountTab === name;
             tab.classList.toggle("is-active", active);
