@@ -217,7 +217,7 @@ body.rblx-shell-ready {
   font-weight: 900;
   letter-spacing: 0.6px;
 }
-.rblx-shell-brand-mark img{display:block;width:100%;height:100%;object-fit:contain}
+.rblx-shell-brand-mark:has(img){border-radius:0;background:transparent;box-shadow:none}.rblx-shell-brand-mark img{display:block;width:100%;height:100%;object-fit:contain}
 
 .rblx-shell-brand-text {
   display: grid;
