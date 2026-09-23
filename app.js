@@ -12445,7 +12445,7 @@ async function getPublishedCodeSitemapEntries() {
 
 app.get("/sitemap.xml", async (_req, res) => {
   const origin = APP_BASE_URL.replace(/\/+$/, "");
-  const staticPaths = ["/", "/about-us", "/audio-downloader", "/game-launcher", "/media-downloader", "/robux-calculator", "/subscriptions", "/template-background-changer", "/template-downloader", "/ugc-downloader", "/codes"];
+  const staticPaths = ["/", "/about-us", "/ai-ugc", "/audio-downloader", "/game-launcher", "/media-downloader", "/robux-calculator", "/subscriptions", "/template-background-changer", "/template-downloader", "/thumbnail-ai", "/ugc-downloader", "/codes"];
   let codePosts = [];
   try { codePosts = await getPublishedCodeSitemapEntries(); }
   catch (error) { console.error("Could not build code-post sitemap entries:", error.message); }
