@@ -1324,13 +1324,31 @@
     #rbtools-account-overview .acct-tab-panel[data-account-panel="rewards"] .acct-info-grid { grid-template-columns: minmax(0, 1fr); max-width: 260px; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="rewards"] .acct-transactions { margin-top:24px; padding:0; border:0; border-radius:0; background:transparent; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="settings"], #rbtools-account-overview .acct-tab-panel[data-account-panel="billing"], #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns:minmax(0,1fr); gap:0; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="promotions"] { grid-template-columns:minmax(0,1fr); gap:0; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="settings"] .acct-block, #rbtools-account-overview .acct-tab-panel[data-account-panel="billing"] .acct-block, #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-block { padding:22px 4px; border:0; border-bottom:1px solid rgba(111,146,205,.2); border-radius:0; background:transparent; box-shadow:none; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="promotions"] .acct-block { padding:10px 4px 24px; border:0; border-radius:0; background:transparent; box-shadow:none; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="settings"] .acct-block:first-child, #rbtools-account-overview .acct-tab-panel[data-account-panel="billing"] .acct-block:first-child, #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-block:first-child { padding-top:10px; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="settings"] .acct-info-grid, #rbtools-account-overview .acct-tab-panel[data-account-panel="billing"] .acct-info-grid, #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-info-grid { gap:0; margin:18px 0; border-top:1px solid rgba(111,146,205,.2); border-bottom:1px solid rgba(111,146,205,.2); }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="settings"] .acct-pill-card, #rbtools-account-overview .acct-tab-panel[data-account-panel="billing"] .acct-pill-card, #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-pill-card { padding:12px 10px; border:0; border-left:1px solid rgba(111,146,205,.2); border-radius:0; background:transparent; box-shadow:none; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="settings"] .acct-pill-card:first-child, #rbtools-account-overview .acct-tab-panel[data-account-panel="billing"] .acct-pill-card:first-child, #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-pill-card:first-child { border-left:0; padding-left:0; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="settings"] .acct-settings-stack { display:contents; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-block:not(.acct-referral-hero) { display:none; }
+    #rbtools-account-overview .acct-promotion-summary { display:flex; align-items:end; justify-content:space-between; gap:20px; margin-top:22px; padding:16px 0; border-top:1px solid rgba(111,146,205,.22); border-bottom:1px solid rgba(111,146,205,.22); }
+    #rbtools-account-overview .acct-promotion-summary span, #rbtools-account-overview .acct-promotion-availability span { display:block; color:#9fb3d5; font-size:10px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+    #rbtools-account-overview .acct-promotion-summary strong { display:block; margin-top:4px; color:#f5f8ff; font-size:28px; line-height:1; letter-spacing:-.04em; }
+    #rbtools-account-overview .acct-promotion-summary small { display:block; max-width:360px; color:#9fb3d5; font-size:11px; font-weight:700; line-height:1.45; }
+    #rbtools-account-overview .acct-promotion-section { margin-top:22px; }
+    #rbtools-account-overview .acct-promotion-section h4 { margin:0; padding-bottom:10px; border-bottom:1px solid rgba(111,146,205,.22); color:#f1f6ff; font-size:13px; }
+    #rbtools-account-overview .acct-promotion-offer { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 0; border-bottom:1px solid rgba(111,146,205,.18); }
+    #rbtools-account-overview .acct-promotion-code-row { display:flex; align-items:center; flex-wrap:wrap; gap:9px; }
+    #rbtools-account-overview .acct-promotion-code { color:#80f5af; font-size:22px; font-weight:1000; letter-spacing:.055em; text-shadow:0 0 10px rgba(68,239,133,.62), 0 0 24px rgba(68,239,133,.23); animation:acct-promo-glow 2.25s ease-in-out infinite; }
+    #rbtools-account-overview .acct-promotion-copy { min-height:30px; padding:6px 10px; border:1px solid rgba(75,230,132,.54); border-radius:8px; color:#d9ffe7; background:rgba(29,151,77,.16); font:900 11px Arial; cursor:pointer; transition:background .18s ease, transform .18s ease; }
+    #rbtools-account-overview .acct-promotion-copy:hover { background:rgba(29,151,77,.29); transform:translateY(-1px); }
+    #rbtools-account-overview .acct-promotion-offer p { margin:6px 0 0; color:#dce8fa; font-size:13px; font-weight:850; }
+    #rbtools-account-overview .acct-promotion-availability { min-width:132px; padding-left:20px; border-left:1px solid rgba(111,146,205,.22); text-align:right; }
+    #rbtools-account-overview .acct-promotion-availability strong { display:block; color:#90f8b7; font-size:23px; line-height:1.05; text-shadow:0 0 16px rgba(68,239,133,.32); }
+    #rbtools-account-overview .acct-promotion-empty { padding:18px 0; border-bottom:1px solid rgba(111,146,205,.18); color:#9fb3d5; font-size:12px; font-weight:700; }
+    @keyframes acct-promo-glow { 0%,100% { filter:brightness(1); transform:translateY(0); } 50% { filter:brightness(1.18); transform:translateY(-1px); } }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr); min-height: clamp(470px, 58vh, 680px); }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-block { min-width: 0; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] .acct-section-title { margin: 3px 0 8px; font-size: clamp(22px, 2.1vw, 29px); line-height: 1.03; }
@@ -1371,6 +1389,8 @@
     @media (max-width: 1040px) {
       #rbtools-account-overview .acct-tab-panel { grid-template-columns: 1fr; }
       #rbtools-account-overview .acct-tab-panel[data-account-panel="referrals"] { grid-template-columns: 1fr; }
+      #rbtools-account-overview .acct-promotion-summary, #rbtools-account-overview .acct-promotion-offer { align-items:flex-start; flex-direction:column; }
+      #rbtools-account-overview .acct-promotion-availability { min-width:0; padding:12px 0 0; border-top:1px solid rgba(111,146,205,.22); border-left:0; text-align:left; }
       #rbtools-account-overview .acct-settings-stack { grid-template-rows: none; }
     }
     @media (max-width: 760px) {
@@ -1601,10 +1621,11 @@
                     <div class="acct-section-kicker">Savings &amp; offers</div>
                     <h3 class="acct-section-title">Promotions</h3>
                     <p class="acct-section-copy">See the discounts you have saved and the public RBLXTools promotions that are currently available.</p>
-                    <div class="acct-info-grid">
-                      <div class="acct-pill-card"><div class="acct-pill-label">Total saved</div><div id="acctPromotionSavings" class="acct-pill-value">$0.00</div></div>
+                    <div class="acct-promotion-summary">
+                      <div><span>Total saved</span><strong id="acctPromotionSavings">$0.00</strong></div>
+                      <small>Total discounts from completed RBLXTools purchases and promotions.</small>
                     </div>
-                    <div class="acct-billing-history"><h4>Active promotions</h4><div id="acctPromotionCodes" class="acct-transaction-empty">Loading active promotions...</div></div>
+                    <div class="acct-promotion-section"><h4>Active promotions</h4><div id="acctPromotionCodes" class="acct-promotion-empty">Loading active promotions...</div></div>
                   </section>
 
                   <section class="acct-block" data-account-section="settings">
@@ -1929,6 +1950,7 @@
         acctBillingInvoices: document.getElementById("acctBillingInvoices"),
         acctPromotionSavings: document.getElementById("acctPromotionSavings"),
         acctPromotionCodes: document.getElementById("acctPromotionCodes"),
+        acctPromotionCopyButton: document.getElementById("acctPromotionCopyButton"),
         acctStripeStatus: document.getElementById("acctStripeStatus"),
         acctMembershipSource: document.getElementById("acctMembershipSource"),
         acctPlusDaysLeft: document.getElementById("acctPlusDaysLeft"),
@@ -3137,17 +3159,29 @@
         try {
           var promotion = await apiRequest("/auth/pro-sale-status", { method: "GET" });
           if (!promotion || !promotion.active) {
-            els.acctPromotionCodes.innerHTML = '<div class="acct-transaction-empty">No public promo codes are active right now.</div>';
+            els.acctPromotionCodes.innerHTML = '<div class="acct-promotion-empty">No public promo codes are active right now.</div>';
             return;
           }
           var remaining = Math.max(0, Number(promotion.remaining || 0));
           var maximum = Math.max(0, Number(promotion.maxRedemptions || 0));
-          var discount = Number(promotion.percentOff || 0) ? Number(promotion.percentOff) + "% off Pro" : "Pro discount";
+          var discount = Number(promotion.percentOff || 0) ? Number(promotion.percentOff) + "% off a Pro monthly membership" : "Available for a Pro monthly membership";
           var code = String(promotion.code || "LETSGOPRO").replace(/[&<>]/g, function (char) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]; });
-          els.acctPromotionCodes.innerHTML = '<div class="acct-billing-invoice"><span><strong>' + code + '</strong><br><small>' + discount + ' · ' + remaining + '/' + (maximum || 6) + ' uses remaining</small></span><span>Available</span></div>';
+          els.acctPromotionCodes.innerHTML = '<div class="acct-promotion-offer"><div><div class="acct-promotion-code-row"><strong id="acctPromotionCode" class="acct-promotion-code">' + code + '</strong><button id="acctPromotionCopyButton" class="acct-promotion-copy" type="button">Copy code</button></div><p>' + discount + '</p></div><div class="acct-promotion-availability" aria-live="polite"><strong>' + remaining + '/' + (maximum || 6) + '</strong><span>uses remaining</span></div></div>';
+          els.acctPromotionCopyButton = document.getElementById("acctPromotionCopyButton");
+          if (els.acctPromotionCopyButton) els.acctPromotionCopyButton.addEventListener("click", copyPromotionCode);
         } catch (_error) {
-          els.acctPromotionCodes.innerHTML = '<div class="acct-transaction-empty">Active promotions are unavailable right now.</div>';
+          els.acctPromotionCodes.innerHTML = '<div class="acct-promotion-empty">Active promotions are unavailable right now.</div>';
         }
+      }
+
+      async function copyPromotionCode() {
+        var code = document.getElementById("acctPromotionCode");
+        var button = els.acctPromotionCopyButton;
+        if (!code || !button) return;
+        var original = button.textContent;
+        try { await navigator.clipboard.writeText(code.textContent.trim()); button.textContent = "Copied"; }
+        catch (_error) { button.textContent = "Copy unavailable"; }
+        window.setTimeout(function () { if (button.isConnected) button.textContent = original; }, 1400);
       }
 
       function closeBillingPaymentEditor() {
