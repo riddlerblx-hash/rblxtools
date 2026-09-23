@@ -271,7 +271,7 @@
       ]
     },
     {
-      title: "RBLX Rewards",
+      title: "Earnings",
       items: [
         { href: "./rewards", label: "Redeem", icon: "spark" }
       ]
