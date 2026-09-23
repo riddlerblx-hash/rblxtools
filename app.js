@@ -12422,6 +12422,43 @@ function getUsers(room) {
 const STATIC_ROOT = __dirname;
 const AI_RIG_STATIC_ROOT = path.join(__dirname, "assets", "ai-rig");
 
+function escapeSitemapXml(value) {
+  return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
+function formatSitemapDate(value) {
+  const date = new Date(value || "");
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+}
+
+async function getPublishedCodeSitemapEntries() {
+  const firstPage = await codesPlatform.list({ limit: 100, page: 1 });
+  const total = Math.min(50000, Math.max(0, Number(firstPage?.total || 0)));
+  const pages = Math.max(1, Math.ceil(total / 100));
+  const games = Array.isArray(firstPage?.games) ? firstPage.games.slice() : [];
+  for (let page = 2; page <= pages; page += 1) {
+    const result = await codesPlatform.list({ limit: 100, page });
+    games.push(...(Array.isArray(result?.games) ? result.games : []));
+  }
+  return games.filter((game) => String(game?.slug || "").trim());
+}
+
+app.get("/sitemap.xml", async (_req, res) => {
+  const origin = APP_BASE_URL.replace(/\/+$/, "");
+  const staticPaths = ["/", "/about-us", "/audio-downloader", "/game-launcher", "/media-downloader", "/robux-calculator", "/subscriptions", "/template-background-changer", "/template-downloader", "/ugc-downloader", "/codes"];
+  let codePosts = [];
+  try { codePosts = await getPublishedCodeSitemapEntries(); }
+  catch (error) { console.error("Could not build code-post sitemap entries:", error.message); }
+  const entries = [
+    ...staticPaths.map((pathname) => ({ loc: `${origin}${pathname}` })),
+    ...codePosts.map((game) => ({ loc: `${origin}/codes/${encodeURIComponent(String(game.slug))}`, lastmod: game.lastUpdated || game.updatedAt || game.createdAt || "" })),
+  ];
+  const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries.map((entry) => { const lastmod = formatSitemapDate(entry.lastmod); return `  <url>\n    <loc>${escapeSitemapXml(entry.loc)}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ""}\n  </url>`; }).join("\n")}\n</urlset>\n`;
+  res.type("application/xml");
+  res.setHeader("Cache-Control", "no-store");
+  return res.send(body);
+});
+
 app.get("/api/codes", async (req, res) => {
   try { return res.json(await codesPlatform.list({ search: req.query.search, limit: req.query.limit, page: req.query.page })); }
   catch (_error) { return res.status(500).json({ error: "Could not load Roblox code guides." }); }
@@ -12862,8 +12899,10 @@ function renderCodeGuideSharePage(req, guide) {
   const rawImage = String(game.icon || "").trim();
   const imageUrl = rawImage && (/^https?:\/\//i.test(rawImage) ? rawImage : rawImage.startsWith("/") ? `${origin}${rawImage}` : "");
   const imageMeta = imageUrl ? `<meta property="og:image" content="${escapeShareMeta(imageUrl)}">\n  <meta property="og:image:secure_url" content="${escapeShareMeta(imageUrl)}">\n  <meta name="twitter:image" content="${escapeShareMeta(imageUrl)}">` : "";
-  const meta = `<meta property="og:type" content="website">\n  <meta property="og:site_name" content="RBLXTools">\n  <meta property="og:title" content="${escapeShareMeta(title)}">\n  <meta property="og:description" content="${escapeShareMeta(description)}">\n  <meta property="og:url" content="${escapeShareMeta(canonicalUrl)}">\n  ${imageMeta}\n  <meta name="twitter:card" content="summary_large_image">\n  <meta name="twitter:title" content="${escapeShareMeta(title)}">\n  <meta name="twitter:description" content="${escapeShareMeta(description)}">`;
-  const page = fs.readFileSync(path.join(STATIC_ROOT, "game-codes.html"), "utf8");
+  const meta = `<link rel="canonical" href="${escapeShareMeta(canonicalUrl)}">\n  <meta name="robots" content="index,follow">\n  <meta property="og:type" content="website">\n  <meta property="og:site_name" content="RBLXTools">\n  <meta property="og:title" content="${escapeShareMeta(title)}">\n  <meta property="og:description" content="${escapeShareMeta(description)}">\n  <meta property="og:url" content="${escapeShareMeta(canonicalUrl)}">\n  ${imageMeta}\n  <meta name="twitter:card" content="summary_large_image">\n  <meta name="twitter:title" content="${escapeShareMeta(title)}">\n  <meta name="twitter:description" content="${escapeShareMeta(description)}">`;
+  const page = fs.readFileSync(path.join(STATIC_ROOT, "game-codes.html"), "utf8")
+    .replace(/<title>[^<]*<\/title>/i, `<title>${escapeShareMeta(title)}</title>`)
+    .replace(/<meta name="description" content="[^"]*">/i, `<meta name="description" content="${escapeShareMeta(description)}">`);
   return page.replace("</head>", `  ${meta}\n</head>`);
 }
 
