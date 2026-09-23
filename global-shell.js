@@ -2358,7 +2358,59 @@
 
   function buildHeaderNavigationMarkup() {
     function menu(label, links) { return '<details class="rblx-header-menu"><summary>' + label + '<span>⌄</span></summary><div>' + links.map(function (link) { return '<a href="' + link[0] + '">' + link[1] + '</a>'; }).join('') + '</div></details>'; }
-    return '<nav class="rblx-header-nav" aria-label="Primary navigation"><a href="./index">Home</a>' + menu('Tools', [['./template-background-changer', 'Background Changer'], ['./media-downloader', 'Media'], ['./audio-downloader', 'Audio'], ['./robux-calculator', 'Robux Calculator'], ['./animation-spoofer', 'Animations']]) + menu('AI tools', [['./ai-clothing-studio', 'AI Clothing Studio'], ['./ai-ugc', 'AI UGC Studio'], ['./thumbnail-ai', 'AI Thumbnail Studio']]) + '<a class="rblx-header-popular" href="./template-downloader">Clothing <small>Popular</small></a><a class="rblx-header-popular" href="./ugc-downloader">UGC <small>Popular</small></a><a href="./codes">Roblox Codes</a><a href="./discord-bot">Discord Bot</a><a href="./rewards">Rewards</a>' + menu('More', [['./subscriptions', 'Subscriptions'], ['./ai-tokens', 'AI Tokens'], ['./community', 'Community']]) + '</nav>';
+    return '<div class="rblx-header-center"><nav class="rblx-header-nav" aria-label="Primary navigation"><a href="./index">Home</a>' + menu('Tools', [['./template-background-changer', 'Background Changer'], ['./media-downloader', 'Media'], ['./audio-downloader', 'Audio'], ['./robux-calculator', 'Robux Calculator'], ['./animation-spoofer', 'Animations']]) + menu('AI tools', [['./ai-clothing-studio', 'AI Clothing Studio'], ['./ai-ugc', 'AI UGC Studio'], ['./thumbnail-ai', 'AI Thumbnail Studio']]) + '<a class="rblx-header-popular" href="./template-downloader">Clothing <small>Popular</small></a><a class="rblx-header-popular" href="./ugc-downloader">UGC <small>Popular</small></a><a href="./codes">Roblox Codes</a><a href="./discord-bot">Discord Bot</a><a href="./rewards">Rewards</a>' + menu('More', [['./subscriptions', 'Subscriptions'], ['./ai-tokens', 'AI Tokens'], ['./community', 'Community']]) + '</nav><form id="rblxHeaderSearch" class="rblx-header-search" role="search" autocomplete="off"><label for="rblxHeaderSearchInput">Search RBLXTools</label><span aria-hidden="true">⌕</span><input id="rblxHeaderSearchInput" type="search" name="q" placeholder="Search pages, codes &amp; posts"><button type="button" aria-label="Clear search" hidden>×</button><div id="rblxHeaderSearchResults" class="rblx-header-search-results" role="listbox" hidden></div></form></div>';
+  }
+
+  function initHeaderSearch() {
+    var form = document.getElementById("rblxHeaderSearch");
+    var input = document.getElementById("rblxHeaderSearchInput");
+    var clear = form && form.querySelector("button");
+    var results = document.getElementById("rblxHeaderSearchResults");
+    if (!form || !input || !results || form.dataset.ready === "1") return;
+    form.dataset.ready = "1";
+    var timer = 0;
+    var requestId = 0;
+    var currentResults = [];
+
+    function close() { results.hidden = true; results.replaceChildren(); currentResults = []; }
+    function render(items, message) {
+      results.replaceChildren();
+      currentResults = Array.isArray(items) ? items : [];
+      if (message) {
+        var note = document.createElement("div"); note.className = "rblx-header-search-note"; note.textContent = message; results.appendChild(note);
+      } else {
+        currentResults.forEach(function (item) {
+          var link = document.createElement("a");
+          link.href = String(item.href || "/"); link.setAttribute("role", "option");
+          var type = document.createElement("small"); type.textContent = String(item.type || "Page");
+          var title = document.createElement("strong"); title.textContent = String(item.title || "RBLXTools");
+          var detail = document.createElement("span"); detail.textContent = String(item.description || "");
+          link.append(type, title); if (detail.textContent) link.appendChild(detail); results.appendChild(link);
+        });
+      }
+      results.hidden = false;
+    }
+    function search() {
+      var query = String(input.value || "").trim();
+      if (clear) clear.hidden = !query;
+      if (query.length < 2) { close(); return; }
+      var thisRequest = ++requestId;
+      render([], "Searching public RBLXTools pages…");
+      fetch(API_BASE + "/api/site-search?q=" + encodeURIComponent(query), { credentials: "include", cache: "no-store" })
+        .then(function (response) { return response.ok ? response.json() : Promise.reject(new Error("Search unavailable")); })
+        .then(function (payload) {
+          if (thisRequest !== requestId) return;
+          var items = Array.isArray(payload && payload.results) ? payload.results : [];
+          render(items, items.length ? "" : "No public pages, code guides, or community posts matched that search.");
+        })
+        .catch(function () { if (thisRequest === requestId) render([], "Search is temporarily unavailable. Please try again."); });
+    }
+    input.addEventListener("input", function () { window.clearTimeout(timer); timer = window.setTimeout(search, 150); });
+    input.addEventListener("focus", function () { if (String(input.value || "").trim().length >= 2) search(); });
+    form.addEventListener("submit", function (event) { event.preventDefault(); if (currentResults[0] && currentResults[0].href) window.location.href = currentResults[0].href; else search(); });
+    if (clear) clear.addEventListener("click", function () { input.value = ""; clear.hidden = true; close(); input.focus(); });
+    document.addEventListener("click", function (event) { if (!form.contains(event.target)) close(); });
+    document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !results.hidden) { close(); input.blur(); } });
   }
 
   var profilePreview = null;
@@ -5867,6 +5919,7 @@
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
+    initHeaderSearch();
     renderRenewalNotice(getServerRenewalNoticeSnapshot() || {});
     applyAdminPreview();
     document.addEventListener("click", function (event) {

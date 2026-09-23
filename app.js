@@ -12459,6 +12459,35 @@ app.get("/sitemap.xml", async (_req, res) => {
   return res.send(body);
 });
 
+// Header search has a deliberately public-only index. Account, checkout, admin,
+// and other member-only routes never enter this response.
+app.get("/api/site-search", async (req, res) => {
+  const query = cleanText(req.query.q, 100).toLowerCase();
+  const terms = query.split(/\s+/).filter((term) => term.length >= 2).slice(0, 8);
+  if (!terms.length) return res.json({ ok: true, results: [] });
+  const publicPages = [
+    ["Home", "RBLXTools creator toolkit", "/"], ["Clothing Downloader", "Download Roblox classic clothing templates", "/template-downloader"], ["UGC Downloader", "Download and preview Roblox UGC assets", "/ugc-downloader"], ["Background Changer", "Edit Roblox clothing template backgrounds", "/template-background-changer"], ["Media Downloader", "Download Roblox media and assets", "/media-downloader"], ["Audio Downloader", "Download Roblox audio", "/audio-downloader"], ["Robux Calculator", "Calculate Robux prices and payouts", "/robux-calculator"], ["Animations", "Roblox animation tool", "/animation-spoofer"], ["AI Clothing Studio", "Create Roblox clothing with AI", "/ai-clothing-studio"], ["AI UGC Studio", "Create Roblox UGC concepts with AI", "/ai-ugc"], ["AI Thumbnail Studio", "Create Roblox thumbnails with AI", "/thumbnail-ai"], ["Roblox Codes", "Find working Roblox game codes", "/codes"], ["Discord Bot", "RBLXTools Discord bot plans and tools", "/discord-bot"], ["Rewards", "Earn and redeem RBLXTools rewards", "/rewards"], ["Subscriptions", "RBLXTools Plus and Pro memberships", "/subscriptions"], ["AI Tokens", "Buy AI tokens and credits", "/ai-tokens"], ["Community", "RBLXTools announcements, feedback, and posts", "/community"], ["About RBLXTools", "Learn about RBLXTools", "/about-us"], ["Privacy Policy", "RBLXTools privacy policy", "/privacy-policy"], ["Terms and Conditions", "RBLXTools terms and conditions", "/terms-and-conditions"],
+  ].map(([title, description, href]) => ({ title, description, href, type: "Page" }));
+  const matches = (item) => {
+    const haystack = `${item.title || ""} ${item.description || ""}`.toLowerCase();
+    return terms.every((term) => haystack.includes(term));
+  };
+  const scored = (item) => {
+    const title = String(item.title || "").toLowerCase(); const description = String(item.description || "").toLowerCase();
+    return terms.reduce((score, term) => score + (title.startsWith(term) ? 7 : title.includes(term) ? 4 : description.includes(term) ? 1 : 0), 0);
+  };
+  const results = publicPages.filter(matches);
+  try {
+    const listedCodes = await codesPlatform.list({ search: query, limit: 8, page: 1 });
+    (listedCodes.games || []).forEach((game) => results.push({ title: String(game.name || "Roblox code guide"), description: `${Number(game.workingCodeCount || 0)} working codes`, href: `/codes/${encodeURIComponent(String(game.slug || ""))}`, type: "Code guide" }));
+  } catch (error) { console.error("Header code search failed:", error.message); }
+  try {
+    readCommunityPosts().filter((post) => matches({ title: post.title, description: post.body })).slice(0, 6).forEach((post) => results.push({ title: String(post.title), description: String(post.body || "").replace(/\s+/g, " ").slice(0, 110), href: `/community#post-${encodeURIComponent(String(post.id))}`, type: "Community post" }));
+  } catch (error) { console.error("Header community search failed:", error.message); }
+  const seen = new Set();
+  return res.json({ ok: true, results: results.filter((item) => item.href && !seen.has(item.href) && seen.add(item.href)).sort((left, right) => scored(right) - scored(left)).slice(0, 10) });
+});
+
 app.get("/api/codes", async (req, res) => {
   try { return res.json(await codesPlatform.list({ search: req.query.search, limit: req.query.limit, page: req.query.page })); }
   catch (_error) { return res.status(500).json({ error: "Could not load Roblox code guides." }); }
