@@ -1287,6 +1287,19 @@
     #rbtools-account-overview .acct-bot-limit-config.is-disabled::after { position:absolute; z-index:2; inset:-5px; border-radius:10px; background:rgba(4, 10, 22, .38); box-shadow:inset 0 0 18px rgba(0, 0, 0, .45); content:""; }
     #rbtools-account-overview .acct-bot-chart { width:100%; height:190px; margin-top:8px; border-radius:9px; background:rgba(4,12,25,.45); }
     #rbtools-account-overview .acct-bot-list { display:grid; gap:7px; max-height:170px; overflow:auto; color:#cbd9ed; font-size:10px; font-weight:700; }
+    /* Bot dashboard uses the same divider-led admin layout as transactions, rather than nested cards. */
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-dashboard { min-height:0; padding:10px 4px 28px; border:0; border-radius:0; background:transparent; box-shadow:none; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-controls { gap:0; margin-top:18px; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-metrics { gap:0; margin:0; border-top:1px solid rgba(111,146,205,.22); border-bottom:1px solid rgba(111,146,205,.22); }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-metrics div { padding:14px 12px; border:0; border-left:1px solid rgba(111,146,205,.22); border-radius:0; background:transparent; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-metrics div:first-child { padding-left:0; border-left:0; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-setting, #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] #acctBotRoleLimitsContent { padding:18px 0; border-bottom:1px solid rgba(111,146,205,.2); }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-admin-grid { gap:0; grid-template-columns:repeat(2,minmax(0,1fr)); border-bottom:1px solid rgba(111,146,205,.2); }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-admin-card { min-height:210px; padding:20px 16px; border:0; border-left:1px solid rgba(111,146,205,.2); border-radius:0; background:transparent; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-admin-card:nth-child(odd) { padding-left:0; border-left:0; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-admin-card h4 { margin-bottom:10px; color:#f2f6ff; font-size:14px; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-chart { border:1px solid rgba(111,146,205,.16); border-radius:8px; background:rgba(4,12,25,.32); }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-role-rule { padding:9px 0; border-bottom:1px solid rgba(111,146,205,.14); border-radius:0; background:transparent; }
     #rbtools-account-overview .acct-transactions { margin-top:16px; padding:18px; border:1px solid rgba(137,174,227,.28); border-radius:14px; background:rgba(5,14,29,.5); }
     #rbtools-account-overview .acct-transaction-top { display:flex; align-items:end; justify-content:space-between; gap:14px; }
     #rbtools-account-overview .acct-transaction-top h4 { margin:0; color:#f3f7ff; font-size:20px; letter-spacing:-.03em; }
@@ -1403,7 +1416,11 @@
       #rbtools-account-overview .acct-referral-link-row { flex-direction: column; }
       #rbtools-account-overview .acct-bot-metrics { grid-template-columns:1fr; }
       #rbtools-account-overview .acct-bot-setting { grid-template-columns:1fr; }
-      #rbtools-account-overview .acct-bot-action-row, #rbtools-account-overview .acct-bot-role-entry { grid-template-columns:1fr; }
+      #rbtools-account-overview .acct-bot-action-row, #rbtools-account-overview .acct-bot-role-entry, #rbtools-account-overview .acct-bot-admin-grid { grid-template-columns:1fr; }
+      #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-metrics div { padding:13px 0; border-left:0; border-top:1px solid rgba(111,146,205,.16); }
+      #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-metrics div:first-child { border-top:0; }
+      #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-admin-card { min-height:0; padding:18px 0; border-left:0; border-top:1px solid rgba(111,146,205,.2); }
+      #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-admin-card:first-child { border-top:0; }
     }
   </style>
   <link rel="stylesheet" href="./mobile-overrides.css">
