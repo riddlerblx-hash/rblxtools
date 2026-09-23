@@ -1292,6 +1292,7 @@
     #rbtools-account-overview .acct-transaction-top h4 { margin:0; color:#f3f7ff; font-size:20px; letter-spacing:-.03em; }
     #rbtools-account-overview .acct-transaction-controls { display:flex; flex-wrap:wrap; gap:9px; margin:15px 0; }
     #rbtools-account-overview .acct-transaction-controls label { display:grid; gap:5px; color:#a8bbd8; font-size:10px; font-weight:900; letter-spacing:.05em; text-transform:uppercase; }
+    #rbtools-account-overview .acct-transaction-controls label[hidden] { display:none !important; }
     #rbtools-account-overview .acct-transaction-controls select { min-width:150px; padding:9px 30px 9px 10px; border:1px solid rgba(156,190,239,.42); border-radius:8px; color:#ecf3ff; background:#111e34; font:700 12px Arial; }
     #rbtools-account-overview .acct-transaction-group { margin-top:17px; }
     #rbtools-account-overview .acct-transaction-group-head, #rbtools-account-overview .acct-transaction-row { display:grid; grid-template-columns:minmax(0,1fr) 130px; gap:12px; align-items:center; }
@@ -1498,6 +1499,7 @@
               <div class="acct-tabs" role="tablist" aria-label="Account sections">
                 <button class="acct-tab is-active" type="button" role="tab" aria-selected="true" data-account-tab="settings">Account Settings</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="billing">Payments &amp; Billing</button>
+                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="promotions">Promotions</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="referrals">Affiliate Marketing</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="rewards">My Transactions</button>
                 <div id="acctBotTabWrap" class="acct-bot-tab-wrap" role="presentation">
@@ -1593,6 +1595,16 @@
                     <div id="acctBillingPaymentPanel" class="acct-billing-panel" hidden><h4>Secure payment method</h4><p>Your card details are entered directly into Stripe’s secure form and never pass through RBLXTools.</p><div id="acctStripePaymentElement" class="acct-stripe-element"></div><div class="acct-billing-actions"><button id="acctBillingPaymentSaveButton" class="acct-button plans" type="button">Save payment method</button><button id="acctBillingPaymentCloseButton" class="acct-button secondary" type="button">Close</button></div></div>
                     <div class="acct-billing-history"><h4>Billing history</h4><div id="acctBillingInvoices" class="acct-transaction-empty">Loading purchases...</div></div>
                     <div id="acctBillingStatus" class="acct-status"></div>
+                  </section>
+
+                  <section class="acct-block" data-account-section="promotions">
+                    <div class="acct-section-kicker">Savings &amp; offers</div>
+                    <h3 class="acct-section-title">Promotions</h3>
+                    <p class="acct-section-copy">See the discounts you have saved and the public RBLXTools promotions that are currently available.</p>
+                    <div class="acct-info-grid">
+                      <div class="acct-pill-card"><div class="acct-pill-label">Total saved</div><div id="acctPromotionSavings" class="acct-pill-value">$0.00</div></div>
+                    </div>
+                    <div class="acct-billing-history"><h4>Active promotions</h4><div id="acctPromotionCodes" class="acct-transaction-empty">Loading active promotions...</div></div>
                   </section>
 
                   <section class="acct-block" data-account-section="settings">
@@ -1915,6 +1927,8 @@
         acctBillingPaymentSaveButton: document.getElementById("acctBillingPaymentSaveButton"),
         acctBillingPaymentCloseButton: document.getElementById("acctBillingPaymentCloseButton"),
         acctBillingInvoices: document.getElementById("acctBillingInvoices"),
+        acctPromotionSavings: document.getElementById("acctPromotionSavings"),
+        acctPromotionCodes: document.getElementById("acctPromotionCodes"),
         acctStripeStatus: document.getElementById("acctStripeStatus"),
         acctMembershipSource: document.getElementById("acctMembershipSource"),
         acctPlusDaysLeft: document.getElementById("acctPlusDaysLeft"),
@@ -2958,6 +2972,7 @@
             loadRewardHistory();
             loadDiscordLinkStatus();
             loadBillingDetails();
+            loadPromotionDetails();
             var checkoutSummary = await loadCheckoutSummary();
             if (state.checkoutStatus === "success") {
               dispatchCheckoutCelebration(checkoutSummary, loadedUser);
@@ -3080,8 +3095,8 @@
           cards.push({ label: "Current plan", value: "Free" });
           cards.push({ label: "Billing account", value: details && details.hasCustomer ? "Stripe account connected" : "No billing account" });
         }
-        cards.push({ label: "Total saved", value: formatBillingMoney(details && details.totalSavingsCents || 0, "USD") });
         if (els.acctBillingInfo) els.acctBillingInfo.innerHTML = cards.map(function (card) { return '<div class="acct-pill-card"><div class="acct-pill-label">' + safe(card.label) + '</div><div class="acct-pill-value">' + safe(card.value) + '</div></div>'; }).join("");
+        renderPromotionDetails();
         if (els.acctBillingPaymentButton) {
           var method = details && details.paymentMethod;
           els.acctBillingPaymentButton.textContent = method ? "Update " + String(method.brand || "card").toUpperCase() + " •••• " + String(method.last4 || "") : "Add payment method";
@@ -3110,6 +3125,28 @@
           renderBillingDetails(details);
         } catch (error) {
           setStatus(els.acctBillingStatus, error.message || "Could not load Stripe billing details.", "error");
+        }
+      }
+
+      function renderPromotionDetails() {
+        if (els.acctPromotionSavings) els.acctPromotionSavings.textContent = formatBillingMoney(state.billing && state.billing.totalSavingsCents || 0, "USD");
+      }
+
+      async function loadPromotionDetails() {
+        if (!state.user || !state.user.id || !els.acctPromotionCodes) return;
+        try {
+          var promotion = await apiRequest("/auth/pro-sale-status", { method: "GET" });
+          if (!promotion || !promotion.active) {
+            els.acctPromotionCodes.innerHTML = '<div class="acct-transaction-empty">No public promo codes are active right now.</div>';
+            return;
+          }
+          var remaining = Math.max(0, Number(promotion.remaining || 0));
+          var maximum = Math.max(0, Number(promotion.maxRedemptions || 0));
+          var discount = Number(promotion.percentOff || 0) ? Number(promotion.percentOff) + "% off Pro" : "Pro discount";
+          var code = String(promotion.code || "LETSGOPRO").replace(/[&<>]/g, function (char) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]; });
+          els.acctPromotionCodes.innerHTML = '<div class="acct-billing-invoice"><span><strong>' + code + '</strong><br><small>' + discount + ' · ' + remaining + '/' + (maximum || 6) + ' uses remaining</small></span><span>Available</span></div>';
+        } catch (_error) {
+          els.acctPromotionCodes.innerHTML = '<div class="acct-transaction-empty">Active promotions are unavailable right now.</div>';
         }
       }
 
@@ -3529,7 +3566,7 @@
         if (!grid || !tabs.length || grid.dataset.tabsReady === "true") return;
 
         var panels = {};
-        ["settings", "billing", "referrals", "rewards", "bot"].forEach(function (name) {
+        ["settings", "billing", "promotions", "referrals", "rewards", "bot"].forEach(function (name) {
           var panel = document.createElement("div");
           panel.className = "acct-tab-panel";
           panel.dataset.accountPanel = name;
@@ -3568,6 +3605,7 @@
           state.selectedAccountTab = name;
           if (persist !== false) saveAccountTabPreference(name);
           if (name === "bot") requestAnimationFrame(function () { drawBotChart(state.botDashboard?.server?.activityByDate || {}); });
+          if (name === "promotions") loadPromotionDetails();
         }
 
         state.selectAccountTab = selectTab;
@@ -3580,10 +3618,12 @@
         });
         var requestedTab = new URLSearchParams(window.location.search || "").get("tab"), storedTab = "";
         try { storedTab = window.localStorage.getItem("rblxtools-account-tab") || ""; } catch (_error) { storedTab = ""; }
-        selectTab(["settings", "billing", "referrals", "rewards"].includes(requestedTab) ? requestedTab : ["settings", "billing", "referrals", "rewards"].includes(storedTab) ? storedTab : "settings", false);
+        selectTab(["settings", "billing", "promotions", "referrals", "rewards"].includes(requestedTab) ? requestedTab : ["settings", "billing", "promotions", "referrals", "rewards"].includes(storedTab) ? storedTab : "settings", false);
       }
 
       setupAccountTabs();
+      loadPromotionDetails();
+      window.setInterval(loadPromotionDetails, 30000);
       loadProfile();
       syncBioCount();
       var cachedAccount = readAccountSnapshot();
