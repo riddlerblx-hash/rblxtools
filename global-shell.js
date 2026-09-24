@@ -480,26 +480,16 @@
     notice.hidden = false;
   }
 
-  async function beginRenewalCheckout(button) {
+  function beginRenewalCheckout(button) {
     var notice = document.getElementById("rblxShellRenewalNotice");
     var plan = String(notice && notice.dataset.plan || "plus").toLowerCase() === "pro" ? "pro" : "plus";
     button.disabled = true;
-    button.textContent = "Opening secure checkout...";
-    try {
-      var response = await fetch(API_BASE + (plan === "pro" ? "/auth/create-pro-checkout-session" : "/auth/create-checkout-session"), {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() },
-        body: JSON.stringify({ billingInterval: "monthly" })
-      });
-      var payload = await response.json().catch(function () { return null; });
-      if (!response.ok || !payload || !payload.url) throw new Error(payload && payload.error || "Could not open secure checkout.");
-      window.location.assign(payload.url);
-    } catch (error) {
-      button.disabled = false;
-      button.textContent = "Renew membership";
-      window.alert(error.message || "Could not open secure checkout.");
-    }
+    button.textContent = "Opening checkout...";
+    // Keep renewal inside the first-party RBLXTools checkout. That page owns
+    // the embedded Stripe step and preserves the selected plan and promotion.
+    var params = new URLSearchParams({ item: plan, billing: "month", renew: "1" });
+    if (plan === "pro") params.set("promo", "LETSGOPRO");
+    window.location.assign("./checkout?" + params.toString());
   }
 
   function getStableAdminState(state) {
@@ -528,19 +518,14 @@
   }
 
   function shouldShowMemberAds() {
-    // "View as" is an administrator-only preview, but it must control ad
-    // eligibility too. Otherwise an admin with Pro could never test guest
-    // ads or the interstitial flow.
-    var memberState = shellState.isAdmin ? { plan: getEffectiveMemberPlan() } : shellState.currentUser;
-    return !isProMember(memberState);
+    return false;
   }
 
   function syncMemberAdVisibility(state) {
-    var hideAds = isProMember(state);
-    document.body.classList.toggle("rblx-pro-ad-free", hideAds);
+    var hideAds = true;
+    document.body.classList.add("rblx-pro-ad-free");
     Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad], [data-rblx-promo-box-ad], [data-rblx-modal-ad], [data-rblx-vertical-ad], [data-rblx-banner-ad], [data-rblx-mobile-banner-ad], [data-rblx-video-slider-ad]"), function (host) {
-      host.hidden = hideAds;
-      if (!hideAds) return;
+      host.hidden = true;
       // Remove any ad that was mounted before the account state was resolved.
       if (host.hasAttribute("data-rblx-banner-ad")) {
         Array.prototype.forEach.call(host.querySelectorAll(".rblx-tool-banner-ad-slot"), function (slot) {
@@ -553,19 +538,8 @@
       delete host.dataset.rblxBoxAdMounted;
       delete host.dataset.rblxVerticalAdMounted;
     });
-    if (hideAds) {
-      removeTutorialVideoAds();
-      removeVideoSliderAd();
-      renderToolInterstitialStatus();
-    } else if (shellState.authResolved) {
-      mountDesktopShellBoxAds();
-      mountDesktopVerticalAds();
-      initShellSidebarAds();
-      Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-mobile-banner-ad] .rblx-home-mobile-banner-ad-slot"), mountMobileBannerAd);
-      initTutorialVideoAds();
-      initVideoSliderAd();
-      initToolUseInterstitial();
-    }
+    removeTutorialVideoAds();
+    removeVideoSliderAd();
   }
 
   function ensureGoogleAnalyticsSetup() {
@@ -666,10 +640,7 @@
   }
 
   function buildModalAdRailsMarkup() {
-    return (
-      '<aside class="rblx-shell-modal-ad-rail is-left" data-rblx-modal-ad aria-label="Advertisement"><span>Advertisement</span></aside>' +
-      '<aside class="rblx-shell-modal-ad-rail is-right" data-rblx-modal-ad aria-label="Advertisement"><span>Advertisement</span></aside>'
-    );
+    return "";
   }
 
   function buildAnimationMembershipGateMarkup() {
@@ -4749,6 +4720,9 @@
   }
 
   function initVideoSliderAd() {
+    // Advertising has been disabled site-wide.
+    removeVideoSliderAd();
+    return;
     if (!shellState.authResolved || !shouldShowMemberAds()) {
       removeVideoSliderAd();
       return;
@@ -4855,6 +4829,8 @@
   }
 
   function initToolUseInterstitial() {
+    // Advertising has been disabled site-wide.
+    return;
     if (!shellState.toolUseInterstitialBound) {
       shellState.toolUseInterstitialBound = true;
       window.addEventListener("rblxtools-tool-use", function () {
@@ -4977,6 +4953,8 @@
   }
 
   function initSharedMobileBannerAds() {
+    // Advertising has been disabled site-wide.
+    return;
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initSharedMobileBannerAds, { once: true });
       return;
@@ -5021,6 +4999,8 @@
   }
 
   function initSharedToolBannerAd() {
+    // Advertising has been disabled site-wide.
+    return;
     if (document.readyState === "loading") {
       if (!window.__rblxToolBannerQueued) {
         window.__rblxToolBannerQueued = true;
@@ -5041,6 +5021,8 @@
   }
 
   function initSharedToolFooterBannerAd() {
+    // Advertising has been disabled site-wide.
+    return;
     if (document.readyState === "loading") {
       if (!window.__rblxToolFooterBannerQueued) {
         window.__rblxToolFooterBannerQueued = true;
@@ -5063,6 +5045,8 @@
   }
 
   function initSharedStoreFooterBannerAd() {
+    // Advertising has been disabled site-wide.
+    return;
     var currentPath = String(window.location.pathname || "/").replace(/\/+$/g, "").replace(/^\//, "").replace(/\.html$/i, "");
     var storePages = ["subscriptions", "discord-bot", "ai-tokens"];
     if (storePages.indexOf(currentPath) === -1 || document.getElementById("rblxStoreFooterBannerAd")) return;
@@ -5076,6 +5060,8 @@
   }
 
   function initSharedToolHeaderBannerAd() {
+    // Advertising has been disabled site-wide.
+    return;
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initSharedToolHeaderBannerAd, { once: true });
       return;
@@ -5094,6 +5080,8 @@
   }
 
   function initSharedHomeBannerAds() {
+    // Advertising has been disabled site-wide.
+    return;
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initSharedHomeBannerAds, { once: true });
       return;
@@ -5512,7 +5500,7 @@
       subtitle: "Monthly membership",
       title: "Plus",
       action: actionLabel || "Try Now",
-      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "10 free tool uses before ads", "Bulk Downloads (1-5) <span class=\"perk-info rblx-membership-promo-info\" data-rblx-info-tooltip=\"A batch of up to 5 downloads counts as one tool use, so Plus members can complete up to 50 downloads before an ad.\" aria-label=\"More information about bulk downloads\" tabindex=\"0\">!</span>"],
+      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "Bulk Downloads (1-5) <span class=\"perk-info rblx-membership-promo-info\" data-rblx-info-tooltip=\"A batch of up to 5 downloads counts as one tool use.\" aria-label=\"More information about bulk downloads\" tabindex=\"0\">!</span>"],
       aiPerks: ["30 Tokens Every Month", "10 Savable Thumbnail Generations", "8 Savable AI UGC Slots (+5)", "1440p AI Thumbnail Quality"]
     };
     return [
@@ -5520,7 +5508,6 @@
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
       '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price"' + (isPro ? ' data-rblx-pro-sale-price' : '') + '>' + config.price + '</span><small>' + config.subtitle + '</small></div>',
       '<div class="rblx-membership-promo-perks"><div class="rblx-membership-promo-section">General benefits</div>' + config.generalPerks.map(function (perk) { return perk === "Includes All Plus Benefits" ? '<span class="rblx-membership-promo-included"><b>+</b>Includes All Plus Benefits</span>' : '<span><b>+</b>' + perk + '</span>'; }).join("") + '<div class="rblx-membership-promo-section">AI benefits</div>' + config.aiPerks.map(function (perk) { return '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
-      showBoxAd ? '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad><span>Advertisement</span></div>' : '',
       '',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous membership plan"></button><div class="rblx-membership-promo-progress" aria-label="Membership plan rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next membership plan"></button></div><a class="rblx-membership-promo-action" href="./subscriptions">' + config.action + '</a></div>'
     ].join("");
@@ -5538,6 +5525,8 @@
   }
 
   function mountAiTokenPromoAd(promo) {
+    // Advertising has been disabled site-wide.
+    return;
     var host = promo.querySelector("[data-rblx-promo-box-ad]");
     if (!host || !shouldShowMemberAds()) return;
 
@@ -5578,6 +5567,8 @@
   };
 
   function mountModalVerticalAds(overlay) {
+    // Advertising has been disabled site-wide.
+    return;
     if (!overlay || !shouldShowMemberAds() || !window.matchMedia("(min-width: 1280px) and (min-height: 820px)").matches) return;
     Array.prototype.forEach.call(overlay.querySelectorAll("[data-rblx-modal-ad]"), mountVerticalAd);
   }
@@ -5598,6 +5589,8 @@
   }
 
   function initShellSidebarAds() {
+    // Advertising has been disabled site-wide.
+    return;
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initShellSidebarAds, { once: true });
       return;
@@ -6384,6 +6377,9 @@
     Array.prototype.forEach.call(document.querySelectorAll(".promo-card .badge"), function (badge) {
       if (String(badge.textContent || "").trim().toLowerCase() === "how to use") badge.hidden = true;
     });
+    // Advertising has been disabled site-wide. Native tutorial controls remain
+    // untouched and no third-party video assets or pre-rolls are requested.
+    return;
     // Do not request or initialize an ad player until the account has been
     // verified. This prevents a Pro member from briefly receiving a pre-roll
     // while the page resolves their actual membership from the server.
