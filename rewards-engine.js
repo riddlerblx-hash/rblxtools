@@ -186,18 +186,23 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       const rawBonus = DAILY_STREAK_BONUS_BY_DAY[calendarDay] || null;
       return { day: calendarDay, xp: Math.round(baseXp * reward.multiplier), baseXp, bonus: rawBonus ? { ...rawBonus, amount: (rawBonus.type === "p" || rawBonus.type === "t") ? Math.round(rawBonus.amount * reward.multiplier) : rawBonus.amount } : null };
     });
-    return { ...reward, window, currentStreak: member.currentStreak || 0, longestStreak: member.longestStreak || 0, available: member.lastQualifyingActivityDate === today && member.lastDailyRewardDate !== today, claimedToday: member.lastDailyRewardDate === today };
+    return { ...reward, window, currentStreak: member.currentStreak || 0, longestStreak: member.longestStreak || 0, available: member.lastDailyRewardDate !== today, claimedToday: member.lastDailyRewardDate === today };
   }
 
   function claimDailyStreak(userId, membershipMultiplier = 1) {
     const state = getState();
     const member = memberFor(state, userId);
     const today = utcDay();
-    if (member.lastQualifyingActivityDate !== today) {
-      const error = new Error("Come back after today’s login has been recorded."); error.statusCode = 409; throw error;
-    }
     if (member.lastDailyRewardDate === today) {
       const error = new Error("Today’s streak reward has already been claimed."); error.statusCode = 409; throw error;
+    }
+    // Claiming is the daily check-in. A member should never lose day one just
+    // because the background /auth/me refresh has not finished yet.
+    if (member.lastQualifyingActivityDate !== today) {
+      const yesterday = new Date(now().getTime() - 86400000).toISOString().slice(0, 10);
+      member.currentStreak = member.lastQualifyingActivityDate === yesterday ? member.currentStreak + 1 : 1;
+      member.longestStreak = Math.max(member.longestStreak, member.currentStreak);
+      member.lastQualifyingActivityDate = today;
     }
     const reward = getDailyReward(member, membershipMultiplier);
     const xp = award(state, { userId, sourceKey: `daily-streak:${userId}:${today}`, action: "daily_streak", title: `Day ${reward.day} daily streak`, amount: reward.xp, note: `${reward.multiplier}x membership reward multiplier`, metadata: { day: reward.day, baseXp: reward.baseXp, multiplier: reward.multiplier } });

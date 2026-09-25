@@ -1688,7 +1688,9 @@
     var displayName = String(currentProfile && currentProfile.displayName || currentUser.displayName || "").trim();
     var maskedEmail = maskEmailAddress(currentUser.email);
     var title = displayName || maskedEmail || currentUser.username || "My Account";
-    var subtitle = displayName ? (maskedEmail || "Personal profile") : "Personal profile";
+    var rank = currentUser.rewardsRank || {};
+    var levelLabel = rank && rank.name ? ("Level " + Number(rank.level || 1) + " · " + String(rank.name)) : "";
+    var subtitle = levelLabel || (displayName ? (maskedEmail || "Personal profile") : "Personal profile");
     var avatarUrl = String(currentProfile && currentProfile.avatarUrl || "").trim();
     var avatarFallback = getInitials(displayName || getEmailNamePart(currentUser.email) || currentUser.username || "R");
     var isPro = String(currentUser.plan || "").toLowerCase() === "pro";
@@ -2437,9 +2439,28 @@
     }
   }
 
+  async function claimDailyStreak() {
+    var claim = document.getElementById("rblxDailyStreakClaim");
+    var status = document.getElementById("rblxDailyStreakStatus");
+    if (!claim || claim.disabled) return;
+    claim.disabled = true;
+    if (status) status.textContent = "Claiming your reward…";
+    try {
+      var payload = await authApiRequest("/api/daily-streak/claim", { method: "POST", cache: "no-store" });
+      renderDailyStreak(payload.streak || {});
+      if (status) status.textContent = "Claimed " + ["+" + Number(payload.reward?.xp || 0).toLocaleString() + " XP", payload.benefit].filter(Boolean).join(" and ") + ". It is in your notifications too.";
+      refreshCommunityNotifications();
+      refreshMembershipStateFromServer();
+    } catch (error) {
+      if (status) status.textContent = error.message || "Could not claim today’s reward.";
+      claim.disabled = false;
+    }
+  }
+
   function initDailyStreak() {
     document.addEventListener("click", function (event) {
       if (event.target.closest("[data-shell-daily-streak]")) openDailyStreak();
+      if (event.target.closest("#rblxDailyStreakClaim")) claimDailyStreak();
       if (event.target.closest("[data-shell-daily-streak-close]") || event.target.id === "rblxDailyStreakOverlay") { var overlay = document.getElementById("rblxDailyStreakOverlay"); if (overlay) overlay.hidden = true; document.body.classList.remove("rblx-shell-modal-open"); }
     });
   }
@@ -4330,7 +4351,7 @@
     if (statusText) statusText.textContent = state.message;
     applyPlanAtmosphere(state.plan);
     var previousUser = shellState.currentUser || {};
-    shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : (previousUser.aiTokens != null ? previousUser.aiTokens : null), rewardPoints: state.rewardPoints != null && Number.isFinite(Number(state.rewardPoints)) ? Math.max(0, Number(state.rewardPoints)) : (previousUser.rewardPoints != null ? previousUser.rewardPoints : null) };
+    shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : (previousUser.aiTokens != null ? previousUser.aiTokens : null), rewardPoints: state.rewardPoints != null && Number.isFinite(Number(state.rewardPoints)) ? Math.max(0, Number(state.rewardPoints)) : (previousUser.rewardPoints != null ? previousUser.rewardPoints : null), rewardsRank: state.rewardsRank || previousUser.rewardsRank || null };
     shellState.isAdmin = stableAdmin;
     // The preview is a client-side visual mode. Its plan, rather than the
     // administrator's real subscription, controls whether the ad units show.
@@ -4442,6 +4463,7 @@
       email: user && user.email ? String(user.email) : "",
       aiTokens: user && user.aiTokens != null ? Number(user.aiTokens) : null,
       rewardPoints: user && user.rewardPoints != null ? Number(user.rewardPoints) : null,
+      rewardsRank: user && user.rewardsRank ? user.rewardsRank : null,
       isAdmin: Boolean(user && user.isAdmin),
       moderation: moderationOverride || (payload && payload.moderation ? payload.moderation : shellState.moderation)
     };
@@ -4547,6 +4569,7 @@
       email: cachedUser && cachedUser.email ? String(cachedUser.email) : "",
       aiTokens: cachedUser && cachedUser.aiTokens != null ? Number(cachedUser.aiTokens) : null,
       rewardPoints: cachedUser && cachedUser.rewardPoints != null ? Number(cachedUser.rewardPoints) : null,
+      rewardsRank: cachedUser && cachedUser.rewardsRank ? cachedUser.rewardsRank : null,
       // This is only used to keep an already server-verified header stable
       // during the first auth check after navigation. All admin API routes
       // continue to verify the allowlist on the server.
@@ -4625,6 +4648,7 @@
         email: user && user.email ? String(user.email) : "",
         aiTokens: user && user.aiTokens != null ? Number(user.aiTokens) : null,
         rewardPoints: user && user.rewardPoints != null ? Number(user.rewardPoints) : null,
+        rewardsRank: user && user.rewardsRank ? user.rewardsRank : null,
         isAdmin: Boolean(user && user.isAdmin),
         moderation: payload && payload.moderation ? payload.moderation : null
       };

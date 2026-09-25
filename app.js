@@ -1296,6 +1296,18 @@ function addCommunityNotification({ recipientId, actor, category, title, href })
   io?.emit("community-notifications-updated", { userId });
 }
 
+function addSiteNotification({ recipientId, category = "reward", title, href = "./account-overview" }) {
+  const userId = String(recipientId || "").trim();
+  if (!userId) return;
+  const state = readCommunityNotifications();
+  const current = state.users[userId] && typeof state.users[userId] === "object" ? state.users[userId] : {};
+  const items = Array.isArray(current.items) ? current.items : [];
+  items.unshift({ id: randomUUID(), category: cleanText(category, 40), title: cleanText(title || "New RBLXTools reward", 240), href: cleanText(href, 500), createdAt: new Date().toISOString(), read: false });
+  state.users[userId] = { items: items.slice(0, 100), updatedAt: new Date().toISOString() };
+  writeCommunityNotifications(state);
+  io?.emit("community-notifications-updated", { userId });
+}
+
 function readCommunityProfiles() {
   try {
     fs.mkdirSync(path.dirname(COMMUNITY_PROFILES_PATH), { recursive: true });
@@ -3170,7 +3182,7 @@ function getEffectiveMembership(row) {
 function buildPublicUser(row) {
   const membership = getEffectiveMembership(row);
   const admin = isAdminUser(row);
-  const rewards = admin ? rewardsEngine.getOverview(row.id) : null;
+  const rewards = rewardsEngine.getOverview(row.id);
   return {
     id: row.id,
     email: row.email,
@@ -3872,7 +3884,7 @@ async function buildResolvedPublicUser(row) {
 
   const membership = await resolveMembershipSnapshot(row);
   const admin = isAdminUser(row);
-  const rewards = admin ? rewardsEngine.getOverview(row.id) : null;
+  const rewards = rewardsEngine.getOverview(row.id);
   return {
     id: row.id,
     email: row.email,
@@ -5418,6 +5430,41 @@ async function grantAITokensToUser(userId, amount) {
   }
   await recordAccountTransaction({ userId: targetUser.id, category: "ai_tokens", sourceType: "ai_token_admin_grant", sourceId: randomUUID(), title: "AI token grant", amountDelta: safeAmount, unit: "tokens", status: "accepted", note: "Granted by staff" });
   return { user: updatedUser, amount: safeAmount };
+}
+
+async function grantDailyStreakBenefit(userId, reward) {
+  const bonus = reward?.bonus;
+  if (!bonus || !bonus.type || !Number(bonus.amount)) return null;
+  const sourceId = `daily-streak:${userId}:${reward.day}:${bonus.type}`;
+  const amount = Math.max(1, Math.round(Number(bonus.amount) || 0));
+  if (bonus.type === "p") {
+    const user = await getAuthUserById(userId);
+    if (!user) throw new Error("Could not find the member for this daily reward.");
+    const updated = await updateAuthUserFields(user.id, { reward_points: Math.max(0, Number(user.reward_points) || 0) + amount });
+    if (!updated) throw new Error("Could not apply the daily points reward.");
+    await recordAccountTransaction({ userId: user.id, category: "points", sourceType: "daily_streak", sourceId, title: `Day ${reward.day} daily streak points`, amountDelta: amount, unit: "points", status: "accepted", note: "Daily streak reward" });
+    return `${amount.toLocaleString("en-US")} RBLX Points`;
+  }
+  if (bonus.type === "t") {
+    const user = await getAuthUserById(userId);
+    if (!user) throw new Error("Could not find the member for this daily reward.");
+    const updated = await updateAuthUserFields(user.id, { ai_token_balance: getAITokenBalance(user) + amount });
+    if (!updated) throw new Error("Could not apply the daily AI token reward.");
+    await recordAccountTransaction({ userId: user.id, category: "ai_tokens", sourceType: "daily_streak", sourceId, title: `Day ${reward.day} daily streak AI tokens`, amountDelta: amount, unit: "tokens", status: "accepted", note: "Daily streak reward" });
+    return `${amount.toLocaleString("en-US")} AI Tokens`;
+  }
+  if (bonus.type === "l") {
+    await grantComplimentaryPlusToUser(userId, amount, "complimentary");
+    return `${amount} day${amount === 1 ? "" : "s"} of Plus`;
+  }
+  if (bonus.type === "r") {
+    await grantComplimentaryProToUser(userId, amount, "complimentary");
+    return `${amount} day${amount === 1 ? "" : "s"} of Pro`;
+  }
+  // Coupon rewards remain an entitlement until the checkout coupon system has
+  // a per-member code issuer; do not pretend a discount was applied.
+  if (bonus.type === "c") return `${amount}% AI-token coupon entitlement`;
+  return null;
 }
 
 async function removePlusFromUser(userId) {
@@ -8483,12 +8530,15 @@ app.get("/api/members/:userId", async (req, res) => {
     const user = await getAuthUserById(memberId);
     if (!user) return res.status(404).json({ error: "This member is unavailable." });
     const membership = await resolveMembershipSnapshot(user);
+    const rewards = rewardsEngine.getOverview(user.id);
     const member = {
       id: user.id,
       name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
       username: cleanText(user.username || user.display_name || "member", 80).replace(/^@+/, ""),
       avatarUrl: getCommunityAvatarUrl(user),
       plan: String(membership?.plan || "free").toLowerCase(),
+      level: Number(rewards.rank?.level || 1),
+      levelTitle: cleanText(rewards.rank?.name || "Builder", 40),
       joinedAt: user.created_at || null,
     };
     const communityState = readAIUGCCommunityState();
@@ -12933,6 +12983,22 @@ app.get("/api/daily-streak", async (req, res) => {
     return res.json({ ok: true, streak: rewardsEngine.getDailyStreak(user.id, getPaidDailyRewardMultiplier(membership)) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the daily streak." });
+  }
+});
+
+app.post("/api/daily-streak/claim", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const membership = await resolveMembershipSnapshot(user);
+    const reward = rewardsEngine.claimDailyStreak(user.id, getPaidDailyRewardMultiplier(membership));
+    const benefit = await grantDailyStreakBenefit(user.id, reward);
+    const parts = [`${Number(reward.xp || 0).toLocaleString("en-US")} XP`, benefit].filter(Boolean);
+    addSiteNotification({ recipientId: user.id, category: "reward", title: `Daily streak claimed: ${parts.join(" + ")}.`, href: "./account-overview?tab=levels" });
+    emitAccountTransactionUpdate(user.id);
+    res.setHeader("Cache-Control", "no-store, private, max-age=0");
+    return res.json({ ok: true, reward, benefit, streak: rewardsEngine.getDailyStreak(user.id, getPaidDailyRewardMultiplier(membership)) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not claim the daily streak reward." });
   }
 });
 
