@@ -1,5 +1,15 @@
 "use strict";
 
+// Canonical 365-day streak plan supplied by RBLXTools.  XP is intentionally
+// stored as the approved curve rather than calculated in the browser.
+const DAILY_STREAK_XP = "50,51,53,56,58,61,64,67,71,74,78,82,86,90,94,99,103,108,112,117,122,127,131,137,142,147,152,157,163,168,174,179,185,191,197,203,208,214,220,227,233,239,245,251,258,264,271,277,284,290,297,304,310,317,324,331,338,345,352,359,366,373,380,387,394,402,409,416,424,431,439,446,454,461,469,477,484,492,500,508,516,523,531,539,547,555,563,571,580,588,596,604,612,621,629,637,646,654,662,671,679,688,696,705,713,722,731,739,748,757,766,774,783,792,801,810,819,828,837,846,855,864,873,882,891,900,910,919,928,937,947,956,965,975,984,994,1003,1012,1022,1031,1041,1051,1060,1070,1079,1089,1099,1109,1118,1128,1138,1148,1157,1167,1177,1187,1197,1207,1217,1227,1237,1247,1257,1267,1277,1287,1297,1307,1318,1328,1338,1348,1359,1369,1379,1389,1400,1410,1421,1431,1441,1452,1462,1473,1483,1494,1504,1515,1525,1536,1547,1557,1568,1579,1589,1600,1611,1622,1632,1643,1654,1665,1676,1687,1697,1708,1719,1730,1741,1752,1763,1774,1785,1796,1807,1819,1830,1841,1852,1863,1874,1885,1897,1908,1919,1930,1942,1953,1964,1976,1987,1998,2010,2021,2033,2044,2056,2067,2079,2090,2102,2113,2125,2136,2148,2160,2171,2183,2194,2206,2218,2230,2241,2253,2265,2277,2288,2300,2312,2324,2336,2348,2360,2371,2383,2395,2407,2419,2431,2443,2455,2467,2479,2491,2503,2516,2528,2540,2552,2564,2576,2588,2601,2613,2625,2637,2650,2662,2674,2686,2699,2711,2724,2736,2748,2761,2773,2786,2798,2810,2823,2835,2848,2860,2873,2885,2898,2911,2923,2936,2948,2961,2974,2986,2999,3012,3024,3037,3050,3063,3075,3088,3101,3114,3126,3139,3152,3165,3178,3191,3204,3217,3229,3242,3255,3268,3281,3294,3307,3320,3333,3346,3359,3372,3386,3399,3412,3425,3438,3451,3464,3478,3491,3504,3517,3530,3544,3557,3570,3583,3597,3610,3623,3637,3650".split(",").map(Number);
+const DAILY_STREAK_BONUSES = "1p2,4p50,7l7,9c10,11p50,14t50,18c10,21l3,24p50,25p50,27c10,28t50,30r7,33p126,35p50,36c10,39p50,42t50,45l15,49p50,53p50,54c10,56t75,57p189,60r10,63c10,66p50,67p50,70t75,72c10,75l20,77p50,81c10,84t75,87p50,90r14,91p50,93p252,95p50,98t75,100c15,105p50,109p50,112t75,117p315,119p50,120r20,123p50,126t75,130c15,133p50,137p50,140t100,147p50,150r30,151p50,153p378,154t100,160c15,161p50,165p50,168t100,175p50,177p504,179p50,180r30,182t100,189p50,193p50,196t100,200c15,203p50,207p618,210r60,213t100,217p50,221p50,224t100,231p50,235p50,237p631,238t100,240r40,245p50,249p50,252t100,259p50,263p50,266t100,267p757,270r90,273p50,277p50,280c20,283t100,287p50,291p50,294t100,297p883,300r50,301p50,305p50,308t100,315p50,319p50,320c20,322t100,327p1009,329p50,330r180,333p50,336t100,343p50,347p50,350c25,353t100,357p50,362p1788,363t100,364p50,365r365";
+const DAILY_STREAK_BONUS_BY_DAY = DAILY_STREAK_BONUSES.split(",").reduce((all, token) => {
+  const match = token.match(/^(\d+)([plrtc])(\d+)$/);
+  if (match) all[Number(match[1])] = { type: match[2], amount: Number(match[3]) };
+  return all;
+}, {});
+
 // The rewards economy deliberately lives on the server.  Browsers only ever
 // receive a projection of this state; they cannot submit XP, levels, or cash.
 function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUID, now = () => new Date() }) {
@@ -82,7 +92,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
   });
   const memberFor = (state, userId) => {
     const id = String(userId || "");
-    if (!state.members[id]) state.members[id] = { lifetimeXp: 0, currentStreak: 0, longestStreak: 0, lastQualifyingActivityDate: null, completedQuestKeys: [], createdAt: iso(), updatedAt: iso() };
+    if (!state.members[id]) state.members[id] = { lifetimeXp: 0, currentStreak: 0, longestStreak: 0, lastQualifyingActivityDate: null, lastDailyRewardDate: null, completedQuestKeys: [], createdAt: iso(), updatedAt: iso() };
     return state.members[id];
   };
   const rankFor = (config, lifetimeXp) => config.ranks.slice().sort((a, b) => b.requiredXp - a.requiredXp).find((rank) => lifetimeXp >= rank.requiredXp) || config.ranks[0];
@@ -150,6 +160,49 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     return { ...result, overview: buildOverviewFromState(state, userId) };
   }
 
+  function getDailyReward(member, membershipMultiplier = 1) {
+    const day = Math.max(1, Math.min(365, Number(member.currentStreak || 1)));
+    const bonus = DAILY_STREAK_BONUS_BY_DAY[day] || null;
+    const multiplier = membershipMultiplier === 2 ? 2 : membershipMultiplier === 1.5 ? 1.5 : 1;
+    return {
+      day,
+      xp: Math.round((DAILY_STREAK_XP[day - 1] || 0) * multiplier),
+      baseXp: DAILY_STREAK_XP[day - 1] || 0,
+      multiplier,
+      bonus: bonus ? { ...bonus, amount: (bonus.type === "p" || bonus.type === "t") ? Math.round(bonus.amount * multiplier) : bonus.amount } : null,
+    };
+  }
+
+  function getDailyStreak(userId, membershipMultiplier = 1) {
+    const state = getState();
+    const member = memberFor(state, userId);
+    const today = utcDay();
+    const reward = getDailyReward(member, membershipMultiplier);
+    saveState(state);
+    return { ...reward, currentStreak: member.currentStreak || 0, longestStreak: member.longestStreak || 0, available: member.lastQualifyingActivityDate === today && member.lastDailyRewardDate !== today, claimedToday: member.lastDailyRewardDate === today };
+  }
+
+  function claimDailyStreak(userId, membershipMultiplier = 1) {
+    const state = getState();
+    const member = memberFor(state, userId);
+    const today = utcDay();
+    if (member.lastQualifyingActivityDate !== today) {
+      const error = new Error("Come back after today’s login has been recorded."); error.statusCode = 409; throw error;
+    }
+    if (member.lastDailyRewardDate === today) {
+      const error = new Error("Today’s streak reward has already been claimed."); error.statusCode = 409; throw error;
+    }
+    const reward = getDailyReward(member, membershipMultiplier);
+    const xp = award(state, { userId, sourceKey: `daily-streak:${userId}:${today}`, action: "daily_streak", title: `Day ${reward.day} daily streak`, amount: reward.xp, note: `${reward.multiplier}x membership reward multiplier`, metadata: { day: reward.day, baseXp: reward.baseXp, multiplier: reward.multiplier } });
+    if (!xp.awarded) {
+      const error = new Error("Today’s streak reward has already been claimed."); error.statusCode = 409; throw error;
+    }
+    member.lastDailyRewardDate = today;
+    completeQuests(state, userId);
+    saveState(state);
+    return { ...reward, overview: buildOverviewFromState(state, userId) };
+  }
+
   function recordPurchase({ userId, sourceId, productType = "default", title, externalPaidCents, paymentIntentId = "", metadata = {} }) {
     const state = getState();
     const config = state.config;
@@ -213,7 +266,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     if (due.length) saveState(state);
   }
 
-  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, recordActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
+  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getDailyStreak, claimDailyStreak, recordActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
 }
 
 module.exports = { createRewardsEngine };
