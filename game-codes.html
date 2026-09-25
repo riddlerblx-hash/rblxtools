@@ -182,8 +182,7 @@
     window.setInterval(function () { if (!document.hidden) refreshCodesFromLiveUpdate(); }, 3000);
     connectLiveCodeUpdates(0);
     function horizontalCodeAdMarkup(placement) {
-      void placement;
-      return '';
+      return '<section class="code-horizontal-ad" data-rblx-banner-ad data-code-post-ad="' + esc(placement || '') + '" aria-label="Advertisement"><span class="rblx-banner-ad-label">Advertisement</span><div class="rblx-tool-banner-ad-slot" data-rblx-horizontal-ad-slot></div></section>';
     }
     var codePostAdMarkup = horizontalCodeAdMarkup;
     var codeDirectoryAdMarkup = horizontalCodeAdMarkup;
@@ -233,10 +232,12 @@
     }
 
     function codeRowsWithInlineAds(codes, position) {
+      var codesBetweenAds = 15;
       if (!codes.length) return '<tr><td colspan="5">No ' + (position === "working" ? "working" : "expired") + ' codes recorded.</td></tr>';
       return codes.map(function (code, index) {
-        void index;
-        return codeRow(code);
+        var row = codeRow(code);
+        var isInlineAdBreak = (index + 1) % codesBetweenAds === 0;
+        return row + (isInlineAdBreak ? '<tr class="inline-code-ad-row"><td colspan="5">' + codePostAdMarkup("inside-" + position + "-codes-" + (index + 1)) + '</td></tr>' : '');
       }).join("");
     }
 

@@ -529,14 +529,19 @@
   }
 
   function shouldShowMemberAds() {
-    return false;
+    // Wait for the account check so a Pro member never receives a display-ad
+    // request during the brief anonymous shell state.
+    if (!shellState.authResolved) return false;
+    var memberState = shellState.isAdmin ? { plan: getEffectiveMemberPlan() } : shellState.currentUser;
+    return !isProMember(memberState);
   }
 
   function syncMemberAdVisibility(state) {
-    var hideAds = true;
-    document.body.classList.add("rblx-pro-ad-free");
+    var hideAds = isProMember(state);
+    document.body.classList.toggle("rblx-pro-ad-free", hideAds);
     Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad], [data-rblx-promo-box-ad], [data-rblx-modal-ad], [data-rblx-vertical-ad], [data-rblx-banner-ad], [data-rblx-mobile-banner-ad], [data-rblx-video-slider-ad]"), function (host) {
-      host.hidden = true;
+      host.hidden = hideAds;
+      if (!hideAds) return;
       // Remove any ad that was mounted before the account state was resolved.
       if (host.hasAttribute("data-rblx-banner-ad")) {
         Array.prototype.forEach.call(host.querySelectorAll(".rblx-tool-banner-ad-slot"), function (slot) {
@@ -549,8 +554,15 @@
       delete host.dataset.rblxBoxAdMounted;
       delete host.dataset.rblxVerticalAdMounted;
     });
-    removeTutorialVideoAds();
-    removeVideoSliderAd();
+    if (hideAds) {
+      removeTutorialVideoAds();
+      removeVideoSliderAd();
+    } else if (shellState.authResolved) {
+      mountDesktopShellBoxAds();
+      mountDesktopVerticalAds();
+      initShellSidebarAds();
+      Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-mobile-banner-ad] .rblx-home-mobile-banner-ad-slot"), mountMobileBannerAd);
+    }
   }
 
   function ensureGoogleAnalyticsSetup() {
@@ -651,7 +663,8 @@
   }
 
   function buildModalAdRailsMarkup() {
-    return "";
+    return '<aside class="rblx-shell-modal-ad-rail is-left" data-rblx-modal-ad aria-label="Advertisement"><span>Advertisement</span></aside>' +
+      '<aside class="rblx-shell-modal-ad-rail is-right" data-rblx-modal-ad aria-label="Advertisement"><span>Advertisement</span></aside>';
   }
 
   function buildAnimationMembershipGateMarkup() {
@@ -4673,54 +4686,41 @@
     void refresh;
   }
 
-  // Adcash display inventory. The library is loaded once and each zone is
-  // rendered inside its own script parent, as required by aclib.runBanner().
-  var ADCASH_DISPLAY_ZONES = {
-    horizontal: "12207158",
-    box: "12207186",
-    skyscraper: "12207194",
-    mobileWide: "12207202",
-    videoSlider: "12207294",
-    interstitial: "12207406"
+  // Adsterra display inventory. Their tags read window.atOptions while the
+  // invoke script loads, so mounts are serialized to keep simultaneous page
+  // placements from overwriting one another's dimensions or zone key.
+  var ADSTERRA_DISPLAY_UNITS = {
+    horizontal: { key: "fb95715336abfc09031edf4e6ef208c5", width: 728, height: 90 },
+    box: { key: "d0b55a0366cbbdb50c4c68fe13fa1e3f", width: 300, height: 250 },
+    skyscraper: { key: "c56a103ad60efdb3686d500b49552f97", width: 160, height: 600 },
+    mobile: { key: "4f3f88a3c4de39df646d1819202a769b", width: 320, height: 50 }
   };
-  var adcashLibraryPromise = null;
+  var adsterraMountQueue = Promise.resolve();
 
-  function ensureAdcashLibrary() {
-    if (window.aclib && typeof window.aclib.runBanner === "function") return Promise.resolve();
-    if (adcashLibraryPromise) return adcashLibraryPromise;
-    adcashLibraryPromise = new Promise(function (resolve, reject) {
-      var existing = document.getElementById("aclib");
-      if (existing) {
-        existing.addEventListener("load", resolve, { once: true });
-        existing.addEventListener("error", reject, { once: true });
-        return;
-      }
-      var library = document.createElement("script");
-      library.id = "aclib";
-      library.type = "text/javascript";
-      library.src = "https://acscdn.com/script/aclib.js";
-      library.onload = resolve;
-      library.onerror = reject;
-      document.head.appendChild(library);
-    });
-    return adcashLibraryPromise;
-  }
-
-  function mountAdcashBanner(host, zoneId, mountedKey) {
-    if (!host || !zoneId || host.dataset[mountedKey] === "true") return;
+  function mountAdsterraBanner(host, unit, mountedKey) {
+    if (!host || !unit || host.dataset[mountedKey] === "true") return;
     host.dataset[mountedKey] = "true";
-    ensureAdcashLibrary().then(function () {
-      if (!window.aclib || typeof window.aclib.runBanner !== "function") throw new Error("Adcash library unavailable");
-      var unit = document.createElement("div");
-      unit.className = "rblx-adcash-unit";
-      unit.setAttribute("aria-label", "Advertisement");
-      host.appendChild(unit);
-      var invocation = document.createElement("script");
-      invocation.type = "text/javascript";
-      invocation.text = "window.aclib.runBanner({zoneId:" + JSON.stringify(String(zoneId)) + "});";
-      unit.appendChild(invocation);
+    adsterraMountQueue = adsterraMountQueue.then(function () {
+      if (!host.isConnected || !shouldShowMemberAds()) throw new Error("Ad placement unavailable");
+      host.textContent = "";
+      var slot = document.createElement("div");
+      slot.className = "rblx-adsterra-unit";
+      slot.style.width = String(unit.width) + "px";
+      slot.style.height = String(unit.height) + "px";
+      slot.style.maxWidth = "100%";
+      host.appendChild(slot);
+      window.atOptions = { key: unit.key, format: "iframe", height: unit.height, width: unit.width, params: {} };
+      return new Promise(function (resolve, reject) {
+        var script = document.createElement("script");
+        script.async = true;
+        script.src = "https://professionalsusceptible.com/" + unit.key + "/invoke.js";
+        script.onload = resolve;
+        script.onerror = reject;
+        slot.appendChild(script);
+      });
     }).catch(function () {
       delete host.dataset[mountedKey];
+      host.textContent = "";
     });
   }
 
@@ -4798,14 +4798,8 @@
   }
 
   function renderToolInterstitialStatus() {
-    var useLimit = getToolInterstitialLimit();
-    var usesUntilAd = useLimit - (getToolInterstitialUses() % useLimit);
-    if (!shouldShowMemberAds()) {
-      var hiddenIndicator = document.querySelector("[data-rblx-tool-use-indicator]");
-      if (hiddenIndicator) hiddenIndicator.hidden = true;
-      return;
-    }
-    mountToolUseIndicator(usesUntilAd);
+    // Display ads do not use the old tool counter or interstitial flow.
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-tool-use-indicator]"), function (indicator) { indicator.remove(); });
   }
 
   function isToolInterstitialPage() {
@@ -4915,7 +4909,7 @@
 
   function mountSharedBannerAd(slot) {
     if (!slot || !shouldShowMemberAds() || slot.dataset.rblxBannerLoaded === "true") return;
-    mountAdcashBanner(slot, ADCASH_DISPLAY_ZONES.horizontal, "rblxBannerLoaded");
+    mountAdsterraBanner(slot, ADSTERRA_DISPLAY_UNITS.horizontal, "rblxBannerLoaded");
     var host = slot.closest("[data-rblx-banner-ad]");
     enableSmartAdRefresh(host, function () { slot.textContent = ""; delete slot.dataset.rblxBannerLoaded; mountSharedBannerAd(slot); });
   }
@@ -4941,12 +4935,11 @@
   function mountMobileHomeBannerAd(slot) {
     if (!slot || !shouldShowMemberAds() || slot.dataset.rblxMobileBannerLoaded === "true") return;
     var host = slot.closest("[data-rblx-mobile-banner-ad], .rblx-home-mobile-banner-ad");
-    // The provided mobile unit is 468px wide. Do not squeeze it into a phone.
-    if (window.innerWidth < 480) {
+    if (window.innerWidth < 320) {
       if (host) host.hidden = true;
       return;
     }
-    mountAdcashBanner(slot, ADCASH_DISPLAY_ZONES.mobileWide, "rblxMobileBannerLoaded");
+    mountAdsterraBanner(slot, ADSTERRA_DISPLAY_UNITS.mobile, "rblxMobileBannerLoaded");
     enableSmartAdRefresh(host, function () { slot.textContent = ""; delete slot.dataset.rblxMobileBannerLoaded; mountMobileHomeBannerAd(slot); });
   }
 
@@ -4966,8 +4959,6 @@
   }
 
   function initSharedMobileBannerAds() {
-    // Advertising has been disabled site-wide.
-    return;
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initSharedMobileBannerAds, { once: true });
       return;
@@ -5012,8 +5003,6 @@
   }
 
   function initSharedToolBannerAd() {
-    // Advertising has been disabled site-wide.
-    return;
     if (document.readyState === "loading") {
       if (!window.__rblxToolBannerQueued) {
         window.__rblxToolBannerQueued = true;
@@ -5034,8 +5023,6 @@
   }
 
   function initSharedToolFooterBannerAd() {
-    // Advertising has been disabled site-wide.
-    return;
     if (document.readyState === "loading") {
       if (!window.__rblxToolFooterBannerQueued) {
         window.__rblxToolFooterBannerQueued = true;
@@ -5058,8 +5045,6 @@
   }
 
   function initSharedStoreFooterBannerAd() {
-    // Advertising has been disabled site-wide.
-    return;
     var currentPath = String(window.location.pathname || "/").replace(/\/+$/g, "").replace(/^\//, "").replace(/\.html$/i, "");
     var storePages = ["subscriptions", "discord-bot", "ai-tokens"];
     if (storePages.indexOf(currentPath) === -1 || document.getElementById("rblxStoreFooterBannerAd")) return;
@@ -5073,8 +5058,6 @@
   }
 
   function initSharedToolHeaderBannerAd() {
-    // Advertising has been disabled site-wide.
-    return;
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initSharedToolHeaderBannerAd, { once: true });
       return;
@@ -5093,8 +5076,6 @@
   }
 
   function initSharedHomeBannerAds() {
-    // Advertising has been disabled site-wide.
-    return;
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initSharedHomeBannerAds, { once: true });
       return;
@@ -5521,7 +5502,7 @@
       '<h3 class="rblx-membership-promo-title">' + config.title + '</h3>',
       '<div class="rblx-membership-promo-price-box"><span class="rblx-membership-promo-price"' + (isPro ? ' data-rblx-pro-sale-price' : '') + '>' + config.price + '</span><small>' + config.subtitle + '</small></div>',
       '<div class="rblx-membership-promo-perks"><div class="rblx-membership-promo-section">General benefits</div>' + config.generalPerks.map(function (perk) { return perk === "Includes All Plus Benefits" ? '<span class="rblx-membership-promo-included"><b>+</b>Includes All Plus Benefits</span>' : '<span><b>+</b>' + perk + '</span>'; }).join("") + '<div class="rblx-membership-promo-section">AI benefits</div>' + config.aiPerks.map(function (perk) { return '<span><b>+</b>' + perk + '</span>'; }).join("") + '</div>',
-      '',
+      showBoxAd ? '<div class="rblx-token-promo-ad" data-rblx-promo-box-ad><span>Advertisement</span></div>' : '',
       '<div class="rblx-membership-promo-footer"><div class="rblx-membership-promo-nav"><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-prev aria-label="Show previous membership plan"></button><div class="rblx-membership-promo-progress" aria-label="Membership plan rotation timer"><span></span></div><button type="button" class="rblx-membership-promo-arrow" data-membership-promo-next aria-label="Show next membership plan"></button></div><a class="rblx-membership-promo-action" href="./subscriptions">' + config.action + '</a></div>'
     ].join("");
   }
@@ -5538,8 +5519,6 @@
   }
 
   function mountAiTokenPromoAd(promo) {
-    // Advertising has been disabled site-wide.
-    return;
     var host = promo.querySelector("[data-rblx-promo-box-ad]");
     if (!host || !shouldShowMemberAds()) return;
 
@@ -5548,7 +5527,7 @@
 
   function mountBoxAd(host) {
     if (!host || !shouldShowMemberAds() || host.dataset.rblxBoxAdMounted === "true") return;
-    mountAdcashBanner(host, ADCASH_DISPLAY_ZONES.box, "rblxBoxAdMounted");
+    mountAdsterraBanner(host, ADSTERRA_DISPLAY_UNITS.box, "rblxBoxAdMounted");
     if (host.hasAttribute("data-rblx-shell-box-ad")) {
       enableSmartAdRefresh(host, function () { Array.prototype.forEach.call(host.querySelectorAll("iframe"), function (frame) { frame.remove(); }); delete host.dataset.rblxBoxAdMounted; mountBoxAd(host); });
     }
@@ -5561,7 +5540,7 @@
 
   function mountVerticalAd(host) {
     if (!host || !shouldShowMemberAds() || host.dataset.rblxVerticalAdMounted === "true") return;
-    mountAdcashBanner(host, ADCASH_DISPLAY_ZONES.skyscraper, "rblxVerticalAdMounted");
+    mountAdsterraBanner(host, ADSTERRA_DISPLAY_UNITS.skyscraper, "rblxVerticalAdMounted");
     enableSmartAdRefresh(host, function () { Array.prototype.forEach.call(host.querySelectorAll("iframe"), function (frame) { frame.remove(); }); delete host.dataset.rblxVerticalAdMounted; mountVerticalAd(host); });
   }
 
@@ -5571,7 +5550,7 @@
   window.RBLXToolsAds.mountHorizontalAds = function (root) {
     if (!root || !shouldShowMemberAds()) return;
     Array.prototype.forEach.call(root.querySelectorAll("[data-rblx-horizontal-ad-slot]"), function (slot) {
-      mountAdcashBanner(slot, ADCASH_DISPLAY_ZONES.horizontal, "rblxHorizontalAdMounted");
+      mountAdsterraBanner(slot, ADSTERRA_DISPLAY_UNITS.horizontal, "rblxHorizontalAdMounted");
     });
   };
   window.RBLXToolsAds.mountVerticalAds = function (root) {
@@ -5580,8 +5559,6 @@
   };
 
   function mountModalVerticalAds(overlay) {
-    // Advertising has been disabled site-wide.
-    return;
     if (!overlay || !shouldShowMemberAds() || !window.matchMedia("(min-width: 1280px) and (min-height: 820px)").matches) return;
     Array.prototype.forEach.call(overlay.querySelectorAll("[data-rblx-modal-ad]"), mountVerticalAd);
   }
@@ -5602,8 +5579,6 @@
   }
 
   function initShellSidebarAds() {
-    // Advertising has been disabled site-wide.
-    return;
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initShellSidebarAds, { once: true });
       return;
