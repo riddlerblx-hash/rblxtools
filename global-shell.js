@@ -1696,7 +1696,7 @@
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-          '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span>▣</span><b>Daily</b></button>' +
+          '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span>📅</span><b>Daily</b></button>' +
           '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong></a>' +
           '<a class="rblx-shell-header-token-balance" href="./rewards" title="View RBLX Points"><small>RBLX Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
@@ -2413,6 +2413,14 @@
       try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch (_error) {}
       openDailyStreak();
     }, 1800);
+  }
+
+  function bindDailyStreakTrigger() {
+    Array.prototype.slice.call(document.querySelectorAll("[data-shell-daily-streak]")).forEach(function (button) {
+      if (button.dataset.dailyStreakBound) return;
+      button.dataset.dailyStreakBound = "true";
+      button.addEventListener("click", function (event) { event.preventDefault(); event.stopPropagation(); openDailyStreak(); });
+    });
   }
 
   function buildHeaderNavigationMarkup() {
@@ -4320,6 +4328,7 @@
     syncChatIdentity();
     if (shellState.socket && shellState.socketReady) shellState.socket.emit("join-room", getSocketJoinPayload());
     auth.innerHTML = buildAuthMarkup().replace('<div class="rblx-shell-auth" id="rblxShellAuth">', "").replace(/<\/div>$/, "");
+    bindDailyStreakTrigger();
     renderToolInterstitialStatus();
     if (state.loggedIn) {
       fetch(API_BASE + "/referrals/me", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } })
@@ -5983,6 +5992,7 @@
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
     document.body.insertAdjacentHTML("beforeend", buildDailyStreakModalMarkup());
     initDailyStreak();
+    bindDailyStreakTrigger();
     initHeaderSearch();
     renderRenewalNotice(getServerRenewalNoticeSnapshot() || {});
     applyAdminPreview();
