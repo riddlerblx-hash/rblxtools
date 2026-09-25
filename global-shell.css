@@ -5545,3 +5545,9 @@ body.rblx-shell-ready .rblx-shell-page #plusNotice .plusWord {
   body.rblx-mobile-shell .rblx-header-center { display: none; }
   body.rblx-mobile-shell .rblx-shell-brand-title { font-size: 20px; }
 }
+
+/* Keep the publisher creative inside the existing labeled placement frame. */
+.rblx-adsterra-slot { display: flex; justify-content: center; width: 100%; max-width: 100%; overflow: hidden; }
+.rblx-shell-sidebar-ad > .rblx-adsterra-slot { min-height: 250px; align-items: flex-start; }
+.rblx-shell-modal-ad-rail > .rblx-adsterra-slot,
+.community-rail-ad > .rblx-adsterra-slot { min-height: 600px; align-items: flex-start; }

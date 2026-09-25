@@ -561,6 +561,12 @@
       mountDesktopShellBoxAds();
       mountDesktopVerticalAds();
       initShellSidebarAds();
+      initSharedToolBannerAd();
+      initSharedToolHeaderBannerAd();
+      initSharedToolFooterBannerAd();
+      initSharedStoreFooterBannerAd();
+      initSharedHomeBannerAds();
+      initSharedMobileBannerAds();
       Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-mobile-banner-ad] .rblx-home-mobile-banner-ad-slot"), mountMobileBannerAd);
     }
   }
@@ -4701,7 +4707,13 @@
       delete host.dataset[mountedKey];
       return;
     }
-    host.textContent = "";
+    var slot = host.querySelector(":scope > .rblx-adsterra-slot");
+    if (!slot) {
+      slot = document.createElement("div");
+      slot.className = "rblx-adsterra-slot";
+      host.appendChild(slot);
+    }
+    slot.textContent = "";
     var frame = document.createElement("iframe");
     frame.className = "rblx-adsterra-unit";
     frame.title = "Advertisement";
@@ -4716,7 +4728,7 @@
       delete host.dataset[mountedKey];
       frame.remove();
     }, { once: true });
-    host.appendChild(frame);
+    slot.appendChild(frame);
   }
 
   function removeVideoSliderAd() {
