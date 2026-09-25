@@ -2391,7 +2391,9 @@
 
   async function openDailyStreak() {
     var overlay = document.getElementById("rblxDailyStreakOverlay");
-    if (!overlay || !shellState.currentUser || !shellState.currentUser.loggedIn || !shellState.isAdmin) return;
+    // Visibility is already restricted to admins in the header. Do not reject
+    // a visible control because a later background auth refresh is delayed.
+    if (!overlay || !shellState.currentUser || !shellState.currentUser.loggedIn) return;
     overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open");
     try {
       var response = await fetch(API_BASE + "/daily-streak", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } });
