@@ -23,6 +23,15 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       { key: "mogul", level: 5, name: "Mogul", requiredXp: 500000, cashbackPercent: 8, tone: "gold" },
       { key: "rblx_icon", level: 6, name: "RBLX Icon", requiredXp: 1500000, cashbackPercent: 10, tone: "icon" },
     ],
+    cashbackTiers: [
+      { key: "bronze", name: "Bronze", requiredXp: 0, cashbackPercent: 0, tone: "bronze" },
+      { key: "silver", name: "Silver", requiredXp: 10000, cashbackPercent: 2, tone: "silver" },
+      { key: "gold", name: "Gold", requiredXp: 50000, cashbackPercent: 4, tone: "gold" },
+      { key: "platinum", name: "Platinum", requiredXp: 150000, cashbackPercent: 6, tone: "platinum" },
+      { key: "diamond", name: "Diamond", requiredXp: 500000, cashbackPercent: 8, tone: "diamond" },
+      { key: "emerald", name: "Emerald", requiredXp: 1500000, cashbackPercent: 10, tone: "emerald" },
+      { key: "obsidian", name: "Obsidian", requiredXp: 3000000, cashbackPercent: 11, tone: "obsidian" },
+    ],
     quests: {
       daily: [
         { key: "daily_activity", title: "Show up & build", action: "daily_login", target: 1, xp: 5 },
@@ -77,6 +86,10 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     return state.members[id];
   };
   const rankFor = (config, lifetimeXp) => config.ranks.slice().sort((a, b) => b.requiredXp - a.requiredXp).find((rank) => lifetimeXp >= rank.requiredXp) || config.ranks[0];
+  const cashbackTierFor = (config, lifetimeXp) => {
+    const tiers = Array.isArray(config.cashbackTiers) && config.cashbackTiers.length ? config.cashbackTiers : config.ranks;
+    return tiers.slice().sort((a, b) => b.requiredXp - a.requiredXp).find((tier) => lifetimeXp >= tier.requiredXp) || tiers[0];
+  };
   const eventCount = (state, userId, action, predicate = () => true) => state.xpLedger.filter((entry) => entry.userId === String(userId) && entry.action === action && entry.amount > 0 && predicate(entry)).length;
 
   function award(state, { userId, sourceKey, action, title, amount, note = "", metadata = {} }) {
@@ -145,13 +158,13 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const product = { ...config.products.default, ...(config.products[productType] || {}) };
     const xp = Math.floor((cents / 100) * Number(config.xp.purchasePerDollar || 0) * Math.max(0, Number(product.purchaseXpMultiplier ?? 1)));
     const xpResult = award(state, { userId, sourceKey: `purchase-xp:${sourceId}`, action: "purchase", title: `${title} purchase`, amount: xp, note: "Verified external payment", metadata: { sourceId, externalPaidCents: cents, productType } });
-    const rank = rankFor(config, memberFor(state, userId).lifetimeXp);
-    const rate = Math.max(0, Number(rank.cashbackPercent || 0)) / 100;
+    const cashbackTier = cashbackTierFor(config, memberFor(state, userId).lifetimeXp);
+    const rate = Math.max(0, Number(cashbackTier.cashbackPercent || 0)) / 100;
     const multiplier = product.cashbackEligible === false ? 0 : Math.max(0, Number(product.cashbackMultiplier ?? 1));
     const cashbackCents = Math.floor(cents * rate * multiplier + 1e-8);
     let cashback = state.cashbackLedger.find((entry) => entry.sourceId === String(sourceId));
     if (!cashback && cashbackCents > 0) {
-      cashback = { id: randomUUID(), userId: String(userId), sourceId: String(sourceId), paymentIntentId: String(paymentIntentId || ""), productType, title: `${rank.cashbackPercent}% cashback — ${title}`, externalPaidCents: cents, cashbackCents, ratePercent: rank.cashbackPercent, multiplier, status: "pending", createdAt: iso(), availableAt: new Date(now().getTime() + Math.max(0, Number(config.pendingCashbackDays) || 0) * 86400000).toISOString(), metadata };
+      cashback = { id: randomUUID(), userId: String(userId), sourceId: String(sourceId), paymentIntentId: String(paymentIntentId || ""), productType, title: `${cashbackTier.cashbackPercent}% rake back — ${title}`, externalPaidCents: cents, cashbackCents, ratePercent: cashbackTier.cashbackPercent, multiplier, status: "pending", createdAt: iso(), availableAt: new Date(now().getTime() + Math.max(0, Number(config.pendingCashbackDays) || 0) * 86400000).toISOString(), metadata };
       state.cashbackLedger.push(cashback);
     }
     if (xpResult.awarded) completeQuests(state, userId);
@@ -171,6 +184,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const config = state.config;
     const member = memberFor(state, userId);
     const rank = rankFor(config, member.lifetimeXp);
+    const cashbackTier = cashbackTierFor(config, member.lifetimeXp);
     const ordered = config.ranks.slice().sort((a, b) => a.requiredXp - b.requiredXp);
     const currentIndex = ordered.findIndex((item) => item.key === rank.key);
     const nextRank = ordered[currentIndex + 1] || null;
@@ -181,7 +195,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     });
     const cashbacks = state.cashbackLedger.filter((entry) => entry.userId === String(userId));
     return {
-      rank, ranks: ordered, lifetimeXp: member.lifetimeXp, currentStreak: member.currentStreak, longestStreak: member.longestStreak, lastQualifyingActivityDate: member.lastQualifyingActivityDate,
+      rank, ranks: ordered, cashbackTier, cashbackTiers: (Array.isArray(config.cashbackTiers) && config.cashbackTiers.length ? config.cashbackTiers : config.ranks).slice().sort((a, b) => a.requiredXp - b.requiredXp), lifetimeXp: member.lifetimeXp, currentStreak: member.currentStreak, longestStreak: member.longestStreak, lastQualifyingActivityDate: member.lastQualifyingActivityDate,
       nextRank, xpToNextRank: nextRank ? Math.max(0, nextRank.requiredXp - member.lifetimeXp) : 0,
       quests: { daily: createQuest("daily", utcDay()), weekly: createQuest("weekly", weekKey()), milestone: createQuest("milestone", "lifetime") },
       cashback: { pendingCents: cashbacks.filter((entry) => entry.status === "pending").reduce((sum, entry) => sum + entry.cashbackCents, 0), availableCents: cashbacks.filter((entry) => entry.status === "available").reduce((sum, entry) => sum + entry.cashbackCents, 0), lifetimeCents: cashbacks.filter((entry) => entry.status !== "reversed").reduce((sum, entry) => sum + entry.cashbackCents, 0), ledger: cashbacks.slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 50) },
