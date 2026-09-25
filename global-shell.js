@@ -1696,7 +1696,7 @@
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-          '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span>📅</span><b>Daily</b></button>' +
+          (shellState.isAdmin ? '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span>📅</span><b>Daily</b></button>' : '') +
           '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong></a>' +
           '<a class="rblx-shell-header-token-balance" href="./rewards" title="View RBLX Points"><small>RBLX Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
@@ -2391,7 +2391,7 @@
 
   async function openDailyStreak() {
     var overlay = document.getElementById("rblxDailyStreakOverlay");
-    if (!overlay || !shellState.currentUser || !shellState.currentUser.loggedIn) return;
+    if (!overlay || !shellState.currentUser || !shellState.currentUser.loggedIn || !shellState.isAdmin) return;
     overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open");
     try {
       var response = await fetch(API_BASE + "/daily-streak", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } });
@@ -2408,7 +2408,7 @@
       if (event.target.closest("[data-shell-daily-streak-close]") || event.target.id === "rblxDailyStreakOverlay") { var overlay = document.getElementById("rblxDailyStreakOverlay"); if (overlay) overlay.hidden = true; document.body.classList.remove("rblx-shell-modal-open"); }
     });
     window.setTimeout(function () {
-      if (!shellState.currentUser || !shellState.currentUser.loggedIn) return;
+      if (!shellState.currentUser || !shellState.currentUser.loggedIn || !shellState.isAdmin) return;
       var key = "rblxtools_daily_streak_opened_" + String(shellState.currentUser.userId || "member") + "_" + new Date().toISOString().slice(0, 10);
       try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch (_error) {}
       openDailyStreak();
