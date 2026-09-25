@@ -4965,6 +4965,12 @@
     mountMobileHomeBannerAd(slot);
   }
 
+  function mountExistingSharedBanner(id) {
+    var banner = document.getElementById(id);
+    if (banner) mountSharedBannerAd(banner.querySelector(".rblx-tool-banner-ad-slot"));
+    return banner;
+  }
+
   function initSharedMobileBannerAds() {
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initSharedMobileBannerAds, { once: true });
@@ -5022,7 +5028,8 @@
     }
 
     var showcaseCard = document.querySelector(".showcase-card");
-    if (!showcaseCard || document.getElementById("rblxToolBannerAd")) return;
+    if (!showcaseCard) return;
+    if (mountExistingSharedBanner("rblxToolBannerAd")) return;
 
     var ad = createSharedBannerAd("rblxToolBannerAd", "rblx-tool-banner-ad");
     showcaseCard.parentNode.insertBefore(ad.banner, showcaseCard);
@@ -5041,7 +5048,8 @@
       return;
     }
 
-    if (!document.querySelector("#rblxShellPage .showcase-card") || document.getElementById("rblxToolFooterBannerAd")) return;
+    if (!document.querySelector("#rblxShellPage .showcase-card")) return;
+    if (mountExistingSharedBanner("rblxToolFooterBannerAd")) return;
 
     var footer = document.querySelector(".rblx-shell-footer");
     if (!footer || !footer.parentNode) return;
@@ -5054,7 +5062,8 @@
   function initSharedStoreFooterBannerAd() {
     var currentPath = String(window.location.pathname || "/").replace(/\/+$/g, "").replace(/^\//, "").replace(/\.html$/i, "");
     var storePages = ["subscriptions", "discord-bot", "ai-tokens"];
-    if (storePages.indexOf(currentPath) === -1 || document.getElementById("rblxStoreFooterBannerAd")) return;
+    if (storePages.indexOf(currentPath) === -1) return;
+    if (mountExistingSharedBanner("rblxStoreFooterBannerAd")) return;
 
     var footer = document.querySelector(".rblx-shell-footer");
     if (!footer || !footer.parentNode) return;
@@ -5072,7 +5081,8 @@
 
     var toolPages = ["template-downloader", "template-background-changer", "ugc-downloader", "media-downloader", "audio-downloader", "robux-calculator", "animation-spoofer", "ai-clothing-studio", "game-launcher"];
     var currentPath = String(window.location.pathname || "/").replace(/\/+$/g, "").replace(/^\//, "").replace(/\.html$/i, "");
-    if (toolPages.indexOf(currentPath) === -1 || document.getElementById("rblxToolHeaderBannerAd")) return;
+    if (toolPages.indexOf(currentPath) === -1) return;
+    if (mountExistingSharedBanner("rblxToolHeaderBannerAd")) return;
 
     var hero = document.querySelector("#rblxShellPage main > .hero, #rblxShellPage .tool-hero, #rblxShellPage .page-hero, #rblxShellPage .calc-hero, #rblxShellPage #intro, #rblxShellPage .ai-hero");
     if (!hero) return;
@@ -5093,6 +5103,8 @@
 
     var homeTop = document.querySelector("#rblxShellPage .home-grid-top");
     var toolsSection = document.getElementById("tools-section");
+    mountExistingSharedBanner("rblxHomeToolsBannerAd");
+    mountExistingSharedBanner("rblxHomeFooterBannerAd");
     if (homeTop && toolsSection && !document.getElementById("rblxHomeMobileBannerAd")) {
       var mobileAd = document.createElement("section");
       mobileAd.id = "rblxHomeMobileBannerAd";
@@ -5590,6 +5602,7 @@
       document.addEventListener("DOMContentLoaded", initShellSidebarAds, { once: true });
       return;
     }
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-mobile-banner-ad] .rblx-home-mobile-banner-ad-slot"), mountMobileBannerAd);
     if (!shouldShowMemberAds() || !window.matchMedia("(min-width: 1180px)").matches) return;
 
     var leftFoot = document.querySelector(".rblx-shell-left-foot");
