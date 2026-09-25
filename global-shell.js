@@ -2400,8 +2400,11 @@
     if (!overlay) return;
     overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open");
     try {
-      var response = await fetch(API_BASE + "/daily-streak", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } });
-      var payload = await response.json(); if (!response.ok) throw new Error(payload.error || "Could not load daily streak.");
+      var response = await fetch(API_BASE + "/api/daily-streak", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } });
+      var raw = await response.text();
+      var payload = null;
+      try { payload = JSON.parse(raw); } catch (_error) { throw new Error("The daily-reward service is unavailable. Please reload after the server restart."); }
+      if (!response.ok) throw new Error(payload.error || "Could not load daily streak.");
       renderDailyStreak(payload.streak || {});
     } catch (error) {
       var status = document.getElementById("rblxDailyStreakStatus"); if (status) status.textContent = error.message || "Could not load daily streak.";
@@ -2413,12 +2416,6 @@
       if (event.target.closest("[data-shell-daily-streak]")) openDailyStreak();
       if (event.target.closest("[data-shell-daily-streak-close]") || event.target.id === "rblxDailyStreakOverlay") { var overlay = document.getElementById("rblxDailyStreakOverlay"); if (overlay) overlay.hidden = true; document.body.classList.remove("rblx-shell-modal-open"); }
     });
-    window.setTimeout(function () {
-      if (!shellState.currentUser || !shellState.currentUser.loggedIn || !shellState.isAdmin) return;
-      var key = "rblxtools_daily_streak_opened_" + String(shellState.currentUser.userId || "member") + "_" + new Date().toISOString().slice(0, 10);
-      try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch (_error) {}
-      openDailyStreak();
-    }, 1800);
   }
 
   function bindDailyStreakTrigger() {

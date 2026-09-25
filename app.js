@@ -12925,7 +12925,7 @@ function getPaidDailyRewardMultiplier(membership) {
   return String(membership.plan || "").toLowerCase() === "pro" ? 2 : 1.5;
 }
 
-app.get("/daily-streak", async (req, res) => {
+app.get("/api/daily-streak", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
     const membership = await resolveMembershipSnapshot(user);
