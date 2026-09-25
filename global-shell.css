@@ -5486,3 +5486,62 @@ body.rblx-shell-ready .rblx-shell-page #plusNotice .plusWord {
   animation: none !important;
   filter: none !important;
 }
+
+/* Header density: balances become compact stats before laptop-sized screens
+   begin squeezing the navigation. */
+@media (min-width: 1181px) and (max-width: 1580px) {
+  .rblx-shell-header { gap: 8px !important; padding: 10px 12px !important; }
+  .rblx-shell-header-actions, .rblx-shell-auth { gap: 6px !important; }
+  .rblx-shell-header-token-balance { min-width: 52px !important; min-height: 36px !important; gap: 1px; padding: 0 6px; border-color: transparent; border-radius: 9px; background: transparent; box-shadow: none; }
+  .rblx-shell-header-token-balance small { font-size: 7px; letter-spacing: .045em; }
+  .rblx-shell-header-token-balance strong { font-size: 12px; }
+  .rblx-shell-referral-balance { min-height: 36px; gap: 1px 4px; padding: 0 6px; border-color: transparent; border-radius: 9px; background: transparent; box-shadow: none; }
+  .rblx-shell-referral-balance span { font-size: 12px; }
+  .rblx-shell-referral-balance small { font-size: 7px; }
+  .rblx-shell-notification-trigger { min-width: 36px; min-height: 36px; border-radius: 10px; }
+  .rblx-shell-profile-card { min-width: 148px; min-height: 38px !important; gap: 7px; padding: 4px 8px 4px 5px; border-radius: 12px; }
+  .rblx-shell-profile-card-avatar { width: 28px; height: 28px; font-size: 12px; }
+  .rblx-shell-profile-card-title { max-width: 94px; font-size: 11px; }
+  .rblx-shell-profile-card-subtitle { max-width: 94px; font-size: 8px; }
+  .rblx-shell-profile-card-arrow { width: 14px; height: 14px; }
+  #rblxShellAdminPreviewHost { min-height: 36px; }
+  .rblx-shell-admin-preview summary { min-height: 36px; padding: 0 8px; border-radius: 10px; font-size: 9px; }
+}
+
+@media (min-width: 1181px) and (max-width: 1320px) {
+  .rblx-header-nav > a[href="./discord-bot"], .rblx-header-nav > a[href="./rewards"] { display: none; }
+  .rblx-header-search { flex-basis: 132px; min-width: 112px; }
+}
+
+/* Tablet and phone header: drawer navigation prevents overflow while keeping
+   every account control accessible. */
+.rblx-mobile-side-menu-button { display: none; }
+@media (max-width: 1180px) {
+  :root { --shell-header-height: 74px; }
+  body.rblx-mobile-shell .rblx-shell-header { grid-template-columns: auto minmax(120px, 1fr) auto; grid-template-rows: 1fr; align-items: center; gap: 10px; min-height: var(--shell-header-height); height: var(--shell-header-height); padding: 10px 14px; }
+  body.rblx-mobile-shell .rblx-shell-brand { min-height: 0; padding: 0; }
+  body.rblx-mobile-shell .rblx-shell-brand-mark { width: 42px; height: 42px; }
+  body.rblx-mobile-shell .rblx-shell-brand-subtitle { display: none; }
+  body.rblx-mobile-shell .rblx-header-center { min-width: 0; }
+  body.rblx-mobile-shell .rblx-header-nav { display: none; }
+  body.rblx-mobile-shell .rblx-header-search { display: flex; flex: 1 1 auto; min-width: 0; height: 36px; }
+  body.rblx-mobile-shell #rblxShellAdminPreviewHost, body.rblx-mobile-shell .rblx-shell-header-actions { display: none; }
+  body.rblx-mobile-shell .rblx-mobile-side-menu-button { display: grid; place-content: center; gap: 4px; width: 42px; height: 42px; padding: 0; border: 1px solid rgba(111, 167, 247, .36); border-radius: 12px; background: linear-gradient(180deg, rgba(41, 78, 126, .88), rgba(20, 42, 73, .96)); box-shadow: 0 10px 22px rgba(2, 8, 19, .28); cursor: pointer; }
+  body.rblx-mobile-shell .rblx-mobile-side-menu-button i { display: block; width: 17px; height: 2px; border-radius: 99px; background: #dceaff; }
+  body.rblx-mobile-shell .rblx-mobile-side-menu-button[aria-expanded="true"] { border-color: #7eb7ff; background: #214d7c; }
+  body.rblx-mobile-shell .rblx-shell-left, body.rblx-mobile-shell .rblx-shell-right { position: fixed; top: var(--shell-header-height); bottom: 12px; width: min(376px, calc(100vw - 24px)); height: auto; max-height: none; min-height: 0; z-index: 65; border-radius: 20px; box-shadow: 0 30px 60px rgba(0,0,0,.42); overflow: hidden; transition: transform .22s ease, opacity .22s ease; }
+  body.rblx-mobile-shell .rblx-shell-left { left: 12px; transform: translateX(calc(-100% - 20px)); opacity: 0; }
+  body.rblx-mobile-shell .rblx-shell-right { right: 12px; transform: translateX(calc(100% + 20px)); opacity: 0; }
+  body.rblx-mobile-shell.rblx-mobile-nav-open .rblx-shell-left, body.rblx-mobile-shell.rblx-mobile-chat-open .rblx-shell-right { transform: translateX(0); opacity: 1; }
+  body.rblx-mobile-shell .rblx-mobile-overlay { display: block; position: fixed; inset: 0; z-index: 60; border: 0; background: rgba(4,7,12,.58); backdrop-filter: blur(4px); }
+  body.rblx-mobile-shell .rblx-mobile-overlay[hidden] { display: none !important; }
+  body.rblx-mobile-shell .rblx-shell-left-inner > .rblx-shell-header-actions, body.rblx-mobile-shell .rblx-shell-left-inner > #rblxShellAdminPreviewHost { display: flex; width: calc(100% - 24px); box-sizing: border-box; margin: 12px 12px 0; }
+  body.rblx-mobile-shell .rblx-shell-left-inner > #rblxShellAdminPreviewHost { justify-content: flex-start; }
+  body.rblx-mobile-shell .rblx-shell-auth { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+}
+
+@media (max-width: 560px) {
+  body.rblx-mobile-shell .rblx-shell-header { grid-template-columns: minmax(0, 1fr) auto; }
+  body.rblx-mobile-shell .rblx-header-center { display: none; }
+  body.rblx-mobile-shell .rblx-shell-brand-title { font-size: 20px; }
+}

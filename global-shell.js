@@ -321,12 +321,16 @@
   }
 
   function isMobileShellViewport() {
-    return window.matchMedia("(max-width: 820px)").matches;
+    // Smaller laptops and tablets use the drawer navigation so the desktop
+    // header never has to compress every control into one row.
+    return window.matchMedia("(max-width: 1180px)").matches;
   }
 
   function closeMobilePanels() {
     document.body.classList.remove("rblx-mobile-nav-open");
     document.body.classList.remove("rblx-mobile-chat-open");
+    var menuButton = document.getElementById("rblxMobileSideMenuButton");
+    if (menuButton) menuButton.setAttribute("aria-expanded", "false");
     var overlay = document.getElementById("rblxMobileOverlay");
     if (overlay) {
       overlay.hidden = true;
@@ -347,15 +351,22 @@
     var actions = document.querySelector(".rblx-shell-header-actions");
     var header = document.querySelector(".rblx-shell-header");
     var navInner = document.querySelector(".rblx-shell-left-inner");
-    if (!actions || !header || !navInner) return;
+    var previewHost = document.getElementById("rblxShellAdminPreviewHost");
+    if (!actions || !header || !navInner || !previewHost) return;
 
     if (isMobileShellViewport()) {
+      if (previewHost.parentElement !== navInner) {
+        navInner.insertBefore(previewHost, navInner.firstChild);
+      }
       if (actions.parentElement !== navInner) {
         navInner.insertBefore(actions, navInner.firstChild);
       }
       return;
     }
 
+    if (previewHost.parentElement !== header) {
+      header.appendChild(previewHost);
+    }
     if (actions.parentElement !== header) {
       header.appendChild(actions);
     }
@@ -1838,6 +1849,7 @@
             "</span>" +
           "</a>" +
           buildHeaderNavigationMarkup() +
+          '<button class="rblx-mobile-side-menu-button" type="button" id="rblxMobileSideMenuButton" aria-label="Open navigation" aria-expanded="false"><i></i><i></i><i></i></button>' +
           '<div id="rblxShellAdminPreviewHost">' + buildAdminPreviewMarkup() + '</div>' +
           '<div class="rblx-shell-header-actions">' +
             buildAuthMarkup() +
@@ -1898,7 +1910,6 @@
             "</div>" +
           "</aside>" +
         "</div>" +
-        '<button class="rblx-mobile-side-menu-button" type="button" id="rblxMobileSideMenuButton" aria-label="Open navigation"><i></i><i></i><i></i></button>' +
         '<button class="rblx-mobile-overlay" type="button" id="rblxMobileOverlay" hidden aria-label="Close mobile panel"></button>' +
         '<div class="rblx-shell-profile-overlay" id="rblxShellProfileOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-profile-modal" id="rblxShellProfileModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellProfileName">' +
@@ -2329,7 +2340,7 @@
 
   function buildHeaderNavigationMarkup() {
     function menu(label, links) { return '<details class="rblx-header-menu"><summary>' + label + '<span>⌄</span></summary><div>' + links.map(function (link) { return '<a href="' + link[0] + '">' + link[1] + '</a>'; }).join('') + '</div></details>'; }
-    return '<div class="rblx-header-center"><nav class="rblx-header-nav" aria-label="Primary navigation"><a href="./index">Home</a>' + menu('Tools', [['./template-background-changer', 'Background Changer'], ['./media-downloader', 'Media'], ['./audio-downloader', 'Audio'], ['./robux-calculator', 'Robux Calculator'], ['./animation-spoofer', 'Animations']]) + menu('AI tools', [['./ai-clothing-studio', 'AI Clothing Studio'], ['./ai-ugc', 'AI UGC Studio'], ['./thumbnail-ai', 'AI Thumbnail Studio']]) + '<a class="rblx-header-popular" href="./template-downloader">Clothing <small>Popular</small></a><a class="rblx-header-popular" href="./ugc-downloader">UGC <small>Popular</small></a><a href="./codes">Roblox Codes</a><a href="./discord-bot">Discord Bot</a><a href="./rewards">Rewards</a>' + menu('More', [['./subscriptions', 'Subscriptions'], ['./ai-tokens', 'AI Tokens'], ['./community', 'Community']]) + '</nav><form id="rblxHeaderSearch" class="rblx-header-search" role="search" autocomplete="off"><label for="rblxHeaderSearchInput">Search RBLXTools</label><span aria-hidden="true">⌕</span><input id="rblxHeaderSearchInput" type="search" name="q" placeholder="Search pages, codes &amp; posts"><button type="button" aria-label="Clear search" hidden>×</button><div id="rblxHeaderSearchResults" class="rblx-header-search-results" role="listbox" hidden></div></form></div>';
+    return '<div class="rblx-header-center"><nav class="rblx-header-nav" aria-label="Primary navigation"><a href="./index">Home</a>' + menu('Tools', [['./template-background-changer', 'Background Changer'], ['./media-downloader', 'Media'], ['./audio-downloader', 'Audio'], ['./robux-calculator', 'Robux Calculator'], ['./animation-spoofer', 'Animations']]) + menu('AI tools', [['./ai-clothing-studio', 'AI Clothing Studio'], ['./ai-ugc', 'AI UGC Studio'], ['./thumbnail-ai', 'AI Thumbnail Studio']]) + '<a class="rblx-header-popular" href="./template-downloader">Clothing <small>Popular</small></a><a class="rblx-header-popular" href="./ugc-downloader">UGC <small>Popular</small></a><a href="./codes">Roblox Codes</a><a href="./discord-bot">Discord Bot</a><a href="./rewards">Rewards</a>' + menu('More', [['./subscriptions', 'Subscriptions'], ['./ai-tokens', 'AI Tokens'], ['./discord-bot', 'Discord Bot'], ['./rewards', 'Rewards'], ['./community', 'Community']]) + '</nav><form id="rblxHeaderSearch" class="rblx-header-search" role="search" autocomplete="off"><label for="rblxHeaderSearchInput">Search RBLXTools</label><span aria-hidden="true">⌕</span><input id="rblxHeaderSearchInput" type="search" name="q" placeholder="Search pages, codes &amp; posts"><button type="button" aria-label="Clear search" hidden>×</button><div id="rblxHeaderSearchResults" class="rblx-header-search-results" role="listbox" hidden></div></form></div>';
   }
 
   function initHeaderSearch() {
@@ -3979,9 +3990,11 @@
       mobileSideMenuButton.addEventListener("click", function () {
         if (document.body.classList.contains("rblx-mobile-nav-open")) {
           closeMobilePanels();
+          mobileSideMenuButton.setAttribute("aria-expanded", "false");
           return;
         }
         openMobilePanel("nav");
+        mobileSideMenuButton.setAttribute("aria-expanded", "true");
       });
     }
     if (mobileOverlay) {
