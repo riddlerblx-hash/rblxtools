@@ -2389,6 +2389,28 @@
     status.textContent = streak.claimedToday ? "Come back tomorrow to keep your streak going." : streak.available ? "Your daily reward is ready to claim." : "Log in to unlock today’s reward.";
   }
 
+  // Keep the modal complete while the account request is resolving. This is
+  // intentionally presentation-only: saved streak data always replaces it.
+  function buildDailyStreakPreview() {
+    var previewXp = [50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 400];
+    var previewBonuses = {
+      1: { type: "p", amount: 2 }, 4: { type: "p", amount: 50 },
+      7: { type: "l", amount: 7 }, 9: { type: "c", amount: 10 },
+      11: { type: "p", amount: 50 }, 14: { type: "t", amount: 50 }
+    };
+    return {
+      currentStreak: 0,
+      xp: previewXp[0],
+      multiplier: 1,
+      available: false,
+      claimedToday: false,
+      window: previewXp.map(function (xp, index) {
+        var day = index + 1;
+        return { day: day, xp: xp, bonus: previewBonuses[day] || null };
+      })
+    };
+  }
+
   async function openDailyStreak() {
     var overlay = document.getElementById("rblxDailyStreakOverlay");
     if (!overlay && document.body) {
@@ -2399,15 +2421,19 @@
     // it, even if the background account refresh is still in flight.
     if (!overlay) return;
     overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open");
+    renderDailyStreak(buildDailyStreakPreview());
+    var loadingStatus = document.getElementById("rblxDailyStreakStatus");
+    if (loadingStatus) loadingStatus.textContent = "Checking your signed-in account…";
     try {
-      var response = await fetch(API_BASE + "/api/daily-streak", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } });
-      var raw = await response.text();
-      var payload = null;
-      try { payload = JSON.parse(raw); } catch (_error) { throw new Error("The daily-reward service is unavailable. Please reload after the server restart."); }
-      if (!response.ok) throw new Error(payload.error || "Could not load daily streak.");
+      // Use the exact cookie-authenticated request path used by the rest of
+      // the signed-in shell. Do not send an empty legacy bearer token.
+      var payload = await authApiRequest("/api/daily-streak", { method: "GET", cache: "no-store" });
       renderDailyStreak(payload.streak || {});
     } catch (error) {
-      var status = document.getElementById("rblxDailyStreakStatus"); if (status) status.textContent = error.message || "Could not load daily streak.";
+      var status = document.getElementById("rblxDailyStreakStatus");
+      if (status) status.textContent = (error.message === "Missing bearer token." || error.message === "User not found.")
+        ? "Your sign-in session needs a refresh. Please sign out and sign back in."
+        : (error.message || "Could not load daily streak.");
     }
   }
 
