@@ -4686,42 +4686,37 @@
     void refresh;
   }
 
-  // Adsterra display inventory. Their tags read window.atOptions while the
-  // invoke script loads, so mounts are serialized to keep simultaneous page
-  // placements from overwriting one another's dimensions or zone key.
+  // Adsterra tags use document.write, so each placement runs in a sandboxed
+  // document. This keeps the advertising code isolated from site sessions.
   var ADSTERRA_DISPLAY_UNITS = {
     horizontal: { key: "fb95715336abfc09031edf4e6ef208c5", width: 728, height: 90 },
     box: { key: "d0b55a0366cbbdb50c4c68fe13fa1e3f", width: 300, height: 250 },
     skyscraper: { key: "c56a103ad60efdb3686d500b49552f97", width: 160, height: 600 },
     mobile: { key: "4f3f88a3c4de39df646d1819202a769b", width: 320, height: 50 }
   };
-  var adsterraMountQueue = Promise.resolve();
-
   function mountAdsterraBanner(host, unit, mountedKey) {
     if (!host || !unit || host.dataset[mountedKey] === "true") return;
     host.dataset[mountedKey] = "true";
-    adsterraMountQueue = adsterraMountQueue.then(function () {
-      if (!host.isConnected || !shouldShowMemberAds()) throw new Error("Ad placement unavailable");
-      host.textContent = "";
-      var slot = document.createElement("div");
-      slot.className = "rblx-adsterra-unit";
-      slot.style.width = String(unit.width) + "px";
-      slot.style.height = String(unit.height) + "px";
-      slot.style.maxWidth = "100%";
-      host.appendChild(slot);
-      window.atOptions = { key: unit.key, format: "iframe", height: unit.height, width: unit.width, params: {} };
-      return new Promise(function (resolve, reject) {
-        var script = document.createElement("script");
-        script.async = true;
-        script.src = "https://professionalsusceptible.com/" + unit.key + "/invoke.js";
-        script.onload = resolve;
-        script.onerror = reject;
-        slot.appendChild(script);
-      });
-    }).catch(function () {
+    if (!host.isConnected || !shouldShowMemberAds()) {
       delete host.dataset[mountedKey];
-      host.textContent = "";
-    });
+      return;
+    }
+    host.textContent = "";
+    var frame = document.createElement("iframe");
+    frame.className = "rblx-adsterra-unit";
+    frame.title = "Advertisement";
+    frame.width = String(unit.width);
+    frame.height = String(unit.height);
+    frame.setAttribute("scrolling", "no");
+    frame.setAttribute("frameborder", "0");
+    frame.setAttribute("sandbox", "allow-scripts allow-popups allow-popups-to-escape-sandbox");
+    frame.style.cssText = "display:block;width:" + String(unit.width) + "px;height:" + String(unit.height) + "px;max-width:100%;border:0;overflow:hidden;";
+    frame.srcdoc = '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body><script>var atOptions={key:' + JSON.stringify(unit.key) + ',format:"iframe",height:' + Number(unit.height) + ',width:' + Number(unit.width) + ',params:{}};<\/script><script src="https://professionalsusceptible.com/' + encodeURIComponent(unit.key) + '/invoke.js"><\/script></body></html>';
+    frame.addEventListener("error", function () {
+      delete host.dataset[mountedKey];
+      frame.remove();
+    }, { once: true });
+    host.appendChild(frame);
   }
 
   function removeVideoSliderAd() {
