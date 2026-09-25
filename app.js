@@ -12916,6 +12916,26 @@ app.get("/rewards/overview", async (req, res) => {
   }
 });
 
+// Only an active paid membership earns the daily-reward boost. Complimentary
+// time (including time earned in the streak itself) deliberately stays at 1x.
+function getPaidDailyRewardMultiplier(membership) {
+  const source = String(membership?.membershipSource || "").toLowerCase();
+  const paid = source.includes("stripe") || source.includes("robux");
+  if (!paid || !membership?.premiumActive) return 1;
+  return String(membership.plan || "").toLowerCase() === "pro" ? 2 : 1.5;
+}
+
+app.get("/daily-streak", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const membership = await resolveMembershipSnapshot(user);
+    res.setHeader("Cache-Control", "no-store, private, max-age=0");
+    return res.json({ ok: true, streak: rewardsEngine.getDailyStreak(user.id, getPaidDailyRewardMultiplier(membership)) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the daily streak." });
+  }
+});
+
 app.get("/api/rewards/me", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);

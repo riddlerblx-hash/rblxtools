@@ -1696,6 +1696,7 @@
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
+          '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span>▣</span><b>Daily</b></button>' +
           '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong></a>' +
           '<a class="rblx-shell-header-token-balance" href="./rewards" title="View RBLX Points"><small>RBLX Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
@@ -2355,6 +2356,63 @@
     if (!shellState.profileOverlay) return;
     shellState.profileOverlay.classList.remove("is-open");
     shellState.profileOverlay.setAttribute("aria-hidden", "true");
+  }
+
+  function buildDailyStreakModalMarkup() {
+    return '<div class="rblx-daily-streak-overlay" id="rblxDailyStreakOverlay" hidden>' +
+      '<section class="rblx-daily-streak-modal" role="dialog" aria-modal="true" aria-labelledby="rblxDailyStreakTitle">' +
+        '<button class="rblx-daily-streak-close" type="button" data-shell-daily-streak-close aria-label="Close daily streak">×</button>' +
+        '<div class="rblx-daily-streak-hero"><div><h2 id="rblxDailyStreakTitle"><span>Daily</span> Streak</h2><p>Log in daily to claim rewards and unlock better prizes the longer you keep your streak.</p></div><div class="rblx-daily-streak-stats"><div><small>Current streak</small><strong id="rblxDailyStreakCount">0</strong><em>days</em></div><div><small>Today’s reward</small><strong id="rblxDailyStreakToday">—</strong><em id="rblxDailyStreakMultiplier"></em></div></div></div>' +
+        '<div class="rblx-daily-streak-track" id="rblxDailyStreakTrack"></div>' +
+        '<div class="rblx-daily-streak-footer"><button type="button" id="rblxDailyStreakClaim" disabled>Claim today’s reward</button><p id="rblxDailyStreakStatus">Loading today’s streak…</p></div>' +
+      '</section></div>';
+  }
+
+  function dailyBonusLabel(bonus) {
+    if (!bonus) return "XP reward";
+    var labels = { p: "RBLX Points", t: "AI Tokens", c: "% AI-token coupon", l: "days of Plus", r: "Pro reward" };
+    return "+" + bonus.amount + " " + (labels[bonus.type] || "reward");
+  }
+
+  function renderDailyStreak(streak) {
+    var count = document.getElementById("rblxDailyStreakCount"), today = document.getElementById("rblxDailyStreakToday"), multiplier = document.getElementById("rblxDailyStreakMultiplier"), track = document.getElementById("rblxDailyStreakTrack"), claim = document.getElementById("rblxDailyStreakClaim"), status = document.getElementById("rblxDailyStreakStatus");
+    if (!count || !track) return;
+    count.textContent = String(streak.currentStreak || 0);
+    today.textContent = "+" + Number(streak.xp || 0).toLocaleString() + " XP";
+    multiplier.textContent = Number(streak.multiplier || 1) > 1 ? Number(streak.multiplier).toFixed(1).replace(".0", "") + "× paid-plan boost" : "";
+    track.innerHTML = (streak.window || []).map(function (item, index) {
+      var isToday = index === 0, claimed = Boolean(streak.claimedToday && isToday);
+      return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + '"><span>Day ' + item.day + '</span><b>' + (item.bonus ? dailyBonusLabel(item.bonus) : ('+' + Number(item.xp || 0).toLocaleString() + ' XP')) + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small><i>' + (claimed ? '✓' : String(index + 1)) + '</i></article>';
+    }).join("");
+    claim.disabled = !streak.available;
+    claim.textContent = streak.claimedToday ? "Today’s reward claimed" : streak.available ? "Claim today’s reward" : "Come back tomorrow";
+    status.textContent = streak.claimedToday ? "Come back tomorrow to keep your streak going." : streak.available ? "Your daily reward is ready to claim." : "Log in to unlock today’s reward.";
+  }
+
+  async function openDailyStreak() {
+    var overlay = document.getElementById("rblxDailyStreakOverlay");
+    if (!overlay || !shellState.currentUser || !shellState.currentUser.loggedIn) return;
+    overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open");
+    try {
+      var response = await fetch(API_BASE + "/daily-streak", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } });
+      var payload = await response.json(); if (!response.ok) throw new Error(payload.error || "Could not load daily streak.");
+      renderDailyStreak(payload.streak || {});
+    } catch (error) {
+      var status = document.getElementById("rblxDailyStreakStatus"); if (status) status.textContent = error.message || "Could not load daily streak.";
+    }
+  }
+
+  function initDailyStreak() {
+    document.addEventListener("click", function (event) {
+      if (event.target.closest("[data-shell-daily-streak]")) openDailyStreak();
+      if (event.target.closest("[data-shell-daily-streak-close]") || event.target.id === "rblxDailyStreakOverlay") { var overlay = document.getElementById("rblxDailyStreakOverlay"); if (overlay) overlay.hidden = true; document.body.classList.remove("rblx-shell-modal-open"); }
+    });
+    window.setTimeout(function () {
+      if (!shellState.currentUser || !shellState.currentUser.loggedIn) return;
+      var key = "rblxtools_daily_streak_opened_" + String(shellState.currentUser.userId || "member") + "_" + new Date().toISOString().slice(0, 10);
+      try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch (_error) {}
+      openDailyStreak();
+    }, 1800);
   }
 
   function buildHeaderNavigationMarkup() {
@@ -5923,6 +5981,8 @@
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
+    document.body.insertAdjacentHTML("beforeend", buildDailyStreakModalMarkup());
+    initDailyStreak();
     initHeaderSearch();
     renderRenewalNotice(getServerRenewalNoticeSnapshot() || {});
     applyAdminPreview();

@@ -179,7 +179,14 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const today = utcDay();
     const reward = getDailyReward(member, membershipMultiplier);
     saveState(state);
-    return { ...reward, currentStreak: member.currentStreak || 0, longestStreak: member.longestStreak || 0, available: member.lastQualifyingActivityDate === today && member.lastDailyRewardDate !== today, claimedToday: member.lastDailyRewardDate === today };
+    const startDay = reward.day;
+    const window = Array.from({ length: 14 }, (_, index) => {
+      const calendarDay = ((startDay - 1 + index) % 365) + 1;
+      const baseXp = DAILY_STREAK_XP[calendarDay - 1] || 0;
+      const rawBonus = DAILY_STREAK_BONUS_BY_DAY[calendarDay] || null;
+      return { day: calendarDay, xp: Math.round(baseXp * reward.multiplier), baseXp, bonus: rawBonus ? { ...rawBonus, amount: (rawBonus.type === "p" || rawBonus.type === "t") ? Math.round(rawBonus.amount * reward.multiplier) : rawBonus.amount } : null };
+    });
+    return { ...reward, window, currentStreak: member.currentStreak || 0, longestStreak: member.longestStreak || 0, available: member.lastQualifyingActivityDate === today && member.lastDailyRewardDate !== today, claimedToday: member.lastDailyRewardDate === today };
   }
 
   function claimDailyStreak(userId, membershipMultiplier = 1) {
