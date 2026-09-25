@@ -4686,8 +4686,8 @@
     void refresh;
   }
 
-  // Adsterra tags use document.write, so each placement runs in a sandboxed
-  // document. This keeps the advertising code isolated from site sessions.
+  // Adsterra tags use document.write, so each placement receives its own
+  // document and runs the supplied snippet normally.
   var ADSTERRA_DISPLAY_UNITS = {
     horizontal: { key: "fb95715336abfc09031edf4e6ef208c5", width: 728, height: 90 },
     box: { key: "d0b55a0366cbbdb50c4c68fe13fa1e3f", width: 300, height: 250 },
@@ -4709,7 +4709,7 @@
     frame.height = String(unit.height);
     frame.setAttribute("scrolling", "no");
     frame.setAttribute("frameborder", "0");
-    frame.setAttribute("sandbox", "allow-scripts allow-popups allow-popups-to-escape-sandbox");
+    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox");
     frame.style.cssText = "display:block;width:" + String(unit.width) + "px;height:" + String(unit.height) + "px;max-width:100%;border:0;overflow:hidden;";
     frame.srcdoc = '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body><script>var atOptions={key:' + JSON.stringify(unit.key) + ',format:"iframe",height:' + Number(unit.height) + ',width:' + Number(unit.width) + ',params:{}};<\/script><script src="https://professionalsusceptible.com/' + encodeURIComponent(unit.key) + '/invoke.js"><\/script></body></html>';
     frame.addEventListener("error", function () {
