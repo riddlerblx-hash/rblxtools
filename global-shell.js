@@ -2391,9 +2391,13 @@
 
   async function openDailyStreak() {
     var overlay = document.getElementById("rblxDailyStreakOverlay");
-    // Visibility is already restricted to admins in the header. Do not reject
-    // a visible control because a later background auth refresh is delayed.
-    if (!overlay || !shellState.currentUser || !shellState.currentUser.loggedIn) return;
+    if (!overlay && document.body) {
+      document.body.insertAdjacentHTML("beforeend", buildDailyStreakModalMarkup());
+      overlay = document.getElementById("rblxDailyStreakOverlay");
+    }
+    // This is a shared-shell overlay. A visible admin control must always open
+    // it, even if the background account refresh is still in flight.
+    if (!overlay) return;
     overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open");
     try {
       var response = await fetch(API_BASE + "/daily-streak", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } });
@@ -2421,6 +2425,7 @@
     Array.prototype.slice.call(document.querySelectorAll("[data-shell-daily-streak]")).forEach(function (button) {
       if (button.dataset.dailyStreakBound) return;
       button.dataset.dailyStreakBound = "true";
+      button.addEventListener("pointerdown", function (event) { event.preventDefault(); openDailyStreak(); });
       button.addEventListener("click", function (event) { event.preventDefault(); event.stopPropagation(); openDailyStreak(); });
     });
   }
