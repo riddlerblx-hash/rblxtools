@@ -152,7 +152,6 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
   function recordActivity({ userId, sourceKey, action, title, amount, note = "", metadata = {}, limitKey = "" }) {
     const state = getState();
     const config = state.config;
-    const member = memberFor(state, userId);
     const day = utcDay();
     if (limitKey) {
       const limit = Math.max(0, Number(config.limits?.[limitKey]) || 0);
@@ -160,14 +159,6 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       if (limit && used >= limit) return { awarded: false, limited: true, overview: buildOverviewFromState(state, userId) };
     }
     const result = award(state, { userId, sourceKey, action, title, amount, note, metadata });
-    if (result.awarded && action === "daily_login") {
-      const yesterday = new Date(now().getTime() - 86400000).toISOString().slice(0, 10);
-      if (member.lastQualifyingActivityDate !== day) {
-        member.currentStreak = member.lastQualifyingActivityDate === yesterday ? member.currentStreak + 1 : 1;
-        member.longestStreak = Math.max(member.longestStreak, member.currentStreak);
-        member.lastQualifyingActivityDate = day;
-      }
-    }
     if (result.awarded) completeQuests(state, userId);
     saveState(state);
     return { ...result, overview: buildOverviewFromState(state, userId) };
@@ -186,10 +177,31 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     };
   }
 
+  function normalizeDailyStreak(member) {
+    const today = utcDay();
+    const yesterday = utcDay(new Date(now().getTime() - 86400000));
+    const lastClaim = String(member.lastDailyRewardDate || "");
+
+    // Before a first claim, background page visits must never create a streak.
+    // This also repairs members who were advanced by the legacy login tracker.
+    if (!lastClaim) {
+      member.currentStreak = 0;
+      member.lastQualifyingActivityDate = null;
+      return { today, yesterday };
+    }
+
+    // A streak only continues when the prior reward was claimed yesterday.
+    if (lastClaim !== today && lastClaim !== yesterday) {
+      member.currentStreak = 0;
+      member.lastQualifyingActivityDate = null;
+    }
+    return { today, yesterday };
+  }
+
   function getDailyStreak(userId, membershipMultiplier = 1) {
     const state = getState();
     const member = memberFor(state, userId);
-    const today = utcDay();
+    const { today } = normalizeDailyStreak(member);
     const reward = getDailyReward(member, membershipMultiplier);
     saveState(state);
     const startDay = reward.day;
@@ -205,18 +217,13 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
   function claimDailyStreak(userId, membershipMultiplier = 1) {
     const state = getState();
     const member = memberFor(state, userId);
-    const today = utcDay();
+    const { today, yesterday } = normalizeDailyStreak(member);
     if (member.lastDailyRewardDate === today) {
       const error = new Error("Today’s streak reward has already been claimed."); error.statusCode = 409; throw error;
     }
-    // Claiming is the daily check-in. A member should never lose day one just
-    // because the background /auth/me refresh has not finished yet.
-    if (member.lastQualifyingActivityDate !== today) {
-      const yesterday = new Date(now().getTime() - 86400000).toISOString().slice(0, 10);
-      member.currentStreak = member.lastQualifyingActivityDate === yesterday ? member.currentStreak + 1 : 1;
-      member.longestStreak = Math.max(member.longestStreak, member.currentStreak);
-      member.lastQualifyingActivityDate = today;
-    }
+    member.currentStreak = member.lastDailyRewardDate === yesterday ? Math.max(0, Number(member.currentStreak) || 0) + 1 : 1;
+    member.longestStreak = Math.max(Number(member.longestStreak) || 0, member.currentStreak);
+    member.lastQualifyingActivityDate = today;
     const reward = getDailyReward(member, membershipMultiplier);
     const xp = award(state, { userId, sourceKey: `daily-streak:${userId}:${today}`, action: "daily_streak", title: `Day ${reward.day} daily streak`, amount: reward.xp, note: `${reward.multiplier}x membership reward multiplier`, metadata: { day: reward.day, baseXp: reward.baseXp, multiplier: reward.multiplier } });
     if (!xp.awarded) {
