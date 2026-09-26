@@ -164,8 +164,11 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
           : kind.endsWith("_global")
             ? state.xpLedger.filter((entry) => entry.action === quest.action && monthKey(new Date(entry.createdAt)) === window).length
             : eventCount(state, userId, quest.action, (entry) => period === "lifetime" || (period === "daily" ? entry.createdAt.slice(0, 10) === window : period === "weekly" ? weekKey(new Date(entry.createdAt)) === window : monthKey(new Date(entry.createdAt)) === window));
-        const key = `quest:${kind}:${quest.key}:${window}`;
-        if (count >= target && !state.xpLedger.some((entry) => entry.sourceKey === key)) award(state, { userId, sourceKey: key, action: "quest_reward", title: `${quest.title} completed`, amount: quest.xp, note: `${kind.replace(/_/g, " ")} quest`, metadata: { questKey: quest.key, kind, window } });
+        const recipients = kind.endsWith("_global") ? Object.keys(state.members) : [String(userId)];
+        recipients.forEach((recipientId) => {
+          const key = `quest:${kind}:${quest.key}:${window}:${recipientId}`;
+          if (count >= target && !state.xpLedger.some((entry) => entry.sourceKey === key)) award(state, { userId: recipientId, sourceKey: key, action: "quest_reward", title: `${quest.title} completed`, amount: quest.xp, note: `${kind.replace(/_/g, " ")} quest`, metadata: { questKey: quest.key, kind, window } });
+        });
       });
     });
   }
@@ -311,7 +314,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       const amount = quest.action === "streak_days" ? member.currentStreak
         : kind.endsWith("_global") ? state.xpLedger.filter((entry) => entry.action === quest.action && monthKey(new Date(entry.createdAt)) === window).length
           : eventCount(state, userId, quest.action, (entry) => period === "lifetime" || (period === "daily" ? entry.createdAt.slice(0, 10) === window : period === "weekly" ? weekKey(new Date(entry.createdAt)) === window : monthKey(new Date(entry.createdAt)) === window));
-      const key = `quest:${kind}:${quest.key}:${window}`;
+      const key = `quest:${kind}:${quest.key}:${window}:${String(userId)}`;
       return { ...quest, progress: Math.min(Number(quest.target) || 1, amount), completed: state.xpLedger.some((entry) => entry.sourceKey === key) };
     });
     const cashbacks = state.cashbackLedger.filter((entry) => entry.userId === String(userId));
