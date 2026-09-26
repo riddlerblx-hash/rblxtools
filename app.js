@@ -2121,6 +2121,10 @@ function buildCheckoutReturnOptions(req, successUrl, cancelUrl) {
   return {
     ui_mode: "embedded",
     return_url: successUrl,
+    // Always leave the embedded surface after a completed card payment too.
+    // Without this, Stripe can keep card payments on its inline confirmation
+    // state and never reach our purchase-success experience.
+    redirect_on_completion: "always",
   };
 }
 
