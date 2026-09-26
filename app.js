@@ -10839,7 +10839,7 @@ app.get("/auth/billing-details", async (req, res) => {
       // Stripe limits nested expansions to four levels. Invoice line descriptions
       // already contain the product/plan label, so no deep product expansion is needed.
       stripeClient.invoices.list({ customer: customerId, limit: 24 }),
-      stripeClient.checkout.sessions.list({ customer: customerId, limit: 50 }),
+      stripeClient.checkout.sessions.list({ customer: customerId, limit: 50, expand: ["data.payment_intent.latest_charge"] }),
     ]);
     let paymentMethod = null;
     const defaultPaymentMethodId = typeof customer?.invoice_settings?.default_payment_method === "string"
@@ -10866,21 +10866,28 @@ app.get("/auth/billing-details", async (req, res) => {
       invoicePdf: invoice.invoice_pdf || null,
       productName: invoice.lines?.data?.map((line) => line?.description || line?.price?.product?.name).filter(Boolean).join(", ") || invoice.description || "RBLXTools subscription",
     })) : [];
-    const checkoutHistory = Array.isArray(checkoutResult?.data) ? checkoutResult.data.filter((session) => {
+    const completedPaymentSessions = Array.isArray(checkoutResult?.data) ? checkoutResult.data.filter((session) => {
       if (!session || session.mode !== "payment") return false;
       const paymentStatus = String(session.payment_status || "").toLowerCase();
       const status = String(session.status || "").toLowerCase();
       return paymentStatus === "paid" && status === "complete";
-    }).map((session) => ({
-      id: session.id,
-      title: getStripeCheckoutPurchaseTitle(session),
-      status: String(session.payment_status || "").toLowerCase() === "paid" ? "paid" : String(session.status || "").toLowerCase() === "expired" ? "rejected" : "pending",
-      amount: Number(session.amount_total || 0),
-      discountAmount: Math.max(0, Number(session.total_details?.amount_discount || 0)),
-      currency: String(session.currency || "usd").toUpperCase(),
-      createdAt: getIsoFromUnixSeconds(session.created),
-      receiptUrl: session.url || null,
-    })) : [];
+    }) : [];
+    const checkoutHistory = await Promise.all(completedPaymentSessions.map(async (session) => {
+      let paymentIntent = session?.payment_intent || null;
+      if (typeof paymentIntent === "string") {
+        paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntent, { expand: ["latest_charge"] }).catch(() => null);
+      }
+      return {
+        id: session.id,
+        title: getStripeCheckoutPurchaseTitle(session),
+        status: "paid",
+        amount: Number(session.amount_total || 0),
+        discountAmount: Math.max(0, Number(session.total_details?.amount_discount || 0)),
+        currency: String(session.currency || "usd").toUpperCase(),
+        createdAt: getIsoFromUnixSeconds(session.created),
+        receiptUrl: paymentIntent?.latest_charge?.receipt_url || paymentIntent?.receipt_url || null,
+      };
+    }));
     const history = invoices.map((invoice) => ({
       id: invoice.id,
       title: invoice.productName,
@@ -13066,9 +13073,20 @@ app.post("/api/daily-streak/claim", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const membership = await resolveMembershipSnapshot(user);
     const reward = rewardsEngine.claimDailyStreak(user.id, getPaidDailyRewardMultiplier(membership));
-    const benefit = await grantDailyStreakBenefit(user.id, reward);
+    let benefit = null;
+    try {
+      benefit = await grantDailyStreakBenefit(user.id, reward);
+    } catch (benefitError) {
+      // The XP claim is already durable. Do not report a failed check-in just
+      // because an optional external benefit ledger is temporarily unavailable.
+      console.error("Could not apply daily streak bonus:", benefitError.message);
+    }
     const parts = [`${Number(reward.xp || 0).toLocaleString("en-US")} XP`, benefit].filter(Boolean);
-    addSiteNotification({ recipientId: user.id, category: "reward", title: `Daily streak claimed: ${parts.join(" + ")}.`, href: "./account-overview?tab=levels" });
+    try {
+      addSiteNotification({ recipientId: user.id, category: "reward", title: `Daily streak claimed: ${parts.join(" + ")}.`, href: "./account-overview?tab=levels" });
+    } catch (notificationError) {
+      console.error("Could not send daily streak notification:", notificationError.message);
+    }
     emitAccountTransactionUpdate(user.id);
     res.setHeader("Cache-Control", "no-store, private, max-age=0");
     return res.json({ ok: true, reward, benefit, streak: rewardsEngine.getDailyStreak(user.id, getPaidDailyRewardMultiplier(membership)) });
