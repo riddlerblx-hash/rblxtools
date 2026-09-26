@@ -10994,7 +10994,7 @@ async function getRetentionOfferForUser(user) {
   ]);
   const metadata = customer?.metadata || {};
   const alreadyUsed = Boolean(metadata.rblxtools_retention_cancelled_once || metadata.rblxtools_retention_offer_redeemed);
-  if (!subscription || subscription.cancel_at_period_end || !isPremiumStatus(subscription.status) || alreadyUsed) {
+  if (!subscription || !isPremiumStatus(subscription.status) || alreadyUsed) {
     return { eligible: false, reason: alreadyUsed ? "This one-time retention offer has already been used." : "This subscription is not eligible for a retention offer." };
   }
   const price = subscription?.items?.data?.[0]?.price || {};
@@ -11033,7 +11033,13 @@ app.post("/auth/billing/retention-offer/accept", async (req, res) => {
       name: "RBLXTools membership retention offer",
       metadata: { appUserId: String(user.id), subscriptionId: String(offer.subscription.id), type: "retention_50_once" },
     });
-    const updated = await stripeClient.subscriptions.update(offer.subscription.id, { discounts: [{ coupon: coupon.id }] });
+    // Accepting the offer keeps the plan active even when the member had
+    // already scheduled it to end. Stripe's one-time coupon affects only the
+    // next invoice; every later invoice automatically returns to its normal price.
+    const updated = await stripeClient.subscriptions.update(offer.subscription.id, {
+      cancel_at_period_end: false,
+      discounts: [{ coupon: coupon.id }],
+    });
     await stripeClient.customers.update(user.stripe_customer_id, {
       metadata: { ...(offer.customer?.metadata || {}), rblxtools_retention_offer_redeemed: new Date().toISOString() },
     });

@@ -543,7 +543,7 @@
       }
       var discounted = Math.round((Number(details.amount) || 0) / 2);
       title.textContent = "Keep your " + (details.plan || "membership") + " plan for 50% off";
-      copy.textContent = "Stay subscribed and your next renewal will be half price. This private offer is available once and applies to one billing cycle only.";
+      copy.textContent = "Stay subscribed and your next renewal will be half price. The billing cycle after that returns to your normal plan price.";
       price.innerHTML = '<s>' + formatRetentionMoney(details.amount, details.currency) + '</s><strong>' + formatRetentionMoney(discounted, details.currency) + '</strong><span>next renewal</span>';
       accept.hidden = false;
       accept.disabled = false;
@@ -5997,7 +5997,7 @@
           var copy = document.getElementById("rblxShellRetentionCopy");
           var decline = document.getElementById("rblxShellRetentionDecline");
           if (title) title.textContent = "Your membership is staying active";
-          if (copy) copy.textContent = "Your next renewal will be 50% off. We are glad you are staying with RBLXTools.";
+          if (copy) copy.textContent = "Your next renewal will be 50% off. After that one billing cycle, your normal plan price returns.";
           if (decline) { decline.textContent = "Done"; decline.hidden = false; }
           accept.hidden = true;
           var notice = document.getElementById("rblxShellRenewalNotice");
