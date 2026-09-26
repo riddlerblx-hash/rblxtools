@@ -326,37 +326,6 @@ body.rblx-shell-ready {
   gap: 12px;
 }
 
-.rblx-tool-use-card { position: relative; }
-
-.rblx-tool-use-indicator {
-  position: absolute;
-  top: 17px;
-  right: 17px;
-  display: grid;
-  min-height: 27px;
-  align-content: center;
-  padding: 0 9px;
-  border: 1px solid rgba(128, 176, 234, .32);
-  border-radius: 9px;
-  background: rgba(13, 29, 50, .9);
-  color: rgba(211, 231, 255, .92);
-  font-size: 9px;
-  font-weight: 800;
-  line-height: 1.2;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.rblx-tool-use-indicator[hidden] { display: none !important; }
-
-@media (max-width: 620px) {
-  .rblx-tool-use-indicator {
-    position: static;
-    width: fit-content;
-    margin: 10px 0 0 auto;
-  }
-}
-
 .rblx-shell-referral-balance {
   min-height: 50px;
   display: grid;
@@ -812,7 +781,6 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
     letter-spacing:.1em;
     text-transform:uppercase;
   }
-  .rblx-shell-sidebar-ad > .rblx-adcash-unit { width:300px; min-height:250px; }
   body.rblx-shell-left-collapsed .rblx-shell-sidebar-ad,
   body.rblx-shell-right-collapsed .rblx-shell-sidebar-ad { display:none !important; }
 }
@@ -4536,13 +4504,6 @@ body.rblx-shell-page .notice[aria-live="polite"] {
   text-align: center;
 }
 
-.rblx-tool-banner-ad-slot > .rblx-adcash-unit {
-  width: 728px;
-  min-height: 90px;
-  max-width: 100%;
-  margin: 0 auto;
-}
-
 .rblx-tool-banner-ad-slot iframe {
   display: block;
   max-width: 100%;
@@ -4559,64 +4520,9 @@ body.rblx-shell-page .notice[aria-live="polite"] {
   border: 0;
 }
 
-.rblx-smart-ad-timer {
-  width: min(728px, 100%);
-  padding-top: 7px;
-}
-
-.rblx-smart-ad-timer i {
-  display: block;
-  height: 3px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(145, 170, 198, .22);
-}
-
-.rblx-smart-ad-timer b {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #58c6ff, #7e87ff);
-  transform: scaleX(1);
-  transform-origin: left center;
-}
-
 .rblx-home-banner-ad { margin-block: 20px; }
 
 body.rblx-pro-ad-free [data-rblx-banner-ad] { display: none !important; }
-body.rblx-pro-ad-free [data-rblx-video-slider-ad] { display: none !important; }
-
-/* The video slider sits in the unused lower-left shell margin on desktop.
-   It follows the nav width when a member collapses that panel, and drops to
-   the phone-safe lower-left corner on smaller layouts. */
-.rblx-shell-video-slider-ad {
-  position: fixed;
-  z-index: 1400;
-  left: max(18px, calc(var(--shell-left-width) + 24px));
-  bottom: 22px;
-  width: min(340px, calc(100vw - var(--shell-left-width) - var(--shell-right-width) - 48px));
-  min-height: 1px;
-  pointer-events: none;
-}
-
-.rblx-shell-video-slider-ad > * { pointer-events: auto; }
-
-@media (max-width: 1180px) {
-  .rblx-shell-video-slider-ad {
-    left: 14px;
-    bottom: 14px;
-    width: min(340px, calc(100vw - 28px));
-  }
-}
-
-@media (max-width: 720px) {
-  .rblx-shell-video-slider-ad {
-    left: 10px;
-    bottom: max(10px, env(safe-area-inset-bottom));
-    width: min(320px, calc(100vw - 20px));
-  }
-}
 
 .rblx-home-mobile-banner-ad {
   display: none;
@@ -4653,13 +4559,6 @@ body.rblx-pro-ad-free [data-rblx-video-slider-ad] { display: none !important; }
     max-width: 100%;
     min-height: 60px;
     border: 0;
-  }
-
-  .rblx-home-mobile-banner-ad-slot > .rblx-adcash-unit {
-    width: 468px;
-    min-height: 60px;
-    max-width: 100%;
-    margin: 0 auto;
   }
 
   /* The mobile navigation uses its plan-promo footprint for an ad instead. */
@@ -5259,8 +5158,6 @@ body.rblx-shell-ready .rblx-shell-page .tutorial-video-box {
   background: #070c15 !important;
   box-shadow: 0 18px 32px rgba(2, 5, 13, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
-.rblx-tutorial-ad-player.rblx-tutorial-ad-active .vjs-control-bar,
-.rblx-tutorial-ad-player.rblx-tutorial-ad-active .vjs-big-play-button { display: none !important; }
 body.rblx-shell-ready .rblx-shell-page .tutorial-video { border-radius: 16px !important; }
 body.rblx-shell-ready .rblx-shell-page .tutorial-video-cover {
   gap: 12px !important;
@@ -5392,11 +5289,6 @@ body.rblx-shell-ready .rblx-shell-page .plus-card .plus-promo:not(.rblx-pro-prom
   background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .72), transparent) !important;
 }
 /* Display inventory is enabled for free and Plus members. Pro remains ad-free. */
-[data-rblx-promo-box-ad] > .rblx-adcash-unit,
-[data-rblx-shell-box-ad] > .rblx-adcash-unit { width:300px; min-height:250px; max-width:100%; margin:0 auto; }
-[data-rblx-vertical-ad] > .rblx-adcash-unit,
-[data-rblx-modal-ad] > .rblx-adcash-unit { width:160px; min-height:600px; margin:0 auto; }
-
 /* Shared dialog system: keep login, membership, and rewards dialogs as focused
    panels with the same restrained structure as the referral-member dialog. */
 .rblx-shell-auth-overlay,

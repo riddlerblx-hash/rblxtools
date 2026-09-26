@@ -539,7 +539,7 @@
   function syncMemberAdVisibility(state) {
     var hideAds = isProMember(state);
     document.body.classList.toggle("rblx-pro-ad-free", hideAds);
-    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad], [data-rblx-promo-box-ad], [data-rblx-modal-ad], [data-rblx-vertical-ad], [data-rblx-banner-ad], [data-rblx-mobile-banner-ad], [data-rblx-video-slider-ad]"), function (host) {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-shell-box-ad], [data-rblx-promo-box-ad], [data-rblx-modal-ad], [data-rblx-vertical-ad], [data-rblx-banner-ad], [data-rblx-mobile-banner-ad]"), function (host) {
       host.hidden = hideAds;
       if (!hideAds) return;
       // Remove any ad that was mounted before the account state was resolved.
@@ -554,10 +554,7 @@
       delete host.dataset.rblxBoxAdMounted;
       delete host.dataset.rblxVerticalAdMounted;
     });
-    if (hideAds) {
-      removeTutorialVideoAds();
-      removeVideoSliderAd();
-    } else if (shellState.authResolved) {
+    if (!hideAds && shellState.authResolved) {
       mountDesktopShellBoxAds();
       mountDesktopVerticalAds();
       initShellSidebarAds();
@@ -4380,7 +4377,6 @@
     if (shellState.socket && shellState.socketReady) shellState.socket.emit("join-room", getSocketJoinPayload());
     auth.innerHTML = buildAuthMarkup().replace('<div class="rblx-shell-auth" id="rblxShellAuth">', "").replace(/<\/div>$/, "");
     bindDailyStreakTrigger();
-    renderToolInterstitialStatus();
     if (state.loggedIn) {
       fetch(API_BASE + "/referrals/me", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } })
         .then(function (response) { return response.ok ? response.json() : null; })
@@ -4806,13 +4802,6 @@
     return icons[kind] || icons.spark;
   }
 
-  function enableSmartAdRefresh(host, refresh) {
-    // Auto-refresh is paused globally. Each placement loads once per page view
-    // so the publisher can evaluate traffic quality without inflated repeats.
-    void host;
-    void refresh;
-  }
-
   // Adsterra tags use document.write, so each placement receives its own
   // document and runs the supplied snippet normally.
   var ADSTERRA_DISPLAY_UNITS = {
@@ -4850,140 +4839,6 @@
       frame.remove();
     }, { once: true });
     slot.appendChild(frame);
-  }
-
-  function removeVideoSliderAd() {
-    var host = document.getElementById("rblxShellVideoSliderAd");
-    if (!host) return;
-    host.textContent = "";
-    host.hidden = true;
-    delete host.dataset.rblxVideoSliderMounted;
-  }
-
-  function initVideoSliderAd() {
-    // Advertising has been disabled site-wide.
-    removeVideoSliderAd();
-    return;
-    if (!shellState.authResolved || !shouldShowMemberAds()) {
-      removeVideoSliderAd();
-      return;
-    }
-    var host = document.getElementById("rblxShellVideoSliderAd");
-    if (!host) {
-      host = document.createElement("aside");
-      host.id = "rblxShellVideoSliderAd";
-      host.className = "rblx-shell-video-slider-ad";
-      host.setAttribute("data-rblx-video-slider-ad", "");
-      host.setAttribute("aria-label", "Advertisement");
-      document.body.appendChild(host);
-    }
-    if (host.dataset.rblxVideoSliderMounted === "true") return;
-    host.hidden = false;
-    host.dataset.rblxVideoSliderMounted = "true";
-    ensureAdcashLibrary().then(function () {
-      if (!shouldShowMemberAds() || !window.aclib || typeof window.aclib.runVideoSlider !== "function") throw new Error("Adcash video slider unavailable");
-      var unit = document.createElement("div");
-      unit.className = "rblx-adcash-video-slider-unit";
-      host.appendChild(unit);
-      var invocation = document.createElement("script");
-      invocation.type = "text/javascript";
-      invocation.text = "window.aclib.runVideoSlider({zoneId:" + JSON.stringify(ADCASH_DISPLAY_ZONES.videoSlider) + "});";
-      unit.appendChild(invocation);
-    }).catch(function () {
-      host.textContent = "";
-      host.hidden = true;
-      delete host.dataset.rblxVideoSliderMounted;
-    });
-  }
-
-  var TOOL_INTERSTITIAL_ROUTES = [
-    "/template-downloader", "/ugc-downloader", "/template-background-changer",
-    "/media-downloader", "/audio-downloader", "/robux-calculator",
-    "/ai-clothing-studio", "/ai-ugc", "/ai-ugc-studio",
-    "/ai-thumbnail-studio", "/thumbnail-ai", "/game-launcher"
-  ];
-
-  function getToolInterstitialCounterKey() {
-    var identity = String(shellState.currentUser && shellState.currentUser.userId || getDeviceId() || "visitor").trim() || "visitor";
-    // Keep Plus runs independent from a visitor's free-plan counter, so an
-    // upgrade starts with the full ten-use allowance.
-    return "rblxtools_tool_interstitial_uses:" + identity + (getToolInterstitialLimit() === 10 ? ":plus" : "");
-  }
-
-  function getToolInterstitialUses() {
-    try { return Math.max(0, Number(localStorage.getItem(getToolInterstitialCounterKey()) || 0) || 0); } catch (_error) { return 0; }
-  }
-
-  function setToolInterstitialUses(uses) {
-    try { localStorage.setItem(getToolInterstitialCounterKey(), String(Math.max(0, Number(uses) || 0))); } catch (_error) {}
-  }
-
-  function getToolInterstitialLimit() {
-    // Pro is entirely ad-free. Plus still sees ads, but earns a longer run
-    // between them without splitting a multi-ID request into separate uses.
-    var memberState = shellState.isAdmin ? { plan: getEffectiveMemberPlan() } : shellState.currentUser;
-    return getMembershipPlan(memberState, memberState, hasPlusFromPayload(memberState)) === "plus" ? 10 : 5;
-  }
-
-  function renderToolInterstitialStatus() {
-    // Display ads do not use the old tool counter or interstitial flow.
-    Array.prototype.forEach.call(document.querySelectorAll("[data-rblx-tool-use-indicator]"), function (indicator) { indicator.remove(); });
-  }
-
-  function isToolInterstitialPage() {
-    var path = normalizePath(window.location.pathname || "/").replace(/\.html$/, "");
-    return TOOL_INTERSTITIAL_ROUTES.indexOf(path) !== -1;
-  }
-
-  function mountToolUseIndicator(usesUntilAd) {
-    if (!isToolInterstitialPage()) return;
-    var indicator = document.querySelector("[data-rblx-tool-use-indicator]");
-    if (!indicator) {
-      var title = document.querySelector(".tool-card-title, #roblox-ugc-title");
-      if (!title) return;
-      var card = title.parentElement && title.parentElement.closest("article, [class*='card']");
-      if (!card && title.id === "roblox-ugc-title") card = document.getElementById("roblox-ugc-card");
-      if (!card) return;
-      card.classList.add("rblx-tool-use-card");
-      indicator = document.createElement("span");
-      indicator.className = "rblx-tool-use-indicator";
-      indicator.setAttribute("data-rblx-tool-use-indicator", "");
-      indicator.setAttribute("aria-live", "polite");
-      card.appendChild(indicator);
-    }
-    indicator.textContent = usesUntilAd + "/" + getToolInterstitialLimit() + " uses until an ad";
-    indicator.hidden = false;
-  }
-
-  function triggerToolUseInterstitial() {
-    if (!shouldShowMemberAds()) return;
-    ensureAdcashLibrary().then(function () {
-      if (!shouldShowMemberAds() || !window.aclib || typeof window.aclib.runInterstitial !== "function") return;
-      window.aclib.runInterstitial({ zoneId: ADCASH_DISPLAY_ZONES.interstitial });
-    }).catch(function () {});
-  }
-
-  function initToolUseInterstitial() {
-    // Advertising has been disabled site-wide.
-    return;
-    if (!shellState.toolUseInterstitialBound) {
-      shellState.toolUseInterstitialBound = true;
-      window.addEventListener("rblxtools-tool-use", function () {
-        if (!shouldShowMemberAds()) return;
-        var nextUses = getToolInterstitialUses() + 1;
-        setToolInterstitialUses(nextUses);
-        renderToolInterstitialStatus();
-        if (nextUses % getToolInterstitialLimit() === 0) triggerToolUseInterstitial();
-      });
-      window.addEventListener("storage", function (event) {
-        if (event && event.key === getToolInterstitialCounterKey()) renderToolInterstitialStatus();
-      });
-    }
-    if (!shellState.authResolved || !shouldShowMemberAds()) {
-      renderToolInterstitialStatus();
-      return;
-    }
-    renderToolInterstitialStatus();
   }
 
   function initInstantInfoTooltips() {
@@ -5039,7 +4894,6 @@
     if (!slot || !shouldShowMemberAds() || slot.dataset.rblxBannerLoaded === "true") return;
     mountAdsterraBanner(slot, ADSTERRA_DISPLAY_UNITS.horizontal, "rblxBannerLoaded");
     var host = slot.closest("[data-rblx-banner-ad]");
-    enableSmartAdRefresh(host, function () { slot.textContent = ""; delete slot.dataset.rblxBannerLoaded; mountSharedBannerAd(slot); });
   }
 
   function createSharedBannerAd(id, className) {
@@ -5068,7 +4922,6 @@
       return;
     }
     mountAdsterraBanner(slot, ADSTERRA_DISPLAY_UNITS.mobile, "rblxMobileBannerLoaded");
-    enableSmartAdRefresh(host, function () { slot.textContent = ""; delete slot.dataset.rblxMobileBannerLoaded; mountMobileHomeBannerAd(slot); });
   }
 
   function createMobileBannerAd(id, className) {
@@ -5668,9 +5521,6 @@
   function mountBoxAd(host) {
     if (!host || !shouldShowMemberAds() || host.dataset.rblxBoxAdMounted === "true") return;
     mountAdsterraBanner(host, ADSTERRA_DISPLAY_UNITS.box, "rblxBoxAdMounted");
-    if (host.hasAttribute("data-rblx-shell-box-ad")) {
-      enableSmartAdRefresh(host, function () { Array.prototype.forEach.call(host.querySelectorAll("iframe"), function (frame) { frame.remove(); }); delete host.dataset.rblxBoxAdMounted; mountBoxAd(host); });
-    }
   }
 
   function mountDesktopShellBoxAds() {
@@ -5681,7 +5531,6 @@
   function mountVerticalAd(host) {
     if (!host || !shouldShowMemberAds() || host.dataset.rblxVerticalAdMounted === "true") return;
     mountAdsterraBanner(host, ADSTERRA_DISPLAY_UNITS.skyscraper, "rblxVerticalAdMounted");
-    enableSmartAdRefresh(host, function () { Array.prototype.forEach.call(host.querySelectorAll("iframe"), function (frame) { frame.remove(); }); delete host.dataset.rblxVerticalAdMounted; mountVerticalAd(host); });
   }
 
   // Full-screen features can be added after the shared shell initializes.
@@ -6489,158 +6338,6 @@
   }
 
   enhanceRewardsGiftCardPicker();
-  // Adcash VAST pre-rolls for the first-party "How To Use" tutorial videos.
-  // This is intentionally scoped to tutorial cards so regular videos and every
-  // other advertising placement on the site are left alone.
-  function removeTutorialVideoAds() {
-    Array.prototype.forEach.call(document.querySelectorAll("video[data-rblx-tutorial-ad-ready]"), function (video) {
-      var player = window.videojs && typeof window.videojs.getPlayer === "function" ? window.videojs.getPlayer(video) : null;
-      if (player && typeof player.dispose === "function") player.dispose();
-      delete video.dataset.rblxTutorialAdReady;
-      video.classList.remove("video-js", "vjs-big-play-centered");
-      video.dataset.rblxTutorialAdSuppressed = "true";
-    });
-  }
-
-  function initTutorialVideoAds() {
-    // The tutorial card already has a clear title. The extra "How To Use"
-    // badge is redundant, but remains in the markup as a stable hook for
-    // locating tutorial videos.
-    Array.prototype.forEach.call(document.querySelectorAll(".promo-card .badge"), function (badge) {
-      if (String(badge.textContent || "").trim().toLowerCase() === "how to use") badge.hidden = true;
-    });
-    // Advertising has been disabled site-wide. Native tutorial controls remain
-    // untouched and no third-party video assets or pre-rolls are requested.
-    return;
-    // Do not request or initialize an ad player until the account has been
-    // verified. This prevents a Pro member from briefly receiving a pre-roll
-    // while the page resolves their actual membership from the server.
-    if (!shellState.authResolved || !shouldShowMemberAds()) {
-      if (shellState.authResolved) removeTutorialVideoAds();
-      return;
-    }
-    var tutorialVideos = [];
-    Array.prototype.forEach.call(document.querySelectorAll(".promo-card .badge"), function (badge) {
-      if (String(badge.textContent || "").trim().toLowerCase() !== "how to use") return;
-      var card = badge.closest(".promo-card");
-      if (!card) return;
-      Array.prototype.forEach.call(card.querySelectorAll("video"), function (video) {
-        if (tutorialVideos.indexOf(video) === -1) tutorialVideos.push(video);
-      });
-    });
-    if (!tutorialVideos.length) return;
-
-    var adTagUrl = "https://youradexchange.com/video/select.php?r=12207082";
-    var assetUrls = {
-      videoCss: "https://vjs.zencdn.net/8.23.4/video-js.css",
-      imaCss: "https://cdn.jsdelivr.net/npm/videojs-ima@2.2.0/dist/videojs.ima.css",
-      videoJs: "https://vjs.zencdn.net/8.23.4/video.min.js",
-      contribAds: "https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-ads/7.5.2/videojs-contrib-ads.min.js",
-      imaSdk: "https://imasdk.googleapis.com/js/sdkloader/ima3.js",
-      imaPlugin: "https://cdn.jsdelivr.net/npm/videojs-ima@2.2.0/dist/videojs.ima.min.js"
-    };
-
-    function addStylesheet(url) {
-      if (document.querySelector('link[data-rblx-tutorial-ad-asset="' + url + '"]')) return;
-      var link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = url;
-      link.dataset.rblxTutorialAdAsset = url;
-      document.head.appendChild(link);
-    }
-
-    function loadScript(url) {
-      return new Promise(function (resolve, reject) {
-        var existing = document.querySelector('script[data-rblx-tutorial-ad-asset="' + url + '"]');
-        if (existing) {
-          if (existing.dataset.rblxTutorialAdReady === "true") { resolve(); return; }
-          existing.addEventListener("load", resolve, { once: true });
-          existing.addEventListener("error", reject, { once: true });
-          return;
-        }
-        var script = document.createElement("script");
-        script.src = url;
-        script.async = true;
-        script.dataset.rblxTutorialAdAsset = url;
-        script.onload = function () { script.dataset.rblxTutorialAdReady = "true"; resolve(); };
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    }
-
-    function preparePlayer(video) {
-      if (!shouldShowMemberAds() || video.dataset.rblxTutorialAdReady === "true" || !window.videojs) return;
-      delete video.dataset.rblxTutorialAdSuppressed;
-      video.classList.add("video-js", "vjs-big-play-centered");
-      var player = window.videojs(video, {
-        controls: true,
-        preload: "metadata",
-        responsive: true,
-        fluid: true
-      });
-      // videojs-ima registers its API on the player instance in Video.js 8;
-      // it does not expose a reliable window.videojs.ima static property.
-      if (typeof player.ima !== "function") {
-        player.dispose();
-        video.classList.remove("video-js", "vjs-big-play-centered");
-        return;
-      }
-      video.dataset.rblxTutorialAdReady = "true";
-      player.addClass("rblx-tutorial-ad-player");
-      player.ima({
-        adTagUrl: adTagUrl,
-        showControlsForJSAds: true,
-        adsRenderingSettings: { enablePreloading: true }
-      });
-      // VAST supplies its own controls, countdown, and progress bar. Hide the
-      // Video.js controls only while the pre-roll is active, then restore them
-      // immediately for the tutorial itself.
-      function setAdPlayback(active) {
-        if (active) player.addClass("rblx-tutorial-ad-active");
-        else player.removeClass("rblx-tutorial-ad-active");
-      }
-      ["adstart", "ads-ad-started", "ima3-ad-started"].forEach(function (eventName) {
-        player.on(eventName, function () { setAdPlayback(true); });
-      });
-      ["adend", "ads-ad-ended", "ima3-ad-ended", "contentplay", "adserror"].forEach(function (eventName) {
-        player.on(eventName, function () { setAdPlayback(false); });
-      });
-      // If the ad network is unavailable, Video.js-IMA returns control to the
-      // original tutorial instead of preventing the member from watching it.
-      player.on("adserror", function () { player.removeClass("rblx-tutorial-ad-loading"); });
-    }
-
-    addStylesheet(assetUrls.videoCss);
-    addStylesheet(assetUrls.imaCss);
-    if (!document.getElementById("rblxTutorialAdIconFont")) {
-      var fontPreload = document.createElement("link");
-      fontPreload.id = "rblxTutorialAdIconFont";
-      fontPreload.rel = "preload";
-      fontPreload.as = "font";
-      fontPreload.type = "font/woff";
-      fontPreload.crossOrigin = "anonymous";
-      fontPreload.href = "https://vjs.zencdn.net/8.23.4/font/VideoJS.woff";
-      document.head.appendChild(fontPreload);
-    }
-    if (!document.getElementById("rblxTutorialAdPlayerStyle")) {
-      var style = document.createElement("style");
-      style.id = "rblxTutorialAdPlayerStyle";
-      style.textContent = "@font-face{font-family:'RBLXVideoJS';src:url('https://vjs.zencdn.net/8.23.4/font/VideoJS.woff') format('woff');font-style:normal;font-weight:400;font-display:block}.rblx-tutorial-ad-player.video-js{width:100%!important;min-height:220px;border-radius:inherit;background:#0f131b}.rblx-tutorial-ad-player .vjs-tech{border-radius:inherit}.rblx-tutorial-ad-player .vjs-icon-placeholder:before,.rblx-tutorial-ad-player .ima-play-pause-div,.rblx-tutorial-ad-player .ima-mute-div,.rblx-tutorial-ad-player .ima-fullscreen-div{font-family:'RBLXVideoJS'!important}";
-      document.head.appendChild(style);
-    }
-
-    loadScript(assetUrls.videoJs)
-      .then(function () { return loadScript(assetUrls.contribAds); })
-      .then(function () { return loadScript(assetUrls.imaSdk); })
-      .then(function () { return loadScript(assetUrls.imaPlugin); })
-      .then(function () { if (shouldShowMemberAds()) tutorialVideos.forEach(preparePlayer); })
-      .catch(function () {
-        // Network/ad-provider failures must leave the native tutorial player usable.
-      });
-  }
-
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initTutorialVideoAds, { once: true });
-  else initTutorialVideoAds();
   // Several legacy tool pages load this shared script before their <main>.
   // Mounting immediately created an empty shell over content the HTML parser
   // had not inserted yet. Waiting for parsing means the shell and tool DOM are
