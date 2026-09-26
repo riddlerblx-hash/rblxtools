@@ -2053,8 +2053,12 @@ function getSafePortalReturnUrl() {
   return `${getSanitizedAppBaseUrl()}/account`;
 }
 
+function getSafePurchaseSuccessUrl() {
+  return `${getSanitizedAppBaseUrl()}/purchase-success?session_id={CHECKOUT_SESSION_ID}`;
+}
+
 function getSafeCheckoutSuccessUrl() {
-  return `${getSafePortalReturnUrl()}?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+  return getSafePurchaseSuccessUrl();
 }
 
 function getSafeCheckoutCancelUrl() {
@@ -2062,7 +2066,7 @@ function getSafeCheckoutCancelUrl() {
 }
 
 function getSafeAiTokenStoreSuccessUrl() {
-  return `${getSanitizedAppBaseUrl()}/ai-tokens?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+  return getSafePurchaseSuccessUrl();
 }
 
 function getSafeAiTokenStoreCancelUrl() {
@@ -2070,7 +2074,7 @@ function getSafeAiTokenStoreCancelUrl() {
 }
 
 function getSafeDiscordBotStoreSuccessUrl() {
-  return `${getSanitizedAppBaseUrl()}/discord-bot?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+  return getSafePurchaseSuccessUrl();
 }
 
 function getSafeDiscordBotStoreCancelUrl() {
@@ -10739,6 +10743,8 @@ app.get("/auth/membership-pricing", async (_req, res) => {
         amountTotal,
         amountTotalFormatted,
         currency,
+        productType: String(session?.metadata?.productType || ""),
+        aiTokenQuantity: Math.max(0, Number(session?.metadata?.aiTokenQuantity || 0)),
       });
     } catch (error) {
       return res.status(error.statusCode || 500).json({
