@@ -12,7 +12,7 @@ const DAILY_STREAK_BONUS_BY_DAY = DAILY_STREAK_BONUSES.split(",").reduce((all, t
 
 // The rewards economy deliberately lives on the server.  Browsers only ever
 // receive a projection of this state; they cannot submit XP, levels, or cash.
-function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUID, now = () => new Date() }) {
+function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUID, now = () => new Date(), timeZone = "America/Chicago" }) {
   const DEFAULT_CONFIG = {
     pendingCashbackDays: 14,
     xp: {
@@ -67,7 +67,20 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const iso = () => now().toISOString();
-  const utcDay = (date = now()) => date.toISOString().slice(0, 10);
+  // Streaks are calendar-day rewards, not rolling 24-hour timers. Use the
+  // site's configured calendar so a member can claim again at local midnight.
+  const utcDay = (date = now()) => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date).reduce((all, part) => {
+      if (part.type !== "literal") all[part.type] = part.value;
+      return all;
+    }, {});
+    return `${parts.year}-${parts.month}-${parts.day}`;
+  };
   const weekKey = (date = now()) => {
     const copy = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
     const day = copy.getUTCDay() || 7;

@@ -2469,7 +2469,13 @@ function readReferralProgram() {
 // Rewards state is server-owned and stored outside the deploy checkout.  The
 // only value that reaches the member cash balance is released through the
 // service-only Supabase RPC in releaseMatureRewardsCashback below.
-const rewardsEngine = createRewardsEngine({ readJsonFile, writeJsonFile, statePath: REWARDS_LEVELING_PATH, randomUUID });
+const rewardsEngine = createRewardsEngine({
+  readJsonFile,
+  writeJsonFile,
+  statePath: REWARDS_LEVELING_PATH,
+  randomUUID,
+  timeZone: String(process.env.REWARDS_TIME_ZONE || "America/Chicago").trim() || "America/Chicago",
+});
 
 async function creditMatureRewardsCashback(entry) {
   try {
