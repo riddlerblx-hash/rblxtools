@@ -2443,7 +2443,7 @@
     return '<div class="rblx-daily-streak-overlay" id="rblxDailyStreakOverlay" hidden>' +
       '<section class="rblx-daily-streak-modal" role="dialog" aria-modal="true" aria-labelledby="rblxDailyStreakTitle">' +
         '<button class="rblx-daily-streak-close" type="button" data-shell-daily-streak-close aria-label="Close daily streak">×</button>' +
-        '<div class="rblx-daily-streak-hero"><div><h2 id="rblxDailyStreakTitle"><span>Daily</span> Streak</h2><p>Log in daily to claim rewards and unlock better prizes the longer you keep your streak.</p></div><div class="rblx-daily-streak-stats"><div><small>Current streak</small><strong id="rblxDailyStreakCount">0</strong><em>days</em></div><div><small>Today’s reward</small><strong id="rblxDailyStreakToday">—</strong></div></div></div>' +
+        '<div class="rblx-daily-streak-hero"><div><h2 id="rblxDailyStreakTitle"><span>Daily</span> Streak</h2></div><div class="rblx-daily-streak-stats"><div><small>Current streak</small><strong id="rblxDailyStreakCount">0</strong><em>days</em></div><div><small>Today’s reward</small><strong id="rblxDailyStreakToday">—</strong></div></div></div>' +
         '<div class="rblx-daily-streak-multiplier"><span>Your current reward multiplier</span><strong id="rblxDailyStreakMultiplierValue">1×</strong><p id="rblxDailyStreakMultiplierPlan">Free plan · standard streak rewards</p><a href="./subscriptions">View plans <b>→</b></a></div>' +
         '<div class="rblx-daily-streak-track" id="rblxDailyStreakTrack"></div>' +
         '<div class="rblx-daily-streak-footer"><button type="button" id="rblxDailyStreakClaim" disabled>Claim today’s reward</button><p id="rblxDailyStreakStatus">Loading today’s streak…</p></div>' +
@@ -2463,7 +2463,7 @@
     today.textContent = "+" + Number(streak.xp || 0).toLocaleString() + " XP";
     var multiplier = Number(streak.multiplier || 1);
     if (multiplierValue) multiplierValue.textContent = multiplier.toFixed(1).replace(".0", "") + "×";
-    if (multiplierPlan) multiplierPlan.textContent = multiplier >= 2 ? "Paid Pro plan · double XP, points, and AI-token rewards" : multiplier > 1 ? "Paid Plus plan · 1.5× XP, points, and AI-token rewards" : "Free plan · standard streak rewards";
+    if (multiplierPlan) multiplierPlan.textContent = "Applies to XP, RBLX Points & AI Tokens only";
     track.innerHTML = (streak.window || []).map(function (item, index) {
       var isToday = index === 0, claimed = Boolean(streak.claimedToday && isToday);
       return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + '"><span>Day ' + item.day + '</span><b>' + (item.bonus ? dailyBonusLabel(item.bonus) : ('+' + Number(item.xp || 0).toLocaleString() + ' XP')) + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small><i>' + (claimed ? '✓' : String(index + 1)) + '</i></article>';
@@ -4463,6 +4463,8 @@
     auth.innerHTML = buildAuthMarkup().replace('<div class="rblx-shell-auth" id="rblxShellAuth">', "").replace(/<\/div>$/, "");
     bindDailyStreakTrigger();
     if (state.loggedIn) {
+      var questPath = String(window.location.pathname || "/").replace(/\.html$/i, "") || "/";
+      fetch(API_BASE + "/api/rewards/explore", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() }, body: JSON.stringify({ path: questPath }) }).catch(function () {});
       fetch(API_BASE + "/referrals/me", { credentials: "include", headers: { Authorization: "Bearer " + getToken() } })
         .then(function (response) { return response.ok ? response.json() : null; })
         .then(function (payload) {

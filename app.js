@@ -8226,6 +8226,7 @@ app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
         savePersistentAIUGCHistory(user.id, item);
         syncAIUGCCommunityOwnerEngagement(user.id, item);
         rewardsEngine.recordActivity({ userId: user.id, sourceKey: `ai-generation:ugc:${taskId}`, action: "ai_generation", title: "AI UGC Studio", amount: rewardsEngine.getConfig().xp.aiGeneration, note: "Completed AI UGC generation", metadata: { taskId, studio: "ugc" }, limitKey: "aiGenerationsPerDay" });
+        rewardsEngine.trackActivity({ userId: user.id, sourceKey: `ai-ugc-generation:${taskId}`, action: "ai_ugc_generation", title: "AI UGC generation", note: "Completed in AI UGC Studio", metadata: { taskId } });
       }
     }
     return res.json({ ok: true, task: { id: task.id, status: task.status, progress: Number(task.progress || 0), prompt: task.prompt || "", thumbnailUrl: task.alpha_thumbnail_url || task.thumbnail_url || "", modelUrls: task.model_urls || {}, textureUrls: Array.isArray(task.texture_urls) ? task.texture_urls : [], consumedCredits: task.consumed_credits, error: task.task_error && task.task_error.message ? task.task_error.message : "" } });
@@ -8448,6 +8449,7 @@ app.post("/api/community-posts", async (req, res) => {
       authorAvatarUrl: getCommunityAvatarUrl(user), pinned: false, likedBy: {}, pinnedCommentId: "", comments: [],
     };
     const posts = readCommunityPosts(); posts.push(post); writeCommunityPosts(posts);
+    rewardsEngine.trackActivity({ userId: user.id, sourceKey: `community-post:${post.id}`, action: category === "feedback" ? "community_feedback" : "community_post", title: category === "feedback" ? "Community feedback" : "Community post", note: "Published in the RBLXTools community", metadata: { postId: post.id, category } });
     return res.status(201).json({ ok: true, post: await enrichCommunityPostIdentity(post, user) });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not create this post." }); }
 });
@@ -8498,6 +8500,7 @@ app.post("/api/community-posts/:postId/likes", async (req, res) => {
     if (post.likedBy[String(user.id)]) delete post.likedBy[String(user.id)]; else post.likedBy[String(user.id)] = new Date().toISOString(); writeCommunityPosts(posts);
     const liked = Boolean(post.likedBy[String(user.id)]);
     if (liked) addCommunityNotification({ recipientId: post.authorId, actor: user, category: "like", title: `${communityActorName(user)} liked your post.`, href: `./community#post-${encodeURIComponent(post.id)}` });
+    if (liked) rewardsEngine.trackActivity({ userId: user.id, sourceKey: `community-like:${post.id}:${user.id}`, action: "community_like", title: "Community post liked", note: "Supported a community post", metadata: { postId: post.id } });
     return res.json({ ok: true, liked, likes: Object.keys(post.likedBy).length });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this like." }); }
 });
@@ -8536,6 +8539,7 @@ app.post("/api/community-posts/:postId/comments", async (req, res) => {
     const href = `./community#post-${encodeURIComponent(post.id)}`;
     addCommunityNotification({ recipientId: post.authorId, actor: user, category: "comment", title: `${communityActorName(user)} commented on your post.`, href });
     if (parentComment) addCommunityNotification({ recipientId: parentComment.userId, actor: user, category: "reply", title: `${communityActorName(user)} replied to your comment.`, href });
+    rewardsEngine.trackActivity({ userId: user.id, sourceKey: `community-comment:${comment.id}`, action: "community_comment", title: "Community comment", note: "Joined a community conversation", metadata: { postId: post.id, commentId: comment.id } });
     return res.json({ ok: true, comment, commentCount: post.comments.length });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not post this comment." }); }
 });
@@ -8920,6 +8924,7 @@ app.post("/api/ugc/community/:taskId/tip", async (req, res) => {
     const state = readAIUGCCommunityState(); const post = getAIUGCCommunityPost(state, taskId);
     post.tips.push({ id: randomUUID(), userId: sender.id, senderName: cleanText(sender.display_name || sender.username || sender.email?.split("@")[0] || "Member", 80), amount, createdAt: new Date().toISOString() }); post.tips = post.tips.slice(-100); writeAIUGCCommunityState(state);
     addCommunityNotification({ recipientId: item.creatorId, actor: sender, category: "tip", title: `${communityActorName(sender)} tipped you ${amount.toLocaleString("en-US")} AI tokens.`, href: `./community#asset-${encodeURIComponent(taskId)}` });
+    rewardsEngine.trackActivity({ userId: sender.id, sourceKey: `ai-token-tip:${taskId}:${sender.id}:${post.tips[post.tips.length - 1].id}`, action: "ai_token_tip", title: "AI tokens tipped", note: "Supported an AI community creator", metadata: { taskId, amount } });
     return res.json({ ok: true, amount, aiTokens: await getAITokenBalance((await getAuthUserById(sender.id)) || sender), tipTotal: post.tips.reduce((total, tip) => total + Number(tip.amount || 0), 0) });
   } catch (error) {
     if (sender && amount) await restoreAITokens(sender.id, amount).catch(() => null);
@@ -9133,6 +9138,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
       console.warn("Could not save AI thumbnail history:", historyError.message);
     }
     rewardsEngine.recordActivity({ userId: user.id, sourceKey: `ai-generation:thumbnail:${historyItem?.id || downloadFileName}`, action: "ai_generation", title: "AI Thumbnail Studio", amount: rewardsEngine.getConfig().xp.aiGeneration, note: "Completed AI thumbnail generation", metadata: { historyId: historyItem?.id || null, studio: "thumbnail" }, limitKey: "aiGenerationsPerDay" });
+    rewardsEngine.trackActivity({ userId: user.id, sourceKey: `ai-thumbnail-generation:${historyItem?.id || downloadFileName}`, action: "ai_thumbnail_generation", title: "AI thumbnail generation", note: "Completed in AI Thumbnail Studio", metadata: { historyId: historyItem?.id || null } });
     return res.json({
       ok: true,
       aiTokens,
@@ -13076,6 +13082,19 @@ app.patch("/admin/codes/expiry-reports/:id", async (req, res) => {
     return res.json({ ok: true, ...result });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not review this expiry report." });
+  }
+});
+
+const QUEST_EXPLORATION_PATHS = new Set(["/", "/clothing", "/ugc", "/media", "/audio", "/animations", "/robux-calculator", "/background-changer", "/ai-ugc", "/thumbnail-ai", "/game-codes", "/community", "/discord-bot", "/rewards"]);
+app.post("/api/rewards/explore", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const rawPath = String(req.body?.path || "").split("?")[0].replace(/\.html$/i, "") || "/";
+    if (!QUEST_EXPLORATION_PATHS.has(rawPath)) return res.status(400).json({ error: "That page does not count toward exploration quests." });
+    const result = rewardsEngine.trackActivity({ userId: user.id, sourceKey: `site-explore:${user.id}:${rawPath}:${getTodayDate()}`, action: "site_explore", title: "Explored RBLXTools", note: rawPath, metadata: { path: rawPath } });
+    return res.json({ ok: true, tracked: result.tracked });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not record this page visit." });
   }
 });
 

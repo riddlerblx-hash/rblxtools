@@ -53,6 +53,18 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
         { key: "weekly_ai", title: "AI apprentice", action: "ai_generation", target: 5, xp: 100 },
         { key: "weekly_activity", title: "Keep building", action: "daily_login", target: 5, xp: 75 },
       ],
+      ai: [
+        { key: "ai_global", title: "Generation streak", action: "ai_generation", target: 5, xp: 100 },
+        { key: "ai_ugc", title: "UGC inventor", action: "ai_ugc_generation", target: 3, xp: 75 },
+        { key: "ai_thumbnail", title: "Thumbnail director", action: "ai_thumbnail_generation", target: 3, xp: 75 },
+        { key: "ai_tip", title: "Creator support", action: "ai_token_tip", target: 1, xp: 50 },
+      ],
+      community: [
+        { key: "community_feedback", title: "Share helpful feedback", action: "community_feedback", target: 1, xp: 60 },
+        { key: "community_comments", title: "Join the conversation", action: "community_comment", target: 3, xp: 75 },
+        { key: "community_likes", title: "Support fellow creators", action: "community_like", target: 5, xp: 50 },
+        { key: "community_explore", title: "Explore RBLXTools", action: "site_explore", target: 5, xp: 50 },
+      ],
       milestone: [
         { key: "first_ai", title: "First AI asset", action: "ai_generation", target: 1, xp: 25 },
         { key: "first_purchase", title: "First purchase", action: "purchase", target: 1, xp: 100 },
@@ -90,9 +102,18 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
   };
   const getState = () => {
     const raw = readJsonFile(statePath, {});
+    const savedConfig = raw.config && typeof raw.config === "object" ? raw.config : {};
+    const defaults = clone(DEFAULT_CONFIG);
     return {
       version: 1,
-      config: { ...clone(DEFAULT_CONFIG), ...(raw.config || {}) },
+      config: {
+        ...defaults,
+        ...savedConfig,
+        xp: { ...defaults.xp, ...(savedConfig.xp || {}) },
+        limits: { ...defaults.limits, ...(savedConfig.limits || {}) },
+        quests: { ...defaults.quests, ...(savedConfig.quests || {}) },
+        products: { ...defaults.products, ...(savedConfig.products || {}) },
+      },
       members: raw.members && typeof raw.members === "object" ? raw.members : {},
       xpLedger: Array.isArray(raw.xpLedger) ? raw.xpLedger : [],
       cashbackLedger: Array.isArray(raw.cashbackLedger) ? raw.cashbackLedger : [],
@@ -113,7 +134,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const tiers = Array.isArray(config.cashbackTiers) && config.cashbackTiers.length ? config.cashbackTiers : config.ranks;
     return tiers.slice().sort((a, b) => b.requiredXp - a.requiredXp).find((tier) => lifetimeXp >= tier.requiredXp) || tiers[0];
   };
-  const eventCount = (state, userId, action, predicate = () => true) => state.xpLedger.filter((entry) => entry.userId === String(userId) && entry.action === action && entry.amount > 0 && predicate(entry)).length;
+  const eventCount = (state, userId, action, predicate = () => true) => state.xpLedger.filter((entry) => entry.userId === String(userId) && entry.action === action && entry.amount >= 0 && predicate(entry)).length;
 
   function award(state, { userId, sourceKey, action, title, amount, note = "", metadata = {} }) {
     const value = Math.max(0, Math.round(Number(amount) || 0));
@@ -135,6 +156,8 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const windows = [
       ["daily", utcDay(nowDate)],
       ["weekly", weekKey(nowDate)],
+      ["ai", weekKey(nowDate)],
+      ["community", weekKey(nowDate)],
       ["milestone", "lifetime"],
     ];
     windows.forEach(([kind, window]) => {
@@ -162,6 +185,18 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     if (result.awarded) completeQuests(state, userId);
     saveState(state);
     return { ...result, overview: buildOverviewFromState(state, userId) };
+  }
+
+  function trackActivity({ userId, sourceKey, action, title, note = "", metadata = {} }) {
+    if (!userId || !sourceKey || !action) return { tracked: false, overview: null };
+    const state = getState();
+    if (state.xpLedger.some((entry) => entry.sourceKey === String(sourceKey))) return { tracked: false, overview: buildOverviewFromState(state, userId) };
+    const member = memberFor(state, userId);
+    state.xpLedger.push({ id: randomUUID(), userId: String(userId), sourceKey: String(sourceKey), action, title: title || action, amount: 0, note, metadata, createdAt: iso() });
+    member.updatedAt = iso();
+    completeQuests(state, userId);
+    saveState(state);
+    return { tracked: true, overview: buildOverviewFromState(state, userId) };
   }
 
   function getDailyReward(member, membershipMultiplier = 1) {
@@ -282,7 +317,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     return {
       rank, ranks: ordered, cashbackTier, cashbackTiers: (Array.isArray(config.cashbackTiers) && config.cashbackTiers.length ? config.cashbackTiers : config.ranks).slice().sort((a, b) => a.requiredXp - b.requiredXp), lifetimeXp: member.lifetimeXp, currentStreak: member.currentStreak, longestStreak: member.longestStreak, lastQualifyingActivityDate: member.lastQualifyingActivityDate,
       nextRank, xpToNextRank: nextRank ? Math.max(0, nextRank.requiredXp - member.lifetimeXp) : 0,
-      quests: { daily: createQuest("daily", utcDay()), weekly: createQuest("weekly", weekKey()), milestone: createQuest("milestone", "lifetime") },
+      quests: { daily: createQuest("daily", utcDay()), weekly: createQuest("weekly", weekKey()), ai: createQuest("ai", weekKey()), community: createQuest("community", weekKey()), milestone: createQuest("milestone", "lifetime") },
       cashback: { pendingCents: cashbacks.filter((entry) => entry.status === "pending").reduce((sum, entry) => sum + entry.cashbackCents, 0), availableCents: cashbacks.filter((entry) => entry.status === "available").reduce((sum, entry) => sum + entry.cashbackCents, 0), lifetimeCents: cashbacks.filter((entry) => entry.status !== "reversed").reduce((sum, entry) => sum + entry.cashbackCents, 0), ledger: cashbacks.slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 50) },
       xpLedger: state.xpLedger.filter((entry) => entry.userId === String(userId)).slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 75),
     };
@@ -298,7 +333,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     if (due.length) saveState(state);
   }
 
-  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getDailyStreak, claimDailyStreak, recordActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
+  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getDailyStreak, claimDailyStreak, recordActivity, trackActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
 }
 
 module.exports = { createRewardsEngine };
