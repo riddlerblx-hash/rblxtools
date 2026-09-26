@@ -44,7 +44,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     ],
     quests: {
       ai_daily: [{ key: "ai_spark", title: "AI spark", description: "Create one asset in any RBLXTools AI studio.", action: "ai_generation", target: 1, xp: 15 }],
-      ai_weekly: [{ key: "ai_ugc", title: "UGC inventor", description: "Generate three original UGC concepts this week.", action: "ai_ugc_generation", target: 3, xp: 75 }, { key: "ai_thumbnail", title: "Thumbnail director", description: "Create three thumbnail concepts this week.", action: "ai_thumbnail_generation", target: 3, xp: 75 }],
+      ai_weekly: [{ key: "ai_ugc", title: "UGC inventor", description: "Generate three original UGC concepts this week.", action: "ai_ugc_generation", target: 3, xp: 75 }, { key: "ai_thumbnail", title: "Thumbnail director", description: "Create three thumbnail concepts this week.", action: "ai_thumbnail_generation", target: 3, xp: 75 }, { key: "ai_tip", title: "Creator support", description: "Tip AI tokens to another AI community creator.", action: "ai_token_tip", target: 1, xp: 50 }],
       ai_monthly: [{ key: "ai_creator", title: "AI creator", description: "Finish 20 AI generations during the month.", action: "ai_generation", target: 20, xp: 300 }],
       ai_global: [{ key: "ai_community_goal", title: "Creator community goal", description: "Help the entire community create 10,000 AI assets this month. Every active member earns the reward.", action: "ai_generation", target: 10000, xp: 500 }],
       ai_milestone: [{ key: "first_ai", title: "First AI asset", description: "Generate your very first AI asset.", action: "ai_generation", target: 1, xp: 25 }, { key: "ai_100", title: "AI collection", description: "Create 100 AI assets across all studios.", action: "ai_generation", target: 100, xp: 500 }],
@@ -130,7 +130,9 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
         ...savedConfig,
         xp: { ...defaults.xp, ...(savedConfig.xp || {}) },
         limits: { ...defaults.limits, ...(savedConfig.limits || {}) },
-        quests: expandQuestBuckets({ ...defaults.quests, ...(savedConfig.quests || {}) }),
+        // Quest catalog ships with the application; keep it current when a
+        // previous runtime snapshot contains an older generated catalog.
+        quests: expandQuestBuckets({ ...(savedConfig.quests || {}), ...defaults.quests }),
         products: { ...defaults.products, ...(savedConfig.products || {}) },
       },
       members: raw.members && typeof raw.members === "object" ? raw.members : {},
@@ -354,7 +356,9 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     if (due.length) saveState(state);
   }
 
-  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); completeQuests(state, userId); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getDailyStreak, claimDailyStreak, recordActivity, trackActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
+  // Reading rewards is intentionally side-effect free. The account page polls
+  // this endpoint, so completing quests here would grant XP from refreshes.
+  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getDailyStreak, claimDailyStreak, recordActivity, trackActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
 }
 
 module.exports = { createRewardsEngine };
