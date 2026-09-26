@@ -88,7 +88,33 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const AUTH_USERS_TABLE = process.env.AUTH_USERS_TABLE || "member_accounts";
 const AI_TOKEN_PURCHASES_TABLE = process.env.AI_TOKEN_PURCHASES_TABLE || "ai_token_purchases";
 // LiteSpeed serves the site directory read-only. Keep small application state outside it.
-const RBLXTOOLS_STATE_DIR = String(process.env.RBLXTOOLS_STATE_DIR || path.join(tmpdir(), "rblxtools-state")).trim();
+// A prior lsnode instance can leave the shared folder owned by another service
+// account after a restart. Probe it on startup and use a process-user scoped
+// fallback only when the configured location is no longer writable.
+function resolveWritableStateDirectory() {
+  const configured = String(process.env.RBLXTOOLS_STATE_DIR || path.join(tmpdir(), "rblxtools-state")).trim();
+  const candidates = [configured];
+  const uid = typeof process.getuid === "function" ? process.getuid() : "runtime";
+  const fallback = path.join(tmpdir(), `rblxtools-state-${uid}`);
+  if (fallback !== configured) candidates.push(fallback);
+
+  for (const directory of candidates) {
+    try {
+      fs.mkdirSync(directory, { recursive: true });
+      const probePath = path.join(directory, `.rblxtools-write-probe-${process.pid}`);
+      fs.writeFileSync(probePath, "ok", { encoding: "utf8", flag: "w" });
+      fs.unlinkSync(probePath);
+      return directory;
+    } catch (error) {
+      console.warn(`[state] ${directory} is not writable: ${error.message}`);
+    }
+  }
+
+  // Preserve the original path in the final error so the server fails loudly
+  // instead of silently accepting daily claims that cannot be saved.
+  throw new Error(`RBLXTools state storage is not writable: ${configured}`);
+}
+const RBLXTOOLS_STATE_DIR = resolveWritableStateDirectory();
 const MEMBER_REWARDS_PATH = path.join(RBLXTOOLS_STATE_DIR, "member-rewards.json");
 const REWARDS_LEVELING_PATH = path.join(RBLXTOOLS_STATE_DIR, "rewards-leveling.json");
 const REFERRAL_PROGRAM_PATH = path.join(RBLXTOOLS_STATE_DIR, "referral-program.json");
