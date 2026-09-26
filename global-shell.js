@@ -2493,7 +2493,7 @@
     try {
       // Use the exact cookie-authenticated request path used by the rest of
       // the signed-in shell. Do not send an empty legacy bearer token.
-      var payload = await authApiRequest("/api/daily-streak", { method: "GET", cache: "no-store" });
+      var payload = await authApiRequest("/api/daily-streak", { method: "GET", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
       renderDailyStreak(payload.streak || {});
     } catch (error) {
       var status = document.getElementById("rblxDailyStreakStatus");
@@ -2510,7 +2510,7 @@
     claim.disabled = true;
     if (status) status.textContent = "Claiming your reward…";
     try {
-      var payload = await authApiRequest("/api/daily-streak/claim", { method: "POST", cache: "no-store" });
+      var payload = await authApiRequest("/api/daily-streak/claim", { method: "POST", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
       renderDailyStreak(payload.streak || {});
       if (status) status.textContent = "Claimed " + ["+" + Number(payload.reward?.xp || 0).toLocaleString() + " XP", payload.benefit].filter(Boolean).join(" and ") + ". It is in your notifications too.";
       refreshCommunityNotifications();

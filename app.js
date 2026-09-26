@@ -10852,8 +10852,7 @@ app.get("/auth/billing-details", async (req, res) => {
       }
     }
     const invoices = Array.isArray(invoiceResult?.data) ? invoiceResult.data.filter((invoice) => {
-      const status = String(invoice?.status || "").toLowerCase();
-      return status === "paid" || status === "void" || status === "uncollectible";
+      return String(invoice?.status || "").toLowerCase() === "paid";
     }).map((invoice) => ({
       id: invoice.id,
       number: invoice.number || null,
@@ -10871,7 +10870,7 @@ app.get("/auth/billing-details", async (req, res) => {
       if (!session || session.mode !== "payment") return false;
       const paymentStatus = String(session.payment_status || "").toLowerCase();
       const status = String(session.status || "").toLowerCase();
-      return paymentStatus === "paid" || status === "expired";
+      return paymentStatus === "paid" && status === "complete";
     }).map((session) => ({
       id: session.id,
       title: getStripeCheckoutPurchaseTitle(session),
