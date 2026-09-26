@@ -43,36 +43,31 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       { key: "obsidian", name: "Obsidian", requiredXp: 3000000, cashbackPercent: 11, tone: "obsidian" },
     ],
     quests: {
-      daily: [
-        { key: "daily_activity", title: "Show up & build", action: "daily_login", target: 1, xp: 5 },
-        { key: "daily_tools", title: "Creator momentum", action: "eligible_tool_use", target: 3, xp: 20 },
-        { key: "daily_ai", title: "AI spark", action: "ai_generation", target: 1, xp: 15 },
-      ],
-      weekly: [
-        { key: "weekly_tools", title: "Creator grind", action: "eligible_tool_use", target: 10, xp: 150 },
-        { key: "weekly_ai", title: "AI apprentice", action: "ai_generation", target: 5, xp: 100 },
-        { key: "weekly_activity", title: "Keep building", action: "daily_login", target: 5, xp: 75 },
-      ],
-      ai: [
-        { key: "ai_global", title: "Generation streak", action: "ai_generation", target: 5, xp: 100 },
-        { key: "ai_ugc", title: "UGC inventor", action: "ai_ugc_generation", target: 3, xp: 75 },
-        { key: "ai_thumbnail", title: "Thumbnail director", action: "ai_thumbnail_generation", target: 3, xp: 75 },
-        { key: "ai_tip", title: "Creator support", action: "ai_token_tip", target: 1, xp: 50 },
-      ],
-      community: [
-        { key: "community_feedback", title: "Share helpful feedback", action: "community_feedback", target: 1, xp: 60 },
-        { key: "community_comments", title: "Join the conversation", action: "community_comment", target: 3, xp: 75 },
-        { key: "community_likes", title: "Support fellow creators", action: "community_like", target: 5, xp: 50 },
-        { key: "community_explore", title: "Explore RBLXTools", action: "site_explore", target: 5, xp: 50 },
-      ],
-      milestone: [
-        { key: "first_ai", title: "First AI asset", action: "ai_generation", target: 1, xp: 25 },
-        { key: "first_purchase", title: "First purchase", action: "purchase", target: 1, xp: 100 },
-        { key: "tools_100", title: "100 creator tools", action: "eligible_tool_use", target: 100, xp: 250 },
-        { key: "ai_100", title: "100 AI assets", action: "ai_generation", target: 100, xp: 500 },
-        { key: "streak_7", title: "7-day streak", action: "streak_days", target: 7, xp: 75 },
-        { key: "streak_30", title: "30-day streak", action: "streak_days", target: 30, xp: 300 },
-      ],
+      ai_daily: [{ key: "ai_spark", title: "AI spark", description: "Create one asset in any RBLXTools AI studio.", action: "ai_generation", target: 1, xp: 15 }],
+      ai_weekly: [{ key: "ai_ugc", title: "UGC inventor", description: "Generate three original UGC concepts this week.", action: "ai_ugc_generation", target: 3, xp: 75 }, { key: "ai_thumbnail", title: "Thumbnail director", description: "Create three thumbnail concepts this week.", action: "ai_thumbnail_generation", target: 3, xp: 75 }],
+      ai_monthly: [{ key: "ai_creator", title: "AI creator", description: "Finish 20 AI generations during the month.", action: "ai_generation", target: 20, xp: 300 }],
+      ai_global: [{ key: "ai_community_goal", title: "Creator community goal", description: "Help the entire community create 10,000 AI assets this month. Every active member earns the reward.", action: "ai_generation", target: 10000, xp: 500 }],
+      ai_milestone: [{ key: "first_ai", title: "First AI asset", description: "Generate your very first AI asset.", action: "ai_generation", target: 1, xp: 25 }, { key: "ai_100", title: "AI collection", description: "Create 100 AI assets across all studios.", action: "ai_generation", target: 100, xp: 500 }],
+      community_daily: [{ key: "community_comment", title: "Join the conversation", description: "Leave one constructive community comment today.", action: "community_comment", target: 1, xp: 20 }],
+      community_weekly: [{ key: "community_feedback", title: "Share helpful feedback", description: "Publish feedback that helps improve RBLXTools.", action: "community_feedback", target: 1, xp: 60 }, { key: "community_likes", title: "Support creators", description: "Like five posts from fellow creators.", action: "community_like", target: 5, xp: 50 }],
+      community_monthly: [{ key: "community_regular", title: "Community regular", description: "Write 12 helpful comments this month.", action: "community_comment", target: 12, xp: 200 }],
+      community_global: [{ key: "community_goal", title: "Community conversation", description: "Reach 25,000 helpful comments together this month. Every active member earns the reward.", action: "community_comment", target: 25000, xp: 350 }],
+      community_milestone: [{ key: "community_explorer", title: "Site explorer", description: "Explore five different RBLXTools pages.", action: "site_explore", target: 5, xp: 50 }, { key: "community_supporter", title: "Creator supporter", description: "Tip AI tokens to another creator.", action: "ai_token_tip", target: 1, xp: 50 }],
+      tools_daily: [{ key: "tool_daily", title: "Build something", description: "Complete one eligible creator tool action today.", action: "eligible_tool_use", target: 1, xp: 15 }],
+      tools_weekly: [{ key: "tool_weekly", title: "Creator momentum", description: "Complete 10 eligible creator tool actions this week.", action: "eligible_tool_use", target: 10, xp: 150 }],
+      tools_monthly: [{ key: "tool_monthly", title: "Toolbox regular", description: "Complete 40 eligible tool actions this month.", action: "eligible_tool_use", target: 40, xp: 350 }],
+      tools_global: [{ key: "tool_goal", title: "Tools in action", description: "Complete 50,000 tool actions together this month. Every active member earns the reward.", action: "eligible_tool_use", target: 50000, xp: 500 }],
+      tools_milestone: [{ key: "tool_100", title: "100 creator tools", description: "Complete 100 eligible creator tool actions.", action: "eligible_tool_use", target: 100, xp: 250 }],
+      codes_daily: [{ key: "code_daily", title: "Code scout", description: "Verify or vote on one Roblox game code today.", action: "code_vote", target: 1, xp: 15 }],
+      codes_weekly: [{ key: "code_weekly", title: "Code helper", description: "Vote on five Roblox game codes this week.", action: "code_vote", target: 5, xp: 75 }, { key: "code_submit", title: "Code contributor", description: "Submit a working Roblox game code.", action: "code_submit", target: 1, xp: 100 }],
+      codes_monthly: [{ key: "code_monthly", title: "Code curator", description: "Help verify 20 codes during the month.", action: "code_vote", target: 20, xp: 250 }],
+      codes_global: [{ key: "code_goal", title: "Codes for everyone", description: "Help verify 30,000 Roblox codes together this month. Every active member earns the reward.", action: "code_vote", target: 30000, xp: 450 }],
+      codes_milestone: [{ key: "code_first", title: "First code check", description: "Verify your first Roblox game code.", action: "code_vote", target: 1, xp: 25 }],
+      payments_daily: [{ key: "payment_daily", title: "First supporter", description: "Make a verified RBLXTools purchase.", action: "purchase", target: 1, xp: 50 }],
+      payments_weekly: [{ key: "payment_weekly", title: "Creator upgrade", description: "Complete two verified purchases this week.", action: "purchase", target: 2, xp: 100 }],
+      payments_monthly: [{ key: "payment_monthly", title: "Monthly supporter", description: "Complete three verified purchases this month.", action: "purchase", target: 3, xp: 200 }],
+      payments_global: [{ key: "payment_goal", title: "Fund the toolkit", description: "Reach 2,500 verified community purchases together this month. Every active member earns the reward.", action: "purchase", target: 2500, xp: 750 }],
+      payments_milestone: [{ key: "first_purchase", title: "First purchase", description: "Complete your first verified RBLXTools purchase.", action: "purchase", target: 1, xp: 100 }],
     },
     products: { default: { cashbackEligible: true, cashbackMultiplier: 1, purchaseXpMultiplier: 1 } },
   };
@@ -99,6 +94,13 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     copy.setUTCDate(copy.getUTCDate() + 4 - day);
     const yearStart = new Date(Date.UTC(copy.getUTCFullYear(), 0, 1));
     return copy.getUTCFullYear() + "-W" + String(Math.ceil((((copy - yearStart) / 86400000) + 1) / 7)).padStart(2, "0");
+  };
+  const monthKey = (date = now()) => `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  const questPeriod = (kind, date = now()) => {
+    if (kind.endsWith("_daily")) return ["daily", utcDay(date)];
+    if (kind.endsWith("_weekly")) return ["weekly", weekKey(date)];
+    if (kind.endsWith("_monthly") || kind.endsWith("_global")) return ["monthly", monthKey(date)];
+    return ["lifetime", "lifetime"];
   };
   const getState = () => {
     const raw = readJsonFile(statePath, {});
@@ -153,21 +155,17 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const config = state.config;
     const member = memberFor(state, userId);
     const nowDate = now();
-    const windows = [
-      ["daily", utcDay(nowDate)],
-      ["weekly", weekKey(nowDate)],
-      ["ai", weekKey(nowDate)],
-      ["community", weekKey(nowDate)],
-      ["milestone", "lifetime"],
-    ];
-    windows.forEach(([kind, window]) => {
+    Object.keys(config.quests || {}).forEach((kind) => {
+      const [period, window] = questPeriod(kind, nowDate);
       (config.quests?.[kind] || []).forEach((quest) => {
         const target = Math.max(1, Number(quest.target) || 1);
         const count = quest.action === "streak_days"
           ? Number(member.currentStreak || 0)
-          : eventCount(state, userId, quest.action, (entry) => kind === "milestone" || (kind === "daily" ? entry.createdAt.slice(0, 10) === window : weekKey(new Date(entry.createdAt)) === window));
+          : kind.endsWith("_global")
+            ? state.xpLedger.filter((entry) => entry.action === quest.action && monthKey(new Date(entry.createdAt)) === window).length
+            : eventCount(state, userId, quest.action, (entry) => period === "lifetime" || (period === "daily" ? entry.createdAt.slice(0, 10) === window : period === "weekly" ? weekKey(new Date(entry.createdAt)) === window : monthKey(new Date(entry.createdAt)) === window));
         const key = `quest:${kind}:${quest.key}:${window}`;
-        if (count >= target && !state.xpLedger.some((entry) => entry.sourceKey === key)) award(state, { userId, sourceKey: key, action: "quest_reward", title: `${quest.title} completed`, amount: quest.xp, note: `${kind} quest`, metadata: { questKey: quest.key, kind, window } });
+        if (count >= target && !state.xpLedger.some((entry) => entry.sourceKey === key)) award(state, { userId, sourceKey: key, action: "quest_reward", title: `${quest.title} completed`, amount: quest.xp, note: `${kind.replace(/_/g, " ")} quest`, metadata: { questKey: quest.key, kind, window } });
       });
     });
   }
@@ -308,8 +306,11 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const ordered = config.ranks.slice().sort((a, b) => a.requiredXp - b.requiredXp);
     const currentIndex = ordered.findIndex((item) => item.key === rank.key);
     const nextRank = ordered[currentIndex + 1] || null;
-    const createQuest = (kind, window) => (config.quests?.[kind] || []).map((quest) => {
-      const amount = quest.action === "streak_days" ? member.currentStreak : eventCount(state, userId, quest.action, (entry) => kind === "milestone" || (kind === "daily" ? entry.createdAt.slice(0, 10) === window : weekKey(new Date(entry.createdAt)) === window));
+    const createQuest = (kind) => (config.quests?.[kind] || []).map((quest) => {
+      const [period, window] = questPeriod(kind);
+      const amount = quest.action === "streak_days" ? member.currentStreak
+        : kind.endsWith("_global") ? state.xpLedger.filter((entry) => entry.action === quest.action && monthKey(new Date(entry.createdAt)) === window).length
+          : eventCount(state, userId, quest.action, (entry) => period === "lifetime" || (period === "daily" ? entry.createdAt.slice(0, 10) === window : period === "weekly" ? weekKey(new Date(entry.createdAt)) === window : monthKey(new Date(entry.createdAt)) === window));
       const key = `quest:${kind}:${quest.key}:${window}`;
       return { ...quest, progress: Math.min(Number(quest.target) || 1, amount), completed: state.xpLedger.some((entry) => entry.sourceKey === key) };
     });
@@ -317,7 +318,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     return {
       rank, ranks: ordered, cashbackTier, cashbackTiers: (Array.isArray(config.cashbackTiers) && config.cashbackTiers.length ? config.cashbackTiers : config.ranks).slice().sort((a, b) => a.requiredXp - b.requiredXp), lifetimeXp: member.lifetimeXp, currentStreak: member.currentStreak, longestStreak: member.longestStreak, lastQualifyingActivityDate: member.lastQualifyingActivityDate,
       nextRank, xpToNextRank: nextRank ? Math.max(0, nextRank.requiredXp - member.lifetimeXp) : 0,
-      quests: { daily: createQuest("daily", utcDay()), weekly: createQuest("weekly", weekKey()), ai: createQuest("ai", weekKey()), community: createQuest("community", weekKey()), milestone: createQuest("milestone", "lifetime") },
+      quests: Object.keys(config.quests || {}).reduce((all, kind) => { all[kind] = createQuest(kind); return all; }, {}),
       cashback: { pendingCents: cashbacks.filter((entry) => entry.status === "pending").reduce((sum, entry) => sum + entry.cashbackCents, 0), availableCents: cashbacks.filter((entry) => entry.status === "available").reduce((sum, entry) => sum + entry.cashbackCents, 0), lifetimeCents: cashbacks.filter((entry) => entry.status !== "reversed").reduce((sum, entry) => sum + entry.cashbackCents, 0), ledger: cashbacks.slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 50) },
       xpLedger: state.xpLedger.filter((entry) => entry.userId === String(userId)).slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 75),
     };
@@ -333,7 +334,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     if (due.length) saveState(state);
   }
 
-  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getDailyStreak, claimDailyStreak, recordActivity, trackActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
+  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); completeQuests(state, userId); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getDailyStreak, claimDailyStreak, recordActivity, trackActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
 }
 
 module.exports = { createRewardsEngine };

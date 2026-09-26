@@ -12794,6 +12794,7 @@ app.post("/api/codes/:slug/submissions", async (req, res) => {
     const guide = await codesPlatform.getGame(req.params.slug);
     if (!guide) return res.status(404).json({ error: "Code guide not found." });
     const submission = await codesPlatform.submitCodeSubmission(guide.game.id, req.body || {}, user);
+    rewardsEngine.trackActivity({ userId: user.id, sourceKey: `code-submit:${submission.id}`, action: "code_submit", title: "Working code submitted", note: "Submitted a Roblox game code", metadata: { game: guide.game.slug } });
     // A missing/stale reward migration must never prevent a newly submitted
     // code from reaching the live admin queue.
     await createPendingPointTransaction({ userId: user.id, sourceType: "working_code", sourceId: submission.id, title: "Working code submitted", points: REWARD_POINT_AWARDS.working_code }).catch((error) => console.error("Could not create pending code-point transaction:", error.message));
@@ -12821,6 +12822,7 @@ app.post("/api/codes/:slug/votes/:codeId", async (req, res) => {
     if (!guide) return res.status(404).json({ error: "Code guide not found." });
     if (typeof req.body?.worked !== "boolean") return res.status(400).json({ error: "Choose whether the code worked." });
     const summary = await codesPlatform.voteForCode(guide.game.id, req.params.codeId, user.id, req.body.worked);
+    rewardsEngine.trackActivity({ userId: user.id, sourceKey: `code-vote:${guide.game.id}:${req.params.codeId}:${user.id}`, action: "code_vote", title: "Roblox code verified", note: "Voted on a Roblox game code", metadata: { game: guide.game.slug, worked: req.body.worked } });
     return res.json({ ok: true, summary });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not save your vote." });
