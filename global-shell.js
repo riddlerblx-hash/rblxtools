@@ -522,6 +522,9 @@
     var price = document.getElementById("rblxShellRetentionPrice");
     var accept = document.getElementById("rblxShellRetentionAccept");
     var decline = document.getElementById("rblxShellRetentionDecline");
+    var modal = document.querySelector(".rblx-shell-retention-modal");
+    var kicker = document.getElementById("rblxShellRetentionKicker");
+    var footnote = document.getElementById("rblxShellRetentionFootnote");
     if (!overlay || !title || !copy || !price || !accept || !decline) return false;
     overlay.dataset.source = String(source || "account");
     var declineLabel = overlay.dataset.source === "renewal" ? "Manage cancellation in billing" : "Continue to cancellation";
@@ -530,6 +533,9 @@
     title.textContent = "Before you cancel...";
     copy.textContent = "Checking whether a one-time membership offer is available for you.";
     price.textContent = "";
+    if (modal) modal.classList.remove("is-eligible");
+    if (kicker) kicker.textContent = "MEMBERSHIP CHECK";
+    if (footnote) footnote.textContent = "We will keep your current membership active while we check this one-time option.";
     accept.hidden = true;
     decline.hidden = false;
     decline.textContent = declineLabel;
@@ -538,13 +544,19 @@
       if (!details || !details.eligible) {
         title.textContent = "Cancellation confirmation";
         copy.textContent = details && details.reason || "No retention offer is available for this membership.";
+        if (kicker) kicker.textContent = "MEMBERSHIP STATUS";
+        if (footnote) footnote.textContent = "You can manage cancellation securely from Payments & Billing.";
+        accept.hidden = true;
         decline.textContent = declineLabel;
         return true;
       }
       var discounted = Math.round((Number(details.amount) || 0) / 2);
+      if (modal) modal.classList.add("is-eligible");
+      if (kicker) kicker.textContent = "EXCLUSIVE SAVE OFFER";
       title.textContent = "Keep your " + (details.plan || "membership") + " plan for 50% off";
       copy.textContent = "Stay subscribed and your next renewal will be half price. The billing cycle after that returns to your normal plan price.";
       price.innerHTML = '<s>' + formatRetentionMoney(details.amount, details.currency) + '</s><strong>' + formatRetentionMoney(discounted, details.currency) + '</strong><span>next renewal</span>';
+      if (footnote) footnote.textContent = "One private offer per member. Your plan stays active and keeps all current benefits.";
       accept.hidden = false;
       accept.disabled = false;
       accept.textContent = "Keep my membership for 50% off";
@@ -552,6 +564,9 @@
     } catch (error) {
       title.textContent = "Cancellation confirmation";
       copy.textContent = error.message || "We could not check for a membership offer.";
+      if (kicker) kicker.textContent = "MEMBERSHIP STATUS";
+      if (footnote) footnote.textContent = "You can manage cancellation securely from Payments & Billing.";
+      accept.hidden = true;
       decline.textContent = declineLabel;
       return true;
     }
@@ -1751,10 +1766,10 @@
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-          (shellState.isAdmin ? '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span>📅</span><b>Daily</b></button>' : '') +
           '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong></a>' +
           '<a class="rblx-shell-header-token-balance" href="./rewards" title="View RBLX Points"><small>RBLX Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
+          (shellState.isAdmin ? '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span aria-hidden="true">📅</span></button>' : '') +
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
             '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
               '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 10.5a6 6 0 0 0-12 0c0 7-2.5 7-2.5 8.5h17C20.5 17.5 18 17.5 18 10.5ZM9.5 21h5"></path></svg>' +
@@ -2029,12 +2044,12 @@
         '<div class="rblx-shell-retention-overlay" id="rblxShellRetentionOverlay" aria-hidden="true">' +
           '<section class="rblx-shell-retention-modal" role="dialog" aria-modal="true" aria-labelledby="rblxShellRetentionTitle">' +
             '<button class="rblx-shell-retention-close" type="button" data-rblx-retention-close aria-label="Close">×</button>' +
-            '<div class="rblx-shell-retention-kicker">ONE-TIME MEMBER OFFER</div>' +
+            '<div class="rblx-shell-retention-hero"><div class="rblx-shell-retention-kicker" id="rblxShellRetentionKicker">ONE-TIME MEMBER OFFER</div><div class="rblx-shell-retention-saving" id="rblxShellRetentionSaving"><strong>50%</strong><span>OFF<br>NEXT RENEWAL</span></div></div>' +
             '<h3 id="rblxShellRetentionTitle">Before you cancel...</h3>' +
             '<p id="rblxShellRetentionCopy">Checking whether a one-time membership offer is available for you.</p>' +
             '<div class="rblx-shell-retention-price" id="rblxShellRetentionPrice"></div>' +
             '<div class="rblx-shell-retention-actions"><button class="rblx-shell-btn is-primary" id="rblxShellRetentionAccept" type="button" hidden>Keep my membership for 50% off</button><button class="rblx-shell-btn" id="rblxShellRetentionDecline" type="button">Continue to cancellation</button></div>' +
-            '<small>Cancel any time from Payments & Billing. The discount is applied securely through Stripe.</small>' +
+            '<small id="rblxShellRetentionFootnote">Cancel any time from Payments & Billing. The discount is applied securely through Stripe.</small>' +
           '</section>' +
         '</div>' +
         '<div class="rblx-shell-reward-overlay" id="rblxShellRewardOverlay" aria-hidden="true">' +
