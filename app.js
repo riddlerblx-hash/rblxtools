@@ -8530,15 +8530,19 @@ app.get("/api/members/:userId", async (req, res) => {
     const user = await getAuthUserById(memberId);
     if (!user) return res.status(404).json({ error: "This member is unavailable." });
     const membership = await resolveMembershipSnapshot(user);
-    const rewards = rewardsEngine.getOverview(user.id);
+    // A profile must stay public even if the rewards store is momentarily
+    // unavailable during a restart; level display can safely fall back.
+    let rewards = null;
+    try { rewards = rewardsEngine.getOverview(user.id); }
+    catch (error) { console.warn("Could not load member rewards for profile:", error.message); }
     const member = {
       id: user.id,
       name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
       username: cleanText(user.username || user.display_name || "member", 80).replace(/^@+/, ""),
       avatarUrl: getCommunityAvatarUrl(user),
       plan: String(membership?.plan || "free").toLowerCase(),
-      level: Number(rewards.rank?.level || 1),
-      levelTitle: cleanText(rewards.rank?.name || "Builder", 40),
+      level: Number(rewards?.rank?.level || 1),
+      levelTitle: cleanText(rewards?.rank?.name || "Builder", 40),
       joinedAt: user.created_at || null,
     };
     const communityState = readAIUGCCommunityState();

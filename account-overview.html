@@ -1166,6 +1166,7 @@
     #rbtools-account-overview .acct-profile-plus.two { top: 26%; right: 27%; font-size: 20px; animation-delay: 1.1s; }
     #rbtools-account-overview .acct-profile-plus.three { bottom: 16%; left: 58%; font-size: 14px; animation-delay: 2.2s; }
     #rbtools-account-overview .acct-profile-plus.four { bottom: 25%; right: 10%; font-size: 17px; animation-delay: .6s; }
+    #rbtools-account-overview .acct-profile-level { display:inline-flex; align-items:center; margin-top:7px; border:1px solid rgba(118,193,255,.42); border-radius:999px; padding:5px 9px; color:#c2eaff; background:rgba(37,103,168,.18); font-size:10px; font-weight:900; letter-spacing:.05em; text-transform:uppercase; }
     #rbtools-account-overview .acct-avatar-button { border: 0; padding: 0; cursor: pointer; }
     #rbtools-account-overview .acct-avatar-button:hover { outline: 2px solid rgba(127, 171, 255, .75); outline-offset: 3px; }
     #rbtools-account-overview .acct-tabs { display: flex; gap: 8px; padding: 6px; margin: 0 0 16px; border: 1px solid rgba(111, 146, 205, .22); border-radius: 15px; background: rgba(9, 16, 29, .72); }
@@ -1557,6 +1558,7 @@
                         <span id="acctDisplaySubname">Account</span>
                       </h2>
                       <div id="acctEmailTop" class="acct-email">Sign in to load your member account.</div>
+                      <div id="acctProfileLevel" class="acct-profile-level" hidden>Level 1 · Builder</div>
                       <div id="acctBioTop" class="acct-bio-preview is-empty">Add a short bio to tell people a little about this account.</div>
                       <div id="acctPlusCosmetic" class="acct-plus-tag hidden">
                         <div class="acct-plus-mark">+</div>
@@ -1990,6 +1992,7 @@
         acctAvatarImage: document.getElementById("acctAvatarImage"),
         acctAvatarFallback: document.getElementById("acctAvatarFallback"),
         acctDisplayName: document.getElementById("acctDisplayName"),
+        acctProfileLevel: document.getElementById("acctProfileLevel"),
         acctDisplaySubname: document.getElementById("acctDisplaySubname"),
         acctPlusCosmetic: document.getElementById("acctPlusCosmetic"),
         acctDiscordVerified: document.getElementById("acctDiscordVerified"),
@@ -2971,6 +2974,11 @@
 
         els.acctDisplayName.textContent = displayName;
         els.acctDisplaySubname.textContent = subtitle;
+        var rank = state.user && state.user.rewardsRank || null;
+        if (els.acctProfileLevel) {
+          els.acctProfileLevel.hidden = !rank || !rank.name;
+          if (rank && rank.name) els.acctProfileLevel.textContent = "Level " + Number(rank.level || 1) + " · " + String(rank.name);
+        }
         var currentPlan = String(state.user && state.user.plan || "free").toLowerCase();
         els.acctDisplayName.parentElement.classList.toggle("is-plus", currentPlan === "plus");
         els.acctDisplayName.parentElement.classList.toggle("is-pro", currentPlan === "pro");

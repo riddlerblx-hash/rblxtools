@@ -2387,7 +2387,7 @@
       return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + '"><span>Day ' + item.day + '</span><b>' + (item.bonus ? dailyBonusLabel(item.bonus) : ('+' + Number(item.xp || 0).toLocaleString() + ' XP')) + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small><i>' + (claimed ? '✓' : String(index + 1)) + '</i></article>';
     }).join("");
     claim.disabled = !streak.available;
-    claim.textContent = streak.claimedToday ? "Today’s reward claimed" : streak.available ? "Claim today’s reward" : "Come back tomorrow";
+    claim.textContent = streak.claimedToday ? "Come back tomorrow" : streak.available ? "Claim today’s reward" : "Come back tomorrow";
     status.textContent = streak.claimedToday ? "Come back tomorrow to keep your streak going." : streak.available ? "Your daily reward is ready to claim." : "Log in to unlock today’s reward.";
   }
 
