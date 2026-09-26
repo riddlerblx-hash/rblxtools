@@ -73,6 +73,23 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
   };
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
+  const expandQuestBuckets = (quests) => Object.entries(quests || {}).reduce((all, [kind, source]) => {
+    const base = Array.isArray(source) && source.length ? source : [];
+    const tiers = ["I", "II", "III", "IV", "V", "VI"];
+    all[kind] = Array.from({ length: 6 }, (_, index) => {
+      const original = base[index % base.length] || {};
+      const level = Math.floor(index / Math.max(1, base.length)) + 1;
+      return {
+        ...original,
+        key: `${original.key || kind}_${index + 1}`,
+        title: index < base.length ? original.title : `${original.title || "Quest"} · Tier ${tiers[index]}`,
+        description: index < base.length ? original.description : `${original.description || "Complete this quest to earn XP."} Tier ${tiers[index]} has a bigger target and reward.`,
+        target: Math.max(1, Math.round(Number(original.target || 1) * level)),
+        xp: Math.max(1, Math.round(Number(original.xp || 10) * level)),
+      };
+    });
+    return all;
+  }, {});
   const iso = () => now().toISOString();
   // Streaks are calendar-day rewards, not rolling 24-hour timers. Use the
   // site's configured calendar so a member can claim again at local midnight.
@@ -113,7 +130,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
         ...savedConfig,
         xp: { ...defaults.xp, ...(savedConfig.xp || {}) },
         limits: { ...defaults.limits, ...(savedConfig.limits || {}) },
-        quests: { ...defaults.quests, ...(savedConfig.quests || {}) },
+        quests: expandQuestBuckets({ ...defaults.quests, ...(savedConfig.quests || {}) }),
         products: { ...defaults.products, ...(savedConfig.products || {}) },
       },
       members: raw.members && typeof raw.members === "object" ? raw.members : {},
