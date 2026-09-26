@@ -2569,6 +2569,47 @@ body.rblx-shell-modal-open {
   pointer-events: auto;
 }
 
+.rblx-shell-retention-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 91;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(3, 7, 15, .76);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .2s ease, visibility .2s ease;
+}
+.rblx-shell-retention-overlay.is-open { opacity: 1; visibility: visible; pointer-events: auto; }
+.rblx-shell-retention-modal {
+  position: relative;
+  width: min(510px, calc(100vw - 32px));
+  padding: 34px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 86, 100, .56);
+  border-radius: 24px;
+  background: radial-gradient(circle at 95% 0%, rgba(255, 59, 78, .25), transparent 39%), linear-gradient(145deg, #151c2b, #080e18 72%);
+  box-shadow: 0 28px 80px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.07);
+  color: #eff5ff;
+}
+.rblx-shell-retention-kicker { color: #ff8491; font-size: 11px; font-weight: 900; letter-spacing: .14em; }
+.rblx-shell-retention-modal h3 { margin: 10px 0 9px; font-size: clamp(25px, 4vw, 34px); line-height: 1.05; }
+.rblx-shell-retention-modal p { margin: 0; max-width: 430px; color: #b9c8dd; line-height: 1.55; }
+.rblx-shell-retention-price { display: flex; align-items: baseline; gap: 9px; min-height: 46px; margin: 24px 0 6px; }
+.rblx-shell-retention-price s { color: #8290a6; font-weight: 800; }
+.rblx-shell-retention-price strong { color: #74f5c4; font-size: 29px; line-height: 1; }
+.rblx-shell-retention-price span { color: #a9b8ce; font-size: 12px; font-weight: 800; }
+.rblx-shell-retention-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.rblx-shell-retention-actions .rblx-shell-btn { min-height: 42px; }
+.rblx-shell-retention-modal small { display:block; margin-top:18px; color:#8796ad; font-size:11px; line-height:1.45; }
+.rblx-shell-retention-close { position:absolute; top:12px; right:13px; width:34px; height:34px; border:1px solid rgba(203,220,245,.3); border-radius:10px; background:rgba(4,9,18,.56); color:#fff; font-size:26px; line-height:1; cursor:pointer; }
+.rblx-shell-retention-close:hover { border-color:#ff7887; background:rgba(126,24,39,.38); }
+@media (max-width: 560px) { .rblx-shell-retention-modal { padding: 29px 22px 24px; } .rblx-shell-retention-actions .rblx-shell-btn { width:100%; } }
+
 .rblx-shell-reward-overlay {
   position: fixed;
   inset: 0;

@@ -10923,11 +10923,77 @@ app.post("/auth/billing/subscription", async (req, res) => {
     if (!subscription) return res.status(400).json({ error: "There is no active Stripe subscription to update." });
     if (action !== "cancel" && action !== "resume") return res.status(400).json({ error: "Choose a valid subscription action." });
     const updated = await stripeClient.subscriptions.update(subscription.id, { cancel_at_period_end: action === "cancel" });
+    if (action === "cancel" && user.stripe_customer_id) {
+      const customer = await stripeClient.customers.retrieve(user.stripe_customer_id);
+      await stripeClient.customers.update(user.stripe_customer_id, {
+        metadata: { ...(customer?.metadata || {}), rblxtools_retention_cancelled_once: new Date().toISOString() },
+      });
+    }
     await syncStripeSubscriptionObject(updated);
     return res.json({ ok: true, cancelAtPeriodEnd: Boolean(updated.cancel_at_period_end), currentPeriodEndAt: getIsoFromUnixSeconds(updated.current_period_end) });
   } catch (error) {
     console.error("POST /auth/billing/subscription failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not update the subscription." });
+  }
+});
+
+async function getRetentionOfferForUser(user) {
+  const customerId = String(user?.stripe_customer_id || "").trim();
+  if (!customerId) return { eligible: false, reason: "No Stripe membership is connected to this account." };
+  const [customer, subscription] = await Promise.all([
+    stripeClient.customers.retrieve(customerId),
+    getPrimaryStripeSubscriptionForCustomer(customerId, { includeCanceled: false }),
+  ]);
+  const metadata = customer?.metadata || {};
+  const alreadyUsed = Boolean(metadata.rblxtools_retention_cancelled_once || metadata.rblxtools_retention_offer_redeemed);
+  if (!subscription || subscription.cancel_at_period_end || !isPremiumStatus(subscription.status) || alreadyUsed) {
+    return { eligible: false, reason: alreadyUsed ? "This one-time retention offer has already been used." : "This subscription is not eligible for a retention offer." };
+  }
+  const price = subscription?.items?.data?.[0]?.price || {};
+  return {
+    eligible: true,
+    subscription,
+    customer,
+    plan: getStripeSubscriptionPlan(subscription) === "pro" ? "Pro" : "Plus",
+    currentPeriodEndAt: getIsoFromUnixSeconds(subscription.current_period_end),
+    amount: Math.max(0, Number(price.unit_amount || 0)),
+    currency: String(price.currency || "usd").toUpperCase(),
+  };
+}
+
+app.get("/auth/billing/retention-offer", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const offer = await getRetentionOfferForUser(user);
+    return res.json({ ok: true, eligible: offer.eligible, reason: offer.reason || null, percentOff: 50, plan: offer.plan || null, currentPeriodEndAt: offer.currentPeriodEndAt || null, amount: offer.amount || 0, currency: offer.currency || "USD" });
+  } catch (error) {
+    console.error("GET /auth/billing/retention-offer failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not check this membership offer." });
+  }
+});
+
+app.post("/auth/billing/retention-offer/accept", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const offer = await getRetentionOfferForUser(user);
+    if (!offer.eligible) return res.status(409).json({ error: offer.reason || "This membership is not eligible for the offer." });
+    const coupon = await stripeClient.coupons.create({
+      percent_off: 50,
+      duration: "once",
+      name: "RBLXTools membership retention offer",
+      metadata: { appUserId: String(user.id), subscriptionId: String(offer.subscription.id), type: "retention_50_once" },
+    });
+    const updated = await stripeClient.subscriptions.update(offer.subscription.id, { discounts: [{ coupon: coupon.id }] });
+    await stripeClient.customers.update(user.stripe_customer_id, {
+      metadata: { ...(offer.customer?.metadata || {}), rblxtools_retention_offer_redeemed: new Date().toISOString() },
+    });
+    await syncStripeSubscriptionObject(updated);
+    return res.json({ ok: true, percentOff: 50, currentPeriodEndAt: getIsoFromUnixSeconds(updated.current_period_end) });
+  } catch (error) {
+    console.error("POST /auth/billing/retention-offer/accept failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not apply the membership offer." });
   }
 });
 

@@ -1083,7 +1083,7 @@
     #rbtools-account-overview .acct-billing-invoice a { color:#8cd9ff; font-weight:900; text-decoration:none; }
     #rbtools-account-overview .acct-billing-invoice a:hover { text-decoration:underline; }
   </style>
-<link rel="stylesheet" href="./global-shell.css?v=20260925-daily-global-modal" />
+<link rel="stylesheet" href="./global-shell.css?v=20260926-retention-offer" />
   <style>
     /* Bring the account workspace into the same restrained system as the tool pages. */
     body {
@@ -1468,7 +1468,7 @@
 </head>
 <body>
 <script src="https://js.stripe.com/v3/"></script>
-<script src="./global-shell.js?v=20260925-daily-global-modal"></script>
+<script src="./global-shell.js?v=20260926-retention-offer"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1666,7 +1666,7 @@
                     <div id="acctBillingKicker" class="acct-section-kicker">Stripe billing</div>
                     <h3 id="acctBillingTitle" class="acct-section-title">Payments &amp; Billing</h3>
                     <p class="acct-section-copy">
-                      Securely manage your payment method, invoices, renewal, cancellation, and subscription details through Stripe.
+                      Manage payment methods, invoices, renewal, cancellation, and subscription details here. Card details are handled securely by Stripe.
                     </p>
 
                     <div id="acctBillingInfo" class="acct-info-grid">
@@ -3347,8 +3347,12 @@
         } catch (error) { setStatus(els.acctBillingStatus, error.message || "Could not remove the payment method.", "error"); }
       }
 
-      async function updateBillingSubscription(action) {
+      async function updateBillingSubscription(action, skipRetentionOffer) {
         var isCancel = action === "cancel";
+        if (isCancel && !skipRetentionOffer && typeof window.rblxToolsOpenRetentionOffer === "function") {
+          window.rblxToolsOpenRetentionOffer("account");
+          return;
+        }
         if (isCancel && !window.confirm("Cancel this subscription at the end of its current billing period?")) return;
         try {
           var result = await apiRequest("/auth/billing/subscription", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: action }) });
@@ -3791,6 +3795,10 @@
       if (els.acctBillingPaymentCloseButton) els.acctBillingPaymentCloseButton.addEventListener("click", closeBillingPaymentEditor);
       if (els.acctBillingCancelButton) els.acctBillingCancelButton.addEventListener("click", function () { updateBillingSubscription("cancel"); });
       if (els.acctBillingResumeButton) els.acctBillingResumeButton.addEventListener("click", function () { updateBillingSubscription("resume"); });
+      document.addEventListener("rblxtools-retention-declined", function (event) {
+        if (event.detail && event.detail.source === "account") updateBillingSubscription("cancel", true);
+      });
+      document.addEventListener("rblxtools-retention-accepted", function () { loadBillingDetails(); });
       if (els.acctOpenPlansButton) {
         els.acctOpenPlansButton.addEventListener("click", function () { redirectTop(PLANS_PAGE_URL); });
       }

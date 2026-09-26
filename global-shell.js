@@ -503,6 +503,62 @@
     window.location.assign("./checkout?" + params.toString());
   }
 
+  function closeRetentionOffer() {
+    var overlay = document.getElementById("rblxShellRetentionOverlay");
+    if (!overlay) return;
+    overlay.classList.remove("is-open");
+    overlay.setAttribute("aria-hidden", "true");
+  }
+
+  function formatRetentionMoney(amount, currency) {
+    try { return new Intl.NumberFormat("en-US", { style: "currency", currency: String(currency || "USD") }).format((Number(amount) || 0) / 100); }
+    catch (_error) { return "$" + ((Number(amount) || 0) / 100).toFixed(2); }
+  }
+
+  async function openRetentionOffer(source) {
+    var overlay = document.getElementById("rblxShellRetentionOverlay");
+    var title = document.getElementById("rblxShellRetentionTitle");
+    var copy = document.getElementById("rblxShellRetentionCopy");
+    var price = document.getElementById("rblxShellRetentionPrice");
+    var accept = document.getElementById("rblxShellRetentionAccept");
+    var decline = document.getElementById("rblxShellRetentionDecline");
+    if (!overlay || !title || !copy || !price || !accept || !decline) return false;
+    overlay.dataset.source = String(source || "account");
+    var declineLabel = overlay.dataset.source === "renewal" ? "Manage cancellation in billing" : "Continue to cancellation";
+    overlay.classList.add("is-open");
+    overlay.setAttribute("aria-hidden", "false");
+    title.textContent = "Before you cancel...";
+    copy.textContent = "Checking whether a one-time membership offer is available for you.";
+    price.textContent = "";
+    accept.hidden = true;
+    decline.hidden = false;
+    decline.textContent = declineLabel;
+    try {
+      var details = await authApiRequest("/auth/billing/retention-offer", { method: "GET", headers: { Authorization: "Bearer " + getToken() } });
+      if (!details || !details.eligible) {
+        title.textContent = "Cancellation confirmation";
+        copy.textContent = details && details.reason || "No retention offer is available for this membership.";
+        decline.textContent = declineLabel;
+        return true;
+      }
+      var discounted = Math.round((Number(details.amount) || 0) / 2);
+      title.textContent = "Keep your " + (details.plan || "membership") + " plan for 50% off";
+      copy.textContent = "Stay subscribed and your next renewal will be half price. This private offer is available once and applies to one billing cycle only.";
+      price.innerHTML = '<s>' + formatRetentionMoney(details.amount, details.currency) + '</s><strong>' + formatRetentionMoney(discounted, details.currency) + '</strong><span>next renewal</span>';
+      accept.hidden = false;
+      accept.disabled = false;
+      accept.textContent = "Keep my membership for 50% off";
+      return true;
+    } catch (error) {
+      title.textContent = "Cancellation confirmation";
+      copy.textContent = error.message || "We could not check for a membership offer.";
+      decline.textContent = declineLabel;
+      return true;
+    }
+  }
+
+  window.rblxToolsOpenRetentionOffer = openRetentionOffer;
+
   function getStableAdminState(state) {
     var incomingAdmin = Boolean(state && state.isAdmin);
     var incomingUserId = String(state && state.userId || "");
@@ -1969,6 +2025,17 @@
             '<button class="rblx-shell-btn is-primary rblx-shell-checkout-button" type="button" id="rblxShellCheckoutClose" disabled>Back To Account (10)</button>' +
           '</div>' +
           buildModalAdRailsMarkup() +
+        '</div>' +
+        '<div class="rblx-shell-retention-overlay" id="rblxShellRetentionOverlay" aria-hidden="true">' +
+          '<section class="rblx-shell-retention-modal" role="dialog" aria-modal="true" aria-labelledby="rblxShellRetentionTitle">' +
+            '<button class="rblx-shell-retention-close" type="button" data-rblx-retention-close aria-label="Close">×</button>' +
+            '<div class="rblx-shell-retention-kicker">ONE-TIME MEMBER OFFER</div>' +
+            '<h3 id="rblxShellRetentionTitle">Before you cancel...</h3>' +
+            '<p id="rblxShellRetentionCopy">Checking whether a one-time membership offer is available for you.</p>' +
+            '<div class="rblx-shell-retention-price" id="rblxShellRetentionPrice"></div>' +
+            '<div class="rblx-shell-retention-actions"><button class="rblx-shell-btn is-primary" id="rblxShellRetentionAccept" type="button" hidden>Keep my membership for 50% off</button><button class="rblx-shell-btn" id="rblxShellRetentionDecline" type="button">Continue to cancellation</button></div>' +
+            '<small>Cancel any time from Payments & Billing. The discount is applied securely through Stripe.</small>' +
+          '</section>' +
         '</div>' +
         '<div class="rblx-shell-reward-overlay" id="rblxShellRewardOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-reward-modal" id="rblxShellRewardModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellRewardTitle">' +
@@ -5908,16 +5975,46 @@
     document.addEventListener("click", function (event) {
       var dismiss = event.target && event.target.closest ? event.target.closest("[data-shell-renewal-dismiss]") : null;
       if (!dismiss) return;
-      var notice = document.getElementById("rblxShellRenewalNotice");
-      if (!notice) return;
-      try { if (notice.dataset.dismissKey) localStorage.setItem(notice.dataset.dismissKey, "1"); } catch (_error) {}
-      try { sessionStorage.removeItem(RENEWAL_NOTICE_PREVIEW_KEY); } catch (_error) {}
-      notice.hidden = true;
+      openRetentionOffer("renewal");
     });
     document.addEventListener("click", function (event) {
       var renew = event.target && event.target.closest ? event.target.closest("[data-shell-renew-membership]") : null;
       if (!renew) return;
       beginRenewalCheckout(renew);
+    });
+    document.addEventListener("click", function (event) {
+      var close = event.target && event.target.closest ? event.target.closest("[data-rblx-retention-close]") : null;
+      if (close) closeRetentionOffer();
+      var accept = event.target && event.target.closest ? event.target.closest("#rblxShellRetentionAccept") : null;
+      if (accept) {
+        accept.disabled = true;
+        accept.textContent = "Applying your offer...";
+        authApiRequest("/auth/billing/retention-offer/accept", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() }, body: "{}" }).then(function () {
+          var title = document.getElementById("rblxShellRetentionTitle");
+          var copy = document.getElementById("rblxShellRetentionCopy");
+          var decline = document.getElementById("rblxShellRetentionDecline");
+          if (title) title.textContent = "Your membership is staying active";
+          if (copy) copy.textContent = "Your next renewal will be 50% off. We are glad you are staying with RBLXTools.";
+          if (decline) { decline.textContent = "Done"; decline.hidden = false; }
+          accept.hidden = true;
+          var notice = document.getElementById("rblxShellRenewalNotice");
+          if (notice) notice.hidden = true;
+          document.dispatchEvent(new CustomEvent("rblxtools-retention-accepted"));
+        }).catch(function (error) {
+          accept.disabled = false;
+          accept.textContent = "Keep my membership for 50% off";
+          var copy = document.getElementById("rblxShellRetentionCopy");
+          if (copy) copy.textContent = error.message || "We could not apply that offer. You can still manage cancellation from Payments & Billing.";
+        });
+      }
+      var decline = event.target && event.target.closest ? event.target.closest("#rblxShellRetentionDecline") : null;
+      if (decline) {
+        var overlay = document.getElementById("rblxShellRetentionOverlay");
+        var source = String(overlay && overlay.dataset.source || "account");
+        closeRetentionOffer();
+        if (source === "renewal") window.location.assign("./account?tab=billing");
+        else document.dispatchEvent(new CustomEvent("rblxtools-retention-declined", { detail: { source: source } }));
+      }
     });
     // Header menus are lightweight overlays, not persistent panels. Keep only
     // the menu the member is interacting with open and dismiss them on any
