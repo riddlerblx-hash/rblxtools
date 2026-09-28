@@ -6010,7 +6010,8 @@
       if (accept) {
         accept.disabled = true;
         accept.textContent = "Applying your offer...";
-        authApiRequest("/auth/billing/retention-offer/accept", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() }, body: "{}" }).then(function () {
+        authApiRequest("/auth/billing/retention-offer/accept", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() }, body: "{}" }).then(function (result) {
+          if (result && result.checkoutUrl) { window.location.assign(result.checkoutUrl); return; }
           var title = document.getElementById("rblxShellRetentionTitle");
           var copy = document.getElementById("rblxShellRetentionCopy");
           var decline = document.getElementById("rblxShellRetentionDecline");
