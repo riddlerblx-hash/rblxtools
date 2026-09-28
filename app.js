@@ -8643,17 +8643,19 @@ app.get("/api/leaderboards", async (_req, res) => {
   try {
     // Only public-facing columns are read here. A leaderboard must never expose
     // email addresses, plan data, billing details, or any account identifiers.
-    // `display_name` is not part of every deployed member_accounts schema.
-    // Keep this endpoint compatible with the canonical username-based schema.
-    const rows = await supabaseRequest(buildAuthTablePath("?select=id,username,ai_token_balance,reward_points,created_at&limit=500"));
+    // Member-account schemas have evolved between deployments. Fetch server-side
+    // and project only the safe fields below so a missing optional column can
+    // never make the whole public leaderboard blank.
+    const rows = await supabaseRequest(buildAuthTablePath("?select=*&limit=500"));
     const users = Array.isArray(rows) ? rows : [];
     const profileNames = readCommunityProfiles();
     const publicMember = (user) => {
       const profile = profileNames[String(user.id)] || {};
-      const overview = rewardsEngine.getOverview(user.id);
+      let overview = null;
+      try { overview = rewardsEngine.getOverview(user.id); } catch (_error) {}
       return {
         id: String(user.id),
-        name: cleanText(user.username || "Member", 80),
+        name: cleanText(user.username || user.display_name || user.name || "Member", 80),
         avatarUrl: cleanText(profile.avatarUrl || "", 2000),
         aiTokens: getAITokenBalance(user),
         points: Math.max(0, Number(user.reward_points) || 0),
