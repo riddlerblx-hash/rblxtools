@@ -527,7 +527,7 @@
     var footnote = document.getElementById("rblxShellRetentionFootnote");
     if (!overlay || !title || !copy || !price || !accept || !decline) return false;
     overlay.dataset.source = String(source || "account");
-    var declineLabel = overlay.dataset.source === "renewal" ? "Manage cancellation in billing" : "Continue to cancellation";
+    var declineLabel = "Cancel plan";
     overlay.classList.add("is-open");
     overlay.setAttribute("aria-hidden", "false");
     title.textContent = "Before you cancel...";
@@ -538,6 +538,7 @@
     if (footnote) footnote.textContent = "We will keep your current membership active while we check this one-time option.";
     accept.hidden = true;
     decline.hidden = false;
+    delete decline.dataset.retentionDone;
     decline.textContent = declineLabel;
     try {
       var details = await authApiRequest("/auth/billing/retention-offer", { method: "GET", headers: { Authorization: "Bearer " + getToken() } });
@@ -545,7 +546,7 @@
         title.textContent = "Cancellation confirmation";
         copy.textContent = details && details.reason || "No retention offer is available for this membership.";
         if (kicker) kicker.textContent = "MEMBERSHIP STATUS";
-        if (footnote) footnote.textContent = "You can manage cancellation securely from Payments & Billing.";
+        if (footnote) footnote.textContent = "You can cancel this plan directly below. A private renewal offer is available only for active Stripe memberships.";
         accept.hidden = true;
         decline.textContent = declineLabel;
         return true;
@@ -559,13 +560,13 @@
       if (footnote) footnote.textContent = "One private offer per member. Your plan stays active and keeps all current benefits.";
       accept.hidden = false;
       accept.disabled = false;
-      accept.textContent = "Keep my membership for 50% off";
+      accept.textContent = "Renew for 50% off for one month";
       return true;
     } catch (error) {
       title.textContent = "Cancellation confirmation";
       copy.textContent = error.message || "We could not check for a membership offer.";
       if (kicker) kicker.textContent = "MEMBERSHIP STATUS";
-      if (footnote) footnote.textContent = "You can manage cancellation securely from Payments & Billing.";
+      if (footnote) footnote.textContent = "You can cancel this plan directly below.";
       accept.hidden = true;
       decline.textContent = declineLabel;
       return true;
@@ -6022,18 +6023,33 @@
           document.dispatchEvent(new CustomEvent("rblxtools-retention-accepted"));
         }).catch(function (error) {
           accept.disabled = false;
-          accept.textContent = "Keep my membership for 50% off";
+          accept.textContent = "Renew for 50% off for one month";
           var copy = document.getElementById("rblxShellRetentionCopy");
           if (copy) copy.textContent = error.message || "We could not apply that offer. You can still manage cancellation from Payments & Billing.";
         });
       }
       var decline = event.target && event.target.closest ? event.target.closest("#rblxShellRetentionDecline") : null;
       if (decline) {
-        var overlay = document.getElementById("rblxShellRetentionOverlay");
-        var source = String(overlay && overlay.dataset.source || "account");
-        closeRetentionOffer();
-        if (source === "renewal") window.location.assign("./account?tab=billing");
-        else document.dispatchEvent(new CustomEvent("rblxtools-retention-declined", { detail: { source: source } }));
+        if (decline.dataset.retentionDone === "true") { closeRetentionOffer(); return; }
+        decline.disabled = true;
+        decline.textContent = "Cancelling plan...";
+        authApiRequest("/auth/billing/subscription", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() }, body: JSON.stringify({ action: "cancel" }) }).then(function (result) {
+          var title = document.getElementById("rblxShellRetentionTitle");
+          var copy = document.getElementById("rblxShellRetentionCopy");
+          var accept = document.getElementById("rblxShellRetentionAccept");
+          if (title) title.textContent = "Your plan will not renew";
+          if (copy) copy.textContent = result && result.currentPeriodEndAt ? "Your benefits remain available until " + new Date(result.currentPeriodEndAt).toLocaleDateString() + "." : "Your plan has been scheduled to end at the close of its current billing period.";
+          if (accept) accept.hidden = true;
+          decline.textContent = "Done";
+          decline.dataset.retentionDone = "true";
+          decline.disabled = false;
+          document.dispatchEvent(new CustomEvent("rblxtools-retention-declined", { detail: { source: "direct" } }));
+        }).catch(function (error) {
+          decline.disabled = false;
+          decline.textContent = "Cancel plan";
+          var copy = document.getElementById("rblxShellRetentionCopy");
+          if (copy) copy.textContent = error.message || "We could not cancel this plan. Please try again.";
+        });
       }
     });
     // Header menus are lightweight overlays, not persistent panels. Keep only
