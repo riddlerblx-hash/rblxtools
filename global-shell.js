@@ -537,7 +537,7 @@
     if (kicker) kicker.textContent = "MEMBERSHIP CHECK";
     if (footnote) footnote.textContent = "We will keep your current membership active while we check this one-time option.";
     accept.hidden = true;
-    decline.hidden = false;
+    decline.hidden = true;
     delete decline.dataset.retentionDone;
     decline.textContent = declineLabel;
     try {
@@ -546,8 +546,9 @@
         title.textContent = "Cancellation confirmation";
         copy.textContent = details && details.reason || "No retention offer is available for this membership.";
         if (kicker) kicker.textContent = "MEMBERSHIP STATUS";
-        if (footnote) footnote.textContent = "You can cancel this plan directly below. A private renewal offer is available only for active Stripe memberships.";
+        if (footnote) footnote.textContent = "This private offer can only be used once after a paid Stripe renewal.";
         accept.hidden = true;
+        decline.hidden = Boolean(details && details.canCancel === false);
         decline.textContent = declineLabel;
         return true;
       }
@@ -561,6 +562,8 @@
       accept.hidden = false;
       accept.disabled = false;
       accept.textContent = "Renew for 50% off for one month";
+      decline.hidden = !details.canCancel;
+      decline.textContent = declineLabel;
       return true;
     } catch (error) {
       title.textContent = "Cancellation confirmation";

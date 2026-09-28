@@ -11020,11 +11020,14 @@ async function hasRedeemedRetentionOffer(customerId) {
 
 async function getRetentionOfferForUser(user) {
   const customerId = String(user?.stripe_customer_id || "").trim();
-  if (!customerId) return { eligible: false, reason: "No Stripe membership is connected to this account." };
-  const [customer, retention] = await Promise.all([
-    stripeClient.customers.retrieve(customerId),
-    getRetentionSubscriptionForCustomer(customerId),
-  ]);
+  let customer = null;
+  let retention = { subscription: null, requiresRejoinCheckout: true };
+  if (customerId) {
+    [customer, retention] = await Promise.all([
+      stripeClient.customers.retrieve(customerId),
+      getRetentionSubscriptionForCustomer(customerId),
+    ]);
+  }
   const metadata = customer?.metadata || {};
   // Older releases wrote `rblxtools_retention_cancelled_once` merely when the
   // member opened/continued the cancellation flow. Clear and ignore that
@@ -11035,21 +11038,29 @@ async function getRetentionOfferForUser(user) {
     });
     metadata.rblxtools_retention_cancelled_once = "";
   }
-  const alreadyUsed = await hasRedeemedRetentionOffer(customerId);
+  const alreadyUsed = customerId ? await hasRedeemedRetentionOffer(customerId) : false;
   const subscription = retention.subscription;
-  if (!subscription || alreadyUsed) {
-    return { eligible: false, reason: alreadyUsed ? "This one-time retention offer has already been redeemed on a paid Stripe invoice." : "This account does not have a Stripe membership available to renew." };
+  if (alreadyUsed) {
+    return { eligible: false, reason: "This one-time retention offer has already been redeemed on a paid Stripe invoice." };
   }
-  const price = subscription?.items?.data?.[0]?.price || {};
+  const retainedPlan = subscription ? getStripeSubscriptionPlan(subscription) : (String(user?.plan || "").toLowerCase() === "pro" ? "pro" : "plus");
+  const priceId = subscription && !retention.requiresRejoinCheckout
+    ? String(subscription?.items?.data?.[0]?.price?.id || "")
+    : retainedPlan === "pro" ? await resolveProRecurringPrice("month") : await resolvePlusRecurringPrice("month");
+  const price = subscription && !retention.requiresRejoinCheckout
+    ? subscription?.items?.data?.[0]?.price || {}
+    : await stripeClient.prices.retrieve(priceId);
   return {
     eligible: true,
     subscription,
     customer,
-    plan: getStripeSubscriptionPlan(subscription) === "pro" ? "Pro" : "Plus",
-    currentPeriodEndAt: getIsoFromUnixSeconds(subscription.current_period_end),
+    plan: retainedPlan === "pro" ? "Pro" : "Plus",
+    priceId,
+    currentPeriodEndAt: subscription ? getIsoFromUnixSeconds(subscription.current_period_end) : null,
     amount: Math.max(0, Number(price.unit_amount || 0)),
     currency: String(price.currency || "usd").toUpperCase(),
     requiresRejoinCheckout: retention.requiresRejoinCheckout,
+    canCancel: Boolean(subscription && !retention.requiresRejoinCheckout),
   };
 }
 
@@ -11058,7 +11069,7 @@ app.get("/auth/billing/retention-offer", async (req, res) => {
     assertStripePortalConfigured();
     const user = await requireAuthenticatedUser(req);
     const offer = await getRetentionOfferForUser(user);
-    return res.json({ ok: true, eligible: offer.eligible, reason: offer.reason || null, percentOff: 50, plan: offer.plan || null, currentPeriodEndAt: offer.currentPeriodEndAt || null, amount: offer.amount || 0, currency: offer.currency || "USD", requiresRejoinCheckout: Boolean(offer.requiresRejoinCheckout) });
+    return res.json({ ok: true, eligible: offer.eligible, reason: offer.reason || null, percentOff: 50, plan: offer.plan || null, currentPeriodEndAt: offer.currentPeriodEndAt || null, amount: offer.amount || 0, currency: offer.currency || "USD", requiresRejoinCheckout: Boolean(offer.requiresRejoinCheckout), canCancel: Boolean(offer.canCancel) });
   } catch (error) {
     console.error("GET /auth/billing/retention-offer failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not check this membership offer." });
@@ -11075,15 +11086,16 @@ app.post("/auth/billing/retention-offer/accept", async (req, res) => {
       percent_off: 50,
       duration: "once",
       name: "RBLXTools membership retention offer",
-      metadata: { appUserId: String(user.id), subscriptionId: String(offer.subscription.id), type: "retention_50_once" },
+      metadata: { appUserId: String(user.id), subscriptionId: String(offer.subscription?.id || ""), type: "retention_50_once" },
     });
     if (offer.requiresRejoinCheckout) {
       assertStripeCheckoutConfigured();
-      const priceId = String(offer.subscription?.items?.data?.[0]?.price?.id || "");
+      const priceId = String(offer.priceId || "");
       if (!priceId) throw new Error("The previous membership price is unavailable for renewal.");
+      const checkoutCustomerId = await getOrCreateStripeCustomerForUser(user);
       const checkoutSession = await stripeClient.checkout.sessions.create({
         mode: "subscription",
-        customer: user.stripe_customer_id,
+        customer: checkoutCustomerId,
         line_items: [{ price: priceId, quantity: 1 }],
         discounts: [{ coupon: coupon.id }],
         success_url: getSafeCheckoutSuccessUrl(),
