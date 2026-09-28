@@ -541,7 +541,11 @@
     delete decline.dataset.retentionDone;
     decline.textContent = declineLabel;
     try {
-      var details = await authApiRequest("/auth/billing/retention-offer", { method: "GET", headers: { Authorization: "Bearer " + getToken() } });
+      // This result is account-specific and can change immediately after a
+      // purchase.  A versioned, no-store request prevents a browser or proxy
+      // from reusing an earlier failed eligibility response.
+      var retentionPath = "/auth/billing/retention-offer?check=" + Date.now();
+      var details = await authApiRequest(retentionPath, { method: "GET", cache: "no-store", headers: { Authorization: "Bearer " + getToken(), "Cache-Control": "no-store" } });
       if (!details || !details.eligible) {
         title.textContent = "Cancellation confirmation";
         copy.textContent = details && details.reason || "No retention offer is available for this membership.";

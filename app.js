@@ -11069,6 +11069,10 @@ async function getRetentionOfferForUser(user) {
 
 app.get("/auth/billing/retention-offer", async (req, res) => {
   try {
+    // Retention eligibility is private and must never be served from an HTTP
+    // cache after a member has changed plan or opened checkout.
+    res.set("Cache-Control", "no-store, private, max-age=0");
+    res.set("Pragma", "no-cache");
     assertStripePortalConfigured();
     const user = await requireAuthenticatedUser(req);
     const offer = await getRetentionOfferForUser(user);
