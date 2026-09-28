@@ -221,6 +221,7 @@ const LEGACY_COMMUNITY_POSTS_PATH = path.join(__dirname, "community-posts.json")
 const COMMUNITY_NOTIFICATIONS_PATH = process.env.COMMUNITY_NOTIFICATIONS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-notifications.json");
 const COMMUNITY_PROFILES_PATH = process.env.COMMUNITY_PROFILES_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-profiles.json");
 const MEMBER_PROFILE_COMMENTS_PATH = process.env.MEMBER_PROFILE_COMMENTS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "member-profile-comments.json");
+const MEMBER_PROFILE_REACTIONS_PATH = process.env.MEMBER_PROFILE_REACTIONS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "member-profile-reactions.json");
 const COMMUNITY_AVATAR_DIR = process.env.COMMUNITY_AVATAR_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-avatars");
 const CODE_GUIDE_COVER_DIR = process.env.CODE_GUIDE_COVER_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "code-guide-covers");
 const RBLXTOOLS_CODES_DATA_PATH = process.env.RBLXTOOLS_CODES_DATA_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "codes.json");
@@ -1364,6 +1365,25 @@ function writeMemberProfileComments(comments) {
   const tempPath = `${MEMBER_PROFILE_COMMENTS_PATH}.${process.pid}.${Date.now()}.tmp`;
   fs.writeFileSync(tempPath, JSON.stringify(comments) + "\n", "utf8");
   fs.renameSync(tempPath, MEMBER_PROFILE_COMMENTS_PATH);
+}
+
+// Reactions belong to the profile, not to a browser session. Keeping the
+// viewer ids server-side means a like/dislike is one vote per account and is
+// retained when a member returns on another device.
+function readMemberProfileReactions() {
+  try {
+    fs.mkdirSync(path.dirname(MEMBER_PROFILE_REACTIONS_PATH), { recursive: true });
+    if (!fs.existsSync(MEMBER_PROFILE_REACTIONS_PATH)) fs.writeFileSync(MEMBER_PROFILE_REACTIONS_PATH, "{}\n", { encoding: "utf8", flag: "wx" });
+    const reactions = JSON.parse(fs.readFileSync(MEMBER_PROFILE_REACTIONS_PATH, "utf8"));
+    return reactions && typeof reactions === "object" ? reactions : {};
+  } catch (error) { console.error("[MEMBERS] Could not read profile reactions:", error.message); return {}; }
+}
+
+function writeMemberProfileReactions(reactions) {
+  fs.mkdirSync(path.dirname(MEMBER_PROFILE_REACTIONS_PATH), { recursive: true });
+  const tempPath = `${MEMBER_PROFILE_REACTIONS_PATH}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(reactions) + "\n", "utf8");
+  fs.renameSync(tempPath, MEMBER_PROFILE_REACTIONS_PATH);
 }
 
 function saveCommunityAvatar(userId, rawAvatarUrl) {
@@ -8570,6 +8590,50 @@ app.get("/api/community-members/:userId", async (req, res) => {
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member." }); }
 });
 
+app.get("/api/leaderboards", async (_req, res) => {
+  try {
+    // Only public-facing columns are read here. A leaderboard must never expose
+    // email addresses, plan data, billing details, or any account identifiers.
+    const rows = await supabaseRequest(buildAuthTablePath("?select=id,display_name,username,ai_token_balance,reward_points,created_at&limit=500"));
+    const users = Array.isArray(rows) ? rows : [];
+    const profileNames = readCommunityProfiles();
+    const publicMember = (user) => {
+      const profile = profileNames[String(user.id)] || {};
+      const overview = rewardsEngine.getOverview(user.id);
+      return {
+        id: String(user.id),
+        name: cleanText(user.display_name || user.username || "Member", 80),
+        avatarUrl: cleanText(profile.avatarUrl || "", 2000),
+        aiTokens: getAITokenBalance(user),
+        points: Math.max(0, Number(user.reward_points) || 0),
+        xp: Math.max(0, Number(overview?.lifetimeXp) || 0),
+        level: Math.max(1, Number(overview?.rank?.level) || 1),
+      };
+    };
+    const members = users.map(publicMember);
+    const tipTotals = {};
+    const communityState = readAIUGCCommunityState();
+    Object.values(communityState.posts || {}).forEach((post) => (post?.tips || []).forEach((tip) => {
+      const userId = String(tip?.userId || "");
+      if (userId) tipTotals[userId] = (tipTotals[userId] || 0) + Math.max(0, Number(tip.amount) || 0);
+    }));
+    const withdrawals = {};
+    readReferralProgram().payoutRequests.forEach((request) => {
+      if (!/paid|completed|confirmed/i.test(String(request?.status || ""))) return;
+      const userId = String(request?.userId || "");
+      if (userId) withdrawals[userId] = (withdrawals[userId] || 0) + Math.max(0, Number(request.amountCents || request.requestedCents || request.amount || 0));
+    });
+    const top = (items, key, extra = {}) => items.map((member) => ({ ...member, value: Number(key(member)) || 0, ...extra(member) })).filter((member) => member.value > 0).sort((a, b) => b.value - a.value || a.name.localeCompare(b.name)).slice(0, 25);
+    return res.json({ ok: true, leaderboards: {
+      aiTokens: top(members, (member) => member.aiTokens),
+      points: top(members, (member) => member.points),
+      withdrawals: top(members, (member) => withdrawals[member.id] || 0),
+      xp: top(members, (member) => member.xp, (member) => ({ level: member.level })),
+      tokensTipped: top(members, (member) => tipTotals[member.id] || 0),
+    } });
+  } catch (error) { return res.status(500).json({ error: error.message || "Could not load leaderboards." }); }
+});
+
 app.get("/api/members/:userId", async (req, res) => {
   try {
     const memberId = String(req.params.userId || "").trim();
@@ -8618,10 +8682,34 @@ app.get("/api/members/:userId", async (req, res) => {
     const profileComments = (readMemberProfileComments()[memberId] || []).slice(-100).map((comment) => ({ id: String(comment.id || ""), userId: String(comment.userId || ""), authorName: cleanText(comment.authorName || "Member", 80), avatarUrl: cleanText(comment.avatarUrl || "", 2000), body: cleanText(comment.body || "", 600), createdAt: comment.createdAt || null })).filter((comment) => comment.id && comment.body);
     const viewerMembership = viewer ? getEffectiveMembership(viewer) : null;
     const viewerId = String(viewer?.id || "");
+    const profileReactions = readMemberProfileReactions()[memberId] || {};
+    const reactionValues = Object.values(profileReactions);
+    const profileLikes = reactionValues.filter((value) => value === "like").length;
+    const profileDislikes = reactionValues.filter((value) => value === "dislike").length;
     const viewerFollowing = Boolean(viewerId && communityState.follows?.[memberId]?.[viewerId]);
     const hideAds = Boolean(viewerMembership?.premiumActive) && String(viewerMembership?.plan || "").toLowerCase() === "pro";
-    return res.json({ ok: true, member, followerCount: followerIds.length, followingCount: followingIds.length, canFollow: Boolean(viewerId && viewerId !== memberId), viewerFollowing, canViewMemberId: Boolean(viewer && isAdminUser(viewer)), hideAds, aiAssets, codePosts, comments: profileComments, stats: { aiTokensTipped, codeVotes, codeReports } });
+    return res.json({ ok: true, member, followerCount: followerIds.length, followingCount: followingIds.length, canFollow: Boolean(viewerId && viewerId !== memberId), viewerFollowing, canReact: Boolean(viewerId && viewerId !== memberId), viewerProfileReaction: viewerId ? String(profileReactions[viewerId] || "") : "", profileLikes, profileDislikes, canViewMemberId: Boolean(viewer && isAdminUser(viewer)), hideAds, aiAssets, codePosts, comments: profileComments, stats: { aiTokensTipped, codeVotes, codeReports } });
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member profile." }); }
+});
+
+app.post("/api/members/:userId/reaction", async (req, res) => {
+  try {
+    const memberId = String(req.params.userId || "").trim();
+    const user = await requireAuthenticatedUser(req);
+    if (!await getAuthUserById(memberId)) return res.status(404).json({ error: "This member is unavailable." });
+    if (String(user.id) === memberId) return res.status(400).json({ error: "You cannot react to your own profile." });
+    const reaction = String(req.body?.reaction || "").toLowerCase();
+    if (!["like", "dislike"].includes(reaction)) return res.status(400).json({ error: "Choose a profile reaction." });
+    const reactions = readMemberProfileReactions();
+    const profileReactions = reactions[memberId] && typeof reactions[memberId] === "object" ? reactions[memberId] : {};
+    if (profileReactions[user.id] === reaction) delete profileReactions[user.id];
+    else profileReactions[user.id] = reaction;
+    reactions[memberId] = profileReactions;
+    writeMemberProfileReactions(reactions);
+    const values = Object.values(profileReactions);
+    if (profileReactions[user.id] === "like") addCommunityNotification({ recipientId: memberId, actor: user, category: "like", title: `${communityActorName(user)} liked your profile.`, href: `./members/${encodeURIComponent(memberId)}` });
+    return res.json({ ok: true, reaction: String(profileReactions[user.id] || ""), likes: values.filter((value) => value === "like").length, dislikes: values.filter((value) => value === "dislike").length });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not update this profile reaction." }); }
 });
 
 app.post("/api/members/:userId/comments", async (req, res) => {

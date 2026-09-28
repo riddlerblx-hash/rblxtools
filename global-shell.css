@@ -673,7 +673,8 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
    header so it is visible without interrupting the page workspace. */
 .rblx-shell-renewal-notice {
   position: fixed;
-  z-index: 72;
+  /* Above page work, but below the fixed header and every header menu. */
+  z-index: 25;
   top: var(--shell-header-height);
   left: var(--shell-left-width);
   right: var(--shell-right-width);
@@ -2011,7 +2012,13 @@ body.rblx-shell-right-collapsed .rblx-shell-chat-admin-rail {
   left: -20px;
 }
 
-body.ai-assets-tip-open .rblx-shell-renewal-notice { visibility: hidden; }
+/* A modal backdrop must be a complete visual layer. The renewal cue remains
+   available once the modal closes instead of bleeding through the blur. */
+body.ai-assets-tip-open .rblx-shell-renewal-notice,
+body:has(.rblx-shell-checkout-overlay.is-open) .rblx-shell-renewal-notice,
+body:has(.rblx-shell-retention-overlay.is-open) .rblx-shell-renewal-notice,
+body:has(.rblx-shell-reward-overlay.is-open) .rblx-shell-renewal-notice,
+body:has(.rblx-daily-streak-overlay:not([hidden])) .rblx-shell-renewal-notice { visibility: hidden; }
 
 .rblx-shell-chat-foot {
   display: flex;
