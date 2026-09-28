@@ -10977,12 +10977,8 @@ app.post("/auth/billing/subscription", async (req, res) => {
     if (!subscription) return res.status(400).json({ error: "There is no active Stripe subscription to update." });
     if (action !== "cancel" && action !== "resume") return res.status(400).json({ error: "Choose a valid subscription action." });
     const updated = await stripeClient.subscriptions.update(subscription.id, { cancel_at_period_end: action === "cancel" });
-    if (action === "cancel" && user.stripe_customer_id) {
-      const customer = await stripeClient.customers.retrieve(user.stripe_customer_id);
-      await stripeClient.customers.update(user.stripe_customer_id, {
-        metadata: { ...(customer?.metadata || {}), rblxtools_retention_cancelled_once: new Date().toISOString() },
-      });
-    }
+    // Scheduling a cancellation must never consume the retention offer. The
+    // offer becomes used only after its Stripe discount is successfully applied.
     await syncStripeSubscriptionObject(updated);
     return res.json({ ok: true, cancelAtPeriodEnd: Boolean(updated.cancel_at_period_end), currentPeriodEndAt: getIsoFromUnixSeconds(updated.current_period_end) });
   } catch (error) {
@@ -10999,7 +10995,9 @@ async function getRetentionOfferForUser(user) {
     getPrimaryStripeSubscriptionForCustomer(customerId, { includeCanceled: false }),
   ]);
   const metadata = customer?.metadata || {};
-  const alreadyUsed = Boolean(metadata.rblxtools_retention_cancelled_once || metadata.rblxtools_retention_offer_redeemed);
+  // Older releases wrote `rblxtools_retention_cancelled_once` merely when the
+  // member opened/continued the cancellation flow. Ignore that legacy marker.
+  const alreadyUsed = Boolean(metadata.rblxtools_retention_offer_redeemed);
   if (!subscription || !isPremiumStatus(subscription.status) || alreadyUsed) {
     return { eligible: false, reason: alreadyUsed ? "This one-time retention offer has already been used." : "This subscription is not eligible for a retention offer." };
   }
