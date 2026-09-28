@@ -8641,6 +8641,7 @@ app.get("/api/community-members/:userId", async (req, res) => {
 
 app.get("/api/leaderboards", async (_req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, private, max-age=0");
     // Only public-facing columns are read here. A leaderboard must never expose
     // email addresses, plan data, billing details, or any account identifiers.
     // Member-account schemas have evolved between deployments. Fetch server-side
@@ -10711,7 +10712,7 @@ app.post("/store/confirm-discord-bot-use-checkout", async (req, res) => {
 const DISCORD_BOT_LICENSE_PLANS = {
   weekly: { days: 7, amount: 250, label: "Weekly Discord Bot license" },
   monthly: { days: 30, amount: 999, label: "Monthly Discord Bot license" },
-  annual: { days: 365, amount: 10000, label: "Annual Discord Bot license" },
+  annual: { days: 365, amount: 12000, label: "Annual Discord Bot license" },
 };
 
 app.post("/store/create-discord-bot-license-checkout", async (req, res) => {
