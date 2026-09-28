@@ -672,13 +672,18 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
 /* A member-specific, dismissible renewal cue sits directly under the shared
    header so it is visible without interrupting the page workspace. */
 .rblx-shell-renewal-notice {
+  position: fixed;
+  z-index: 72;
+  top: var(--shell-header-height);
+  left: var(--shell-left-width);
+  right: var(--shell-right-width);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   min-height: 46px;
-  width: calc(100% + 36px);
-  margin: -18px -18px 18px;
+  width: auto;
+  margin: 0;
   padding: 10px 13px 10px 15px;
   border: 1px solid rgba(255, 115, 128, .58);
   border-radius: 8px;
@@ -690,6 +695,7 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   line-height: 1.35;
 }
 .rblx-shell-renewal-notice[hidden] { display: none !important; }
+body:has(.rblx-shell-renewal-notice:not([hidden])) .rblx-shell-center { padding-top: 82px; }
 .rblx-shell-renewal-notice > div { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; }
 .rblx-shell-renewal-notice a,
 .rblx-shell-renewal-notice button {
@@ -709,7 +715,7 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
 .rblx-shell-renewal-notice a:hover,
 .rblx-shell-renewal-notice button:hover { background: rgba(255, 255, 255, .22); }
 @media (max-width: 720px) {
-  .rblx-shell-renewal-notice { width: 100%; align-items: flex-start; flex-direction: column; margin: 0 0 14px; border-radius: 7px; }
+  .rblx-shell-renewal-notice { left: 0; right: 0; width: auto; align-items: flex-start; flex-direction: column; margin: 0; border-radius: 0 0 7px 7px; }
   .rblx-shell-renewal-notice > div { width: 100%; justify-content: flex-end; }
 }
 
@@ -1991,6 +1997,18 @@ body.rblx-pro-ad-free [data-rblx-vertical-ad] {
   width: 18px;
   height: 18px;
   fill: currentColor;
+}
+
+.rblx-shell-chat-admin-rail {
+  position: absolute;
+  z-index: 9;
+  top: 50%;
+  left: -72px;
+  transform: translateY(-50%);
+}
+
+body.rblx-shell-right-collapsed .rblx-shell-chat-admin-rail {
+  left: -68px;
 }
 
 .rblx-shell-chat-foot {

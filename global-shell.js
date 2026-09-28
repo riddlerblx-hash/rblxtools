@@ -530,8 +530,9 @@
     var price = document.getElementById("rblxShellRetentionPrice");
     var accept = document.getElementById("rblxShellRetentionAccept");
     var decline = document.getElementById("rblxShellRetentionDecline");
+    var notInterested = document.getElementById("rblxShellRetentionNotInterested");
     var modal = document.querySelector(".rblx-shell-retention-modal");
-    if (!overlay || !title || !copy || !price || !accept || !decline) return false;
+    if (!overlay || !title || !copy || !price || !accept || !decline || !notInterested) return false;
     overlay.dataset.source = String(source || "account");
     var declineLabel = "Cancel plan";
     overlay.classList.add("is-open");
@@ -542,6 +543,7 @@
     if (modal) modal.classList.remove("is-eligible");
     accept.hidden = true;
     decline.hidden = true;
+    notInterested.hidden = true;
     delete decline.dataset.retentionDone;
     decline.textContent = declineLabel;
     try {
@@ -555,6 +557,7 @@
         copy.textContent = details && details.reason || "No retention offer is available for this membership.";
         accept.hidden = true;
         decline.hidden = Boolean(details && details.canCancel === false);
+        notInterested.hidden = true;
         decline.textContent = declineLabel;
         return true;
       }
@@ -569,6 +572,8 @@
       accept.disabled = false;
       accept.textContent = "Renew subscription";
       decline.hidden = !details.canCancel;
+      notInterested.hidden = false;
+      notInterested.textContent = "Still not interested";
       decline.textContent = declineLabel;
       return true;
     } catch (error) {
@@ -576,6 +581,7 @@
       copy.textContent = error.message || "We could not check for a membership offer.";
       accept.hidden = true;
       decline.textContent = declineLabel;
+      notInterested.hidden = true;
       return true;
     }
   }
@@ -1980,6 +1986,7 @@
             '<div class="rblx-shell-right-inner">' +
               '<div class="rblx-shell-panel-head">' +
                 '<h2 class="rblx-shell-panel-title">Community Chat</h2>' +
+                '<button class="rblx-shell-chat-admin-button rblx-shell-chat-admin-rail" type="button" id="rblxShellAdminButton" aria-label="Open admin panel" hidden>' + getNavIcon("shield") + '</button>' +
                 '<button class="rblx-shell-toggle" type="button" id="rblxShellRightToggle" aria-label="Toggle chat">' + getChatToggleIcon() + '</button>' +
               "</div>" +
               '<div class="rblx-shell-chat-card">' +
@@ -1997,7 +2004,6 @@
                 '<form class="rblx-shell-chat-compose" id="rblxShellChatForm">' +
                   '<input id="rblxShellChatInput" type="text" maxlength="160" placeholder="Enter a message..." />' +
                   '<div class="rblx-shell-chat-compose-actions">' +
-                    '<button class="rblx-shell-chat-admin-button" type="button" id="rblxShellAdminButton" aria-label="Open admin panel" hidden>' + getNavIcon("shield") + '</button>' +
                     '<button class="rblx-shell-btn is-primary" type="submit" id="rblxShellChatSendButton">Send</button>' +
                   "</div>" +
                 "</form>" +
@@ -2055,7 +2061,7 @@
             '<h3 id="rblxShellRetentionTitle">Before you cancel...</h3>' +
             '<p id="rblxShellRetentionCopy">Checking whether a one-time membership offer is available for you.</p>' +
             '<div class="rblx-shell-retention-price" id="rblxShellRetentionPrice"></div>' +
-            '<div class="rblx-shell-retention-actions"><button class="rblx-shell-btn is-primary" id="rblxShellRetentionAccept" type="button" hidden>Renew subscription</button><button class="rblx-shell-btn" id="rblxShellRetentionDecline" type="button">Continue to cancellation</button></div>' +
+            '<div class="rblx-shell-retention-actions"><button class="rblx-shell-btn is-primary" id="rblxShellRetentionAccept" type="button" hidden>Renew subscription</button><button class="rblx-shell-btn" id="rblxShellRetentionNotInterested" type="button" hidden>Still not interested</button><button class="rblx-shell-btn" id="rblxShellRetentionDecline" type="button">Continue to cancellation</button></div>' +
           '</section>' +
         '</div>' +
         '<div class="rblx-shell-reward-overlay" id="rblxShellRewardOverlay" aria-hidden="true">' +
@@ -6061,6 +6067,11 @@
           var copy = document.getElementById("rblxShellRetentionCopy");
           if (copy) copy.textContent = error.message || "We could not cancel this plan. Please try again.";
         });
+      }
+      var notInterested = event.target && event.target.closest ? event.target.closest("#rblxShellRetentionNotInterested") : null;
+      if (notInterested) {
+        dismissRenewalNotice();
+        closeRetentionOffer();
       }
     });
     // Header menus are lightweight overlays, not persistent panels. Keep only
