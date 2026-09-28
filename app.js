@@ -4820,11 +4820,14 @@ async function getPrimaryStripeSubscriptionForCustomer(customerId, options = {})
     limit: 25,
   });
   const items = Array.isArray(subscriptions?.data) ? subscriptions.data.filter(Boolean).filter((subscription) => !isDiscordBotUnlimitedSubscription(subscription)) : [];
+  const permittedStatuses = options.retentionEligible
+    ? ["active", "trialing", "past_due"]
+    : null;
   const filtered = includeCanceled
     ? items
     : items.filter((subscription) => {
         const status = String(subscription?.status || "").toLowerCase();
-        return isPremiumStatus(status);
+        return permittedStatuses ? permittedStatuses.includes(status) : isPremiumStatus(status);
       });
   if (!filtered.length) {
     return null;
@@ -10992,13 +10995,21 @@ async function getRetentionOfferForUser(user) {
   if (!customerId) return { eligible: false, reason: "No Stripe membership is connected to this account." };
   const [customer, subscription] = await Promise.all([
     stripeClient.customers.retrieve(customerId),
-    getPrimaryStripeSubscriptionForCustomer(customerId, { includeCanceled: false }),
+    getPrimaryStripeSubscriptionForCustomer(customerId, { includeCanceled: false, retentionEligible: true }),
   ]);
   const metadata = customer?.metadata || {};
   // Older releases wrote `rblxtools_retention_cancelled_once` merely when the
-  // member opened/continued the cancellation flow. Ignore that legacy marker.
+  // member opened/continued the cancellation flow. Clear and ignore that
+  // legacy marker; only an accepted Stripe discount can redeem this offer.
+  if (metadata.rblxtools_retention_cancelled_once) {
+    await stripeClient.customers.update(customerId, {
+      metadata: { ...metadata, rblxtools_retention_cancelled_once: "" },
+    });
+    metadata.rblxtools_retention_cancelled_once = "";
+  }
   const alreadyUsed = Boolean(metadata.rblxtools_retention_offer_redeemed);
-  if (!subscription || !isPremiumStatus(subscription.status) || alreadyUsed) {
+  const eligibleSubscription = subscription && ["active", "trialing", "past_due"].includes(String(subscription.status || "").toLowerCase());
+  if (!eligibleSubscription || alreadyUsed) {
     return { eligible: false, reason: alreadyUsed ? "This one-time retention offer has already been used." : "This subscription is not eligible for a retention offer." };
   }
   const price = subscription?.items?.data?.[0]?.price || {};
