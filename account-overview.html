@@ -230,6 +230,8 @@
       background: transparent;
     }
 
+    #rbtools-account-overview.acct-loading { visibility:hidden; }
+
     #rbtools-account-overview .hidden {
       display: none !important;
     }
@@ -1493,7 +1495,7 @@
 
   <main>
     <section class="overview-frame">
-      <div id="rbtools-account-overview">
+      <div id="rbtools-account-overview" class="acct-loading">
         <div class="acct-shell">
           <div id="acctGate" class="acct-card">
             <div class="acct-inner">
@@ -3134,6 +3136,7 @@
             var loadedUser = result.user || null;
             writeAccountSnapshot(result);
             renderUser(loadedUser);
+            document.getElementById("rbtools-account-overview").classList.remove("acct-loading");
             if (result.botDashboard) renderBotDashboard({ dashboard: result.botDashboard, inviteUrl: result.botInviteUrl });
             loadAccountTabPreference();
             loadBotDashboard();
@@ -3156,11 +3159,14 @@
             saveToken("");
             clearAccountSnapshot();
             renderUser(null);
+            document.getElementById("rbtools-account-overview").classList.remove("acct-loading");
             setGateVisible(true);
             setStatus(els.acctGateStatus, error.message || "You need an account to access account overview.", "error");
           } else if (state.user) {
+            document.getElementById("rbtools-account-overview").classList.remove("acct-loading");
             setStatus(els.acctMembershipStatus, "Showing saved account details while the latest refresh is unavailable.", "");
           } else {
+            document.getElementById("rbtools-account-overview").classList.remove("acct-loading");
             setGateVisible(true);
             setStatus(els.acctGateStatus, error.message || "Could not load account overview.", "error");
           }
@@ -3816,13 +3822,9 @@
       window.setInterval(loadPromotionDetails, 30000);
       loadProfile();
       syncBioCount();
-      var cachedAccount = readAccountSnapshot();
-      if (cachedAccount) {
-        renderUser(cachedAccount.user);
-        if (cachedAccount.botDashboard) renderBotDashboard({ dashboard: cachedAccount.botDashboard, inviteUrl: cachedAccount.botInviteUrl });
-      } else {
-        renderUser(null);
-      }
+      // Do not paint an old cached account first: it briefly showed obsolete
+      // tabs and a false Bot Dashboard lock before the authoritative session
+      // response arrived.
 
       if (els.acctBillingPaymentButton) els.acctBillingPaymentButton.addEventListener("click", openBillingPaymentEditor);
       if (els.acctBillingRemovePaymentButton) els.acctBillingRemovePaymentButton.addEventListener("click", removeBillingPaymentMethod);

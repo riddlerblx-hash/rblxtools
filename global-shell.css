@@ -2002,14 +2002,16 @@ body.rblx-pro-ad-free [data-rblx-vertical-ad] {
 .rblx-shell-chat-admin-rail {
   position: absolute;
   z-index: 9;
-  top: 50%;
-  left: -72px;
+  top: calc(50% + 68px);
+  left: -20px;
   transform: translateY(-50%);
 }
 
 body.rblx-shell-right-collapsed .rblx-shell-chat-admin-rail {
-  left: -68px;
+  left: -20px;
 }
+
+body.ai-assets-tip-open .rblx-shell-renewal-notice { visibility: hidden; }
 
 .rblx-shell-chat-foot {
   display: flex;

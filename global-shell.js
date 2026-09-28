@@ -538,7 +538,7 @@
     overlay.classList.add("is-open");
     overlay.setAttribute("aria-hidden", "false");
     title.textContent = "Before you cancel...";
-    copy.textContent = "Checking whether a one-time membership offer is available for you.";
+    copy.textContent = "";
     price.textContent = "";
     if (modal) modal.classList.remove("is-eligible");
     accept.hidden = true;
@@ -1986,7 +1986,6 @@
             '<div class="rblx-shell-right-inner">' +
               '<div class="rblx-shell-panel-head">' +
                 '<h2 class="rblx-shell-panel-title">Community Chat</h2>' +
-                '<button class="rblx-shell-chat-admin-button rblx-shell-chat-admin-rail" type="button" id="rblxShellAdminButton" aria-label="Open admin panel" hidden>' + getNavIcon("shield") + '</button>' +
                 '<button class="rblx-shell-toggle" type="button" id="rblxShellRightToggle" aria-label="Toggle chat">' + getChatToggleIcon() + '</button>' +
               "</div>" +
               '<div class="rblx-shell-chat-card">' +
@@ -2011,6 +2010,7 @@
                   '<a class="rblx-shell-chat-rules" href="#" id="rblxShellRulesLink">Chat Rules</a>' +
                 "</div>" +
               "</div>" +
+              '<button class="rblx-shell-chat-admin-button rblx-shell-chat-admin-rail" type="button" id="rblxShellAdminButton" aria-label="Open admin panel" hidden>' + getNavIcon("shield") + '</button>' +
             "</div>" +
           "</aside>" +
         "</div>" +
@@ -2059,7 +2059,7 @@
           '<section class="rblx-shell-retention-modal" role="dialog" aria-modal="true" aria-labelledby="rblxShellRetentionTitle">' +
             '<button class="rblx-shell-retention-close" type="button" data-rblx-retention-close aria-label="Close">×</button>' +
             '<h3 id="rblxShellRetentionTitle">Before you cancel...</h3>' +
-            '<p id="rblxShellRetentionCopy">Checking whether a one-time membership offer is available for you.</p>' +
+            '<p id="rblxShellRetentionCopy"></p>' +
             '<div class="rblx-shell-retention-price" id="rblxShellRetentionPrice"></div>' +
             '<div class="rblx-shell-retention-actions"><button class="rblx-shell-btn is-primary" id="rblxShellRetentionAccept" type="button" hidden>Renew subscription</button><button class="rblx-shell-btn" id="rblxShellRetentionNotInterested" type="button" hidden>Still not interested</button><button class="rblx-shell-btn" id="rblxShellRetentionDecline" type="button">Continue to cancellation</button></div>' +
           '</section>' +

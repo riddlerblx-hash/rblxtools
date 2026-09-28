@@ -8714,9 +8714,11 @@ app.get("/api/ugc/community/:taskId", async (req, res) => {
   const followers = state.follows[String(item.creatorId)] && typeof state.follows[String(item.creatorId)] === "object" ? state.follows[String(item.creatorId)] : {};
   const comments = post.comments.map((comment) => ({ ...comment, likes: Object.values(comment.reactions).filter((value) => value === "like").length, dislikes: Object.values(comment.reactions).filter((value) => value === "dislike").length, viewerReaction: viewerId ? String(comment.reactions[viewerId] || "") : "" }));
   const communityItem = buildAIUGCCommunityItem(item, post, viewer);
+  const communityProfiles = readCommunityProfiles();
   const tipLeaderboard = Object.values(post.tips.reduce((leaders, tip) => {
     const tipperId = String(tip?.userId || tip?.senderName || "anonymous");
-    const current = leaders[tipperId] || { userId: tipperId, name: cleanText(tip?.senderName || "Member", 80), amount: 0 };
+    const profile = communityProfiles[tipperId] || {};
+    const current = leaders[tipperId] || { userId: tipperId, name: cleanText(tip?.senderName || profile.displayName || profile.username || "Member", 80), avatarUrl: cleanText(profile.avatarUrl || "", 2000), amount: 0 };
     current.amount += Math.max(0, Number(tip?.amount) || 0);
     leaders[tipperId] = current;
     return leaders;
