@@ -503,6 +503,14 @@
     window.location.assign("./checkout?" + params.toString());
   }
 
+  function dismissRenewalNotice() {
+    var notice = document.getElementById("rblxShellRenewalNotice");
+    if (!notice) return;
+    var noticeKey = String(notice.dataset.dismissKey || "");
+    try { if (noticeKey) localStorage.setItem(noticeKey, "1"); } catch (_error) {}
+    notice.hidden = true;
+  }
+
   function closeRetentionOffer() {
     var overlay = document.getElementById("rblxShellRetentionOverlay");
     if (!overlay) return;
@@ -523,7 +531,6 @@
     var accept = document.getElementById("rblxShellRetentionAccept");
     var decline = document.getElementById("rblxShellRetentionDecline");
     var modal = document.querySelector(".rblx-shell-retention-modal");
-    var footnote = document.getElementById("rblxShellRetentionFootnote");
     if (!overlay || !title || !copy || !price || !accept || !decline) return false;
     overlay.dataset.source = String(source || "account");
     var declineLabel = "Cancel plan";
@@ -533,7 +540,6 @@
     copy.textContent = "Checking whether a one-time membership offer is available for you.";
     price.textContent = "";
     if (modal) modal.classList.remove("is-eligible");
-    if (footnote) footnote.textContent = "We will keep your current membership active while we check this one-time option.";
     accept.hidden = true;
     decline.hidden = true;
     delete decline.dataset.retentionDone;
@@ -547,7 +553,6 @@
       if (!details || !details.eligible) {
         title.textContent = "Cancellation confirmation";
         copy.textContent = details && details.reason || "No retention offer is available for this membership.";
-        if (footnote) footnote.textContent = "This private offer can only be used once after a paid Stripe renewal.";
         accept.hidden = true;
         decline.hidden = Boolean(details && details.canCancel === false);
         decline.textContent = declineLabel;
@@ -560,17 +565,15 @@
       title.textContent = "Keep your " + (details.plan || "membership") + " plan";
       copy.textContent = "One month at " + discountedPrice + ", then " + normalPrice + "/month.";
       price.innerHTML = '<strong>' + discountedPrice + '</strong><span>this month · then ' + normalPrice + '/month</span>';
-      if (footnote) footnote.textContent = "One private offer per member. Your plan stays active and keeps all current benefits.";
       accept.hidden = false;
       accept.disabled = false;
-      accept.textContent = "Renew for 50% off for one month";
+      accept.textContent = "Renew subscription";
       decline.hidden = !details.canCancel;
       decline.textContent = declineLabel;
       return true;
     } catch (error) {
       title.textContent = "Cancellation confirmation";
       copy.textContent = error.message || "We could not check for a membership offer.";
-      if (footnote) footnote.textContent = "You can cancel this plan directly below.";
       accept.hidden = true;
       decline.textContent = declineLabel;
       return true;
@@ -1970,7 +1973,7 @@
             "</div>" +
           "</aside>" +
           '<div class="rblx-shell-center" role="main">' +
-            '<section class="rblx-shell-renewal-notice" id="rblxShellRenewalNotice" hidden role="status"><span id="rblxShellRenewalNoticeMessage"></span><div><button type="button" data-shell-renew-membership>Renew membership</button><button type="button" data-shell-renewal-dismiss>I’m not renewing</button></div></section>' +
+            '<section class="rblx-shell-renewal-notice" id="rblxShellRenewalNotice" hidden role="status"><span id="rblxShellRenewalNoticeMessage"></span><div><button type="button" data-shell-renew-membership>Renew membership</button><button type="button" data-shell-renewal-decline>I’m not renewing</button><button type="button" data-shell-renewal-dismiss>Dismiss</button></div></section>' +
             '<div class="rblx-shell-page" id="rblxShellPage"></div>' +
           "</div>" +
           '<aside class="rblx-shell-right">' +
@@ -2052,8 +2055,7 @@
             '<h3 id="rblxShellRetentionTitle">Before you cancel...</h3>' +
             '<p id="rblxShellRetentionCopy">Checking whether a one-time membership offer is available for you.</p>' +
             '<div class="rblx-shell-retention-price" id="rblxShellRetentionPrice"></div>' +
-            '<div class="rblx-shell-retention-actions"><button class="rblx-shell-btn is-primary" id="rblxShellRetentionAccept" type="button" hidden>Keep my membership for 50% off</button><button class="rblx-shell-btn" id="rblxShellRetentionDecline" type="button">Continue to cancellation</button></div>' +
-            '<small id="rblxShellRetentionFootnote">Cancel any time from Payments & Billing. The discount is applied securely through Stripe.</small>' +
+            '<div class="rblx-shell-retention-actions"><button class="rblx-shell-btn is-primary" id="rblxShellRetentionAccept" type="button" hidden>Renew subscription</button><button class="rblx-shell-btn" id="rblxShellRetentionDecline" type="button">Continue to cancellation</button></div>' +
           '</section>' +
         '</div>' +
         '<div class="rblx-shell-reward-overlay" id="rblxShellRewardOverlay" aria-hidden="true">' +
@@ -5999,6 +6001,11 @@
     document.addEventListener("click", function (event) {
       var dismiss = event.target && event.target.closest ? event.target.closest("[data-shell-renewal-dismiss]") : null;
       if (!dismiss) return;
+      dismissRenewalNotice();
+    });
+    document.addEventListener("click", function (event) {
+      var declineRenewal = event.target && event.target.closest ? event.target.closest("[data-shell-renewal-decline]") : null;
+      if (!declineRenewal) return;
       openRetentionOffer("renewal");
     });
     document.addEventListener("click", function (event) {
@@ -6027,7 +6034,7 @@
           document.dispatchEvent(new CustomEvent("rblxtools-retention-accepted"));
         }).catch(function (error) {
           accept.disabled = false;
-          accept.textContent = "Renew for 50% off for one month";
+          accept.textContent = "Renew subscription";
           var copy = document.getElementById("rblxShellRetentionCopy");
           if (copy) copy.textContent = error.message || "We could not apply that offer. You can still manage cancellation from Payments & Billing.";
         });
