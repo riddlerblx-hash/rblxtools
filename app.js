@@ -2782,7 +2782,7 @@ function getPublicAITokenPackages() {
   return AI_TOKEN_PACKAGES.map((item) => ({
     key: item.key,
     title: item.title || "",
-    description: (item.description || "AI generation credits") + (Number(item.bonusTokens) ? ` · +${Number(item.bonusTokens)} bonus tokens` : ""),
+    description: item.description || "AI generation credits",
     tokens: item.tokens,
     bonusTokens: Math.max(0, Number(item.bonusTokens) || 0),
     priceCents: item.priceCents,
@@ -10695,7 +10695,8 @@ app.post("/store/create-discord-bot-license-checkout", async (req, res) => {
     assertStripePortalConfigured();
     if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
-    const planKey = String(req.body?.billingPeriod || "monthly").trim().toLowerCase();
+    const requestedPlan = String(req.body?.billingPeriod || "monthly").trim().toLowerCase();
+    const planKey = ({ week: "weekly", month: "monthly", year: "annual" })[requestedPlan] || requestedPlan;
     const plan = DISCORD_BOT_LICENSE_PLANS[planKey];
     if (!plan) return res.status(400).json({ error: "Choose a weekly, monthly, or annual Discord Bot license." });
     const customerParams = await getStripeCheckoutCustomerParams(user);
