@@ -523,7 +523,6 @@
     var accept = document.getElementById("rblxShellRetentionAccept");
     var decline = document.getElementById("rblxShellRetentionDecline");
     var modal = document.querySelector(".rblx-shell-retention-modal");
-    var kicker = document.getElementById("rblxShellRetentionKicker");
     var footnote = document.getElementById("rblxShellRetentionFootnote");
     if (!overlay || !title || !copy || !price || !accept || !decline) return false;
     overlay.dataset.source = String(source || "account");
@@ -534,7 +533,6 @@
     copy.textContent = "Checking whether a one-time membership offer is available for you.";
     price.textContent = "";
     if (modal) modal.classList.remove("is-eligible");
-    if (kicker) kicker.textContent = "MEMBERSHIP CHECK";
     if (footnote) footnote.textContent = "We will keep your current membership active while we check this one-time option.";
     accept.hidden = true;
     decline.hidden = true;
@@ -549,7 +547,6 @@
       if (!details || !details.eligible) {
         title.textContent = "Cancellation confirmation";
         copy.textContent = details && details.reason || "No retention offer is available for this membership.";
-        if (kicker) kicker.textContent = "MEMBERSHIP STATUS";
         if (footnote) footnote.textContent = "This private offer can only be used once after a paid Stripe renewal.";
         accept.hidden = true;
         decline.hidden = Boolean(details && details.canCancel === false);
@@ -558,10 +555,11 @@
       }
       var discounted = Math.round((Number(details.amount) || 0) / 2);
       if (modal) modal.classList.add("is-eligible");
-      if (kicker) kicker.textContent = "EXCLUSIVE SAVE OFFER";
-      title.textContent = "Keep your " + (details.plan || "membership") + " plan for 50% off";
-      copy.textContent = "Stay subscribed and your next renewal will be half price. The billing cycle after that returns to your normal plan price.";
-      price.innerHTML = '<s>' + formatRetentionMoney(details.amount, details.currency) + '</s><strong>' + formatRetentionMoney(discounted, details.currency) + '</strong><span>next renewal</span>';
+      var normalPrice = formatRetentionMoney(details.amount, details.currency);
+      var discountedPrice = formatRetentionMoney(discounted, details.currency);
+      title.textContent = "Keep your " + (details.plan || "membership") + " plan";
+      copy.textContent = "One month at " + discountedPrice + ", then " + normalPrice + "/month.";
+      price.innerHTML = '<strong>' + discountedPrice + '</strong><span>this month · then ' + normalPrice + '/month</span>';
       if (footnote) footnote.textContent = "One private offer per member. Your plan stays active and keeps all current benefits.";
       accept.hidden = false;
       accept.disabled = false;
@@ -572,7 +570,6 @@
     } catch (error) {
       title.textContent = "Cancellation confirmation";
       copy.textContent = error.message || "We could not check for a membership offer.";
-      if (kicker) kicker.textContent = "MEMBERSHIP STATUS";
       if (footnote) footnote.textContent = "You can cancel this plan directly below.";
       accept.hidden = true;
       decline.textContent = declineLabel;
@@ -2052,7 +2049,6 @@
         '<div class="rblx-shell-retention-overlay" id="rblxShellRetentionOverlay" aria-hidden="true">' +
           '<section class="rblx-shell-retention-modal" role="dialog" aria-modal="true" aria-labelledby="rblxShellRetentionTitle">' +
             '<button class="rblx-shell-retention-close" type="button" data-rblx-retention-close aria-label="Close">×</button>' +
-            '<div class="rblx-shell-retention-hero"><div class="rblx-shell-retention-kicker" id="rblxShellRetentionKicker">ONE-TIME MEMBER OFFER</div><div class="rblx-shell-retention-saving" id="rblxShellRetentionSaving"><strong>50%</strong><span>OFF<br>NEXT RENEWAL</span></div></div>' +
             '<h3 id="rblxShellRetentionTitle">Before you cancel...</h3>' +
             '<p id="rblxShellRetentionCopy">Checking whether a one-time membership offer is available for you.</p>' +
             '<div class="rblx-shell-retention-price" id="rblxShellRetentionPrice"></div>' +
