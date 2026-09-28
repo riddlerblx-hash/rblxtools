@@ -51,6 +51,7 @@ const {
   grantComplimentaryUnlimited,
   grantComplimentaryUses,
   grantPurchasedUses,
+  grantDiscordBotLicense,
   isUnlimitedActive,
   setAccountOverviewPreference,
   setUnlimitedSubscription,
@@ -60,6 +61,7 @@ const {
   setDiscordServerUsageCounter,
   resetMemberDailyUse,
   unclaimServer,
+  verifyDiscordBotLicense,
 } = require("./discord-bot-entitlements");
 
 const app = express();
@@ -1728,6 +1730,10 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
           await grantPurchasedUses(session);
         }
 
+        if (session.mode === "payment" && session.payment_status === "paid" && session.metadata?.productType === "discord_bot_license") {
+          await grantDiscordBotLicense(session);
+        }
+
         if (session.mode === "subscription" && session.metadata && session.metadata.appUserId) {
           const customerId =
             typeof session.customer === "string"
@@ -2149,7 +2155,7 @@ function buildCheckoutReturnOptions(req, successUrl, cancelUrl) {
   };
 }
 
-async function getStripePromotionOptions(req, priceId) {
+async function getStripePromotionOptions(req, priceId, user) {
   const code = normalizeCouponCode(req.body?.promotionCode);
   if (!code) return {};
   const matches = await stripeClient.promotionCodes.list({ code, active: true, limit: 1, expand: ["data.coupon"] });
@@ -2166,6 +2172,12 @@ async function getStripePromotionOptions(req, priceId) {
   const coupon = typeof couponReference === "string"
     ? await stripeClient.coupons.retrieve(couponReference)
     : couponReference || {};
+  const restrictedUserId = String(coupon?.metadata?.appUserId || "").trim();
+  if (restrictedUserId && restrictedUserId !== String(user?.id || "")) {
+    const error = new Error("This private promotion is not available for this account.");
+    error.statusCode = 403;
+    throw error;
+  }
   const expiresAt = Number(promotionCode.expires_at || coupon.redeem_by || 0) * 1000;
   if (!promotionCode.active || (expiresAt && expiresAt <= Date.now())) {
     const error = new Error("This promotion code has expired.");
@@ -2328,7 +2340,7 @@ async function getStripeAffiliateDiscountOptions(req, user, priceId, baseAmountC
 }
 
 async function getStripeCheckoutDiscountOptions(req, user, priceId, baseAmountCents) {
-  if (normalizeCouponCode(req.body?.promotionCode)) return getStripePromotionOptions(req, priceId);
+  if (normalizeCouponCode(req.body?.promotionCode)) return getStripePromotionOptions(req, priceId, user);
   return getStripeAffiliateDiscountOptions(req, user, priceId, baseAmountCents);
 }
 
@@ -10672,6 +10684,65 @@ app.post("/store/confirm-discord-bot-use-checkout", async (req, res) => {
   }
 });
 
+const DISCORD_BOT_LICENSE_PLANS = {
+  weekly: { days: 7, amount: 250, label: "Weekly Discord Bot license" },
+  monthly: { days: 30, amount: 999, label: "Monthly Discord Bot license" },
+  annual: { days: 365, amount: 10000, label: "Annual Discord Bot license" },
+};
+
+app.post("/store/create-discord-bot-license-checkout", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const planKey = String(req.body?.billingPeriod || "monthly").trim().toLowerCase();
+    const plan = DISCORD_BOT_LICENSE_PLANS[planKey];
+    if (!plan) return res.status(400).json({ error: "Choose a weekly, monthly, or annual Discord Bot license." });
+    const customerParams = await getStripeCheckoutCustomerParams(user);
+    let annualDiscount = {};
+    if (planKey === "annual") {
+      const coupon = await stripeClient.coupons.create({ percent_off: 50, duration: "once", name: "Discord Bot annual launch discount", metadata: { type: "discord_bot_annual_launch" } });
+      annualDiscount = { discounts: [{ coupon: coupon.id }] };
+    }
+    const checkoutSession = await stripeClient.checkout.sessions.create({
+      mode: "payment",
+      ...customerParams,
+      line_items: [{ price_data: { currency: "usd", unit_amount: plan.amount, product_data: { name: plan.label, description: `${plan.days}-day RBLXTools Discord Bot license` } }, quantity: 1 }],
+      ...buildCheckoutReturnOptions(req, `${getSanitizedAppBaseUrl()}/purchase-success?session_id={CHECKOUT_SESSION_ID}`, getSafeDiscordBotStoreCancelUrl()),
+      ...annualDiscount,
+      client_reference_id: user.id,
+      metadata: { appUserId: user.id, productType: "discord_bot_license", discordBotLicensePlan: planKey, discordBotLicenseDays: String(plan.days) },
+    });
+    return res.json(buildCheckoutSessionResponse(checkoutSession, null));
+  } catch (error) {
+    console.error("POST /store/create-discord-bot-license-checkout failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not create the Discord Bot license checkout." });
+  }
+});
+
+app.post("/store/confirm-discord-bot-license-checkout", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const session = await stripeClient.checkout.sessions.retrieve(String(req.body?.sessionId || "").trim());
+    if (String(session?.metadata?.appUserId || "") !== String(user.id) || session?.metadata?.productType !== "discord_bot_license" || session?.payment_status !== "paid") return res.status(403).json({ error: "That Discord Bot license purchase is not available." });
+    const license = await grantDiscordBotLicense(session);
+    await recordStripeCheckoutPurchase(session);
+    return res.json({ ok: true, license: { code: license.code, plan: license.plan, expiresAt: license.expiresAt } });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not confirm the Discord Bot license." });
+  }
+});
+
+app.post("/discord-bot/licenses/verify", async (req, res) => {
+  try {
+    await requireDiscordToolsServiceIdentity(req);
+    return res.json(await verifyDiscordBotLicense(req.body?.license));
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ active: false, error: error.message || "Could not verify the license." });
+  }
+});
+
 async function createDiscordBotUnlimitedCheckout(req, res) {
   try {
     assertDiscordBotUnlimitedCheckoutConfigured();
@@ -11030,6 +11101,12 @@ app.get("/auth/billing-details", async (req, res) => {
       if (typeof paymentIntent === "string") {
         paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntent, { expand: ["latest_charge"] }).catch(() => null);
       }
+      let charge = paymentIntent?.latest_charge || null;
+      if (typeof charge === "string") charge = await stripeClient.charges.retrieve(charge).catch(() => null);
+      if (!charge && paymentIntent?.id) {
+        const charges = await stripeClient.charges.list({ payment_intent: paymentIntent.id, limit: 1 }).catch(() => null);
+        charge = charges?.data?.[0] || null;
+      }
       return {
         id: session.id,
         title: getStripeCheckoutPurchaseTitle(session),
@@ -11038,7 +11115,7 @@ app.get("/auth/billing-details", async (req, res) => {
         discountAmount: Math.max(0, Number(session.total_details?.amount_discount || 0)),
         currency: String(session.currency || "usd").toUpperCase(),
         createdAt: getIsoFromUnixSeconds(session.created),
-        receiptUrl: paymentIntent?.latest_charge?.receipt_url || paymentIntent?.receipt_url || null,
+        receiptUrl: charge?.receipt_url || paymentIntent?.receipt_url || null,
       };
     }));
     const history = invoices.map((invoice) => ({
@@ -11201,25 +11278,25 @@ app.post("/auth/billing/retention-offer/accept", async (req, res) => {
       percent_off: 50,
       duration: "once",
       name: "RBLXTools membership retention offer",
+      redeem_by: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
       metadata: { appUserId: String(user.id), subscriptionId: String(offer.subscription?.id || ""), type: "retention_50_once" },
     });
     if (offer.requiresRejoinCheckout) {
       assertStripeCheckoutConfigured();
       const priceId = String(offer.priceId || "");
       if (!priceId) throw new Error("The previous membership price is unavailable for renewal.");
-      const checkoutCustomerId = await getOrCreateStripeCustomerForUser(user);
-      const checkoutSession = await stripeClient.checkout.sessions.create({
-        mode: "subscription",
-        customer: checkoutCustomerId,
-        line_items: [{ price: priceId, quantity: 1 }],
-        discounts: [{ coupon: coupon.id }],
-        success_url: getSafeCheckoutSuccessUrl(),
-        cancel_url: getSafeCheckoutCancelUrl(),
-        client_reference_id: user.id,
-        metadata: { appUserId: user.id, plan: getStripeSubscriptionPlan(offer.subscription), retentionOffer: "true" },
-        subscription_data: { metadata: { appUserId: user.id, plan: getStripeSubscriptionPlan(offer.subscription), retentionOffer: "true" } },
+      const promotionCode = await stripeClient.promotionCodes.create({
+        coupon: coupon.id,
+        code: `RBLXRET${randomBytes(6).toString("hex").toUpperCase()}`,
+        max_redemptions: 1,
+        metadata: { appUserId: String(user.id), type: "retention_50_once" },
       });
-      return res.json({ ok: true, percentOff: 50, checkoutUrl: checkoutSession.url, requiresRejoinCheckout: true });
+      const plan = getStripeSubscriptionPlan(offer.subscription) === "pro" ? "pro" : "plus";
+      const price = await stripeClient.prices.retrieve(priceId);
+      const interval = String(price?.recurring?.interval || "month").toLowerCase() === "year" ? "year" : "month";
+      // Open RBLXTools' embedded checkout, not a hosted Stripe page. The private
+      // promo is account-bound server-side and only works for this recipient.
+      return res.json({ ok: true, percentOff: 50, checkoutUrl: `/checkout?item=${plan}&billing=${interval}&promo=${encodeURIComponent(promotionCode.code)}`, requiresRejoinCheckout: true });
     }
     // Accepting the offer keeps the plan active even when the member had
     // already scheduled it to end. Stripe's one-time coupon affects only the

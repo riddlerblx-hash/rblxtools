@@ -12,7 +12,7 @@ const BOT_COMMANDS = ["clothing", "ugc", "media", "audio", "animations", "robux"
 let writeQueue = Promise.resolve();
 
 function emptyStore() {
-  return { unlimitedByAppUserId: {}, useCreditsByAppUserId: {}, processedUseCheckoutIds: {}, claimCodesByCode: {}, serversByGuildId: {}, dashboardDraftsByAppUserId: {}, accountOverviewPreferencesByAppUserId: {} };
+  return { unlimitedByAppUserId: {}, useCreditsByAppUserId: {}, processedUseCheckoutIds: {}, licensesByCode: {}, processedLicenseCheckoutIds: {}, claimCodesByCode: {}, serversByGuildId: {}, dashboardDraftsByAppUserId: {}, accountOverviewPreferencesByAppUserId: {} };
 }
 
 function normalizeStore(parsed) {
@@ -21,6 +21,8 @@ function normalizeStore(parsed) {
     unlimitedByAppUserId: source.unlimitedByAppUserId && typeof source.unlimitedByAppUserId === "object" ? source.unlimitedByAppUserId : {},
     useCreditsByAppUserId: source.useCreditsByAppUserId && typeof source.useCreditsByAppUserId === "object" ? source.useCreditsByAppUserId : {},
     processedUseCheckoutIds: source.processedUseCheckoutIds && typeof source.processedUseCheckoutIds === "object" ? source.processedUseCheckoutIds : {},
+    licensesByCode: source.licensesByCode && typeof source.licensesByCode === "object" ? source.licensesByCode : {},
+    processedLicenseCheckoutIds: source.processedLicenseCheckoutIds && typeof source.processedLicenseCheckoutIds === "object" ? source.processedLicenseCheckoutIds : {},
     claimCodesByCode: source.claimCodesByCode && typeof source.claimCodesByCode === "object" ? source.claimCodesByCode : {},
     serversByGuildId: source.serversByGuildId && typeof source.serversByGuildId === "object" ? source.serversByGuildId : {},
     dashboardDraftsByAppUserId: source.dashboardDraftsByAppUserId && typeof source.dashboardDraftsByAppUserId === "object" ? source.dashboardDraftsByAppUserId : {},
@@ -103,12 +105,45 @@ function buildDashboard(store, appUserId) {
   const totalUses = server ? serverTotalUses(store, server) : unassignedUses(store, userId);
   const draftSettings = dashboardDraft(store.dashboardDraftsByAppUserId[userId]);
   const usedUses = Math.max(0, Number(server?.usedUses || 0));
+  const licenses = Object.values(store.licensesByCode || {}).filter((license) => String(license?.appUserId || "") === userId).sort((a, b) => Date.parse(b?.expiresAt || 0) - Date.parse(a?.expiresAt || 0));
+  const activeLicense = licenses.find((license) => Date.parse(license?.expiresAt || 0) > Date.now()) || null;
   return {
-    access: totalUses > 0 || isUnlimitedActive(subscription), mode: isUnlimitedActive(subscription) ? "unlimited" : totalUses > 0 ? "uses" : "locked",
+    access: Boolean(activeLicense) || totalUses > 0 || isUnlimitedActive(subscription), mode: activeLicense ? "license" : isUnlimitedActive(subscription) ? "unlimited" : totalUses > 0 ? "uses" : "locked",
     totalUses, usedUses, remainingUses: Math.max(0, totalUses - usedUses), subscription,
+    license: activeLicense ? { code: activeLicense.code, plan: activeLicense.plan, expiresAt: activeLicense.expiresAt, issuedAt: activeLicense.issuedAt } : null,
     server: server ? { guildId: server.guildId, guildName: server.guildName || "Discord server", claimedAt: server.claimedAt || null, ...dashboardDraft(server), alertChannels: normalizeAlertChannels(server.alertChannels), activityByDate: trimActivity(server), auditLog: Array.isArray(server.auditLog) ? server.auditLog.slice(0, 30) : [], dailyUserUseCounts: server.dailyUserUseCounts || {} } : null,
     draftSettings,
   };
+}
+
+function makeLicenseCode(store) {
+  let code = "";
+  do { code = Array.from({ length: 4 }, () => String(Math.floor(1000 + Math.random() * 9000))).join("-"); } while (store.licensesByCode[code]);
+  return code;
+}
+
+async function grantDiscordBotLicense(session) {
+  const userId = String(session?.metadata?.appUserId || "").trim();
+  const sessionId = String(session?.id || "").trim();
+  const days = Number.parseInt(session?.metadata?.discordBotLicenseDays, 10);
+  const plan = String(session?.metadata?.discordBotLicensePlan || "").trim().toLowerCase();
+  if (!userId || !sessionId || !Number.isFinite(days) || days < 1 || !["weekly", "monthly", "annual"].includes(plan)) throw new Error("Discord bot license checkout metadata is invalid.");
+  return updateStore((store) => {
+    const priorCode = store.processedLicenseCheckoutIds[sessionId];
+    if (priorCode && store.licensesByCode[priorCode]) return store.licensesByCode[priorCode];
+    const now = new Date(); const expiresAt = new Date(now.getTime() + days * 86400000).toISOString(); const code = makeLicenseCode(store);
+    const license = { code, appUserId: userId, plan, issuedAt: now.toISOString(), expiresAt, stripeCheckoutSessionId: sessionId, lastVerifiedAt: null };
+    store.licensesByCode[code] = license; store.processedLicenseCheckoutIds[sessionId] = code;
+    return license;
+  });
+}
+
+async function verifyDiscordBotLicense(code) {
+  const normalized = String(code || "").trim().toUpperCase();
+  const store = await readStore(); const license = store.licensesByCode[normalized] || null;
+  if (!license) return { active: false, reason: "License not found." };
+  if (Date.parse(license.expiresAt || 0) <= Date.now()) return { active: false, reason: "License expired.", expiresAt: license.expiresAt };
+  return { active: true, plan: license.plan, expiresAt: license.expiresAt };
 }
 
 function makeClaimCode(store) { let code = ""; do { code = randomBytes(5).toString("hex").toUpperCase(); } while (store.claimCodesByCode[code]); return code; }
@@ -264,10 +299,10 @@ async function consumeDiscordServerUse({ guildId, discordUserId, discordRoleIds,
     const userBank = stacked && userLimit > 0 ? advanceStackedDailyBank(server, memberId, userLimit, dateKey) : null;
     if (userLimit > 0 && (stacked ? userBank.remaining < 1 : useCountFor(userPeriod) >= userLimit)) { const error = new Error("You are out of command uses for this server. Ask the server owner to reset or increase your limit, or wait " + timeUntilUtcMidnight() + " until the next reset at 12:00 AM UTC."); error.statusCode = 429; throw error; }
     if (roleLimit > 0 && useCountFor(rolePeriod) >= roleLimit) { const error = new Error("You are out of command uses for this server. Ask the server owner to reset or increase your limit, or wait " + timeUntilUtcMidnight() + " until the next reset at 12:00 AM UTC."); error.statusCode = 429; throw error; }
-    if (dashboard.mode !== "unlimited" && dashboard.remainingUses < 1) { const error = new Error("This server has used all of its RBLXTools Bot credits."); error.statusCode = 402; throw error; }
+    if (dashboard.mode !== "unlimited" && dashboard.mode !== "license" && dashboard.remainingUses < 1) { const error = new Error("This server has used all of its RBLXTools Bot credits."); error.statusCode = 402; throw error; }
     if (userBank) userBank.remaining -= 1; today[memberId] = alreadyUsed + 1; dailyCounts[dateKey] = today; server.dailyUserUseCounts = dailyCounts; const dayActivity = activity[dateKey] || { uses: 0, users: {}, commands: {} }; dayActivity.uses = Number(dayActivity.uses || 0) + 1; dayActivity.users[memberId] = Number(dayActivity.users[memberId] || 0) + 1; dayActivity.commands[command] = Number(dayActivity.commands[command] || 0) + 1; activity[dateKey] = dayActivity; if (dashboard.mode !== "unlimited") server.usedUses = Math.max(0, Number(server.usedUses || 0)) + 1; server.updatedAt = new Date().toISOString();
     const updated = buildDashboard(store, server.appUserId); const percentUsed = updated.mode === "unlimited" ? 0 : Math.floor(updated.usedUses / Math.max(1, updated.totalUses) * 100); const reachedAlert = Boolean(server.alertsEnabled) ? normalizeAlertThresholds(server.alertThresholds).filter((threshold) => percentUsed >= threshold).pop() || null : null; const sentAlerts = server.alertsSentByDate && typeof server.alertsSentByDate === "object" ? server.alertsSentByDate : {}; Object.keys(sentAlerts).forEach((key) => { if (key !== dateKey) delete sentAlerts[key]; }); const sentToday = sentAlerts[dateKey] && typeof sentAlerts[dateKey] === "object" ? sentAlerts[dateKey] : {}; const alertThreshold = reachedAlert && !sentToday[reachedAlert] ? reachedAlert : null; if (alertThreshold) sentToday[alertThreshold] = true; sentAlerts[dateKey] = sentToday; server.alertsSentByDate = sentAlerts; return { mode: updated.mode, totalUses: updated.totalUses, usedUses: updated.usedUses, remainingUses: updated.remainingUses, usageCounterChannelId: String(server.usageCounterChannelId || ""), dailyUserUses: today[memberId], dailyUserLimit: userLimit, alertThreshold, alertChannelId: alertThreshold ? String(server.alertChannelId || "") : "", percentUsed };
   });
 }
 
-module.exports = { claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getAccountOverviewPreference, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getDiscordServerUsageSummary, getPurchasedUses, getUnlimitedSubscription, getUsageCounterSnapshots, grantComplimentaryUnlimited, grantComplimentaryUses, grantPurchasedUses, isUnlimitedActive, setAccountOverviewPreference, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, setDiscordServerUsageCounter, resetMemberDailyUse, unclaimServer };
+module.exports = { claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getAccountOverviewPreference, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getDiscordServerUsageSummary, getPurchasedUses, getUnlimitedSubscription, getUsageCounterSnapshots, grantComplimentaryUnlimited, grantComplimentaryUses, grantPurchasedUses, grantDiscordBotLicense, isUnlimitedActive, setAccountOverviewPreference, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, setDiscordServerUsageCounter, resetMemberDailyUse, unclaimServer, verifyDiscordBotLicense };
