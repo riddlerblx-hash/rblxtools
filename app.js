@@ -11005,7 +11005,10 @@ async function getRetentionSubscriptionForCustomer(customerId) {
 }
 
 async function hasRedeemedRetentionOffer(customerId) {
-  const invoices = await stripeClient.invoices.list({ customer: customerId, limit: 100, expand: ["data.discounts.discount.coupon"] });
+  // Stripe does not support expanding `data.discounts.discount` here. The
+  // invoice already exposes its discount/coupon reference, which we resolve
+  // below only when it is an id.
+  const invoices = await stripeClient.invoices.list({ customer: customerId, limit: 100 });
   const paid = Array.isArray(invoices?.data) ? invoices.data.filter((invoice) => invoice?.paid || String(invoice?.status || "").toLowerCase() === "paid") : [];
   for (const invoice of paid) {
     const discounts = Array.isArray(invoice.discounts) ? invoice.discounts : invoice.discount ? [invoice.discount] : [];
