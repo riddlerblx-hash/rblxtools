@@ -1781,7 +1781,7 @@
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-          '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong></a>' +
+          '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong><span class="rblx-shell-token-bonus-popover" id="rblxShellTokenBonusPopover" hidden></span></a>' +
           '<a class="rblx-shell-header-token-balance" href="./rewards" title="View RBLX Points"><small>RBLX Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
           (shellState.isAdmin ? '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span aria-hidden="true">📅</span></button>' : '') +
@@ -4456,6 +4456,15 @@
     if (tokenBanner && tokenBalance) {
       tokenBanner.hidden = false;
       tokenBalance.textContent = state.loggedIn && shellState.currentUser.aiTokens != null ? String(shellState.currentUser.aiTokens) : "0";
+      if (state.loggedIn) {
+        fetch(API_BASE + "/auth/ai-token-bonus", { credentials: "include", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) {
+          var popover = document.getElementById("rblxShellTokenBonusPopover"), bonus = payload && payload.bonus || {}, amount = Math.max(0, Number(bonus.amount) || 0);
+          if (!popover) return;
+          if (!amount || !bonus.expiresAt) { popover.hidden = true; return; }
+          popover.textContent = amount.toLocaleString() + " bonus tokens · expire " + new Date(bonus.expiresAt).toLocaleDateString();
+          popover.hidden = false;
+        }).catch(function () {});
+      }
     }
     var pointsBalance = document.getElementById("rblxShellPointsBalance");
     if (pointsBalance) pointsBalance.textContent = state.loggedIn && shellState.currentUser.rewardPoints != null ? String(shellState.currentUser.rewardPoints) : "0";
@@ -6158,6 +6167,13 @@
       if (markAllTrigger) {
         event.preventDefault();
         markCommunityNotificationsRead("", true);
+        return;
+      }
+      var notificationTrigger = event.target && event.target.closest ? event.target.closest(".rblx-shell-notification-trigger") : null;
+      if (notificationTrigger && shellState.communityUnreadCount > 0) {
+        // Viewing the inbox is enough to acknowledge every visible alert.
+        // Persist immediately so the same alerts never return after refresh.
+        window.setTimeout(function () { markCommunityNotificationsRead("", true); }, 0);
         return;
       }
       var notificationLink = event.target && event.target.closest ? event.target.closest("[data-shell-notification-post]") : null;

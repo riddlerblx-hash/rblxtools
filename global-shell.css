@@ -1066,6 +1066,9 @@ body.rblx-pro-ad-free [data-rblx-vertical-ad] {
 .rblx-shell-header-token-balance small { color: #a6dfe9; font-size: 8px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 .rblx-shell-header-token-balance strong { color: #72fff5; font-size: 15px; font-weight: 900; line-height: 1; }
 .rblx-shell-header-token-balance:hover { border-color: rgba(96, 247, 237, 0.6); background: linear-gradient(135deg, rgba(20, 90, 105, 0.94), rgba(13, 42, 58, 0.98)); }
+.rblx-shell-header-token-balance { position:relative; }
+.rblx-shell-token-bonus-popover { position:absolute; z-index:10070; top:calc(100% + 8px); left:50%; width:max-content; max-width:230px; padding:8px 10px; border:1px solid rgba(92,174,255,.55); border-radius:9px; color:#dceeff; background:#102442; box-shadow:0 12px 28px rgba(0,0,0,.34); font-size:10px; font-weight:850; line-height:1.35; opacity:0; pointer-events:none; transform:translate(-50%,-4px); transition:opacity .15s ease,transform .15s ease; }
+.rblx-shell-header-token-balance:hover .rblx-shell-token-bonus-popover:not([hidden]) { opacity:1; transform:translate(-50%,0); }
 
 .rblx-shell-mini-banner strong {
   position: relative;

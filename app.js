@@ -2793,6 +2793,16 @@ function getPublicAITokenPackages() {
   }));
 }
 
+function getActiveAITokenPurchaseBonus(userId) {
+  const now = Date.now();
+  const sessions = readJsonFile(AI_TOKEN_PURCHASE_BONUSES_PATH, { sessions: {} }).sessions || {};
+  const active = Object.values(sessions).filter((entry) => String(entry?.userId || "") === String(userId || "") && Date.parse(entry?.expiresAt || "") > now);
+  return {
+    amount: active.reduce((sum, entry) => sum + Math.max(0, Number(entry?.remaining ?? entry?.amount) || 0), 0),
+    expiresAt: active.map((entry) => entry.expiresAt).sort()[0] || null,
+  };
+}
+
 async function resolveAITokenPackagePrice(packageDefinition) {
   const configuredPriceId = String(packageDefinition?.priceId || "").trim();
   if (configuredPriceId) {
@@ -7831,6 +7841,16 @@ app.get("/auth/me", async (req, res) => {
   }
 });
 
+app.get("/auth/ai-token-bonus", async (req, res) => {
+  try {
+    res.setHeader("Cache-Control", "no-store, private, max-age=0");
+    const user = await requireAuthenticatedUser(req);
+    return res.json({ ok: true, bonus: getActiveAITokenPurchaseBonus(user.id) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load token bonus details." });
+  }
+});
+
 app.get("/chat/sync", (req, res) => {
   const room = cleanText(req.query?.room || defaultChatRoom, 40) || defaultChatRoom;
   const history = recentMessages.get(room) || [];
@@ -8623,7 +8643,9 @@ app.get("/api/leaderboards", async (_req, res) => {
   try {
     // Only public-facing columns are read here. A leaderboard must never expose
     // email addresses, plan data, billing details, or any account identifiers.
-    const rows = await supabaseRequest(buildAuthTablePath("?select=id,display_name,username,ai_token_balance,reward_points,created_at&limit=500"));
+    // `display_name` is not part of every deployed member_accounts schema.
+    // Keep this endpoint compatible with the canonical username-based schema.
+    const rows = await supabaseRequest(buildAuthTablePath("?select=id,username,ai_token_balance,reward_points,created_at&limit=500"));
     const users = Array.isArray(rows) ? rows : [];
     const profileNames = readCommunityProfiles();
     const publicMember = (user) => {
@@ -8631,7 +8653,7 @@ app.get("/api/leaderboards", async (_req, res) => {
       const overview = rewardsEngine.getOverview(user.id);
       return {
         id: String(user.id),
-        name: cleanText(user.display_name || user.username || "Member", 80),
+        name: cleanText(user.username || "Member", 80),
         avatarUrl: cleanText(profile.avatarUrl || "", 2000),
         aiTokens: getAITokenBalance(user),
         points: Math.max(0, Number(user.reward_points) || 0),
@@ -10695,7 +10717,7 @@ app.post("/store/create-discord-bot-license-checkout", async (req, res) => {
     assertStripePortalConfigured();
     if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
-    const requestedPlan = String(req.body?.billingPeriod || "monthly").trim().toLowerCase();
+    const requestedPlan = String(req.body?.billingPeriod || req.body?.licensePlan || req.body?.plan || "monthly").trim().toLowerCase().replace(/[^a-z]/g, "");
     const planKey = ({ week: "weekly", month: "monthly", year: "annual" })[requestedPlan] || requestedPlan;
     const plan = DISCORD_BOT_LICENSE_PLANS[planKey];
     if (!plan) return res.status(400).json({ error: "Choose a weekly, monthly, or annual Discord Bot license." });
