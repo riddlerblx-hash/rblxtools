@@ -222,6 +222,7 @@ const COMMUNITY_NOTIFICATIONS_PATH = process.env.COMMUNITY_NOTIFICATIONS_PATH ||
 const COMMUNITY_PROFILES_PATH = process.env.COMMUNITY_PROFILES_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-profiles.json");
 const MEMBER_PROFILE_COMMENTS_PATH = process.env.MEMBER_PROFILE_COMMENTS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "member-profile-comments.json");
 const MEMBER_PROFILE_REACTIONS_PATH = process.env.MEMBER_PROFILE_REACTIONS_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "member-profile-reactions.json");
+const AI_TOKEN_PURCHASE_BONUSES_PATH = process.env.AI_TOKEN_PURCHASE_BONUSES_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "ai-token-purchase-bonuses.json");
 const COMMUNITY_AVATAR_DIR = process.env.COMMUNITY_AVATAR_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "community-avatars");
 const CODE_GUIDE_COVER_DIR = process.env.CODE_GUIDE_COVER_DIR || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "code-guide-covers");
 const RBLXTOOLS_CODES_DATA_PATH = process.env.RBLXTOOLS_CODES_DATA_PATH || path.join(process.platform === "win32" ? __dirname : "/var/lib/rblxtools", "codes.json");
@@ -257,10 +258,10 @@ const PLUS_ANNUAL_AI_TOKEN_CREDITS = 500;
 const PRO_MONTHLY_AI_TOKEN_CREDITS = 200;
 const PRO_ANNUAL_AI_TOKEN_CREDITS = 3000;
 const AI_TOKEN_PACKAGES = [
-  { key: "20", title: "200 Tokens", tokens: 200, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9siwVVdZ6u716").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_20 || "price_1U9YwwGrZOEMBkuuGypX9VtO").trim() },
-  { key: "45", title: "450 Tokens", tokens: 450, priceCents: 599, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
-  { key: "130", title: "1,300 Tokens", tokens: 1300, priceCents: 1449, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_130 || "prod_V9YGsNXs9IXcrX").trim() },
-  { key: "245", title: "2,450 Tokens", tokens: 2450, priceCents: 2499, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_245 || "prod_V9YK5x1FI50wj2").trim() },
+  { key: "20", title: "200 Tokens", tokens: 200, bonusTokens: 200, priceCents: 379, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_20 || "prod_V9siwVVdZ6u716").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_20 || "price_1U9YwwGrZOEMBkuuGypX9VtO").trim() },
+  { key: "45", title: "450 Tokens", tokens: 450, bonusTokens: 100, priceCents: 599, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_45 || "prod_V9Y889mVAR74WR").trim() },
+  { key: "130", title: "1,300 Tokens", tokens: 1300, bonusTokens: 100, priceCents: 1449, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_130 || "prod_V9YGsNXs9IXcrX").trim() },
+  { key: "245", title: "2,450 Tokens", tokens: 2450, bonusTokens: 100, priceCents: 2499, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_245 || "prod_V9YK5x1FI50wj2").trim() },
   { key: "500", title: "5,000 Tokens", tokens: 5000, priceCents: 4799, currency: "usd", productId: String(process.env.STRIPE_AI_TOKENS_PRODUCT_500 || "prod_V9shFwrlWrEAqI").trim(), priceId: String(process.env.STRIPE_AI_TOKENS_PRICE_500 || "price_1U9YvtGrZOEMBkuuETfZlZaG").trim() },
 ];
 const AI_SLEEVE_REFERENCE_PATHS = {
@@ -2769,8 +2770,9 @@ function getPublicAITokenPackages() {
   return AI_TOKEN_PACKAGES.map((item) => ({
     key: item.key,
     title: item.title || "",
-    description: item.description || "AI generation credits",
+    description: (item.description || "AI generation credits") + (Number(item.bonusTokens) ? ` · +${Number(item.bonusTokens)} bonus tokens` : ""),
     tokens: item.tokens,
+    bonusTokens: Math.max(0, Number(item.bonusTokens) || 0),
     priceCents: item.priceCents,
     currency: item.currency || "usd",
     configured: Boolean(item.productId),
@@ -4221,7 +4223,22 @@ async function grantAITokensFromStripeCheckout(session) {
   });
   const balance = Number.parseInt(rows, 10) || 0;
   await recordAccountTransaction({ userId, category: "ai_tokens", sourceType: "ai_token_purchase", sourceId: sessionId, title: `Purchased ${tokens.toLocaleString("en-US")} AI tokens`, amountDelta: tokens, unit: "tokens", status: "accepted", note: "Stripe checkout" });
-  return balance;
+  const bonusTokens = Math.max(0, Number(packageDefinition.bonusTokens) || 0);
+  if (!bonusTokens) return balance;
+  const bonuses = readJsonFile(AI_TOKEN_PURCHASE_BONUSES_PATH, { sessions: {} });
+  // Both Stripe's webhook and the success page can confirm a checkout. The
+  // session id makes the bonus idempotent, just like the base-token RPC.
+  if (bonuses.sessions?.[sessionId]) return balance;
+  const user = await getAuthUserById(userId);
+  if (!user) throw new Error("Could not find the token purchaser.");
+  const updated = await updateAuthUserFields(userId, { ai_token_balance: getAITokenBalance(user) + bonusTokens });
+  if (!updated) throw new Error("Could not apply the AI token purchase bonus.");
+  const expiresAt = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 1)).toISOString();
+  bonuses.sessions = bonuses.sessions && typeof bonuses.sessions === "object" ? bonuses.sessions : {};
+  bonuses.sessions[sessionId] = { userId, amount: bonusTokens, remaining: bonusTokens, expiresAt, grantedAt: new Date().toISOString() };
+  writeJsonFile(AI_TOKEN_PURCHASE_BONUSES_PATH, bonuses);
+  await recordAccountTransaction({ userId, category: "ai_tokens", sourceType: "ai_token_purchase_bonus", sourceId: `${sessionId}:bonus`, title: `Purchase bonus: ${bonusTokens.toLocaleString("en-US")} AI tokens`, amountDelta: bonusTokens, unit: "tokens", status: "accepted", note: `Expires ${expiresAt.slice(0, 10)}` });
+  return getAITokenBalance(updated);
 }
 
 function getStripePriceProductId(price) {
@@ -10401,6 +10418,7 @@ app.post("/store/create-ai-token-checkout", async (req, res) => {
         appUserId: user.id,
         aiTokenPackage: packageDefinition.key,
         aiTokenQuantity: String(packageDefinition.tokens),
+        aiTokenBonus: String(Math.max(0, Number(packageDefinition.bonusTokens) || 0)),
         referralCode,
       },
     });
@@ -10446,7 +10464,7 @@ app.post("/store/confirm-ai-token-checkout", async (req, res) => {
     return res.json({
       ok: true,
       pending: false,
-      creditedTokens: Number.parseInt(session.metadata.aiTokenQuantity, 10) || 0,
+      creditedTokens: (Number.parseInt(session.metadata.aiTokenQuantity, 10) || 0) + (Number.parseInt(session.metadata.aiTokenBonus, 10) || 0),
       tokenBalance: getAITokenBalance(refreshedUser || user),
     });
   } catch (error) {

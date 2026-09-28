@@ -30,8 +30,8 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       { key: "creator", level: 2, name: "Creator", requiredXp: 10000, cashbackPercent: 2, tone: "blue" },
       { key: "architect", level: 3, name: "Architect", requiredXp: 50000, cashbackPercent: 4, tone: "purple" },
       { key: "tycoon", level: 4, name: "Tycoon", requiredXp: 150000, cashbackPercent: 6, tone: "red" },
-      { key: "mogul", level: 5, name: "Mogul", requiredXp: 500000, cashbackPercent: 8, tone: "gold" },
-      { key: "rblx_icon", level: 6, name: "RBLX Icon", requiredXp: 1500000, cashbackPercent: 10, tone: "icon" },
+      { key: "visionary", level: 5, name: "Visionary", requiredXp: 500000, cashbackPercent: 8, tone: "gold" },
+      { key: "legend", level: 6, name: "Legend", requiredXp: 1500000, cashbackPercent: 10, tone: "emerald" },
     ],
     cashbackTiers: [
       { key: "bronze", name: "Bronze", requiredXp: 0, cashbackPercent: 0, tone: "bronze" },
@@ -130,6 +130,9 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
         ...savedConfig,
         xp: { ...defaults.xp, ...(savedConfig.xp || {}) },
         limits: { ...defaults.limits, ...(savedConfig.limits || {}) },
+        // Rank labels are product copy, so do not preserve obsolete labels from
+        // an older runtime state after a deployment changes the rank track.
+        ranks: defaults.ranks,
         // Quest catalog ships with the application; keep it current when a
         // previous runtime snapshot contains an older generated catalog.
         quests: expandQuestBuckets({ ...(savedConfig.quests || {}), ...defaults.quests }),
