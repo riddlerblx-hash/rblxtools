@@ -333,8 +333,9 @@ async function syncGuildCommands(applicationId, guild) {
   }
 }
 
-async function handleInteraction(interaction) {
+async function handleChatInput(interaction) {
   if (!interaction.isChatInputCommand()) return;
+  console.log("[tools-bot] received /" + interaction.commandName + " from " + interaction.user.id);
   await interaction.deferReply({ ephemeral: interaction.commandName === "verify" || interaction.commandName === "check" });
 
   if (toolDefinitions[interaction.commandName]) {
@@ -419,6 +420,25 @@ async function handleInteraction(interaction) {
   }
 }
 
+// Keep a top-level guard around every Discord interaction.  Without this,
+// an exception before a command's local try/catch causes Discord to show the
+// generic "application did not respond" timeout instead of a useful reply.
+async function handleInteraction(interaction) {
+  if (!interaction.isChatInputCommand()) return;
+  try {
+    await handleChatInput(interaction);
+  } catch (error) {
+    console.error("[tools-bot] interaction failed before replying:", error);
+    const message = "I could not process that RBLXTools Bot command. Please try again in a moment.";
+    try {
+      if (interaction.deferred || interaction.replied) await interaction.editReply(message);
+      else await interaction.reply({ content: message, ephemeral: true });
+    } catch (replyError) {
+      console.error("[tools-bot] could not send interaction fallback:", replyError);
+    }
+  }
+}
+
 async function main() {
   assertConfiguration();
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -436,7 +456,10 @@ async function main() {
     const applicationId = String(client.application?.id || client.user?.id || clientId || "").trim();
     syncGuildCommands(applicationId, guild);
   });
-  client.on(Events.InteractionCreate, handleInteraction);
+  client.on(Events.InteractionCreate, (interaction) => {
+    handleInteraction(interaction).catch((error) => console.error("[tools-bot] unhandled interaction failure:", error));
+  });
+  client.on(Events.Error, (error) => console.error("[tools-bot] Discord client error:", error));
   await client.login(token);
 }
 
