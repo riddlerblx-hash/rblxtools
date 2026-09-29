@@ -8651,7 +8651,7 @@ app.get("/api/community-members/:userId", async (req, res) => {
   try {
     const user = await getAuthUserById(String(req.params.userId || "")); if (!user) return res.status(404).json({ error: "This member is unavailable." });
     const membership = await resolveMembershipSnapshot(user);
-    return res.json({ ok: true, member: { id: user.id, name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), username: cleanText(user.username || user.display_name || "member", 80).replace(/^@+/, ""), avatarUrl: getCommunityAvatarUrl(user), plan: String(membership?.plan || "free").toLowerCase(), joinedAt: user.created_at || null } });
+    return res.json({ ok: true, member: { id: user.id, name: getActionTargetLabel(user), username: cleanText(user.username || user.displayName || user.display_name || user.email?.split("@")[0] || "member", 80).replace(/^@+/, ""), avatarUrl: getCommunityAvatarUrl(user), plan: String(membership?.plan || "free").toLowerCase(), joinedAt: user.created_at || null } });
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member." }); }
 });
 
@@ -8666,14 +8666,28 @@ app.get("/api/leaderboards", async (_req, res) => {
     const rows = await supabaseRequest(buildAuthTablePath("?select=*&limit=500"));
     const users = Array.isArray(rows) ? rows : [];
     const profileNames = readCommunityProfiles();
+    const communityState = readAIUGCCommunityState();
+    const creatorNames = {};
+    getPublicAIUGCItems().forEach((item) => {
+      const id = String(item?.creatorId || "");
+      const name = cleanText(item?.creatorName || "", 80);
+      if (id && name && !creatorNames[id]) creatorNames[id] = name;
+    });
+    readCommunityPosts().forEach((post) => {
+      const id = String(post?.authorId || "");
+      const name = cleanText(post?.authorName || "", 80);
+      if (id && name && !creatorNames[id]) creatorNames[id] = name;
+    });
     const publicMember = (user) => {
       const profile = profileNames[String(user.id)] || {};
+      const metadata = user?.user_metadata || user?.raw_user_meta_data || user?.metadata || {};
+      const identityName = cleanText(user?.display_name || user?.displayName || user?.username || user?.name || user?.full_name || user?.fullName || metadata?.display_name || metadata?.displayName || metadata?.username || metadata?.full_name || metadata?.fullName || metadata?.name || profile?.displayName || creatorNames[String(user.id)] || String(user?.email || "").split("@")[0] || "Member", 80) || "Member";
       let overview = null;
       try { overview = rewardsEngine.getOverview(user.id); } catch (_error) {}
       return {
         id: String(user.id),
-        name: cleanText(user.username || user.display_name || user.name || "Member", 80),
-        avatarUrl: cleanText(profile.avatarUrl || "", 2000),
+        name: identityName,
+        avatarUrl: getCommunityAvatarUrl(user),
         aiTokens: getAITokenBalance(user),
         points: Math.max(0, Number(user.reward_points) || 0),
         xp: Math.max(0, Number(overview?.lifetimeXp) || 0),
@@ -8682,7 +8696,6 @@ app.get("/api/leaderboards", async (_req, res) => {
     };
     const members = users.map(publicMember);
     const tipTotals = {};
-    const communityState = readAIUGCCommunityState();
     Object.values(communityState.posts || {}).forEach((post) => (post?.tips || []).forEach((tip) => {
       const userId = String(tip?.userId || "");
       if (userId) tipTotals[userId] = (tipTotals[userId] || 0) + Math.max(0, Number(tip.amount) || 0);
@@ -12299,7 +12312,8 @@ function emitToolActivity() {
 
 function getActionTargetLabel(user) {
   const emailName = String(user?.email || "").split("@")[0].trim();
-  return cleanText(user?.display_name || user?.displayName || user?.username || user?.name || emailName || user?.id || "Member", displayNameLength) || "Member";
+  const metadata = user?.user_metadata || user?.raw_user_meta_data || user?.metadata || {};
+  return cleanText(user?.display_name || user?.displayName || user?.username || user?.name || user?.full_name || user?.fullName || metadata?.display_name || metadata?.displayName || metadata?.username || metadata?.full_name || metadata?.fullName || metadata?.name || emailName || user?.id || "Member", displayNameLength) || "Member";
 }
 
 function formatDurationLabel(totalSeconds) {
