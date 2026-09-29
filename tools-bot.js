@@ -3,7 +3,9 @@ dotenv.config();
 // The public site is served from OpenLiteSpeed's node checkout while the
 // production environment file lives with the app checkout. Keep the bot able
 // to start from either location without duplicating credentials.
-if (process.platform === "linux") dotenv.config({ path: "/root/rblxtools/.env", override: false });
+// The PM2/web-directory environment can retain an old token after a rotation.
+// On production, the app's root .env is the single source of truth.
+if (process.platform === "linux") dotenv.config({ path: "/root/rblxtools/.env", override: true });
 
 const {
   Client,
