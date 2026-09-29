@@ -10761,6 +10761,26 @@ const DISCORD_BOT_LICENSE_PLANS = {
   annual: { days: 365, amount: 12000, label: "Annual Discord Bot license" },
 };
 
+async function getDiscordBotAnnualLaunchCoupon() {
+  // The annual discount is public and identical for every annual license.
+  // Reuse one coupon instead of creating Stripe dashboard clutter every time
+  // a customer opens checkout.
+  const configuredCouponId = String(process.env.STRIPE_DISCORD_BOT_ANNUAL_LAUNCH_COUPON_ID || "").trim();
+  if (configuredCouponId) {
+    const configured = await stripeClient.coupons.retrieve(configuredCouponId);
+    if (configured?.valid) return configured;
+  }
+  const listed = await stripeClient.coupons.list({ limit: 100 });
+  const existing = (Array.isArray(listed?.data) ? listed.data : []).find((coupon) => (
+    coupon?.valid && coupon?.metadata?.type === "discord_bot_annual_launch" && Number(coupon?.percent_off || 0) === 50 && coupon?.duration === "once"
+  ));
+  if (existing) return existing;
+  return stripeClient.coupons.create(
+    { percent_off: 50, duration: "once", name: "Discord Bot annual launch discount", metadata: { type: "discord_bot_annual_launch" } },
+    { idempotencyKey: "rblxtools-discord-bot-annual-launch-coupon-v1" }
+  );
+}
+
 app.post("/store/create-discord-bot-license-checkout", async (req, res) => {
   try {
     assertStripePortalConfigured();
@@ -10773,7 +10793,7 @@ app.post("/store/create-discord-bot-license-checkout", async (req, res) => {
     const customerParams = await getStripeCheckoutCustomerParams(user);
     let annualDiscount = {};
     if (planKey === "annual") {
-      const coupon = await stripeClient.coupons.create({ percent_off: 50, duration: "once", name: "Discord Bot annual launch discount", metadata: { type: "discord_bot_annual_launch" } });
+      const coupon = await getDiscordBotAnnualLaunchCoupon();
       annualDiscount = { discounts: [{ coupon: coupon.id }] };
     }
     const checkoutSession = await stripeClient.checkout.sessions.create({
