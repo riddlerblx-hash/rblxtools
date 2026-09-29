@@ -11345,6 +11345,27 @@ async function getRetentionOfferForUser(user) {
   };
 }
 
+async function getOrCreateRetentionCoupon(userId, subscriptionId) {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const listed = await stripeClient.coupons.list({ limit: 100 });
+  const existing = (Array.isArray(listed?.data) ? listed.data : []).find((coupon) => (
+    coupon?.valid && coupon?.metadata?.type === "retention_50_once" &&
+    String(coupon?.metadata?.appUserId || "") === String(userId) &&
+    (!coupon?.redeem_by || Number(coupon.redeem_by) > nowSeconds)
+  ));
+  if (existing) return existing;
+  return stripeClient.coupons.create(
+    {
+      percent_off: 50,
+      duration: "once",
+      name: "RBLXTools membership retention offer",
+      redeem_by: nowSeconds + 24 * 60 * 60,
+      metadata: { appUserId: String(userId), subscriptionId: String(subscriptionId || ""), type: "retention_50_once" },
+    },
+    { idempotencyKey: `rblxtools-retention-offer-${String(userId)}-${String(subscriptionId || "rejoin")}` }
+  );
+}
+
 app.get("/auth/billing/retention-offer", async (req, res) => {
   try {
     // Retention eligibility is private and must never be served from an HTTP
@@ -11367,18 +11388,13 @@ app.post("/auth/billing/retention-offer/accept", async (req, res) => {
     const user = await requireAuthenticatedUser(req);
     const offer = await getRetentionOfferForUser(user);
     if (!offer.eligible) return res.status(409).json({ error: offer.reason || "This membership is not eligible for the offer." });
-    const coupon = await stripeClient.coupons.create({
-      percent_off: 50,
-      duration: "once",
-      name: "RBLXTools membership retention offer",
-      redeem_by: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
-      metadata: { appUserId: String(user.id), subscriptionId: String(offer.subscription?.id || ""), type: "retention_50_once" },
-    });
+    const coupon = await getOrCreateRetentionCoupon(user.id, offer.subscription?.id);
     if (offer.requiresRejoinCheckout) {
       assertStripeCheckoutConfigured();
       const priceId = String(offer.priceId || "");
       if (!priceId) throw new Error("The previous membership price is unavailable for renewal.");
-      const promotionCode = await stripeClient.promotionCodes.create({
+      const existingPromotion = await stripeClient.promotionCodes.list({ coupon: coupon.id, active: true, limit: 1 });
+      const promotionCode = existingPromotion?.data?.[0] || await stripeClient.promotionCodes.create({
         coupon: coupon.id,
         code: `RBLXRET${randomBytes(6).toString("hex").toUpperCase()}`,
         max_redemptions: 1,
