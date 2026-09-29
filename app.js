@@ -10558,6 +10558,22 @@ app.get("/store/discord-bot-unlimited-status", async (req, res) => {
   }
 });
 
+app.get("/discord-bot/profile", (_req, res) => {
+  const botId = /^\d+$/.test(DISCORD_TOOLS_BOT_CLIENT_ID) ? DISCORD_TOOLS_BOT_CLIENT_ID : "";
+  const inviteUrl = botId
+    ? `https://discord.com/oauth2/authorize?client_id=${botId}&scope=bot%20applications.commands&permissions=35856`
+    : "";
+  return res.json({
+    ok: true,
+    id: botId,
+    name: "RBLXTools Bot",
+    username: "RBLXTools Bot",
+    avatarUrl: "/assets/rblxtools-logo.png",
+    inviteUrl,
+    profileUrl: botId ? `https://discord.com/users/${botId}` : "",
+  });
+});
+
 app.get("/discord-bot/dashboard", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);

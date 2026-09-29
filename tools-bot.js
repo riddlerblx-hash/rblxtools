@@ -332,7 +332,7 @@ async function handleInteraction(interaction) {
   if (toolDefinitions[interaction.commandName]) {
     try {
       if (!interaction.inGuild()) {
-        await interaction.editReply("Run RBLXTools download commands in a server that has been claimed in the RBLXTools Bot dashboard.");
+        await interaction.editReply("Run RBLXTools download commands in a server with a verified RBLXTools Bot license.");
         return;
       }
       const access = await getDiscordServerAccess(interaction.guildId);
