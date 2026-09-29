@@ -143,7 +143,41 @@ async function verifyDiscordBotLicense(code) {
   const store = await readStore(); const license = store.licensesByCode[normalized] || null;
   if (!license) return { active: false, reason: "License not found." };
   if (Date.parse(license.expiresAt || 0) <= Date.now()) return { active: false, reason: "License expired.", expiresAt: license.expiresAt };
-  return { active: true, plan: license.plan, expiresAt: license.expiresAt };
+  return { active: true, code: license.code, plan: license.plan, issuedAt: license.issuedAt, expiresAt: license.expiresAt, verifiedGuildId: license.verifiedGuildId || null, lastVerifiedAt: license.lastVerifiedAt || null };
+}
+
+function activeLicense(store, code) {
+  const license = store.licensesByCode[String(code || "").trim().toUpperCase()] || null;
+  return license && Date.parse(license.expiresAt || 0) > Date.now() ? license : null;
+}
+
+async function activateDiscordBotLicense({ code, guildId, guildName }) {
+  const normalizedCode = String(code || "").trim().toUpperCase();
+  const normalizedGuildId = String(guildId || "").trim();
+  if (!/^\d{4}(?:-\d{4}){3}$/.test(normalizedCode) || !/^\d+$/.test(normalizedGuildId)) throw new Error("Enter a valid 16-digit license code in a Discord server.");
+  return updateStore((store) => {
+    const license = activeLicense(store, normalizedCode);
+    if (!license) {
+      const existing = store.licensesByCode[normalizedCode];
+      const error = new Error(existing ? "This license has expired." : "License not found."); error.statusCode = 403; throw error;
+    }
+    const assignedElsewhere = Object.values(store.serversByGuildId || {}).find((server) => String(server?.licenseCode || "").toUpperCase() === normalizedCode && String(server?.guildId || "") !== normalizedGuildId && !server.unclaimedAt);
+    if (assignedElsewhere) { const error = new Error("This license is already verified in another Discord server."); error.statusCode = 409; throw error; }
+    const current = store.serversByGuildId[normalizedGuildId];
+    if (current && current.licenseCode && String(current.licenseCode).toUpperCase() !== normalizedCode && !current.unclaimedAt) { const error = new Error("This Discord server already has a verified license."); error.statusCode = 409; throw error; }
+    const server = current || { guildId: normalizedGuildId, appUserId: String(license.appUserId || ""), usedUses: 0, totalUses: 0, dailyUserUseCounts: {}, ...dashboardDraft({}) };
+    server.appUserId = String(license.appUserId || server.appUserId || "");
+    server.licenseCode = normalizedCode;
+    server.guildName = String(guildName || server.guildName || "Discord server").slice(0, 120);
+    server.claimedAt = server.claimedAt || new Date().toISOString();
+    server.unclaimedAt = null;
+    server.updatedAt = new Date().toISOString();
+    addAudit(server, "license_verified", "Time-based bot license verified");
+    store.serversByGuildId[normalizedGuildId] = server;
+    license.verifiedGuildId = normalizedGuildId;
+    license.lastVerifiedAt = new Date().toISOString();
+    return { active: true, code: license.code, plan: license.plan, issuedAt: license.issuedAt, expiresAt: license.expiresAt, verifiedGuildId: normalizedGuildId, lastVerifiedAt: license.lastVerifiedAt };
+  });
 }
 
 function makeClaimCode(store) { let code = ""; do { code = randomBytes(5).toString("hex").toUpperCase(); } while (store.claimCodesByCode[code]); return code; }
@@ -258,6 +292,9 @@ async function unclaimServer({ appUserId, guildId }) { const userId = String(app
 async function getDiscordServerAccess(guildId) {
   const normalizedGuildId = String(guildId || "").trim(); const store = await readStore(); const server = store.serversByGuildId[normalizedGuildId];
   if (!server || server.unclaimedAt) return { allowed: false, reason: "This Discord server has not been claimed in the RBLXTools Bot dashboard yet." };
+  const license = activeLicense(store, server.licenseCode);
+  if (license) return { allowed: true, appUserId: license.appUserId, mode: "license", server, license: { code: license.code, plan: license.plan, expiresAt: license.expiresAt } };
+  if (server.licenseCode) return { allowed: false, reason: "This Discord server's verified RBLXTools Bot license has expired." };
   const dashboard = buildDashboard(store, server.appUserId);
   return dashboard.access ? { allowed: true, appUserId: server.appUserId, mode: dashboard.mode, server, dashboard } : { allowed: false, reason: "This server no longer has an active RBLXTools Bot entitlement." };
 }
@@ -305,4 +342,4 @@ async function consumeDiscordServerUse({ guildId, discordUserId, discordRoleIds,
   });
 }
 
-module.exports = { claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getAccountOverviewPreference, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getDiscordServerUsageSummary, getPurchasedUses, getUnlimitedSubscription, getUsageCounterSnapshots, grantComplimentaryUnlimited, grantComplimentaryUses, grantPurchasedUses, grantDiscordBotLicense, isUnlimitedActive, setAccountOverviewPreference, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, setDiscordServerUsageCounter, resetMemberDailyUse, unclaimServer, verifyDiscordBotLicense };
+module.exports = { activateDiscordBotLicense, claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getAccountOverviewPreference, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getDiscordServerUsageSummary, getPurchasedUses, getUnlimitedSubscription, getUsageCounterSnapshots, grantComplimentaryUnlimited, grantComplimentaryUses, grantPurchasedUses, grantDiscordBotLicense, isUnlimitedActive, setAccountOverviewPreference, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, setDiscordServerUsageCounter, resetMemberDailyUse, unclaimServer, verifyDiscordBotLicense };

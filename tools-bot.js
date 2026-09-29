@@ -9,18 +9,14 @@ const {
   SlashCommandBuilder,
   AttachmentBuilder,
   EmbedBuilder,
-  ChannelType,
   PermissionFlagsBits,
 } = require("discord.js");
-const { claimDiscordLink, getDiscordLinkByUserId } = require("./discord-tools-links");
+const { claimDiscordLink } = require("./discord-tools-links");
 const {
-  claimDiscordServer,
-  consumeDiscordServerUse,
+  activateDiscordBotLicense,
   getDiscordServerCommandPolicy,
-  getDiscordServerUsageSummary,
-  getUsageCounterSnapshots,
-  setDiscordServerUsageCounter,
-  syncDiscordServerChannels,
+  getDiscordServerAccess,
+  verifyDiscordBotLicense,
 } = require("./discord-bot-entitlements");
 
 const token = String(process.env.RBLXTOOLS_TOOLS_BOT_TOKEN || "").trim();
@@ -31,9 +27,7 @@ const supabaseKey = String(process.env.SUPABASE_KEY || "").trim();
 const authUsersTable = String(process.env.AUTH_USERS_TABLE || "member_accounts").trim();
 const apiBaseUrl = String(process.env.RBLXTOOLS_TOOLS_API_BASE_URL || process.env.APP_BASE_URL || "https://www.rblxtools.net").trim().replace(/\/$/, "");
 const discordToolsServiceSecret = String(process.env.DISCORD_TOOLS_SERVICE_SECRET || "").trim();
-const PRO_ONLY_GUILD_ID = "1273360593318838382";
 const MAX_DISCORD_DOWNLOAD_BYTES = 8 * 1024 * 1024;
-const USAGE_COUNTER_REFRESH_MS = 15000;
 
 const toolDefinitions = {
   clothing: { label: "Clothing", description: "Download a classic Roblox shirt or pants template." },
@@ -79,14 +73,9 @@ const commands = [
     .setName("link")
     .setDescription("Link your RBLXTools account with a one-time website code.")
     .addStringOption((option) => option.setName("code").setDescription("Code generated in RBLXTools Account Overview").setRequired(true)),
-  new SlashCommandBuilder().setName("status").setDescription("Check your RBLXTools Discord link and plan."),
-  new SlashCommandBuilder().setName("check").setDescription("Check this server's RBLXTools Bot usage.").addSubcommand((subcommand) => subcommand.setName("usage").setDescription("Show remaining shared uses and your active limits.")),
-  new SlashCommandBuilder().setName("setup").setDescription("Configure this server's RBLXTools Bot display.").addSubcommand((subcommand) => subcommand.setName("usage-counter").setDescription("Create or refresh a live used / owned counter channel.")),
+  new SlashCommandBuilder().setName("verify").setDescription("Verify a RBLXTools Bot license.").addSubcommand((subcommand) => subcommand.setName("license").setDescription("Verify a license for this server.").addStringOption((option) => option.setName("license").setDescription("Your 16-digit RBLXTools Bot license").setRequired(true))),
+  new SlashCommandBuilder().setName("check").setDescription("Check RBLXTools Bot license details.").addSubcommand((subcommand) => subcommand.setName("license").setDescription("View a license plan and expiry.").addStringOption((option) => option.setName("license").setDescription("Your 16-digit RBLXTools Bot license").setRequired(true))),
   new SlashCommandBuilder().setName("tools").setDescription("View the RBLXTools Discord tools available in this server."),
-  new SlashCommandBuilder()
-    .setName("claim-server")
-    .setDescription("Claim this server for your purchased RBLXTools Bot uses.")
-    .addStringOption((option) => option.setName("code").setDescription("Claim code from RBLXTools Account Overview").setRequired(true)),
   robuxCommand,
   ...Object.entries(toolDefinitions).map(([name, definition]) => {
     const command = new SlashCommandBuilder()
@@ -114,31 +103,6 @@ function assertConfiguration() {
   if (!supabaseKey) missing.push("SUPABASE_KEY");
   if (!discordToolsServiceSecret) missing.push("DISCORD_TOOLS_SERVICE_SECRET");
   if (missing.length) throw new Error("Missing environment variables: " + missing.join(", "));
-}
-
-async function getLinkedMember(discordUserId) {
-  const link = await getDiscordLinkByUserId(discordUserId);
-  if (!link) return { link: null, member: null };
-  const response = await fetch(
-    supabaseUrl + "/rest/v1/" + encodeURIComponent(authUsersTable) + "?id=eq." + encodeURIComponent(link.appUserId) + "&select=id,email,plan,premium_active,plus_active",
-    { headers: { apikey: supabaseKey, Authorization: "Bearer " + supabaseKey } }
-  );
-  if (!response.ok) throw new Error("Could not check the linked RBLXTools membership.");
-  const rows = await response.json();
-  return { link, member: Array.isArray(rows) ? rows[0] || null : null };
-}
-
-async function requirePro(interaction) {
-  const result = await getLinkedMember(interaction.user.id);
-  if (!result.link) {
-    await interaction.editReply("Your Discord is not linked yet. In RBLXTools Account Overview, generate a Discord link code, then run `/link code:YOUR-CODE`.");
-    return null;
-  }
-  if (!result.member || !result.member.premium_active || String(result.member.plan || "").toLowerCase() !== "pro") {
-    await interaction.editReply("This Discord tool is for active RBLXTools Pro members. Your linked account is currently " + (result.member ? "on the " + String(result.member.plan || "free") + " plan." : "not available.") + "");
-    return null;
-  }
-  return result.member;
 }
 
 function buildToolUrl(pathname, parameters) {
@@ -341,10 +305,10 @@ async function buildToolDownload(toolName, assetId, mediaType, discordUserId, gu
   throw new Error("That RBLXTools command is not available yet.");
 }
 
-async function registerCommands() {
+async function clearGlobalCommands() {
   const rest = new REST({ version: "10" }).setToken(token);
-  await rest.put(Routes.applicationCommands(clientId), { body: commands });
-  console.log("[tools-bot] registered global commands");
+  await rest.put(Routes.applicationCommands(clientId), { body: [] });
+  console.log("[tools-bot] cleared legacy global commands");
 }
 
 async function registerGuildCommands(guildId) {
@@ -361,79 +325,9 @@ async function syncGuildCommands(guild) {
   }
 }
 
-async function claimGuild(interaction) {
-  if (!interaction.inGuild()) throw new Error("Run this command inside the Discord server you want to claim.");
-  if (interaction.guildId === PRO_ONLY_GUILD_ID) throw new Error("The official RBLXTools server does not need a claim code. Linked Pro members have unlimited access here.");
-  if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) throw new Error("You need the Manage Server permission to claim this Discord server.");
-  const link = await getDiscordLinkByUserId(interaction.user.id);
-  if (!link?.appUserId) throw new Error("Link your RBLXTools account first, then run `/claim-server` again.");
-  return { dashboard: await claimDiscordServer({ code: interaction.options.getString("code", true), appUserId: link.appUserId, guildId: interaction.guildId, guildName: interaction.guild?.name || "Discord server", alertChannels: getAlertChannels(interaction.guild) }) };
-}
-
-function getAlertChannels(guild) {
-  return Array.from(guild?.channels?.cache?.values?.() || []).filter((channel) => channel?.isTextBased?.()).map((channel) => ({ id: channel.id, name: "#" + channel.name }));
-}
-
-async function syncAlertChannels(guild) {
-  if (!guild) return;
-  await syncDiscordServerChannels({ guildId: guild.id, alertChannels: getAlertChannels(guild) }).catch(() => null);
-}
-
-async function sendUsageAlert(interaction, usage) {
-  if (!usage?.alertThreshold || !usage?.alertChannelId || !interaction.guild) return;
-  const channel = await interaction.guild.channels.fetch(usage.alertChannelId).catch(() => null);
-  if (!channel?.isTextBased?.()) return;
-  await channel.send("RBLXTools Bot usage alert: this server has used **" + usage.alertThreshold + "%** of its available use pack.").catch(() => null);
-}
-
-function usageCounterName(usage) {
-  return usage?.mode === "unlimited" ? "RBLXTools Uses: Unlimited" : "RBLXTools Uses: " + Number(usage?.remainingUses || 0) + " cmds left";
-}
-
-async function updateUsageCounter(guild, usage) {
-  const channelId = String(usage?.usageCounterChannelId || "").trim();
-  if (!guild || !channelId) return;
-  const channel = await guild.channels.fetch(channelId).catch(() => null);
-  if (!channel || channel.name === usageCounterName(usage)) return;
-  await channel.setName(usageCounterName(usage), "RBLXTools Bot usage updated");
-}
-
-let usageCounterRefreshInFlight = false;
-async function refreshUsageCounters(client) {
-  if (usageCounterRefreshInFlight) return;
-  usageCounterRefreshInFlight = true;
-  try {
-    const counters = await getUsageCounterSnapshots();
-    for (const usage of counters) {
-      const guild = client.guilds.cache.get(usage.guildId) || await client.guilds.fetch(usage.guildId).catch(() => null);
-      await updateUsageCounter(guild, usage).catch((error) => console.warn("[tools-bot] usage counter refresh failed:", error.message || error));
-    }
-  } finally {
-    usageCounterRefreshInFlight = false;
-  }
-}
-
-async function setupUsageCounter(interaction) {
-  if (!interaction.inGuild()) throw new Error("Run `/setup usage-counter` inside a claimed Discord server.");
-  if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) throw new Error("You need the Manage Server permission to set up a usage counter.");
-  if (!interaction.guild.members.me?.permissions?.has(PermissionFlagsBits.ManageChannels)) throw new Error("Re-invite the RBLXTools Bot with Manage Channels permission, then run this command again.");
-  const usage = await getDiscordServerUsageSummary({ guildId: interaction.guildId, discordUserId: interaction.user.id, discordRoleIds: getInteractionRoleIds(interaction) }); let channel = usage.usageCounterChannelId ? await interaction.guild.channels.fetch(usage.usageCounterChannelId).catch(() => null) : null;
-  if (!channel) channel = await interaction.guild.channels.create({ name: usageCounterName(usage), type: ChannelType.GuildVoice, reason: "RBLXTools Bot live usage counter" });
-  await channel.setPosition(0).catch(() => null);
-  await setDiscordServerUsageCounter({ guildId: interaction.guildId, channelId: channel.id });
-  await updateUsageCounter(interaction.guild, usage);
-  return channel;
-}
-
-function getInteractionRoleIds(interaction) {
-  const cachedRoles = interaction.member?.roles?.cache;
-  if (cachedRoles && typeof cachedRoles.keys === "function") return Array.from(cachedRoles.keys());
-  return Array.isArray(interaction.member?.roles) ? interaction.member.roles.map((roleId) => String(roleId || "")) : [];
-}
-
 async function handleInteraction(interaction) {
   if (!interaction.isChatInputCommand()) return;
-  await interaction.deferReply();
+  await interaction.deferReply({ ephemeral: interaction.commandName === "verify" || interaction.commandName === "check" });
 
   if (toolDefinitions[interaction.commandName]) {
     try {
@@ -441,13 +335,10 @@ async function handleInteraction(interaction) {
         await interaction.editReply("Run RBLXTools download commands in a server that has been claimed in the RBLXTools Bot dashboard.");
         return;
       }
-      const officialServer = interaction.guildId === PRO_ONLY_GUILD_ID;
-      if (officialServer && !(await requirePro(interaction))) return;
-      if (!officialServer) {
-        const usage = await consumeDiscordServerUse({ guildId: interaction.guildId, discordUserId: interaction.user.id, discordRoleIds: getInteractionRoleIds(interaction), commandName: interaction.commandName });
-        await sendUsageAlert(interaction, usage);
-        await updateUsageCounter(interaction.guild, usage).catch((error) => console.warn("[tools-bot] usage counter update failed:", error.message || error));
-      }
+      const access = await getDiscordServerAccess(interaction.guildId);
+      if (!access.allowed) throw new Error(access.reason || "Verify an active RBLXTools Bot license for this server first.");
+      const policy = await getDiscordServerCommandPolicy({ guildId: interaction.guildId, commandName: interaction.commandName });
+      if (policy.blocked) throw new Error("This RBLXTools command has been disabled for this server.");
 
       const assetId = String(interaction.options.getString("asset-id", true) || "").trim();
       if (!/^\d+$/.test(assetId)) {
@@ -475,54 +366,31 @@ async function handleInteraction(interaction) {
     return;
   }
 
-  if (interaction.commandName === "claim-server") {
+  if (interaction.commandName === "verify" && interaction.options.getSubcommand() === "license") {
     try {
-      var claimResult = await claimGuild(interaction);
-      var serverName = claimResult?.dashboard?.server?.guildName || interaction.guild?.name || "this server";
-      await interaction.editReply("Claimed **" + serverName + "**. Your server's RBLXTools Bot use balance is now active.");
+      if (!interaction.inGuild()) throw new Error("Run `/verify license` inside the Discord server you want to unlock.");
+      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) throw new Error("You need the Manage Server permission to verify a license for this server.");
+      const license = await activateDiscordBotLicense({ code: interaction.options.getString("license", true), guildId: interaction.guildId, guildName: interaction.guild?.name || "Discord server" });
+      await interaction.editReply("License verified. This server has **" + license.plan + "** RBLXTools Bot access until **" + new Date(license.expiresAt).toLocaleString() + "**.");
     } catch (error) {
-      await interaction.editReply(error.message || "This server could not be claimed.");
+      await interaction.editReply(error.message || "This license could not be verified.");
     }
     return;
   }
 
-  if (interaction.commandName === "setup") {
+  if (interaction.commandName === "check" && interaction.options.getSubcommand() === "license") {
     try {
-      const channel = await setupUsageCounter(interaction);
-      await interaction.editReply("Live usage counter ready in " + channel.toString() + ". It shows remaining commands and updates after each paid bot command.");
+      const license = await verifyDiscordBotLicense(interaction.options.getString("license", true));
+      if (!license.active) throw new Error(license.reason || "This license is not active.");
+      const verified = license.verifiedGuildId ? "\nVerified server: `" + license.verifiedGuildId + "`" : "\nNot yet verified in a Discord server.";
+      await interaction.editReply("**RBLXTools Bot license**\nPlan: **" + license.plan + "**\nExpires: **" + new Date(license.expiresAt).toLocaleString() + "**" + verified);
     } catch (error) {
-      await interaction.editReply(error.message || "Could not set up the usage counter.");
+      await interaction.editReply(error.message || "This license could not be checked.");
     }
     return;
   }
 
   try {
-    const requiresPro = interaction.guildId === PRO_ONLY_GUILD_ID;
-    if (requiresPro) {
-      const member = await requirePro(interaction);
-      if (!member) return;
-    }
-
-    if (interaction.commandName === "check") {
-      if (!interaction.inGuild()) {
-        await interaction.editReply("Run `/check usage` in a server that has been claimed in the RBLXTools Bot dashboard.");
-        return;
-      }
-      if (requiresPro) {
-        await interaction.editReply("Official RBLXTools server access: **Unlimited** for your linked RBLXTools Pro membership.");
-        return;
-      }
-      const usage = await getDiscordServerUsageSummary({ guildId: interaction.guildId, discordUserId: interaction.user.id, discordRoleIds: getInteractionRoleIds(interaction) });
-      const serverUses = usage.mode === "unlimited" ? "Unlimited" : String(Number(usage.remainingUses || 0));
-      const limitLine = usage.userLimit ? "\nYour User Limit: **" + usage.userLimit.remaining + " / " + usage.userLimit.limit + " cmds " + usage.userLimit.period + "**" : "";
-      await interaction.editReply("Server Usage: **" + serverUses + (usage.mode === "unlimited" ? "" : " cmds") + "**" + limitLine);
-      return;
-    }
-
-    if (interaction.commandName === "status") {
-      await interaction.editReply(requiresPro ? "Your Discord is linked to an active RBLXTools Pro account. Discord tools are ready." : "This server does not require an individual Pro plan. Server access and use limits are managed by its RBLXTools Bot dashboard.");
-      return;
-    }
     if (interaction.commandName === "tools") {
       await interaction.editReply("Available: `/robux`, `/clothing`, `/ugc`, `/media`, `/audio`, and `/animations`. Each download command opens an asset-ID form, then sends the same downloadable output used by RBLXTools.");
       return;
@@ -545,19 +413,15 @@ async function handleInteraction(interaction) {
 
 async function main() {
   assertConfiguration();
-  await registerCommands();
+  await clearGlobalCommands();
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
   client.once(Events.ClientReady, (readyClient) => {
     console.log("[tools-bot] ready as " + readyClient.user.tag);
     readyClient.guilds.cache.forEach((guild) => {
-      syncAlertChannels(guild);
       syncGuildCommands(guild);
     });
-    refreshUsageCounters(readyClient);
-    setInterval(() => { refreshUsageCounters(readyClient); }, USAGE_COUNTER_REFRESH_MS).unref();
   });
   client.on(Events.GuildCreate, (guild) => {
-    syncAlertChannels(guild);
     syncGuildCommands(guild);
   });
   client.on(Events.InteractionCreate, handleInteraction);
