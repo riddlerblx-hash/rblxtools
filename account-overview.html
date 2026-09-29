@@ -472,6 +472,8 @@
     }
 
     #rbtools-account-overview .acct-avatar.has-image .acct-avatar-fallback { display: none; }
+    #rbtools-account-overview .acct-avatar-edit-overlay { position:absolute; inset:6px; display:flex; align-items:center; justify-content:center; border-radius:18px; color:#fff; background:rgba(4,10,22,.72); font-size:22px; opacity:0; transition:opacity .16s ease; pointer-events:none; }
+    #rbtools-account-overview .acct-avatar-button:hover .acct-avatar-edit-overlay, #rbtools-account-overview .acct-avatar-button:focus-visible .acct-avatar-edit-overlay { opacity:1; }
     #rbtools-account-overview .acct-avatar.is-drop-target {
       outline: 2px solid rgba(86, 231, 138, 0.9);
       box-shadow: 0 0 0 5px rgba(86, 231, 138, 0.12);
@@ -1202,6 +1204,15 @@
       border-color: rgba(82, 213, 255, .36);
       background: radial-gradient(circle at 88% 10%, rgba(85, 211, 255, .16), transparent 42%), linear-gradient(155deg, rgba(15, 51, 70, .58), rgba(11, 19, 33, .82));
     }
+    #rbtools-account-overview .acct-profile-line { display:flex; align-items:center; gap:7px; }
+    #rbtools-account-overview .acct-profile-line .acct-email, #rbtools-account-overview .acct-profile-line .acct-bio-preview { margin-top:0; flex:1; }
+    #rbtools-account-overview .acct-profile-edit { flex:0 0 auto; width:28px; height:28px; display:inline-grid; place-items:center; border:1px solid rgba(125,169,240,.38); border-radius:8px; color:#cfe1ff; background:rgba(45,87,151,.16); font:inherit; font-weight:900; cursor:pointer; }
+    #rbtools-account-overview .acct-profile-edit:hover { color:#fff; background:rgba(80,137,224,.34); }
+    #rbtools-account-overview .acct-profile-editor { display:grid; grid-template-columns:1fr; gap:8px; margin-top:10px; padding:10px; border:1px solid rgba(110,154,227,.28); border-radius:12px; background:rgba(8,17,32,.48); }
+    #rbtools-account-overview .acct-profile-editor-actions { display:flex; gap:8px; justify-content:flex-end; }
+    #rbtools-account-overview .acct-profile-editor-grid { display:grid; grid-template-columns:minmax(210px,.72fr) minmax(0,1fr); gap:16px; align-items:start; }
+    #rbtools-account-overview .acct-profile-editor-fields { display:grid; gap:14px; }
+    @media (max-width: 680px) { #rbtools-account-overview .acct-profile-editor-grid { grid-template-columns:1fr; } }
     #rbtools-account-overview .acct-discord-block .acct-actions { grid-template-columns: 1fr; }
     #rbtools-account-overview .acct-discord-steps { display: grid; gap: 7px; margin: 13px 0 12px; }
     #rbtools-account-overview .acct-discord-steps > div {
@@ -1306,6 +1317,7 @@
     #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-admin-card { min-height:210px; padding:20px 16px; border:0; border-left:1px solid rgba(111,146,205,.2); border-radius:0; background:transparent; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-admin-card:nth-child(odd) { padding-left:0; border-left:0; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-admin-card h4 { margin-bottom:10px; color:#f2f6ff; font-size:14px; }
+    #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-admin-card.acct-bot-activity-card { grid-column:1 / -1; border-left:0; padding-left:0; }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-chart { border:1px solid rgba(111,146,205,.16); border-radius:8px; background:rgba(4,12,25,.32); }
     #rbtools-account-overview .acct-tab-panel[data-account-panel="bot"] .acct-bot-role-rule { padding:9px 0; border-bottom:1px solid rgba(111,146,205,.14); border-radius:0; background:transparent; }
     #rbtools-account-overview .acct-transactions { margin-top:16px; padding:18px; border:1px solid rgba(137,174,227,.28); border-radius:14px; background:rgba(5,14,29,.5); }
@@ -1569,15 +1581,18 @@
                     <button id="acctAvatarButton" class="acct-avatar acct-avatar-button" type="button" aria-label="Choose a profile picture">
                       <img id="acctAvatarImage" alt="Profile picture">
                       <div id="acctAvatarFallback" class="acct-avatar-fallback">R</div>
+                      <span class="acct-avatar-edit-overlay" aria-hidden="true">&#9998;</span>
                     </button>
 
                     <div>
-                      <h2 class="acct-name">
-                        <span id="acctDisplayName">Your</span>
-                        <span id="acctDisplaySubname">Account</span>
-                      </h2>
-                      <div id="acctEmailTop" class="acct-email">Sign in to load your member account.</div>
-                      <div id="acctBioTop" class="acct-bio-preview is-empty">Add a short bio to tell people a little about this account.</div>
+                      <div class="acct-profile-line"><h2 class="acct-name"><span id="acctDisplayName">Your</span><span id="acctDisplaySubname"></span></h2><button id="acctEditDisplayNameButton" class="acct-profile-edit" type="button" aria-label="Edit display name">&#9998;</button></div>
+                      <div class="acct-profile-line"><div id="acctEmailTop" class="acct-email">Sign in to load your member account.</div><button id="acctEditEmailTopButton" class="acct-profile-edit" type="button" aria-label="Edit email address">&#9998;</button></div>
+                      <div class="acct-profile-line"><div id="acctBioTop" class="acct-bio-preview is-empty">Add a short bio to tell people a little about this account.</div><button id="acctEditBioButton" class="acct-profile-edit" type="button" aria-label="Edit bio">&#9998;</button></div>
+                      <div id="acctProfileQuickEditor" class="acct-profile-editor" hidden>
+                        <input id="acctQuickDisplayNameInput" class="acct-input" type="text" maxlength="40" placeholder="Display name">
+                        <textarea id="acctQuickBioInput" class="acct-textarea" maxlength="150" placeholder="Short bio"></textarea>
+                        <div class="acct-profile-editor-actions"><button id="acctQuickProfileCancelButton" class="acct-button secondary" type="button">Cancel</button><button id="acctQuickProfileSaveButton" class="acct-button" type="button">Save</button></div>
+                      </div>
                       <div id="acctPlusCosmetic" class="acct-plus-tag hidden">
                         <div class="acct-plus-mark">+</div>
                         <div class="acct-plus-name">Plus Member</div>
@@ -1623,7 +1638,7 @@
                     <div class="acct-info-grid acct-account-details">
                       <div class="acct-pill-card">
                         <div class="acct-pill-label">Email address</div>
-                        <div id="acctSettingsEmail" class="acct-pill-value">-</div>
+                        <div class="acct-profile-line"><div id="acctSettingsEmail" class="acct-pill-value">-</div><button id="acctEditEmailSettingsButton" class="acct-profile-edit" type="button" aria-label="Edit email address">&#9998;</button></div>
                       </div>
                       <div class="acct-pill-card">
                         <div class="acct-pill-label">User ID</div>
@@ -1631,25 +1646,8 @@
                       </div>
                     </div>
 
-                    <div class="acct-actions">
-                      <button id="acctChangeEmailButton" class="acct-button secondary" type="button">Change Email</button>
-                    </div>
-
                     <div class="acct-form">
-                      <div>
-                        <div class="acct-field-label">Display Name</div>
-                        <input id="acctDisplayNameInput" class="acct-input" type="text" placeholder="Enter a display name">
-                      </div>
-
-                      <div>
-                        <div class="acct-field-label">Bio</div>
-                        <textarea id="acctBioInput" class="acct-textarea" maxlength="150" placeholder="Write a short bio for your public account identity..."></textarea>
-                        <div class="acct-char-row">
-                          <span>This bio stays short and profile-style.</span>
-                          <span id="acctBioCount" class="acct-char-count">0 / 150</span>
-                        </div>
-                      </div>
-
+                      <div class="acct-profile-editor-grid">
                       <div>
                         <div class="acct-field-label">Profile Picture</div>
                         <div id="acctDropzone" class="acct-dropzone" tabindex="0" role="button">
@@ -1670,11 +1668,14 @@
                           </div>
                         </div>
                       </div>
-
-                      <div class="acct-actions">
+                      <div class="acct-profile-editor-fields"><div>
+                        <div class="acct-field-label">Display Name</div><input id="acctDisplayNameInput" class="acct-input" type="text" placeholder="Enter a display name">
+                      </div><div>
+                        <div class="acct-field-label">Bio</div><textarea id="acctBioInput" class="acct-textarea" maxlength="150" placeholder="Write a short bio for your public account identity..."></textarea><div class="acct-char-row"><span>This bio stays short and profile-style.</span><span id="acctBioCount" class="acct-char-count">0 / 150</span></div>
+                      </div><div class="acct-actions">
                         <button id="acctSaveProfileButton" class="acct-button" type="button">Save Profile</button>
                         <button id="acctClearProfileButton" class="acct-button secondary" type="button">Clear Profile</button>
-                      </div>
+                      </div></div></div>
                     </div>
                     <div id="acctProfileStatus" class="acct-status"></div>
                   </section>
@@ -1771,7 +1772,7 @@
                     <div id="acctBotSetupGate" class="acct-bot-setup-gate" hidden><div class="acct-bot-setup-gate-inner"><h4>Connect your server</h4><p id="acctBotSetupMessage">Invite RBLXTools Bot to a server, then run <code>/verify license</code> there with your license key.</p><div class="acct-bot-setup-actions"><a id="acctBotInviteLink" class="acct-bot-invite" href="#" target="_blank" rel="noopener">Invite RBLXTools Bot</a><button id="acctBotSetupRefreshButton" class="acct-button secondary" type="button">Refresh status</button></div></div></div>
                     <div id="acctBotControls" class="acct-bot-controls">
                       <div class="acct-bot-metrics"><div><span>Plan</span><strong id="acctBotMode">Locked</strong></div><div><span>License</span><strong id="acctBotUses">Not active</strong></div><div><span>Server</span><strong id="acctBotServer">Not connected</strong></div><div><span>Commands used</span><strong id="acctBotCommandsUsed">0</strong></div></div>
-                      <div class="acct-bot-admin-grid"><div class="acct-bot-admin-card"><h4>Server activity</h4><select id="acctBotChartRange" class="acct-input"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select><canvas id="acctBotActivityChart" class="acct-bot-chart"></canvas></div><div class="acct-bot-admin-card"><h4>Top command users</h4><div id="acctBotLeaderboard" class="acct-bot-list"></div></div><div class="acct-bot-admin-card"><h4>Move to another server</h4><p class="acct-bot-control-copy">Disconnect this license here, then run <code>/verify license</code> in the new server.</p><div class="acct-actions"><button id="acctBotUnclaim" class="acct-button danger" type="button">Move license</button></div></div></div>
+                      <div class="acct-bot-admin-grid"><div class="acct-bot-admin-card acct-bot-activity-card"><h4>Server activity</h4><select id="acctBotChartRange" class="acct-input"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select><canvas id="acctBotActivityChart" class="acct-bot-chart"></canvas></div><div class="acct-bot-admin-card"><h4>Move to another server</h4><p class="acct-bot-control-copy">Disconnect this license here, then run <code>/verify license</code> in the new server.</p><div class="acct-actions"><button id="acctBotUnclaim" class="acct-button danger" type="button">Move license</button></div></div></div>
                     </div>
                     <div id="acctBotDashboardStatus" class="acct-status"></div>
                   </section>
@@ -2022,6 +2023,15 @@
         acctProfileCodeVotes: document.getElementById("acctProfileCodeVotes"),
         acctProfileCodeReports: document.getElementById("acctProfileCodeReports"),
         acctEmailTop: document.getElementById("acctEmailTop"),
+        acctEditDisplayNameButton: document.getElementById("acctEditDisplayNameButton"),
+        acctEditBioButton: document.getElementById("acctEditBioButton"),
+        acctEditEmailTopButton: document.getElementById("acctEditEmailTopButton"),
+        acctEditEmailSettingsButton: document.getElementById("acctEditEmailSettingsButton"),
+        acctProfileQuickEditor: document.getElementById("acctProfileQuickEditor"),
+        acctQuickDisplayNameInput: document.getElementById("acctQuickDisplayNameInput"),
+        acctQuickBioInput: document.getElementById("acctQuickBioInput"),
+        acctQuickProfileSaveButton: document.getElementById("acctQuickProfileSaveButton"),
+        acctQuickProfileCancelButton: document.getElementById("acctQuickProfileCancelButton"),
         acctEmail: document.getElementById("acctEmail"),
         acctSettingsEmail: document.getElementById("acctSettingsEmail"),
         acctPlan: document.getElementById("acctPlan"),
@@ -2709,7 +2719,7 @@
           els.acctBotInviteLink.href = "#";
           els.acctBotInviteLink.setAttribute("aria-disabled", "true");
         }
-        setStatus(els.acctBotDashboardStatus, dashboard.server ? "Server claimed. Changes apply to new bot commands immediately." : "Complete the bot setup to unlock dashboard controls.", "success");
+        setStatus(els.acctBotDashboardStatus, dashboard.server ? "Connected server activity is shown above." : "Verify your license in a Discord server to start seeing activity.", "success");
       }
 
       async function loadBotDashboard() {
@@ -2985,7 +2995,7 @@
       function renderProfilePresentation() {
         var fallbackName = state.user && state.user.email ? getEmailNamePart(state.user.email) : "Your";
         var displayName = state.profile.displayName || fallbackName || "Your";
-        var subtitle = "Account Center";
+        var subtitle = "";
         var bio = String(state.profile.bio || "").trim();
         var avatarScale = state.profile.avatarScale || 1;
         var avatarX = state.profile.avatarX != null ? state.profile.avatarX : 50;
@@ -3410,6 +3420,26 @@
         } catch (error) {
           setStatus(els.acctProfileStatus, "Profile saved locally, but the shared community avatar could not sync. Please try saving again.", "error");
         }
+      }
+
+      function openQuickProfileEditor(field) {
+        if (!els.acctProfileQuickEditor) return;
+        els.acctQuickDisplayNameInput.value = state.profile.displayName || "";
+        els.acctQuickBioInput.value = state.profile.bio || "";
+        els.acctProfileQuickEditor.hidden = false;
+        window.setTimeout(function () { (field === "bio" ? els.acctQuickBioInput : els.acctQuickDisplayNameInput)?.focus(); }, 0);
+      }
+
+      function closeQuickProfileEditor() {
+        if (els.acctProfileQuickEditor) els.acctProfileQuickEditor.hidden = true;
+      }
+
+      async function saveQuickProfileEditor() {
+        if (!els.acctQuickDisplayNameInput || !els.acctQuickBioInput) return;
+        els.acctDisplayNameInput.value = els.acctQuickDisplayNameInput.value;
+        els.acctBioInput.value = els.acctQuickBioInput.value;
+        await saveProfileChanges();
+        closeQuickProfileEditor();
       }
 
       async function clearProfileChanges() {
@@ -3863,6 +3893,12 @@
       if (els.acctChangeEmailButton) {
         els.acctChangeEmailButton.addEventListener("click", openChangeEmailModal);
       }
+      if (els.acctEditEmailTopButton) els.acctEditEmailTopButton.addEventListener("click", openChangeEmailModal);
+      if (els.acctEditEmailSettingsButton) els.acctEditEmailSettingsButton.addEventListener("click", openChangeEmailModal);
+      if (els.acctEditDisplayNameButton) els.acctEditDisplayNameButton.addEventListener("click", function () { openQuickProfileEditor("name"); });
+      if (els.acctEditBioButton) els.acctEditBioButton.addEventListener("click", function () { openQuickProfileEditor("bio"); });
+      if (els.acctQuickProfileCancelButton) els.acctQuickProfileCancelButton.addEventListener("click", closeQuickProfileEditor);
+      if (els.acctQuickProfileSaveButton) els.acctQuickProfileSaveButton.addEventListener("click", saveQuickProfileEditor);
       if (els.acctChangeEmailCancelButton) {
         els.acctChangeEmailCancelButton.addEventListener("click", function () {
           closeChangeEmailModal();
