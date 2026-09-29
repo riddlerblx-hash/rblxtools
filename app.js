@@ -2795,7 +2795,20 @@ function getPublicAITokenPackages() {
 
 function getActiveAITokenPurchaseBonus(userId) {
   const now = Date.now();
-  const sessions = readJsonFile(AI_TOKEN_PURCHASE_BONUSES_PATH, { sessions: {} }).sessions || {};
+  const stored = readJsonFile(AI_TOKEN_PURCHASE_BONUSES_PATH, { sessions: {} });
+  const sessions = stored.sessions && typeof stored.sessions === "object" ? stored.sessions : {};
+  let migrated = false;
+  // Earlier purchases used the next calendar boundary. Upgrade those records
+  // once so this month never counts as an expiry month.
+  Object.values(sessions).forEach((entry) => {
+    if (entry?.expiryVersion === 2 || !entry?.grantedAt) return;
+    const granted = new Date(entry.grantedAt);
+    if (Number.isNaN(granted.getTime())) return;
+    entry.expiresAt = new Date(Date.UTC(granted.getUTCFullYear(), granted.getUTCMonth() + 2, 1)).toISOString();
+    entry.expiryVersion = 2;
+    migrated = true;
+  });
+  if (migrated) writeJsonFile(AI_TOKEN_PURCHASE_BONUSES_PATH, stored);
   const active = Object.values(sessions).filter((entry) => String(entry?.userId || "") === String(userId || "") && Date.parse(entry?.expiresAt || "") > now);
   return {
     amount: active.reduce((sum, entry) => sum + Math.max(0, Number(entry?.remaining ?? entry?.amount) || 0), 0),
@@ -4255,9 +4268,12 @@ async function grantAITokensFromStripeCheckout(session) {
   if (!user) throw new Error("Could not find the token purchaser.");
   const updated = await updateAuthUserFields(userId, { ai_token_balance: getAITokenBalance(user) + bonusTokens });
   if (!updated) throw new Error("Could not apply the AI token purchase bonus.");
-  const expiresAt = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 1)).toISOString();
+  // A purchase made during the current month remains available through the
+  // end of next month. This starts the first expiry at October 31 for a
+  // September purchase, then continues at every month-end thereafter.
+  const expiresAt = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 2, 1)).toISOString();
   bonuses.sessions = bonuses.sessions && typeof bonuses.sessions === "object" ? bonuses.sessions : {};
-  bonuses.sessions[sessionId] = { userId, amount: bonusTokens, remaining: bonusTokens, expiresAt, grantedAt: new Date().toISOString() };
+  bonuses.sessions[sessionId] = { userId, amount: bonusTokens, remaining: bonusTokens, expiresAt, grantedAt: new Date().toISOString(), expiryVersion: 2 };
   writeJsonFile(AI_TOKEN_PURCHASE_BONUSES_PATH, bonuses);
   await recordAccountTransaction({ userId, category: "ai_tokens", sourceType: "ai_token_purchase_bonus", sourceId: `${sessionId}:bonus`, title: `Purchase bonus: ${bonusTokens.toLocaleString("en-US")} AI tokens`, amountDelta: bonusTokens, unit: "tokens", status: "accepted", note: `Expires ${expiresAt.slice(0, 10)}` });
   return getAITokenBalance(updated);
@@ -8677,7 +8693,7 @@ app.get("/api/leaderboards", async (_req, res) => {
       const userId = String(request?.userId || "");
       if (userId) withdrawals[userId] = (withdrawals[userId] || 0) + Math.max(0, Number(request.amountCents || request.requestedCents || request.amount || 0));
     });
-    const top = (items, key, extra = {}) => items.map((member) => ({ ...member, value: Number(key(member)) || 0, ...extra(member) })).filter((member) => member.value > 0).sort((a, b) => b.value - a.value || a.name.localeCompare(b.name)).slice(0, 25);
+    const top = (items, key, extra = () => ({})) => items.map((member) => ({ ...member, value: Number(key(member)) || 0, ...extra(member) })).filter((member) => member.value > 0).sort((a, b) => b.value - a.value || a.name.localeCompare(b.name)).slice(0, 25);
     return res.json({ ok: true, leaderboards: {
       aiTokens: top(members, (member) => member.aiTokens),
       points: top(members, (member) => member.points),
@@ -10497,6 +10513,7 @@ app.post("/store/confirm-ai-token-checkout", async (req, res) => {
 
     await grantAITokensFromStripeCheckout(session);
     await recordStripeCheckoutPurchase(session);
+    recordVerifiedRewardsPurchase(session);
     const refreshedUser = await getAuthUserById(user.id);
     return res.json({
       ok: true,
@@ -10754,6 +10771,7 @@ app.post("/store/confirm-discord-bot-license-checkout", async (req, res) => {
     if (String(session?.metadata?.appUserId || "") !== String(user.id) || session?.metadata?.productType !== "discord_bot_license" || session?.payment_status !== "paid") return res.status(403).json({ error: "That Discord Bot license purchase is not available." });
     const license = await grantDiscordBotLicense(session);
     await recordStripeCheckoutPurchase(session);
+    recordVerifiedRewardsPurchase(session);
     return res.json({ ok: true, license: { code: license.code, plan: license.plan, expiresAt: license.expiresAt } });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not confirm the Discord Bot license." });

@@ -19,7 +19,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       dailyLogin: 5,
       eligibleToolUse: 2,
       aiGeneration: 2,
-      purchasePerDollar: 25,
+      purchasePerDollar: 100,
       referralSignup: 250,
       referralFirstPurchase: 500,
       streak30: 300,
@@ -46,27 +46,27 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       ai_daily: [{ key: "ai_spark", title: "AI spark", description: "Create one asset in any RBLXTools AI studio.", action: "ai_generation", target: 1, xp: 15 }],
       ai_weekly: [{ key: "ai_ugc", title: "UGC inventor", description: "Generate three original UGC concepts this week.", action: "ai_ugc_generation", target: 3, xp: 75 }, { key: "ai_thumbnail", title: "Thumbnail director", description: "Create three thumbnail concepts this week.", action: "ai_thumbnail_generation", target: 3, xp: 75 }, { key: "ai_tip", title: "Creator support", description: "Tip AI tokens to another AI community creator.", action: "ai_token_tip", target: 1, xp: 50 }],
       ai_monthly: [{ key: "ai_creator", title: "AI creator", description: "Finish 20 AI generations during the month.", action: "ai_generation", target: 20, xp: 300 }],
-      ai_global: [{ key: "ai_community_goal", title: "Creator community goal", description: "Help the entire community create 10,000 AI assets this month. Every active member earns the reward.", action: "ai_generation", target: 10000, xp: 500 }],
+      ai_global: [{ key: "ai_community_goal", title: "Creator community goal", description: "Help the entire community create 10,000 AI assets over this six-month season. Every active member earns the reward.", action: "ai_generation", target: 10000, xp: 500 }],
       ai_milestone: [{ key: "first_ai", title: "First AI asset", description: "Generate your very first AI asset.", action: "ai_generation", target: 1, xp: 25 }, { key: "ai_100", title: "AI collection", description: "Create 100 AI assets across all studios.", action: "ai_generation", target: 100, xp: 500 }],
       community_daily: [{ key: "community_comment", title: "Join the conversation", description: "Leave one constructive community comment today.", action: "community_comment", target: 1, xp: 20 }],
       community_weekly: [{ key: "community_feedback", title: "Share helpful feedback", description: "Publish feedback that helps improve RBLXTools.", action: "community_feedback", target: 1, xp: 60 }, { key: "community_likes", title: "Support creators", description: "Like five posts from fellow creators.", action: "community_like", target: 5, xp: 50 }],
       community_monthly: [{ key: "community_regular", title: "Community regular", description: "Write 12 helpful comments this month.", action: "community_comment", target: 12, xp: 200 }],
-      community_global: [{ key: "community_goal", title: "Community conversation", description: "Reach 25,000 helpful comments together this month. Every active member earns the reward.", action: "community_comment", target: 25000, xp: 350 }],
+      community_global: [{ key: "community_goal", title: "Community conversation", description: "Reach 25,000 helpful comments together over this six-month season. Every active member earns the reward.", action: "community_comment", target: 25000, xp: 350 }],
       community_milestone: [{ key: "community_explorer", title: "Site explorer", description: "Explore five different RBLXTools pages.", action: "site_explore", target: 5, xp: 50 }, { key: "community_supporter", title: "Creator supporter", description: "Tip AI tokens to another creator.", action: "ai_token_tip", target: 1, xp: 50 }],
       tools_daily: [{ key: "tool_daily", title: "Build something", description: "Complete one eligible creator tool action today.", action: "eligible_tool_use", target: 1, xp: 15 }],
       tools_weekly: [{ key: "tool_weekly", title: "Creator momentum", description: "Complete 10 eligible creator tool actions this week.", action: "eligible_tool_use", target: 10, xp: 150 }],
       tools_monthly: [{ key: "tool_monthly", title: "Toolbox regular", description: "Complete 40 eligible tool actions this month.", action: "eligible_tool_use", target: 40, xp: 350 }],
-      tools_global: [{ key: "tool_goal", title: "Tools in action", description: "Complete 50,000 tool actions together this month. Every active member earns the reward.", action: "eligible_tool_use", target: 50000, xp: 500 }],
+      tools_global: [{ key: "tool_goal", title: "Tools in action", description: "Complete 50,000 tool actions together over this six-month season. Every active member earns the reward.", action: "eligible_tool_use", target: 50000, xp: 500 }],
       tools_milestone: [{ key: "tool_100", title: "100 creator tools", description: "Complete 100 eligible creator tool actions.", action: "eligible_tool_use", target: 100, xp: 250 }],
       codes_daily: [{ key: "code_daily", title: "Code scout", description: "Verify or vote on one Roblox game code today.", action: "code_vote", target: 1, xp: 15 }],
       codes_weekly: [{ key: "code_weekly", title: "Code helper", description: "Vote on five Roblox game codes this week.", action: "code_vote", target: 5, xp: 75 }, { key: "code_submit", title: "Code contributor", description: "Submit a working Roblox game code.", action: "code_submit", target: 1, xp: 100 }],
       codes_monthly: [{ key: "code_monthly", title: "Code curator", description: "Help verify 20 codes during the month.", action: "code_vote", target: 20, xp: 250 }],
-      codes_global: [{ key: "code_goal", title: "Codes for everyone", description: "Help verify 30,000 Roblox codes together this month. Every active member earns the reward.", action: "code_vote", target: 30000, xp: 450 }],
+      codes_global: [{ key: "code_goal", title: "Codes for everyone", description: "Help verify 30,000 Roblox codes together over this six-month season. Every active member earns the reward.", action: "code_vote", target: 30000, xp: 450 }],
       codes_milestone: [{ key: "code_first", title: "First code check", description: "Verify your first Roblox game code.", action: "code_vote", target: 1, xp: 25 }],
       payments_daily: [{ key: "payment_daily", title: "First supporter", description: "Make a verified RBLXTools purchase.", action: "purchase", target: 1, xp: 50 }],
       payments_weekly: [{ key: "payment_weekly", title: "Creator upgrade", description: "Complete two verified purchases this week.", action: "purchase", target: 2, xp: 100 }],
       payments_monthly: [{ key: "payment_monthly", title: "Monthly supporter", description: "Complete three verified purchases this month.", action: "purchase", target: 3, xp: 200 }],
-      payments_global: [{ key: "payment_goal", title: "Fund the toolkit", description: "Reach 2,500 verified community purchases together this month. Every active member earns the reward.", action: "purchase", target: 2500, xp: 750 }],
+      payments_global: [{ key: "payment_goal", title: "Fund the toolkit", description: "Reach 2,500 verified community purchases together over this six-month season. Every active member earns the reward.", action: "purchase", target: 2500, xp: 750 }],
       payments_milestone: [{ key: "first_purchase", title: "First purchase", description: "Complete your first verified RBLXTools purchase.", action: "purchase", target: 1, xp: 100 }],
     },
     products: { default: { cashbackEligible: true, cashbackMultiplier: 1, purchaseXpMultiplier: 1 } },
@@ -113,10 +113,12 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     return copy.getUTCFullYear() + "-W" + String(Math.ceil((((copy - yearStart) / 86400000) + 1) / 7)).padStart(2, "0");
   };
   const monthKey = (date = now()) => `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  const halfYearKey = (date = now()) => `${date.getUTCFullYear()}-H${date.getUTCMonth() < 6 ? 1 : 2}`;
   const questPeriod = (kind, date = now()) => {
     if (kind.endsWith("_daily")) return ["daily", utcDay(date)];
     if (kind.endsWith("_weekly")) return ["weekly", weekKey(date)];
-    if (kind.endsWith("_monthly") || kind.endsWith("_global")) return ["monthly", monthKey(date)];
+    if (kind.endsWith("_monthly")) return ["monthly", monthKey(date)];
+    if (kind.endsWith("_global") || kind.endsWith("_milestone")) return ["halfyear", halfYearKey(date)];
     return ["lifetime", "lifetime"];
   };
   const getState = () => {
@@ -128,7 +130,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       config: {
         ...defaults,
         ...savedConfig,
-        xp: { ...defaults.xp, ...(savedConfig.xp || {}) },
+        xp: { ...defaults.xp, ...(savedConfig.xp || {}), purchasePerDollar: defaults.xp.purchasePerDollar },
         limits: { ...defaults.limits, ...(savedConfig.limits || {}) },
         // Rank labels are product copy, so do not preserve obsolete labels from
         // an older runtime state after a deployment changes the rank track.
@@ -184,8 +186,8 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
         const count = quest.action === "streak_days"
           ? Number(member.currentStreak || 0)
           : kind.endsWith("_global")
-            ? state.xpLedger.filter((entry) => entry.action === quest.action && monthKey(new Date(entry.createdAt)) === window).length
-            : eventCount(state, userId, quest.action, (entry) => period === "lifetime" || (period === "daily" ? entry.createdAt.slice(0, 10) === window : period === "weekly" ? weekKey(new Date(entry.createdAt)) === window : monthKey(new Date(entry.createdAt)) === window));
+            ? state.xpLedger.filter((entry) => entry.action === quest.action && halfYearKey(new Date(entry.createdAt)) === window).length
+            : eventCount(state, userId, quest.action, (entry) => period === "lifetime" || (period === "daily" ? entry.createdAt.slice(0, 10) === window : period === "weekly" ? weekKey(new Date(entry.createdAt)) === window : period === "monthly" ? monthKey(new Date(entry.createdAt)) === window : halfYearKey(new Date(entry.createdAt)) === window));
         const recipients = kind.endsWith("_global") ? Object.keys(state.members) : [String(userId)];
         recipients.forEach((recipientId) => {
           const key = `quest:${kind}:${quest.key}:${window}:${recipientId}`;
@@ -334,8 +336,8 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const createQuest = (kind) => (config.quests?.[kind] || []).map((quest) => {
       const [period, window] = questPeriod(kind);
       const amount = quest.action === "streak_days" ? member.currentStreak
-        : kind.endsWith("_global") ? state.xpLedger.filter((entry) => entry.action === quest.action && monthKey(new Date(entry.createdAt)) === window).length
-          : eventCount(state, userId, quest.action, (entry) => period === "lifetime" || (period === "daily" ? entry.createdAt.slice(0, 10) === window : period === "weekly" ? weekKey(new Date(entry.createdAt)) === window : monthKey(new Date(entry.createdAt)) === window));
+        : kind.endsWith("_global") ? state.xpLedger.filter((entry) => entry.action === quest.action && halfYearKey(new Date(entry.createdAt)) === window).length
+          : eventCount(state, userId, quest.action, (entry) => period === "lifetime" || (period === "daily" ? entry.createdAt.slice(0, 10) === window : period === "weekly" ? weekKey(new Date(entry.createdAt)) === window : period === "monthly" ? monthKey(new Date(entry.createdAt)) === window : halfYearKey(new Date(entry.createdAt)) === window));
       const key = `quest:${kind}:${quest.key}:${window}:${String(userId)}`;
       return { ...quest, progress: Math.min(Number(quest.target) || 1, amount), completed: state.xpLedger.some((entry) => entry.sourceKey === key) };
     });
