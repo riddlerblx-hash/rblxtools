@@ -19,9 +19,9 @@
     .hero p { max-width:620px; margin:17px auto 0; color:var(--muted); font-size:15px; font-weight:700; line-height:1.58; }
     .bot-profile { position:relative; display:grid; grid-template-columns:116px minmax(0,1fr) auto; gap:18px; align-items:center; max-width:860px; margin:0 auto 28px; padding:18px 22px; overflow:hidden; border:1px solid rgba(122,162,244,.34); border-radius:22px; background:radial-gradient(circle at 89% 0,rgba(255,77,94,.16),transparent 31%),linear-gradient(135deg,rgba(28,43,70,.97),rgba(10,18,32,.98)); box-shadow:0 22px 56px rgba(0,0,0,.22); }
     .bot-profile::before { position:absolute; top:0; right:0; left:0; height:5px; background:linear-gradient(90deg,#ff4f62,#b02d46 38%,#54e4d9); content:""; }
-    .bot-profile-avatar { position:relative; display:grid; width:94px; height:94px; place-items:center; overflow:hidden; border:4px solid #172640; border-radius:50%; background:#0c1628; box-shadow:0 0 0 1px rgba(126,169,255,.55),0 12px 28px rgba(0,0,0,.36); }
-    .bot-profile-avatar::after { position:absolute; right:4px; bottom:4px; width:17px; height:17px; border:3px solid #172640; border-radius:50%; background:#57f39b; content:""; }
-    .bot-profile-avatar img { width:100%; height:100%; object-fit:cover; }
+    .bot-profile-avatar { position:relative; display:grid; width:94px; height:94px; place-items:center; overflow:visible; background:transparent; }
+    .bot-profile-avatar::after { position:absolute; right:0; bottom:0; z-index:1; width:17px; height:17px; border:3px solid #172640; border-radius:50%; background:#57f39b; box-shadow:0 2px 8px rgba(0,0,0,.35); content:""; }
+    .bot-profile-avatar img { width:100%; height:100%; object-fit:contain; }
     .bot-profile-kicker { margin:0 0 5px; color:#7eece4; font-size:10px; font-weight:900; letter-spacing:1.25px; text-transform:uppercase; }.bot-profile h2 { margin:0; color:#fff; font:900 25px/.98 Arial,sans-serif; letter-spacing:-.045em; }.bot-app { display:inline-block; margin-left:6px; padding:3px 5px; border-radius:5px; color:#fff; background:#5865f2; font-size:9px; font-weight:900; letter-spacing:.05em; vertical-align:middle; }.bot-profile p { margin:8px 0 0; color:#b5c4d9; font-size:12px; font-weight:700; line-height:1.45; }.bot-profile-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }.bot-profile-actions a { display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:0 13px; border:1px solid rgba(128,166,244,.37); border-radius:10px; color:#eaf4ff; background:rgba(69,92,135,.2); font-size:11px; font-weight:900; text-decoration:none; }.bot-profile-actions a:first-child { border-color:rgba(85,230,220,.72); color:#07151c; background:linear-gradient(135deg,#5ae9df,#73a8ff); }.bot-profile-actions a:hover { filter:brightness(1.08); transform:translateY(-1px); }
     .bot-profile-commands { grid-column:1/-1; padding-top:17px; border-top:1px solid rgba(145,181,237,.19); }.bot-profile-commands h3 { margin:0 0 11px; color:#fff; font-size:14px; letter-spacing:-.02em; }.command-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }.command-item { min-width:0; padding:11px; border:1px solid rgba(126,166,237,.17); border-radius:11px; background:rgba(5,13,26,.35); }.command-item code { display:block; overflow:hidden; color:#8cf3e9; font:900 12px/1.2 Consolas,monospace; text-overflow:ellipsis; white-space:nowrap; }.command-item p { margin:6px 0 0; color:#acbdd3; font-size:10px; font-weight:700; line-height:1.38; }
     .store-grid { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.72fr); gap:18px; align-items:stretch; }
@@ -81,14 +81,14 @@
       <div class="bot-profile-actions"><a id="botProfileInvite" href="#">Add to Discord</a></div>
       <div class="bot-profile-commands" aria-labelledby="botCommandsTitle"><h3 id="botCommandsTitle">Commands</h3>
       <div class="command-grid">
-        <article class="command-item"><code>/link code</code><p>Optionally connect your Discord and RBLXTools accounts.</p></article>
+        <article class="command-item"><code>/link</code><p>Optionally connect your Discord and RBLXTools accounts.</p></article>
         <article class="command-item"><code>/verify license</code><p>Activate a purchased license for the current Discord server.</p></article>
         <article class="command-item"><code>/check license</code><p>Privately view the license plan, server, and exact expiry.</p></article>
-        <article class="command-item"><code>/clothing asset-id</code><p>Download a classic Roblox shirt or pants template.</p></article>
-        <article class="command-item"><code>/ugc asset-id</code><p>Download a Roblox UGC item as a textured GLB.</p></article>
-        <article class="command-item"><code>/media asset-id</code><p>Download Roblox media, assets, games, badges, and more.</p></article>
-        <article class="command-item"><code>/audio asset-id</code><p>Download a Roblox audio asset.</p></article>
-        <article class="command-item"><code>/animations asset-id</code><p>Download Roblox animation data.</p></article>
+        <article class="command-item"><code>/clothing</code><p>Download a classic Roblox shirt or pants template.</p></article>
+        <article class="command-item"><code>/ugc</code><p>Download a Roblox UGC item as a textured GLB.</p></article>
+        <article class="command-item"><code>/media</code><p>Download Roblox media, assets, games, badges, and more.</p></article>
+        <article class="command-item"><code>/audio</code><p>Download a Roblox audio asset.</p></article>
+        <article class="command-item"><code>/animations</code><p>Download Roblox animation data.</p></article>
         <article class="command-item"><code>/robux</code><p>Use calculators for tax, DevEx, pricing, splits, goals, and more.</p></article>
         <article class="command-item"><code>/tools</code><p>Show the full RBLXTools command list inside Discord.</p></article>
       </div>

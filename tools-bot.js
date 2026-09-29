@@ -1,4 +1,9 @@
-require("dotenv").config();
+const dotenv = require("dotenv");
+dotenv.config();
+// The public site is served from OpenLiteSpeed's node checkout while the
+// production environment file lives with the app checkout. Keep the bot able
+// to start from either location without duplicating credentials.
+if (process.platform === "linux") dotenv.config({ path: "/root/rblxtools/.env", override: false });
 
 const {
   Client,
@@ -424,6 +429,7 @@ async function main() {
       await clearGlobalCommands(applicationId);
       await Promise.all(Array.from(readyClient.guilds.cache.values()).map((guild) => syncGuildCommands(applicationId, guild)));
       console.log("[tools-bot] command sync complete for application " + applicationId);
+      console.log("[tools-bot] active commands: " + commands.map((command) => "/" + command.name).join(", "));
     } catch (error) { console.error("[tools-bot] command sync failed:", error.message || error); }
   });
   client.on(Events.GuildCreate, (guild) => {
