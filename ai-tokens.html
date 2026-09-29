@@ -37,5 +37,23 @@
       init();
     }());
   </script>
+  <script>
+    (function () {
+      function syncPurchaseXp() {
+        document.querySelectorAll('#packages .package').forEach(function (card) {
+          var price = card.querySelector('.price');
+          if (!price) return;
+          var amount = Number(String(price.textContent || '').replace(/[^0-9.]/g, ''));
+          var xp = Math.max(0, Math.floor(amount * 50));
+          Array.prototype.slice.call(card.querySelectorAll('p')).forEach(function (line) {
+            var desired = 'Earn ' + xp.toLocaleString() + ' XP on purchase';
+            if (/^Earn\s+[\d,]+\s+XP on purchase$/i.test(String(line.textContent || '').trim()) && line.textContent !== desired) line.textContent = desired;
+          });
+        });
+      }
+      new MutationObserver(syncPurchaseXp).observe(document.getElementById('packages'), { childList: true, subtree: true });
+      syncPurchaseXp();
+    }());
+  </script>
 </body>
 </html>

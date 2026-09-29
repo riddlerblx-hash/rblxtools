@@ -1803,7 +1803,7 @@
             var listTotal = Number(annualListPrice && annualListPrice.unitAmount) || 0;
             var savingPercent = listTotal > annualTotal ? Math.round((1 - annualTotal / listTotal) * 100) : 0;
             var selectedPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan][billingInterval];
-            var purchaseXp = Math.max(0, Math.floor((Number(selectedPrice && selectedPrice.unitAmount) || 0) / 100) * 100);
+            var purchaseXp = Math.max(0, Math.floor((Number(selectedPrice && selectedPrice.unitAmount) || 0) / 100 * 50));
             element.textContent = (billingInterval === "year" && savingPercent > 0 ? "Save " + savingPercent + "% · " : "") + "Earn " + purchaseXp.toLocaleString() + " XP on purchase";
             element.style.display = "inline-block";
           });

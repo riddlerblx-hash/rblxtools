@@ -19,7 +19,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       dailyLogin: 5,
       eligibleToolUse: 2,
       aiGeneration: 2,
-      purchasePerDollar: 100,
+      purchasePerDollar: 50,
       referralSignup: 250,
       referralFirstPurchase: 500,
       streak30: 300,
@@ -68,6 +68,22 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       payments_monthly: [{ key: "payment_monthly", title: "Monthly supporter", description: "Complete three verified purchases this month.", action: "purchase", target: 3, xp: 200 }],
       payments_global: [{ key: "payment_goal", title: "Fund the toolkit", description: "Reach 2,500 verified community purchases together over this six-month season. Every active member earns the reward.", action: "purchase", target: 2500, xp: 750 }],
       payments_milestone: [{ key: "first_purchase", title: "First purchase", description: "Complete your first verified RBLXTools purchase.", action: "purchase", target: 1, xp: 100 }],
+      global_global: [
+        { key: "global_ai_assets", title: "AI asset marathon", description: "Create 10,000 AI assets together during this six-month season.", action: "ai_generation", target: 10000, xp: 2500 },
+        { key: "global_tool_uses", title: "Tools in motion", description: "Complete 10,000 eligible creator-tool actions together during this six-month season.", action: "eligible_tool_use", target: 10000, xp: 2500 },
+        { key: "global_purchases", title: "Fund the toolkit", description: "Complete 1,000 verified RBLXTools purchases together during this six-month season.", action: "purchase", target: 1000, xp: 5000 },
+        { key: "global_conversations", title: "Community conversation", description: "Write 1,000 helpful community comments together during this six-month season.", action: "community_comment", target: 1000, xp: 1000 },
+        { key: "global_code_votes", title: "Codes for everyone", description: "Verify 5,000 Roblox game codes together during this six-month season.", action: "code_vote", target: 5000, xp: 1250 },
+        { key: "global_creator_support", title: "Creator support", description: "Send 2,000 AI-token tips to creators together during this six-month season.", action: "ai_token_tip", target: 2000, xp: 1500 },
+      ],
+      milestones_milestone: [
+        { key: "milestone_first_ai", title: "First AI asset", description: "Create your first AI asset this season.", action: "ai_generation", target: 1, xp: 25 },
+        { key: "milestone_ai_collection", title: "AI collection", description: "Create 100 AI assets this season.", action: "ai_generation", target: 100, xp: 500 },
+        { key: "milestone_toolbox", title: "Toolbox builder", description: "Complete 100 eligible creator-tool actions this season.", action: "eligible_tool_use", target: 100, xp: 500 },
+        { key: "milestone_contributor", title: "Community contributor", description: "Leave 50 helpful community comments this season.", action: "community_comment", target: 50, xp: 350 },
+        { key: "milestone_code_helper", title: "Code helper", description: "Verify 100 Roblox game codes this season.", action: "code_vote", target: 100, xp: 400 },
+        { key: "milestone_supporter", title: "Creator supporter", description: "Tip AI tokens to 25 creators this season.", action: "ai_token_tip", target: 25, xp: 600 },
+      ],
     },
     products: { default: { cashbackEligible: true, cashbackMultiplier: 1, purchaseXpMultiplier: 1 } },
   };
@@ -179,7 +195,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const config = state.config;
     const member = memberFor(state, userId);
     const nowDate = now();
-    Object.keys(config.quests || {}).forEach((kind) => {
+    Object.keys(config.quests || {}).filter((kind) => !/_(global|milestone)$/.test(kind) || kind === "global_global" || kind === "milestones_milestone").forEach((kind) => {
       const [period, window] = questPeriod(kind, nowDate);
       (config.quests?.[kind] || []).forEach((quest) => {
         const target = Math.max(1, Number(quest.target) || 1);
