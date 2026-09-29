@@ -26,7 +26,9 @@ const {
   verifyDiscordBotLicense,
 } = require("./discord-bot-entitlements");
 
-const token = String(process.env.RBLXTOOLS_TOOLS_BOT_TOKEN || "").trim();
+// `DISCORD_BOT_TOKEN` is the established production name for this bot.
+// Keep the RBLXTOOLS-prefixed spelling as a backwards-compatible fallback.
+const token = String(process.env.DISCORD_BOT_TOKEN || process.env.RBLXTOOLS_TOOLS_BOT_TOKEN || "").trim();
 const clientId = String(process.env.RBLXTOOLS_TOOLS_DISCORD_CLIENT_ID || "").trim();
 // Keep this app isolated from the existing support bot's Discord server configuration.
 const supabaseUrl = String(process.env.SUPABASE_URL || "").trim().replace(/\/$/, "");
@@ -104,7 +106,7 @@ const commands = [
 
 function assertConfiguration() {
   const missing = [];
-  if (!token) missing.push("RBLXTOOLS_TOOLS_BOT_TOKEN");
+  if (!token) missing.push("DISCORD_BOT_TOKEN");
   if (!supabaseUrl) missing.push("SUPABASE_URL");
   if (!supabaseKey) missing.push("SUPABASE_KEY");
   if (!discordToolsServiceSecret) missing.push("DISCORD_TOOLS_SERVICE_SECRET");
