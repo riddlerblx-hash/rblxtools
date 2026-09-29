@@ -98,7 +98,6 @@ const commands = [
 function assertConfiguration() {
   const missing = [];
   if (!token) missing.push("RBLXTOOLS_TOOLS_BOT_TOKEN");
-  if (!clientId) missing.push("RBLXTOOLS_TOOLS_DISCORD_CLIENT_ID");
   if (!supabaseUrl) missing.push("SUPABASE_URL");
   if (!supabaseKey) missing.push("SUPABASE_KEY");
   if (!discordToolsServiceSecret) missing.push("DISCORD_TOOLS_SERVICE_SECRET");
@@ -305,21 +304,25 @@ async function buildToolDownload(toolName, assetId, mediaType, discordUserId, gu
   throw new Error("That RBLXTools command is not available yet.");
 }
 
-async function clearGlobalCommands() {
+async function clearGlobalCommands(applicationId) {
+  const resolvedApplicationId = String(applicationId || clientId || "").trim();
+  if (!resolvedApplicationId) throw new Error("Discord could not determine this bot application's ID.");
   const rest = new REST({ version: "10" }).setToken(token);
-  await rest.put(Routes.applicationCommands(clientId), { body: [] });
+  await rest.put(Routes.applicationCommands(resolvedApplicationId), { body: [] });
   console.log("[tools-bot] cleared legacy global commands");
 }
 
-async function registerGuildCommands(guildId) {
+async function registerGuildCommands(applicationId, guildId) {
+  const resolvedApplicationId = String(applicationId || clientId || "").trim();
+  if (!resolvedApplicationId) throw new Error("Discord could not determine this bot application's ID.");
   const rest = new REST({ version: "10" }).setToken(token);
-  await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
+  await rest.put(Routes.applicationGuildCommands(resolvedApplicationId, guildId), { body: commands });
   console.log("[tools-bot] registered commands for guild " + guildId);
 }
 
-async function syncGuildCommands(guild) {
+async function syncGuildCommands(applicationId, guild) {
   try {
-    await registerGuildCommands(guild.id);
+    await registerGuildCommands(applicationId, guild.id);
   } catch (error) {
     console.warn("[tools-bot] could not register commands for guild " + guild.id + ":", error.message || error);
   }
@@ -413,16 +416,19 @@ async function handleInteraction(interaction) {
 
 async function main() {
   assertConfiguration();
-  await clearGlobalCommands();
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-  client.once(Events.ClientReady, (readyClient) => {
+  client.once(Events.ClientReady, async (readyClient) => {
     console.log("[tools-bot] ready as " + readyClient.user.tag);
-    readyClient.guilds.cache.forEach((guild) => {
-      syncGuildCommands(guild);
-    });
+    const applicationId = String(readyClient.application?.id || readyClient.user?.id || clientId || "").trim();
+    try {
+      await clearGlobalCommands(applicationId);
+      await Promise.all(Array.from(readyClient.guilds.cache.values()).map((guild) => syncGuildCommands(applicationId, guild)));
+      console.log("[tools-bot] command sync complete for application " + applicationId);
+    } catch (error) { console.error("[tools-bot] command sync failed:", error.message || error); }
   });
   client.on(Events.GuildCreate, (guild) => {
-    syncGuildCommands(guild);
+    const applicationId = String(client.application?.id || client.user?.id || clientId || "").trim();
+    syncGuildCommands(applicationId, guild);
   });
   client.on(Events.InteractionCreate, handleInteraction);
   await client.login(token);
