@@ -48,13 +48,13 @@
     .quick-picks button { min-width:66px; padding:9px 12px; border:1px solid rgba(122,162,244,.27); border-radius:10px; color:#c6d5e9; background:rgba(27,42,69,.78); font:800 11px Arial,sans-serif; cursor:pointer; transition:transform .18s ease,border-color .18s ease,color .18s ease; }
     .quick-picks button:hover,.quick-picks button.is-active { border-color:rgba(85,230,220,.66); color:#eafffd; transform:translateY(-2px); }
     .use-note { margin:30px 0 0; padding:12px 14px; border-left:3px solid var(--aqua); color:#b9cadf; background:rgba(5,16,31,.36); font-size:11px; font-weight:700; line-height:1.48; }
-    .summary { display:flex; flex-direction:column; padding:25px; background:radial-gradient(circle at 77% 0%,rgba(99,141,255,.24),transparent 38%),linear-gradient(155deg,rgba(24,38,66,.98),rgba(9,15,27,.99)); }
+    .summary { position:relative; display:flex; flex-direction:column; padding:25px; background:radial-gradient(circle at 77% 0%,rgba(99,141,255,.24),transparent 38%),linear-gradient(155deg,rgba(24,38,66,.98),rgba(9,15,27,.99)); }
     .summary-kicker { margin:0 0 8px; color:#abc4ff; font-size:10px; font-weight:900; letter-spacing:1px; text-transform:uppercase; }
     .summary #summaryUses { font-size:clamp(29px,3.5vw,43px); }
     .price { margin:27px 0 4px; font-size:clamp(42px,5.7vw,62px); font-weight:900; letter-spacing:-.075em; line-height:.9; }
     .price small { color:#b7c6dd; font-size:18px; letter-spacing:0; }
     .bot-price { display:block; }
-    .server-use { margin:8px 0 24px; color:#a8b7cf; font-size:12px; font-weight:800; }
+    .server-use { margin:8px 0 24px; color:#a8b7cf; font-size:12px; font-weight:800; }.license-xp { position:absolute; top:20px; right:22px; color:#83f4ae; font-size:12px; font-weight:900; letter-spacing:.02em; text-shadow:0 0 14px rgba(87,244,144,.45); animation:licenseXpGlow 2.7s ease-in-out infinite; }@keyframes licenseXpGlow{0%,100%{opacity:.74;transform:translateY(0)}50%{opacity:1;transform:translateY(-1px)}}
     .summary-list { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
     .summary-list li { display:flex; align-items:flex-start; gap:9px; color:#cbd7e8; font-size:12px; font-weight:700; line-height:1.38; }
     .summary-list b { display:grid; width:19px; height:19px; flex:0 0 19px; place-items:center; border-radius:50%; color:#07121b; background:var(--aqua); font-size:12px; }
@@ -95,9 +95,9 @@
       </div>
     </section>
     <section class="store-grid" aria-label="Discord bot licenses" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-      <aside class="summary"><p class="summary-kicker">Weekly</p><h2>7 days</h2><div class="price">$2.50</div><p class="server-use">Fast, flexible access. · Earn 125 XP on purchase</p><button class="checkout" data-license-plan="week" type="button">Choose weekly</button></aside>
-      <aside class="summary"><p class="summary-kicker">Monthly</p><h2>30 days</h2><div class="price">$9.99</div><p class="server-use">Best for most communities. · Earn 499 XP on purchase</p><button class="checkout" data-license-plan="month" type="button">Choose monthly</button></aside>
-      <aside class="summary"><p class="summary-kicker">Annual · 50% off</p><h2>365 days</h2><div class="price">$60 <small><s>$120</s></small></div><p class="server-use">Annual launch price, applied automatically. · Earn 3,000 XP on purchase</p><button class="checkout" data-license-plan="year" type="button">Choose annual</button></aside>
+      <aside class="summary"><span class="license-xp">+125 XP</span><p class="summary-kicker">Weekly</p><h2>7 days</h2><div class="price">$2.50</div><p class="server-use">Fast, flexible access.</p><button class="checkout" data-license-plan="week" type="button">Try Now</button></aside>
+      <aside class="summary"><span class="license-xp">+499 XP</span><p class="summary-kicker">Monthly</p><h2>30 days</h2><div class="price">$9.99</div><p class="server-use">Best for most communities.</p><button class="checkout" data-license-plan="month" type="button">Try Now</button></aside>
+      <aside class="summary"><span class="license-xp">+3,000 XP</span><p class="summary-kicker">Annual · 50% off</p><h2>365 days</h2><div class="price">$60 <small><s>$120</s></small></div><p class="server-use">Annual launch price, applied automatically.</p><button class="checkout" data-license-plan="year" type="button">Try Now</button></aside>
     </section>
     <section class="how"><h2>How licenses work</h2><div class="steps"><article class="step"><span>01</span><h3>Choose access</h3><p>Checkout securely through RBLXTools. The annual discount is already included.</p></article><article class="step"><span>02</span><h3>Receive your key</h3><p>Your bot dashboard shows a unique 16-digit license and exact expiration time.</p></article><article class="step"><span>03</span><h3>Verify with the bot</h3><p>Paste the key into the bot’s license command. Linking a RBLXTools account is optional.</p></article></div></section>
   </div></main>

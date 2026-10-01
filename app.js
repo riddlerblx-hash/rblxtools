@@ -2429,7 +2429,7 @@ function getAIUGCHistoryLimit(membership) {
 function getAITokenGenerationCost(cost, membership) {
   const baseCost = Math.max(1, Number.parseInt(cost, 10) || 1);
   const isPro = Boolean(membership?.premiumActive) && String(membership?.plan || "").toLowerCase() === "pro";
-  return isPro ? Math.max(1, Math.ceil(baseCost * 0.9)) : baseCost;
+  return isPro ? Math.max(1, Math.ceil(baseCost * 0.8)) : baseCost;
 }
 
 function getStripeSubscriptionPlan(subscription) {

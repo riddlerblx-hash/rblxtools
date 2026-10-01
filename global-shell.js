@@ -5589,8 +5589,8 @@
       subtitle: "Monthly membership",
       title: "Pro",
       action: actionLabel || "Try Now",
-      generalPerks: ["Includes All Plus Benefits", "Discord Bot Access", "Bulk Downloads (5-10)", "Premium Giveaways", "Custom Chat Tag"],
-      aiPerks: ["200 AI Credits Every Month", "30 Savable Thumbnail Generations (+27)", "18 Savable AI UGC Slots (+15)", "6 AI Thumbnail References", "All Thumbnail Aspect Ratios", "4K AI Thumbnail Quality", "4K High-Quality AI UGC Textures", "UGC AI PBR Texture Enhancements", "10% Off Your AI Generations"]
+      generalPerks: ["Includes All Plus Benefits", "Discord Bot Access", "Bulk Downloads (5-10)", "Premium Giveaways", "Custom Chat Tag", "Custom affiliate code"],
+      aiPerks: ["200 AI Credits Every Month", "30 Savable Thumbnail Generations (+27)", "18 Savable AI UGC Slots (+15)", "6 AI Thumbnail References", "All Thumbnail Aspect Ratios", "4K AI Thumbnail Quality", "4K High-Quality AI UGC Textures", "UGC AI PBR Texture Enhancements", "20% Off Your AI Generations"]
     } : {
       price: "$1.00",
       subtitle: "Monthly membership",

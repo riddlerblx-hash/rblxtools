@@ -748,19 +748,19 @@
 
     .price-save {
       display: none;
-      width: max-content;
-      max-width: 100%;
-      margin: 7px auto 0;
-      padding: 3px 7px;
-      border: 1px solid rgba(96, 242, 176, 0.42);
-      border-radius: 999px;
-      color: #8effc1;
-      background: rgba(39, 181, 105, 0.12);
-      font-size: 8px;
+      position: absolute;
+      top: 12px;
+      right: 13px;
+      color: #86f7ae;
+      font-size: 10px;
       font-weight: 900;
       letter-spacing: .04em;
       text-transform: uppercase;
+      text-shadow: 0 0 14px rgba(87, 244, 144, .46);
+      animation: purchase-xp-glow 2.7s ease-in-out infinite;
     }
+    .price-box { position: relative; }
+    @keyframes purchase-xp-glow { 0%,100% { opacity:.74; transform:translateY(0); } 50% { opacity:1; transform:translateY(-1px); } }
 
     .section-kicker.free { color: #a6c2ff; }
     .section-kicker.plus { color: #ffaaaa; }
@@ -1587,6 +1587,7 @@
               <li>Bulk Downloads (5-10)</li>
               <li>Premium Giveaways</li>
               <li>Custom Chat Tag</li>
+              <li>Custom affiliate code</li>
               <li class="perk-section-label">AI benefits</li>
               <li id="proTokenBenefit">200 AI Credits Every Month</li>
               <li>30 Savable Thumbnail Generations (+27)</li>
@@ -1596,7 +1597,7 @@
               <li>4K AI Thumbnail Quality</li>
               <li>4K High-Quality AI UGC Textures</li>
               <li>UGC AI PBR Texture Enhancements</li>
-              <li>10% Off Your AI Generations</li>
+              <li>20% Off Your AI Generations</li>
             </ul>
 
             <div class="plus-highlight" style="background: radial-gradient(circle at top right, rgba(255, 190, 78, 0.18), transparent 35%), linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));">
@@ -1804,7 +1805,7 @@
             var savingPercent = listTotal > annualTotal ? Math.round((1 - annualTotal / listTotal) * 100) : 0;
             var selectedPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan][billingInterval];
             var purchaseXp = Math.max(0, Math.floor((Number(selectedPrice && selectedPrice.unitAmount) || 0) / 100 * 50));
-            element.textContent = (billingInterval === "year" && savingPercent > 0 ? "Save " + savingPercent + "% · " : "") + "Earn " + purchaseXp.toLocaleString() + " XP on purchase";
+            element.textContent = "+" + purchaseXp.toLocaleString() + " XP";
             element.style.display = "inline-block";
           });
         }

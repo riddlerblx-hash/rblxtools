@@ -1157,6 +1157,16 @@
       background: linear-gradient(112deg, transparent 42%, rgba(255,212,96,.46) 50%, transparent 58%);
       animation: acctProfileGlare 5.8s ease-in-out infinite;
     }
+    #rbtools-account-overview .acct-card.is-plus .acct-profile-header {
+      border-color: rgba(219, 231, 248, .68);
+      background: linear-gradient(125deg, rgba(25, 36, 56, .97), rgba(131, 151, 181, .5) 48%, rgba(22, 31, 48, .97));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.36), 0 18px 36px rgba(114, 139, 178, .25);
+    }
+    #rbtools-account-overview .acct-card.is-plus .acct-profile-header::after {
+      content: ""; position: absolute; inset: -70% -32%; z-index: 0; pointer-events: none;
+      background: linear-gradient(112deg, transparent 42%, rgba(235,245,255,.48) 50%, transparent 58%);
+      animation: acctProfileGlare 6.4s ease-in-out infinite;
+    }
     #rbtools-account-overview .acct-profile-header .acct-profile,
     #rbtools-account-overview .acct-profile-header .acct-profile-edit { position: relative; z-index: 2; }
     #rbtools-account-overview .acct-public-stats { position:relative;z-index:2;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;width:100%;padding-top:14px;border-top:1px solid rgba(180,205,242,.18); }
@@ -1208,8 +1218,8 @@
     #rbtools-account-overview .acct-profile-line .acct-email, #rbtools-account-overview .acct-profile-line .acct-bio-preview { margin-top:0; flex:1; }
     #rbtools-account-overview .acct-profile-edit { flex:0 0 auto; width:28px; height:28px; display:inline-grid; place-items:center; border:1px solid rgba(125,169,240,.38); border-radius:8px; color:#cfe1ff; background:rgba(45,87,151,.16); font:inherit; font-weight:900; cursor:pointer; }
     #rbtools-account-overview .acct-profile-edit:hover { color:#fff; background:rgba(80,137,224,.34); }
-    #rbtools-account-overview .acct-profile-editor { display:grid; grid-template-columns:1fr; gap:8px; margin-top:10px; padding:10px; border:1px solid rgba(110,154,227,.28); border-radius:12px; background:rgba(8,17,32,.48); }
-    #rbtools-account-overview .acct-profile-editor-actions { display:flex; gap:8px; justify-content:flex-end; }
+    #rbtools-account-overview .acct-profile-inline-input { flex:1; min-width:0; margin:0; }
+    #rbtools-account-overview .acct-profile-inline-input[hidden] { display:none; }
     #rbtools-account-overview .acct-profile-editor-grid { display:grid; grid-template-columns:minmax(210px,.72fr) minmax(0,1fr); gap:16px; align-items:start; }
     #rbtools-account-overview .acct-profile-editor-fields { display:grid; gap:14px; }
     @media (max-width: 680px) { #rbtools-account-overview .acct-profile-editor-grid { grid-template-columns:1fr; } }
@@ -1585,14 +1595,9 @@
                     </button>
 
                     <div>
-                      <div class="acct-profile-line"><h2 class="acct-name"><span id="acctDisplayName">Your</span><span id="acctDisplaySubname"></span></h2><button id="acctEditDisplayNameButton" class="acct-profile-edit" type="button" aria-label="Edit display name">&#9998;</button></div>
+                      <div class="acct-profile-line"><h2 id="acctDisplayNameHeading" class="acct-name"><span id="acctDisplayName">Your</span><span id="acctDisplaySubname"></span></h2><input id="acctInlineDisplayNameInput" class="acct-input acct-profile-inline-input" type="text" maxlength="40" placeholder="Display name" hidden><button id="acctEditDisplayNameButton" class="acct-profile-edit" type="button" aria-label="Edit display name">&#9998;</button></div>
                       <div class="acct-profile-line"><div id="acctEmailTop" class="acct-email">Sign in to load your member account.</div><button id="acctEditEmailTopButton" class="acct-profile-edit" type="button" aria-label="Edit email address">&#9998;</button></div>
-                      <div class="acct-profile-line"><div id="acctBioTop" class="acct-bio-preview is-empty">Add a short bio to tell people a little about this account.</div><button id="acctEditBioButton" class="acct-profile-edit" type="button" aria-label="Edit bio">&#9998;</button></div>
-                      <div id="acctProfileQuickEditor" class="acct-profile-editor" hidden>
-                        <input id="acctQuickDisplayNameInput" class="acct-input" type="text" maxlength="40" placeholder="Display name">
-                        <textarea id="acctQuickBioInput" class="acct-textarea" maxlength="150" placeholder="Short bio"></textarea>
-                        <div class="acct-profile-editor-actions"><button id="acctQuickProfileCancelButton" class="acct-button secondary" type="button">Cancel</button><button id="acctQuickProfileSaveButton" class="acct-button" type="button">Save</button></div>
-                      </div>
+                      <div class="acct-profile-line"><div id="acctBioTop" class="acct-bio-preview is-empty">Add a short bio to tell people a little about this account.</div><textarea id="acctInlineBioInput" class="acct-textarea acct-profile-inline-input" maxlength="150" placeholder="Short bio" hidden></textarea><button id="acctEditBioButton" class="acct-profile-edit" type="button" aria-label="Edit bio">&#9998;</button></div>
                       <div id="acctPlusCosmetic" class="acct-plus-tag hidden">
                         <div class="acct-plus-mark">+</div>
                         <div class="acct-plus-name">Plus Member</div>
@@ -2027,11 +2032,9 @@
         acctEditBioButton: document.getElementById("acctEditBioButton"),
         acctEditEmailTopButton: document.getElementById("acctEditEmailTopButton"),
         acctEditEmailSettingsButton: document.getElementById("acctEditEmailSettingsButton"),
-        acctProfileQuickEditor: document.getElementById("acctProfileQuickEditor"),
-        acctQuickDisplayNameInput: document.getElementById("acctQuickDisplayNameInput"),
-        acctQuickBioInput: document.getElementById("acctQuickBioInput"),
-        acctQuickProfileSaveButton: document.getElementById("acctQuickProfileSaveButton"),
-        acctQuickProfileCancelButton: document.getElementById("acctQuickProfileCancelButton"),
+        acctDisplayNameHeading: document.getElementById("acctDisplayNameHeading"),
+        acctInlineDisplayNameInput: document.getElementById("acctInlineDisplayNameInput"),
+        acctInlineBioInput: document.getElementById("acctInlineBioInput"),
         acctEmail: document.getElementById("acctEmail"),
         acctSettingsEmail: document.getElementById("acctSettingsEmail"),
         acctPlan: document.getElementById("acctPlan"),
@@ -3422,24 +3425,27 @@
         }
       }
 
-      function openQuickProfileEditor(field) {
-        if (!els.acctProfileQuickEditor) return;
-        els.acctQuickDisplayNameInput.value = state.profile.displayName || "";
-        els.acctQuickBioInput.value = state.profile.bio || "";
-        els.acctProfileQuickEditor.hidden = false;
-        window.setTimeout(function () { (field === "bio" ? els.acctQuickBioInput : els.acctQuickDisplayNameInput)?.focus(); }, 0);
-      }
-
-      function closeQuickProfileEditor() {
-        if (els.acctProfileQuickEditor) els.acctProfileQuickEditor.hidden = true;
-      }
-
-      async function saveQuickProfileEditor() {
-        if (!els.acctQuickDisplayNameInput || !els.acctQuickBioInput) return;
-        els.acctDisplayNameInput.value = els.acctQuickDisplayNameInput.value;
-        els.acctBioInput.value = els.acctQuickBioInput.value;
+      async function saveInlineProfileField(field) {
+        var isBio = field === "bio";
+        var input = isBio ? els.acctInlineBioInput : els.acctInlineDisplayNameInput;
+        if (!input || input.hidden) return;
+        if (isBio) els.acctBioInput.value = input.value;
+        else els.acctDisplayNameInput.value = input.value;
+        input.hidden = true;
+        if (isBio) els.acctBioTop.hidden = false;
+        else els.acctDisplayNameHeading.hidden = false;
         await saveProfileChanges();
-        closeQuickProfileEditor();
+      }
+
+      function openInlineProfileField(field) {
+        var isBio = field === "bio";
+        var input = isBio ? els.acctInlineBioInput : els.acctInlineDisplayNameInput;
+        if (!input) return;
+        input.value = isBio ? (state.profile.bio || "") : (state.profile.displayName || "");
+        if (isBio) els.acctBioTop.hidden = true;
+        else els.acctDisplayNameHeading.hidden = true;
+        input.hidden = false;
+        window.setTimeout(function () { input.focus(); input.select(); }, 0);
       }
 
       async function clearProfileChanges() {
@@ -3895,10 +3901,16 @@
       }
       if (els.acctEditEmailTopButton) els.acctEditEmailTopButton.addEventListener("click", openChangeEmailModal);
       if (els.acctEditEmailSettingsButton) els.acctEditEmailSettingsButton.addEventListener("click", openChangeEmailModal);
-      if (els.acctEditDisplayNameButton) els.acctEditDisplayNameButton.addEventListener("click", function () { openQuickProfileEditor("name"); });
-      if (els.acctEditBioButton) els.acctEditBioButton.addEventListener("click", function () { openQuickProfileEditor("bio"); });
-      if (els.acctQuickProfileCancelButton) els.acctQuickProfileCancelButton.addEventListener("click", closeQuickProfileEditor);
-      if (els.acctQuickProfileSaveButton) els.acctQuickProfileSaveButton.addEventListener("click", saveQuickProfileEditor);
+      if (els.acctEditDisplayNameButton) els.acctEditDisplayNameButton.addEventListener("click", function () { openInlineProfileField("name"); });
+      if (els.acctEditBioButton) els.acctEditBioButton.addEventListener("click", function () { openInlineProfileField("bio"); });
+      if (els.acctInlineDisplayNameInput) {
+        els.acctInlineDisplayNameInput.addEventListener("blur", function () { saveInlineProfileField("name"); });
+        els.acctInlineDisplayNameInput.addEventListener("keydown", function (event) { if (event.key === "Enter") { event.preventDefault(); saveInlineProfileField("name"); } if (event.key === "Escape") { els.acctInlineDisplayNameInput.hidden = true; els.acctDisplayNameHeading.hidden = false; } });
+      }
+      if (els.acctInlineBioInput) {
+        els.acctInlineBioInput.addEventListener("blur", function () { saveInlineProfileField("bio"); });
+        els.acctInlineBioInput.addEventListener("keydown", function (event) { if (event.key === "Escape") { els.acctInlineBioInput.hidden = true; els.acctBioTop.hidden = false; } if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); saveInlineProfileField("bio"); } });
+      }
       if (els.acctChangeEmailCancelButton) {
         els.acctChangeEmailCancelButton.addEventListener("click", function () {
           closeChangeEmailModal();
