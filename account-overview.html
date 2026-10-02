@@ -1219,6 +1219,8 @@
     #rbtools-account-overview .acct-profile-edit { flex:0 0 auto; width:28px; height:28px; display:inline-grid; place-items:center; border:1px solid rgba(125,169,240,.38); border-radius:8px; color:#cfe1ff; background:rgba(45,87,151,.16); font:inherit; font-weight:900; cursor:pointer; }
     #rbtools-account-overview .acct-profile-edit:hover { color:#fff; background:rgba(80,137,224,.34); }
     #rbtools-account-overview .acct-profile-inline-input { flex:1; min-width:0; margin:0; }
+    #rbtools-account-overview #acctInlineDisplayNameInput { min-height:34px; height:34px; padding:0 8px; border-radius:8px; font-size:20px; font-weight:900; letter-spacing:-.45px; }
+    #rbtools-account-overview #acctInlineBioInput { min-height:42px; height:42px; padding:6px 8px; border-radius:8px; font-size:12px; font-weight:700; line-height:1.25; resize:none; }
     #rbtools-account-overview .acct-profile-inline-input[hidden] { display:none; }
     #rbtools-account-overview .acct-profile-editor-grid { display:grid; grid-template-columns:minmax(210px,.72fr) minmax(0,1fr); gap:16px; align-items:start; }
     #rbtools-account-overview .acct-profile-editor-fields { display:grid; gap:14px; }
@@ -3444,7 +3446,7 @@
         // Start from the text the member is already looking at.  A new account
         // may be showing its email-derived name even before it has saved one.
         input.value = isBio
-          ? (state.profile.bio || (els.acctBioTop.classList.contains("is-empty") ? "" : els.acctBioTop.textContent.trim()))
+          ? (state.profile.bio || els.acctBioTop.textContent.trim())
           : (state.profile.displayName || els.acctDisplayName.textContent.trim());
         if (isBio) els.acctBioTop.hidden = true;
         else els.acctDisplayNameHeading.hidden = true;
