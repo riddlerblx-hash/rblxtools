@@ -3441,11 +3441,19 @@
         var isBio = field === "bio";
         var input = isBio ? els.acctInlineBioInput : els.acctInlineDisplayNameInput;
         if (!input) return;
-        input.value = isBio ? (state.profile.bio || "") : (state.profile.displayName || "");
+        // Start from the text the member is already looking at.  A new account
+        // may be showing its email-derived name even before it has saved one.
+        input.value = isBio
+          ? (state.profile.bio || (els.acctBioTop.classList.contains("is-empty") ? "" : els.acctBioTop.textContent.trim()))
+          : (state.profile.displayName || els.acctDisplayName.textContent.trim());
         if (isBio) els.acctBioTop.hidden = true;
         else els.acctDisplayNameHeading.hidden = true;
         input.hidden = false;
-        window.setTimeout(function () { input.focus(); input.select(); }, 0);
+        window.setTimeout(function () {
+          input.focus();
+          var end = input.value.length;
+          input.setSelectionRange(end, end);
+        }, 0);
       }
 
       async function clearProfileChanges() {
