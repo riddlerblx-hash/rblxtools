@@ -3291,7 +3291,7 @@ function getEffectiveMembership(row) {
 function buildPublicUser(row) {
   const membership = getEffectiveMembership(row);
   const admin = isAdminUser(row);
-  const rewards = rewardsEngine.getOverview(row.id);
+  const rewards = rewardsEngine.getMemberSummary(row.id);
   return {
     id: row.id,
     email: row.email,
@@ -3993,7 +3993,7 @@ async function buildResolvedPublicUser(row) {
 
   const membership = await resolveMembershipSnapshot(row);
   const admin = isAdminUser(row);
-  const rewards = rewardsEngine.getOverview(row.id);
+  const rewards = rewardsEngine.getMemberSummary(row.id);
   return {
     id: row.id,
     email: row.email,
@@ -7668,7 +7668,7 @@ app.post("/referrals/opt-out", async (req, res) => {
 app.post("/referrals/custom-code", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    const membership = await resolveMembershipSnapshot(user);
+    const membership = getEffectiveMembership(user);
     if (!membership?.premiumActive || String(membership.plan || "").toLowerCase() !== "pro") {
       return res.status(403).json({ error: "An active Pro subscription is required for a custom affiliate code." });
     }
@@ -8662,7 +8662,7 @@ app.post("/api/community-posts/:postId/comments/:commentId", async (req, res) =>
 app.get("/api/community-members/:userId", async (req, res) => {
   try {
     const user = await getAuthUserById(String(req.params.userId || "")); if (!user) return res.status(404).json({ error: "This member is unavailable." });
-    const membership = await resolveMembershipSnapshot(user);
+    const membership = getEffectiveMembership(user);
     return res.json({ ok: true, member: { id: user.id, name: getActionTargetLabel(user), username: cleanText(user.username || user.displayName || user.display_name || user.email?.split("@")[0] || "member", 80).replace(/^@+/, ""), avatarUrl: getCommunityAvatarUrl(user), plan: String(membership?.plan || "free").toLowerCase(), joinedAt: user.created_at || null } });
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member." }); }
 });
@@ -8679,8 +8679,18 @@ app.get("/api/leaderboards", async (_req, res) => {
     // Member-account schemas have evolved between deployments. Fetch server-side
     // and project only the safe fields below so a missing optional column can
     // never make the whole public leaderboard blank.
-    const rows = await supabaseRequest(buildAuthTablePath("?select=*&limit=500"), { timeoutMs: 8000 });
-    const users = Array.isArray(rows) ? rows : [];
+    const [tokenRows, pointRows] = await Promise.all([
+      supabaseRequest(buildAuthTablePath("?select=*&order=ai_token_balance.desc&limit=50"), { timeoutMs: 8000 }),
+      supabaseRequest(buildAuthTablePath("?select=*&order=reward_points.desc&limit=50"), { timeoutMs: 8000 }),
+    ]);
+    let users = Array.from(new Map([...(Array.isArray(tokenRows) ? tokenRows : []), ...(Array.isArray(pointRows) ? pointRows : [])].map((user) => [String(user.id || ""), user])).values()).filter((user) => user && user.id);
+    const xpSummaries = new Map(rewardsEngine.getTopMemberSummaries(50).map((summary) => [summary.userId, summary]));
+    const existingIds = new Set(users.map((user) => String(user.id)));
+    const missingXpIds = Array.from(xpSummaries.keys()).filter((userId) => !existingIds.has(userId));
+    if (missingXpIds.length) {
+      const xpRows = await supabaseRequest(buildAuthTablePath(`?id=in.(${missingXpIds.join(",")})&select=*`), { timeoutMs: 8000 });
+      users = users.concat(Array.isArray(xpRows) ? xpRows : []);
+    }
     const profileNames = readCommunityProfiles();
     const communityState = readAIUGCCommunityState();
     const creatorNames = {};
@@ -8698,8 +8708,7 @@ app.get("/api/leaderboards", async (_req, res) => {
       const profile = profileNames[String(user.id)] || {};
       const metadata = user?.user_metadata || user?.raw_user_meta_data || user?.metadata || {};
       const identityName = cleanText(user?.display_name || user?.displayName || user?.username || user?.name || user?.full_name || user?.fullName || metadata?.display_name || metadata?.displayName || metadata?.username || metadata?.full_name || metadata?.fullName || metadata?.name || profile?.displayName || creatorNames[String(user.id)] || String(user?.email || "").split("@")[0] || "Member", 80) || "Member";
-      let overview = null;
-      try { overview = rewardsEngine.getMemberSummary(user.id); } catch (_error) {}
+      const overview = xpSummaries.get(String(user.id)) || null;
       return {
         id: String(user.id),
         name: identityName,
@@ -8722,7 +8731,7 @@ app.get("/api/leaderboards", async (_req, res) => {
       const userId = String(request?.userId || "");
       if (userId) withdrawals[userId] = (withdrawals[userId] || 0) + Math.max(0, Number(request.amountCents || request.requestedCents || request.amount || 0));
     });
-    const top = (items, key, extra = () => ({})) => items.map((member) => ({ ...member, value: Number(key(member)) || 0, ...extra(member) })).filter((member) => member.value > 0).sort((a, b) => b.value - a.value || a.name.localeCompare(b.name)).slice(0, 25);
+    const top = (items, key, extra = () => ({})) => items.map((member) => ({ ...member, value: Number(key(member)) || 0, ...extra(member) })).filter((member) => member.value > 0).sort((a, b) => b.value - a.value || a.name.localeCompare(b.name)).slice(0, 50);
     const payload = { ok: true, leaderboards: {
       aiTokens: top(members, (member) => member.aiTokens),
       points: top(members, (member) => member.points),
@@ -8742,11 +8751,11 @@ app.get("/api/members/:userId", async (req, res) => {
     const viewer = await getOptionalCommunityUser(req);
     const user = await getAuthUserById(memberId);
     if (!user) return res.status(404).json({ error: "This member is unavailable." });
-    const membership = await resolveMembershipSnapshot(user);
+    const membership = getEffectiveMembership(user);
     // A profile must stay public even if the rewards store is momentarily
     // unavailable during a restart; level display can safely fall back.
     let rewards = null;
-    try { rewards = rewardsEngine.getOverview(user.id); }
+    try { rewards = rewardsEngine.getMemberSummary(user.id); }
     catch (error) { console.warn("Could not load member rewards for profile:", error.message); }
     const member = {
       id: user.id,
@@ -8761,7 +8770,7 @@ app.get("/api/members/:userId", async (req, res) => {
     const communityState = readAIUGCCommunityState();
     const followerIds = Object.keys(communityState.follows?.[memberId] || {});
     const followingIds = Object.keys(communityState.follows || {}).filter((creatorId) => Boolean(communityState.follows?.[creatorId]?.[memberId]));
-    const listedCodes = await codesPlatform.list({ limit: 100, page: 1 }).catch(() => ({ games: [] }));
+    const listedCodes = await codesPlatform.list({ limit: 50, page: 1 }).catch(() => ({ games: [] }));
     const codePosts = (listedCodes.games || []).filter((game) => String(game.authorUserId || "") === memberId).map((game) => ({
       slug: game.slug, name: game.name, icon: game.icon || "", workingCodeCount: Number(game.workingCodeCount || 0), viewCount: Number(game.viewCount || 0), lastUpdated: game.lastUpdated || null,
     }));
@@ -8775,8 +8784,8 @@ app.get("/api/members/:userId", async (req, res) => {
     let codeVotes = 0, codeReports = 0;
     if (SUPABASE_URL && SUPABASE_KEY) {
       const [votes, reports] = await Promise.all([
-        supabaseRequest(`/rest/v1/game_code_votes?voter_user_id=eq.${encodeURIComponent(memberId)}&select=id`).catch(() => []),
-        supabaseRequest(`/rest/v1/game_code_expiry_reports?reporter_user_id=eq.${encodeURIComponent(memberId)}&select=id`).catch(() => []),
+        supabaseRequest(`/rest/v1/game_code_votes?voter_user_id=eq.${encodeURIComponent(memberId)}&select=id&limit=100`, { timeoutMs: 2500 }).catch(() => []),
+        supabaseRequest(`/rest/v1/game_code_expiry_reports?reporter_user_id=eq.${encodeURIComponent(memberId)}&select=id&limit=100`, { timeoutMs: 2500 }).catch(() => []),
       ]);
       codeVotes = Array.isArray(votes) ? votes.length : 0;
       codeReports = Array.isArray(reports) ? reports.length : 0;

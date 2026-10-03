@@ -2659,6 +2659,7 @@
   // Start the two small member lookups while cards/messages are rendered, so a
   // hover can use cached identity and follower data instead of making users wait.
   function warmProfilePreview(profile) {
+    if (profile && profile.skipLookup) return;
     var profileId = String(profile && profile.userId || "");
     if (!profileId) return;
     var headers = getToken() ? { Authorization: 'Bearer ' + getToken() } : {};
@@ -2699,7 +2700,7 @@
     var y = eventOrAnchor && Number.isFinite(eventOrAnchor.clientY) ? eventOrAnchor.clientY : 0;
     if (!x && eventOrAnchor && typeof eventOrAnchor.getBoundingClientRect === "function") { var rect = eventOrAnchor.getBoundingClientRect(); x = rect.right; y = rect.top + (rect.height / 2); }
     positionProfilePreview(x, y);
-    if (profileId && !cachedStats && !profilePreviewStatsCache[profileId + ':loading']) {
+    if (!profile.skipLookup && profileId && !cachedStats && !profilePreviewStatsCache[profileId + ':loading']) {
       profilePreviewStatsCache[profileId + ':loading'] = true;
       fetch('/api/members/' + encodeURIComponent(profileId), { credentials: 'include', headers: getToken() ? { Authorization: 'Bearer ' + getToken() } : {} }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) {
         if (!payload) return;
@@ -2712,7 +2713,7 @@
         }
       }).catch(function () {}).finally(function () { delete profilePreviewStatsCache[profileId + ':loading']; });
     }
-    if (profileId && !savedMember && !profilePreviewMemberCache[profileId + ':loading']) {
+    if (!profile.skipLookup && profileId && !savedMember && !profilePreviewMemberCache[profileId + ':loading']) {
       profilePreviewMemberCache[profileId + ':loading'] = true;
       fetch('/api/community-members/' + encodeURIComponent(profileId), { credentials: 'include', headers: getToken() ? { Authorization: 'Bearer ' + getToken() } : {} })
         .then(function (response) { return response.ok ? response.json() : null; })
