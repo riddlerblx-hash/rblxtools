@@ -2268,13 +2268,13 @@
       Array.prototype.forEach.call(document.querySelectorAll("[data-admin-renewal-preview]"), function (button) {
         button.addEventListener("click", function () {
           try { sessionStorage.setItem("rblxtools_renewal_notice_preview", button.dataset.adminRenewalPreview); } catch (_error) {}
-          window.location.href = "./account-overview";
+          window.location.href = "./";
         });
       });
       Array.prototype.forEach.call(document.querySelectorAll("[data-admin-ui-preview]"), function (button) {
         button.addEventListener("click", function () {
           try { sessionStorage.setItem("rblxtools_admin_ui_preview", button.dataset.adminUiPreview); } catch (_error) {}
-          window.location.href = "./account-overview";
+          window.location.href = "./";
         });
       });
     }());

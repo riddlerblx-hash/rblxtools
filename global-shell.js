@@ -442,6 +442,7 @@
 
   var RENEWAL_NOTICE_PREVIEW_KEY = "rblxtools_renewal_notice_preview";
   var UI_PREVIEW_KEY = "rblxtools_admin_ui_preview";
+  var DAILY_STREAK_CACHE_KEY = "rblxtools_daily_streak_cache";
   function getRenewalNoticePreview() {
     try {
       var preview = String(sessionStorage.getItem(RENEWAL_NOTICE_PREVIEW_KEY) || "").toLowerCase();
@@ -2538,6 +2539,27 @@
     };
   }
 
+  function readDailyStreakCache() {
+    try {
+      var cached = JSON.parse(sessionStorage.getItem(DAILY_STREAK_CACHE_KEY) || "null");
+      var userId = String(shellState.currentUser && shellState.currentUser.id || "");
+      return cached && cached.userId === userId && cached.streak ? cached.streak : null;
+    } catch (_error) { return null; }
+  }
+
+  function writeDailyStreakCache(streak) {
+    try {
+      sessionStorage.setItem(DAILY_STREAK_CACHE_KEY, JSON.stringify({ userId: String(shellState.currentUser && shellState.currentUser.id || ""), streak: streak }));
+    } catch (_error) {}
+  }
+
+  async function loadDailyStreak() {
+    var payload = await authApiRequest("/api/daily-streak", { method: "GET", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
+    var streak = payload && payload.streak || {};
+    writeDailyStreakCache(streak);
+    return streak;
+  }
+
   async function openDailyStreak() {
     var overlay = document.getElementById("rblxDailyStreakOverlay");
     if (!overlay && document.body) {
@@ -2547,16 +2569,14 @@
     // This is a shared-shell overlay. A visible admin control must always open
     // it, even if the background account refresh is still in flight.
     if (!overlay) return;
-    overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open");
-    renderDailyStreak(buildDailyStreakPreview());
-    var loadingStatus = document.getElementById("rblxDailyStreakStatus");
-    if (loadingStatus) loadingStatus.textContent = "Checking your signed-in account…";
+    var cached = readDailyStreakCache();
+    if (cached) { overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open"); renderDailyStreak(cached); }
     try {
-      // Use the exact cookie-authenticated request path used by the rest of
-      // the signed-in shell. Do not send an empty legacy bearer token.
-      var payload = await authApiRequest("/api/daily-streak", { method: "GET", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
-      renderDailyStreak(payload.streak || {});
+      var streak = await loadDailyStreak();
+      if (overlay.hidden) { overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open"); }
+      renderDailyStreak(streak);
     } catch (error) {
+      if (overlay.hidden) { overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open"); }
       var status = document.getElementById("rblxDailyStreakStatus");
       if (status) status.textContent = (error.message === "Missing bearer token." || error.message === "User not found.")
         ? "Your sign-in session needs a refresh. Please sign out and sign back in."
@@ -2572,6 +2592,7 @@
     if (status) status.textContent = "Claiming your reward…";
     try {
       var payload = await authApiRequest("/api/daily-streak/claim", { method: "POST", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
+      writeDailyStreakCache(payload.streak || {});
       renderDailyStreak(payload.streak || {});
       if (status) status.textContent = "Claimed " + ["+" + Number(payload.reward?.xp || 0).toLocaleString() + " XP", payload.benefit].filter(Boolean).join(" and ") + ". It is in your notifications too.";
       refreshCommunityNotifications();
@@ -2605,6 +2626,7 @@
       var payload = await authApiRequest("/store/confirm-streak-restore-checkout", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() }, body: JSON.stringify({ sessionId: sessionId }) });
       if (window.history && window.history.replaceState) window.history.replaceState({}, document.title, window.location.pathname);
       await openDailyStreak();
+      writeDailyStreakCache(payload.streak || {});
       renderDailyStreak(payload.streak || {});
     } catch (_error) {}
   }
@@ -2617,13 +2639,13 @@
     });
     window.setTimeout(function () {
       if (!shellState.currentUser || !shellState.currentUser.loggedIn) return;
-      authApiRequest("/api/daily-streak", { method: "GET", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } }).then(function (payload) {
-        if (payload && payload.streak && payload.streak.streakLost) {
+      loadDailyStreak().then(function (streak) {
+        if (streak && streak.streakLost) {
           openDailyStreak();
         }
       }).catch(function () {});
       confirmStreakRestoreFromUrl();
-    }, 900);
+    }, 0);
   }
 
   function bindDailyStreakTrigger() {
