@@ -481,7 +481,7 @@
     if (preview === "daily-streak") { openDailyStreakPreview(); return; }
     if (preview === "retention") { openNoRenewalPreview(); return; }
     if (preview === "checkout") { window.location.assign("./checkout?item=plus&billing=month&admin_preview=1"); return; }
-    if (preview === "checkout-success") { openCheckoutSuccessModal({ itemName: "RBLXTools Plus", amountTotalFormatted: "$1.00", premiumActive: true }); return; }
+    if (preview === "checkout-success") { window.location.assign("./purchase-success?admin_preview=1"); return; }
     if (preview === "reward") { showMemberReward({ id: "admin-preview", title: "Creator reward", rewardType: "tokens", amount: 100, note: "This is a preview of the member reward experience.", claimDelayMs: 0 }); }
   }
 
