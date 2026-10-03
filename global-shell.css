@@ -2979,7 +2979,7 @@ body.rblx-shell-modal-open {
 
 .rblx-shell-checkout-confetti-piece {
   position: absolute;
-  top: -12%;
+  top: 0;
   left: var(--confetti-left);
   width: var(--confetti-size);
   height: calc(var(--confetti-size) * 1.6);

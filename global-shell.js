@@ -481,7 +481,7 @@
     if (preview === "daily-streak") { openDailyStreakPreview(); return; }
     if (preview === "retention") { openNoRenewalPreview(); return; }
     if (preview === "checkout") { window.location.assign("./checkout?item=plus&billing=month&admin_preview=1"); return; }
-    if (preview === "checkout-success") { openCheckoutSuccessModal({ itemName: "RBLXTools Plus", amountTotalFormatted: "$1.00", premiumActive: true, successCopy: "Thank you for your purchase! Plus is active and ready to use." }); return; }
+    if (preview === "checkout-success") { openCheckoutSuccessModal({ itemName: "RBLXTools Plus", amountTotalFormatted: "$1.00", premiumActive: true }); return; }
     if (preview === "reward") { showMemberReward({ id: "admin-preview", title: "Creator reward", rewardType: "tokens", amount: 100, note: "This is a preview of the member reward experience.", claimDelayMs: 0 }); }
   }
 
@@ -2103,14 +2103,11 @@
         '<div class="rblx-shell-checkout-overlay" id="rblxShellCheckoutOverlay" aria-hidden="true">' +
           '<div class="rblx-shell-checkout-modal" id="rblxShellCheckoutModal" role="dialog" aria-modal="true" aria-labelledby="rblxShellCheckoutTitle">' +
             '<div class="rblx-shell-checkout-confetti" aria-hidden="true">' + buildCheckoutConfetti() + '</div>' +
-            '<div class="rblx-shell-checkout-kicker">Purchase Successful</div>' +
-            '<h3 class="rblx-shell-checkout-title" id="rblxShellCheckoutTitle">Thanks for supporting RBLXTools</h3>' +
-            '<p class="rblx-shell-checkout-copy" id="rblxShellCheckoutCopy">Your order went through and your account is being updated now.</p>' +
+            '<h3 class="rblx-shell-checkout-title" id="rblxShellCheckoutTitle">Thanks for shopping on RBLXTools</h3>' +
             '<div class="rblx-shell-checkout-grid">' +
               '<div class="rblx-shell-checkout-row"><span>Purchased</span><strong id="rblxShellCheckoutItem">RBTools Plus</strong></div>' +
               '<div class="rblx-shell-checkout-row"><span>Charged</span><strong id="rblxShellCheckoutAmount">$0.00</strong></div>' +
             '</div>' +
-            '<div class="rblx-shell-checkout-thankyou">Thank you for supporting the tools, updates, and everything we are building next.</div>' +
             '<button class="rblx-shell-btn is-primary rblx-shell-checkout-button" type="button" id="rblxShellCheckoutClose" disabled>Back To Account (10)</button>' +
           '</div>' +
           buildModalAdRailsMarkup() +
