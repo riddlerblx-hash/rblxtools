@@ -453,7 +453,16 @@
   function runAdminUiPreview() {
     if (!shellState.isAdmin) return;
     var preview = "";
-    try { preview = String(sessionStorage.getItem(UI_PREVIEW_KEY) || ""); sessionStorage.removeItem(UI_PREVIEW_KEY); } catch (_error) { return; }
+    try { preview = String(sessionStorage.getItem(UI_PREVIEW_KEY) || ""); sessionStorage.removeItem(UI_PREVIEW_KEY); } catch (_error) {}
+    try {
+      var previewUrl = new URL(window.location.href);
+      var previewFromUrl = String(previewUrl.searchParams.get("admin_ui_preview") || "");
+      if (previewFromUrl) {
+        preview = previewFromUrl;
+        previewUrl.searchParams.delete("admin_ui_preview");
+        if (window.history && window.history.replaceState) window.history.replaceState({}, document.title, previewUrl.pathname + previewUrl.search + previewUrl.hash);
+      }
+    } catch (_error) {}
     if (!preview) return;
     if (preview === "renewal-upcoming" || preview === "renewal-overdue") {
       try { sessionStorage.setItem(RENEWAL_NOTICE_PREVIEW_KEY, preview === "renewal-upcoming" ? "upcoming" : "overdue"); } catch (_error) {}

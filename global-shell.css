@@ -678,8 +678,8 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   /* Keep a visible seam below the fixed header; this prevents the notice from
      reading as though it is tucked behind the navigation bar. */
   top: calc(var(--shell-header-height) + 10px);
-  left: var(--shell-left-width);
-  right: var(--shell-right-width);
+  left: calc(var(--shell-left-width) + 12px);
+  right: calc(var(--shell-right-width) + 12px);
   display: flex;
   align-items: center;
   justify-content: space-between;
