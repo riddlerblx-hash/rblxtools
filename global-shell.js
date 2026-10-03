@@ -2517,7 +2517,7 @@
     if (multiplierValue) multiplierValue.textContent = multiplier.toFixed(1).replace(".0", "") + "×";
     if (multiplierPlan) multiplierPlan.textContent = "Applies to XP, RBLX Points & AI Tokens only";
     track.innerHTML = (streak.window || []).map(function (item, index) {
-      var isToday = index === 0, claimed = Boolean(streak.claimedToday && isToday);
+      var isToday = Number(item.day) === Number(streak.activeDay || item.day), claimed = Array.isArray(streak.claimedDays) ? streak.claimedDays.indexOf(item.day) !== -1 : Boolean(streak.claimedToday && isToday);
       return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + '"><span>Day ' + item.day + '</span><b>' + (item.bonus ? dailyBonusLabel(item.bonus) : ('+' + Number(item.xp || 0).toLocaleString() + ' XP')) + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small><i>' + (claimed ? '✓' : String(index + 1)) + '</i></article>';
     }).join("");
     claim.disabled = lost ? false : !streak.available;

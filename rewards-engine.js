@@ -285,16 +285,23 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const state = getState();
     const member = memberFor(state, userId);
     const { today } = normalizeDailyStreak(member);
-    const reward = getDailyReward(member, membershipMultiplier);
+    const claimedToday = member.lastDailyRewardDate === today;
+    // Keep the full current 14-day page visible. Before a member claims
+    // today, the highlighted reward is the next day; after claiming, it is
+    // the day just earned, with every earlier day still shown as completed.
+    const activeDay = claimedToday
+      ? Math.max(1, Number(member.currentStreak) || 1)
+      : Math.max(1, (Number(member.currentStreak) || 0) + 1);
+    const reward = getDailyReward({ currentStreak: activeDay }, membershipMultiplier);
     saveState(state);
-    const startDay = reward.day;
+    const startDay = Math.floor((activeDay - 1) / 14) * 14 + 1;
     const window = Array.from({ length: 14 }, (_, index) => {
       const calendarDay = ((startDay - 1 + index) % 365) + 1;
       const baseXp = DAILY_STREAK_XP[calendarDay - 1] || 0;
       const rawBonus = DAILY_STREAK_BONUS_BY_DAY[calendarDay] || null;
       return { day: calendarDay, xp: Math.round(baseXp * reward.multiplier), baseXp, bonus: rawBonus ? { ...rawBonus, amount: (rawBonus.type === "p" || rawBonus.type === "t") ? Math.round(rawBonus.amount * reward.multiplier) : rawBonus.amount } : null };
     });
-    return { ...reward, window, currentStreak: member.currentStreak || 0, longestStreak: member.longestStreak || 0, streakLost: Boolean(member.lostStreak && member.streakLostAt), lostStreak: Math.max(0, Number(member.lostStreak) || 0), available: member.lastDailyRewardDate !== today, claimedToday: member.lastDailyRewardDate === today };
+    return { ...reward, window, activeDay, claimedDays: window.filter((item) => item.day <= (Number(member.currentStreak) || 0)).map((item) => item.day), currentStreak: member.currentStreak || 0, longestStreak: member.longestStreak || 0, streakLost: Boolean(member.lostStreak && member.streakLostAt), lostStreak: Math.max(0, Number(member.lostStreak) || 0), available: !claimedToday, claimedToday };
   }
 
   function claimDailyStreak(userId, membershipMultiplier = 1) {
