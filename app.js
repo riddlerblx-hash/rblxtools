@@ -1875,15 +1875,27 @@ function getTodayDate() {
 }
 
 async function supabaseRequest(path, options = {}) {
-  const res = await fetch(`${SUPABASE_URL}${path}`, {
-    ...options,
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
+  const { timeoutMs = 15000, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Math.max(1000, Number(timeoutMs) || 15000));
+  let res;
+  try {
+    res = await fetch(`${SUPABASE_URL}${path}`, {
+      ...fetchOptions,
+      signal: controller.signal,
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        ...(fetchOptions.headers || {}),
+      },
+    });
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error("Supabase request timed out.");
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const text = await res.text();
@@ -8655,15 +8667,19 @@ app.get("/api/community-members/:userId", async (req, res) => {
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member." }); }
 });
 
+let leaderboardCache = null;
+let leaderboardCacheExpiresAt = 0;
+
 app.get("/api/leaderboards", async (_req, res) => {
   try {
     res.setHeader("Cache-Control", "no-store, private, max-age=0");
+    if (leaderboardCache && Date.now() < leaderboardCacheExpiresAt) return res.json(leaderboardCache);
     // Only public-facing columns are read here. A leaderboard must never expose
     // email addresses, plan data, billing details, or any account identifiers.
     // Member-account schemas have evolved between deployments. Fetch server-side
     // and project only the safe fields below so a missing optional column can
     // never make the whole public leaderboard blank.
-    const rows = await supabaseRequest(buildAuthTablePath("?select=*&limit=500"));
+    const rows = await supabaseRequest(buildAuthTablePath("?select=*&limit=500"), { timeoutMs: 8000 });
     const users = Array.isArray(rows) ? rows : [];
     const profileNames = readCommunityProfiles();
     const communityState = readAIUGCCommunityState();
@@ -8683,7 +8699,7 @@ app.get("/api/leaderboards", async (_req, res) => {
       const metadata = user?.user_metadata || user?.raw_user_meta_data || user?.metadata || {};
       const identityName = cleanText(user?.display_name || user?.displayName || user?.username || user?.name || user?.full_name || user?.fullName || metadata?.display_name || metadata?.displayName || metadata?.username || metadata?.full_name || metadata?.fullName || metadata?.name || profile?.displayName || creatorNames[String(user.id)] || String(user?.email || "").split("@")[0] || "Member", 80) || "Member";
       let overview = null;
-      try { overview = rewardsEngine.getOverview(user.id); } catch (_error) {}
+      try { overview = rewardsEngine.getMemberSummary(user.id); } catch (_error) {}
       return {
         id: String(user.id),
         name: identityName,
@@ -8707,13 +8723,16 @@ app.get("/api/leaderboards", async (_req, res) => {
       if (userId) withdrawals[userId] = (withdrawals[userId] || 0) + Math.max(0, Number(request.amountCents || request.requestedCents || request.amount || 0));
     });
     const top = (items, key, extra = () => ({})) => items.map((member) => ({ ...member, value: Number(key(member)) || 0, ...extra(member) })).filter((member) => member.value > 0).sort((a, b) => b.value - a.value || a.name.localeCompare(b.name)).slice(0, 25);
-    return res.json({ ok: true, leaderboards: {
+    const payload = { ok: true, leaderboards: {
       aiTokens: top(members, (member) => member.aiTokens),
       points: top(members, (member) => member.points),
       withdrawals: top(members, (member) => withdrawals[member.id] || 0),
       xp: top(members, (member) => member.xp, (member) => ({ level: member.level })),
       tokensTipped: top(members, (member) => tipTotals[member.id] || 0),
-    } });
+    } };
+    leaderboardCache = payload;
+    leaderboardCacheExpiresAt = Date.now() + 15000;
+    return res.json(payload);
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load leaderboards." }); }
 });
 
