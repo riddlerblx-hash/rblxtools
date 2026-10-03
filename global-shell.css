@@ -675,7 +675,9 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   position: fixed;
   /* Above page work, but below the fixed header and every header menu. */
   z-index: 25;
-  top: var(--shell-header-height);
+  /* Keep a visible seam below the fixed header; this prevents the notice from
+     reading as though it is tucked behind the navigation bar. */
+  top: calc(var(--shell-header-height) + 10px);
   left: var(--shell-left-width);
   right: var(--shell-right-width);
   display: flex;
@@ -696,7 +698,23 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   line-height: 1.35;
 }
 .rblx-shell-renewal-notice[hidden] { display: none !important; }
-body:has(.rblx-shell-renewal-notice:not([hidden])) .rblx-shell-center { padding-top: 82px; }
+body:has(.rblx-shell-renewal-notice:not([hidden])) .rblx-shell-center { padding-top: 92px; }
+.rblx-adsterra-slot,
+.rblx-adsterra-unit,
+.rblx-shell-modal-ad-rail,
+.rblx-shell-banner-ad,
+.rblx-shell-sidebar-ad,
+[data-rblx-modal-ad],
+[data-rblx-banner-ad],
+[data-rblx-vertical-ad],
+[data-rblx-promo-box-ad],
+[data-rblx-horizontal-ad-slot],
+.community-rail-ad,
+.code-horizontal-ad,
+.rblx-token-promo-ad,
+.rblx-home-mobile-banner-ad-slot,
+.rblx-tool-banner-ad-slot,
+[data-rblx-ad-slot] { display: none !important; }
 .rblx-shell-renewal-notice > div { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; }
 .rblx-shell-renewal-notice a,
 .rblx-shell-renewal-notice button {

@@ -2751,18 +2751,22 @@ function buildMemberReward(reward, now = Date.now()) {
     note: String(reward.note || ""),
     rewardType: String(reward.rewardType || "plus"),
     amount: Math.max(0, Number(reward.amount) || 0),
+    presentation: reward.presentation === "robux_checkout" ? "robux_checkout" : "gift",
+    productName: String(reward.productName || reward.title || "RBLXTools purchase"),
     availableAt: reward.availableAt || null,
     claimDelayMs: Math.max(0, Date.parse(reward.availableAt || "") - now),
   };
 }
 
-function createMemberReward({ userId, title, note, rewardType, amount, adminUser }) {
+function createMemberReward({ userId, title, note, rewardType, amount, adminUser, presentation, productName }) {
   const state = readMemberRewards();
   const reward = {
     id: randomUUID(), userId: String(userId || ""),
     title: cleanText(title, 100) || "You've received a RBLXTools reward!",
     note: cleanText(note, 500), rewardType: rewardType === "pro" ? "pro" : rewardType === "tokens" ? "tokens" : "plus",
     amount: Math.max(0, Number(amount) || 0), createdAt: new Date().toISOString(),
+    presentation: presentation === "robux_checkout" ? "robux_checkout" : "gift",
+    productName: cleanText(productName, 100) || cleanText(title, 100) || "RBLXTools purchase",
     availableAt: null, claimedAt: null, adminUserId: String(adminUser?.id || ""),
   };
   state.rewards.push(reward);
@@ -9751,10 +9755,14 @@ app.post("/admin/grant-plus", async (req, res) => {
     }
 
     const grantSource = normalizeMembershipGrantSource(req.body?.grantSource);
+    const rewardTitle = cleanText(req.body?.title, 100);
+    if (grantSource === "complimentary" && !rewardTitle) {
+      return res.status(400).json({ error: "A reward title is required for a complimentary grant." });
+    }
     const grantResult = await grantComplimentaryPlusToUser(targetUser.id, days, grantSource);
     const updatedUser = grantResult.user;
     await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: grantSource === "complimentary" ? "complimentary_plus" : "robux_purchase_plus", note, expiresAt: grantResult.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
-    const reward = createMemberReward({ userId: targetUser.id, title: req.body?.title, note, rewardType: "plus", amount: grantResult.days, adminUser });
+    const reward = createMemberReward({ userId: targetUser.id, title: rewardTitle || "RBLXTools Plus", note, rewardType: "plus", amount: grantResult.days, adminUser, presentation: grantSource === "robux" ? "robux_checkout" : "gift", productName: rewardTitle || "RBLXTools Plus · " + grantResult.days + " days" });
 
     console.log(
       "[ADMIN GRANT PLUS]",
@@ -10421,9 +10429,11 @@ app.post("/admin/grant-pro", async (req, res) => {
     if (!targetUser) return res.status(404).json({ error: "No member account was found for that Pro grant." });
     if (!note) return res.status(400).json({ error: "A note is required before Pro access can be granted." });
     const grantSource = normalizeMembershipGrantSource(req.body?.grantSource);
+    const rewardTitle = cleanText(req.body?.title, 100);
+    if (grantSource === "complimentary" && !rewardTitle) return res.status(400).json({ error: "A reward title is required for a complimentary grant." });
     const grantResult = await grantComplimentaryProToUser(targetUser.id, days, grantSource);
     await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: grantSource === "complimentary" ? "complimentary_pro" : "robux_purchase_pro", note, expiresAt: grantResult.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
-    const reward = createMemberReward({ userId: targetUser.id, title: req.body?.title, note, rewardType: "pro", amount: grantResult.days, adminUser });
+    const reward = createMemberReward({ userId: targetUser.id, title: rewardTitle || "RBLXTools Pro", note, rewardType: "pro", amount: grantResult.days, adminUser, presentation: grantSource === "robux" ? "robux_checkout" : "gift", productName: rewardTitle || "RBLXTools Pro · " + grantResult.days + " days" });
     await refreshMembershipStateForConnectedUser(grantResult.user);
     emitToUserInRoom(defaultChatRoom, targetUser.id, "member-reward-ready", reward);
     emitModerationLog(defaultChatRoom, getActionTargetLabel(targetUser) + " received " + grantResult.days + " days of " + (grantSource === "complimentary" ? "complimentary" : "Robux purchase") + " Pro.");

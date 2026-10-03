@@ -2691,7 +2691,7 @@
     var avatarFallback = escapeHtml(profile.avatarText || getInitials(profile.displayName));
     var avatar = profile.avatarUrl ? '<img src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\';"><span class="rblx-shell-profile-preview-avatar-fallback" style="display:none">' + avatarFallback + '</span>' : '<span class="rblx-shell-profile-preview-avatar-fallback">' + avatarFallback + '</span>';
     var cachedStats = profilePreviewStatsCache[profileId];
-    var statsText = cachedStats ? Number(cachedStats.followerCount || 0) + ' followers · ' + Number(cachedStats.followingCount || 0) + ' following' : 'Loading profile…';
+    var statsText = cachedStats ? Number(cachedStats.followerCount || 0) + ' followers · ' + Number(cachedStats.followingCount || 0) + ' following' : (profile.skipLookup ? 'Member profile' : 'Loading profile…');
     preview.className = "rblx-shell-profile-preview is-" + (plan === "pro" || plan === "plus" ? plan : "free");
     preview.dataset.memberId = profileId;
     preview.innerHTML = '<span class="rblx-shell-profile-preview-avatar">' + avatar + '</span><span class="rblx-shell-profile-preview-copy"><strong>' + escapeHtml(profile.displayName || "Member") + '</strong><small class="rblx-shell-profile-preview-stats">' + escapeHtml(statsText) + '</small><small>View profile</small>' + profilePreviewIdMarkup(profileId, Boolean(cachedStats && cachedStats.canViewMemberId)) + '</span>';
@@ -4133,9 +4133,9 @@
       shellState.checkoutSuccessAmount.textContent = amountText;
     }
     if (shellState.checkoutSuccessCopy) {
-      shellState.checkoutSuccessCopy.textContent = plusReady
+      shellState.checkoutSuccessCopy.textContent = detail && detail.successCopy ? String(detail.successCopy) : (plusReady
         ? "Your purchase went through and Plus is already active on this account."
-        : "Your purchase went through and we are finishing your Plus sync now.";
+        : "Your purchase went through and we are finishing your Plus sync now.");
     }
     if (shellState.checkoutSuccessClose) {
       shellState.checkoutSuccessClose.disabled = true;
@@ -4921,6 +4921,11 @@
     mobile: { key: "4f3f88a3c4de39df646d1819202a769b", width: 320, height: 50 }
   };
   function mountAdsterraBanner(host, unit, mountedKey) {
+    // Advertising is intentionally disabled site-wide until the placement is a
+    // verified, paying partnership again. Remove stale hosts as well so they
+    // cannot leave empty ad-sized gaps in page layouts.
+    if (host) host.remove();
+    return;
     if (!host || !unit || host.dataset[mountedKey] === "true") return;
     host.dataset[mountedKey] = "true";
     if (!host.isConnected || !shouldShowMemberAds()) {
@@ -5940,6 +5945,11 @@
     var wait = document.getElementById("rblxShellRewardWait");
     var claim = document.getElementById("rblxShellRewardClaim");
     if (!overlay || !modal || !claim || !reward) return;
+    if (reward.presentation === "robux_checkout") {
+      openCheckoutSuccessModal({ itemName: reward.productName || reward.title || "RBLXTools purchase", amountTotalFormatted: "Paid with Robux", premiumActive: true, successCopy: "Your Robux purchase is complete and the item is active on this account." });
+      fetch(API_BASE + "/member-rewards/claim", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() }, body: JSON.stringify({ rewardId: reward.id }) }).then(function () { refreshMembershipStateFromServer(); }).catch(function () {});
+      return;
+    }
     title.textContent = reward.title || "You've received a RBLXTools reward!";
     value.textContent = getRewardValueLabel(reward);
     note.textContent = reward.note || "Enjoy your reward from the RBLXTools team.";
