@@ -2655,6 +2655,8 @@ body.rblx-shell-modal-open {
 }
 
 .rblx-shell-reward-overlay.is-open { opacity: 1; visibility: visible; pointer-events: auto; }
+.rblx-admin-preview-picker { position:fixed; z-index:10020; top:18px; left:50%; display:flex; align-items:center; gap:9px; transform:translateX(-50%); padding:8px 11px; border:1px solid #5576a5; border-radius:12px; background:rgba(13,24,43,.88); box-shadow:0 12px 30px rgba(0,0,0,.45); color:#c7d9f1; font-size:11px; font-weight:900; backdrop-filter:blur(14px); }
+.rblx-admin-preview-picker select { border:1px solid #5576a5; border-radius:8px; background:#172944; color:#fff; padding:7px 28px 7px 9px; font:800 12px inherit; }
 
 .rblx-shell-reward-modal {
   width: min(520px, calc(100vw - 32px));

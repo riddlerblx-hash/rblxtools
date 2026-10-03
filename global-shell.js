@@ -482,7 +482,23 @@
     if (preview === "retention") { openNoRenewalPreview(); return; }
     if (preview === "checkout") { window.location.assign("./checkout?item=plus&billing=month&admin_preview=1"); return; }
     if (preview === "checkout-success") { window.location.assign("./purchase-success?admin_preview=1"); return; }
-    if (preview === "reward") { showMemberReward({ id: "admin-preview", title: "Creator reward", rewardType: "tokens", amount: 100, note: "This is a preview of the member reward experience.", claimDelayMs: 0 }); }
+    if (preview === "reward") {
+      var rewardChoices = {
+        tokens: { title: "Creator reward", rewardType: "tokens", amount: 100, note: "100 AI Generation Tokens have been added to your account." },
+        plus: { title: "Creator reward", rewardType: "plus", amount: 30, note: "You received 30 days of RBLXTools Plus." },
+        pro: { title: "Creator reward", rewardType: "pro", amount: 30, note: "You received 30 days of RBLXTools Pro." }
+      };
+      var rewardChoice = "tokens";
+      try { rewardChoice = new URL(window.location.href).searchParams.get("preview_product") || rewardChoice; } catch (_error) {}
+      var rewardPreview = rewardChoices[rewardChoice] || rewardChoices.tokens;
+      var picker = document.createElement("label");
+      picker.className = "rblx-admin-preview-picker";
+      picker.innerHTML = 'Preview product <select aria-label="Preview product"><option value="tokens">AI token reward</option><option value="plus">Plus reward</option><option value="pro">Pro reward</option></select>';
+      picker.querySelector("select").value = rewardChoices[rewardChoice] ? rewardChoice : "tokens";
+      picker.querySelector("select").addEventListener("change", function () { window.location.assign("./?admin_ui_preview=reward&preview_product=" + encodeURIComponent(this.value)); });
+      document.body.appendChild(picker);
+      showMemberReward({ id: "admin-preview", title: rewardPreview.title, rewardType: rewardPreview.rewardType, amount: rewardPreview.amount, note: rewardPreview.note, claimDelayMs: 0 });
+    }
   }
 
   function getServerRenewalNoticeSnapshot() {
