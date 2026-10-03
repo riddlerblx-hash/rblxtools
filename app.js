@@ -76,6 +76,12 @@ app.get(["/ai-ugc", "/ai-ugc.html"], (_req, res) => {
 app.get(["/ai-thumbnail-studio", "/ai-thumbnail-studio.html"], (req, res) => {
   return res.redirect(302, "/thumbnail-ai" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
 });
+app.get(["/ai-media", "/ai-media.html"], (req, res) => {
+  return res.redirect(302, "/thumbnail-ai" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
+});
+app.get(["/ai-clothing-templates", "/ai-clothing-templates.html"], (req, res) => {
+  return res.redirect(302, "/ai-clothing-studio" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
+});
 app.get(["/thumbnail-ai", "/thumbnail-ai.html"], (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   // Keep the public route and the folder route on the same chat-studio build.
@@ -2440,8 +2446,12 @@ function getAIUGCHistoryLimit(membership) {
 
 function getAITokenGenerationCost(cost, membership) {
   const baseCost = Math.max(1, Number.parseInt(cost, 10) || 1);
-  const isPro = Boolean(membership?.premiumActive) && String(membership?.plan || "").toLowerCase() === "pro";
-  return isPro ? Math.max(1, Math.ceil(baseCost * 0.8)) : baseCost;
+  const plan = String(membership?.plan || "").toLowerCase();
+  const isPro = Boolean(membership?.premiumActive) && plan === "pro";
+  const isPlus = Boolean(membership?.premiumActive) && plan === "plus";
+  if (isPro) return Math.max(1, Math.ceil(baseCost * 0.8));
+  if (isPlus) return Math.max(1, Math.ceil(baseCost * 0.9));
+  return baseCost;
 }
 
 function getStripeSubscriptionPlan(subscription) {

@@ -266,9 +266,9 @@
     {
       title: "AI Tools",
       items: [
-        { href: "./ai-clothing-studio", label: "AI Clothing Studio", icon: "ai", adminOnly: true },
-        { href: "./ai-ugc", label: "AI UGC Studio", icon: "hat" },
-        { href: "./thumbnail-ai", label: "AI Thumbnail Studio", icon: "spark" }
+        { href: "./ai-clothing-studio", label: "AI Clothing Templates", icon: "ai", adminOnly: true },
+        { href: "./ai-ugc", label: "AI UGC", icon: "hat" },
+        { href: "./ai-media", label: "AI Media", icon: "spark" }
       ]
     },
     {
@@ -2554,14 +2554,14 @@
     var multiplier = Number(streak.multiplier || 1);
     if (multiplierValue) multiplierValue.textContent = multiplier.toFixed(1).replace(".0", "") + "×";
     if (multiplierPlan) multiplierPlan.textContent = "Applies to XP, RBLX Points & AI Tokens only";
-    track.innerHTML = (streak.window || []).map(function (item, index) {
-      var isToday = Number(item.day) === Number(streak.activeDay || item.day), claimed = Array.isArray(streak.claimedDays) ? streak.claimedDays.indexOf(item.day) !== -1 : Boolean(streak.claimedToday && isToday);
-      return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + '"><span>Day ' + item.day + '</span><b>' + (item.bonus ? dailyBonusLabel(item.bonus) : ('+' + Number(item.xp || 0).toLocaleString() + ' XP')) + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small><i>' + (claimed ? '✓' : String(index + 1)) + '</i></article>';
+    track.innerHTML = (streak.window || []).map(function (item) {
+      var day = Number(item.day), activeDay = Number(streak.activeDay || day), isToday = day === activeDay, claimed = !lost && (day < activeDay || (Boolean(streak.claimedToday) && day === activeDay));
+      return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + '"><span>Day ' + item.day + '</span><b>' + (item.bonus ? dailyBonusLabel(item.bonus) : ('+' + Number(item.xp || 0).toLocaleString() + ' XP')) + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small></article>';
     }).join("");
     claim.disabled = lost ? false : !streak.available;
     claim.dataset.restoreStreak = lost ? "true" : "";
     claim.textContent = lost ? "Restore streak · $0.69" : streak.claimedToday ? "Come back tomorrow" : streak.available ? "Claim today’s reward" : "Come back tomorrow";
-    status.textContent = lost ? "You missed a daily check-in and lost your " + Number(streak.lostStreak || 0) + "-day streak. Restore it to continue where you left off." : streak.claimedToday ? "Come back tomorrow to keep your streak going." : streak.available ? "Your daily reward is ready to claim." : "Log in to unlock today’s reward.";
+    status.textContent = lost ? "You missed a daily check-in and lost your " + Number(streak.lostStreak || 0) + "-day streak. Restore it to continue where you left off." : streak.available ? "Your daily reward is ready to claim." : "";
   }
 
   // Keep the modal complete while the account request is resolving. This is
@@ -2722,6 +2722,12 @@
     return '<div class="rblx-header-center"><nav class="rblx-header-nav" aria-label="Primary navigation"><a href="./index">Home</a>' + menu('Tools', [['./template-background-changer', 'Background Changer'], ['./media-downloader', 'Media'], ['./audio-downloader', 'Audio'], ['./robux-calculator', 'Robux Calculator'], ['./animation-spoofer', 'Animations']]) + menu('AI tools', [['./ai-clothing-studio', 'AI Clothing Studio'], ['./ai-ugc', 'AI UGC Studio'], ['./thumbnail-ai', 'AI Thumbnail Studio']]) + '<a class="rblx-header-popular" href="./template-downloader">Clothing <small>Popular</small></a><a class="rblx-header-popular" href="./ugc-downloader">UGC <small>Popular</small></a><a href="./codes">Roblox Codes</a><a href="./discord-bot">Discord Bot</a><a href="./rewards">Rewards</a>' + menu('More', [['./subscriptions', 'Subscriptions'], ['./ai-tokens', 'AI Tokens'], ['./discord-bot', 'Discord Bot'], ['./rewards', 'Rewards'], ['./community', 'Community'], ['./leaderboards', 'Leaderboards']]) + '</nav><form id="rblxHeaderSearch" class="rblx-header-search" role="search" autocomplete="off"><label for="rblxHeaderSearchInput">Search RBLXTools</label><span aria-hidden="true">⌕</span><input id="rblxHeaderSearchInput" type="search" name="q" placeholder="Search pages, codes &amp; posts"><button type="button" aria-label="Clear search" hidden>×</button><div id="rblxHeaderSearchResults" class="rblx-header-search-results" role="listbox" hidden></div></form></div>';
   }
 
+  // Kept close to the initializer so every shell uses the current product names.
+  function buildHeaderNavigationMarkup() {
+    function menu(label, links) { return '<details class="rblx-header-menu"><summary>' + label + '<span>⌄</span></summary><div>' + links.map(function (link) { return '<a href="' + link[0] + '">' + link[1] + '</a>'; }).join('') + '</div></details>'; }
+    return '<div class="rblx-header-center"><nav class="rblx-header-nav" aria-label="Primary navigation"><a href="./index">Home</a>' + menu('Tools', [['./template-background-changer', 'Background Changer'], ['./media-downloader', 'Media'], ['./audio-downloader', 'Audio'], ['./robux-calculator', 'Robux Calculator'], ['./animation-spoofer', 'Animations']]) + menu('AI tools', [['./ai-clothing-studio', 'AI Clothing Templates'], ['./ai-ugc', 'AI UGC'], ['./ai-media', 'AI Media']]) + '<a class="rblx-header-popular" href="./template-downloader">Clothing <small>Popular</small></a><a class="rblx-header-popular" href="./ugc-downloader">UGC <small>Popular</small></a><a href="./codes">Roblox Codes</a><a href="./discord-bot">Discord Bot</a><a href="./rewards">Rewards</a>' + menu('More', [['./subscriptions', 'Subscriptions'], ['./ai-tokens', 'AI Tokens'], ['./discord-bot', 'Discord Bot'], ['./rewards', 'Rewards'], ['./community', 'Community'], ['./leaderboards', 'Leaderboards']]) + '</nav><form id="rblxHeaderSearch" class="rblx-header-search" role="search" autocomplete="off"><label for="rblxHeaderSearchInput">Search RBLXTools</label><span aria-hidden="true">⌕</span><input id="rblxHeaderSearchInput" type="search" name="q" placeholder="Search pages, codes &amp; posts"><button type="button" aria-label="Clear search" hidden>×</button><div id="rblxHeaderSearchResults" class="rblx-header-search-results" role="listbox" hidden></div></form></div>';
+  }
+
   function initHeaderSearch() {
     var form = document.getElementById("rblxHeaderSearch");
     var input = document.getElementById("rblxHeaderSearchInput");
@@ -2784,7 +2790,7 @@
   var profilePreviewRequest = 0;
   function profilePreviewIdMarkup(profileId, allowed) {
     var style = ' style="overflow:hidden;max-width:205px;color:#7f94ae;font-size:8px;font-weight:700;letter-spacing:.015em;text-overflow:ellipsis;white-space:nowrap"';
-    return allowed && profileId ? '<small class="rblx-shell-profile-preview-id"' + style + '>User ID: ' + escapeHtml(profileId) + '</small>' : '<small class="rblx-shell-profile-preview-id"' + style + ' hidden></small>';
+    return profileId ? '<small class="rblx-shell-profile-preview-id"' + style + '>User ID: ' + escapeHtml(profileId) + '</small>' : '<small class="rblx-shell-profile-preview-id"' + style + ' hidden></small>';
   }
   function ensureProfilePreview() {
     if (profilePreview) return profilePreview;
@@ -2842,7 +2848,7 @@
     var statsText = cachedStats ? Number(cachedStats.followerCount || 0) + ' followers · ' + Number(cachedStats.followingCount || 0) + ' following' : (profile.skipLookup ? 'Member profile' : 'Loading profile…');
     preview.className = "rblx-shell-profile-preview is-" + (plan === "pro" || plan === "plus" ? plan : "free");
     preview.dataset.memberId = profileId;
-    preview.innerHTML = '<span class="rblx-shell-profile-preview-avatar">' + avatar + '</span><span class="rblx-shell-profile-preview-copy"><strong>' + escapeHtml(profile.displayName || "Member") + '</strong><small class="rblx-shell-profile-preview-stats">' + escapeHtml(statsText) + '</small><small>View profile</small>' + profilePreviewIdMarkup(profileId, Boolean(cachedStats && cachedStats.canViewMemberId)) + '</span>';
+    preview.innerHTML = '<span class="rblx-shell-profile-preview-avatar">' + avatar + '</span><span class="rblx-shell-profile-preview-copy"><strong>' + escapeHtml(profile.displayName || "Member") + '</strong><small class="rblx-shell-profile-preview-stats">' + escapeHtml(statsText) + '</small><small>View profile</small>' + profilePreviewIdMarkup(profileId, true) + '</span>';
     preview.hidden = false;
     var x = eventOrAnchor && Number.isFinite(eventOrAnchor.clientX) ? eventOrAnchor.clientX : 0;
     var y = eventOrAnchor && Number.isFinite(eventOrAnchor.clientY) ? eventOrAnchor.clientY : 0;
@@ -5744,15 +5750,15 @@
       subtitle: "Monthly membership",
       title: "Pro",
       action: actionLabel || "Try Now",
-      generalPerks: ["Includes All Plus Benefits", "Discord Bot Access", "Bulk Downloads (5-10)", "Premium Giveaways", "Custom Chat Tag", "Custom affiliate code"],
+      generalPerks: ["Includes All Plus Benefits", "Discord Bot Access", "Bulk Downloads (5-10)", "Premium Giveaways", "Custom Chat Tag", "Custom affiliate code", "2× Reward Multiplier"],
       aiPerks: ["200 AI Credits Every Month", "30 Savable Thumbnail Generations (+27)", "18 Savable AI UGC Slots (+15)", "6 AI Thumbnail References", "All Thumbnail Aspect Ratios", "4K AI Thumbnail Quality", "4K High-Quality AI UGC Textures", "UGC AI PBR Texture Enhancements", "20% Off Your AI Generations"]
     } : {
       price: "$1.00",
       subtitle: "Monthly membership",
       title: "Plus",
       action: actionLabel || "Try Now",
-      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "Bulk Downloads (1-5) <span class=\"perk-info rblx-membership-promo-info\" data-rblx-info-tooltip=\"A batch of up to 5 downloads counts as one tool use.\" aria-label=\"More information about bulk downloads\" tabindex=\"0\">!</span>"],
-      aiPerks: ["30 Tokens Every Month", "10 Savable Thumbnail Generations", "8 Savable AI UGC Slots (+5)", "1440p AI Thumbnail Quality"]
+      generalPerks: ["Chat Tag Cosmetic", "Animation Tool", "Bulk Downloads (1-5) <span class=\"perk-info rblx-membership-promo-info\" data-rblx-info-tooltip=\"A batch of up to 5 downloads counts as one tool use.\" aria-label=\"More information about bulk downloads\" tabindex=\"0\">!</span>", "1.5× Reward Multiplier"],
+      aiPerks: ["30 Tokens Every Month", "10 Savable Thumbnail Generations", "8 Savable AI UGC Slots (+5)", "1440p AI Thumbnail Quality", "10% Off Your AI Generations"]
     };
     return [
       '<div class="rblx-membership-promo-floaters ' + (isPro ? 'is-pro' : 'is-plus') + '" aria-hidden="true"><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span><span>' + floatingMark + '</span></div>',

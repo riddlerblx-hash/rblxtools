@@ -5523,3 +5523,6 @@ body.rblx-mobile-shell .rblx-shell-header { grid-template-columns: minmax(0, 1fr
 .rblx-shell-sidebar-ad > .rblx-adsterra-slot { min-height: 250px; align-items: flex-start; }
 .rblx-shell-modal-ad-rail > .rblx-adsterra-slot,
 .community-rail-ad > .rblx-adsterra-slot { min-height: 600px; align-items: flex-start; }
+
+/* The streak pages read left-to-right, and the full-card check overlay is the only claim indicator. */
+.rblx-daily-streak-card:nth-child(8){grid-column:1}.rblx-daily-streak-card:nth-child(9){grid-column:2}.rblx-daily-streak-card:nth-child(10){grid-column:3}.rblx-daily-streak-card:nth-child(11){grid-column:4}.rblx-daily-streak-card:nth-child(12){grid-column:5}.rblx-daily-streak-card:nth-child(13){grid-column:6}.rblx-daily-streak-card:nth-child(14){grid-column:7}.rblx-daily-streak-card i{display:none!important}.rblx-daily-streak-footer p:empty{display:none}
