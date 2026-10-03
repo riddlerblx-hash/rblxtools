@@ -2261,8 +2261,7 @@
       Array.prototype.forEach.call(document.querySelectorAll("[data-admin-ui-preview]"), function (button) {
         button.addEventListener("click", function () {
           var destination = "./?admin_ui_preview=" + encodeURIComponent(button.dataset.adminUiPreview || "");
-          var previewTab = window.open(destination, "_blank", "noopener");
-          if (!previewTab) window.location.href = destination;
+          window.open(destination, "_blank", "noopener");
         });
       });
     }());
