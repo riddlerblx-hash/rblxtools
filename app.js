@@ -13562,6 +13562,46 @@ app.post("/api/daily-streak/claim", async (req, res) => {
   }
 });
 
+// Streak restores are a dedicated one-time purchase. There is deliberately no
+// promotion-code input or discount option on this session.
+app.post("/store/create-streak-restore-checkout", async (req, res) => {
+  try {
+    assertStripeCheckoutConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const current = rewardsEngine.getDailyStreak(user.id, 1);
+    if (!current.streakLost || !current.lostStreak) return res.status(409).json({ error: "There is no lost streak to restore." });
+    const customerParams = await getStripeCheckoutCustomerParams(user);
+    const checkoutSession = await stripeClient.checkout.sessions.create({
+      mode: "payment",
+      ...customerParams,
+      line_items: [{ price_data: { currency: "usd", product_data: { name: "RBLXTools streak restore" }, unit_amount: 69 }, quantity: 1 }],
+      success_url: `${getSanitizedAppBaseUrl()}/rewards?streak_restore=1&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${getSanitizedAppBaseUrl()}/rewards?streak_restore=cancelled`,
+      client_reference_id: user.id,
+      metadata: { appUserId: user.id, purchaseType: "daily_streak_restore", lostStreak: String(current.lostStreak) },
+    });
+    return res.json({ ok: true, url: checkoutSession.url });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not open streak restore checkout." });
+  }
+});
+
+app.post("/store/confirm-streak-restore-checkout", async (req, res) => {
+  try {
+    assertStripePortalConfigured();
+    const user = await requireAuthenticatedUser(req);
+    const sessionId = String(req.body?.sessionId || "").trim();
+    if (!sessionId) return res.status(400).json({ error: "A checkout session ID is required." });
+    const session = await stripeClient.checkout.sessions.retrieve(sessionId);
+    if (String(session?.metadata?.purchaseType || "") !== "daily_streak_restore" || String(session?.metadata?.appUserId || session?.client_reference_id || "") !== user.id) return res.status(403).json({ error: "That streak restore does not belong to this account." });
+    if (String(session?.payment_status || "") !== "paid") return res.status(409).json({ error: "Stripe has not confirmed this payment yet." });
+    const streak = rewardsEngine.restoreDailyStreak(user.id, sessionId);
+    return res.json({ ok: true, streak });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not restore the streak." });
+  }
+});
+
 app.get("/api/rewards/me", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);

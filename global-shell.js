@@ -441,11 +441,34 @@
   }
 
   var RENEWAL_NOTICE_PREVIEW_KEY = "rblxtools_renewal_notice_preview";
+  var UI_PREVIEW_KEY = "rblxtools_admin_ui_preview";
   function getRenewalNoticePreview() {
     try {
       var preview = String(sessionStorage.getItem(RENEWAL_NOTICE_PREVIEW_KEY) || "").toLowerCase();
       return preview === "upcoming" || preview === "overdue" ? preview : "";
     } catch (_error) { return ""; }
+  }
+
+  function runAdminUiPreview() {
+    if (!shellState.isAdmin) return;
+    var preview = "";
+    try { preview = String(sessionStorage.getItem(UI_PREVIEW_KEY) || ""); sessionStorage.removeItem(UI_PREVIEW_KEY); } catch (_error) { return; }
+    if (!preview) return;
+    if (preview === "renewal-upcoming" || preview === "renewal-overdue") {
+      try { sessionStorage.setItem(RENEWAL_NOTICE_PREVIEW_KEY, preview === "renewal-upcoming" ? "upcoming" : "overdue"); } catch (_error) {}
+      renderRenewalNotice(shellState.currentUser || {});
+      return;
+    }
+    if (preview === "login" || preview === "signup" || preview === "plus-gate" || preview === "pro-gate") {
+      openAuthModal({ mode: preview === "signup" ? "signup" : "login", message: preview === "signup" ? "Preview of the sign-up screen." : preview === "login" ? "Preview of the sign-in screen." : "Preview of the " + (preview === "pro-gate" ? "Pro" : "Plus") + " access gate." });
+      return;
+    }
+    if (preview === "daily-streak") { openDailyStreak(); return; }
+    if (preview === "retention") { openRetentionOffer("renewal"); return; }
+    if (preview === "checkout-success") { openCheckoutSuccessModal({ itemName: "RBLXTools Plus", amountTotalFormatted: "$2.50", premiumActive: true }); return; }
+    if (preview === "reward") { showMemberReward({ id: "admin-preview", title: "Creator reward", rewardType: "tokens", amount: 100, note: "This is a preview of the member reward experience.", claimDelayMs: 0 }); }
+    if (preview === "profile") { openProfileModal({}, null); return; }
+    if (preview === "support") { openSupportModal(); }
   }
 
   function getServerRenewalNoticeSnapshot() {
@@ -2472,8 +2495,13 @@
   function renderDailyStreak(streak) {
     var count = document.getElementById("rblxDailyStreakCount"), today = document.getElementById("rblxDailyStreakToday"), multiplierValue = document.getElementById("rblxDailyStreakMultiplierValue"), multiplierPlan = document.getElementById("rblxDailyStreakMultiplierPlan"), track = document.getElementById("rblxDailyStreakTrack"), claim = document.getElementById("rblxDailyStreakClaim"), status = document.getElementById("rblxDailyStreakStatus");
     if (!count || !track) return;
-    count.textContent = String(streak.currentStreak || 0);
-    today.textContent = "+" + Number(streak.xp || 0).toLocaleString() + " XP";
+    var title = document.getElementById("rblxDailyStreakTitle");
+    var lost = Boolean(streak.streakLost && streak.lostStreak);
+    var overlay = document.getElementById("rblxDailyStreakOverlay");
+    if (overlay) overlay.classList.toggle("is-streak-lost", lost);
+    if (title) title.innerHTML = lost ? '<span>Streak</span> Lost ☹' : '<span>Daily</span> Streak';
+    count.textContent = String(lost ? streak.lostStreak : (streak.currentStreak || 0));
+    today.textContent = lost ? "Missed" : "+" + Number(streak.xp || 0).toLocaleString() + " XP";
     var multiplier = Number(streak.multiplier || 1);
     if (multiplierValue) multiplierValue.textContent = multiplier.toFixed(1).replace(".0", "") + "×";
     if (multiplierPlan) multiplierPlan.textContent = "Applies to XP, RBLX Points & AI Tokens only";
@@ -2481,9 +2509,10 @@
       var isToday = index === 0, claimed = Boolean(streak.claimedToday && isToday);
       return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + '"><span>Day ' + item.day + '</span><b>' + (item.bonus ? dailyBonusLabel(item.bonus) : ('+' + Number(item.xp || 0).toLocaleString() + ' XP')) + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small><i>' + (claimed ? '✓' : String(index + 1)) + '</i></article>';
     }).join("");
-    claim.disabled = !streak.available;
-    claim.textContent = streak.claimedToday ? "Come back tomorrow" : streak.available ? "Claim today’s reward" : "Come back tomorrow";
-    status.textContent = streak.claimedToday ? "Come back tomorrow to keep your streak going." : streak.available ? "Your daily reward is ready to claim." : "Log in to unlock today’s reward.";
+    claim.disabled = lost ? false : !streak.available;
+    claim.dataset.restoreStreak = lost ? "true" : "";
+    claim.textContent = lost ? "Restore streak · $0.69" : streak.claimedToday ? "Come back tomorrow" : streak.available ? "Claim today’s reward" : "Come back tomorrow";
+    status.textContent = lost ? "You missed a daily check-in and lost your " + Number(streak.lostStreak || 0) + "-day streak. Restore it to continue where you left off." : streak.claimedToday ? "Come back tomorrow to keep your streak going." : streak.available ? "Your daily reward is ready to claim." : "Log in to unlock today’s reward.";
   }
 
   // Keep the modal complete while the account request is resolving. This is
@@ -2552,12 +2581,48 @@
     }
   }
 
+  async function beginStreakRestoreCheckout() {
+    var claim = document.getElementById("rblxDailyStreakClaim"), status = document.getElementById("rblxDailyStreakStatus");
+    if (!claim) return;
+    claim.disabled = true;
+    if (status) status.textContent = "Opening secure checkout…";
+    try {
+      var payload = await authApiRequest("/store/create-streak-restore-checkout", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() }, body: "{}" });
+      if (!payload || !payload.url) throw new Error("Stripe checkout could not be opened.");
+      window.location.assign(payload.url);
+    } catch (error) {
+      if (status) status.textContent = error.message || "Could not open streak restore checkout.";
+      claim.disabled = false;
+    }
+  }
+
+  async function confirmStreakRestoreFromUrl() {
+    var params; try { params = new URLSearchParams(window.location.search || ""); } catch (_error) { return; }
+    var sessionId = String(params.get("session_id") || "").trim();
+    if (params.get("streak_restore") !== "1" || !sessionId) return;
+    try {
+      var payload = await authApiRequest("/store/confirm-streak-restore-checkout", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() }, body: JSON.stringify({ sessionId: sessionId }) });
+      if (window.history && window.history.replaceState) window.history.replaceState({}, document.title, window.location.pathname);
+      await openDailyStreak();
+      renderDailyStreak(payload.streak || {});
+    } catch (_error) {}
+  }
+
   function initDailyStreak() {
     document.addEventListener("click", function (event) {
       if (event.target.closest("[data-shell-daily-streak]")) openDailyStreak();
-      if (event.target.closest("#rblxDailyStreakClaim")) claimDailyStreak();
+      if (event.target.closest("#rblxDailyStreakClaim")) { var claim=event.target.closest("#rblxDailyStreakClaim"); if (claim && claim.dataset.restoreStreak === "true") beginStreakRestoreCheckout(); else claimDailyStreak(); }
       if (event.target.closest("[data-shell-daily-streak-close]") || event.target.id === "rblxDailyStreakOverlay") { var overlay = document.getElementById("rblxDailyStreakOverlay"); if (overlay) overlay.hidden = true; document.body.classList.remove("rblx-shell-modal-open"); }
     });
+    window.setTimeout(function () {
+      if (!shellState.currentUser || !shellState.currentUser.loggedIn) return;
+      authApiRequest("/api/daily-streak", { method: "GET", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } }).then(function (payload) {
+        if (payload && payload.streak && payload.streak.streakLost) {
+          openDailyStreak();
+        }
+      }).catch(function () {});
+      confirmStreakRestoreFromUrl();
+    }, 900);
   }
 
   function bindDailyStreakTrigger() {
@@ -6019,6 +6084,7 @@
     initHeaderSearch();
     renderRenewalNotice(getServerRenewalNoticeSnapshot() || {});
     applyAdminPreview();
+    runAdminUiPreview();
     document.addEventListener("click", function (event) {
       var button = event.target.closest("[data-shell-admin-preview]");
       if (!button || !shellState.isAdmin) return;

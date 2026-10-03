@@ -851,6 +851,15 @@
       </div>
     </section>
 
+    <section class="admin-card" data-admin-workspace="access">
+      <div class="admin-card-inner">
+        <div class="admin-card-head"><div><h2 class="admin-card-title">UI Preview Lab</h2><p class="admin-card-copy">Open any shared member-facing overlay on your own account for visual testing. These previews never change a member’s plan, rewards, or billing.</p></div></div>
+        <div class="admin-buttons">
+          <button class="admin-btn ghost" type="button" data-admin-ui-preview="login">Login</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="signup">Sign up</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="plus-gate">Plus gate</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="pro-gate">Pro gate</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="renewal-upcoming">Expiry notice</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="renewal-overdue">Overdue notice</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="retention">Not renewing offer</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="reward">Gift reward</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="checkout-success">Checkout success</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="profile">Profile</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="support">Support form</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="daily-streak">Daily streak</button>
+        </div>
+      </div>
+    </section>
+
     <section class="admin-overview" data-admin-workspace="access">
       <div class="admin-card admin-lookup-card">
         <div class="admin-card-inner">
@@ -2259,6 +2268,12 @@
       Array.prototype.forEach.call(document.querySelectorAll("[data-admin-renewal-preview]"), function (button) {
         button.addEventListener("click", function () {
           try { sessionStorage.setItem("rblxtools_renewal_notice_preview", button.dataset.adminRenewalPreview); } catch (_error) {}
+          window.location.href = "./account-overview";
+        });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll("[data-admin-ui-preview]"), function (button) {
+        button.addEventListener("click", function () {
+          try { sessionStorage.setItem("rblxtools_admin_ui_preview", button.dataset.adminUiPreview); } catch (_error) {}
           window.location.href = "./account-overview";
         });
       });

@@ -261,6 +261,8 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     // Before a first claim, background page visits must never create a streak.
     // This also repairs members who were advanced by the legacy login tracker.
     if (!lastClaim) {
+      // Do not repeatedly erase a member's saved loss record: it is used by
+      // the restore-streak checkout and makes a lost streak explainable.
       member.currentStreak = 0;
       member.lastQualifyingActivityDate = null;
       return { today, yesterday };
@@ -268,6 +270,11 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
 
     // A streak only continues when the prior reward was claimed yesterday.
     if (lastClaim !== today && lastClaim !== yesterday) {
+      if (!member.streakLostAt || member.streakLossSourceDate !== lastClaim) {
+        member.lostStreak = Math.max(0, Number(member.currentStreak) || 0);
+        member.streakLostAt = iso();
+        member.streakLossSourceDate = lastClaim;
+      }
       member.currentStreak = 0;
       member.lastQualifyingActivityDate = null;
     }
@@ -287,7 +294,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       const rawBonus = DAILY_STREAK_BONUS_BY_DAY[calendarDay] || null;
       return { day: calendarDay, xp: Math.round(baseXp * reward.multiplier), baseXp, bonus: rawBonus ? { ...rawBonus, amount: (rawBonus.type === "p" || rawBonus.type === "t") ? Math.round(rawBonus.amount * reward.multiplier) : rawBonus.amount } : null };
     });
-    return { ...reward, window, currentStreak: member.currentStreak || 0, longestStreak: member.longestStreak || 0, available: member.lastDailyRewardDate !== today, claimedToday: member.lastDailyRewardDate === today };
+    return { ...reward, window, currentStreak: member.currentStreak || 0, longestStreak: member.longestStreak || 0, streakLost: Boolean(member.lostStreak && member.streakLostAt), lostStreak: Math.max(0, Number(member.lostStreak) || 0), available: member.lastDailyRewardDate !== today, claimedToday: member.lastDailyRewardDate === today };
   }
 
   function claimDailyStreak(userId, membershipMultiplier = 1) {
@@ -298,6 +305,9 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       const error = new Error("Today’s streak reward has already been claimed."); error.statusCode = 409; throw error;
     }
     member.currentStreak = member.lastDailyRewardDate === yesterday ? Math.max(0, Number(member.currentStreak) || 0) + 1 : 1;
+    member.lostStreak = 0;
+    member.streakLostAt = null;
+    member.streakLossSourceDate = null;
     member.longestStreak = Math.max(Number(member.longestStreak) || 0, member.currentStreak);
     member.lastQualifyingActivityDate = today;
     const reward = getDailyReward(member, membershipMultiplier);
@@ -309,6 +319,24 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     completeQuests(state, userId);
     saveState(state);
     return { ...reward, overview: buildOverviewFromState(state, userId) };
+  }
+
+  function restoreDailyStreak(userId, sourceId = "") {
+    const state = getState();
+    const member = memberFor(state, userId);
+    const previous = Math.max(0, Number(member.lostStreak) || 0);
+    if (!previous) { const error = new Error("There is no lost streak to restore."); error.statusCode = 409; throw error; }
+    if (sourceId && member.lastStreakRestoreSourceId === String(sourceId)) return getDailyStreak(userId);
+    member.currentStreak = previous;
+    member.lastDailyRewardDate = utcDay(new Date(now().getTime() - 86400000));
+    member.lastQualifyingActivityDate = member.lastDailyRewardDate;
+    member.lostStreak = 0;
+    member.streakLostAt = null;
+    member.streakLossSourceDate = null;
+    member.lastStreakRestoreSourceId = String(sourceId || randomUUID());
+    member.updatedAt = iso();
+    saveState(state);
+    return getDailyStreak(userId);
   }
 
   function recordPurchase({ userId, sourceId, productType = "default", title, externalPaidCents, paymentIntentId = "", metadata = {} }) {
@@ -396,7 +424,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     }).filter((member) => member.lifetimeXp > 0).sort((a, b) => b.lifetimeXp - a.lifetimeXp).slice(0, Math.max(1, Number(limit) || 50));
   };
 
-  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getMemberSummary, getTopMemberSummaries, getDailyStreak, claimDailyStreak, recordActivity, trackActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
+  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getMemberSummary, getTopMemberSummaries, getDailyStreak, claimDailyStreak, restoreDailyStreak, recordActivity, trackActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
 }
 
 module.exports = { createRewardsEngine };
