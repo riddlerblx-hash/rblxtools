@@ -469,17 +469,21 @@
       renderRenewalNotice(shellState.currentUser || {});
       return;
     }
-    if (preview === "login" || preview === "signup" || preview === "plus-gate" || preview === "pro-gate") {
-      openAuthModal({ mode: preview === "signup" ? "signup" : "login", message: preview === "signup" ? "Preview of the sign-up screen." : preview === "login" ? "Preview of the sign-in screen." : "Preview of the " + (preview === "pro-gate" ? "Pro" : "Plus") + " access gate." });
+    if (preview === "auth") {
+      openAuthModal({ mode: "login", message: "Preview of the sign-in and sign-up screen." });
       return;
     }
-    if (preview === "daily-streak") { openDailyStreak(); return; }
-    if (preview === "retention") { openRetentionOffer("renewal"); return; }
+    if (preview === "membership-gate") {
+      if (window.RBLXToolsMembershipGate && typeof window.RBLXToolsMembershipGate.open === "function") window.RBLXToolsMembershipGate.open({ title: "Plus or Pro required", copy: "Preview of the shared membership access gate." });
+      else openAuthModal({ mode: "login", message: "Preview of the Plus / Pro access gate." });
+      return;
+    }
+    if (preview === "daily-streak") { openDailyStreakPreview(); return; }
+    if (preview === "retention") { openNoRenewalPreview(); return; }
     if (preview === "checkout") { window.location.assign("./checkout?item=plus&billing=month&admin_preview=1"); return; }
     if (preview === "checkout-success") { openCheckoutSuccessModal({ itemName: "RBLXTools Plus", amountTotalFormatted: "$2.50", premiumActive: true }); return; }
     if (preview === "reward") { showMemberReward({ id: "admin-preview", title: "Creator reward", rewardType: "tokens", amount: 100, note: "This is a preview of the member reward experience.", claimDelayMs: 0 }); }
     if (preview === "profile") { openProfileModal({}, null); return; }
-    if (preview === "support") { openSupportModal(); }
   }
 
   function getServerRenewalNoticeSnapshot() {
@@ -550,6 +554,28 @@
     if (!overlay) return;
     overlay.classList.remove("is-open");
     overlay.setAttribute("aria-hidden", "true");
+  }
+
+  function openNoRenewalPreview() {
+    var overlay = document.getElementById("rblxShellRetentionOverlay");
+    var title = document.getElementById("rblxShellRetentionTitle");
+    var copy = document.getElementById("rblxShellRetentionCopy");
+    var price = document.getElementById("rblxShellRetentionPrice");
+    var accept = document.getElementById("rblxShellRetentionAccept");
+    var decline = document.getElementById("rblxShellRetentionDecline");
+    var notInterested = document.getElementById("rblxShellRetentionNotInterested");
+    if (!overlay || !title || !copy || !price || !accept || !decline || !notInterested) return;
+    title.textContent = "No renewal offer available";
+    copy.textContent = "This is a preview of the state shown when no renewal offer is available for a membership.";
+    price.textContent = "";
+    accept.hidden = true;
+    notInterested.hidden = true;
+    decline.hidden = false;
+    decline.disabled = false;
+    decline.dataset.retentionDone = "true";
+    decline.textContent = "Close preview";
+    overlay.classList.add("is-open");
+    overlay.setAttribute("aria-hidden", "false");
   }
 
   function formatRetentionMoney(amount, currency) {
@@ -2546,6 +2572,19 @@
         return { day: day, xp: xp, bonus: previewBonuses[day] || null };
       })
     };
+  }
+
+  function openDailyStreakPreview() {
+    var overlay = document.getElementById("rblxDailyStreakOverlay");
+    if (!overlay) return;
+    var preview = buildDailyStreakPreview();
+    preview.activeDay = 1;
+    preview.claimedDays = [];
+    overlay.hidden = false;
+    document.body.classList.add("rblx-shell-modal-open");
+    renderDailyStreak(preview);
+    var status = document.getElementById("rblxDailyStreakStatus");
+    if (status) status.textContent = "Admin preview — this does not read or change your streak.";
   }
 
   function readDailyStreakCache() {
@@ -6116,7 +6155,6 @@
     initHeaderSearch();
     renderRenewalNotice(getServerRenewalNoticeSnapshot() || {});
     applyAdminPreview();
-    runAdminUiPreview();
     document.addEventListener("click", function (event) {
       var button = event.target.closest("[data-shell-admin-preview]");
       if (!button || !shellState.isAdmin) return;
@@ -6263,6 +6301,7 @@
     initCheckoutSuccessModal();
     initSupportModal();
     setupAuthModal();
+    runAdminUiPreview();
     initLoginRequiredNavigation();
     document.addEventListener("click", function (event) {
       var mobilePanelBack = event.target && event.target.closest ? event.target.closest("[data-shell-mobile-panel-back]") : null;
