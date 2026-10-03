@@ -330,7 +330,7 @@
           if (!response.ok || !user) throw new Error('Log in to use AI Thumbnail Studio.');
           isAuthenticated = true; cacheCurrentUser(user); configureEntitlements(user); setTokenBalance(user.aiTokens);
           gate.classList.remove('visible'); workspace.hidden = false; loadHistory();
-        } catch (_error) { configureEntitlements(null); setTokenBalance(0); gate.classList.remove('visible'); workspace.hidden = false; setStatus('Browse the studio freely. Log in when you are ready to generate.'); }
+        } catch (_error) { configureEntitlements(null); setTokenBalance(0); gate.classList.remove('visible'); workspace.hidden = false; setStatus(''); }
       }
       verifyAccess();
     }());
