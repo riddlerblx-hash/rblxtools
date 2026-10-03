@@ -458,11 +458,13 @@
         }).join("")
       : '<div class="community-comment-empty">No comments yet.</div>';
 
+    var viewer = getCurrentCommentProfile();
+    var viewerAvatar = viewer.avatarUrl ? '<img src="' + escapeHtml(viewer.avatarUrl) + '" alt="">' : escapeHtml(getInitials(viewer.displayName));
     var composer = isLoggedIn
       ? (
-        '<div class="community-comment-compose">' +
-          '<textarea class="community-comment-input" id="communityCommentInput-' + escapeHtml(post.id) + '" placeholder="Write a comment..."></textarea>' +
-          '<button class="community-comment-submit" type="button" data-community-submit-comment="' + escapeHtml(post.id) + '">Post Comment</button>' +
+        '<div class="community-comment-compose community-comment-compose-shared">' +
+          '<div class="community-comment-compose-entry"><span class="community-comment-compose-avatar">' + viewerAvatar + '</span><textarea class="community-comment-input" id="communityCommentInput-' + escapeHtml(post.id) + '" placeholder="Add a comment..."></textarea></div>' +
+          '<div class="community-comment-compose-actions"><button class="community-comment-cancel" type="button" data-community-cancel-comment="' + escapeHtml(post.id) + '">Cancel</button><button class="community-comment-submit" type="button" data-community-submit-comment="' + escapeHtml(post.id) + '">Comment</button></div>' +
         "</div>"
       )
       : '<div class="community-comment-empty">Want to join the conversation? <button class="community-login-link" type="button" data-community-open-login="true">Log in or sign up</button> to like or comment.</div>';
@@ -1219,6 +1221,9 @@
 
       var commentButton = target.closest("[data-community-submit-comment]");
       if (commentButton) return void submitComment(commentButton.getAttribute("data-community-submit-comment"));
+
+      var commentCancelButton = target.closest("[data-community-cancel-comment]");
+      if (commentCancelButton) { var commentInput = document.getElementById("communityCommentInput-" + commentCancelButton.getAttribute("data-community-cancel-comment")); if (commentInput) commentInput.value = ""; return; }
 
       var focusComment = target.closest("[data-community-focus-comment]");
       if (focusComment) {
