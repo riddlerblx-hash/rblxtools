@@ -1337,6 +1337,19 @@
     .billing-toggle button.is-active { color:#07101c; background:linear-gradient(135deg,#38e6e0,#79a4ff); box-shadow:0 7px 16px rgba(56,230,224,.2); }
     .billing-toggle button[data-billing="year"]::after { content:'Save 17%+'; margin-left:6px; color:#7ff3a8; font-size:9px; font-weight:900; }.price-value .annual-list-price { margin-right:7px; color:#ff8a95; text-decoration:line-through; text-decoration-color:#ff4858; text-decoration-thickness:2px; font-size:.58em; vertical-align:middle; }.price-value .annual-sale-price { color:inherit; }.price-save { min-height:18px; }
     .pro-sale-callout { display:inline-flex; align-items:center; gap:5px; margin-top:7px; padding:5px 8px; border:1px solid rgba(112,255,220,.38); border-radius:999px; color:#bfffee; background:rgba(22,119,99,.18); font-size:9px; font-weight:900; letter-spacing:.03em; }.pro-sale-callout strong { color:#fff2b7; }.sale-price-old { margin-right:7px; color:#ff9ca6; text-decoration:line-through; text-decoration-color:#ff4858; text-decoration-thickness:2px; font-size:.58em; vertical-align:middle; }.annual-credit-old { color:#ff9ca6; text-decoration:line-through; text-decoration-color:#ff4858; text-decoration-thickness:2px; }.annual-credit-bonus { display:block; margin-top:3px; color:#90f6d5; font-size:9px; font-weight:900; }
+    /* Let the fuller Pro list use the horizontal room it needs instead of
+       forcing every benefit into one very tall column. */
+    @media (min-width:901px) {
+      .subscriptions-main { max-width:1280px; }
+      .plans-grid { grid-template-columns:minmax(220px,.82fr) minmax(260px,1fr) minmax(340px,1.38fr); align-items:start; }
+      .plan-card { height:auto; }
+      .pro-card .subscription-perks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:14px; row-gap:5px; align-items:start; }
+      .pro-card .subscription-perks .perk-section-label { grid-column:1 / -1; }
+      .pro-card .subscription-perks li { margin:0; break-inside:avoid; }
+      .pro-card .card-inner { padding:16px; }
+      .pro-card .plan-subtitle { max-width:420px; }
+      .pro-card .plan-grid { margin-top:9px; }
+    }
     @media (max-width:900px) { .subscriptions-main { display:block; min-height:0; padding:42px 14px 68px; } .plus-focus, .pro-focus { transform:none; } .plan-col.plus-focus { order:2; } .plan-col.pro-focus { order:3; } }
   </style>
 <link rel="stylesheet" href="./global-shell.css?v=20260929-rewards-bonus" />
