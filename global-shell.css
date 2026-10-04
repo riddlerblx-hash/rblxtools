@@ -5530,7 +5530,7 @@ body.rblx-mobile-shell .rblx-shell-header { grid-template-columns: minmax(0, 1fr
 /* The store now sells two memberships, so use the center column instead of
    leaving the old third-card space empty. Benefit tiles remain compact. */
 @media (min-width:901px) {
-  body.rblx-subscription-store .subscriptions-main { max-width:1420px !important; }
+  body.rblx-subscription-store .subscriptions-main { max-width:1200px !important; }
   body.rblx-subscription-store .plans-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:22px !important; align-items:start !important; }
   body.rblx-subscription-store .plans-grid > .plan-col.side-plan:first-child { display:none !important; }
   body.rblx-subscription-store .plans-grid .subscription-perks { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:12px; row-gap:8px; }
