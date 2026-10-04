@@ -1758,7 +1758,7 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
 
         if (session.payment_status === "paid") {
           await recordStripeCheckoutPurchase(session);
-          recordVerifiedRewardsPurchase(session);
+          await recordVerifiedRewardsPurchase(session);
           await updateReferralCheckoutStatus(session, "confirmed");
           await recordReferralCommissionFromCheckout(session);
         }
@@ -1767,7 +1767,7 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
 
       case "checkout.session.async_payment_succeeded": {
         const session = event.data.object;
-        recordVerifiedRewardsPurchase(session);
+        await recordVerifiedRewardsPurchase(session);
         await updateReferralCheckoutStatus(session, "confirmed");
         await recordReferralCommissionFromCheckout(session);
         break;
@@ -2301,7 +2301,7 @@ async function recordStripeCheckoutPurchase(session) {
 
 // Stripe is the source of truth for both XP and cashback.  Never accept an
 // amount, rank, or percentage from a checkout page/browser.
-function recordVerifiedRewardsPurchase(session) {
+async function recordVerifiedRewardsPurchase(session) {
   const userId = String(session?.metadata?.appUserId || session?.client_reference_id || "").trim();
   const sourceId = String(session?.id || "").trim();
   const paidCents = Math.max(0, Number(session?.amount_total || 0));
@@ -2309,12 +2309,15 @@ function recordVerifiedRewardsPurchase(session) {
   const metadata = session?.metadata || {};
   const productType = String(metadata.productType || (metadata.aiTokenQuantity ? "ai_tokens" : session?.mode === "subscription" ? "membership" : "default")).trim() || "default";
   const paymentIntentId = typeof session?.payment_intent === "string" ? session.payment_intent : String(session?.payment_intent?.id || "");
+  const account = await getAuthUserById(userId).catch(() => null);
+  const membership = account ? await resolveMembershipSnapshot(account).catch(() => null) : null;
   return rewardsEngine.recordPurchase({
     userId, sourceId, productType,
     title: getStripeCheckoutPurchaseTitle(session),
     externalPaidCents: paidCents,
     paymentIntentId,
     metadata: { stripeSessionId: sourceId, currency: String(session?.currency || "usd").toLowerCase() },
+    xpMultiplier: getPaidXpMultiplier(membership),
   });
 }
 
@@ -7850,7 +7853,8 @@ app.get("/auth/me", async (req, res) => {
     const resolvedUser = freshUser || user;
     // One idempotent event per UTC day. Refreshing the page cannot extend a
     // streak or earn additional XP.
-    rewardsEngine.recordActivity({ userId: resolvedUser.id, sourceKey: `daily-login:${resolvedUser.id}:${getTodayDate()}`, action: "daily_login", title: "Daily activity", amount: rewardsEngine.getConfig().xp.dailyLogin, note: "Authenticated account activity" });
+    const membership = await resolveMembershipSnapshot(resolvedUser);
+    rewardsEngine.recordActivity({ userId: resolvedUser.id, sourceKey: `daily-login:${resolvedUser.id}:${getTodayDate()}`, action: "daily_login", title: "Daily activity", amount: rewardsEngine.getConfig().xp.dailyLogin, note: "Authenticated account activity", xpMultiplier: getPaidXpMultiplier(membership) });
     const deviceId = getRequestDeviceId(req);
     if (deviceId) {
       await linkDeviceToUser(resolvedUser, deviceId).catch(() => null);
@@ -8339,7 +8343,7 @@ app.get("/ai/ugc/tasks/:taskId", async (req, res) => {
         };
         savePersistentAIUGCHistory(user.id, item);
         syncAIUGCCommunityOwnerEngagement(user.id, item);
-        rewardsEngine.recordActivity({ userId: user.id, sourceKey: `ai-generation:ugc:${taskId}`, action: "ai_generation", title: "AI UGC Studio", amount: rewardsEngine.getConfig().xp.aiGeneration, note: "Completed AI UGC generation", metadata: { taskId, studio: "ugc" }, limitKey: "aiGenerationsPerDay" });
+        rewardsEngine.recordActivity({ userId: user.id, sourceKey: `ai-generation:ugc:${taskId}`, action: "ai_generation", title: "AI UGC Studio", amount: rewardsEngine.getConfig().xp.aiGeneration, note: "Completed AI UGC generation", metadata: { taskId, studio: "ugc" }, limitKey: "aiGenerationsPerDay", xpMultiplier: getPaidXpMultiplier(membership) });
         rewardsEngine.trackActivity({ userId: user.id, sourceKey: `ai-ugc-generation:${taskId}`, action: "ai_ugc_generation", title: "AI UGC generation", note: "Completed in AI UGC Studio", metadata: { taskId } });
       }
     }
@@ -9288,7 +9292,8 @@ app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
     assertGLBBinary(prepared.buffer);
     // The downloaded file was prepared server-side for this authenticated
     // account, so this is an eligible creator-tool action—not a browser ping.
-    rewardsEngine.recordActivity({ userId: user.id, sourceKey: `tool-use:ugc-download:${taskId}`, action: "eligible_tool_use", title: "UGC Studio download", amount: rewardsEngine.getConfig().xp.eligibleToolUse, note: "Prepared a completed UGC download", metadata: { taskId, tool: "ugc" }, limitKey: "eligibleToolUsesPerDay" });
+    const membership = await resolveMembershipSnapshot(user);
+    rewardsEngine.recordActivity({ userId: user.id, sourceKey: `tool-use:ugc-download:${taskId}`, action: "eligible_tool_use", title: "UGC Studio download", amount: rewardsEngine.getConfig().xp.eligibleToolUse, note: "Prepared a completed UGC download", metadata: { taskId, tool: "ugc" }, limitKey: "eligibleToolUsesPerDay", xpMultiplier: getPaidXpMultiplier(membership) });
     res.setHeader("Content-Type", "model/gltf-binary");
     res.setHeader("Content-Disposition", `attachment; filename="rblxtools-${assetType}-${taskId}.glb"`);
     res.setHeader("Cache-Control", "no-store");
@@ -9355,7 +9360,7 @@ app.post("/ai/generate-thumbnail", async (req, res) => {
     } catch (historyError) {
       console.warn("Could not save AI thumbnail history:", historyError.message);
     }
-    rewardsEngine.recordActivity({ userId: user.id, sourceKey: `ai-generation:thumbnail:${historyItem?.id || downloadFileName}`, action: "ai_generation", title: "AI Thumbnail Studio", amount: rewardsEngine.getConfig().xp.aiGeneration, note: "Completed AI thumbnail generation", metadata: { historyId: historyItem?.id || null, studio: "thumbnail" }, limitKey: "aiGenerationsPerDay" });
+    rewardsEngine.recordActivity({ userId: user.id, sourceKey: `ai-generation:thumbnail:${historyItem?.id || downloadFileName}`, action: "ai_generation", title: "AI Thumbnail Studio", amount: rewardsEngine.getConfig().xp.aiGeneration, note: "Completed AI thumbnail generation", metadata: { historyId: historyItem?.id || null, studio: "thumbnail" }, limitKey: "aiGenerationsPerDay", xpMultiplier: getPaidXpMultiplier(membership) });
     rewardsEngine.trackActivity({ userId: user.id, sourceKey: `ai-thumbnail-generation:${historyItem?.id || downloadFileName}`, action: "ai_thumbnail_generation", title: "AI thumbnail generation", note: "Completed in AI Thumbnail Studio", metadata: { historyId: historyItem?.id || null } });
     return res.json({
       ok: true,
@@ -10574,7 +10579,7 @@ app.post("/store/confirm-ai-token-checkout", async (req, res) => {
 
     await grantAITokensFromStripeCheckout(session);
     await recordStripeCheckoutPurchase(session);
-    recordVerifiedRewardsPurchase(session);
+    await recordVerifiedRewardsPurchase(session);
     const refreshedUser = await getAuthUserById(user.id);
     return res.json({
       ok: true,
@@ -10868,7 +10873,7 @@ app.post("/store/confirm-discord-bot-license-checkout", async (req, res) => {
     if (String(session?.metadata?.appUserId || "") !== String(user.id) || session?.metadata?.productType !== "discord_bot_license" || session?.payment_status !== "paid") return res.status(403).json({ error: "That Discord Bot license purchase is not available." });
     const license = await grantDiscordBotLicense(session);
     await recordStripeCheckoutPurchase(session);
-    recordVerifiedRewardsPurchase(session);
+    await recordVerifiedRewardsPurchase(session);
     return res.json({ ok: true, license: { code: license.code, plan: license.plan, expiresAt: license.expiresAt } });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not confirm the Discord Bot license." });
@@ -13525,14 +13530,15 @@ app.get("/rewards/overview", async (req, res) => {
   }
 });
 
-// Only an active paid membership earns the daily-reward boost. Complimentary
+// Only active paid memberships earn XP or daily-reward boosts. Complimentary
 // time (including time earned in the streak itself) deliberately stays at 1x.
-function getPaidDailyRewardMultiplier(membership) {
+function getPaidXpMultiplier(membership) {
   const source = String(membership?.membershipSource || "").toLowerCase();
   const paid = source.includes("stripe") || source.includes("robux");
   if (!paid || !membership?.premiumActive) return 1;
   return String(membership.plan || "").toLowerCase() === "pro" ? 2 : 1.5;
 }
+function getPaidDailyRewardMultiplier(membership) { return getPaidXpMultiplier(membership); }
 
 app.get("/api/daily-streak", async (req, res) => {
   try {

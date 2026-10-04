@@ -213,7 +213,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     });
   }
 
-  function recordActivity({ userId, sourceKey, action, title, amount, note = "", metadata = {}, limitKey = "" }) {
+  function recordActivity({ userId, sourceKey, action, title, amount, note = "", metadata = {}, limitKey = "", xpMultiplier = 1 }) {
     const state = getState();
     const config = state.config;
     const day = utcDay();
@@ -222,7 +222,10 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       const used = eventCount(state, userId, action, (entry) => entry.createdAt.slice(0, 10) === day);
       if (limit && used >= limit) return { awarded: false, limited: true, overview: buildOverviewFromState(state, userId) };
     }
-    const result = award(state, { userId, sourceKey, action, title, amount, note, metadata });
+    const baseXp = Math.max(0, Number(amount) || 0);
+    const multiplier = xpMultiplier === 2 ? 2 : xpMultiplier === 1.5 ? 1.5 : 1;
+    const adjustedXp = Math.round(baseXp * multiplier);
+    const result = award(state, { userId, sourceKey, action, title, amount: adjustedXp, note: multiplier > 1 ? `${note}${note ? " · " : ""}${baseXp} XP × ${multiplier}` : note, metadata: { ...metadata, baseXp, xpMultiplier: multiplier } });
     if (result.awarded) completeQuests(state, userId);
     saveState(state);
     return { ...result, overview: buildOverviewFromState(state, userId) };
@@ -346,14 +349,16 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     return getDailyStreak(userId);
   }
 
-  function recordPurchase({ userId, sourceId, productType = "default", title, externalPaidCents, paymentIntentId = "", metadata = {} }) {
+  function recordPurchase({ userId, sourceId, productType = "default", title, externalPaidCents, paymentIntentId = "", metadata = {}, xpMultiplier = 1 }) {
     const state = getState();
     const config = state.config;
     const cents = Math.max(0, Math.round(Number(externalPaidCents) || 0));
     if (!userId || !sourceId || !cents) return { awarded: false, cashback: null };
     const product = { ...config.products.default, ...(config.products[productType] || {}) };
-    const xp = Math.floor((cents / 100) * Number(config.xp.purchasePerDollar || 0) * Math.max(0, Number(product.purchaseXpMultiplier ?? 1)));
-    const xpResult = award(state, { userId, sourceKey: `purchase-xp:${sourceId}`, action: "purchase", title: `${title} purchase`, amount: xp, note: "Verified external payment", metadata: { sourceId, externalPaidCents: cents, productType } });
+    const baseXp = Math.floor((cents / 100) * Number(config.xp.purchasePerDollar || 0) * Math.max(0, Number(product.purchaseXpMultiplier ?? 1)));
+    const xpBoost = xpMultiplier === 2 ? 2 : xpMultiplier === 1.5 ? 1.5 : 1;
+    const xp = Math.round(baseXp * xpBoost);
+    const xpResult = award(state, { userId, sourceKey: `purchase-xp:${sourceId}`, action: "purchase", title: `${title} purchase`, amount: xp, note: xpBoost > 1 ? `Verified external payment · ${baseXp} XP × ${xpBoost}` : "Verified external payment", metadata: { sourceId, externalPaidCents: cents, productType, baseXp, xpMultiplier: xpBoost } });
     const cashbackTier = cashbackTierFor(config, memberFor(state, userId).lifetimeXp);
     const rate = Math.max(0, Number(cashbackTier.cashbackPercent || 0)) / 100;
     const multiplier = product.cashbackEligible === false ? 0 : Math.max(0, Number(product.cashbackMultiplier ?? 1));
