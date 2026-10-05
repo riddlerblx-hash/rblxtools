@@ -424,7 +424,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const member = state.members[String(userId || "")] || { lifetimeXp: 0 };
     const lifetimeXp = Math.max(0, Number(member.lifetimeXp) || 0);
     const rank = rankFor(state.config, lifetimeXp);
-    return { lifetimeXp, currentStreak: Math.max(0, Number(member.currentStreak) || 0), level: Math.max(1, Number(rank?.level) || 1), rank };
+    return { lifetimeXp, currentStreak: Math.max(0, Number(member.currentStreak) || 0), longestStreak: Math.max(0, Number(member.longestStreak) || 0), level: Math.max(1, Number(rank?.level) || 1), rank };
   };
   const getTopMemberSummaries = (limit = 50) => {
     const state = getState();
@@ -432,10 +432,10 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
       const member = state.members[userId] || {};
       const lifetimeXp = Math.max(0, Number(member.lifetimeXp) || 0);
       const rank = rankFor(state.config, lifetimeXp);
-      const toolUses = state.xpLedger.filter((entry) => String(entry.userId) === String(userId) && entry.action === "eligible_tool_use" && Number(entry.amount || 0) >= 0).length;
+      const toolUses = state.xpLedger.filter((entry) => String(entry.userId) === String(userId) && ["eligible_tool_use", "ai_generation"].includes(entry.action) && Number(entry.amount || 0) >= 0).length;
       const moneySpentCents = state.xpLedger.filter((entry) => String(entry.userId) === String(userId) && entry.action === "purchase").reduce((total, entry) => total + Math.max(0, Number(entry.metadata?.externalPaidCents) || 0), 0);
-      return { userId: String(userId), lifetimeXp, currentStreak: Math.max(0, Number(member.currentStreak) || 0), toolUses, moneySpentCents, level: Math.max(1, Number(rank?.level) || 1), rank };
-    }).filter((member) => member.lifetimeXp > 0 || member.currentStreak > 0 || member.toolUses > 0 || member.moneySpentCents > 0).sort((a, b) => b.lifetimeXp - a.lifetimeXp).slice(0, Math.max(1, Number(limit) || 50));
+      return { userId: String(userId), lifetimeXp, currentStreak: Math.max(0, Number(member.currentStreak) || 0), longestStreak: Math.max(0, Number(member.longestStreak) || 0), toolUses, moneySpentCents, level: Math.max(1, Number(rank?.level) || 1), rank };
+    }).filter((member) => member.lifetimeXp > 0 || member.currentStreak > 0 || member.longestStreak > 0 || member.toolUses > 0 || member.moneySpentCents > 0).sort((a, b) => b.lifetimeXp - a.lifetimeXp).slice(0, Math.max(1, Number(limit) || 50));
   };
 
   return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getMemberSummary, getTopMemberSummaries, getDailyStreak, claimDailyStreak, restoreDailyStreak, recordActivity, trackActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };

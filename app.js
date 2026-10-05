@@ -8701,7 +8701,8 @@ async function getHistoricalStripeSpend() {
   if (stripeSpendCache && Date.now() < stripeSpendCacheExpiresAt) return stripeSpendCache;
   const byUserId = {};
   const invoiceRows = [];
-  if (!stripeClient) return { byUserId, invoiceRows };
+  const sessionRows = [];
+  if (!stripeClient) return { byUserId, invoiceRows, sessionRows };
   const fetchPages = async (method, params) => {
     const rows = []; let startingAfter = "";
     // A bounded page scan covers the historical store without making a public
@@ -8721,7 +8722,9 @@ async function getHistoricalStripeSpend() {
     sessions.forEach((session) => {
       if (String(session?.payment_status || "").toLowerCase() !== "paid") return;
       const userId = String(session?.metadata?.appUserId || session?.client_reference_id || "").trim();
-      if (userId) byUserId[userId] = (byUserId[userId] || 0) + Math.max(0, Number(session.amount_total || 0));
+      const amount = Math.max(0, Number(session.amount_total || 0));
+      if (userId) byUserId[userId] = (byUserId[userId] || 0) + amount;
+      sessionRows.push({ userId, customerId: String(session?.customer || ""), customerEmail: String(session?.customer_details?.email || session?.customer_email || "").trim().toLowerCase(), amount });
     });
     const invoices = await fetchPages((params) => stripeClient.invoices.list(params), { status: "paid" });
     invoices.forEach((invoice) => {
@@ -8733,7 +8736,7 @@ async function getHistoricalStripeSpend() {
   } catch (error) {
     console.warn("Could not refresh historical Stripe spending for leaderboards:", error.message);
   }
-  stripeSpendCache = { byUserId, invoiceRows };
+  stripeSpendCache = { byUserId, invoiceRows, sessionRows };
   stripeSpendCacheExpiresAt = Date.now() + 10 * 60 * 1000;
   return stripeSpendCache;
 }
@@ -8747,10 +8750,11 @@ app.get("/api/leaderboards", async (_req, res) => {
     // Member-account schemas have evolved between deployments. Fetch server-side
     // and project only the safe fields below so a missing optional column can
     // never make the whole public leaderboard blank.
-    const [tokenRows, pointRows, accountRows, stripeSpend] = await Promise.all([
+    const [tokenRows, pointRows, accountRows, transactionRows, stripeSpend] = await Promise.all([
       supabaseRequest(buildAuthTablePath("?select=*&order=ai_token_balance.desc&limit=50"), { timeoutMs: 8000 }),
       supabaseRequest(buildAuthTablePath("?select=*&order=reward_points.desc&limit=50"), { timeoutMs: 8000 }),
       supabaseRequest(buildAuthTablePath("?select=*&limit=1000"), { timeoutMs: 12000 }).catch(() => []),
+      supabaseRequest(buildTablePath(ACCOUNT_TRANSACTIONS_TABLE, "?category=eq.purchases&unit=eq.usd_cents&status=eq.confirmed&select=user_id,amount_delta&limit=10000"), { timeoutMs: 12000 }).catch(() => []),
       getHistoricalStripeSpend(),
     ]);
     let users = Array.from(new Map([...(Array.isArray(tokenRows) ? tokenRows : []), ...(Array.isArray(pointRows) ? pointRows : []), ...(Array.isArray(accountRows) ? accountRows : [])].map((user) => [String(user.id || ""), user])).values()).filter((user) => user && user.id);
@@ -8787,17 +8791,29 @@ app.get("/api/leaderboards", async (_req, res) => {
         points: Math.max(0, Number(user.reward_points) || 0),
         xp: Math.max(0, Number(overview?.lifetimeXp) || 0),
         level: Math.max(1, Number(overview?.rank?.level) || 1),
-        streak: Math.max(0, Number(overview?.currentStreak) || 0),
+        streak: Math.max(0, Number(overview?.longestStreak) || 0),
         toolsUsed: Math.max(0, Number(overview?.toolUses) || 0),
         moneySpentCents: Math.max(0, Number(overview?.moneySpentCents) || 0),
       };
     };
     const stripeSpendByUserId = { ...(stripeSpend?.byUserId || {}) };
     const customerToUserId = new Map(users.map((user) => [String(user?.stripe_customer_id || "").trim(), String(user?.id || "")]).filter(([customerId, userId]) => customerId && userId));
+    const emailToUserId = new Map(users.map((user) => [String(user?.email || "").trim().toLowerCase(), String(user?.id || "")]).filter(([email, userId]) => email && userId));
+    (stripeSpend?.sessionRows || []).forEach((session) => {
+      if (session.userId) return;
+      const userId = customerToUserId.get(session.customerId) || emailToUserId.get(session.customerEmail);
+      if (userId) stripeSpendByUserId[userId] = (stripeSpendByUserId[userId] || 0) + Math.max(0, Number(session.amount || 0));
+    });
     (stripeSpend?.invoiceRows || []).forEach((invoice) => {
       const userId = customerToUserId.get(String(invoice.customerId || ""));
       if (userId) stripeSpendByUserId[userId] = (stripeSpendByUserId[userId] || 0) + Math.max(0, Number(invoice.amount || 0));
     });
+    const accountTransactionSpend = {};
+    (Array.isArray(transactionRows) ? transactionRows : []).forEach((transaction) => {
+      const userId = String(transaction?.user_id || "");
+      if (userId) accountTransactionSpend[userId] = (accountTransactionSpend[userId] || 0) + Math.abs(Number(transaction?.amount_delta || 0));
+    });
+    Object.entries(accountTransactionSpend).forEach(([userId, amount]) => { stripeSpendByUserId[userId] = Math.max(Number(stripeSpendByUserId[userId] || 0), amount); });
     const members = users.map((user) => {
       const member = publicMember(user);
       member.moneySpentCents = Math.max(member.moneySpentCents, Number(stripeSpendByUserId[member.id] || 0));

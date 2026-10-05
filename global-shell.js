@@ -2559,8 +2559,12 @@
     // them from the highlighted card could make a stale payload show a whole
     // reward page as claimed.
     var claimedDays = Array.isArray(streak.claimedDays) ? streak.claimedDays.map(Number) : [];
+    var activeDay = Number(streak.activeDay);
+    if (!Number.isFinite(activeDay) || activeDay < 1) {
+      activeDay = Boolean(streak.claimedToday) ? Math.max(1, Number(streak.currentStreak) || 1) : Math.max(1, (Number(streak.currentStreak) || 0) + 1);
+    }
     track.innerHTML = (streak.window || []).map(function (item) {
-      var day = Number(item.day), activeDay = Number(streak.activeDay || day), isToday = day === activeDay, claimed = !lost && claimedDays.indexOf(day) !== -1, upcoming = !lost && day > activeDay;
+      var day = Number(item.day), isToday = day === activeDay, claimed = !lost && claimedDays.indexOf(day) !== -1, upcoming = !lost && day > activeDay;
       var xpLabel = item.bonus ? dailyBonusLabel(item.bonus) : (Number(streak.multiplier || 1) > 1 ? '<s>+' + Number(item.baseXp || 0).toLocaleString() + ' XP</s><strong>+' + Number(item.xp || 0).toLocaleString() + ' XP</strong>' : '+' + Number(item.xp || 0).toLocaleString() + ' XP');
       return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + (upcoming ? ' is-upcoming' : '') + '"><span>Day ' + item.day + '</span><b class="' + (item.bonus ? 'rblx-daily-streak-bonus' : 'rblx-daily-streak-xp') + '">' + xpLabel + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small></article>';
     }).join("");
