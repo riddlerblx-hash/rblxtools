@@ -2560,9 +2560,9 @@
     // reward page as claimed.
     var claimedDays = Array.isArray(streak.claimedDays) ? streak.claimedDays.map(Number) : [];
     track.innerHTML = (streak.window || []).map(function (item) {
-      var day = Number(item.day), activeDay = Number(streak.activeDay || day), isToday = day === activeDay, claimed = !lost && claimedDays.indexOf(day) !== -1;
+      var day = Number(item.day), activeDay = Number(streak.activeDay || day), isToday = day === activeDay, claimed = !lost && claimedDays.indexOf(day) !== -1, upcoming = !lost && day > activeDay;
       var xpLabel = item.bonus ? dailyBonusLabel(item.bonus) : (Number(streak.multiplier || 1) > 1 ? '<s>+' + Number(item.baseXp || 0).toLocaleString() + ' XP</s><strong>+' + Number(item.xp || 0).toLocaleString() + ' XP</strong>' : '+' + Number(item.xp || 0).toLocaleString() + ' XP');
-      return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + '"><span>Day ' + item.day + '</span><b>' + xpLabel + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small></article>';
+      return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + (upcoming ? ' is-upcoming' : '') + '"><span>Day ' + item.day + '</span><b class="' + (item.bonus ? 'rblx-daily-streak-bonus' : 'rblx-daily-streak-xp') + '">' + xpLabel + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small></article>';
     }).join("");
     claim.disabled = lost ? false : !streak.available;
     claim.dataset.restoreStreak = lost ? "true" : "";

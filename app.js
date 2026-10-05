@@ -8694,6 +8694,49 @@ app.get("/api/community-members/:userId", async (req, res) => {
 
 let leaderboardCache = null;
 let leaderboardCacheExpiresAt = 0;
+let stripeSpendCache = null;
+let stripeSpendCacheExpiresAt = 0;
+
+async function getHistoricalStripeSpend() {
+  if (stripeSpendCache && Date.now() < stripeSpendCacheExpiresAt) return stripeSpendCache;
+  const byUserId = {};
+  const invoiceRows = [];
+  if (!stripeClient) return { byUserId, invoiceRows };
+  const fetchPages = async (method, params) => {
+    const rows = []; let startingAfter = "";
+    // A bounded page scan covers the historical store without making a public
+    // leaderboard request unbounded on a large Stripe account.
+    for (let pageNumber = 0; pageNumber < 25; pageNumber += 1) {
+      const page = await method({ ...params, limit: 100, ...(startingAfter ? { starting_after: startingAfter } : {}) });
+      const data = Array.isArray(page?.data) ? page.data : [];
+      rows.push(...data);
+      if (!page?.has_more || !data.length) break;
+      startingAfter = String(data[data.length - 1]?.id || "");
+      if (!startingAfter) break;
+    }
+    return rows;
+  };
+  try {
+    const sessions = await fetchPages((params) => stripeClient.checkout.sessions.list(params), {});
+    sessions.forEach((session) => {
+      if (String(session?.payment_status || "").toLowerCase() !== "paid") return;
+      const userId = String(session?.metadata?.appUserId || session?.client_reference_id || "").trim();
+      if (userId) byUserId[userId] = (byUserId[userId] || 0) + Math.max(0, Number(session.amount_total || 0));
+    });
+    const invoices = await fetchPages((params) => stripeClient.invoices.list(params), { status: "paid" });
+    invoices.forEach((invoice) => {
+      // A subscription's first invoice is already represented by its paid
+      // Checkout Session. Recurring paid invoices are additional spending.
+      if (String(invoice?.billing_reason || "") === "subscription_create") return;
+      invoiceRows.push({ customerId: String(invoice?.customer || ""), amount: Math.max(0, Number(invoice?.amount_paid || 0)) });
+    });
+  } catch (error) {
+    console.warn("Could not refresh historical Stripe spending for leaderboards:", error.message);
+  }
+  stripeSpendCache = { byUserId, invoiceRows };
+  stripeSpendCacheExpiresAt = Date.now() + 10 * 60 * 1000;
+  return stripeSpendCache;
+}
 
 app.get("/api/leaderboards", async (_req, res) => {
   try {
@@ -8704,11 +8747,13 @@ app.get("/api/leaderboards", async (_req, res) => {
     // Member-account schemas have evolved between deployments. Fetch server-side
     // and project only the safe fields below so a missing optional column can
     // never make the whole public leaderboard blank.
-    const [tokenRows, pointRows] = await Promise.all([
+    const [tokenRows, pointRows, accountRows, stripeSpend] = await Promise.all([
       supabaseRequest(buildAuthTablePath("?select=*&order=ai_token_balance.desc&limit=50"), { timeoutMs: 8000 }),
       supabaseRequest(buildAuthTablePath("?select=*&order=reward_points.desc&limit=50"), { timeoutMs: 8000 }),
+      supabaseRequest(buildAuthTablePath("?select=*&limit=1000"), { timeoutMs: 12000 }).catch(() => []),
+      getHistoricalStripeSpend(),
     ]);
-    let users = Array.from(new Map([...(Array.isArray(tokenRows) ? tokenRows : []), ...(Array.isArray(pointRows) ? pointRows : [])].map((user) => [String(user.id || ""), user])).values()).filter((user) => user && user.id);
+    let users = Array.from(new Map([...(Array.isArray(tokenRows) ? tokenRows : []), ...(Array.isArray(pointRows) ? pointRows : []), ...(Array.isArray(accountRows) ? accountRows : [])].map((user) => [String(user.id || ""), user])).values()).filter((user) => user && user.id);
     const xpSummaries = new Map(rewardsEngine.getTopMemberSummaries(500).map((summary) => [summary.userId, summary]));
     const existingIds = new Set(users.map((user) => String(user.id)));
     const missingXpIds = Array.from(xpSummaries.keys()).filter((userId) => !existingIds.has(userId));
@@ -8747,7 +8792,17 @@ app.get("/api/leaderboards", async (_req, res) => {
         moneySpentCents: Math.max(0, Number(overview?.moneySpentCents) || 0),
       };
     };
-    const members = users.map(publicMember);
+    const stripeSpendByUserId = { ...(stripeSpend?.byUserId || {}) };
+    const customerToUserId = new Map(users.map((user) => [String(user?.stripe_customer_id || "").trim(), String(user?.id || "")]).filter(([customerId, userId]) => customerId && userId));
+    (stripeSpend?.invoiceRows || []).forEach((invoice) => {
+      const userId = customerToUserId.get(String(invoice.customerId || ""));
+      if (userId) stripeSpendByUserId[userId] = (stripeSpendByUserId[userId] || 0) + Math.max(0, Number(invoice.amount || 0));
+    });
+    const members = users.map((user) => {
+      const member = publicMember(user);
+      member.moneySpentCents = Math.max(member.moneySpentCents, Number(stripeSpendByUserId[member.id] || 0));
+      return member;
+    });
     const tipTotals = {};
     Object.values(communityState.posts || {}).forEach((post) => (post?.tips || []).forEach((tip) => {
       const userId = String(tip?.userId || "");
