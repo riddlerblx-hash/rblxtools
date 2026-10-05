@@ -138,6 +138,46 @@ async function grantDiscordBotLicense(session) {
   });
 }
 
+// Administrative licenses use the exact same record and verification path as
+// paid licenses, so a temporary code works in the Discord bot immediately.
+async function grantAdminDiscordBotLicense({ appUserId, plan, issuedBy }) {
+  const userId = String(appUserId || "").trim();
+  const normalizedPlan = String(plan || "").trim().toLowerCase();
+  const daysByPlan = { weekly: 7, monthly: 30, annual: 365 };
+  const days = daysByPlan[normalizedPlan];
+  if (!userId || !days) throw new Error("Choose a member and a 7-day, 30-day, or yearly license.");
+  return updateStore((store) => {
+    const now = new Date();
+    const license = {
+      code: makeLicenseCode(store), appUserId: userId, plan: normalizedPlan,
+      issuedAt: now.toISOString(), expiresAt: new Date(now.getTime() + days * 86400000).toISOString(),
+      issuedBy: String(issuedBy || "admin"), adminIssued: true, lastVerifiedAt: null,
+    };
+    store.licensesByCode[license.code] = license;
+    return license;
+  });
+}
+
+async function listDiscordBotLicenses() {
+  const store = await readStore();
+  return Object.values(store.licensesByCode || {}).map((license) => ({
+    ...license,
+    active: Date.parse(license?.expiresAt || 0) > Date.now(),
+  })).sort((a, b) => Date.parse(b.issuedAt || 0) - Date.parse(a.issuedAt || 0));
+}
+
+async function expireDiscordBotLicense(code) {
+  const normalized = String(code || "").trim().toUpperCase();
+  if (!normalized) throw new Error("Enter a license code to expire.");
+  return updateStore((store) => {
+    const license = store.licensesByCode[normalized];
+    if (!license) { const error = new Error("License not found."); error.statusCode = 404; throw error; }
+    license.expiresAt = new Date(Date.now() - 1000).toISOString();
+    license.expiredByAdminAt = new Date().toISOString();
+    return license;
+  });
+}
+
 async function verifyDiscordBotLicense(code) {
   const normalized = String(code || "").trim().toUpperCase();
   const store = await readStore(); const license = store.licensesByCode[normalized] || null;
@@ -342,4 +382,4 @@ async function consumeDiscordServerUse({ guildId, discordUserId, discordRoleIds,
   });
 }
 
-module.exports = { activateDiscordBotLicense, claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, getAccountOverviewPreference, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getDiscordServerUsageSummary, getPurchasedUses, getUnlimitedSubscription, getUsageCounterSnapshots, grantComplimentaryUnlimited, grantComplimentaryUses, grantPurchasedUses, grantDiscordBotLicense, isUnlimitedActive, setAccountOverviewPreference, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, setDiscordServerUsageCounter, resetMemberDailyUse, unclaimServer, verifyDiscordBotLicense };
+module.exports = { activateDiscordBotLicense, claimDiscordServer, consumeDiscordServerUse, createServerClaimCode, expireDiscordBotLicense, getAccountOverviewPreference, getBotDashboard, getDiscordServerAccess, getDiscordServerCommandPolicy, getDiscordServerUsageSummary, getPurchasedUses, getUnlimitedSubscription, getUsageCounterSnapshots, grantAdminDiscordBotLicense, grantComplimentaryUnlimited, grantComplimentaryUses, grantPurchasedUses, grantDiscordBotLicense, isUnlimitedActive, listDiscordBotLicenses, setAccountOverviewPreference, setUnlimitedSubscription, updateServerSettings, updateServerControls, syncDiscordServerChannels, setDiscordServerUsageCounter, resetMemberDailyUse, unclaimServer, verifyDiscordBotLicense };

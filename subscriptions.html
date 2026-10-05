@@ -1820,7 +1820,8 @@
             var savingPercent = listTotal > annualTotal ? Math.round((1 - annualTotal / listTotal) * 100) : 0;
             var selectedPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan][billingInterval];
             var purchaseXp = Math.max(0, Math.floor((Number(selectedPrice && selectedPrice.unitAmount) || 0) / 100 * 50));
-            element.textContent = "+" + purchaseXp.toLocaleString() + " XP";
+            var purchaseMultiplier = plan === "pro" ? 2 : 1.5;
+            element.innerHTML = '<s style="margin-right:5px;color:#ff747d;text-decoration-color:#ff3f50">+' + purchaseXp.toLocaleString() + ' XP</s> <strong style="color:#83f4ae">+' + Math.round(purchaseXp * purchaseMultiplier).toLocaleString() + ' XP</strong>';
             element.style.display = "inline-block";
           });
         }

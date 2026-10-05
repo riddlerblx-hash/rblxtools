@@ -41,6 +41,7 @@ const {
   claimDiscordServer,
   consumeDiscordServerUse,
   createServerClaimCode,
+  expireDiscordBotLicense,
   getAccountOverviewPreference,
   getBotDashboard,
   getDiscordServerAccess,
@@ -50,9 +51,11 @@ const {
   getPurchasedUses,
   grantComplimentaryUnlimited,
   grantComplimentaryUses,
+  grantAdminDiscordBotLicense,
   grantPurchasedUses,
   grantDiscordBotLicense,
   isUnlimitedActive,
+  listDiscordBotLicenses,
   setAccountOverviewPreference,
   setUnlimitedSubscription,
   updateServerSettings,
@@ -2533,6 +2536,10 @@ const rewardsEngine = createRewardsEngine({
   statePath: REWARDS_LEVELING_PATH,
   randomUUID,
   timeZone: String(process.env.REWARDS_TIME_ZONE || "America/Chicago").trim() || "America/Chicago",
+});
+app.get("/global-shell.js", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  return res.sendFile(path.join(__dirname, "global-shell.js"));
 });
 
 async function creditMatureRewardsCashback(entry) {
@@ -8702,7 +8709,7 @@ app.get("/api/leaderboards", async (_req, res) => {
       supabaseRequest(buildAuthTablePath("?select=*&order=reward_points.desc&limit=50"), { timeoutMs: 8000 }),
     ]);
     let users = Array.from(new Map([...(Array.isArray(tokenRows) ? tokenRows : []), ...(Array.isArray(pointRows) ? pointRows : [])].map((user) => [String(user.id || ""), user])).values()).filter((user) => user && user.id);
-    const xpSummaries = new Map(rewardsEngine.getTopMemberSummaries(50).map((summary) => [summary.userId, summary]));
+    const xpSummaries = new Map(rewardsEngine.getTopMemberSummaries(500).map((summary) => [summary.userId, summary]));
     const existingIds = new Set(users.map((user) => String(user.id)));
     const missingXpIds = Array.from(xpSummaries.keys()).filter((userId) => !existingIds.has(userId));
     if (missingXpIds.length) {
@@ -8735,6 +8742,9 @@ app.get("/api/leaderboards", async (_req, res) => {
         points: Math.max(0, Number(user.reward_points) || 0),
         xp: Math.max(0, Number(overview?.lifetimeXp) || 0),
         level: Math.max(1, Number(overview?.rank?.level) || 1),
+        streak: Math.max(0, Number(overview?.currentStreak) || 0),
+        toolsUsed: Math.max(0, Number(overview?.toolUses) || 0),
+        moneySpentCents: Math.max(0, Number(overview?.moneySpentCents) || 0),
       };
     };
     const members = users.map(publicMember);
@@ -8756,6 +8766,9 @@ app.get("/api/leaderboards", async (_req, res) => {
       withdrawals: top(members, (member) => withdrawals[member.id] || 0),
       xp: top(members, (member) => member.xp, (member) => ({ level: member.level })),
       tokensTipped: top(members, (member) => tipTotals[member.id] || 0),
+      streaks: top(members, (member) => member.streak),
+      toolsUsed: top(members, (member) => member.toolsUsed),
+      moneySpent: top(members, (member) => member.moneySpentCents),
     } };
     leaderboardCache = payload;
     leaderboardCacheExpiresAt = Date.now() + 15000;
@@ -8783,6 +8796,7 @@ app.get("/api/members/:userId", async (req, res) => {
       plan: String(membership?.plan || "free").toLowerCase(),
       level: Number(rewards?.rank?.level || 1),
       levelTitle: cleanText(rewards?.rank?.name || "Builder", 40),
+      streak: Math.max(0, Number(rewards?.currentStreak) || 0),
       joinedAt: user.created_at || null,
     };
     const communityState = readAIUGCCommunityState();
@@ -10496,6 +10510,49 @@ app.post("/admin/grant-discord-bot-access", async (req, res) => {
     return res.json({ ok: true, message: grantType === "unlimited" ? "Complimentary Unlimited Uses granted." : "Complimentary Pay by usage credited: " + result + " total uses.", member: buildPublicUser(targetUser), totalUses: grantType === "uses" ? result : null });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not grant Discord Bot access." });
+  }
+});
+
+app.get("/admin/discord-bot-licenses", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const licenses = await listDiscordBotLicenses();
+    const rows = await Promise.all(licenses.map(async (license) => {
+      const member = await getAuthUserById(license.appUserId).catch(() => null);
+      return { ...license, member: member ? { id: member.id, email: member.email, username: member.username || member.user_metadata?.username || "Member" } : null };
+    }));
+    return res.json({ ok: true, licenses: rows });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load Discord Bot licenses." });
+  }
+});
+
+app.post("/admin/discord-bot-licenses", async (req, res) => {
+  try {
+    const adminUser = await requireAdminUser(req);
+    const targetUser = await getAuthUserByIdentifier(req.body?.userId);
+    const plan = String(req.body?.plan || "").trim().toLowerCase();
+    const note = cleanText(req.body?.note, 500);
+    if (!targetUser) return res.status(404).json({ error: "No member account was found for that license." });
+    if (!note) return res.status(400).json({ error: "A staff note is required before generating a license." });
+    if (!["weekly", "monthly", "annual"].includes(plan)) return res.status(400).json({ error: "Choose a 7-day, 30-day, or yearly license." });
+    const license = await grantAdminDiscordBotLicense({ appUserId: targetUser.id, plan, issuedBy: adminUser.email || adminUser.id });
+    await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: "discord_bot_admin_license", reason: license.code, note, expiresAt: license.expiresAt, adminUserId: adminUser.id, adminEmail: adminUser.email });
+    return res.json({ ok: true, message: "Discord Bot license generated.", license: { ...license, active: true }, member: buildPublicUser(targetUser) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not generate Discord Bot license." });
+  }
+});
+
+app.post("/admin/discord-bot-licenses/:code/expire", async (req, res) => {
+  try {
+    const adminUser = await requireAdminUser(req);
+    const license = await expireDiscordBotLicense(req.params.code);
+    const targetUser = await getAuthUserById(license.appUserId).catch(() => null);
+    await createModerationAction({ userId: license.appUserId, userEmail: targetUser?.email || "", actionType: "discord_bot_license_expired", reason: license.code, note: cleanText(req.body?.note, 500) || "Expired by admin", adminUserId: adminUser.id, adminEmail: adminUser.email });
+    return res.json({ ok: true, message: "License expired.", license: { ...license, active: false } });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not expire Discord Bot license." });
   }
 });
 
@@ -13590,7 +13647,7 @@ app.post("/store/create-streak-restore-checkout", async (req, res) => {
     const checkoutSession = await stripeClient.checkout.sessions.create({
       mode: "payment",
       ...customerParams,
-      line_items: [{ price_data: { currency: "usd", product_data: { name: "RBLXTools streak restore" }, unit_amount: 69 }, quantity: 1 }],
+      line_items: [{ price_data: { currency: "usd", product_data: { name: "RBLXTools streak restore" }, unit_amount: 99 }, quantity: 1 }],
       success_url: `${getSanitizedAppBaseUrl()}/rewards?streak_restore=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${getSanitizedAppBaseUrl()}/rewards?streak_restore=cancelled`,
       client_reference_id: user.id,

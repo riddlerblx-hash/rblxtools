@@ -479,6 +479,7 @@
       return;
     }
     if (preview === "daily-streak") { openDailyStreakPreview(); return; }
+    if (preview === "daily-streak-restore") { openDailyStreakRestorePreview(); return; }
     if (preview === "retention") { openNoRenewalPreview(); return; }
     if (preview === "checkout") { window.location.assign("./checkout?item=plus&billing=month&admin_preview=1"); return; }
     if (preview === "checkout-success") { window.location.assign("./purchase-success?admin_preview=1"); return; }
@@ -2550,17 +2551,22 @@
     if (overlay) overlay.classList.toggle("is-streak-lost", lost);
     if (title) title.innerHTML = lost ? '<span>Streak</span> Lost ☹' : '<span>Daily</span> Streak';
     count.textContent = String(lost ? streak.lostStreak : (streak.currentStreak || 0));
-    today.textContent = lost ? "Missed" : "+" + Number(streak.xp || 0).toLocaleString() + " XP";
+    today.innerHTML = lost ? "Missed" : (Number(streak.multiplier || 1) > 1 ? '<s>+' + Number(streak.baseXp || 0).toLocaleString() + ' XP</s> <strong>+' + Number(streak.xp || 0).toLocaleString() + ' XP</strong>' : '+' + Number(streak.xp || 0).toLocaleString() + ' XP');
     var multiplier = Number(streak.multiplier || 1);
     if (multiplierValue) multiplierValue.textContent = multiplier.toFixed(1).replace(".0", "") + "×";
     if (multiplierPlan) multiplierPlan.textContent = "Applies to XP, RBLX Points & AI Tokens only";
+    // Completed cards always come from the saved server response. Inferring
+    // them from the highlighted card could make a stale payload show a whole
+    // reward page as claimed.
+    var claimedDays = Array.isArray(streak.claimedDays) ? streak.claimedDays.map(Number) : [];
     track.innerHTML = (streak.window || []).map(function (item) {
-      var day = Number(item.day), activeDay = Number(streak.activeDay || day), isToday = day === activeDay, claimed = !lost && (day < activeDay || (Boolean(streak.claimedToday) && day === activeDay));
-      return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + '"><span>Day ' + item.day + '</span><b>' + (item.bonus ? dailyBonusLabel(item.bonus) : ('+' + Number(item.xp || 0).toLocaleString() + ' XP')) + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small></article>';
+      var day = Number(item.day), activeDay = Number(streak.activeDay || day), isToday = day === activeDay, claimed = !lost && claimedDays.indexOf(day) !== -1;
+      var xpLabel = item.bonus ? dailyBonusLabel(item.bonus) : (Number(streak.multiplier || 1) > 1 ? '<s>+' + Number(item.baseXp || 0).toLocaleString() + ' XP</s><strong>+' + Number(item.xp || 0).toLocaleString() + ' XP</strong>' : '+' + Number(item.xp || 0).toLocaleString() + ' XP');
+      return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + '"><span>Day ' + item.day + '</span><b>' + xpLabel + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small></article>';
     }).join("");
     claim.disabled = lost ? false : !streak.available;
     claim.dataset.restoreStreak = lost ? "true" : "";
-    claim.textContent = lost ? "Restore streak · $0.69" : streak.claimedToday ? "Come back tomorrow" : streak.available ? "Claim today’s reward" : "Come back tomorrow";
+    claim.textContent = lost ? "Restore streak · $0.99" : streak.claimedToday ? "Come back tomorrow" : streak.available ? "Claim today’s reward" : "Come back tomorrow";
     status.textContent = lost ? "You missed a daily check-in and lost your " + Number(streak.lostStreak || 0) + "-day streak. Restore it to continue where you left off." : streak.available ? "Your daily reward is ready to claim." : "";
   }
 
@@ -2597,6 +2603,22 @@
     renderDailyStreak(preview);
     var status = document.getElementById("rblxDailyStreakStatus");
     if (status) status.textContent = "Admin preview — this does not read or change your streak.";
+  }
+
+  function openDailyStreakRestorePreview() {
+    var overlay = document.getElementById("rblxDailyStreakOverlay");
+    if (!overlay) return;
+    var preview = buildDailyStreakPreview();
+    preview.currentStreak = 0;
+    preview.activeDay = 1;
+    preview.claimedDays = [];
+    preview.streakLost = true;
+    preview.lostStreak = 7;
+    overlay.hidden = false;
+    document.body.classList.add("rblx-shell-modal-open");
+    renderDailyStreak(preview);
+    var status = document.getElementById("rblxDailyStreakStatus");
+    if (status) status.textContent = "Admin preview — restore checkout is not opened from this preview.";
   }
 
   function readDailyStreakCache() {
