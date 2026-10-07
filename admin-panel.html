@@ -850,6 +850,7 @@
         <div class="admin-buttons">
           <button class="admin-btn ghost" type="button" data-admin-ui-preview="auth">Login / sign up</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="membership-gate">Plus / Pro gate</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="renewal-upcoming">Expiry notice</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="renewal-overdue">Overdue notice</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="retention">No renewal offer</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="reward">Gift reward</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="checkout">Checkout screen</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="checkout-success">Checkout success</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="daily-streak">Daily streak</button><button class="admin-btn ghost" type="button" data-admin-ui-preview="daily-streak-restore">Streak restore</button>
         </div>
+        <div class="admin-field" style="max-width:260px;margin-top:16px"><label class="admin-label" for="adminViewAs">View the site as</label><select class="admin-input" id="adminViewAs"><option value="admin">Admin</option><option value="guest">Guest</option><option value="plus">Plus member</option><option value="pro">Pro member</option></select><button class="admin-btn blue" id="openAdminViewAs" type="button" style="margin-top:8px">Open selected view</button></div>
       </div>
     </section>
 
@@ -2265,6 +2266,15 @@
           window.open(destination, "_blank", "noopener");
         });
       });
+      var viewAs = document.getElementById("adminViewAs");
+      if (viewAs) {
+        try { viewAs.value = sessionStorage.getItem("rblxtools_admin_view_as") || "admin"; } catch (_error) {}
+        viewAs.addEventListener("change", function () {
+          try { sessionStorage.setItem("rblxtools_admin_view_as", viewAs.value); } catch (_error) {}
+        });
+        var openView = document.getElementById("openAdminViewAs");
+        if (openView) openView.addEventListener("click", function () { try { sessionStorage.setItem("rblxtools_admin_view_as", viewAs.value); } catch (_error) {} window.open("./", "_blank", "noopener"); });
+      }
     }());
   </script>
 </body>

@@ -196,12 +196,15 @@ body.rblx-shell-ready {
    still always available, but no longer steals room from normal navigation. */
 @media (min-width: 1181px) {
   .rblx-shell-header { grid-template-columns: auto minmax(0, 1fr) auto !important; }
-  #rblxShellAdminPreviewHost { position: fixed; left: calc(var(--shell-left-width) + 16px); bottom: 16px; z-index: 58; min-height: 0; }
-  .rblx-shell-admin-preview-panel { top: auto; right: auto; bottom: calc(100% + 7px); left: 0; }
   .rblx-header-center { min-width: 0; overflow: hidden; }
   .rblx-header-nav { min-width: 0; overflow: hidden; }
   .rblx-header-search { flex: 1 1 190px; min-width: 130px; }
 }
+
+/* Clothing and UGC live in the persistent left navigation, so keep the
+   global header focused on cross-site destinations. */
+.rblx-header-nav > a[href="./template-downloader"],
+.rblx-header-nav > a[href="./ugc-downloader"] { display: none !important; }
 
 .rblx-shell-brand {
   display: inline-flex;

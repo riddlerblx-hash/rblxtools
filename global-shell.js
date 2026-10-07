@@ -351,22 +351,15 @@
     var actions = document.querySelector(".rblx-shell-header-actions");
     var header = document.querySelector(".rblx-shell-header");
     var navInner = document.querySelector(".rblx-shell-left-inner");
-    var previewHost = document.getElementById("rblxShellAdminPreviewHost");
-    if (!actions || !header || !navInner || !previewHost) return;
+    if (!actions || !header || !navInner) return;
 
     if (isMobileShellViewport()) {
-      if (previewHost.parentElement !== navInner) {
-        navInner.insertBefore(previewHost, navInner.firstChild);
-      }
       if (actions.parentElement !== navInner) {
         navInner.insertBefore(actions, navInner.firstChild);
       }
       return;
     }
 
-    if (previewHost.parentElement !== header) {
-      header.appendChild(previewHost);
-    }
     if (actions.parentElement !== header) {
       header.appendChild(actions);
     }
@@ -443,6 +436,7 @@
   var RENEWAL_NOTICE_PREVIEW_KEY = "rblxtools_renewal_notice_preview";
   var UI_PREVIEW_KEY = "rblxtools_admin_ui_preview";
   var DAILY_STREAK_CACHE_KEY = "rblxtools_daily_streak_cache";
+  var dismissedRenewalNoticeKeys = {};
   function getRenewalNoticePreview() {
     try {
       var preview = String(sessionStorage.getItem(RENEWAL_NOTICE_PREVIEW_KEY) || "").toLowerCase();
@@ -532,8 +526,8 @@
     var remainingMs = expiresAt.getTime() - Date.now();
     var days = Math.ceil(remainingMs / 86400000);
     if (!preview && days > 7) { notice.hidden = true; return; }
-    var noticeKey = "rblxtools_renewal_notice_dismissed:" + (userId || "member") + ":" + expiresAt.toISOString().slice(0, 10);
-    try { if (!preview && localStorage.getItem(noticeKey) === "1") { notice.hidden = true; return; } } catch (_error) {}
+    var noticeKey = "rblxtools_renewal_notice_dismissed:" + (userId || "member") + ":" + plan.toLowerCase() + ":" + expiresAt.toISOString();
+    try { if (!preview && (dismissedRenewalNoticeKeys[noticeKey] || sessionStorage.getItem(noticeKey) === "1" || localStorage.getItem(noticeKey) === "1")) { notice.hidden = true; return; } } catch (_error) { if (!preview && dismissedRenewalNoticeKeys[noticeKey]) { notice.hidden = true; return; } }
     var dateText = expiresAt.toLocaleDateString();
     if (remainingMs < 0) {
       // Count fully elapsed calendar-day periods from the live server expiry,
@@ -564,7 +558,8 @@
     var notice = document.getElementById("rblxShellRenewalNotice");
     if (!notice) return;
     var noticeKey = String(notice.dataset.dismissKey || "");
-    try { if (noticeKey) localStorage.setItem(noticeKey, "1"); } catch (_error) {}
+    if (noticeKey) dismissedRenewalNoticeKeys[noticeKey] = true;
+    try { if (noticeKey) { localStorage.setItem(noticeKey, "1"); sessionStorage.setItem(noticeKey, "1"); } } catch (_error) {}
     notice.hidden = true;
   }
 
@@ -576,10 +571,9 @@
   }
 
   async function refreshRenewalNoticeFromServer() {
-    if (!shellState.currentUser || !shellState.currentUser.loggedIn) return;
-    if (getRenewalNoticePreview()) return;
+    if (!shellState.currentUser || !shellState.currentUser.loggedIn || getRenewalNoticePreview()) return;
     try {
-      var details = await authApiRequest("/auth/premium-status?notice=" + Date.now(), { method: "GET", cache: "no-store", headers: { Authorization: "Bearer " + getToken(), "Cache-Control": "no-store" } });
+      var details = await authApiRequest("/auth/renewal-notice?notice=" + Date.now(), { method: "GET", cache: "no-store", headers: { Authorization: "Bearer " + getToken(), "Cache-Control": "no-store" } });
       if (!details) return;
       // Build this from the current response rather than merging it with a
       // cached account object. A cleared/renewed expiry must replace old data.
@@ -2052,7 +2046,6 @@
           "</a>" +
           buildHeaderNavigationMarkup() +
           '<button class="rblx-mobile-side-menu-button" type="button" id="rblxMobileSideMenuButton" aria-label="Open navigation" aria-expanded="false"><i></i><i></i><i></i></button>' +
-          '<div id="rblxShellAdminPreviewHost">' + buildAdminPreviewMarkup() + '</div>' +
           '<div class="rblx-shell-header-actions">' +
             buildAuthMarkup() +
           "</div>" +

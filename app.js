@@ -8011,6 +8011,28 @@ app.get("/auth/premium-status", async (req, res) => {
   }
 });
 
+// This is intentionally separate from the cached shell snapshot. The renewal
+// notice polls it so each member's expiry message reflects their current
+// Stripe/complimentary membership data, not a prior page load.
+app.get("/auth/renewal-notice", async (req, res) => {
+  try {
+    res.setHeader("Cache-Control", "no-store, private, max-age=0, must-revalidate");
+    const user = await requireAuthenticatedUser(req);
+    const refreshedUser = await refreshStripeMembershipForUserIfNeeded(user);
+    const membership = await resolveMembershipSnapshot(refreshedUser || user);
+    return res.json({
+      ok: true,
+      plan: membership.plan,
+      premiumActive: Boolean(membership.premiumActive),
+      plusExpiresAt: membership.plusExpiresAt || null,
+      currentPeriodEndAt: membership.currentPeriodEndAt || null,
+      checkedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not refresh renewal information." });
+  }
+});
+
 app.post("/support/report", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
