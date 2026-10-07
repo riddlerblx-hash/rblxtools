@@ -529,13 +529,16 @@
       notice.hidden = true;
       return;
     }
-    var days = Math.ceil((expiresAt.getTime() - Date.now()) / 86400000);
+    var remainingMs = expiresAt.getTime() - Date.now();
+    var days = Math.ceil(remainingMs / 86400000);
     if (!preview && days > 7) { notice.hidden = true; return; }
     var noticeKey = "rblxtools_renewal_notice_dismissed:" + (userId || "member") + ":" + expiresAt.toISOString().slice(0, 10);
     try { if (!preview && localStorage.getItem(noticeKey) === "1") { notice.hidden = true; return; } } catch (_error) {}
     var dateText = expiresAt.toLocaleDateString();
-    if (days < 0) {
-      var elapsed = Math.abs(days);
+    if (remainingMs < 0) {
+      // Count fully elapsed calendar-day periods from the live server expiry,
+      // rather than letting a fractional day round the notice forward early.
+      var elapsed = Math.max(1, Math.floor((Date.now() - expiresAt.getTime()) / 86400000));
       message.textContent = "Your " + plan + " plan expired " + elapsed + " day" + (elapsed === 1 ? "" : "s") + " ago. Renew to restore your membership benefits.";
     } else {
       message.textContent = "Your " + plan + " plan expires on " + dateText + ". Renew before then to keep your membership benefits active.";
@@ -570,6 +573,24 @@
     if (!overlay) return;
     overlay.classList.remove("is-open");
     overlay.setAttribute("aria-hidden", "true");
+  }
+
+  async function refreshRenewalNoticeFromServer() {
+    if (!shellState.currentUser || !shellState.currentUser.loggedIn) return;
+    if (getRenewalNoticePreview()) return;
+    try {
+      var details = await authApiRequest("/auth/premium-status?notice=" + Date.now(), { method: "GET", cache: "no-store", headers: { Authorization: "Bearer " + getToken(), "Cache-Control": "no-store" } });
+      if (!details) return;
+      // Build this from the current response rather than merging it with a
+      // cached account object. A cleared/renewed expiry must replace old data.
+      renderRenewalNotice({
+        id: shellState.currentUser.userId,
+        plan: details.plan || shellState.currentUser.plan,
+        premiumActive: Boolean(details.premiumActive),
+        plusExpiresAt: details.plusExpiresAt || null,
+        currentPeriodEndAt: details.currentPeriodEndAt || null
+      });
+    } catch (_error) {}
   }
 
   function openNoRenewalPreview() {
@@ -2570,6 +2591,8 @@
     }).join("");
     claim.disabled = lost ? false : !streak.available;
     claim.dataset.restoreStreak = lost ? "true" : "";
+    if (!streak.claimedToday) delete claim.dataset.claimedToday;
+    delete claim.dataset.claimInFlight;
     claim.textContent = lost ? "Restore streak · $0.99" : streak.claimedToday ? "Come back tomorrow" : streak.available ? "Claim today’s reward" : "Come back tomorrow";
     status.textContent = lost ? "You missed a daily check-in and lost your " + Number(streak.lostStreak || 0) + "-day streak. Restore it to continue where you left off." : streak.available ? "Your daily reward is ready to claim." : "";
   }
@@ -2673,19 +2696,26 @@
   async function claimDailyStreak() {
     var claim = document.getElementById("rblxDailyStreakClaim");
     var status = document.getElementById("rblxDailyStreakStatus");
-    if (!claim || claim.disabled) return;
+    if (!claim || claim.disabled || claim.dataset.claimInFlight === "true" || claim.dataset.claimedToday === "true") return;
+    claim.dataset.claimInFlight = "true";
     claim.disabled = true;
     if (status) status.textContent = "Claiming your reward…";
     try {
       var payload = await authApiRequest("/api/daily-streak/claim", { method: "POST", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
       writeDailyStreakCache(payload.streak || {});
       renderDailyStreak(payload.streak || {});
+      // Keep the control inert for the remainder of this open modal even if a
+      // delayed UI render or click event arrives after the successful claim.
+      claim.disabled = true;
+      claim.dataset.claimedToday = "true";
+      delete claim.dataset.claimInFlight;
       if (status) status.textContent = "Claimed " + ["+" + Number(payload.reward?.xp || 0).toLocaleString() + " XP", payload.benefit].filter(Boolean).join(" and ") + ". It is in your notifications too.";
       refreshCommunityNotifications();
       refreshMembershipStateFromServer();
     } catch (error) {
       if (status) status.textContent = error.message || "Could not claim today’s reward.";
       claim.disabled = false;
+      delete claim.dataset.claimInFlight;
     }
   }
 
@@ -4790,10 +4820,12 @@
 
   function initMembershipRefresh() {
     if (shellState.membershipRefreshTimer) return;
-    shellState.membershipRefreshTimer = window.setInterval(refreshMembershipStateFromServer, 30000);
-    window.addEventListener("focus", refreshMembershipStateFromServer);
+    refreshMembershipStateFromServer();
+    refreshRenewalNoticeFromServer();
+    shellState.membershipRefreshTimer = window.setInterval(function () { refreshMembershipStateFromServer(); refreshRenewalNoticeFromServer(); }, 30000);
+    window.addEventListener("focus", function () { refreshMembershipStateFromServer(); refreshRenewalNoticeFromServer(); });
     document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) refreshMembershipStateFromServer();
+      if (!document.hidden) { refreshMembershipStateFromServer(); refreshRenewalNoticeFromServer(); }
     });
   }
 

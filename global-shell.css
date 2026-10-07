@@ -192,6 +192,17 @@ body.rblx-shell-ready {
 .rblx-shell-admin-preview-panel button { border: 0; border-radius: 7px; padding: 8px 9px; color: #edf4ff; background: transparent; font: 800 11px Arial, sans-serif; text-align: left; cursor: pointer; }
 .rblx-shell-admin-preview-panel button:hover { color: #fff; background: rgba(83,142,213,.15); }
 
+/* Keep the admin-only visual-role selector out of the shared header. It is
+   still always available, but no longer steals room from normal navigation. */
+@media (min-width: 1181px) {
+  .rblx-shell-header { grid-template-columns: auto minmax(0, 1fr) auto !important; }
+  #rblxShellAdminPreviewHost { position: fixed; left: calc(var(--shell-left-width) + 16px); bottom: 16px; z-index: 58; min-height: 0; }
+  .rblx-shell-admin-preview-panel { top: auto; right: auto; bottom: calc(100% + 7px); left: 0; }
+  .rblx-header-center { min-width: 0; overflow: hidden; }
+  .rblx-header-nav { min-width: 0; overflow: hidden; }
+  .rblx-header-search { flex: 1 1 190px; min-width: 130px; }
+}
+
 .rblx-shell-brand {
   display: inline-flex;
   align-items: center;
