@@ -508,6 +508,13 @@
     } catch (_error) { return null; }
   }
 
+  function getRenewalNoticeDismissalCookie() {
+    try {
+      var match = String(document.cookie || "").match(/(?:^|;\s*)rblxtools_renewal_notice_dismissed=([^;]+)/);
+      return match && match[1] ? JSON.parse(decodeURIComponent(match[1])) : null;
+    } catch (_error) { return null; }
+  }
+
   function renderRenewalNotice(user) {
     var notice = document.getElementById("rblxShellRenewalNotice");
     var message = document.getElementById("rblxShellRenewalNoticeMessage");
@@ -528,15 +535,26 @@
     if (!preview && days > 7) { notice.hidden = true; return; }
     var noticeKey = "rblxtools_renewal_notice_dismissed:" + (userId || "member") + ":" + plan.toLowerCase() + ":" + expiresAt.toISOString();
     var membershipDismissalKey = "rblxtools_renewal_notice_membership:" + (userId || "member");
+    // A live membership poll can re-render this element immediately after a
+    // click. Keep that exact membership dismissed in the DOM as well as in
+    // persisted storage, and only release it for a genuinely newer plan.
+    var dismissedDomExpiry = Number(notice.dataset.dismissedExpiry || 0);
+    if (!preview && notice.dataset.dismissed === "true" && notice.dataset.dismissedPlan === plan.toLowerCase() && expiresAt.getTime() <= dismissedDomExpiry + 36 * 60 * 60 * 1000) {
+      notice.hidden = true;
+      return;
+    }
+    var dismissedMembership = getRenewalNoticeDismissalCookie();
     try {
-      var dismissedMembership = JSON.parse(localStorage.getItem(membershipDismissalKey) || sessionStorage.getItem(membershipDismissalKey) || "null");
+      dismissedMembership = JSON.parse(localStorage.getItem(membershipDismissalKey) || sessionStorage.getItem(membershipDismissalKey) || "null") || dismissedMembership;
       // Membership snapshots may differ slightly between the auth cookie and
       // a fresh Stripe read. Keep the dismissal through a 36-hour tolerance;
       // a genuine renewal/new plan has a materially later expiry and shows
       // normally when it next becomes eligible for a notice.
-      if (!preview && dismissedMembership && dismissedMembership.plan === plan.toLowerCase() && expiresAt.getTime() <= Number(dismissedMembership.expiresAt || 0) + 36 * 60 * 60 * 1000) { notice.hidden = true; return; }
+      if (!preview && dismissedMembership && (!dismissedMembership.userId || String(dismissedMembership.userId) === userId) && dismissedMembership.plan === plan.toLowerCase() && expiresAt.getTime() <= Number(dismissedMembership.expiresAt || 0) + 36 * 60 * 60 * 1000) { notice.hidden = true; return; }
       if (!preview && (dismissedRenewalNoticeKeys[noticeKey] || sessionStorage.getItem(noticeKey) === "1" || localStorage.getItem(noticeKey) === "1")) { notice.hidden = true; return; }
-    } catch (_error) { if (!preview && dismissedRenewalNoticeKeys[noticeKey]) { notice.hidden = true; return; } }
+    } catch (_error) {}
+    if (!preview && dismissedMembership && (!dismissedMembership.userId || String(dismissedMembership.userId) === userId) && dismissedMembership.plan === plan.toLowerCase() && expiresAt.getTime() <= Number(dismissedMembership.expiresAt || 0) + 36 * 60 * 60 * 1000) { notice.hidden = true; return; }
+    if (!preview && dismissedRenewalNoticeKeys[noticeKey]) { notice.hidden = true; return; }
     var dateText = expiresAt.toLocaleDateString();
     if (remainingMs < 0) {
       // Count fully elapsed calendar-day periods from the live server expiry,
@@ -550,6 +568,8 @@
     notice.dataset.membershipDismissKey = membershipDismissalKey;
     notice.dataset.membershipExpiry = String(expiresAt.getTime());
     notice.dataset.plan = plan.toLowerCase();
+    notice.dataset.userId = userId;
+    notice.dataset.dismissed = "false";
     notice.hidden = false;
   }
 
@@ -572,10 +592,19 @@
     var membershipDismissalKey = String(notice.dataset.membershipDismissKey || "");
     var membershipExpiry = Number(notice.dataset.membershipExpiry || 0);
     var plan = String(notice.dataset.plan || "").toLowerCase();
+    var userId = String(notice.dataset.userId || "");
     if (noticeKey) dismissedRenewalNoticeKeys[noticeKey] = true;
+    notice.dataset.dismissed = "true";
+    notice.dataset.dismissedPlan = plan;
+    notice.dataset.dismissedExpiry = String(membershipExpiry);
     try {
       if (noticeKey) { localStorage.setItem(noticeKey, "1"); sessionStorage.setItem(noticeKey, "1"); }
-      if (membershipDismissalKey && membershipExpiry) { var dismissal = JSON.stringify({ plan: plan, expiresAt: membershipExpiry }); localStorage.setItem(membershipDismissalKey, dismissal); sessionStorage.setItem(membershipDismissalKey, dismissal); }
+      if (membershipDismissalKey && membershipExpiry) {
+        var dismissal = JSON.stringify({ userId: userId, plan: plan, expiresAt: membershipExpiry });
+        localStorage.setItem(membershipDismissalKey, dismissal);
+        sessionStorage.setItem(membershipDismissalKey, dismissal);
+        document.cookie = "rblxtools_renewal_notice_dismissed=" + encodeURIComponent(dismissal) + "; Path=/; Max-Age=31536000; SameSite=Lax";
+      }
     } catch (_error) {}
     notice.hidden = true;
   }
