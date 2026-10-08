@@ -1971,15 +1971,15 @@
             '</summary>' +
             '<div class="rblx-shell-profile-menu-panel">' +
               '<button class="rblx-shell-mobile-panel-back" type="button" data-shell-mobile-panel-back="true">‹ Navigation</button>' +
-              '<a class="rblx-shell-profile-menu-item" href="./account-overview">Account Overview</a>' +
-              '<a class="rblx-shell-profile-menu-item" href="./account-settings">Account Settings</a>' +
-              '<a class="rblx-shell-profile-menu-item" href="./payments-billing">Payments &amp; Billing</a>' +
-              '<a class="rblx-shell-profile-menu-item" href="./promotions">Promotions</a>' +
-              '<a class="rblx-shell-profile-menu-item" href="./affiliate-marketing">Affiliate Marketing</a>' +
-              '<a class="rblx-shell-profile-menu-item" href="./quests-levels">Quests &amp; Levels</a>' +
-              '<a class="rblx-shell-profile-menu-item" href="./rake-back">Rake Back</a>' +
-              '<a class="rblx-shell-profile-menu-item" href="./my-transactions">My Transactions</a>' +
-              '<a class="rblx-shell-profile-menu-item" href="./bot-dashboard">Bot Dashboard</a>' +
+              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./account-overview">Account Overview</a>' +
+              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./account-settings">Account Settings</a>' +
+              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./payments-billing">Payments &amp; Billing</a>' +
+              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./promotions">Promotions</a>' +
+              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./affiliate-marketing">Affiliate Marketing</a>' +
+              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./quests-levels">Quests &amp; Levels</a>' +
+              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./rake-back">Rake Back</a>' +
+              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./my-transactions">My Transactions</a>' +
+              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./bot-dashboard">Bot Dashboard</a>' +
               '<button class="rblx-shell-profile-menu-item is-danger" type="button" data-shell-logout="true">Log Out</button>' +
             "</div>" +
           "</details>" +
@@ -6383,6 +6383,14 @@
         dismissRenewalNotice();
         closeRetentionOffer();
       }
+    });
+    // Account pages are always normal same-tab navigation. This also prevents
+    // embedded browser shells from treating a profile-menu link as a popup.
+    document.addEventListener("click", function (event) {
+      var accountLink = event.target && event.target.closest ? event.target.closest("[data-shell-account-page]") : null;
+      if (!accountLink) return;
+      event.preventDefault();
+      window.location.assign(accountLink.href);
     });
     // Header menus are lightweight overlays, not persistent panels. Keep only
     // the menu the member is interacting with open and dismiss them on any

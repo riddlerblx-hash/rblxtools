@@ -1979,7 +1979,7 @@
       var TOKEN_KEY = "rblxtools_auth_token";
       var PROFILE_KEY = "rblxtools_profile_overview";
       var ACCOUNT_SNAPSHOT_KEY = "rblxtools_account_overview_snapshot";
-      var ACCOUNT_SNAPSHOT_MAX_AGE = 5 * 60 * 1000;
+      var ACCOUNT_SNAPSHOT_MAX_AGE = 45 * 1000;
       var BOT_ACCESS_CACHE_PREFIX = "rblxtools_bot_dashboard_access:";
       var LOGIN_PAGE_URL = "./login";
       var PLANS_PAGE_URL = "./subscriptions";
@@ -2306,9 +2306,15 @@
       function readAccountSnapshot() {
         try {
           var parsed = JSON.parse(localStorage.getItem(ACCOUNT_SNAPSHOT_KEY) || "null");
-          if (!parsed || !parsed.user || Date.now() - Number(parsed.savedAt || 0) > ACCOUNT_SNAPSHOT_MAX_AGE) return null;
           var cachedIdentity = JSON.parse(localStorage.getItem("rblxtools_auth_user") || localStorage.getItem("rblxtools_verified_session_snapshot") || "null");
           var cachedUser = cachedIdentity && cachedIdentity.user ? cachedIdentity.user : cachedIdentity;
+          // The global shell has just verified this identity on the previous
+          // page. Reuse it for a very short window so every account route can
+          // paint immediately, even on its first visit.
+          if ((!parsed || !parsed.user || Date.now() - Number(parsed.savedAt || 0) > ACCOUNT_SNAPSHOT_MAX_AGE) && cachedIdentity && cachedIdentity.user && Date.now() - Number(cachedIdentity.verifiedAt || 0) <= ACCOUNT_SNAPSHOT_MAX_AGE) {
+            parsed = { user: cachedIdentity.user, savedAt: cachedIdentity.verifiedAt };
+          }
+          if (!parsed || !parsed.user || Date.now() - Number(parsed.savedAt || 0) > ACCOUNT_SNAPSHOT_MAX_AGE) return null;
           var snapshotUserId = String(parsed.user.id || parsed.user.userId || "");
           var cachedUserId = String(cachedUser && (cachedUser.id || cachedUser.userId) || "");
           if (!snapshotUserId || !cachedUserId || snapshotUserId !== cachedUserId) return null;
@@ -3892,8 +3898,15 @@
       window.setInterval(function () { if (state.selectedAccountTab === "promotions") loadPromotionDetails(); }, 30000);
       loadProfile();
       syncBioCount();
-      // Do not paint a cached account snapshot. It could be from a previous
-      // membership state and was visibly flashing an older dashboard first.
+      // The panel layout is already final at this point, so a short-lived
+      // verified snapshot can paint instantly without flashing the old
+      // all-sections overview that existed before the route pages.
+      var cachedAccountSnapshot = readAccountSnapshot();
+      if (cachedAccountSnapshot) {
+        renderUser(cachedAccountSnapshot.user);
+        document.getElementById("rbtools-account-overview").classList.remove("acct-loading");
+        loadActiveAccountTabData();
+      }
 
       if (els.acctBillingPaymentButton) els.acctBillingPaymentButton.addEventListener("click", openBillingPaymentEditor);
       if (els.acctBillingRemovePaymentButton) els.acctBillingRemovePaymentButton.addEventListener("click", removeBillingPaymentMethod);
