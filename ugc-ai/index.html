@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex">
+    <title>Opening AI UGC…</title>
+    <script>
+      // Older app processes only expose the former route. This static bridge
+      // keeps the new public URL usable until that process has been restarted.
+      window.location.replace('/ai-ugc' + window.location.search + window.location.hash);
+    </script>
+  </head>
+  <body></body>
+</html>

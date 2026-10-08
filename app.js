@@ -74,7 +74,7 @@ app.get(["/ai-ugc-studio", "/ai-ugc-studio.html", "/ai-ugc", "/ai-ugc.html"], (r
 });
 app.get(["/ugc-ai", "/ugc-ai.html"], (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  return res.sendFile(path.join(__dirname, "ai-ugc.html"));
+  return res.sendFile(path.join(__dirname, "ugc-ai.html"));
 });
 app.get(["/ai-thumbnail-studio", "/ai-thumbnail-studio.html"], (req, res) => {
   return res.redirect(302, "/ai-media" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
@@ -157,6 +157,11 @@ const STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID = String(process.env.STRIPE_
 const STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID = "price_1UB5XiGrZOEMBkuuO9ptA9mB";
 const STRIPE_DISCORD_BOT_UNLIMITED_PRICE_IDS = new Set([STRIPE_DISCORD_BOT_UNLIMITED_MONTHLY_PRICE_ID, STRIPE_DISCORD_BOT_UNLIMITED_ANNUAL_PRICE_ID].filter(Boolean));
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "");
+// Stripe webhooks remain the source of truth. This small per-process window
+// prevents every header/page refresh from doing a full Stripe subscription scan.
+const STRIPE_MEMBERSHIP_REFRESH_WINDOW_MS = 60 * 1000;
+const STRIPE_MEMBERSHIP_REFRESH_TIMEOUT_MS = 4500;
+const stripeMembershipRefreshes = new Map();
 const APP_BASE_URL = String(process.env.APP_BASE_URL || "https://www.rblxtools.net");
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
 function parseAdminAllowlistFrom(environment, ...environmentNames) {
@@ -5029,13 +5034,19 @@ async function refreshStripeMembershipForUserIfNeeded(user) {
     if (!user?.stripe_customer_id) {
       return user;
     }
+
+    const refreshKey = String(user.id || user.stripe_customer_id);
+    const recentRefresh = stripeMembershipRefreshes.get(refreshKey);
+    if (recentRefresh && Date.now() - recentRefresh.startedAt < STRIPE_MEMBERSHIP_REFRESH_WINDOW_MS) {
+      return user;
+    }
   
     const debug = {
       customerId: user.stripe_customer_id,
       userId: user.id,
     };
 
-    try {
+    const refresh = (async () => {
       const bestMembership = await getBestStripeMembershipForCustomer(user.stripe_customer_id, debug);
       if (bestMembership) {
         await persistStripeMembershipSnapshotIfNeeded(user, bestMembership, debug);
@@ -5049,15 +5060,27 @@ async function refreshStripeMembershipForUserIfNeeded(user) {
         bestMembershipCurrentPeriodEndAt: bestMembership?.currentPeriodEndAt || null,
       });
       const refreshedUser = await getAuthUserById(user.id);
-      if (refreshedUser) {
-        refreshedUser.__stripeSyncDebug = debug;
-      }
+      if (refreshedUser) refreshedUser.__stripeSyncDebug = debug;
       return refreshedUser || user;
+    })();
+    stripeMembershipRefreshes.set(refreshKey, { startedAt: Date.now(), refresh });
+
+    let timeoutId;
+    try {
+      const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error("Stripe membership refresh timed out.")), STRIPE_MEMBERSHIP_REFRESH_TIMEOUT_MS);
+      });
+      return await Promise.race([refresh, timeout]);
     } catch (error) {
       console.warn("Could not refresh Stripe membership for user:", error.message);
       debug.error = error.message;
       user.__stripeSyncDebug = debug;
       return user;
+    } finally {
+      // The refresh may continue in the background after the short response
+      // deadline. Keep its timestamp so repeated page loads do not pile up.
+      // Clear only the local timer, never the refresh itself.
+      if (typeof timeoutId !== "undefined") clearTimeout(timeoutId);
     }
   }
 

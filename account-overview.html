@@ -230,7 +230,8 @@
       background: transparent;
     }
 
-    #rbtools-account-overview.acct-loading { visibility:hidden; }
+    /* Keep the account shell visible while the authoritative refresh runs. */
+    #rbtools-account-overview.acct-loading { visibility:visible; }
 
     #rbtools-account-overview .hidden {
       display: none !important;
@@ -3098,7 +3099,6 @@
         if (els.acctCustomerId) els.acctCustomerId.textContent = state.user.stripeCustomerId || "Not connected";
         renderProfilePresentation();
         loadPublicProfileStats();
-        if (state.user.isAdmin) loadRewardsLevels();
         broadcastMembershipSnapshot(state.user);
       }
 
@@ -3132,12 +3132,7 @@
             document.getElementById("rbtools-account-overview").classList.remove("acct-loading");
             if (result.botDashboard) renderBotDashboard({ dashboard: result.botDashboard, inviteUrl: result.botInviteUrl });
             loadAccountTabPreference();
-            loadBotDashboard();
-            loadReferralDashboard();
-            loadRewardHistory();
-            loadDiscordLinkStatus();
-            loadBillingDetails();
-            loadPromotionDetails();
+            loadActiveAccountTabData();
             var checkoutSummary = await loadCheckoutSummary();
             if (state.checkoutStatus === "success") {
               dispatchCheckoutCelebration(checkoutSummary, loadedUser);
@@ -3823,7 +3818,10 @@
           try { window.localStorage.setItem("rblxtools-account-tab", name); } catch (_error) { /* Storage can be unavailable in private browsing. */ }
           state.selectedAccountTab = name;
           if (persist !== false) saveAccountTabPreference(name);
-          if (name === "bot") requestAnimationFrame(function () { drawBotChart(state.botDashboard?.server?.activityByDate || {}); });
+          if (name === "bot") { requestAnimationFrame(function () { drawBotChart(state.botDashboard?.server?.activityByDate || {}); }); loadBotDashboard(); }
+          if (name === "billing") loadBillingDetails();
+          if (name === "referrals") loadReferralDashboard();
+          if (name === "rewards") loadRewardHistory();
           if (name === "promotions") loadPromotionDetails();
           if (name === "levels" || name === "rakeback") loadRewardsLevels();
         }
@@ -3842,13 +3840,27 @@
       }
 
       setupAccountTabs();
-      loadPromotionDetails();
-      window.setInterval(loadPromotionDetails, 30000);
+      function loadActiveAccountTabData() {
+        if (!state.selectAccountTab) return;
+        var active = state.selectedAccountTab || "settings";
+        if (active === "bot") loadBotDashboard();
+        else if (active === "billing") loadBillingDetails();
+        else if (active === "promotions") loadPromotionDetails();
+        else if (active === "referrals") loadReferralDashboard();
+        else if (active === "rewards") loadRewardHistory();
+        else if (active === "levels" || active === "rakeback") loadRewardsLevels();
+        else loadDiscordLinkStatus();
+      }
+      window.setInterval(function () { if (state.selectedAccountTab === "promotions") loadPromotionDetails(); }, 30000);
       loadProfile();
       syncBioCount();
-      // Do not paint an old cached account first: it briefly showed obsolete
-      // tabs and a false Bot Dashboard lock before the authoritative session
-      // response arrived.
+      var cachedAccountSnapshot = readAccountSnapshot();
+      if (cachedAccountSnapshot) {
+        renderUser(cachedAccountSnapshot.user);
+        if (cachedAccountSnapshot.botDashboard) renderBotDashboard({ dashboard: cachedAccountSnapshot.botDashboard, inviteUrl: cachedAccountSnapshot.botInviteUrl });
+        document.getElementById("rbtools-account-overview").classList.remove("acct-loading");
+        loadActiveAccountTabData();
+      }
 
       if (els.acctBillingPaymentButton) els.acctBillingPaymentButton.addEventListener("click", openBillingPaymentEditor);
       if (els.acctBillingRemovePaymentButton) els.acctBillingRemovePaymentButton.addEventListener("click", removeBillingPaymentMethod);
