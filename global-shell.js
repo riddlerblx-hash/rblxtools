@@ -6390,6 +6390,14 @@
       var accountLink = event.target && event.target.closest ? event.target.closest("[data-shell-account-page]") : null;
       if (!accountLink) return;
       event.preventDefault();
+      try {
+        var destination = new URL(accountLink.href, window.location.href);
+        if (destination.origin === window.location.origin && window.RBLXToolsAccount && typeof window.RBLXToolsAccount.navigate === "function" && window.RBLXToolsAccount.navigate(destination.pathname)) {
+          var accountMenu = accountLink.closest(".rblx-shell-profile-menu");
+          if (accountMenu) accountMenu.removeAttribute("open");
+          return;
+        }
+      } catch (_error) {}
       window.location.assign(accountLink.href);
     });
     // Header menus are lightweight overlays, not persistent panels. Keep only

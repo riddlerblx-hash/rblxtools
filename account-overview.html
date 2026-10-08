@@ -3869,6 +3869,15 @@
         }
 
         state.selectAccountTab = selectTab;
+        window.RBLXToolsAccount = {
+          navigate: function (pathname) {
+            var normalizedPath = String(pathname || "").replace(/\/+$/, "") || "/";
+            var destination = ACCOUNT_ROUTE_TABS[normalizedPath] || (normalizedPath === "/account-overview" || normalizedPath === "/account" ? "settings" : "");
+            if (!destination) return false;
+            selectTab(destination, true);
+            return true;
+          }
+        };
 
         tabs.forEach(function (tab) {
           tab.addEventListener("click", function () {
