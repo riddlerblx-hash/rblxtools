@@ -4709,10 +4709,19 @@
       tokenBalance.textContent = state.loggedIn && shellState.currentUser.aiTokens != null ? String(shellState.currentUser.aiTokens) : "0";
       if (state.loggedIn) {
         fetch(API_BASE + "/auth/ai-token-bonus", { credentials: "include", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } }).then(function (response) { return response.ok ? response.json() : null; }).then(function (payload) {
-          var popover = document.getElementById("rblxShellTokenBonusPopover"), bonus = payload && payload.bonus || {}, amount = Math.max(0, Number(bonus.amount) || 0);
+          var popover = document.getElementById("rblxShellTokenBonusPopover"), bonus = payload && payload.bonus || {}, breakdown = payload && payload.breakdown || {}, amount = Math.max(0, Number(bonus.amount) || 0);
           if (!popover) return;
-          if (!amount || !bonus.expiresAt) { popover.hidden = true; return; }
-          popover.textContent = amount.toLocaleString() + " bonus tokens · expire " + new Date(bonus.expiresAt).toLocaleDateString();
+          var format = function (value) { return Math.max(0, Number(value) || 0).toLocaleString(); };
+          var bonusNote = amount && bonus.expiresAt ? "Expires " + new Date(bonus.expiresAt).toLocaleDateString() : "No active bonus expiry";
+          popover.innerHTML = '<span class="rblx-shell-token-popover-title">AI token balance</span>' +
+            '<span class="rblx-shell-token-popover-plan">' + (String(breakdown.plan || "free").toUpperCase()) + ' plan</span>' +
+            '<span class="rblx-shell-token-popover-rule"></span>' +
+            '<span class="rblx-shell-token-popover-row"><b>Plan tokens</b><strong>' + format(breakdown.planTokens) + '</strong></span>' +
+            '<span class="rblx-shell-token-popover-row"><b>Top-up tokens</b><strong>' + format(breakdown.topUpTokens) + '</strong></span>' +
+            '<span class="rblx-shell-token-popover-row is-bonus"><b>Bonus tokens</b><strong>' + format(breakdown.bonusTokens) + '</strong></span>' +
+            '<span class="rblx-shell-token-popover-expiry">' + bonusNote + '</span>' +
+            '<span class="rblx-shell-token-popover-rule"></span>' +
+            '<span class="rblx-shell-token-popover-total"><b>Total available</b><strong>' + format(breakdown.total) + '</strong></span>';
           popover.hidden = false;
         }).catch(function () {});
       }

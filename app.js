@@ -7898,7 +7898,16 @@ app.get("/auth/ai-token-bonus", async (req, res) => {
   try {
     res.setHeader("Cache-Control", "no-store, private, max-age=0");
     const user = await requireAuthenticatedUser(req);
-    return res.json({ ok: true, bonus: getActiveAITokenPurchaseBonus(user.id) });
+    const membership = await resolveMembershipSnapshot(user);
+    const bonus = getActiveAITokenPurchaseBonus(user.id);
+    const total = Math.max(0, Number(getAITokenBalance(user)) || 0);
+    // Balances were historically stored as one number. For the header we
+    // allocate that live balance into understandable buckets, with expiring
+    // bonus credits preserved first and the current membership allowance next.
+    const planAllowance = membership?.premiumActive ? getMembershipTokenCredits(String(membership.plan || "plus").toLowerCase() === "pro" ? "pro" : "plus", "month") : 0;
+    const planTokens = Math.min(Math.max(0, total - Math.max(0, Number(bonus.amount) || 0)), planAllowance);
+    const topUpTokens = Math.max(0, total - Math.max(0, Number(bonus.amount) || 0) - planTokens);
+    return res.json({ ok: true, bonus, breakdown: { total, planTokens, topUpTokens, bonusTokens: Math.min(total, Math.max(0, Number(bonus.amount) || 0)), plan: membership?.premiumActive ? String(membership.plan || "plus").toLowerCase() : "free" } });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load token bonus details." });
   }
