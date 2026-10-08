@@ -1993,6 +1993,16 @@
         "/my-transactions": "rewards",
         "/bot-dashboard": "bot"
       };
+      var ACCOUNT_TAB_ROUTES = {
+        settings: "/account-settings",
+        billing: "/payments-billing",
+        promotions: "/promotions",
+        referrals: "/affiliate-marketing",
+        levels: "/quests-levels",
+        rakeback: "/rake-back",
+        rewards: "/my-transactions",
+        bot: "/bot-dashboard"
+      };
       var accountRouteTab = ACCOUNT_ROUTE_TABS[window.location.pathname.replace(/\/+$/, "") || "/"] || "";
 
       var state = {
@@ -3845,6 +3855,10 @@
           });
           try { window.localStorage.setItem("rblxtools-account-tab", name); } catch (_error) { /* Storage can be unavailable in private browsing. */ }
           state.selectedAccountTab = name;
+          if (persist !== false && ACCOUNT_TAB_ROUTES[name] && window.location.pathname.replace(/\/+$/, "") !== ACCOUNT_TAB_ROUTES[name]) {
+            window.history.pushState({ accountTab: name }, "", ACCOUNT_TAB_ROUTES[name]);
+            document.title = ({ settings: "Account Settings", billing: "Payments & Billing", promotions: "Promotions", referrals: "Affiliate Marketing", levels: "Quests & Levels", rakeback: "Rake Back", rewards: "My Transactions", bot: "Bot Dashboard" }[name] || "Account") + " | RBLXTools";
+          }
           if (persist !== false) saveAccountTabPreference(name);
           if (name === "bot") { requestAnimationFrame(function () { drawBotChart(state.botDashboard?.server?.activityByDate || {}); }); loadBotDashboard(); }
           if (name === "billing") loadBillingDetails();
@@ -3865,6 +3879,10 @@
         var requestedTab = accountRouteTab || new URLSearchParams(window.location.search || "").get("tab"), storedTab = "";
         try { storedTab = window.localStorage.getItem("rblxtools-account-tab") || ""; } catch (_error) { storedTab = ""; }
         selectTab(["settings", "billing", "promotions", "referrals", "levels", "rakeback", "rewards", "bot"].includes(requestedTab) ? requestedTab : ["settings", "billing", "promotions", "referrals", "levels", "rakeback", "rewards", "bot"].includes(storedTab) ? storedTab : "settings", false);
+        window.addEventListener("popstate", function () {
+          var backTab = ACCOUNT_ROUTE_TABS[window.location.pathname.replace(/\/+$/, "") || "/"];
+          if (backTab) selectTab(backTab, false);
+        });
       }
 
       setupAccountTabs();
