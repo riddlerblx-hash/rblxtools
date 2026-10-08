@@ -79,8 +79,11 @@ app.get(["/ai-ugc", "/ai-ugc.html"], (_req, res) => {
 app.get(["/ai-thumbnail-studio", "/ai-thumbnail-studio.html"], (req, res) => {
   return res.redirect(302, "/thumbnail-ai" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
 });
-app.get(["/ai-media", "/ai-media.html"], (req, res) => {
-  return res.redirect(302, "/thumbnail-ai" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
+app.get(["/ai-media", "/ai-media.html"], (_req, res) => {
+  // AI Media is the renamed public URL for the existing thumbnail studio.
+  // Serve the same application directly so the new URL stays in the address bar.
+  res.setHeader("Cache-Control", "no-store");
+  return res.sendFile(path.join(__dirname, "thumbnail-ai", "index.html"));
 });
 app.get(["/ai-clothing-templates", "/ai-clothing-templates.html"], (req, res) => {
   return res.redirect(302, "/ai-clothing-studio" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
