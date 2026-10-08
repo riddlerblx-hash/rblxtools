@@ -1826,6 +1826,25 @@
     }).join("");
   }
 
+  function initNavScrollCue() {
+    var nav = document.getElementById("rblxShellNavScroll");
+    var cue = document.getElementById("rblxShellNavScrollCue");
+    if (!nav || !cue || cue.dataset.bound === "true") return;
+    cue.dataset.bound = "true";
+    var update = function () {
+      var hasMoreBelow = nav.scrollHeight > nav.clientHeight + 4 && nav.scrollTop + nav.clientHeight < nav.scrollHeight - 4;
+      cue.hidden = !hasMoreBelow;
+    };
+    cue.addEventListener("click", function () {
+      nav.scrollTo({ top: nav.scrollHeight, behavior: "smooth" });
+    });
+    nav.addEventListener("scroll", update, { passive: true });
+    if (window.ResizeObserver) new ResizeObserver(update).observe(nav);
+    if (window.MutationObserver) new MutationObserver(update).observe(nav, { childList: true, subtree: true });
+    window.addEventListener("resize", update, { passive: true });
+    window.setTimeout(update, 0);
+  }
+
 
   function buildFooterLinkGroupMarkup(title, items) {
     if (!Array.isArray(items) || !items.length) return "";
@@ -2104,6 +2123,7 @@
                 '<button class="rblx-shell-toggle" type="button" id="rblxShellLeftToggle" aria-label="Toggle navigation">' + getToggleIcon() + '</button>' +
               "</div>" +
               '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + "</div>" +
+              '<button class="rblx-shell-nav-scroll-cue" id="rblxShellNavScrollCue" type="button" hidden><span>Scroll down for more</span><b aria-hidden="true">↓</b></button>' +
               '<div class="rblx-shell-left-foot">' +
                 '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span data-rblx-pro-sale-price><s>$5.00</s> $2.50 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a></div>' +
                 '<div class="rblx-shell-socials">' +
@@ -6274,6 +6294,7 @@
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
+    initNavScrollCue();
     document.body.insertAdjacentHTML("beforeend", buildDailyStreakModalMarkup());
     initDailyStreak();
     bindDailyStreakTrigger();
