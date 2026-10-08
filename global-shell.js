@@ -267,7 +267,7 @@
       title: "AI Tools",
       items: [
         { href: "./ai-clothing-studio", label: "AI Clothing Templates", icon: "ai", adminOnly: true },
-        { href: "./ai-ugc", label: "AI UGC", icon: "hat" },
+        { href: "./ugc-ai", label: "AI UGC", icon: "hat" },
         { href: "./ai-media", label: "AI Media", icon: "spark" }
       ]
     },
@@ -2122,8 +2122,7 @@
                 '<h2 class="rblx-shell-panel-title">Navigation</h2>' +
                 '<button class="rblx-shell-toggle" type="button" id="rblxShellLeftToggle" aria-label="Toggle navigation">' + getToggleIcon() + '</button>' +
               "</div>" +
-              '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + "</div>" +
-              '<button class="rblx-shell-nav-scroll-cue" id="rblxShellNavScrollCue" type="button" hidden><span>Scroll down for more</span><b aria-hidden="true">↓</b></button>' +
+              '<div class="rblx-shell-nav-scroll" id="rblxShellNavScroll">' + buildNavMarkup() + '<button class="rblx-shell-nav-scroll-cue" id="rblxShellNavScrollCue" type="button" hidden><span>Scroll down for more</span><b aria-hidden="true">↓</b></button></div>' +
               '<div class="rblx-shell-left-foot">' +
                 '<div class="rblx-shell-plan-rotator" id="rblxShellPlanRotator"><a class="rblx-shell-mini-banner rblx-shell-mini-banner-pro" data-rblx-plan-slide="pro" href="./subscriptions"><strong>Pro Plan</strong><span data-rblx-pro-sale-price><s>$5.00</s> $2.50 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a><a class="rblx-shell-mini-banner rblx-shell-mini-banner-plus" data-rblx-plan-slide="plus" href="./subscriptions"><strong>Plus Plan</strong><span>$1.00 / month</span><i class="rblx-shell-plan-timer"><b></b></i></a></div>' +
                 '<div class="rblx-shell-socials">' +

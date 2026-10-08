@@ -69,29 +69,27 @@ const {
 
 const app = express();
 app.set("trust proxy", 1);
-app.get(["/ai-ugc-studio", "/ai-ugc-studio.html"], (req, res) => {
-  return res.redirect(302, "/ai-ugc" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
+app.get(["/ai-ugc-studio", "/ai-ugc-studio.html", "/ai-ugc", "/ai-ugc.html"], (req, res) => {
+  return res.redirect(302, "/ugc-ai" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
 });
-app.get(["/ai-ugc", "/ai-ugc.html"], (_req, res) => {
+app.get(["/ugc-ai", "/ugc-ai.html"], (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   return res.sendFile(path.join(__dirname, "ai-ugc.html"));
 });
 app.get(["/ai-thumbnail-studio", "/ai-thumbnail-studio.html"], (req, res) => {
-  return res.redirect(302, "/thumbnail-ai" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
+  return res.redirect(302, "/ai-media" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
 });
 app.get(["/ai-media", "/ai-media.html"], (_req, res) => {
   // AI Media is the renamed public URL for the existing thumbnail studio.
   // Serve the same application directly so the new URL stays in the address bar.
   res.setHeader("Cache-Control", "no-store");
-  return res.sendFile(path.join(__dirname, "thumbnail-ai", "index.html"));
+  return res.sendFile(path.join(__dirname, "ai-media", "index.html"));
 });
 app.get(["/ai-clothing-templates", "/ai-clothing-templates.html"], (req, res) => {
   return res.redirect(302, "/ai-clothing-studio" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
 });
-app.get(["/thumbnail-ai", "/thumbnail-ai.html"], (_req, res) => {
-  res.setHeader("Cache-Control", "no-store");
-  // Keep the public route and the folder route on the same chat-studio build.
-  return res.sendFile(path.join(__dirname, "thumbnail-ai", "index.html"));
+app.get(["/thumbnail-ai", "/thumbnail-ai.html"], (req, res) => {
+  return res.redirect(302, "/ai-media" + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""));
 });
 const httpServer = createServer(app);
 const AUTH_COOKIE_NAME = "rblxtools_auth_token";
@@ -13326,7 +13324,7 @@ async function getPublishedCodeSitemapEntries() {
 
 app.get("/sitemap.xml", async (_req, res) => {
   const origin = APP_BASE_URL.replace(/\/+$/, "");
-  const staticPaths = ["/", "/about-us", "/ai-ugc", "/audio-downloader", "/game-launcher", "/media-downloader", "/robux-calculator", "/subscriptions", "/template-background-changer", "/template-downloader", "/thumbnail-ai", "/ugc-downloader", "/codes"];
+  const staticPaths = ["/", "/about-us", "/ugc-ai", "/ai-media", "/audio-downloader", "/game-launcher", "/media-downloader", "/robux-calculator", "/subscriptions", "/template-background-changer", "/template-downloader", "/ugc-downloader", "/codes"];
   let codePosts = [];
   try { codePosts = await getPublishedCodeSitemapEntries(); }
   catch (error) { console.error("Could not build code-post sitemap entries:", error.message); }
@@ -13711,7 +13709,7 @@ app.patch("/admin/codes/expiry-reports/:id", async (req, res) => {
   }
 });
 
-const QUEST_EXPLORATION_PATHS = new Set(["/", "/clothing", "/ugc", "/media", "/audio", "/animations", "/robux-calculator", "/background-changer", "/ai-ugc", "/thumbnail-ai", "/game-codes", "/community", "/discord-bot", "/rewards"]);
+const QUEST_EXPLORATION_PATHS = new Set(["/", "/clothing", "/ugc", "/media", "/audio", "/animations", "/robux-calculator", "/background-changer", "/ugc-ai", "/ai-media", "/game-codes", "/community", "/discord-bot", "/rewards"]);
 app.post("/api/rewards/explore", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
