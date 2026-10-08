@@ -1939,7 +1939,7 @@
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
           '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong><span class="rblx-shell-token-bonus-popover" id="rblxShellTokenBonusPopover" hidden></span></a>' +
           '<a class="rblx-shell-header-token-balance" href="./rewards" title="View RBLX Points"><small>RBLX Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
-          '<a class="rblx-shell-referral-balance" href="./account-overview?tab=referrals" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
+          '<a class="rblx-shell-referral-balance" href="./affiliate-marketing" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
           (shellState.currentUser && shellState.currentUser.loggedIn ? '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span aria-hidden="true">📅</span></button>' : '') +
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
             '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
@@ -1972,6 +1972,14 @@
             '<div class="rblx-shell-profile-menu-panel">' +
               '<button class="rblx-shell-mobile-panel-back" type="button" data-shell-mobile-panel-back="true">‹ Navigation</button>' +
               '<a class="rblx-shell-profile-menu-item" href="./account-overview">Account Overview</a>' +
+              '<a class="rblx-shell-profile-menu-item" href="./account-settings">Account Settings</a>' +
+              '<a class="rblx-shell-profile-menu-item" href="./payments-billing">Payments &amp; Billing</a>' +
+              '<a class="rblx-shell-profile-menu-item" href="./promotions">Promotions</a>' +
+              '<a class="rblx-shell-profile-menu-item" href="./affiliate-marketing">Affiliate Marketing</a>' +
+              '<a class="rblx-shell-profile-menu-item" href="./quests-levels">Quests &amp; Levels</a>' +
+              '<a class="rblx-shell-profile-menu-item" href="./rake-back">Rake Back</a>' +
+              '<a class="rblx-shell-profile-menu-item" href="./my-transactions">My Transactions</a>' +
+              '<a class="rblx-shell-profile-menu-item" href="./bot-dashboard">Bot Dashboard</a>' +
               '<button class="rblx-shell-profile-menu-item is-danger" type="button" data-shell-logout="true">Log Out</button>' +
             "</div>" +
           "</details>" +

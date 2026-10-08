@@ -14099,6 +14099,21 @@ app.get(["/texture-baker", "/texture-baker.html"], (_req, res) => {
   app.get("/account", (_req, res) => {
     res.sendFile(path.join(STATIC_ROOT, "account-overview.html"));
   });
+
+  // Account areas have dedicated URLs so a member can bookmark and return to
+  // the exact control they need without reopening one monolithic dashboard.
+  app.get([
+    "/account-settings",
+    "/payments-billing",
+    "/promotions",
+    "/affiliate-marketing",
+    "/quests-levels",
+    "/rake-back",
+    "/my-transactions",
+    "/bot-dashboard",
+  ], (_req, res) => {
+    res.sendFile(path.join(STATIC_ROOT, "account-overview.html"));
+  });
   
   const PORT = process.env.PORT || 3000;
 

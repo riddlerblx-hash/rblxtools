@@ -3861,7 +3861,7 @@ body.rblx-shell-left-collapsed #rblxShellLeftToggle { right: -20px; }
 .rblx-shell-profile-menu{position:relative}
 .rblx-shell-profile-menu-summary{list-style:none;cursor:pointer}
 .rblx-shell-profile-menu-summary::-webkit-details-marker{display:none}
-.rblx-shell-profile-menu-panel{position:absolute;right:0;top:calc(100% + 10px);min-width:220px;padding:8px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(20,24,37,.98),rgba(12,15,23,.99));box-shadow:0 20px 44px rgba(6,9,16,.34);z-index:55}
+.rblx-shell-profile-menu-panel{position:absolute;right:0;top:calc(100% + 10px);min-width:220px;max-height:min(70vh,520px);overflow-y:auto;padding:8px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(20,24,37,.98),rgba(12,15,23,.99));box-shadow:0 20px 44px rgba(6,9,16,.34);z-index:55}
 .rblx-shell-profile-menu-item{display:flex;align-items:center;width:100%;min-height:42px;padding:0 12px;border:0;border-radius:12px;background:transparent;color:#eef4ff;text-decoration:none;font-size:14px;font-weight:800;cursor:pointer}
 .rblx-shell-profile-menu-item:hover{background:rgba(255,255,255,.06)}
 .rblx-shell-profile-menu-item.is-danger{color:#ffb0aa}

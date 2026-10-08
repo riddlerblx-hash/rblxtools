@@ -230,8 +230,12 @@
       background: transparent;
     }
 
-    /* Keep the account shell visible while the authoritative refresh runs. */
-    #rbtools-account-overview.acct-loading { visibility:visible; }
+    /* Never briefly show every account section before JavaScript places the
+       selected page. A neutral shell is far better than an obsolete dashboard
+       flashing during navigation. */
+    #rbtools-account-overview.acct-loading #acctCard,
+    #rbtools-account-overview.acct-loading #acctGate { display:none; }
+    #rbtools-account-overview.acct-loading::before { content:"Loading your account…"; display:grid; place-items:center; min-height:340px; border:1px solid rgba(111,146,205,.24); border-radius:22px; background:linear-gradient(135deg,rgba(20,39,71,.7),rgba(9,16,29,.78)); color:#afbdd1; font-size:13px; font-weight:800; letter-spacing:.04em; }
 
     #rbtools-account-overview .hidden {
       display: none !important;
@@ -1623,8 +1627,8 @@
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="billing">Payments &amp; Billing</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="promotions">Promotions</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="referrals">Affiliate Marketing</button>
-                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="levels" hidden>Quests &amp; Levels</button>
-                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="rakeback" hidden>Rake Back</button>
+                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="levels">Quests &amp; Levels</button>
+                <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="rakeback">Rake Back</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="rewards">My Transactions</button>
                 <div id="acctBotTabWrap" class="acct-bot-tab-wrap" role="presentation">
                   <button id="acctBotTab" class="acct-tab" type="button" role="tab" aria-selected="false" aria-disabled="false" data-account-tab="bot">Bot Dashboard</button>
@@ -1979,6 +1983,17 @@
       var BOT_ACCESS_CACHE_PREFIX = "rblxtools_bot_dashboard_access:";
       var LOGIN_PAGE_URL = "./login";
       var PLANS_PAGE_URL = "./subscriptions";
+      var ACCOUNT_ROUTE_TABS = {
+        "/account-settings": "settings",
+        "/payments-billing": "billing",
+        "/promotions": "promotions",
+        "/affiliate-marketing": "referrals",
+        "/quests-levels": "levels",
+        "/rake-back": "rakeback",
+        "/my-transactions": "rewards",
+        "/bot-dashboard": "bot"
+      };
+      var accountRouteTab = ACCOUNT_ROUTE_TABS[window.location.pathname.replace(/\/+$/, "") || "/"] || "";
 
       var state = {
         token: "",
@@ -2739,6 +2754,14 @@
 
       async function loadAccountTabPreference() {
         if (!state.user || !state.user.id || !state.selectAccountTab) return;
+        // A dedicated account URL is intentional; never replace it with the
+        // tab a member happened to open on a previous visit.
+        if (accountRouteTab) {
+          state.savedAccountTab = accountRouteTab;
+          state.accountTabPreferenceLoaded = true;
+          state.selectAccountTab(accountRouteTab, false);
+          return;
+        }
         try {
           var preference = await apiRequest("/account-overview/preference", { method: "GET" });
           var selectedTab = ["settings", "billing", "promotions", "referrals", "levels", "rakeback", "rewards", "bot"].includes(preference.selectedTab) ? preference.selectedTab : "settings";
@@ -3060,9 +3083,6 @@
 
       function renderUser(user) {
         state.user = user || null;
-        Array.prototype.slice.call(document.querySelectorAll('[data-account-tab="levels"], [data-account-tab="rakeback"]')).forEach(function (tab) {
-          tab.hidden = !Boolean(state.user && state.user.isAdmin);
-        });
         if (!state.user) {
           els.acctCard.classList.remove("is-plus", "is-pro");
           setBotTabLocked(true);
@@ -3122,7 +3142,10 @@
         if (!state.user) setStatus(els.acctMembershipStatus, "Loading account overview...", "");
 
           try {
-            var result = await apiRequest("/auth/me", {
+            // This deliberately avoids /auth/me: that endpoint refreshes
+            // Stripe, moderation, and bot state. Those are loaded only by
+            // their own page now, not on every account navigation.
+            var result = await apiRequest("/auth/session", {
               method: "GET"
             });
 
@@ -3806,7 +3829,6 @@
 
         function selectTab(name, persist) {
           if (!Object.prototype.hasOwnProperty.call(panels, name)) return;
-          if ((name === "levels" || name === "rakeback") && !Boolean(state.user && state.user.isAdmin)) name = "settings";
           tabs.forEach(function (tab) {
             var active = tab.dataset.accountTab === name;
             tab.classList.toggle("is-active", active);
@@ -3834,12 +3856,28 @@
             selectTab(tab.dataset.accountTab, true);
           });
         });
-        var requestedTab = new URLSearchParams(window.location.search || "").get("tab"), storedTab = "";
+        var requestedTab = accountRouteTab || new URLSearchParams(window.location.search || "").get("tab"), storedTab = "";
         try { storedTab = window.localStorage.getItem("rblxtools-account-tab") || ""; } catch (_error) { storedTab = ""; }
-        selectTab(["settings", "billing", "promotions", "referrals", "levels", "rakeback", "rewards"].includes(requestedTab) ? requestedTab : ["settings", "billing", "promotions", "referrals", "levels", "rakeback", "rewards"].includes(storedTab) ? storedTab : "settings", false);
+        selectTab(["settings", "billing", "promotions", "referrals", "levels", "rakeback", "rewards", "bot"].includes(requestedTab) ? requestedTab : ["settings", "billing", "promotions", "referrals", "levels", "rakeback", "rewards", "bot"].includes(storedTab) ? storedTab : "settings", false);
       }
 
       setupAccountTabs();
+      // Account navigation lives in the global profile menu. Individual
+      // routes below expose one page at a time, so the legacy tab strip does
+      // not duplicate navigation or cause a flash of unrelated content.
+      var accountTabs = document.querySelector(".acct-tabs");
+      if (accountTabs) accountTabs.hidden = true;
+      var routeTitle = {
+        settings: "Account Settings",
+        billing: "Payments & Billing",
+        promotions: "Promotions",
+        referrals: "Affiliate Marketing",
+        levels: "Quests & Levels",
+        rakeback: "Rake Back",
+        rewards: "My Transactions",
+        bot: "Bot Dashboard"
+      }[accountRouteTab];
+      if (routeTitle) document.title = routeTitle + " | RBLXTools";
       function loadActiveAccountTabData() {
         if (!state.selectAccountTab) return;
         var active = state.selectedAccountTab || "settings";
@@ -3854,13 +3892,8 @@
       window.setInterval(function () { if (state.selectedAccountTab === "promotions") loadPromotionDetails(); }, 30000);
       loadProfile();
       syncBioCount();
-      var cachedAccountSnapshot = readAccountSnapshot();
-      if (cachedAccountSnapshot) {
-        renderUser(cachedAccountSnapshot.user);
-        if (cachedAccountSnapshot.botDashboard) renderBotDashboard({ dashboard: cachedAccountSnapshot.botDashboard, inviteUrl: cachedAccountSnapshot.botInviteUrl });
-        document.getElementById("rbtools-account-overview").classList.remove("acct-loading");
-        loadActiveAccountTabData();
-      }
+      // Do not paint a cached account snapshot. It could be from a previous
+      // membership state and was visibly flashing an older dashboard first.
 
       if (els.acctBillingPaymentButton) els.acctBillingPaymentButton.addEventListener("click", openBillingPaymentEditor);
       if (els.acctBillingRemovePaymentButton) els.acctBillingRemovePaymentButton.addEventListener("click", removeBillingPaymentMethod);
