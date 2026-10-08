@@ -319,7 +319,8 @@
       async function verifyAccess() {
         var cachedUser = getCachedUser();
         if (cachedUser) {
-          configureEntitlements(cachedUser); setTokenBalance(cachedUser.aiTokens); gate.classList.remove('visible'); workspace.hidden = false;
+          isAuthenticated = Boolean(cachedUser.id || cachedUser.userId || cachedUser.email);
+          configureEntitlements(cachedUser); setTokenBalance(cachedUser.aiTokens); gate.classList.remove('visible'); workspace.hidden = false; loadHistory();
         }
         try {
           var response = await fetch('/auth/session', { credentials:'include', headers:{ Authorization:'Bearer ' + getToken() } });
@@ -328,7 +329,7 @@
           if (!response.ok || !user) throw new Error('Log in to use AI Thumbnail Studio.');
           isAuthenticated = true; cacheCurrentUser(user); configureEntitlements(user); setTokenBalance(user.aiTokens);
           gate.classList.remove('visible'); workspace.hidden = false; loadHistory();
-        } catch (_error) { configureEntitlements(null); setTokenBalance(0); gate.classList.remove('visible'); workspace.hidden = false; setStatus(''); }
+        } catch (_error) { if (!cachedUser) { configureEntitlements(null); setTokenBalance(0); } gate.classList.remove('visible'); workspace.hidden = false; setStatus(''); }
       }
       verifyAccess();
     }());
