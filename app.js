@@ -8772,11 +8772,16 @@ app.get("/api/leaderboards", async (_req, res) => {
     // Member-account schemas have evolved between deployments. Fetch server-side
     // and project only the safe fields below so a missing optional column can
     // never make the whole public leaderboard blank.
-    const [tokenRows, pointRows, accountRows, transactionRows, stripeSpend] = await Promise.all([
+    const [tokenRows, pointRows, accountRows, transactionRows, toolTransactionRows, thumbnailHistoryRows, stripeSpend] = await Promise.all([
       supabaseRequest(buildAuthTablePath("?select=*&order=ai_token_balance.desc&limit=50"), { timeoutMs: 8000 }),
       supabaseRequest(buildAuthTablePath("?select=*&order=reward_points.desc&limit=50"), { timeoutMs: 8000 }),
       supabaseRequest(buildAuthTablePath("?select=*&limit=1000"), { timeoutMs: 12000 }).catch(() => []),
       supabaseRequest(buildTablePath(ACCOUNT_TRANSACTIONS_TABLE, "?category=eq.purchases&unit=eq.usd_cents&status=eq.confirmed&select=user_id,amount_delta&limit=10000"), { timeoutMs: 12000 }).catch(() => []),
+      // Historical AI actions predate the rewards ledger on some deployments.
+      // Their token debit is a durable, member-owned record and makes those
+      // real uses visible on the new leaderboard.
+      supabaseRequest(buildTablePath(ACCOUNT_TRANSACTIONS_TABLE, "?category=eq.ai_tokens&unit=eq.tokens&amount_delta=lt.0&status=eq.accepted&select=user_id,source_id&limit=10000"), { timeoutMs: 12000 }).catch(() => []),
+      supabaseRequest(buildTablePath(AI_THUMBNAIL_HISTORY_TABLE, "?select=user_id,id&limit=10000"), { timeoutMs: 12000 }).catch(() => []),
       getHistoricalStripeSpend(),
     ]);
     let users = Array.from(new Map([...(Array.isArray(tokenRows) ? tokenRows : []), ...(Array.isArray(pointRows) ? pointRows : []), ...(Array.isArray(accountRows) ? accountRows : [])].map((user) => [String(user.id || ""), user])).values()).filter((user) => user && user.id);
@@ -8836,9 +8841,25 @@ app.get("/api/leaderboards", async (_req, res) => {
       if (userId) accountTransactionSpend[userId] = (accountTransactionSpend[userId] || 0) + Math.abs(Number(transaction?.amount_delta || 0));
     });
     Object.entries(accountTransactionSpend).forEach(([userId, amount]) => { stripeSpendByUserId[userId] = Math.max(Number(stripeSpendByUserId[userId] || 0), amount); });
+    const toolUsesFromTokenDebits = {};
+    (Array.isArray(toolTransactionRows) ? toolTransactionRows : []).forEach((transaction) => {
+      const userId = String(transaction?.user_id || "");
+      if (userId) toolUsesFromTokenDebits[userId] = (toolUsesFromTokenDebits[userId] || 0) + 1;
+    });
+    const toolUsesFromHistory = {};
+    (Array.isArray(thumbnailHistoryRows) ? thumbnailHistoryRows : []).forEach((entry) => {
+      const userId = String(entry?.user_id || "");
+      if (userId) toolUsesFromHistory[userId] = (toolUsesFromHistory[userId] || 0) + 1;
+    });
+    // AI UGC history is persisted locally on the VPS for completed Meshy jobs.
+    // It covers older generations that may not have a Supabase ledger row.
+    Object.entries(readPersistentAIUGCHistory().users || {}).forEach(([userId, entries]) => {
+      toolUsesFromHistory[String(userId)] = (toolUsesFromHistory[String(userId)] || 0) + (Array.isArray(entries) ? entries.length : 0);
+    });
     const members = users.map((user) => {
       const member = publicMember(user);
       member.moneySpentCents = Math.max(member.moneySpentCents, Number(stripeSpendByUserId[member.id] || 0));
+      member.toolsUsed = Math.max(member.toolsUsed, Number(toolUsesFromTokenDebits[member.id] || 0), Number(toolUsesFromHistory[member.id] || 0));
       return member;
     });
     const tipTotals = {};
@@ -12556,6 +12577,28 @@ async function emitToolActivityForRequest(req, toolKey, fallbackDisplayName) {
     user,
     fallbackDisplayName || displayNameHeader || usernameHeader || emailNameHeader
   );
+
+  // This used to feed only the retired Community Chat activity line. Record
+  // the completed action in the rewards ledger instead so tool usage remains
+  // attributable to its member and can power the public leaderboard.
+  if (user?.id) {
+    const activityId = cleanText(
+      req.get("X-RBLXTools-Action-Id") || req.body?.requestId || req.query?.requestId || req.body?.taskId || req.query?.taskId || "",
+      120
+    ) || randomUUID();
+    const membership = await resolveMembershipSnapshot(user).catch(() => null);
+    rewardsEngine.recordActivity({
+      userId: user.id,
+      sourceKey: `tool-use:${normalizeToolActivityKey(toolKey)}:${user.id}:${activityId}`,
+      action: "eligible_tool_use",
+      title: `${TOOL_ACTIVITY_LABELS[normalizeToolActivityKey(toolKey)] || "Creator tool"} completed`,
+      amount: rewardsEngine.getConfig().xp.eligibleToolUse,
+      note: "Completed creator-tool action",
+      metadata: { tool: normalizeToolActivityKey(toolKey) },
+      limitKey: "eligibleToolUsesPerDay",
+      xpMultiplier: getPaidXpMultiplier(membership),
+    });
+  }
 
   return emitToolActivity(defaultChatRoom, toolKey, actorDisplayName);
 }
