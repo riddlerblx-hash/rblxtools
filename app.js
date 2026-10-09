@@ -9416,6 +9416,40 @@ app.get("/ai/ugc/source/:sourceId", (req, res) => {
   return res.send(source.buffer);
 });
 
+// The interactive viewer must receive the archived source quickly. Download
+// exports still run through the Roblox-safe preparation route below.
+app.get("/ai/ugc/tasks/:taskId/preview", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    const requestedType = String(req.query.type || "text");
+    const taskType = ["image", "multi"].includes(requestedType) ? requestedType : "text";
+    const assetType = String(req.query.assetType || "ugc") === "game" ? "game" : "ugc";
+    const charge = ugcGenerationCharges.get(taskId);
+    const savedItem = charge?.userId === user.id ? null : getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId && item.assetType === assetType);
+    if ((!charge || charge.userId !== user.id) && !savedItem) {
+      return res.status(404).json({ error: "This UGC generation is not in your history." });
+    }
+    let modelBuffer = readValidStoredAIUGCModel(user.id, taskId);
+    if (!modelBuffer) {
+      const taskPath = taskType === "multi" ? "/v1/multi-image-to-3d/" : taskType === "image" ? "/v1/image-to-3d/" : "/v2/text-to-3d/";
+      const task = await requestMeshy(taskPath + encodeURIComponent(taskId));
+      if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) {
+        return res.status(409).json({ error: "The 3D preview is not ready yet." });
+      }
+      await storeAIUGCModel(user.id, taskId, task.model_urls.glb);
+      modelBuffer = readValidStoredAIUGCModel(user.id, taskId);
+    }
+    if (!modelBuffer) throw new Error("Could not retrieve the saved GLB preview.");
+    res.setHeader("Content-Type", "model/gltf-binary");
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    return res.send(modelBuffer);
+  } catch (error) {
+    console.error("GET /ai/ugc/tasks/preview failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the 3D preview." });
+  }
+});
+
 app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
