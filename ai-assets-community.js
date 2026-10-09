@@ -688,8 +688,12 @@
     var creatorProfile = creatorId ? ' href="/members/' + encodeURIComponent(creatorId) + '" data-asset-member-profile="true" data-asset-member-profile-id="' + escapeHtml(creatorId) + '" data-asset-member-profile-name="' + escapeHtml(item.creator.name) + '" data-asset-member-profile-avatar="' + escapeHtml(item.creator.avatarUrl || '') + '"' : '';
     var creatorAvatar = creatorId ? '<a class="ai-post-profile-link ai-post-profile-avatar"' + creatorProfile + ' aria-label="Open ' + escapeHtml(item.creator.name) + '\'s profile">' + assetAvatar('ai-post-avatar', item.creator.name, item.creator.avatarUrl) + '</a>' : assetAvatar('ai-post-avatar', item.creator.name, item.creator.avatarUrl);
     var creatorCopy = creatorId ? '<a class="ai-post-profile-link ai-post-profile-copy"' + creatorProfile + '><strong>' + escapeHtml(item.creator.name) + '</strong></a>' : '<div><strong>' + escapeHtml(item.creator.name) + '</strong></div>';
+    var price = Math.max(0, Number(item.salePriceCents || 0)) / 100;
+    var assetAction = item.forSale
+      ? '<button class="ai-post-button download" type="button" data-asset-purchase="true">Purchase · $' + price.toFixed(2) + '</button>'
+      : (item.allowDownloads ? '<a class="ai-post-button download" href="/api/ugc/community/' + encodeURIComponent(item.id) + '/download" download>Download GLB</a>' : '');
     return '<div class="ai-post-creator">' + creatorAvatar + creatorCopy + '<button class="ai-follow" data-follow="' + escapeHtml(item.creator.id) + '">' + (item.creator.isFollowing ? 'Following' : 'Follow') + '</button>' + adminActions + '</div>'
-      + starRow(item) + '<div class="ai-post-actions"><button class="ai-post-button ' + (item.viewerVote === 'like' ? 'is-active' : '') + '" data-vote="like" aria-label="Like this model">&#9829; <b>' + Number(item.likes || 0) + '</b></button><button class="ai-post-button" data-share="true">&#8599; Share</button>' + tipButton + (item.allowDownloads ? '<a class="ai-post-button download" href="/api/ugc/community/' + encodeURIComponent(item.id) + '/download" download>Download GLB</a>' : '') + '</div>'
+      + starRow(item) + '<div class="ai-post-actions"><button class="ai-post-button ' + (item.viewerVote === 'like' ? 'is-active' : '') + '" data-vote="like" aria-label="Like this model">&#9829; <b>' + Number(item.likes || 0) + '</b></button><button class="ai-post-button" data-share="true">&#8599; Share</button>' + tipButton + assetAction + '</div>'
       + tipLeaderboardMarkup(item) + '<section class="ai-assets-comments ai-community-reader-comments"><h3>Comments <span class="ai-assets-comment-count">' + Number(item.commentCount || 0) + ' ' + (Number(item.commentCount || 0) === 1 ? 'comment' : 'comments') + '</span></h3><form class="ai-assets-comment-form ai-community-reader-form" id="aiAssetsCommentForm"><div class="ai-community-reader-form-entry"><button class="ai-community-reader-form-avatar" type="button">' + (/^(?:https?:|\/|data:image\/)/i.test(String((state.communityViewer || currentCommunityUser()).avatarUrl || '')) ? '<img src="' + escapeHtml((state.communityViewer || currentCommunityUser()).avatarUrl) + '" alt="" />' : escapeHtml(initials((state.communityViewer || currentCommunityUser()).name || (state.communityViewer || currentCommunityUser()).display_name || 'You'))) + '</button><input id="aiAssetsComment" type="text" maxlength="600" autocomplete="off" placeholder="Add a comment..." /></div><input id="aiAssetsCommentParent" type="hidden" /><input id="aiAssetsCommentReplyTo" type="hidden" /><input id="aiAssetsCommentReplyName" type="hidden" /><div class="ai-community-reader-form-bar"><button type="button" data-cancel-asset-comment="true">Cancel</button><button type="submit">Comment</button></div></form><div id="aiAssetsComments">' + comments + '</div></section>';
   }
 
@@ -863,7 +867,7 @@
   }, true);
   document.getElementById('aiAssetsPostPanel').addEventListener('click', function (event) {
     if (!state.active) return;
-    var target = event.target.closest('[data-vote],[data-rating],[data-follow],[data-share],[data-tip],[data-delete-asset],[data-asset-post-menu-toggle],[data-asset-comment-action],[data-asset-comment-reply],[data-asset-comment-menu],[data-asset-comment-toggle],[data-cancel-asset-comment]');
+    var target = event.target.closest('[data-vote],[data-rating],[data-follow],[data-share],[data-tip],[data-asset-purchase],[data-delete-asset],[data-asset-post-menu-toggle],[data-asset-comment-action],[data-asset-comment-reply],[data-asset-comment-menu],[data-asset-comment-toggle],[data-cancel-asset-comment]');
     if (!target) return;
     if (target.dataset.assetPostMenuToggle !== undefined) {
       var menu = target.closest('.ai-asset-post-admin-menu');
@@ -952,6 +956,7 @@
       return;
     }
     if (target.dataset.share) { var url = location.origin + location.pathname + '#asset-' + state.active.id; (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { notify('Post link copied.'); }).catch(function () { prompt('Copy this post link:', url); }); return; }
+    if (target.dataset.assetPurchase) { notify('Secure checkout is being connected. Downloads stay locked until payment is confirmed.'); return; }
     if (target.dataset.tip) { document.body.classList.add('ai-assets-tip-open'); document.getElementById('aiAssetsTipModal').hidden = false; document.getElementById('aiAssetsTipAmount').focus(); document.getElementById('aiAssetsTipAmount').select(); }
   });
   document.addEventListener('click', function (event) {

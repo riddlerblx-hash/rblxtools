@@ -8542,7 +8542,9 @@ app.post("/ai/ugc/history", async (req, res) => {
       // Completed generations are automatically discoverable in AI Assets.
       // Download access remains separately controlled by allowPublicDownloads.
       public: true,
-      allowPublicDownloads: Boolean(req.body?.allowPublicDownloads),
+      // A listing is either paid or free—never both. Paid files are guarded by
+      // the purchase check on the Community download endpoint.
+      allowPublicDownloads: !forSale && Boolean(req.body?.allowPublicDownloads),
       // Sales are deliberately recorded as listing data first. Money movement is
       // added only once the creator completes verified payout onboarding.
       forSale,
