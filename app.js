@@ -9438,11 +9438,13 @@ async function serveAIUGCPreview(req, res) {
   try {
     const user = await requireAuthenticatedUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
-    const requestedType = String(req.params.taskType || req.query.type || "text");
-    const taskType = ["image", "multi"].includes(requestedType) ? requestedType : "text";
-    const assetType = String(req.params.assetType || req.query.assetType || "ugc") === "game" ? "game" : "ugc";
     const charge = ugcGenerationCharges.get(taskId);
-    const savedItem = charge?.userId === user.id ? null : getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId && item.assetType === assetType);
+    const storedItem = getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId);
+    const requestedType = String(req.params.taskType || req.query.type || charge?.taskType || storedItem?.taskType || (storedItem?.inputMode === "image" ? "image" : "text"));
+    const taskType = ["image", "multi"].includes(requestedType) ? requestedType : "text";
+    const requestedAsset = String(req.params.assetType || req.query.assetType || charge?.assetType || storedItem?.assetType || "ugc");
+    const assetType = requestedAsset === "game" ? "game" : "ugc";
+    const savedItem = charge?.userId === user.id ? null : storedItem;
     if ((!charge || charge.userId !== user.id) && !savedItem) {
       return res.status(404).json({ error: "This UGC generation is not in your history." });
     }
@@ -9479,6 +9481,7 @@ async function serveAIUGCPreview(req, res) {
 
 app.get("/ai/ugc/tasks/:taskId/preview", serveAIUGCPreview);
 app.get("/ai/ugc/tasks/:taskId/preview/:taskType/:assetType", serveAIUGCPreview);
+app.get("/ai/ugc/preview-model/:taskId", serveAIUGCPreview);
 
 app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
   try {

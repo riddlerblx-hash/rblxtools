@@ -248,7 +248,7 @@
       // Viewer requests use the archived GLB directly. The download endpoint
       // deliberately does slower Roblox export preparation and is kept for files.
       var loadViewerFromPreview = loadViewer;
-      loadViewer = function(url,attempt) { var downloadUrl=String(url||''); var match=downloadUrl.match(/^\/ai\/ugc\/tasks\/([^/?]+)\/download\?type=([^&]+)&assetType=([^&]+)$/); var previewUrl=match ? '/ai/ugc/tasks/'+encodeURIComponent(match[1])+'/preview/'+encodeURIComponent(match[2])+'/'+encodeURIComponent(match[3]) : downloadUrl.replace('/download?','/preview?'); return loadViewerFromPreview(previewUrl,attempt); };
+      loadViewer = function(url,attempt) { var downloadUrl=String(url||''); var match=downloadUrl.match(/^\/ai\/ugc\/tasks\/([^/?]+)\/download(?:\?.*)?$/); var previewUrl=match ? '/ai/ugc/preview-model/'+encodeURIComponent(match[1]) : downloadUrl.replace('/download?','/preview?'); return loadViewerFromPreview(previewUrl,attempt); };
       function showToast(message) { console.warn(message); }
       function authOptions(method, body) { return { method:method, credentials:'include', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()}, body:body ? JSON.stringify(body) : undefined }; }
       async function fetchDownload(url) { var controller=window.AbortController ? new AbortController() : null; var timeout=controller ? setTimeout(function(){controller.abort();},90000) : 0; try { return await fetch(url,Object.assign({},authOptions('GET'),controller ? {signal:controller.signal} : {})); } catch(error) { if(controller && error && error.name==='AbortError') throw new Error('Preparing this GLB took too long. Please try downloading it again.'); throw error; } finally { if(timeout) clearTimeout(timeout); } }
