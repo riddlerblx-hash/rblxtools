@@ -1003,6 +1003,12 @@ function getStoredAIUGCModelPath(userId, taskId) {
   return path.join(AI_UGC_MODEL_DIR, safeUserId, `${safeTaskId}.glb`);
 }
 
+function getStoredAIUGCPreviewPath(userId, taskId) {
+  const safeUserId = String(userId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const safeTaskId = String(taskId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+  return path.join(AI_UGC_MODEL_DIR, safeUserId, `${safeTaskId}.preview.glb`);
+}
+
 function getStoredAIUGCCoverPath(userId, taskId) {
   const safeUserId = String(userId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
   const safeTaskId = String(taskId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -1069,6 +1075,15 @@ function readValidStoredAIUGCModel(userId, taskId) {
   return isGLBBinary(modelBuffer) ? modelBuffer : null;
 }
 
+function readValidStoredAIUGCPreview(userId, taskId) {
+  try {
+    ensureAIUGCModelDirectory();
+    const previewPath = getStoredAIUGCPreviewPath(userId, taskId);
+    const previewBuffer = fs.existsSync(previewPath) ? fs.readFileSync(previewPath) : null;
+    return isGLBBinary(previewBuffer) ? previewBuffer : null;
+  } catch (_error) { return null; }
+}
+
 async function storeAIUGCModel(userId, taskId, modelUrl) {
   ensureAIUGCModelDirectory();
   const filePath = getStoredAIUGCModelPath(userId, taskId);
@@ -1094,6 +1109,7 @@ function deletePersistentAIUGCHistory(userId, taskId, options = {}) {
   writePersistentAIUGCHistory(payload);
   if (!options.keepStoredModel) {
     try { fs.rmSync(getStoredAIUGCModelPath(userId, taskId), { force: true }); } catch (_error) {}
+    try { fs.rmSync(getStoredAIUGCPreviewPath(userId, taskId), { force: true }); } catch (_error) {}
   }
 }
 
@@ -9441,9 +9457,20 @@ app.get("/ai/ugc/tasks/:taskId/preview", async (req, res) => {
       modelBuffer = readValidStoredAIUGCModel(user.id, taskId);
     }
     if (!modelBuffer) throw new Error("Could not retrieve the saved GLB preview.");
+    let previewBuffer = readValidStoredAIUGCPreview(user.id, taskId);
+    if (!previewBuffer) {
+      // Meshy source GLBs may use extensions unavailable in our browser viewer.
+      // Normalize once, cache it beside the source model, then serve that cache.
+      const limit = assetType === "ugc" ? 4000 : 15000;
+      const prepared = await prepareRobloxGLBDownload(modelBuffer, limit, assetType === "ugc" ? 1024 : 4096);
+      assertGLBBinary(prepared.buffer);
+      ensureAIUGCModelDirectory();
+      fs.writeFileSync(getStoredAIUGCPreviewPath(user.id, taskId), prepared.buffer);
+      previewBuffer = prepared.buffer;
+    }
     res.setHeader("Content-Type", "model/gltf-binary");
     res.setHeader("Cache-Control", "private, max-age=3600");
-    return res.send(modelBuffer);
+    return res.send(previewBuffer);
   } catch (error) {
     console.error("GET /ai/ugc/tasks/preview failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the 3D preview." });
