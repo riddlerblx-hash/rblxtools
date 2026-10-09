@@ -408,9 +408,20 @@ function getLargestMeshTriangleCount(document) {
 
 async function prepareRobloxGLBDownload(glbBuffer, maxTriangles, maxTextureSize) {
   const { NodeIO } = require("@gltf-transform/core");
+  const { EXTMeshoptCompression, KHRDracoMeshCompression } = require("@gltf-transform/extensions");
   const { simplify } = require("@gltf-transform/functions");
-  const { MeshoptSimplifier } = require("meshoptimizer");
-  const io = new NodeIO();
+  const { MeshoptDecoder, MeshoptSimplifier } = require("meshoptimizer");
+  const draco3d = require("draco3d");
+  await MeshoptDecoder.ready;
+  // Decode Meshy's compression extensions before writing a plain GLB. The
+  // previous bare NodeIO left some older saved models with unsupported
+  // compressed geometry, which caused the browser viewport to stay blank.
+  const io = new NodeIO()
+    .registerExtensions([EXTMeshoptCompression, KHRDracoMeshCompression])
+    .registerDependencies({
+      "meshopt.decoder": MeshoptDecoder,
+      "draco3d.decoder": await draco3d.createDecoderModule(),
+    });
   const document = await io.readBinary(glbBuffer);
   let largestMeshTriangles = getLargestMeshTriangleCount(document);
   if (largestMeshTriangles > maxTriangles) {
@@ -1006,7 +1017,7 @@ function getStoredAIUGCModelPath(userId, taskId) {
 function getStoredAIUGCPreviewPath(userId, taskId) {
   const safeUserId = String(userId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
   const safeTaskId = String(taskId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
-  return path.join(AI_UGC_MODEL_DIR, safeUserId, `${safeTaskId}.preview.glb`);
+  return path.join(AI_UGC_MODEL_DIR, safeUserId, `${safeTaskId}.preview-v2.glb`);
 }
 
 function getStoredAIUGCCoverPath(userId, taskId) {
@@ -9459,13 +9470,20 @@ async function serveAIUGCPreview(req, res) {
       modelBuffer = readValidStoredAIUGCModel(user.id, taskId);
     }
     if (!modelBuffer) throw new Error("Could not retrieve the saved GLB preview.");
-    // The in-browser viewer supports Meshy's source GLB directly. Serving it
-    // unchanged avoids the expensive export transformation and preserves every
-    // extension/material needed by older saved generations.
-    assertGLBBinary(modelBuffer);
+    let previewBuffer = readValidStoredAIUGCPreview(user.id, taskId);
+    if (!previewBuffer) {
+      // Decode Meshy compression once and cache a browser-safe GLB. This is
+      // deliberately separate from the slower, stricter downloadable export.
+      const limit = assetType === "ugc" ? 4000 : 15000;
+      const prepared = await prepareRobloxGLBDownload(modelBuffer, limit, assetType === "ugc" ? 1024 : 4096);
+      assertGLBBinary(prepared.buffer);
+      ensureAIUGCModelDirectory();
+      fs.writeFileSync(getStoredAIUGCPreviewPath(user.id, taskId), prepared.buffer);
+      previewBuffer = prepared.buffer;
+    }
     res.setHeader("Content-Type", "model/gltf-binary");
     res.setHeader("Cache-Control", "private, max-age=3600");
-    return res.send(modelBuffer);
+    return res.send(previewBuffer);
   } catch (error) {
     console.error("GET /ai/ugc/tasks/preview failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the 3D preview." });
