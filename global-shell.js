@@ -5232,8 +5232,20 @@
       var link = getInternalLink(event);
       if (link) prefetchShellPage(link.href);
     });
-    // Intent-based prefetch above keeps the next navigation quick without
-    // downloading every tool page after every navigation.
+    // Navigation is one of the site's primary workflows. Warm the pages exposed
+    // by the persistent header and sidebar after first paint, then the normal
+    // browser navigation can use its document cache immediately.
+    var warmVisibleNavigation = function () {
+      var seen = {};
+      Array.prototype.slice.call(document.querySelectorAll(".rblx-shell-nav-link[href], .rblx-header-nav a[href]")).forEach(function (link) {
+        var href = String(link.href || "");
+        if (!href || seen[href]) return;
+        seen[href] = true;
+        prefetchShellPage(href);
+      });
+    };
+    if (window.requestIdleCallback) window.requestIdleCallback(warmVisibleNavigation, { timeout: 1200 });
+    else window.setTimeout(warmVisibleNavigation, 450);
   }
 
 
