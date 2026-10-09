@@ -9494,6 +9494,41 @@ app.get("/ai/ugc/tasks/:taskId/preview", serveAIUGCPreview);
 app.get("/ai/ugc/tasks/:taskId/preview/:taskType/:assetType", serveAIUGCPreview);
 app.get("/ai/ugc/preview-model/:taskId", serveAIUGCPreview);
 
+// The studio uses this same direct GLB response pattern as the AI Assets
+// community viewer. It is intentionally separate from the download/export
+// route: this is only the interactive canvas source, never an attachment.
+app.get("/ai/ugc/tasks/:taskId/model", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const taskId = cleanMeshyTaskId(req.params.taskId);
+    const charge = ugcGenerationCharges.get(taskId);
+    const item = getPersistentAIUGCHistory(user.id).find((entry) => String(entry.id) === taskId);
+    if ((!charge || charge.userId !== user.id) && !item) {
+      return res.status(404).json({ error: "This UGC generation is not in your history." });
+    }
+    const taskType = charge?.taskType === "multi" || item?.taskType === "multi" ? "multi" : charge?.inputMode === "image" || item?.inputMode === "image" ? "image" : "text";
+    const assetType = charge?.assetType === "game" || item?.assetType === "game" ? "game" : "ugc";
+    let modelBuffer = readValidStoredAIUGCModel(user.id, taskId);
+    if (!modelBuffer) {
+      const task = await requestMeshy(getUGCTaskPath(taskType) + encodeURIComponent(taskId));
+      if (task.status !== "SUCCEEDED" || !task.model_urls?.glb) {
+        return res.status(409).json({ error: "The 3D model is still finishing." });
+      }
+      await storeAIUGCModel(user.id, taskId, task.model_urls.glb);
+      modelBuffer = readValidStoredAIUGCModel(user.id, taskId);
+    }
+    if (!modelBuffer) throw new Error("Could not retrieve the saved GLB.");
+    const prepared = await prepareRobloxGLBDownload(modelBuffer, assetType === "game" ? 15000 : 4000, assetType === "game" ? 4096 : 1024);
+    assertGLBBinary(prepared.buffer);
+    res.setHeader("Content-Type", "model/gltf-binary");
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.send(prepared.buffer);
+  } catch (error) {
+    console.error("GET /ai/ugc/tasks/model failed:", error.message);
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the 3D model." });
+  }
+});
+
 app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
