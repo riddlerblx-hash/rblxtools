@@ -238,7 +238,7 @@
       var viewerState = null;
       // The workspace progress UI is the only generation loader.
       var legacyNewButton=document.getElementById('ugcNew'); if(legacyNewButton) legacyNewButton.remove(); var viewerFooter=document.getElementById('ugcViewerFooter'); viewerFooter.insertBefore(download,viewerFooter.firstChild); var historyNew=document.createElement('button'); historyNew.className='ugc-secondary'; historyNew.type='button'; historyNew.textContent='New generation'; historyNew.style.cssText='width:100%;margin:0 0 10px'; historySlot.insertAdjacentElement('afterend',historyNew);
-      function destroyViewer() { result.classList.remove('is-viewer-mode'); if (!viewerState) { document.getElementById('ugcViewerFooter').classList.remove('is-visible'); return; } viewerState.active=false; window.removeEventListener('resize',viewerState.resize); viewerState.controls.dispose(); viewerState.renderer.dispose(); viewerState.container.replaceChildren(); viewerState=null; document.getElementById('ugcViewer').classList.remove('is-ready'); document.getElementById('ugcViewerStats').classList.remove('is-visible'); document.getElementById('ugcViewerToolbar').classList.remove('is-visible'); document.getElementById('ugcViewerFooter').classList.remove('is-visible'); }
+      function destroyViewer() { result.classList.remove('is-viewer-mode'); if (!viewerState) { document.getElementById('ugcViewerFooter').classList.remove('is-visible'); return; } viewerState.active=false; window.removeEventListener('resize',viewerState.resize); if(viewerState.controls&&viewerState.controls.dispose)viewerState.controls.dispose(); if(viewerState.renderer&&viewerState.renderer.dispose)viewerState.renderer.dispose(); if(viewerState.objectUrl)URL.revokeObjectURL(viewerState.objectUrl); viewerState.container.replaceChildren(); viewerState=null; document.getElementById('ugcViewer').classList.remove('is-ready'); document.getElementById('ugcViewerStats').classList.remove('is-visible'); document.getElementById('ugcViewerToolbar').classList.remove('is-visible'); document.getElementById('ugcViewerFooter').classList.remove('is-visible'); }
       function renderViewerPanel(kind) { var panel=document.getElementById('ugcViewerPanel'); if (!viewerState) return; var settings=viewerState.settings; if (!kind) { panel.hidden=true; return; } if (kind==='material') panel.innerHTML='<h3>PBR material preview</h3>'+(!isPro?'<p class="ugc-viewer-pro-notice">Visual test only. You can try these PBR settings here, but they are not applied to your exported model unless you are a Pro subscriber. <a href="./subscriptions">View plans</a></p>':'')+'<label>Metalness <input id="ugcMetalness" type="range" min="0" max="1" step=".01" value="'+settings.metalness+'" /></label><label>Roughness <input id="ugcRoughness" type="range" min="0" max="1" step=".01" value="'+settings.roughness+'" /></label><label>Texture intensity <input id="ugcIntensity" type="range" min="0" max="2" step=".05" value="'+settings.intensity+'" /></label>';
         else if (kind==='bloom') panel.innerHTML='<h3>Bloom settings</h3><label class="ugc-viewer-toggle">Enable bloom <input id="ugcBloom" type="checkbox" '+(settings.bloom?'checked':'')+' /></label><label>Strength <input id="ugcBloomStrength" type="range" min="0" max="2" step=".05" value="'+settings.bloomStrength+'" /></label><small>Enhances emissive highlights in the preview.</small>';
         else panel.innerHTML='<h3>Environment settings</h3><label>Lighting <select id="ugcEnvironment"><option value="studio">Studio lighting</option><option value="daylight">Daylight</option><option value="night">Night</option></select></label><label>Strength <input id="ugcEnvStrength" type="range" min=".1" max="3" step=".1" value="'+settings.environmentStrength+'" /></label><label>Rotation <input id="ugcEnvRotation" type="range" min="0" max="360" step="1" value="'+settings.rotation+'" /></label><label class="ugc-viewer-toggle">Auto-rotate <input id="ugcAutoRotate" type="checkbox" '+(settings.autoRotate?'checked':'')+' /></label><label class="ugc-viewer-toggle">Background <input id="ugcBackground" type="checkbox" '+(settings.background?'checked':'')+' /></label>';
@@ -273,7 +273,7 @@
       download.addEventListener('click',function(event){ if(requireCreationDetails()) return; event.preventDefault(); event.stopImmediatePropagation(); },true);
       async function loadEntitlements() { try { var response=await fetch('/auth/session',authOptions('GET')); var payload=await response.json().catch(function(){return null;}); var user=payload&&payload.user||{}; isPro=Boolean(user.premiumActive)&&String(user.plan||'').toLowerCase()==='pro'; historyLimit=isPro?18:(user.premiumActive?8:3); entitlementsReady=true; updateProGates(); updateGenerationEstimate(); renderHistory(); requestAnimationFrame(syncConfigPanelHeight); } catch(error) { isPro=false; historyLimit=3; entitlementsReady=true; updateProGates(); updateGenerationEstimate(); renderHistory(); requestAnimationFrame(syncConfigPanelHeight); } }
       function showResult() { destroyViewer(); layout.classList.remove('is-configuring'); layout.classList.add('is-viewing-generation'); if(backToCreate) backToCreate.hidden=true; if(library) library.style.height=''; empty.hidden = true; result.hidden = false; creationDetails.hidden=true; }
-      function setBusy(busy) { if(!busy && !viewerState && currentTaskId && !download.hidden && download.href && !result.hidden){ setTimeout(function(){ if(!viewerState && currentTaskId && !result.hidden) loadViewer(download.href); },2000); return; } generationProtection=Boolean(busy); document.body.classList.toggle('ugc-generation-active',generationProtection); generate.disabled = busy; result.classList.toggle('is-loading',busy); title.hidden=true; status.hidden=true; progress.parentElement.hidden=true; previewWrap.hidden=busy; result.querySelectorAll('.ugc-hologram-loader span,.ugc-hologram-loader small').forEach(function(node){node.hidden=true;}); }
+      function setBusy(busy) { generationProtection=Boolean(busy); document.body.classList.toggle('ugc-generation-active',generationProtection); generate.disabled = busy; result.classList.toggle('is-loading',busy); title.hidden=true; status.hidden=true; progress.parentElement.hidden=true; previewWrap.hidden=busy; result.querySelectorAll('.ugc-hologram-loader span,.ugc-hologram-loader small').forEach(function(node){node.hidden=true;}); }
       window.addEventListener('beforeunload',function(event){if(!generationProtection)return;event.preventDefault();event.returnValue='A 3D generation is still running. Leave this page?';});
       document.addEventListener('click',function(event){var link=event.target.closest('a[href]');if(!generationProtection||!link||link.target==='_blank'||link.href.indexOf(location.origin)!==0)return;if(!window.confirm('A 3D generation is still running. Leaving will stop the live progress view, but the Meshy task will continue and can be recovered from Saved Generations. Leave anyway?'))event.preventDefault();},true);
       function imageSlot(view) { if(view==='main') return { input:imageInput, drop:imageDrop, preview:sourcePreview, image:sourceImage }; var title=view.charAt(0).toUpperCase()+view.slice(1); return { input:document.getElementById('ugcImageInput'+title), drop:document.getElementById('ugcImageDrop'+title), preview:document.getElementById('ugcSourcePreview'+title), image:document.getElementById('ugcSourceImage'+title) }; }
@@ -414,21 +414,36 @@
       }
       // model-viewer handles modern GLB extensions used by older saved Meshy
       // generations more reliably than the legacy Three r128 loader.
-      var loadLegacyViewer=loadViewer;
-      loadViewer=function(url,attempt){
+      var loadLegacyViewer=loadViewer, viewerLoadSequence=0;
+      loadViewer=async function(url,attempt){
         attempt=attempt||0;
         var requestUrl=String(url||'');
         var match=requestUrl.match(/^\/ai\/ugc\/tasks\/([^/?]+)\/download(?:\?.*)?$/);
         var previewUrl=match?'/ai/ugc/preview-model/'+encodeURIComponent(match[1]):requestUrl;
         if(!window.customElements||!customElements.get('model-viewer')){
           if(attempt<80)return setTimeout(function(){loadViewer(url,attempt+1);},250);
-          return loadLegacyViewer(url);
+          return loadLegacyViewer(previewUrl);
         }
+        var requestId=++viewerLoadSequence;
         destroyViewer();
         var container=document.getElementById('ugcViewer');
         var model=document.createElement('model-viewer');
-        var mounted=false;
-        model.src=previewUrl;
+        var mounted=false, fallingBack=false, objectUrl='';
+        try {
+          // model-viewer cannot include our localStorage Bearer token itself.
+          // Fetch through the app first, then give the authenticated GLB blob to it.
+          var response=await fetch(previewUrl,authOptions('GET'));
+          if(!response.ok){var details=await response.json().catch(function(){return null;});throw new Error(details&&details.error||'Could not load this saved 3D model.');}
+          var blob=await response.blob();
+          if(requestId!==viewerLoadSequence)return;
+          if(!blob.size)throw new Error('The saved 3D model was empty.');
+          objectUrl=URL.createObjectURL(blob);
+          model.src=objectUrl;
+        } catch(error) {
+          if(requestId!==viewerLoadSequence)return;
+          console.warn('UGC preview fetch failed:',error);
+          return loadLegacyViewer(previewUrl);
+        }
         model.setAttribute('camera-controls','');
         model.setAttribute('interaction-prompt','none');
         model.setAttribute('shadow-intensity','1');
@@ -436,7 +451,7 @@
         model.setAttribute('alt','Generated Roblox UGC model');
         model.addEventListener('load',function(){
           if(mounted)return; mounted=true;
-          viewerState={active:true,container:container,controls:{dispose:function(){}},renderer:{dispose:function(){}},resize:function(){}};
+          viewerState={active:true,container:container,objectUrl:objectUrl,controls:{dispose:function(){}},renderer:{dispose:function(){}},resize:function(){}};
           document.getElementById('ugcFaces').textContent='Ready';
           document.getElementById('ugcVertices').textContent='Interactive';
           document.getElementById('ugcTopology').textContent='3D model';
@@ -450,13 +465,19 @@
           document.getElementById('ugcViewerStats').classList.add('is-visible');
           document.getElementById('ugcViewerFooter').classList.add('is-visible');
         });
+        function useLegacyViewer(){
+          if(mounted||fallingBack||requestId!==viewerLoadSequence)return;
+          fallingBack=true;
+          if(objectUrl)URL.revokeObjectURL(objectUrl);
+          container.replaceChildren();
+          loadLegacyViewer(previewUrl);
+        }
         model.addEventListener('error',function(){
-          if(mounted)return;
-          console.warn('UGC model-viewer could not mount the saved model. Retrying...');
-          setTimeout(function(){if(!mounted&&currentTaskId)loadViewer(url,attempt+1);},1800);
+          console.warn('UGC model-viewer could not mount the saved model; using the compatibility viewer.');
+          useLegacyViewer();
         });
         container.replaceChildren(model);
-        setTimeout(function(){if(!mounted&&currentTaskId)loadViewer(url,attempt+1);},30000);
+        setTimeout(useLegacyViewer,30000);
       };
       setInputMode('text'); setTextureMode('texture'); setAssetType('ugc'); renderHistory(); requestAnimationFrame(syncConfigPanelHeight); window.addEventListener('resize',syncConfigPanelHeight); loadEntitlements(); loadHistory();
     })();
