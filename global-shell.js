@@ -2612,10 +2612,13 @@
     return '<div class="rblx-daily-streak-overlay" id="rblxDailyStreakOverlay" hidden>' +
       '<section class="rblx-daily-streak-modal" role="dialog" aria-modal="true" aria-labelledby="rblxDailyStreakTitle">' +
         '<button class="rblx-daily-streak-close" type="button" data-shell-daily-streak-close aria-label="Close daily streak">×</button>' +
+        '<div class="rblx-daily-streak-standard" id="rblxDailyStreakStandard">' +
         '<div class="rblx-daily-streak-hero"><div><h2 id="rblxDailyStreakTitle"><span>Daily</span> Streak</h2></div><div class="rblx-daily-streak-stats"><div><small>Current streak</small><strong id="rblxDailyStreakCount">0</strong><em>days</em></div><div><small>Today’s reward</small><strong id="rblxDailyStreakToday">—</strong></div></div></div>' +
         '<div class="rblx-daily-streak-multiplier"><span>Your current reward multiplier</span><strong id="rblxDailyStreakMultiplierValue">1×</strong><p id="rblxDailyStreakMultiplierPlan">Free plan · standard streak rewards</p><a href="./subscriptions">View plans <b>→</b></a></div>' +
         '<div class="rblx-daily-streak-track" id="rblxDailyStreakTrack"></div>' +
         '<div class="rblx-daily-streak-footer"><button type="button" id="rblxDailyStreakClaim" disabled>Claim today’s reward</button><p id="rblxDailyStreakStatus"></p></div>' +
+        '</div>' +
+        '<div class="rblx-daily-streak-loss-panel" id="rblxDailyStreakLoss" hidden><h2><span>Streak</span> Lost <i aria-hidden="true">☹</i></h2><p>Your streak ended at</p><strong id="rblxDailyStreakLostCount">0</strong><em>days</em><button type="button" id="rblxDailyStreakRestore">Restore streak · $0.99</button><button type="button" id="rblxDailyStreakRestart">Restart streak</button><small id="rblxDailyStreakLossStatus" aria-live="polite"></small></div>' +
       '</section></div>' +
       '<div class="rblx-daily-claim-overlay" id="rblxDailyClaimOverlay" hidden><section class="rblx-daily-claim-modal" role="dialog" aria-modal="true" aria-labelledby="rblxDailyClaimTitle"><button type="button" class="rblx-daily-claim-close" aria-label="Close reward" data-shell-daily-claim-close>×</button><small>Daily streak reward</small><h2 id="rblxDailyClaimTitle">XP earned</h2><strong id="rblxDailyClaimAmount">0 XP</strong><p id="rblxDailyClaimCopy">Keep your streak going for more rewards.</p><button type="button" data-shell-daily-claim-close>Nice!</button></section></div>';
   }
@@ -2632,10 +2635,18 @@
     var title = document.getElementById("rblxDailyStreakTitle");
     var lost = Boolean(streak.streakLost && streak.lostStreak);
     var overlay = document.getElementById("rblxDailyStreakOverlay");
+    var standard = document.getElementById("rblxDailyStreakStandard"), lossPanel = document.getElementById("rblxDailyStreakLoss"), lostCount = document.getElementById("rblxDailyStreakLostCount"), lossStatus = document.getElementById("rblxDailyStreakLossStatus");
     if (overlay) overlay.classList.toggle("is-streak-lost", lost);
-    if (title) title.innerHTML = lost ? '<span>Streak</span> Lost ☹' : '<span>Daily</span> Streak';
-    count.textContent = String(lost ? streak.lostStreak : (streak.currentStreak || 0));
-    today.innerHTML = lost ? "Missed" : (Number(streak.multiplier || 1) > 1 ? '<s>+' + Number(streak.baseXp || 0).toLocaleString() + ' XP</s> <strong>+' + Number(streak.xp || 0).toLocaleString() + ' XP</strong>' : '+' + Number(streak.xp || 0).toLocaleString() + ' XP');
+    if (standard) standard.hidden = lost;
+    if (lossPanel) lossPanel.hidden = !lost;
+    if (lost) {
+      if (lostCount) lostCount.textContent = String(Math.max(0, Number(streak.lostStreak) || 0));
+      if (lossStatus) lossStatus.textContent = "";
+      return;
+    }
+    if (title) title.innerHTML = '<span>Daily</span> Streak';
+    count.textContent = String(streak.currentStreak || 0);
+    today.innerHTML = Number(streak.multiplier || 1) > 1 ? '<s>+' + Number(streak.baseXp || 0).toLocaleString() + ' XP</s> <strong>+' + Number(streak.xp || 0).toLocaleString() + ' XP</strong>' : '+' + Number(streak.xp || 0).toLocaleString() + ' XP';
     var multiplier = Number(streak.multiplier || 1);
     if (multiplierValue) multiplierValue.textContent = multiplier.toFixed(1).replace(".0", "") + "×";
     if (multiplierPlan) multiplierPlan.textContent = "Applies to XP, RBLX Points & AI Tokens only";
@@ -2652,8 +2663,8 @@
       var xpLabel = item.bonus ? dailyBonusLabel(item.bonus) : (Number(streak.multiplier || 1) > 1 ? '<s>+' + Number(item.baseXp || 0).toLocaleString() + ' XP</s><strong>+' + Number(item.xp || 0).toLocaleString() + ' XP</strong>' : '+' + Number(item.xp || 0).toLocaleString() + ' XP');
       return '<article class="rblx-daily-streak-card' + (isToday ? ' is-today' : '') + (claimed ? ' is-claimed' : '') + (upcoming ? ' is-upcoming' : '') + '"><span>Day ' + item.day + '</span><b class="' + (item.bonus ? 'rblx-daily-streak-bonus' : 'rblx-daily-streak-xp') + '">' + xpLabel + '</b><small>' + (item.bonus ? ('+' + Number(item.xp || 0).toLocaleString() + ' XP') : 'Daily XP') + '</small></article>';
     }).join("");
-    claim.disabled = lost ? false : !streak.available;
-    claim.dataset.restoreStreak = lost ? "true" : "";
+    claim.disabled = !streak.available;
+    claim.dataset.restoreStreak = "";
     if (!streak.claimedToday) delete claim.dataset.claimedToday;
     delete claim.dataset.claimInFlight;
     claim.textContent = lost ? "Restore streak · $0.99" : streak.claimedToday ? "Come back tomorrow" : streak.available ? "Claim today’s reward" : "Come back tomorrow";
@@ -2689,6 +2700,7 @@
     preview.activeDay = 1;
     preview.claimedDays = [];
     overlay.hidden = false;
+    overlay.dataset.preview = "true";
     document.body.classList.add("rblx-shell-modal-open");
     renderDailyStreak(preview);
     var status = document.getElementById("rblxDailyStreakStatus");
@@ -2705,9 +2717,10 @@
     preview.streakLost = true;
     preview.lostStreak = 7;
     overlay.hidden = false;
+    overlay.dataset.preview = "true";
     document.body.classList.add("rblx-shell-modal-open");
     renderDailyStreak(preview);
-    var status = document.getElementById("rblxDailyStreakStatus");
+    var status = document.getElementById("rblxDailyStreakLossStatus");
     if (status) status.textContent = "Admin preview — restore checkout is not opened from this preview.";
   }
 
@@ -2741,6 +2754,7 @@
     // This is a shared-shell overlay. A visible admin control must always open
     // it, even if the background account refresh is still in flight.
     if (!overlay) return;
+    delete overlay.dataset.preview;
     var cached = readDailyStreakCache();
     if (cached) { overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open"); renderDailyStreak(cached); }
     try {
@@ -2801,9 +2815,9 @@
   }
 
   async function beginStreakRestoreCheckout() {
-    var claim = document.getElementById("rblxDailyStreakClaim"), status = document.getElementById("rblxDailyStreakStatus");
-    if (!claim) return;
-    claim.disabled = true;
+    var restore = document.getElementById("rblxDailyStreakRestore") || document.getElementById("rblxDailyStreakClaim"), status = document.getElementById("rblxDailyStreakLossStatus") || document.getElementById("rblxDailyStreakStatus"), overlay = document.getElementById("rblxDailyStreakOverlay");
+    if (!restore || (overlay && overlay.dataset.preview === "true")) return;
+    restore.disabled = true;
     if (status) status.textContent = "Opening secure checkout…";
     try {
       var payload = await authApiRequest("/store/create-streak-restore-checkout", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() }, body: "{}" });
@@ -2811,7 +2825,25 @@
       window.location.assign(payload.url);
     } catch (error) {
       if (status) status.textContent = error.message || "Could not open streak restore checkout.";
-      claim.disabled = false;
+      restore.disabled = false;
+    }
+  }
+
+  async function restartDailyStreak() {
+    var restart = document.getElementById("rblxDailyStreakRestart"), status = document.getElementById("rblxDailyStreakLossStatus"), overlay = document.getElementById("rblxDailyStreakOverlay");
+    if (!restart || restart.dataset.busy === "true" || (overlay && overlay.dataset.preview === "true")) return;
+    restart.dataset.busy = "true";
+    restart.disabled = true;
+    if (status) status.textContent = "Starting a new streak…";
+    try {
+      var payload = await authApiRequest("/api/daily-streak/restart", { method: "POST", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
+      writeDailyStreakCache(payload.streak || {});
+      renderDailyStreak(payload.streak || {});
+    } catch (error) {
+      if (status) status.textContent = error.message || "Could not restart your streak.";
+      restart.disabled = false;
+    } finally {
+      delete restart.dataset.busy;
     }
   }
 
@@ -2832,6 +2864,8 @@
     document.addEventListener("click", function (event) {
       if (event.target.closest("[data-shell-daily-streak]")) openDailyStreak();
       if (event.target.closest("#rblxDailyStreakClaim")) { var claim=event.target.closest("#rblxDailyStreakClaim"); if (claim && claim.dataset.restoreStreak === "true") beginStreakRestoreCheckout(); else claimDailyStreak(); }
+      if (event.target.closest("#rblxDailyStreakRestore")) beginStreakRestoreCheckout();
+      if (event.target.closest("#rblxDailyStreakRestart")) restartDailyStreak();
       if (event.target.closest("[data-shell-daily-streak-close]") || event.target.id === "rblxDailyStreakOverlay") { var overlay = document.getElementById("rblxDailyStreakOverlay"); if (overlay) overlay.hidden = true; document.body.classList.remove("rblx-shell-modal-open"); }
       if (event.target.closest("[data-shell-daily-claim-close]") || event.target.id === "rblxDailyClaimOverlay") { var rewardOverlay = document.getElementById("rblxDailyClaimOverlay"); if (rewardOverlay) rewardOverlay.hidden = true; document.body.classList.remove("rblx-shell-modal-open"); }
     });

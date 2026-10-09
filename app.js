@@ -13805,6 +13805,21 @@ app.post("/api/daily-streak/claim", async (req, res) => {
   }
 });
 
+app.post("/api/daily-streak/restart", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const current = rewardsEngine.getDailyStreak(user.id, 1);
+    if (!current.streakLost || !current.lostStreak) return res.status(409).json({ error: "There is no lost streak to restart." });
+    const membership = await resolveMembershipSnapshot(user);
+    rewardsEngine.restartDailyStreak(user.id);
+    const streak = rewardsEngine.getDailyStreak(user.id, getPaidDailyRewardMultiplier(membership));
+    res.setHeader("Cache-Control", "no-store, private, max-age=0");
+    return res.json({ ok: true, streak });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not restart the streak." });
+  }
+});
+
 // Streak restores are a dedicated one-time purchase. There is deliberately no
 // promotion-code input or discount option on this session.
 app.post("/store/create-streak-restore-checkout", async (req, res) => {
