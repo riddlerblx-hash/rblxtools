@@ -8514,6 +8514,12 @@ app.post("/ai/ugc/history", async (req, res) => {
       bloom: Boolean(requestedPbrSettings.bloom),
       bloomStrength: Math.max(0, Math.min(2, Number(requestedPbrSettings.bloomStrength) || 0)),
     } : existingItem?.pbrSettings || null;
+    const forSale = Boolean(req.body?.forSale);
+    const requestedSalePrice = Number(req.body?.salePrice);
+    const salePriceCents = forSale ? Math.round(requestedSalePrice * 100) : 0;
+    if (forSale && (!Number.isFinite(salePriceCents) || salePriceCents < 100 || salePriceCents > 1000000)) {
+      return res.status(400).json({ error: "Set a marketplace price from $1.00 to $10,000.00." });
+    }
     const item = {
       id: taskId,
       title: cleanText(req.body?.title || charge?.prompt || (taskType === "image" ? "Image-to-model asset" : "Untitled UGC"), 90),
@@ -8533,6 +8539,12 @@ app.post("/ai/ugc/history", async (req, res) => {
       // Download access remains separately controlled by allowPublicDownloads.
       public: true,
       allowPublicDownloads: Boolean(req.body?.allowPublicDownloads),
+      // Sales are deliberately recorded as listing data first. Money movement is
+      // added only once the creator completes verified payout onboarding.
+      forSale,
+      salePriceCents,
+      creatorSharePercent: 70,
+      platformSharePercent: 30,
       createdAt: new Date().toISOString(),
     };
     // Capture the provider's 2D thumbnail while its signed URL is fresh. This
