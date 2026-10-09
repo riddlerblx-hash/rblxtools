@@ -164,14 +164,16 @@
     .ugc-result.is-loading .ugc-preview-wrap { position:absolute !important; inset:0 !important; width:100% !important; height:100% !important; aspect-ratio:auto !important; margin:0 !important; border:0 !important; border-radius:0 !important; background:transparent !important; }
     .ugc-result.is-loading h2,.ugc-result.is-loading .ugc-status,.ugc-result.is-loading .ugc-progress,.ugc-result.is-loading .ugc-result-actions,.ugc-result.is-loading .ugc-creation-details,.ugc-result.is-loading .ugc-hologram-loader span,.ugc-result.is-loading .ugc-hologram-loader small { display:none !important; }
     .ugc-result.is-loading .ugc-hologram-loader { inset:0 !important; overflow:hidden !important; background:radial-gradient(circle at 50% 50%,rgba(80,151,255,.12),transparent 48%) !important; }
-    /* Keep the details panel directly below the engagement toolbar, with two
-       matching full-width fields instead of competing side-by-side controls. */
-    .ugc-result.is-viewer-mode .ugc-creation-details { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:10px 12px; bottom:16px; width:min(660px,calc(100% - 32px)); padding:12px 16px; }
+    /* Give details their own lower section, below—not over—the 3D viewer and
+       its engagement controls. */
+    .ugc-result.is-viewer-mode { display:flex; flex-direction:column; }
+    .ugc-result.is-viewer-mode .ugc-preview-wrap { position:relative; inset:auto; flex:1 1 auto; width:100%; min-height:360px; height:auto; }
+    .ugc-result.is-viewer-mode .ugc-creation-details { position:relative; left:auto; right:auto; bottom:auto; transform:none; flex:0 0 auto; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:10px 12px; width:min(660px,calc(100% - 32px)); margin:0 auto; padding:12px 16px 16px; }
     .ugc-result.is-viewer-mode .ugc-creation-details label { grid-column:1 / -1; width:100%; }
     .ugc-result.is-viewer-mode .ugc-creation-details input { min-height:39px; }
     .ugc-result.is-viewer-mode .ugc-creation-details textarea { min-height:48px; max-height:72px; }
     .ugc-result.is-viewer-mode .ugc-creation-details button { grid-column:2; justify-self:end; }
-    .ugc-result.is-viewer-mode .ugc-viewer-footer { bottom:208px; }
+    .ugc-result.is-viewer-mode .ugc-viewer-footer { bottom:16px; }
     .ugc-result.is-viewer-mode .ugc-viewer-stats { top:64px; left:16px; }
     @keyframes ugcLoaderOrbit { to { transform:rotate(360deg); } }
     @keyframes ugcLoaderCore { 0%,100% { transform:scale(.92) rotate(0deg); } 50% { transform:scale(1.08) rotate(10deg); } }
