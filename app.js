@@ -9434,13 +9434,13 @@ app.get("/ai/ugc/source/:sourceId", (req, res) => {
 
 // The interactive viewer must receive the archived source quickly. Download
 // exports still run through the Roblox-safe preparation route below.
-app.get("/ai/ugc/tasks/:taskId/preview", async (req, res) => {
+async function serveAIUGCPreview(req, res) {
   try {
     const user = await requireAuthenticatedUser(req);
     const taskId = cleanMeshyTaskId(req.params.taskId);
-    const requestedType = String(req.query.type || "text");
+    const requestedType = String(req.params.taskType || req.query.type || "text");
     const taskType = ["image", "multi"].includes(requestedType) ? requestedType : "text";
-    const assetType = String(req.query.assetType || "ugc") === "game" ? "game" : "ugc";
+    const assetType = String(req.params.assetType || req.query.assetType || "ugc") === "game" ? "game" : "ugc";
     const charge = ugcGenerationCharges.get(taskId);
     const savedItem = charge?.userId === user.id ? null : getPersistentAIUGCHistory(user.id).find((item) => String(item.id) === taskId && item.assetType === assetType);
     if ((!charge || charge.userId !== user.id) && !savedItem) {
@@ -9475,7 +9475,10 @@ app.get("/ai/ugc/tasks/:taskId/preview", async (req, res) => {
     console.error("GET /ai/ugc/tasks/preview failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the 3D preview." });
   }
-});
+}
+
+app.get("/ai/ugc/tasks/:taskId/preview", serveAIUGCPreview);
+app.get("/ai/ugc/tasks/:taskId/preview/:taskType/:assetType", serveAIUGCPreview);
 
 app.get("/ai/ugc/tasks/:taskId/download", async (req, res) => {
   try {
