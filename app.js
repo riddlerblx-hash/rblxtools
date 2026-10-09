@@ -9459,20 +9459,13 @@ async function serveAIUGCPreview(req, res) {
       modelBuffer = readValidStoredAIUGCModel(user.id, taskId);
     }
     if (!modelBuffer) throw new Error("Could not retrieve the saved GLB preview.");
-    let previewBuffer = readValidStoredAIUGCPreview(user.id, taskId);
-    if (!previewBuffer) {
-      // Meshy source GLBs may use extensions unavailable in our browser viewer.
-      // Normalize once, cache it beside the source model, then serve that cache.
-      const limit = assetType === "ugc" ? 4000 : 15000;
-      const prepared = await prepareRobloxGLBDownload(modelBuffer, limit, assetType === "ugc" ? 1024 : 4096);
-      assertGLBBinary(prepared.buffer);
-      ensureAIUGCModelDirectory();
-      fs.writeFileSync(getStoredAIUGCPreviewPath(user.id, taskId), prepared.buffer);
-      previewBuffer = prepared.buffer;
-    }
+    // The in-browser viewer supports Meshy's source GLB directly. Serving it
+    // unchanged avoids the expensive export transformation and preserves every
+    // extension/material needed by older saved generations.
+    assertGLBBinary(modelBuffer);
     res.setHeader("Content-Type", "model/gltf-binary");
     res.setHeader("Cache-Control", "private, max-age=3600");
-    return res.send(previewBuffer);
+    return res.send(modelBuffer);
   } catch (error) {
     console.error("GET /ai/ugc/tasks/preview failed:", error.message);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load the 3D preview." });
