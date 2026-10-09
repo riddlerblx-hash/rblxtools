@@ -134,6 +134,7 @@ const REFERRAL_COMMISSION_RATE = 0.05;
 const REFERRAL_PENDING_MS = 14 * 24 * 60 * 60 * 1000;
 const REFERRAL_MINIMUM_PAYOUT_CENTS = 1000;
 const AI_THUMBNAIL_HISTORY_TABLE = process.env.AI_THUMBNAIL_HISTORY_TABLE || "ai_thumbnail_history";
+const ACCOUNT_TRANSACTIONS_TABLE = process.env.ACCOUNT_TRANSACTIONS_TABLE || "account_transactions";
 const AI_THUMBNAIL_HISTORY_PATH = path.join(__dirname, "ai-thumbnail-history.json");
 const MODERATION_ACTIONS_TABLE = process.env.MODERATION_ACTIONS_TABLE || "member_moderation_actions";
 const DEVICE_LINKS_TABLE = process.env.DEVICE_LINKS_TABLE || "member_device_links";
@@ -13792,7 +13793,7 @@ app.post("/api/daily-streak/claim", async (req, res) => {
     }
     const parts = [`${Number(reward.xp || 0).toLocaleString("en-US")} XP`, benefit].filter(Boolean);
     try {
-      addSiteNotification({ recipientId: user.id, category: "reward", title: `Daily streak claimed: ${parts.join(" + ")}.`, href: "./account-overview?tab=levels" });
+      addSiteNotification({ recipientId: user.id, category: "daily-streak", title: `Daily streak claimed: ${parts.join(" + ")}.`, href: "./quests-levels" });
     } catch (notificationError) {
       console.error("Could not send daily streak notification:", notificationError.message);
     }

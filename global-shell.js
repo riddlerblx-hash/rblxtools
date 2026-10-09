@@ -1866,12 +1866,8 @@
       '<footer class="rblx-shell-footer">' +
         '<div class="rblx-shell-footer-top">' +
           '<section class="rblx-shell-footer-brand">' +
-            '<div class="rblx-shell-footer-kicker">RBLXTools</div>' +
             '<h2>Creator tools, cleaner workflows, and more ways to earn.</h2>' +
             '<p>Browse creator tools, discover affiliate earnings, and move between every part of RBLXTools from one place.</p>' +
-            '<div class="rblx-shell-footer-actions">' +
-              '<a class="rblx-shell-footer-action is-primary" href="./subscriptions">View Plans</a>' +
-            "</div>" +
           "</section>" +
           '<div class="rblx-shell-footer-grid">' +
             buildFooterLinkGroupMarkup("Tools", [
@@ -1937,9 +1933,9 @@
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-          '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens" title="View AI tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong><span class="rblx-shell-token-bonus-popover" id="rblxShellTokenBonusPopover" hidden></span></a>' +
-          '<a class="rblx-shell-header-token-balance" href="./rewards" title="View RBLX Points"><small>RBLX Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
-          '<a class="rblx-shell-referral-balance" href="./affiliate-marketing" title="Open referral earnings"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
+          '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong><span class="rblx-shell-token-bonus-popover" id="rblxShellTokenBonusPopover" hidden></span></a>' +
+          '<a class="rblx-shell-header-token-balance" href="./rewards"><small>RBLX Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
+          '<a class="rblx-shell-referral-balance" href="./affiliate-marketing"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
           (shellState.currentUser && shellState.currentUser.loggedIn ? '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span aria-hidden="true">📅</span></button>' : '') +
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
             '<summary class="rblx-shell-notification-trigger" aria-label="Open notifications">' +
@@ -2619,8 +2615,9 @@
         '<div class="rblx-daily-streak-hero"><div><h2 id="rblxDailyStreakTitle"><span>Daily</span> Streak</h2></div><div class="rblx-daily-streak-stats"><div><small>Current streak</small><strong id="rblxDailyStreakCount">0</strong><em>days</em></div><div><small>Today’s reward</small><strong id="rblxDailyStreakToday">—</strong></div></div></div>' +
         '<div class="rblx-daily-streak-multiplier"><span>Your current reward multiplier</span><strong id="rblxDailyStreakMultiplierValue">1×</strong><p id="rblxDailyStreakMultiplierPlan">Free plan · standard streak rewards</p><a href="./subscriptions">View plans <b>→</b></a></div>' +
         '<div class="rblx-daily-streak-track" id="rblxDailyStreakTrack"></div>' +
-        '<div class="rblx-daily-streak-footer"><button type="button" id="rblxDailyStreakClaim" disabled>Claim today’s reward</button><p id="rblxDailyStreakStatus">Loading today’s streak…</p></div>' +
-      '</section></div>';
+        '<div class="rblx-daily-streak-footer"><button type="button" id="rblxDailyStreakClaim" disabled>Claim today’s reward</button><p id="rblxDailyStreakStatus"></p></div>' +
+      '</section></div>' +
+      '<div class="rblx-daily-claim-overlay" id="rblxDailyClaimOverlay" hidden><section class="rblx-daily-claim-modal" role="dialog" aria-modal="true" aria-labelledby="rblxDailyClaimTitle"><button type="button" class="rblx-daily-claim-close" aria-label="Close reward" data-shell-daily-claim-close>×</button><small>Daily streak reward</small><h2 id="rblxDailyClaimTitle">XP earned</h2><strong id="rblxDailyClaimAmount">0 XP</strong><p id="rblxDailyClaimCopy">Keep your streak going for more rewards.</p><button type="button" data-shell-daily-claim-close>Nice!</button></section></div>';
   }
 
   function dailyBonusLabel(bonus) {
@@ -2660,7 +2657,7 @@
     if (!streak.claimedToday) delete claim.dataset.claimedToday;
     delete claim.dataset.claimInFlight;
     claim.textContent = lost ? "Restore streak · $0.99" : streak.claimedToday ? "Come back tomorrow" : streak.available ? "Claim today’s reward" : "Come back tomorrow";
-    status.textContent = lost ? "You missed a daily check-in and lost your " + Number(streak.lostStreak || 0) + "-day streak. Restore it to continue where you left off." : streak.available ? "Your daily reward is ready to claim." : "";
+    status.textContent = "";
   }
 
   // Keep the modal complete while the account request is resolving. This is
@@ -2765,7 +2762,7 @@
     if (!claim || claim.disabled || claim.dataset.claimInFlight === "true" || claim.dataset.claimedToday === "true") return;
     claim.dataset.claimInFlight = "true";
     claim.disabled = true;
-    if (status) status.textContent = "Claiming your reward…";
+    if (status) status.textContent = "";
     try {
       var payload = await authApiRequest("/api/daily-streak/claim", { method: "POST", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
       writeDailyStreakCache(payload.streak || {});
@@ -2775,7 +2772,8 @@
       claim.disabled = true;
       claim.dataset.claimedToday = "true";
       delete claim.dataset.claimInFlight;
-      if (status) status.textContent = "Claimed " + ["+" + Number(payload.reward?.xp || 0).toLocaleString() + " XP", payload.benefit].filter(Boolean).join(" and ") + ". It is in your notifications too.";
+      if (status) status.textContent = "";
+      showDailyClaimCelebration(payload.reward || {}, payload.benefit);
       refreshCommunityNotifications();
       refreshMembershipStateFromServer();
     } catch (error) {
@@ -2783,6 +2781,23 @@
       claim.disabled = false;
       delete claim.dataset.claimInFlight;
     }
+  }
+
+  function showDailyClaimCelebration(reward, benefit) {
+    var overlay = document.getElementById("rblxDailyClaimOverlay"), title = document.getElementById("rblxDailyClaimTitle"), amount = document.getElementById("rblxDailyClaimAmount"), copy = document.getElementById("rblxDailyClaimCopy");
+    if (!overlay || !title || !amount || !copy) return;
+    var coupon = reward && reward.bonus && String(reward.bonus.type || "") === "c";
+    overlay.hidden = false;
+    document.body.classList.add("rblx-shell-modal-open");
+    if (coupon) {
+      var couponText = (benefit || (reward.bonus.amount + "% AI-token coupon")).replace(/^\+/, "");
+      overlay.classList.add("is-coupon"); title.textContent = "You unlocked a coupon"; amount.textContent = couponText; copy.textContent = "Use it on your next eligible AI-token purchase.";
+      return;
+    }
+    overlay.classList.remove("is-coupon"); title.textContent = "XP earned"; copy.textContent = benefit ? "Plus " + benefit + "." : "Keep your streak going for more rewards.";
+    var target = Math.max(0, Number(reward && reward.xp || 0)), started = performance.now(), duration = Math.min(1200, Math.max(500, target * 7));
+    function tick(now) { var progress = Math.min(1, (now - started) / duration); var value = Math.floor(target * (1 - Math.pow(1 - progress, 3))); amount.textContent = "+" + value.toLocaleString() + " XP"; if (progress < 1) requestAnimationFrame(tick); }
+    amount.textContent = "+0 XP"; requestAnimationFrame(tick);
   }
 
   async function beginStreakRestoreCheckout() {
@@ -2818,6 +2833,7 @@
       if (event.target.closest("[data-shell-daily-streak]")) openDailyStreak();
       if (event.target.closest("#rblxDailyStreakClaim")) { var claim=event.target.closest("#rblxDailyStreakClaim"); if (claim && claim.dataset.restoreStreak === "true") beginStreakRestoreCheckout(); else claimDailyStreak(); }
       if (event.target.closest("[data-shell-daily-streak-close]") || event.target.id === "rblxDailyStreakOverlay") { var overlay = document.getElementById("rblxDailyStreakOverlay"); if (overlay) overlay.hidden = true; document.body.classList.remove("rblx-shell-modal-open"); }
+      if (event.target.closest("[data-shell-daily-claim-close]") || event.target.id === "rblxDailyClaimOverlay") { var rewardOverlay = document.getElementById("rblxDailyClaimOverlay"); if (rewardOverlay) rewardOverlay.hidden = true; document.body.classList.remove("rblx-shell-modal-open"); }
     });
     window.setTimeout(function () {
       if (!shellState.currentUser || !shellState.currentUser.loggedIn) return;
@@ -4530,7 +4546,7 @@
   }
 
   function formatCommunityNotificationCategory(category) {
-    var labels = { announcement: "Announcement", changelog: "Changelog", "known-issue": "Known issue", like: "Like", tip: "Token tip", comment: "Comment", reply: "Reply", rating: "Rating", follow: "New follower" };
+    var labels = { announcement: "Announcement", changelog: "Changelog", "known-issue": "Known issue", like: "Like", tip: "Token tip", comment: "Comment", reply: "Reply", rating: "Rating", follow: "New follower", "daily-streak": "Daily streak" };
     return labels[String(category || "").toLowerCase()] || "Community update";
   }
 
