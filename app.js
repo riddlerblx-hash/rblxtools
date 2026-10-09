@@ -1252,6 +1252,10 @@ function normalizeAIUGCCommunityAsset(userId, item) {
     creatorAvatarUrl: cleanText(item.creatorAvatarUrl || "", 2000),
     public: true,
     allowPublicDownloads: Boolean(item.allowPublicDownloads),
+    forSale: Boolean(item.forSale),
+    salePriceCents: Math.max(0, Number.parseInt(item.salePriceCents, 10) || 0),
+    creatorSharePercent: 90,
+    platformSharePercent: 10,
     createdAt: String(item.createdAt || new Date().toISOString()),
     archivedAt: String(item.archivedAt || new Date().toISOString()),
   };
@@ -8543,8 +8547,8 @@ app.post("/ai/ugc/history", async (req, res) => {
       // added only once the creator completes verified payout onboarding.
       forSale,
       salePriceCents,
-      creatorSharePercent: 70,
-      platformSharePercent: 30,
+      creatorSharePercent: 90,
+      platformSharePercent: 10,
       createdAt: new Date().toISOString(),
     };
     // Capture the provider's 2D thumbnail while its signed URL is fresh. This
@@ -9067,7 +9071,10 @@ function buildAIUGCCommunityItem(item, post, viewer) {
   return {
     id: item.id, title: item.title, thumbnailUrl: `/api/ugc/community/${encodeURIComponent(item.id)}/cover`, assetType: item.assetType, textured: item.textured,
     creatorId: item.creatorId, creatorName: item.creatorName || "RBLXTools creator", creatorAvatarUrl: cleanText(sharedAvatarUrl || item.creatorAvatarUrl || "", 2000), createdAt: item.createdAt,
-    allowDownloads: Boolean(item.allowPublicDownloads), rating: ratings.length ? Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10 : 0,
+    allowDownloads: Boolean(item.allowPublicDownloads) && !Boolean(item.forSale),
+    forSale: Boolean(item.forSale), salePriceCents: Math.max(0, Number(item.salePriceCents) || 0),
+    creatorSharePercent: 90, platformSharePercent: 10,
+    rating: ratings.length ? Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10 : 0,
     ratingCount: ratings.length, likes: votes.filter((vote) => vote === "like").length, dislikes: votes.filter((vote) => vote === "dislike").length,
     views: Object.keys(post.views).length, commentCount: post.comments.length, tipTotal: tips, tipCount: post.tips.length,
     viewerVote: viewerId ? String(post.votes[viewerId] || "") : "", viewerRating: viewerId ? Number(post.ratings[viewerId] || 0) : 0,
@@ -9382,6 +9389,10 @@ app.get("/api/ugc/community/:taskId/download", async (req, res) => {
     const taskId = cleanMeshyTaskId(req.params.taskId);
     const item = getPublicAIUGCItems().find((entry) => String(entry.id) === taskId);
     if (!item || !item.allowPublicDownloads) return res.status(404).json({ error: "This creator has not enabled public downloads." });
+    // A paid community listing must never expose its raw model by guessing the
+    // old download URL. Purchase authorization will be checked here before a
+    // checkout-complete buyer receives a file.
+    if (item.forSale) return res.status(403).json({ error: "Purchase required before this asset can be downloaded." });
     let modelBuffer = readValidStoredAIUGCModel(item.creatorId, taskId);
     if (!modelBuffer) {
       const taskType = item.taskType === "multi" ? "multi" : item.inputMode === "image" ? "image" : "text";
