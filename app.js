@@ -14212,8 +14212,15 @@ app.use((req, res, next) => {
 app.use(express.static(STATIC_ROOT, {
   extensions: ["html"],
   setHeaders(res, filePath) {
-    // Tool pages and shared shell assets must not retain stale client-side behavior.
-    if (/\.(?:html|css|js)$/i.test(filePath)) res.setHeader("Cache-Control", "no-store");
+    // HTML and executable assets stay fresh so releases take effect immediately.
+    // Images, fonts, 3D files, and other static media are safe to reuse across
+    // pages. Giving them a long browser cache prevents the same decal/2D
+    // preview from being downloaded again every time a visitor changes tools.
+    if (/\.(?:html|css|js)$/i.test(filePath)) {
+      res.setHeader("Cache-Control", "no-store");
+    } else if (/\.(?:avif|bmp|gif|ico|jpe?g|png|svg|webp|woff2?|ttf|otf|glb|gltf|bin|mp3|mp4|webm)$/i.test(filePath)) {
+      res.setHeader("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
+    }
   },
 }));
 

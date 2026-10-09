@@ -5248,6 +5248,67 @@
     else window.setTimeout(warmVisibleNavigation, 450);
   }
 
+  // Remote Roblox thumbnails are often the slowest part of an otherwise ready
+  // tool page. Start the connection early and prioritize only the images the
+  // visitor can actually see, while leaving the rest lazy so they do not block
+  // the first screen from painting.
+  function initFastImageLoading() {
+    ["https://thumbnails.roblox.com", "https://tr.rbxcdn.com"].forEach(function (origin) {
+      if (document.querySelector('link[data-rblx-image-preconnect="' + origin + '"]')) return;
+      var connection = document.createElement("link");
+      connection.rel = "preconnect";
+      connection.href = origin;
+      connection.crossOrigin = "anonymous";
+      connection.setAttribute("data-rblx-image-preconnect", origin);
+      document.head.appendChild(connection);
+    });
+
+    var prioritize = function (image, highPriority) {
+      if (!image || !image.getAttribute("src")) return;
+      image.decoding = "async";
+      if (highPriority) {
+        image.loading = "eager";
+        try { image.fetchPriority = "high"; } catch (_error) {}
+      } else if (!image.loading) {
+        image.loading = "lazy";
+      }
+      // decode() keeps a downloaded image from flashing in late. It is a hint;
+      // browsers that do not support it simply continue normally.
+      if (highPriority && typeof image.decode === "function" && !image.complete) {
+        image.decode().catch(function () {});
+      }
+    };
+
+    var prioritizeVisibleImages = function (root) {
+      var scope = root || document;
+      var images = scope.matches && scope.matches("img[src]")
+        ? [scope]
+        : Array.prototype.slice.call(scope.querySelectorAll ? scope.querySelectorAll("img[src]") : []);
+      var prioritized = 0;
+      images.forEach(function (image) {
+        var rect = image.getBoundingClientRect();
+        var visibleSoon = rect.bottom >= -120 && rect.top <= window.innerHeight * 1.35;
+        var highPriority = visibleSoon && prioritized < 8;
+        if (highPriority) prioritized += 1;
+        prioritize(image, highPriority);
+      });
+    };
+
+    prioritizeVisibleImages(document);
+    var imageObserver = new MutationObserver(function (records) {
+      records.forEach(function (record) {
+        if (record.type === "attributes" && record.target && record.target.tagName === "IMG") {
+          prioritizeVisibleImages(record.target);
+          return;
+        }
+        Array.prototype.forEach.call(record.addedNodes || [], function (node) {
+          if (node.nodeType === 1) prioritizeVisibleImages(node);
+        });
+      });
+    });
+    imageObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] });
+  }
+
 
   function getSharedToolShowcaseIcon(kind) {
     var icons = {
@@ -6579,6 +6640,7 @@
     });
     initToggles();
     initFastShellNavigation();
+    initFastImageLoading();
     initChat();
     connectChatSocket();
     initAdminWindow();
