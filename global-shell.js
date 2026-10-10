@@ -6440,7 +6440,7 @@
         var quests = Array.isArray(payload.rewards.quests && payload.rewards.quests[group.key]) ? payload.rewards.quests[group.key].slice(0, group.key === "global" ? 1 : 3) : [];
         return quests.length ? '<section class="rblx-shell-quest-group"><h3>' + group.label + '</h3><div class="rblx-shell-quests-list">' + quests.map(renderQuest).join('') + '</div></section>' : "";
       }).join("");
-      panel.innerHTML = sections + '<a class="rblx-shell-quests-link" href="./quests-levels">View more</a>';
+      panel.innerHTML = (sections || '<div class="rblx-shell-quests-empty">No quests available.</div>') + '<a class="rblx-shell-quests-link" href="./quests-levels">More quests</a>';
       panel.dataset.loaded = "true";
     } catch (_error) {
       panel.innerHTML = "";

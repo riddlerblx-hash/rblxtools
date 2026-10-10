@@ -88,6 +88,9 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     products: { default: { cashbackEligible: true, cashbackMultiplier: 1, purchaseXpMultiplier: 1 } },
   };
 
+  // The old catalog is retired while the custom quest list is rebuilt.
+  // Keep every schedule visible to the UI, but with no active quests.
+  DEFAULT_CONFIG.quests = { daily: [], weekly: [], monthly: [], global: [], milestones: [] };
   const clone = (value) => JSON.parse(JSON.stringify(value));
   // The custom catalog stays empty until its individual quest list is
   // published. It uses five schedules only: daily, weekly, monthly, global,
