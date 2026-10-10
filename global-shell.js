@@ -6403,6 +6403,7 @@
     var quests = document.getElementById("rblxShellQuestsPanel");
     var chat = document.getElementById("rblxShellChatPanel");
     var tabs = Array.prototype.slice.call(document.querySelectorAll("[data-shell-panel-tab]"));
+    var panelPreferenceKey = "rblxtools-shell-right-panel";
     var show = function (view) {
       var showQuests = view === "quests";
       if (quests) quests.hidden = !showQuests;
@@ -6412,10 +6413,13 @@
         tab.classList.toggle("is-active", active);
         tab.setAttribute("aria-selected", active ? "true" : "false");
       });
+      try { window.localStorage.setItem(panelPreferenceKey, view); } catch (_error) {}
       if (showQuests) loadShellQuests();
     };
     tabs.forEach(function (tab) { tab.addEventListener("click", function () { show(tab.dataset.shellPanelTab); }); });
-    show("quests");
+    var savedView = "";
+    try { savedView = window.localStorage.getItem(panelPreferenceKey) || ""; } catch (_error) {}
+    show(savedView === "chat" ? "chat" : "quests");
   }
 
   async function loadShellQuests() {
