@@ -14257,8 +14257,8 @@ app.get(["/texture-baker", "/texture-baker.html"], (_req, res) => {
     res.sendFile(path.join(STATIC_ROOT, "index.html"));
   });
 
-  app.get("/account", (_req, res) => {
-    res.sendFile(path.join(STATIC_ROOT, "account-overview.html"));
+  app.get(["/account", "/account-overview"], (_req, res) => {
+    res.redirect(302, "/account-settings");
   });
 
   // Account areas have dedicated URLs so a member can bookmark and return to

@@ -1484,6 +1484,15 @@
     #rbtools-account-overview .acct-quest-period-picker select { min-width:150px; height:34px; padding:0 30px 0 11px; border:1px solid rgba(105,165,229,.34); border-radius:8px; outline:0; color:#eef6ff; background:#102139; font:800 11px Arial,sans-serif; cursor:pointer; }
     @media(max-width:520px){#rbtools-account-overview .acct-quest-countdown{width:100%;min-width:0;margin:24px auto 18px;font-size:10px}}
     #rbtools-account-overview .acct-quest.is-complete strong { color:#86f3bd; } #rbtools-account-overview .acct-rank.is-current { border-bottom-color:#f6bf47; } #rbtools-account-overview .acct-rank.is-current strong { color:#ffd46c; }
+    /* Dedicated account URLs use independent page frames, not the retired
+       account-overview dashboard. The shared profile card stays separate. */
+    #rbtools-account-overview.acct-standalone-route .acct-card { padding:0; border:0; background:transparent; box-shadow:none; }
+    #rbtools-account-overview.acct-standalone-route .acct-profile-header { margin:0 0 18px; border:1px solid rgba(111,146,205,.28); border-radius:18px; background:linear-gradient(135deg,rgba(17,37,68,.82),rgba(8,17,31,.9)); box-shadow:0 16px 34px rgba(0,0,0,.18); }
+    #rbtools-account-overview.acct-standalone-route .acct-grid { display:block; padding:22px; border:1px solid rgba(111,146,205,.28); border-radius:18px; background:linear-gradient(145deg,rgba(11,27,48,.84),rgba(6,14,27,.92)); box-shadow:0 16px 34px rgba(0,0,0,.18); }
+    #rbtools-account-overview.acct-standalone-route .acct-tab-panel { display:block; width:100%; min-height:0; }
+    #rbtools-account-overview.acct-standalone-route .acct-tab-panel[hidden] { display:none; }
+    #rbtools-account-overview.acct-standalone-route .acct-tab-panel .acct-block { padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+    #rbtools-account-overview.acct-standalone-route .acct-tab-panel .acct-block + .acct-block { margin-top:24px; padding-top:24px; border-top:1px solid rgba(111,146,205,.2); }
     #rbtools-account-overview .acct-level-heading { margin:24px 0 0; color:#dce9fb; font-size:12px; font-weight:900; letter-spacing:.8px; text-transform:uppercase; }
     @media (max-width: 700px) { main { padding: 26px 12px 38px; } .hero { text-align: center; } .hero p { margin-left: auto; } }
     @keyframes acctProfileGlare { 0%, 38% { transform: translateX(-42%); opacity: 0; } 48% { opacity: 1; } 62%, 100% { transform: translateX(42%); opacity: 0; } }
@@ -2000,7 +2009,10 @@
         rewards: "/my-transactions",
         bot: "/bot-dashboard"
       };
-      var accountRouteTab = ACCOUNT_ROUTE_TABS[window.location.pathname.replace(/\/+$/, "") || "/"] || "";
+      var normalizedAccountPath = window.location.pathname.replace(/\/+$/, "") || "/";
+      if (normalizedAccountPath === "/account-overview.html") window.location.replace("./account-settings");
+      var accountRouteTab = ACCOUNT_ROUTE_TABS[normalizedAccountPath] || "";
+      if (accountRouteTab) document.getElementById("rbtools-account-overview").classList.add("acct-standalone-route");
 
       var state = {
         token: "",

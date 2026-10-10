@@ -1882,7 +1882,7 @@
             ]) +
             buildFooterLinkGroupMarkup("Account", [
               { href: "./subscriptions", label: "Subscriptions" },
-              { href: "./account-overview", label: "Account Overview" },
+              { href: "./account-settings", label: "Account Settings" },
               { href: "https://discord.gg/TMmBQgYK32", label: "Discord", external: true },
               { href: "./login", label: "Login / Sign Up" }
             ]) +
@@ -1967,7 +1967,6 @@
             '</summary>' +
             '<div class="rblx-shell-profile-menu-panel">' +
               '<button class="rblx-shell-mobile-panel-back" type="button" data-shell-mobile-panel-back="true">‹ Navigation</button>' +
-              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./account-overview">Account Overview</a>' +
               '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./account-settings">Account Settings</a>' +
               '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./payments-billing">Payments &amp; Billing</a>' +
               '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./promotions">Promotions</a>' +
@@ -6437,7 +6436,7 @@
         var quests = Array.isArray(payload.rewards.quests && payload.rewards.quests[group.key]) ? payload.rewards.quests[group.key].slice(0, group.key === "global" ? 1 : 3) : [];
         return quests.length ? '<section class="rblx-shell-quest-group"><h3>' + group.label + '</h3><div class="rblx-shell-quests-list">' + quests.map(renderQuest).join('') + '</div></section>' : "";
       }).join("");
-      panel.innerHTML = sections + '<a class="rblx-shell-quests-link" href="./account-overview">View more</a>';
+      panel.innerHTML = sections + '<a class="rblx-shell-quests-link" href="./quests-levels">View more</a>';
       panel.dataset.loaded = "true";
     } catch (_error) {
       panel.innerHTML = "";
