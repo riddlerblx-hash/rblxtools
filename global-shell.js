@@ -2145,15 +2145,11 @@
           '<aside class="rblx-shell-right">' +
             '<div class="rblx-shell-right-inner">' +
               '<div class="rblx-shell-panel-head">' +
-                '<h2 class="rblx-shell-panel-title">Community Chat</h2>' +
+                '<div class="rblx-shell-panel-tabs" role="tablist" aria-label="Side panel"><button class="is-active" type="button" data-shell-panel-tab="quests" role="tab" aria-selected="true">Quests</button><button type="button" data-shell-panel-tab="chat" role="tab" aria-selected="false">Live Chat</button></div>' +
                 '<button class="rblx-shell-toggle" type="button" id="rblxShellRightToggle" aria-label="Toggle chat">' + getChatToggleIcon() + '</button>' +
               "</div>" +
-              '<div class="rblx-shell-chat-card">' +
-                '<div class="rblx-shell-chat-room">' +
-                  '<div class="rblx-shell-chat-room-label"><span class="rblx-shell-chat-live"></span><span>Live Chat</span></div>' +
-                  '<div class="rblx-shell-chat-pills"><span class="rblx-shell-pill">Online</span></div>' +
-                "</div>" +
-              "</div>" +
+              '<section class="rblx-shell-quests-panel" id="rblxShellQuestsPanel"><div class="rblx-shell-quests-loading">Loading quests...</div></section>' +
+              '<div class="rblx-shell-chat-panel" id="rblxShellChatPanel" hidden>' +
               '<div class="rblx-shell-chat-specials" id="rblxShellChatSpecials" hidden></div>' +
               '<div class="rblx-shell-chat-rain-overlay" id="rblxShellChatRainOverlay" hidden></div>' +
               '<div class="rblx-shell-chat-scroll" id="rblxShellChatScroll"></div>' +
@@ -2169,6 +2165,7 @@
                 '<div class="rblx-shell-chat-foot">' +
                   '<a class="rblx-shell-chat-rules" href="#" id="rblxShellRulesLink">Chat Rules</a>' +
                 "</div>" +
+              "</div>" +
               "</div>" +
               '<button class="rblx-shell-chat-admin-button rblx-shell-chat-admin-rail" type="button" id="rblxShellAdminButton" aria-label="Open admin panel" hidden>' + getNavIcon("shield") + '</button>' +
             "</div>" +
@@ -6403,6 +6400,49 @@
     } catch (_error) {}
   }
 
+  function initRightPanel() {
+    var quests = document.getElementById("rblxShellQuestsPanel");
+    var chat = document.getElementById("rblxShellChatPanel");
+    var tabs = Array.prototype.slice.call(document.querySelectorAll("[data-shell-panel-tab]"));
+    var show = function (view) {
+      var showQuests = view === "quests";
+      if (quests) quests.hidden = !showQuests;
+      if (chat) chat.hidden = showQuests;
+      tabs.forEach(function (tab) {
+        var active = tab.dataset.shellPanelTab === view;
+        tab.classList.toggle("is-active", active);
+        tab.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      if (showQuests) loadShellQuests();
+    };
+    tabs.forEach(function (tab) { tab.addEventListener("click", function () { show(tab.dataset.shellPanelTab); }); });
+    show("quests");
+  }
+
+  async function loadShellQuests() {
+    var panel = document.getElementById("rblxShellQuestsPanel");
+    var currentUser = shellState.currentUser || {};
+    if (!panel || panel.dataset.loaded === "true") return;
+    if (!currentUser.loggedIn || !currentUser.userId) {
+      panel.innerHTML = '<div class="rblx-shell-quests-empty">Sign in to view your quests.</div>';
+      return;
+    }
+    try {
+      var response = await fetch(API_BASE + "/rewards/overview", { credentials: "include", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
+      var payload = await response.json().catch(function () { return null; });
+      if (!response.ok || !payload || !payload.rewards) throw new Error("Could not load quests.");
+      var groups = ["ai_daily", "community_daily", "tools_daily", "codes_daily", "payments_daily"];
+      var allQuests = groups.reduce(function (list, key) { return list.concat(Array.isArray(payload.rewards.quests && payload.rewards.quests[key]) ? payload.rewards.quests[key] : []); }, []).slice(0, 3);
+      panel.innerHTML = '<div class="rblx-shell-quests-list">' + (allQuests.map(function (quest) {
+        var progress = Math.min(Number(quest.target || 0), Number(quest.progress || 0));
+        return '<article class="rblx-shell-quest' + (quest.completed ? ' is-complete' : '') + '"><strong>' + escapeHtml(quest.title || "Quest") + '</strong><span>' + escapeHtml(quest.description || "Complete this quest to earn XP.") + '</span><div><b>' + progress.toLocaleString() + ' / ' + Number(quest.target || 0).toLocaleString() + '</b><em>' + (quest.completed ? 'Done' : '+' + Number(quest.xp || 0) + ' XP') + '</em></div></article>';
+      }).join('') || '<div class="rblx-shell-quests-empty">New quests will appear soon.</div>') + '</div><a class="rblx-shell-quests-link" href="./account-overview">View all quests</a>';
+      panel.dataset.loaded = "true";
+    } catch (_error) {
+      panel.innerHTML = '<div class="rblx-shell-quests-empty">Could not load quests right now.</div>';
+    }
+  }
+
   function initShell() {
     var favicon = document.querySelector('link[rel="icon"]') || document.createElement("link");
     favicon.rel = "icon";
@@ -6641,6 +6681,7 @@
     initToggles();
     initFastShellNavigation();
     initFastImageLoading();
+    initRightPanel();
     initChat();
     connectChatSocket();
     initAdminWindow();

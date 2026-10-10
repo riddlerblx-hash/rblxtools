@@ -89,19 +89,27 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
   };
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
-  const expandQuestBuckets = (quests) => Object.entries(quests || {}).reduce((all, [kind, source]) => {
-    const base = Array.isArray(source) && source.length ? source : [];
-    const tiers = ["I", "II", "III", "IV", "V", "VI"];
-    all[kind] = Array.from({ length: 6 }, (_, index) => {
-      const original = base[index % base.length] || {};
-      const level = Math.floor(index / Math.max(1, base.length)) + 1;
+  // Each quest group intentionally has just three concrete goals.  Older
+  // versions generated six numbered “Tier” copies, which made the quests feel
+  // repetitive and also changed their requirements invisibly after deploys.
+  const normalizeQuestBuckets = (quests) => Object.entries(quests || {}).reduce((all, [kind, source]) => {
+    const base = Array.isArray(source) && source.length ? source.slice(0, 3) : [];
+    const seed = base[0] || { key: kind, title: "Creator goal", description: "Complete creator activity to earn XP.", action: "eligible_tool_use", target: 1, xp: 10 };
+    const extensions = [
+      { name: "Quick start", target: 1, xp: 15, copy: "Complete a quick creator task." },
+      { name: "Creator momentum", target: 3, xp: 40, copy: "Keep building with a few more creator actions." },
+      { name: "Focused finish", target: 6, xp: 75, copy: "Finish a focused creator goal." },
+    ];
+    all[kind] = Array.from({ length: 3 }, (_, index) => {
+      if (base[index]) return base[index];
+      const extension = extensions[index];
       return {
-        ...original,
-        key: `${original.key || kind}_${index + 1}`,
-        title: index < base.length ? original.title : `${original.title || "Quest"} · Tier ${tiers[index]}`,
-        description: index < base.length ? original.description : `${original.description || "Complete this quest to earn XP."} Tier ${tiers[index]} has a bigger target and reward.`,
-        target: Math.max(1, Math.round(Number(original.target || 1) * level)),
-        xp: Math.max(1, Math.round(Number(original.xp || 10) * level)),
+        ...seed,
+        key: `${seed.key || kind}_${index + 1}`,
+        title: `${seed.title || "Creator goal"}: ${extension.name}`,
+        description: extension.copy,
+        target: Math.max(1, Math.round(Number(seed.target || 1) * extension.target)),
+        xp: Math.max(1, Math.round(Number(seed.xp || 10) * extension.xp / 15)),
       };
     });
     return all;
@@ -153,7 +161,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
         ranks: defaults.ranks,
         // Quest catalog ships with the application; keep it current when a
         // previous runtime snapshot contains an older generated catalog.
-        quests: expandQuestBuckets({ ...(savedConfig.quests || {}), ...defaults.quests }),
+        quests: normalizeQuestBuckets({ ...(savedConfig.quests || {}), ...defaults.quests }),
         products: { ...defaults.products, ...(savedConfig.products || {}) },
       },
       members: raw.members && typeof raw.members === "object" ? raw.members : {},

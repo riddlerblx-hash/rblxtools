@@ -13886,7 +13886,7 @@ app.post("/api/rewards/explore", async (req, res) => {
 
 app.get("/rewards/overview", async (req, res) => {
   try {
-    const user = await requireAdminUser(req);
+    const user = await requireAuthenticatedUser(req);
     res.setHeader("Cache-Control", "no-store, private, max-age=0");
     const overview = rewardsEngine.getOverview(user.id);
     return res.json({ ok: true, rewards: { ...overview, rblxtoolsCashCents: Math.max(0, Number(user.rblxtools_cash_cents) || 0) } });
