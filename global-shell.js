@@ -6423,23 +6423,24 @@
     var panel = document.getElementById("rblxShellQuestsPanel");
     var currentUser = shellState.currentUser || {};
     if (!panel || panel.dataset.loaded === "true") return;
-    if (!currentUser.loggedIn || !currentUser.userId) {
-      panel.innerHTML = '<div class="rblx-shell-quests-empty">Sign in to view your quests.</div>';
-      return;
-    }
+    if (!currentUser.loggedIn || !currentUser.userId) { panel.innerHTML = ""; return; }
     try {
       var response = await fetch(API_BASE + "/rewards/overview", { credentials: "include", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
       var payload = await response.json().catch(function () { return null; });
       if (!response.ok || !payload || !payload.rewards) throw new Error("Could not load quests.");
-      var groups = ["daily"];
-      var allQuests = groups.reduce(function (list, key) { return list.concat(Array.isArray(payload.rewards.quests && payload.rewards.quests[key]) ? payload.rewards.quests[key] : []); }, []).slice(0, 3);
-      panel.innerHTML = '<div class="rblx-shell-quests-list">' + (allQuests.map(function (quest) {
+      var groups = [{ key: "global", label: "Global" }, { key: "daily", label: "Daily" }, { key: "weekly", label: "Weekly" }, { key: "monthly", label: "Monthly" }];
+      var renderQuest = function (quest) {
         var progress = Math.min(Number(quest.target || 0), Number(quest.progress || 0));
         return '<article class="rblx-shell-quest' + (quest.completed ? ' is-complete' : '') + '"><strong>' + escapeHtml(quest.title || "Quest") + '</strong><span>' + escapeHtml(quest.description || "Complete this quest to earn XP.") + '</span><div><b>' + progress.toLocaleString() + ' / ' + Number(quest.target || 0).toLocaleString() + '</b><em>' + (quest.completed ? 'Done' : '+' + Number(quest.xp || 0) + ' XP') + '</em></div></article>';
-      }).join('') || '<div class="rblx-shell-quests-empty">New quests will appear soon.</div>') + '</div><a class="rblx-shell-quests-link" href="./account-overview">View all quests</a>';
+      };
+      var sections = groups.map(function (group) {
+        var quests = Array.isArray(payload.rewards.quests && payload.rewards.quests[group.key]) ? payload.rewards.quests[group.key].slice(0, group.key === "global" ? 1 : 3) : [];
+        return quests.length ? '<section class="rblx-shell-quest-group"><h3>' + group.label + '</h3><div class="rblx-shell-quests-list">' + quests.map(renderQuest).join('') + '</div></section>' : "";
+      }).join("");
+      panel.innerHTML = sections + '<a class="rblx-shell-quests-link" href="./account-overview">View more</a>';
       panel.dataset.loaded = "true";
     } catch (_error) {
-      panel.innerHTML = '<div class="rblx-shell-quests-empty">Could not load quests right now.</div>';
+      panel.innerHTML = "";
     }
   }
 
