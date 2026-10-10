@@ -2352,13 +2352,18 @@ async function recordVerifiedRewardsPurchase(session) {
   const paymentIntentId = typeof session?.payment_intent === "string" ? session.payment_intent : String(session?.payment_intent?.id || "");
   const account = await getAuthUserById(userId).catch(() => null);
   const membership = account ? await resolveMembershipSnapshot(account).catch(() => null) : null;
+  // Membership checkout may be recorded before Stripe's subscription webhook
+  // has updated the account row. Award the plan being purchased directly so
+  // $1 earns 75 XP for Plus and 100 XP for Pro from the first payment.
+  const purchasedPlan = String(metadata.plan || "").trim().toLowerCase();
+  const purchaseXpMultiplier = purchasedPlan === "pro" ? 2 : purchasedPlan === "plus" ? 1.5 : getPaidXpMultiplier(membership);
   return rewardsEngine.recordPurchase({
     userId, sourceId, productType,
     title: getStripeCheckoutPurchaseTitle(session),
     externalPaidCents: paidCents,
     paymentIntentId,
     metadata: { stripeSessionId: sourceId, currency: String(session?.currency || "usd").toLowerCase() },
-    xpMultiplier: getPaidXpMultiplier(membership),
+    xpMultiplier: purchaseXpMultiplier,
   });
 }
 
