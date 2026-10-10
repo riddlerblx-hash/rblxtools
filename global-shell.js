@@ -6431,7 +6431,7 @@
       var response = await fetch(API_BASE + "/rewards/overview", { credentials: "include", cache: "no-store", headers: { Authorization: "Bearer " + getToken() } });
       var payload = await response.json().catch(function () { return null; });
       if (!response.ok || !payload || !payload.rewards) throw new Error("Could not load quests.");
-      var groups = ["ai_daily", "community_daily", "tools_daily", "codes_daily", "payments_daily"];
+      var groups = ["daily"];
       var allQuests = groups.reduce(function (list, key) { return list.concat(Array.isArray(payload.rewards.quests && payload.rewards.quests[key]) ? payload.rewards.quests[key] : []); }, []).slice(0, 3);
       panel.innerHTML = '<div class="rblx-shell-quests-list">' + (allQuests.map(function (quest) {
         var progress = Math.min(Number(quest.target || 0), Number(quest.progress || 0));

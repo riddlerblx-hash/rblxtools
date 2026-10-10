@@ -89,29 +89,12 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
   };
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
-  // Each quest group intentionally has just three concrete goals.  Older
-  // versions generated six numbered “Tier” copies, which made the quests feel
-  // repetitive and also changed their requirements invisibly after deploys.
+  // The custom catalog stays empty until its individual quest list is
+  // published. It uses five schedules only: daily, weekly, monthly, global,
+  // and milestones.
   const normalizeQuestBuckets = (quests) => Object.entries(quests || {}).reduce((all, [kind, source]) => {
-    const base = Array.isArray(source) && source.length ? source.slice(0, 3) : [];
-    const seed = base[0] || { key: kind, title: "Creator goal", description: "Complete creator activity to earn XP.", action: "eligible_tool_use", target: 1, xp: 10 };
-    const extensions = [
-      { name: "Quick start", target: 1, xp: 15, copy: "Complete a quick creator task." },
-      { name: "Creator momentum", target: 3, xp: 40, copy: "Keep building with a few more creator actions." },
-      { name: "Focused finish", target: 6, xp: 75, copy: "Finish a focused creator goal." },
-    ];
-    all[kind] = Array.from({ length: 3 }, (_, index) => {
-      if (base[index]) return base[index];
-      const extension = extensions[index];
-      return {
-        ...seed,
-        key: `${seed.key || kind}_${index + 1}`,
-        title: `${seed.title || "Creator goal"}: ${extension.name}`,
-        description: extension.copy,
-        target: Math.max(1, Math.round(Number(seed.target || 1) * extension.target)),
-        xp: Math.max(1, Math.round(Number(seed.xp || 10) * extension.xp / 15)),
-      };
-    });
+    const base = Array.isArray(source) ? source : [];
+    all[kind] = base.slice(0, kind === "global" ? 1 : 3);
     return all;
   }, {});
   const iso = () => now().toISOString();
@@ -139,10 +122,10 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
   const monthKey = (date = now()) => `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
   const halfYearKey = (date = now()) => `${date.getUTCFullYear()}-H${date.getUTCMonth() < 6 ? 1 : 2}`;
   const questPeriod = (kind, date = now()) => {
-    if (kind.endsWith("_daily")) return ["daily", utcDay(date)];
-    if (kind.endsWith("_weekly")) return ["weekly", weekKey(date)];
-    if (kind.endsWith("_monthly")) return ["monthly", monthKey(date)];
-    if (kind.endsWith("_global") || kind.endsWith("_milestone")) return ["halfyear", halfYearKey(date)];
+    if (kind === "daily" || kind.endsWith("_daily")) return ["daily", utcDay(date)];
+    if (kind === "weekly" || kind.endsWith("_weekly")) return ["weekly", weekKey(date)];
+    if (kind === "monthly" || kind.endsWith("_monthly")) return ["monthly", monthKey(date)];
+    if (kind === "global" || kind === "milestones" || kind.endsWith("_global") || kind.endsWith("_milestone")) return ["halfyear", halfYearKey(date)];
     return ["lifetime", "lifetime"];
   };
   const getState = () => {
@@ -161,7 +144,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
         ranks: defaults.ranks,
         // Quest catalog ships with the application; keep it current when a
         // previous runtime snapshot contains an older generated catalog.
-        quests: normalizeQuestBuckets({ ...(savedConfig.quests || {}), ...defaults.quests }),
+        quests: normalizeQuestBuckets({ daily: [], weekly: [], monthly: [], global: [], milestones: [] }),
         products: { ...defaults.products, ...(savedConfig.products || {}) },
       },
       members: raw.members && typeof raw.members === "object" ? raw.members : {},
@@ -203,7 +186,7 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     const config = state.config;
     const member = memberFor(state, userId);
     const nowDate = now();
-    Object.keys(config.quests || {}).filter((kind) => !/_(global|milestone)$/.test(kind) || kind === "global_global" || kind === "milestones_milestone").forEach((kind) => {
+    Object.keys(config.quests || {}).forEach((kind) => {
       const [period, window] = questPeriod(kind, nowDate);
       (config.quests?.[kind] || []).forEach((quest) => {
         const target = Math.max(1, Number(quest.target) || 1);

@@ -1183,23 +1183,31 @@ body.rblx-pro-ad-free [data-rblx-vertical-ad] {
 
 .rblx-shell-panel-tabs {
   display:flex;
-  align-items:center;
-  gap:6px;
+  width:100%;
+  align-items:stretch;
+  gap:0;
+  overflow:hidden;
+  border:1px solid rgba(83,151,226,.24);
+  border-radius:11px;
+  background:rgba(7,20,39,.7);
 }
 .rblx-shell-panel-tabs button {
-  border:1px solid rgba(122,181,255,.18);
-  background:rgba(255,255,255,.035);
+  flex:1 1 50%;
+  border:0;
+  border-radius:0;
+  border-right:1px solid rgba(83,151,226,.2);
+  background:transparent;
   color:var(--shell-muted);
-  min-height:34px;
-  padding:0 11px;
-  border-radius:10px;
-  font:800 11px/1 inherit;
+  min-height:42px;
+  padding:0 8px;
+  font:900 12px/1 inherit;
   cursor:pointer;
 }
+.rblx-shell-panel-tabs button:last-child { border-right:0; }
 .rblx-shell-panel-tabs button.is-active {
   color:#fff;
-  border-color:rgba(91,193,255,.58);
-  background:rgba(49,135,224,.22);
+  background:linear-gradient(180deg,rgba(50,135,225,.36),rgba(27,93,176,.28));
+  box-shadow:inset 0 -2px 0 #59baff;
 }
 .rblx-shell-quests-panel {
   min-height:0;
