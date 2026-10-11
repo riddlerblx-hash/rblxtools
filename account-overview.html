@@ -2544,9 +2544,6 @@
         var start = Math.max(0, Number(rank.requiredXp || 0));
         var end = next ? Math.max(start + 1, Number(next.requiredXp || 0)) : Math.max(1, current);
         var progress = next ? Math.min(100, Math.max(0, ((current - start) / (end - start)) * 100)) : 100;
-        // Map the current tier plus its in-tier XP progress onto the complete
-        // rake-back path, so the circle fills continuously from one rate to the next.
-        var meterProgress = tiers.length ? Math.min(100, Math.max(0, ((currentIndex + (progress / 100)) / tiers.length) * 100)) : 0;
         els.acctProfileRankProgress.hidden = false;
         if (els.acctProfileRankTitle) els.acctProfileRankTitle.textContent = "Level " + Number(rank.level || 1) + " · " + String(rank.name);
         if (els.acctProfileRankXp) els.acctProfileRankXp.textContent = next ? current.toLocaleString() + " / " + end.toLocaleString() + " XP" : current.toLocaleString() + " XP · Max level";
@@ -2587,6 +2584,9 @@
         if (currentIndex < 0) currentIndex = 0;
         var start = Math.max(0, Number(tier.requiredXp || 0)), next = tiers[currentIndex + 1] || null, end = next ? Math.max(start + 1, Number(next.requiredXp || 0)) : Math.max(start + 1, current);
         var progress = next ? Math.min(100, Math.max(0, ((current - start) / (end - start)) * 100)) : 100;
+        // Map the current tier plus its in-tier XP progress onto the complete
+        // rake-back path, so the circle fills continuously from one rate to the next.
+        var meterProgress = tiers.length ? Math.min(100, Math.max(0, ((currentIndex + (progress / 100)) / tiers.length) * 100)) : 0;
         var nextCopy = next ? (Math.max(0, end - current).toLocaleString() + ' XP to ' + escapeRewards(next.name) + ' · ' + Number(next.cashbackPercent || 0) + '% rate') : 'You have reached the maximum 11% rake-back rate.';
         var tierMarks = tiers.map(function (item, index) { var angle = index * (360 / Math.max(1, tiers.length)); return '<span class="acct-rakeback-tier-mark' + (item.key === tier.key ? ' is-current' : '') + '" style="--tier-angle:' + angle.toFixed(2) + 'deg"><b>' + Number(item.cashbackPercent || 0) + '%</b><small>' + escapeRewards(item.name) + '</small></span>'; }).join('');
         els.acctRakebackContent.innerHTML = '<section class="acct-rakeback-meter"><div class="acct-rakeback-ring" style="--rake-progress:' + meterProgress.toFixed(2) + '">' + tierMarks + '<div class="acct-rakeback-ring-copy"><span>Rake back</span><strong>' + Number(tier.cashbackPercent || 0) + '%</strong><b>' + escapeRewards(tier.name || 'Bronze') + '</b></div></div><div class="acct-rakeback-summary"><h3>' + Number(tier.cashbackPercent || 0) + '% back on eligible purchases</h3><p>The ring fills continuously as you move from one rake-back tier to the next.</p><div class="acct-rakeback-next"><b>' + nextCopy + '</b><span>' + current.toLocaleString() + ' / ' + end.toLocaleString() + ' XP in this tier</span></div><div class="acct-rakeback-bar"><i style="width:' + progress.toFixed(2) + '%"></i></div></div></section><div class="acct-rakeback-metrics"><div><span>Current tier</span><strong>' + escapeRewards(tier.name || 'Bronze') + '</strong></div><div><span>Rake back rate</span><strong>' + Number(tier.cashbackPercent || 0) + '%</strong></div><div><span>Available rake back</span><strong>' + money(cash.availableCents) + '</strong></div></div>';
