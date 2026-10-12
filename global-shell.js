@@ -379,6 +379,16 @@
     closeMobilePanels();
   }
 
+  // The desktop header may become taller than its nominal CSS row while its
+  // account controls are loading. Keep fixed notices tied to its real height
+  // so they can never tuck underneath it on full-width pages.
+  function syncMeasuredShellHeaderHeight() {
+    var header = document.querySelector(".rblx-shell-header");
+    if (!header) return;
+    var height = Math.ceil(header.getBoundingClientRect().height || 0);
+    if (height > 0) document.documentElement.style.setProperty("--shell-measured-header-height", height + "px");
+  }
+
   // Safari can restore a page from its back-forward cache with a stale overlay state.
   window.addEventListener("pageshow", function () {
     closeMobilePanels();
@@ -4654,6 +4664,7 @@
     });
     window.addEventListener("resize", function () {
       syncMobileShellState();
+      syncMeasuredShellHeaderHeight();
       applyCollapsedState(document.body);
     });
   }
@@ -6558,6 +6569,8 @@
     refreshCurrentProfile();
 
     document.body.insertAdjacentHTML("beforeend", buildShellMarkup());
+    syncMeasuredShellHeaderHeight();
+    window.requestAnimationFrame(syncMeasuredShellHeaderHeight);
     initNavScrollCue();
     document.body.insertAdjacentHTML("beforeend", buildDailyStreakModalMarkup());
     initDailyStreak();

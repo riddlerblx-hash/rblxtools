@@ -700,7 +700,7 @@ body.rblx-shell-plus-user .rblx-shell-plus-backdrop {
   z-index: 25;
   /* Keep a visible seam below the fixed header; this prevents the notice from
      reading as though it is tucked behind the navigation bar. */
-  top: calc(var(--shell-header-height) + 10px);
+  top: calc(var(--shell-measured-header-height, var(--shell-header-height)) + 10px);
   left: calc(var(--shell-left-width) + 12px);
   right: calc(var(--shell-right-width) + 12px);
   display: flex;

@@ -140,16 +140,17 @@ async function grantDiscordBotLicense(session) {
 
 // Administrative licenses use the exact same record and verification path as
 // paid licenses, so a temporary code works in the Discord bot immediately.
-async function grantAdminDiscordBotLicense({ appUserId, plan, issuedBy }) {
+async function grantAdminDiscordBotLicense({ appUserId, plan, issuedBy, days: requestedDays }) {
   const userId = String(appUserId || "").trim();
   const normalizedPlan = String(plan || "").trim().toLowerCase();
   const daysByPlan = { weekly: 7, monthly: 30, annual: 365 };
-  const days = daysByPlan[normalizedPlan];
-  if (!userId || !days) throw new Error("Choose a member and a 7-day, 30-day, or yearly license.");
+  const requested = Number.parseInt(requestedDays, 10);
+  const days = Number.isFinite(requested) && requested > 0 && requested <= 3650 ? requested : daysByPlan[normalizedPlan];
+  if (!userId || !days) throw new Error("Choose a member and a valid Discord Bot license duration.");
   return updateStore((store) => {
     const now = new Date();
     const license = {
-      code: makeLicenseCode(store), appUserId: userId, plan: normalizedPlan,
+      code: makeLicenseCode(store), appUserId: userId, plan: normalizedPlan || "custom",
       issuedAt: now.toISOString(), expiresAt: new Date(now.getTime() + days * 86400000).toISOString(),
       issuedBy: String(issuedBy || "admin"), adminIssued: true, lastVerifiedAt: null,
     };

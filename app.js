@@ -2625,14 +2625,51 @@ function findReferralByCode(state, code) {
   return (state?.referrals || []).find((entry) => entry.code === code || entry.customCode === code) || null;
 }
 
+// Wheel odds are deliberately selected in two steps: first the rarity, then
+// a uniformly random reward within that rarity. This keeps the published odds
+// stable even when a reward group contains a different number of prizes.
+const WHEEL_RARITIES = Object.freeze([
+  { key: "common", label: "Common", probability: 31, color: "#91a7c5" },
+  { key: "uncommon", label: "Uncommon", probability: 30, color: "#6ee5c1" },
+  { key: "rare", label: "Rare", probability: 20, color: "#63a8ff" },
+  { key: "epic", label: "Epic", probability: 10, color: "#bf7dff" },
+  { key: "legendary", label: "Legendary", probability: 5, color: "#ffbf58" },
+  { key: "mythic", label: "Mythic", probability: 3, color: "#ff69a7" },
+  { key: "jackpot", label: "Jackpot", probability: 1, color: "#ff596d" },
+]);
+const WHEEL_RARITY_BY_KEY = Object.freeze(Object.fromEntries(WHEEL_RARITIES.map((rarity) => [rarity.key, rarity])));
+
+function wheelPrize(rarity, id, label, kind, value, extra = {}) {
+  const definition = WHEEL_RARITY_BY_KEY[rarity];
+  return Object.freeze({ id: `${rarity}-${id}`, rarity, rarityLabel: definition.label, label, kind, color: definition.color, ...value, ...extra });
+}
+
+function wheelRewardList(rarity, values) {
+  return values.map(([id, label, kind, value, extra]) => wheelPrize(rarity, id, label, kind, value, extra));
+}
+
 const WHEEL_OF_FORTUNE_PRIZES = Object.freeze([
-  { id: "tokens-10", label: "10 AI Tokens", kind: "tokens", amount: 10, weight: 31, color: "#5b8cff" },
-  { id: "xp-50", label: "50 XP", kind: "xp", amount: 50, weight: 24, color: "#b86dff" },
-  { id: "points-15", label: "15 RBLX Points", kind: "points", amount: 15, weight: 18, color: "#54d7c5" },
-  { id: "tokens-25", label: "25 AI Tokens", kind: "tokens", amount: 25, weight: 13, color: "#f1b451" },
-  { id: "xp-100", label: "100 XP", kind: "xp", amount: 100, weight: 8, color: "#ee74b8" },
-  { id: "tokens-50", label: "50 AI Tokens", kind: "tokens", amount: 50, weight: 4, color: "#63b7ff" },
-  { id: "points-50", label: "50 RBLX Points", kind: "points", amount: 50, weight: 2, color: "#7ee2a8" }
+  ...wheelRewardList("common", [
+    ["coupon-10", "10% off coupon", "coupon", { percentOff: 10 }], ["plus-1", "1 day of Plus", "membership", { plan: "plus", days: 1 }], ["pro-1", "1 day of Pro", "membership", { plan: "pro", days: 1 }], ["bot-1", "1 day Discord Bot license", "discord_license", { days: 1 }], ["xp-50", "50 XP", "xp", { amount: 50 }], ["xp-100", "100 XP", "xp", { amount: 100 }], ["xp-250", "250 XP", "xp", { amount: 250 }], ["points-50", "50 RBLX Points", "points", { amount: 50 }], ["points-100", "100 RBLX Points", "points", { amount: 100 }], ["tokens-25", "25 AI Tokens", "tokens", { amount: 25 }], ["tokens-50", "50 AI Tokens", "tokens", { amount: 50 }],
+  ]),
+  ...wheelRewardList("uncommon", [
+    ["coupon-15", "15% off coupon", "coupon", { percentOff: 15 }], ["plus-3", "3 days of Plus", "membership", { plan: "plus", days: 3 }], ["pro-3", "3 days of Pro", "membership", { plan: "pro", days: 3 }], ["bot-3", "3 day Discord Bot license", "discord_license", { days: 3 }], ["xp-250", "250 XP", "xp", { amount: 250 }], ["xp-350", "350 XP", "xp", { amount: 350 }], ["xp-500", "500 XP", "xp", { amount: 500 }], ["points-50", "50 RBLX Points", "points", { amount: 50 }], ["points-100", "100 RBLX Points", "points", { amount: 100 }], ["points-250", "250 RBLX Points", "points", { amount: 250 }], ["tokens-50", "50 AI Tokens", "tokens", { amount: 50 }], ["tokens-100", "100 AI Tokens", "tokens", { amount: 100 }], ["tokens-200", "200 AI Tokens", "tokens", { amount: 200 }],
+  ]),
+  ...wheelRewardList("rare", [
+    ["coupon-20", "20% off coupon", "coupon", { percentOff: 20 }], ["plus-7", "7 days of Plus", "membership", { plan: "plus", days: 7 }], ["pro-7", "7 days of Pro", "membership", { plan: "pro", days: 7 }], ["bot-7", "7 day Discord Bot license", "discord_license", { days: 7 }], ["xp-500", "500 XP", "xp", { amount: 500 }], ["xp-1000", "1,000 XP", "xp", { amount: 1000 }], ["xp-2000", "2,000 XP", "xp", { amount: 2000 }], ["xp-3000", "3,000 XP", "xp", { amount: 3000 }], ["points-250", "250 RBLX Points", "points", { amount: 250 }], ["points-500", "500 RBLX Points", "points", { amount: 500 }], ["points-1000", "1,000 RBLX Points", "points", { amount: 1000 }], ["tokens-250", "250 AI Tokens", "tokens", { amount: 250 }], ["tokens-350", "350 AI Tokens", "tokens", { amount: 350 }], ["tokens-500", "500 AI Tokens", "tokens", { amount: 500 }],
+  ]),
+  ...wheelRewardList("epic", [
+    ["coupon-25", "25% off coupon", "coupon", { percentOff: 25 }], ["plus-14", "14 days of Plus", "membership", { plan: "plus", days: 14 }], ["pro-14", "14 days of Pro", "membership", { plan: "pro", days: 14 }], ["bot-14", "14 day Discord Bot license", "discord_license", { days: 14 }], ["xp-3000", "3,000 XP", "xp", { amount: 3000 }], ["xp-4000", "4,000 XP", "xp", { amount: 4000 }], ["xp-5000", "5,000 XP", "xp", { amount: 5000 }], ["points-1000", "1,000 RBLX Points", "points", { amount: 1000 }], ["points-1500", "1,500 RBLX Points", "points", { amount: 1500 }], ["points-2000", "2,000 RBLX Points", "points", { amount: 2000 }], ["tokens-500", "500 AI Tokens", "tokens", { amount: 500 }], ["tokens-750", "750 AI Tokens", "tokens", { amount: 750 }], ["tokens-1000", "1,000 AI Tokens", "tokens", { amount: 1000 }],
+  ]),
+  ...wheelRewardList("legendary", [
+    ["coupon-50", "50% off coupon", "coupon", { percentOff: 50 }], ["plus-31", "31 days of Plus", "membership", { plan: "plus", days: 31 }], ["pro-31", "31 days of Pro", "membership", { plan: "pro", days: 31 }], ["bot-31", "31 day Discord Bot license", "discord_license", { days: 31 }], ["xp-5000", "5,000 XP", "xp", { amount: 5000 }], ["xp-7500", "7,500 XP", "xp", { amount: 7500 }], ["xp-10000", "10,000 XP", "xp", { amount: 10000 }], ["points-2000", "2,000 RBLX Points", "points", { amount: 2000 }], ["points-2500", "2,500 RBLX Points", "points", { amount: 2500 }], ["points-3000", "3,000 RBLX Points", "points", { amount: 3000 }], ["tokens-1000", "1,000 AI Tokens", "tokens", { amount: 1000 }], ["tokens-1500", "1,500 AI Tokens", "tokens", { amount: 1500 }], ["tokens-2000", "2,000 AI Tokens", "tokens", { amount: 2000 }],
+  ]),
+  ...wheelRewardList("mythic", [
+    ["coupon-75", "75% off coupon", "coupon", { percentOff: 75 }], ["plus-60", "60 days of Plus", "membership", { plan: "plus", days: 60 }], ["pro-60", "60 days of Pro", "membership", { plan: "pro", days: 60 }], ["bot-60", "60 day Discord Bot license", "discord_license", { days: 60 }], ["xp-10000", "10,000 XP", "xp", { amount: 10000 }], ["xp-25000", "25,000 XP", "xp", { amount: 25000 }], ["xp-50000", "50,000 XP", "xp", { amount: 50000 }], ["points-3000", "3,000 RBLX Points", "points", { amount: 3000 }], ["points-5000", "5,000 RBLX Points", "points", { amount: 5000 }], ["points-10000", "10,000 RBLX Points", "points", { amount: 10000 }], ["tokens-3000", "3,000 AI Tokens", "tokens", { amount: 3000 }], ["tokens-4000", "4,000 AI Tokens", "tokens", { amount: 4000 }], ["tokens-5000", "5,000 AI Tokens", "tokens", { amount: 5000 }],
+  ]),
+  ...wheelRewardList("jackpot", [
+    ["coupon-100", "100% off coupon", "coupon", { percentOff: 100 }, { jackpotProbability: .26 }], ["xp-100000", "100,000 XP", "xp", { amount: 100000 }, { jackpotProbability: .20 }], ["xp-250000", "250,000 XP", "xp", { amount: 250000 }, { jackpotProbability: .15 }], ["xp-500000", "500,000 XP", "xp", { amount: 500000 }, { jackpotProbability: .10 }], ["xp-1500000", "1,500,000 XP", "xp", { amount: 1500000 }, { jackpotProbability: .01 }], ["points-25000", "25,000 RBLX Points", "points", { amount: 25000 }, { jackpotProbability: .10 }], ["points-50000", "50,000 RBLX Points", "points", { amount: 50000 }, { jackpotProbability: .05 }], ["tokens-10000", "10,000 AI Tokens", "tokens", { amount: 10000 }, { jackpotProbability: .09 }], ["bot-365", "365 day Discord Bot license", "discord_license", { days: 365 }, { jackpotProbability: .02 }], ["plus-365", "365 days of Plus", "membership", { plan: "plus", days: 365 }, { jackpotProbability: .01 }], ["pro-365", "365 days of Pro", "membership", { plan: "pro", days: 365 }, { jackpotProbability: .01 }],
+  ]),
 ]);
 
 function getWheelPrizeById(prizeId) {
@@ -2640,13 +2677,22 @@ function getWheelPrizeById(prizeId) {
 }
 
 function chooseWheelPrize() {
-  const totalWeight = WHEEL_OF_FORTUNE_PRIZES.reduce((total, prize) => total + Number(prize.weight || 0), 0);
-  let cursor = randomBytes(4).readUInt32BE(0) % totalWeight;
-  for (const prize of WHEEL_OF_FORTUNE_PRIZES) {
-    cursor -= Number(prize.weight || 0);
-    if (cursor < 0) return prize;
+  const roll = randomBytes(4).readUInt32BE(0) / 0x100000000 * 100;
+  let cursor = 0;
+  let selected = WHEEL_RARITIES[WHEEL_RARITIES.length - 1];
+  for (const rarity of WHEEL_RARITIES) {
+    cursor += rarity.probability;
+    if (roll < cursor) { selected = rarity; break; }
   }
-  return WHEEL_OF_FORTUNE_PRIZES[0];
+  const rewards = WHEEL_OF_FORTUNE_PRIZES.filter((prize) => prize.rarity === selected.key);
+  if (selected.key !== "jackpot") return rewards[randomBytes(4).readUInt32BE(0) % rewards.length];
+  const jackpotRoll = randomBytes(4).readUInt32BE(0) / 0x100000000;
+  cursor = 0;
+  for (const prize of rewards) {
+    cursor += Number(prize.jackpotProbability || 0);
+    if (jackpotRoll < cursor) return prize;
+  }
+  return rewards[0];
 }
 
 function getAvailableWheelTickets(state, userId) {
@@ -2675,18 +2721,55 @@ function issueWheelReferralTicket(state, userId, code, referral) {
   return ticket;
 }
 
+async function createWheelCoupon(user, prize, spinId) {
+  if (!stripeClient) throw new Error("Wheel coupons are unavailable until Stripe is configured.");
+  const percentOff = Math.max(1, Math.min(100, Math.round(Number(prize.percentOff) || 0)));
+  const expiresAt = Math.floor((Date.now() + 7 * 86400000) / 1000);
+  const coupon = await stripeClient.coupons.create({
+    percent_off: percentOff, duration: "once", max_redemptions: 1, redeem_by: expiresAt,
+    name: `Wheel reward — ${percentOff}% off`, metadata: { type: "wheel_of_fortune", appUserId: String(user.id), spinId: String(spinId), eligiblePurchases: "all_non_renewal" },
+  }, { idempotencyKey: `wheel-coupon-${spinId}` });
+  const code = `WHEEL${randomBytes(5).toString("hex").toUpperCase()}`;
+  const promotion = await stripeClient.promotionCodes.create({ coupon: coupon.id, code, max_redemptions: 1, expires_at: expiresAt });
+  return { code: promotion.code, expiresAt: new Date(expiresAt * 1000).toISOString() };
+}
+
 async function awardWheelPrize(user, prize, spinId) {
   if (prize.kind === "tokens") {
     const updated = await updateAuthUserFields(user.id, { ai_token_balance: getAITokenBalance(user) + Number(prize.amount || 0) });
     if (!updated) throw new Error("Could not add AI tokens to this account.");
-    return;
+    await recordAccountTransaction({ userId: user.id, category: "ai_tokens", sourceType: "wheel_of_fortune", sourceId: spinId, title: "Wheel of Fortune reward", amountDelta: Number(prize.amount || 0), unit: "tokens", status: "accepted", note: prize.label });
+    return { label: prize.label };
   }
   if (prize.kind === "points") {
     const updated = await updateAuthUserFields(user.id, { reward_points: Math.max(0, Number(user.reward_points) || 0) + Number(prize.amount || 0) });
     if (!updated) throw new Error("Could not add RBLX Points to this account.");
-    return;
+    await recordAccountTransaction({ userId: user.id, category: "points", sourceType: "wheel_of_fortune", sourceId: spinId, title: "Wheel of Fortune reward", amountDelta: Number(prize.amount || 0), unit: "points", status: "accepted", note: prize.label });
+    return { label: prize.label };
   }
-  rewardsEngine.recordActivity({ userId: user.id, sourceKey: `wheel-of-fortune:${spinId}`, action: "wheel_of_fortune", title: "Wheel of Fortune reward", amount: Number(prize.amount || 0), note: prize.label });
+  if (prize.kind === "xp") {
+    rewardsEngine.recordActivity({ userId: user.id, sourceKey: `wheel-of-fortune:${spinId}`, action: "wheel_of_fortune", title: "Wheel of Fortune reward", amount: Number(prize.amount || 0), note: prize.label });
+    await recordAccountTransaction({ userId: user.id, category: "xp", sourceType: "wheel_of_fortune", sourceId: spinId, title: "Wheel of Fortune reward", amountDelta: Number(prize.amount || 0), unit: "xp", status: "accepted", note: prize.label });
+    return { label: prize.label };
+  }
+  if (prize.kind === "membership") {
+    const grant = prize.plan === "pro"
+      ? await grantComplimentaryProToUser(user.id, Number(prize.days || 0), "complimentary")
+      : await grantComplimentaryPlusToUser(user.id, Number(prize.days || 0), "complimentary");
+    await recordAccountTransaction({ userId: user.id, category: "membership", sourceType: "wheel_of_fortune", sourceId: spinId, title: "Wheel of Fortune reward", amountDelta: Number(prize.days || 0), unit: "days", status: "accepted", note: `${prize.label}; expires ${grant.expiresAt.slice(0, 10)}` });
+    return { label: prize.label, expiresAt: grant.expiresAt };
+  }
+  if (prize.kind === "discord_license") {
+    const license = await grantAdminDiscordBotLicense({ appUserId: user.id, plan: "wheel", days: Number(prize.days || 0), issuedBy: `wheel:${spinId}` });
+    await recordAccountTransaction({ userId: user.id, category: "discord_bot", sourceType: "wheel_of_fortune", sourceId: spinId, title: "Wheel of Fortune reward", amountDelta: Number(prize.days || 0), unit: "days", status: "accepted", note: `${prize.label}; expires ${license.expiresAt.slice(0, 10)}` });
+    return { label: prize.label, expiresAt: license.expiresAt, licenseCode: license.code };
+  }
+  if (prize.kind === "coupon") {
+    const coupon = await createWheelCoupon(user, prize, spinId);
+    await recordAccountTransaction({ userId: user.id, category: "coupon", sourceType: "wheel_of_fortune", sourceId: spinId, title: "Wheel of Fortune reward", amountDelta: Number(prize.percentOff || 0), unit: "percent", status: "accepted", note: `${prize.label}; code ${coupon.code}; expires ${coupon.expiresAt.slice(0, 10)}` });
+    return { label: prize.label, couponCode: coupon.code, expiresAt: coupon.expiresAt };
+  }
+  throw new Error("This Wheel of Fortune reward is not configured.");
 }
 
 function getOrCreateReferral(state, userId) {
@@ -5672,14 +5755,20 @@ async function grantComplimentaryProToUser(userId, days, grantSource) {
     throw error;
   }
   const safeDays = Number.isFinite(days) ? Math.max(1, Math.min(days, MAX_COMPLIMENTARY_PLUS_DAYS)) : DEFAULT_COMPLIMENTARY_PLUS_DAYS;
-  // A Pro grant replaces lower-tier time instead of carrying Plus days into Pro.
-  const expiresAt = new Date(Date.now() + safeDays * 24 * 60 * 60 * 1000).toISOString();
+  // Complimentary wheel rewards must never cancel or rewrite a paid Stripe
+  // subscription. The stored grant remains a separate time entitlement.
+  const existingComplimentary = getStoredComplimentaryMembership(targetUser);
+  const existingExpiry = parseIsoDate(existingComplimentary?.expiresAt || existingComplimentary?.currentPeriodEndAt);
+  const extensionBaseMs = existingExpiry && existingExpiry.getTime() > Date.now() ? existingExpiry.getTime() : Date.now();
+  const expiresAt = new Date(extensionBaseMs + safeDays * 24 * 60 * 60 * 1000).toISOString();
   const totalDays = safeDays;
+  const hasStripeAccess = isPremiumStatus(targetUser.stripe_subscription_status);
+  const paidPlan = isProMember(targetUser) ? "pro" : "plus";
   const updatedUser = await updateAuthUserFields(targetUser.id, {
     premium_active: true,
-    plus_active: false,
-    plan: "pro",
-    membership_source: (normalizeMembershipGrantSource(grantSource) === "complimentary" ? "complimentary grant" : "robux purchase") + " pro",
+    plus_active: hasStripeAccess ? paidPlan === "plus" : false,
+    plan: hasStripeAccess ? paidPlan : "pro",
+    membership_source: hasStripeAccess ? "stripe + complimentary grant" : (normalizeMembershipGrantSource(grantSource) === "complimentary" ? "complimentary grant" : "robux purchase") + " pro",
     plus_days_total: totalDays,
     plus_expires_at: expiresAt,
     plus_current_period_start_at: new Date().toISOString(),
@@ -7843,7 +7932,7 @@ app.get("/api/wheel-of-fortune", async (req, res) => {
     const state = readReferralProgram();
     const tickets = getAvailableWheelTickets(state, user.id);
     const recentSpins = (state.wheelSpins || []).filter((spin) => String(spin.userId || "") === String(user.id)).slice(-8).reverse();
-    return res.json({ ok: true, tickets: tickets.length, prizes: WHEEL_OF_FORTUNE_PRIZES, recentSpins });
+    return res.json({ ok: true, tickets: tickets.length, rarities: WHEEL_RARITIES, prizes: WHEEL_OF_FORTUNE_PRIZES, recentSpins });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load Wheel of Fortune." });
   }
@@ -7878,10 +7967,11 @@ app.post("/api/wheel-of-fortune/spin", async (req, res) => {
     state.wheelSpins.push(spin);
     writeReferralProgram(state);
     try {
-      await awardWheelPrize(user, prize, spin.id);
+      const award = await awardWheelPrize(user, prize, spin.id);
       ticket.status = "claimed";
       spin.status = "claimed";
       spin.claimedAt = new Date().toISOString();
+      spin.award = award;
       writeReferralProgram(state);
     } catch (awardError) {
       ticket.status = "available";
