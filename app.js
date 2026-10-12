@@ -2373,7 +2373,7 @@ async function getStripeAffiliateDiscountOptions(req, user, priceId, baseAmountC
   if (referral.customCode === code) {
     const referrer = await getAuthUserById(referral.userId).catch(() => null);
     const membership = referrer ? await resolveMembershipSnapshot(referrer).catch(() => null) : null;
-    if (!membership?.premiumActive || String(membership.plan || "").toLowerCase() !== "pro") return {};
+    if (!membership?.premiumActive || !["plus", "pro"].includes(String(membership.plan || "").toLowerCase())) return {};
   }
 
   const coupon = await stripeClient.coupons.retrieve(STRIPE_AFFILIATE_COUPON_ID);
@@ -2557,7 +2557,7 @@ function writeJsonFile(filePath, value) {
 }
 
 function readReferralProgram() {
-  const state = readJsonFile(REFERRAL_PROGRAM_PATH, { referrals: [], attributions: [], commissions: [], payoutRequests: [], referralSessions: [], referralOptOuts: [] });
+  const state = readJsonFile(REFERRAL_PROGRAM_PATH, { referrals: [], attributions: [], commissions: [], payoutRequests: [], referralSessions: [], referralOptOuts: [], wheelTickets: [], wheelSpins: [] });
   return {
     referrals: Array.isArray(state.referrals) ? state.referrals : [],
     attributions: Array.isArray(state.attributions) ? state.attributions : [],
@@ -2565,6 +2565,8 @@ function readReferralProgram() {
     payoutRequests: Array.isArray(state.payoutRequests) ? state.payoutRequests : [],
     referralSessions: Array.isArray(state.referralSessions) ? state.referralSessions : [],
     referralOptOuts: Array.isArray(state.referralOptOuts) ? state.referralOptOuts : [],
+    wheelTickets: Array.isArray(state.wheelTickets) ? state.wheelTickets : [],
+    wheelSpins: Array.isArray(state.wheelSpins) ? state.wheelSpins : [],
   };
 }
 
@@ -2610,6 +2612,8 @@ function writeReferralProgram(state) {
     payoutRequests: (state.payoutRequests || []).slice(-10000),
     referralSessions: (state.referralSessions || []).slice(-25000),
     referralOptOuts: (state.referralOptOuts || []).slice(-10000),
+    wheelTickets: (state.wheelTickets || []).slice(-50000),
+    wheelSpins: (state.wheelSpins || []).slice(-50000),
   });
 }
 
@@ -2619,6 +2623,70 @@ function normalizeReferralCode(value) {
 
 function findReferralByCode(state, code) {
   return (state?.referrals || []).find((entry) => entry.code === code || entry.customCode === code) || null;
+}
+
+const WHEEL_OF_FORTUNE_PRIZES = Object.freeze([
+  { id: "tokens-10", label: "10 AI Tokens", kind: "tokens", amount: 10, weight: 31, color: "#5b8cff" },
+  { id: "xp-50", label: "50 XP", kind: "xp", amount: 50, weight: 24, color: "#b86dff" },
+  { id: "points-15", label: "15 RBLX Points", kind: "points", amount: 15, weight: 18, color: "#54d7c5" },
+  { id: "tokens-25", label: "25 AI Tokens", kind: "tokens", amount: 25, weight: 13, color: "#f1b451" },
+  { id: "xp-100", label: "100 XP", kind: "xp", amount: 100, weight: 8, color: "#ee74b8" },
+  { id: "tokens-50", label: "50 AI Tokens", kind: "tokens", amount: 50, weight: 4, color: "#63b7ff" },
+  { id: "points-50", label: "50 RBLX Points", kind: "points", amount: 50, weight: 2, color: "#7ee2a8" }
+]);
+
+function getWheelPrizeById(prizeId) {
+  return WHEEL_OF_FORTUNE_PRIZES.find((prize) => prize.id === String(prizeId || "")) || null;
+}
+
+function chooseWheelPrize() {
+  const totalWeight = WHEEL_OF_FORTUNE_PRIZES.reduce((total, prize) => total + Number(prize.weight || 0), 0);
+  let cursor = randomBytes(4).readUInt32BE(0) % totalWeight;
+  for (const prize of WHEEL_OF_FORTUNE_PRIZES) {
+    cursor -= Number(prize.weight || 0);
+    if (cursor < 0) return prize;
+  }
+  return WHEEL_OF_FORTUNE_PRIZES[0];
+}
+
+function getAvailableWheelTickets(state, userId) {
+  return (state.wheelTickets || []).filter((ticket) => String(ticket.userId || "") === String(userId || "") && !ticket.spentAt && ticket.status !== "spinning");
+}
+
+async function validateWheelReferralCode(state, userId, value) {
+  const code = normalizeReferralCode(value);
+  const referral = findReferralByCode(state, code);
+  if (!code || !referral || String(referral.userId || "") === String(userId || "")) return null;
+  if (referral.customCode === code) {
+    const referrer = await getAuthUserById(referral.userId).catch(() => null);
+    const membership = referrer ? await resolveMembershipSnapshot(referrer).catch(() => null) : null;
+    if (!membership?.premiumActive || !["plus", "pro"].includes(String(membership.plan || "").toLowerCase())) return null;
+  }
+  return { code, referral };
+}
+
+function issueWheelReferralTicket(state, userId, code, referral) {
+  const memberId = String(userId || "");
+  // Referral spins are intentionally limited to one per member, so swapping
+  // codes cannot be used to farm the reward pool.
+  if ((state.wheelTickets || []).some((ticket) => String(ticket.userId || "") === memberId && ticket.sourceType === "affiliate")) return null;
+  const ticket = { id: randomUUID(), userId: memberId, sourceType: "affiliate", referralCode: code, referrerUserId: String(referral.userId || ""), createdAt: new Date().toISOString(), spentAt: null, status: "available" };
+  state.wheelTickets.push(ticket);
+  return ticket;
+}
+
+async function awardWheelPrize(user, prize, spinId) {
+  if (prize.kind === "tokens") {
+    const updated = await updateAuthUserFields(user.id, { ai_token_balance: getAITokenBalance(user) + Number(prize.amount || 0) });
+    if (!updated) throw new Error("Could not add AI tokens to this account.");
+    return;
+  }
+  if (prize.kind === "points") {
+    const updated = await updateAuthUserFields(user.id, { reward_points: Math.max(0, Number(user.reward_points) || 0) + Number(prize.amount || 0) });
+    if (!updated) throw new Error("Could not add RBLX Points to this account.");
+    return;
+  }
+  rewardsEngine.recordActivity({ userId: user.id, sourceKey: `wheel-of-fortune:${spinId}`, action: "wheel_of_fortune", title: "Wheel of Fortune reward", amount: Number(prize.amount || 0), note: prize.label });
 }
 
 function getOrCreateReferral(state, userId) {
@@ -7752,8 +7820,8 @@ app.post("/referrals/custom-code", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
     const membership = getEffectiveMembership(user);
-    if (!membership?.premiumActive || String(membership.plan || "").toLowerCase() !== "pro") {
-      return res.status(403).json({ error: "An active Pro subscription is required for a custom affiliate code." });
+    if (!membership?.premiumActive || !["plus", "pro"].includes(String(membership.plan || "").toLowerCase())) {
+      return res.status(403).json({ error: "An active Plus or Pro subscription is required for a custom affiliate code." });
     }
     const code = String(req.body?.code || "").trim().toUpperCase();
     if (!/^[A-Z0-9]{4,12}$/.test(code)) return res.status(400).json({ error: "Use 4–12 letters or numbers for your custom affiliate code." });
@@ -7766,6 +7834,66 @@ app.post("/referrals/custom-code", async (req, res) => {
     return res.json({ ok: true, referral: await getReferralDashboard(user.id) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not save your custom affiliate code." });
+  }
+});
+
+app.get("/api/wheel-of-fortune", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const state = readReferralProgram();
+    const tickets = getAvailableWheelTickets(state, user.id);
+    const recentSpins = (state.wheelSpins || []).filter((spin) => String(spin.userId || "") === String(user.id)).slice(-8).reverse();
+    return res.json({ ok: true, tickets: tickets.length, prizes: WHEEL_OF_FORTUNE_PRIZES, recentSpins });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load Wheel of Fortune." });
+  }
+});
+
+app.post("/api/wheel-of-fortune/redeem", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const state = readReferralProgram();
+    const details = await validateWheelReferralCode(state, user.id, req.body?.code);
+    if (!details) return res.status(400).json({ error: "Enter a valid referral code from another creator." });
+    const ticket = issueWheelReferralTicket(state, user.id, details.code, details.referral);
+    if (!ticket) return res.status(409).json({ error: "This account has already received its referral spin ticket." });
+    writeReferralProgram(state);
+    return res.json({ ok: true, tickets: getAvailableWheelTickets(state, user.id).length, ticket });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not redeem that referral code." });
+  }
+});
+
+app.post("/api/wheel-of-fortune/spin", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const state = readReferralProgram();
+    const ticket = getAvailableWheelTickets(state, user.id)[0];
+    if (!ticket) return res.status(409).json({ error: "You need a spin ticket before you can spin." });
+    const prize = chooseWheelPrize();
+    const spin = { id: randomUUID(), userId: String(user.id), ticketId: ticket.id, prizeId: prize.id, createdAt: new Date().toISOString(), status: "spinning" };
+    ticket.status = "spinning";
+    ticket.spentAt = spin.createdAt;
+    ticket.prizeId = prize.id;
+    state.wheelSpins.push(spin);
+    writeReferralProgram(state);
+    try {
+      await awardWheelPrize(user, prize, spin.id);
+      ticket.status = "claimed";
+      spin.status = "claimed";
+      spin.claimedAt = new Date().toISOString();
+      writeReferralProgram(state);
+    } catch (awardError) {
+      ticket.status = "available";
+      ticket.spentAt = null;
+      delete ticket.prizeId;
+      spin.status = "failed";
+      writeReferralProgram(state);
+      throw awardError;
+    }
+    return res.json({ ok: true, tickets: getAvailableWheelTickets(state, user.id).length, prize, spin });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not complete this spin." });
   }
 });
 

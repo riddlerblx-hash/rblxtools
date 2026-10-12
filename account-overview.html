@@ -1833,7 +1833,7 @@
                     <div class="acct-field-label acct-referral-link-label">Your referral link</div>
                     <div class="acct-referral-link-row"><input id="acctReferralLink" class="acct-input" type="text" readonly value="Loading your link..."><button id="acctReferralCopyButton" class="acct-button secondary" type="button">Copy</button></div>
                     <div class="acct-field-label">Custom affiliate code</div>
-                    <div class="acct-referral-code-wrap"><div class="acct-referral-link-row"><input id="acctReferralCustomCode" class="acct-input" type="text" minlength="4" maxlength="12" autocomplete="off" placeholder="4–12 letters or numbers"><button id="acctReferralCustomCodeButton" class="acct-button secondary" type="button">Save</button></div><div id="acctReferralCustomCodeLock" class="acct-referral-code-lock" hidden>🔒 An active Pro subscription is required to create custom affiliate codes.</div></div>
+                    <div class="acct-referral-code-wrap"><div class="acct-referral-link-row"><input id="acctReferralCustomCode" class="acct-input" type="text" minlength="4" maxlength="12" autocomplete="off" placeholder="4–12 letters or numbers"><button id="acctReferralCustomCodeButton" class="acct-button secondary" type="button">Save</button></div><div id="acctReferralCustomCodeLock" class="acct-referral-code-lock" hidden>🔒 An active Plus or Pro subscription is required to create custom affiliate codes.</div></div>
                     <div id="acctReferralStatus" class="acct-status">Loading referral program...</div>
                   </section>
 
@@ -2503,13 +2503,13 @@
         if (els.acctReferralPeopleUsing) els.acctReferralPeopleUsing.textContent = String(referral.peopleUsingLink || 0);
         if (els.acctReferralOptedOut) els.acctReferralOptedOut.textContent = String(referral.optedOutMembers || 0);
         els.acctReferralLink.value = referral.link || "";
-        var hasActivePro = String(state.user && state.user.plan || "").toLowerCase() === "pro" && Boolean(state.user && state.user.premiumActive);
+        var hasActiveMembership = ["plus", "pro"].includes(String(state.user && state.user.plan || "").toLowerCase()) && Boolean(state.user && state.user.premiumActive);
         if (els.acctReferralCustomCode) {
           els.acctReferralCustomCode.value = referral.customCode || "";
-          els.acctReferralCustomCode.disabled = !hasActivePro;
+          els.acctReferralCustomCode.disabled = !hasActiveMembership;
         }
-        if (els.acctReferralCustomCodeButton) els.acctReferralCustomCodeButton.disabled = !hasActivePro;
-        if (els.acctReferralCustomCodeLock) els.acctReferralCustomCodeLock.hidden = hasActivePro;
+        if (els.acctReferralCustomCodeButton) els.acctReferralCustomCodeButton.disabled = !hasActiveMembership;
+        if (els.acctReferralCustomCodeLock) els.acctReferralCustomCodeLock.hidden = hasActiveMembership;
         var requests = Array.isArray(referral.payoutRequests) ? referral.payoutRequests : [];
         els.acctReferralRequestList.innerHTML = requests.length
           ? requests.map(function (request) { var date = new Date(request.createdAt || ""); return '<div class="acct-referral-request"><strong>' + formatReferralMoney(request.amountCents) + '</strong> - ' + String(request.status || 'in review') + '<br><span>' + (Number.isNaN(date.getTime()) ? 'Withdrawal request' : date.toLocaleDateString()) + '</span></div>'; }).join("")
@@ -3474,9 +3474,9 @@
 
       async function saveReferralCustomCode() {
         if (!els.acctReferralCustomCode || !els.acctReferralCustomCodeButton) return;
-        var hasActivePro = String(state.user && state.user.plan || "").toLowerCase() === "pro" && Boolean(state.user && state.user.premiumActive);
-        if (!hasActivePro) {
-          setStatus(els.acctReferralStatus, "An active Pro subscription is required to use a custom affiliate code.", "error");
+        var hasActiveMembership = ["plus", "pro"].includes(String(state.user && state.user.plan || "").toLowerCase()) && Boolean(state.user && state.user.premiumActive);
+        if (!hasActiveMembership) {
+          setStatus(els.acctReferralStatus, "An active Plus or Pro subscription is required to use a custom affiliate code.", "error");
           return;
         }
         var code = String(els.acctReferralCustomCode.value || "").trim().toUpperCase();
