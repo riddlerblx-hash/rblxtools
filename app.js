@@ -2350,13 +2350,11 @@ async function recordVerifiedRewardsPurchase(session) {
   const metadata = session?.metadata || {};
   const productType = String(metadata.productType || (metadata.aiTokenQuantity ? "ai_tokens" : session?.mode === "subscription" ? "membership" : "default")).trim() || "default";
   const paymentIntentId = typeof session?.payment_intent === "string" ? session.payment_intent : String(session?.payment_intent?.id || "");
-  const account = await getAuthUserById(userId).catch(() => null);
-  const membership = account ? await resolveMembershipSnapshot(account).catch(() => null) : null;
-  // Membership checkout may be recorded before Stripe's subscription webhook
-  // has updated the account row. Award the plan being purchased directly so
-  // $1 earns 75 XP for Plus and 100 XP for Pro from the first payment.
-  const purchasedPlan = String(metadata.plan || "").trim().toLowerCase();
-  const purchaseXpMultiplier = purchasedPlan === "pro" ? 2 : purchasedPlan === "plus" ? 1.5 : getPaidXpMultiplier(membership);
+  // Purchase XP uses the membership that was active when checkout began—not
+  // the new plan being purchased. A first Plus purchase therefore earns the
+  // normal 50 XP per $1; existing Plus and Pro members earn their own boost.
+  const savedMultiplier = Number(metadata.priorXpMultiplier);
+  const purchaseXpMultiplier = savedMultiplier === 2 ? 2 : savedMultiplier === 1.5 ? 1.5 : 1;
   return rewardsEngine.recordPurchase({
     userId, sourceId, productType,
     title: getStripeCheckoutPurchaseTitle(session),
@@ -11309,6 +11307,8 @@ app.post("/auth/create-checkout-session", async (req, res) => {
     assertStripeCheckoutConfigured();
     if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
+    const currentMembership = await resolveMembershipSnapshot(user);
+    const priorXpMultiplier = getPaidXpMultiplier(currentMembership);
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
     const priceId = await resolvePlusRecurringPrice(billingInterval);
@@ -11332,6 +11332,7 @@ app.post("/auth/create-checkout-session", async (req, res) => {
         plan: "plus",
         billingInterval,
         referralCode,
+        priorXpMultiplier: String(priorXpMultiplier),
       },
       subscription_data: {
         metadata: {
@@ -11358,6 +11359,8 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
     assertStripePortalConfigured();
     if (wantsEmbeddedCheckout(req)) assertStripeEmbeddedCheckoutConfigured();
     const user = await requireAuthenticatedUser(req);
+    const currentMembership = await resolveMembershipSnapshot(user);
+    const priorXpMultiplier = getPaidXpMultiplier(currentMembership);
     const customerParams = await getStripeCheckoutCustomerParams(user);
     const billingInterval = normalizeBillingInterval(req.body?.billingInterval);
     const priceId = await resolveProRecurringPrice(billingInterval);
@@ -11370,7 +11373,7 @@ app.post("/auth/create-pro-checkout-session", async (req, res) => {
       ...buildCheckoutReturnOptions(req, getSafeCheckoutSuccessUrl(), getSafeCheckoutCancelUrl()),
       ...promotionOptions,
       client_reference_id: user.id,
-      metadata: { appUserId: user.id, plan: "pro", billingInterval, referralCode },
+      metadata: { appUserId: user.id, plan: "pro", billingInterval, referralCode, priorXpMultiplier: String(priorXpMultiplier) },
       subscription_data: { metadata: { appUserId: user.id, plan: "pro", billingInterval } },
     });
     await recordReferralCheckoutStarted(checkoutSession);

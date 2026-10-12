@@ -1769,6 +1769,7 @@
       var billingInterval = "month";
       var membershipPricing = null;
       var proSaleStatus = { active:true, code:"LETSGOPRO", remaining:6, maxRedemptions:6 };
+      var currentMembershipPlan = "free";
         var loginRedirectTimer = 0;
         var loginCountdownTimer = 0;
         var planCards = Array.prototype.slice.call(document.querySelectorAll(".plan-card"));
@@ -1821,8 +1822,10 @@
             var savingPercent = listTotal > annualTotal ? Math.round((1 - annualTotal / listTotal) * 100) : 0;
             var selectedPrice = membershipPricing && membershipPricing[plan] && membershipPricing[plan][billingInterval];
             var purchaseXp = Math.max(0, Math.floor((Number(selectedPrice && selectedPrice.unitAmount) || 0) / 100 * 50));
-            var purchaseMultiplier = plan === "pro" ? 2 : 1.5;
-            element.innerHTML = '<s style="margin-right:5px;color:#ff747d;text-decoration-color:#ff3f50">+' + purchaseXp.toLocaleString() + ' XP</s> <strong style="color:#83f4ae">+' + Math.round(purchaseXp * purchaseMultiplier).toLocaleString() + ' XP</strong>';
+            var purchaseMultiplier = currentMembershipPlan === "pro" ? 2 : currentMembershipPlan === "plus" ? 1.5 : 1;
+            element.innerHTML = purchaseMultiplier > 1
+              ? '<s style="margin-right:5px;color:#ff747d;text-decoration-color:#ff3f50">+' + purchaseXp.toLocaleString() + ' XP</s> <strong style="color:#83f4ae">+' + Math.round(purchaseXp * purchaseMultiplier).toLocaleString() + ' XP</strong>'
+              : '<strong style="color:#83f4ae">+' + purchaseXp.toLocaleString() + ' XP</strong>';
             element.style.display = "inline-block";
           });
         }
@@ -2097,6 +2100,8 @@
       }
 
       function applyPlanState(plan) {
+        currentMembershipPlan = plan === "pro" ? "pro" : plan === "plus" ? "plus" : "free";
+        updateBillingUi();
         var isPlus = plan === "plus";
         var isPro = plan === "pro";
         var isFree = plan === "free";
