@@ -2118,8 +2118,23 @@ body.rblx-shell-right-collapsed .rblx-shell-chat-admin-rail {
   left: -20px;
 }
 
-/* Notices belong to the underlying page state.  Overlays sit above them, but
-   opening a modal must never hide or dismiss an active renewal/expiry notice. */
+/* Notices belong to the underlying page state.  Keep them rendered behind
+   overlays, then let them soften into the same background treatment as the
+   rest of the page instead of hiding or dismissing them. */
+.rblx-shell-renewal-notice {
+  transition: filter .18s ease, opacity .18s ease;
+}
+
+body.rblx-shell-modal-open .rblx-shell-renewal-notice,
+body.ai-assets-tip-open .rblx-shell-renewal-notice,
+body:has(.rblx-shell-checkout-overlay.is-open) .rblx-shell-renewal-notice,
+body:has(.rblx-shell-retention-overlay.is-open) .rblx-shell-renewal-notice,
+body:has(.rblx-shell-reward-overlay.is-open) .rblx-shell-renewal-notice,
+body:has(.rblx-daily-streak-overlay:not([hidden])) .rblx-shell-renewal-notice {
+  filter: blur(7px);
+  opacity: .32;
+  pointer-events: none;
+}
 
 .rblx-shell-chat-foot {
   display: flex;
