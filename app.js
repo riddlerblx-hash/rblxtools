@@ -2700,7 +2700,18 @@ function getAvailableWheelTickets(state, userId) {
 }
 
 async function validateWheelReferralCode(state, userId, value) {
-  const code = normalizeReferralCode(value);
+  // Accept either the short code or the complete referral URL.  The wheel is
+  // frequently opened directly from a creator's link, and pasting that link
+  // into the add-spin dialog should behave exactly like entering its code.
+  let rawValue = String(value || "").trim();
+  try {
+    const referralUrl = new URL(rawValue);
+    rawValue = referralUrl.searchParams.get("ref") || referralUrl.searchParams.get("promo") || referralUrl.searchParams.get("code") || rawValue;
+  } catch (_error) {
+    const match = rawValue.match(/[?&](?:ref|promo|code)=([^&#\s]+)/i);
+    if (match) rawValue = decodeURIComponent(match[1]);
+  }
+  const code = normalizeReferralCode(rawValue);
   const referral = findReferralByCode(state, code);
   if (!code || !referral || String(referral.userId || "") === String(userId || "")) return null;
   if (referral.customCode === code) {
@@ -7932,9 +7943,22 @@ app.get("/api/wheel-of-fortune", async (req, res) => {
     const state = readReferralProgram();
     const tickets = getAvailableWheelTickets(state, user.id);
     const recentSpins = (state.wheelSpins || []).filter((spin) => String(spin.userId || "") === String(user.id)).slice(-8).reverse();
-    return res.json({ ok: true, tickets: tickets.length, rarities: WHEEL_RARITIES, prizes: WHEEL_OF_FORTUNE_PRIZES, recentSpins });
+    return res.json({ ok: true, tickets: tickets.length, canTest: isAdminUser(user), rarities: WHEEL_RARITIES, prizes: WHEEL_OF_FORTUNE_PRIZES, recentSpins });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load Wheel of Fortune." });
+  }
+});
+
+// Test spins are deliberately separate from real spins: they never consume a
+// ticket, write a spin record, or award anything to the administrator.
+app.post("/api/wheel-of-fortune/test-spin", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    if (!isAdminUser(user)) return res.status(403).json({ error: "Admin access is required to test the wheel." });
+    const prize = chooseWheelPrize();
+    return res.json({ ok: true, test: true, prize, spin: { id: randomUUID(), status: "preview", test: true, createdAt: new Date().toISOString() } });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not run a test spin." });
   }
 });
 
