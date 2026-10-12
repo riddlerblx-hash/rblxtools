@@ -2118,13 +2118,8 @@ body.rblx-shell-right-collapsed .rblx-shell-chat-admin-rail {
   left: -20px;
 }
 
-/* A modal backdrop must be a complete visual layer. The renewal cue remains
-   available once the modal closes instead of bleeding through the blur. */
-body.ai-assets-tip-open .rblx-shell-renewal-notice,
-body:has(.rblx-shell-checkout-overlay.is-open) .rblx-shell-renewal-notice,
-body:has(.rblx-shell-retention-overlay.is-open) .rblx-shell-renewal-notice,
-body:has(.rblx-shell-reward-overlay.is-open) .rblx-shell-renewal-notice,
-body:has(.rblx-daily-streak-overlay:not([hidden])) .rblx-shell-renewal-notice { visibility: hidden; }
+/* Notices belong to the underlying page state.  Overlays sit above them, but
+   opening a modal must never hide or dismiss an active renewal/expiry notice. */
 
 .rblx-shell-chat-foot {
   display: flex;
