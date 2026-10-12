@@ -1532,7 +1532,7 @@
     /* Rake-back's primary status is deliberately one clear, credit-score-like
        meter; detailed tier cards remain below as a reference. */
     #rbtools-account-overview .acct-rakeback-meter{display:grid;grid-template-columns:minmax(230px,310px) minmax(0,1fr);align-items:center;gap:30px;padding:26px 0 6px}
-    #rbtools-account-overview .acct-rakeback-ring{--rake-start:-90deg;--rake-sweep:0deg;position:relative;display:grid;place-items:center;width:min(100%,290px);aspect-ratio:1;border-radius:50%;margin:auto;background:conic-gradient(from var(--rake-start),#65dfc8 0deg var(--rake-sweep),rgba(104,152,218,.18) var(--rake-sweep) 360deg);box-shadow:0 0 0 1px rgba(118,199,255,.32),0 0 42px rgba(72,177,255,.18);transition:background 700ms ease}
+    #rbtools-account-overview .acct-rakeback-ring{--rake-start:0deg;--rake-sweep:0deg;position:relative;display:grid;place-items:center;width:min(100%,290px);aspect-ratio:1;border-radius:50%;margin:auto;background:conic-gradient(from var(--rake-start),#65dfc8 0deg var(--rake-sweep),rgba(104,152,218,.18) var(--rake-sweep) 360deg);box-shadow:0 0 0 1px rgba(118,199,255,.32),0 0 42px rgba(72,177,255,.18);transition:background 700ms ease}
     #rbtools-account-overview .acct-rakeback-ring::before{content:"";position:absolute;inset:15px;border-radius:inherit;background:radial-gradient(circle at 32% 23%,rgba(49,102,162,.44),transparent 36%),linear-gradient(145deg,#122c4e,#081425 72%);box-shadow:inset 0 0 0 1px rgba(170,217,255,.15)}
     #rbtools-account-overview .acct-rakeback-ring-copy{position:relative;z-index:2;display:grid;gap:5px;text-align:center}.acct-rakeback-ring-copy span{color:#9db8d9;font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.acct-rakeback-ring-copy strong{color:#fff;font-size:35px;line-height:1}.acct-rakeback-ring-copy b{color:#75f1da;font-size:15px}
     #rbtools-account-overview .acct-rakeback-tier-mark{position:absolute;z-index:3;top:50%;left:50%;display:grid;place-items:center;min-width:30px;padding:0;color:#90a8c8;background:transparent;border:0;font-size:10px;font-weight:950;line-height:1;text-align:center;transform:translate(-50%,-50%) rotate(var(--tier-angle)) translateY(-124px) rotate(calc(var(--tier-angle) * -1));text-shadow:0 2px 8px rgba(0,0,0,.8)}
@@ -2578,16 +2578,19 @@
       function renderRakeback(rewards) {
         if (!els.acctRakebackContent || !rewards) return;
         var cash = rewards.cashback || {}, money = function (cents) { return formatReferralMoney(cents); };
-        var tier = rewards.cashbackTier || rewards.rakebackTier || {}, tiers = (rewards.cashbackTiers || []).slice().sort(function (a, b) { return Number(a.requiredXp || 0) - Number(b.requiredXp || 0); });
-        if (!tier.key && tiers.length) tier = tiers[0];
-        var current = Math.max(0, Number(rewards.lifetimeXp || 0)), currentIndex = tiers.findIndex(function (item) { return item.key === tier.key; });
-        if (currentIndex < 0) currentIndex = 0;
+        var tiers = (rewards.cashbackTiers || []).slice().sort(function (a, b) { return Number(a.requiredXp || 0) - Number(b.requiredXp || 0); });
+        var current = Math.max(0, Number(rewards.lifetimeXp || 0));
+        // Determine the tier from the account's actual XP every time. This keeps
+        // the display correct even if an older API response lacks cashbackTier.
+        var tier = tiers.filter(function (item) { return current >= Math.max(0, Number(item.requiredXp || 0)); }).pop() || rewards.cashbackTier || rewards.rakebackTier || tiers[0] || {};
+        var currentIndex = tiers.findIndex(function (item) { return item.key === tier.key; });
+        if (currentIndex < 0) { currentIndex = 0; tier = tiers[0] || tier; }
         var start = Math.max(0, Number(tier.requiredXp || 0)), next = tiers[currentIndex + 1] || null, end = next ? Math.max(start + 1, Number(next.requiredXp || 0)) : Math.max(start + 1, current);
         var progress = next ? Math.min(100, Math.max(0, ((current - start) / (end - start)) * 100)) : 100;
         // Start the live arc at the earned tier and grow it only toward the
         // next tier, matching the behavior of the linear XP progress bar.
         var tierArc = tiers.length ? 360 / tiers.length : 0;
-        var meterStart = -90 + (currentIndex * tierArc);
+        var meterStart = currentIndex * tierArc;
         var meterSweep = next ? Math.max(0, Math.min(tierArc, tierArc * (progress / 100))) : 360;
         var nextCopy = next ? (Math.max(0, end - current).toLocaleString() + ' XP to ' + escapeRewards(next.name) + ' · ' + Number(next.cashbackPercent || 0) + '% rate') : 'You have reached the maximum 11% rake-back rate.';
         var tierMarks = tiers.map(function (item, index) { var angle = index * (360 / Math.max(1, tiers.length)), stateClass = index < currentIndex ? ' is-earned' : item.key === tier.key ? ' is-earned is-current' : ''; return '<span class="acct-rakeback-tier-mark' + stateClass + '" style="--tier-angle:' + angle.toFixed(2) + 'deg"><b>' + Number(item.cashbackPercent || 0) + '%</b><small>' + escapeRewards(item.name) + '</small></span>'; }).join('');
