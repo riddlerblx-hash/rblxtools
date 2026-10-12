@@ -196,8 +196,8 @@ body.rblx-shell-ready {
    still always available, but no longer steals room from normal navigation. */
 @media (min-width: 1181px) {
   .rblx-shell-header { grid-template-columns: auto minmax(0, 1fr) auto !important; }
-  .rblx-header-center { min-width: 0; overflow: hidden; }
-  .rblx-header-nav { min-width: 0; overflow: hidden; }
+  .rblx-header-center { min-width: 0; overflow: visible; }
+  .rblx-header-nav { min-width: 0; overflow: visible; }
   .rblx-header-search { flex: 1 1 190px; min-width: 130px; }
 }
 
@@ -494,6 +494,15 @@ body.rblx-shell-ready {
   text-overflow: ellipsis;
   max-width: 180px;
 }
+
+/* Compact level progress stays inside the account chip without adding another
+   header control. The full value is available as its accessible tooltip. */
+.rblx-shell-profile-xp { display:block; width:100%; margin-top:3px; }
+.rblx-shell-profile-xp-track { display:block; width:100%; height:3px; overflow:hidden; border-radius:999px; background:rgba(224,231,255,.2); box-shadow:inset 0 1px 2px rgba(0,0,0,.3); }
+.rblx-shell-profile-xp-track i { display:block; height:100%; min-width:3px; border-radius:inherit; background:linear-gradient(90deg,#63d6ff,#9477ff 54%,#ff6c91); box-shadow:0 0 7px rgba(113,213,255,.55); }
+.rblx-shell-profile-card.is-plus .rblx-shell-profile-xp-track { background:rgba(255,255,255,.28); }
+.rblx-shell-profile-card.is-pro .rblx-shell-profile-xp-track { background:rgba(255,239,173,.25); }
+.rblx-shell-profile-card.is-pro .rblx-shell-profile-xp-track i { background:linear-gradient(90deg,#ffe496,#fff7cf,#e9a62e); box-shadow:0 0 7px rgba(255,211,88,.62); }
 
 .rblx-shell-profile-card-arrow {
   width: 18px;

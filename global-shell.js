@@ -1930,6 +1930,7 @@
     var avatarFallback = getInitials(displayName || getEmailNamePart(currentUser.email) || currentUser.username || "R");
     var isPro = String(currentUser.plan || "").toLowerCase() === "pro";
     var isPlus = String(currentUser.plan || "").toLowerCase() === "plus";
+    var xpProgress = getHeaderXpProgress(currentUser);
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
@@ -1959,6 +1960,7 @@
                 '<span class="rblx-shell-profile-card-copy">' +
                   '<span class="rblx-shell-profile-card-title">' + escapeHtml(title) + '</span>' +
                   '<span class="rblx-shell-profile-card-subtitle">' + escapeHtml(subtitle) + '</span>' +
+                  '<span class="rblx-shell-profile-xp" title="' + escapeHtml(xpProgress.label) + '" aria-label="' + escapeHtml(xpProgress.label) + '"><span class="rblx-shell-profile-xp-track"><i style="width:' + xpProgress.percent + '%"></i></span></span>' +
                 '</span>' +
                 '<span class="rblx-shell-profile-card-arrow" aria-hidden="true">' +
                   '<svg viewBox="0 0 20 20"><path d="M5.6 7.4a1 1 0 0 1 1.4 0L10 10.38l2.99-2.99a1 1 0 1 1 1.41 1.42l-3.7 3.69a1 1 0 0 1-1.4 0L5.6 8.82a1 1 0 0 1 0-1.42Z"/></svg>' +
@@ -1987,6 +1989,26 @@
         '<a class="rblx-shell-btn rblx-shell-login-button" href="./login">Login / Sign Up</a>' +
       "</div>"
     );
+  }
+
+  function getHeaderXpProgress(user) {
+    var tiers = [
+      { level: 1, name: "Builder", xp: 0 },
+      { level: 2, name: "Creator", xp: 10000 },
+      { level: 3, name: "Architect", xp: 50000 },
+      { level: 4, name: "Tycoon", xp: 150000 },
+      { level: 5, name: "Visionary", xp: 500000 },
+      { level: 6, name: "Legend", xp: 1500000 }
+    ];
+    var rank = user && user.rewardsRank || {};
+    var level = Math.max(1, Number(rank.level || 1));
+    var current = tiers.filter(function (tier) { return tier.level === level; })[0] || tiers[0];
+    var next = tiers.filter(function (tier) { return tier.level === level + 1; })[0] || null;
+    var lifetimeXp = Math.max(0, Number(user && user.lifetimeXp || 0));
+    if (!next) return { percent: 100, label: "Maximum level reached" };
+    var span = Math.max(1, next.xp - current.xp);
+    var percent = Math.max(0, Math.min(100, ((lifetimeXp - current.xp) / span) * 100));
+    return { percent: Math.round(percent * 10) / 10, label: Math.max(0, next.xp - lifetimeXp).toLocaleString() + " XP to " + next.name };
   }
 
   async function logoutCurrentUser() {
@@ -2867,11 +2889,10 @@
     });
     window.setTimeout(function () {
       if (!shellState.currentUser || !shellState.currentUser.loggedIn) return;
-      loadDailyStreak().then(function (streak) {
-        if (streak && streak.streakLost) {
-          openDailyStreak();
-        }
-      }).catch(function () {});
+      // Cache the streak in the background, but never re-open a modal the
+      // member just dismissed. The calendar control remains the explicit way
+      // to view or restore a streak.
+      loadDailyStreak().catch(function () {});
       confirmStreakRestoreFromUrl();
     }, 0);
   }
@@ -2882,6 +2903,24 @@
       button.dataset.dailyStreakBound = "true";
       button.addEventListener("pointerdown", function (event) { event.preventDefault(); openDailyStreak(); });
       button.addEventListener("click", function (event) { event.preventDefault(); event.stopPropagation(); openDailyStreak(); });
+    });
+  }
+
+  function initHeaderMenus() {
+    var menus = Array.prototype.slice.call(document.querySelectorAll(".rblx-header-menu"));
+    menus.forEach(function (menu) {
+      if (menu.dataset.headerMenuBound === "true") return;
+      menu.dataset.headerMenuBound = "true";
+      var summary = menu.querySelector("summary");
+      if (!summary) return;
+      summary.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var shouldOpen = !menu.hasAttribute("open");
+        menus.forEach(function (otherMenu) { otherMenu.removeAttribute("open"); });
+        if (shouldOpen) menu.setAttribute("open", "");
+      });
+      menu.addEventListener("click", function (event) { event.stopPropagation(); });
     });
   }
 
@@ -4770,7 +4809,7 @@
     if (statusText) statusText.textContent = state.message;
     applyPlanAtmosphere(state.plan);
     var previousUser = shellState.currentUser || {};
-    shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : (previousUser.aiTokens != null ? previousUser.aiTokens : null), rewardPoints: state.rewardPoints != null && Number.isFinite(Number(state.rewardPoints)) ? Math.max(0, Number(state.rewardPoints)) : (previousUser.rewardPoints != null ? previousUser.rewardPoints : null), rewardsRank: state.rewardsRank || previousUser.rewardsRank || null };
+    shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : (previousUser.aiTokens != null ? previousUser.aiTokens : null), rewardPoints: state.rewardPoints != null && Number.isFinite(Number(state.rewardPoints)) ? Math.max(0, Number(state.rewardPoints)) : (previousUser.rewardPoints != null ? Number(previousUser.rewardPoints) : null), rewardsRank: state.rewardsRank || previousUser.rewardsRank || null, lifetimeXp: state.lifetimeXp != null && Number.isFinite(Number(state.lifetimeXp)) ? Math.max(0, Number(state.lifetimeXp)) : (previousUser.lifetimeXp != null ? Number(previousUser.lifetimeXp) : 0) };
     shellState.isAdmin = stableAdmin;
     // The preview is a client-side visual mode. Its plan, rather than the
     // administrator's real subscription, controls whether the ad units show.
@@ -4902,6 +4941,7 @@
       aiTokens: user && user.aiTokens != null ? Number(user.aiTokens) : null,
       rewardPoints: user && user.rewardPoints != null ? Number(user.rewardPoints) : null,
       rewardsRank: user && user.rewardsRank ? user.rewardsRank : null,
+      lifetimeXp: user && user.lifetimeXp != null ? Number(user.lifetimeXp) : null,
       isAdmin: Boolean(user && user.isAdmin),
       moderation: moderationOverride || (payload && payload.moderation ? payload.moderation : shellState.moderation)
     };
@@ -5010,6 +5050,7 @@
       aiTokens: cachedUser && cachedUser.aiTokens != null ? Number(cachedUser.aiTokens) : null,
       rewardPoints: cachedUser && cachedUser.rewardPoints != null ? Number(cachedUser.rewardPoints) : null,
       rewardsRank: cachedUser && cachedUser.rewardsRank ? cachedUser.rewardsRank : null,
+      lifetimeXp: cachedUser && cachedUser.lifetimeXp != null ? Number(cachedUser.lifetimeXp) : null,
       // This is only used to keep an already server-verified header stable
       // during the first auth check after navigation. All admin API routes
       // continue to verify the allowlist on the server.
@@ -5089,6 +5130,7 @@
         aiTokens: user && user.aiTokens != null ? Number(user.aiTokens) : null,
         rewardPoints: user && user.rewardPoints != null ? Number(user.rewardPoints) : null,
         rewardsRank: user && user.rewardsRank ? user.rewardsRank : null,
+        lifetimeXp: user && user.lifetimeXp != null ? Number(user.lifetimeXp) : null,
         isAdmin: Boolean(user && user.isAdmin),
         moderation: payload && payload.moderation ? payload.moderation : null
       };
@@ -6461,7 +6503,11 @@
       userId: initialState.userId || "",
       username: initialState.username || "",
       displayName: initialState.displayName || "",
-      email: initialState.email || ""
+      email: initialState.email || "",
+      aiTokens: initialState.aiTokens != null ? initialState.aiTokens : null,
+      rewardPoints: initialState.rewardPoints != null ? initialState.rewardPoints : null,
+      rewardsRank: initialState.rewardsRank || null,
+      lifetimeXp: initialState.lifetimeXp != null ? initialState.lifetimeXp : 0
     };
     shellState.isAdmin = Boolean(initialState.isAdmin);
     hydrateCommunityNotificationCache();
@@ -6473,6 +6519,7 @@
     initDailyStreak();
     bindDailyStreakTrigger();
     initHeaderSearch();
+    initHeaderMenus();
     renderRenewalNotice(getServerRenewalNoticeSnapshot() || {});
     applyAdminPreview();
     document.addEventListener("click", function (event) {
