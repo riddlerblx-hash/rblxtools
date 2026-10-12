@@ -436,6 +436,8 @@
   var RENEWAL_NOTICE_PREVIEW_KEY = "rblxtools_renewal_notice_preview";
   var UI_PREVIEW_KEY = "rblxtools_admin_ui_preview";
   var DAILY_STREAK_CACHE_KEY = "rblxtools_daily_streak_cache";
+  var DAILY_STREAK_AUTO_OPEN_KEY = "rblxtools_daily_streak_auto_opened";
+  var dailyStreakOpenRequestId = 0;
   var dismissedRenewalNoticeKeys = {};
   function getRenewalNoticePreview() {
     try {
@@ -2745,15 +2747,39 @@
   function readDailyStreakCache() {
     try {
       var cached = JSON.parse(sessionStorage.getItem(DAILY_STREAK_CACHE_KEY) || "null");
-      var userId = String(shellState.currentUser && shellState.currentUser.id || "");
+      var userId = String(shellState.currentUser && (shellState.currentUser.id || shellState.currentUser.userId) || "");
       return cached && cached.userId === userId && cached.streak ? cached.streak : null;
     } catch (_error) { return null; }
   }
 
   function writeDailyStreakCache(streak) {
     try {
-      sessionStorage.setItem(DAILY_STREAK_CACHE_KEY, JSON.stringify({ userId: String(shellState.currentUser && shellState.currentUser.id || ""), streak: streak }));
+      sessionStorage.setItem(DAILY_STREAK_CACHE_KEY, JSON.stringify({ userId: String(shellState.currentUser && (shellState.currentUser.id || shellState.currentUser.userId) || ""), streak: streak }));
     } catch (_error) {}
+  }
+
+  function getDailyStreakAutoOpenKey() {
+    var userId = String(shellState.currentUser && (shellState.currentUser.id || shellState.currentUser.userId) || "");
+    return DAILY_STREAK_AUTO_OPEN_KEY + ":" + userId + ":" + new Date().toISOString().slice(0, 10);
+  }
+
+  function shouldAutoOpenDailyStreak(streak) {
+    if (!streak || !streak.available || streak.claimedToday) return false;
+    try { return localStorage.getItem(getDailyStreakAutoOpenKey()) !== "1"; }
+    catch (_error) { return true; }
+  }
+
+  function markDailyStreakAutoOpened() {
+    try { localStorage.setItem(getDailyStreakAutoOpenKey(), "1"); } catch (_error) {}
+  }
+
+  function closeDailyStreak() {
+    // Invalidate every pending load before hiding the overlay. This prevents a
+    // second pointer/click request from re-opening a streak the member closed.
+    dailyStreakOpenRequestId += 1;
+    var overlay = document.getElementById("rblxDailyStreakOverlay");
+    if (overlay) overlay.hidden = true;
+    document.body.classList.remove("rblx-shell-modal-open");
   }
 
   async function loadDailyStreak() {
@@ -2763,7 +2789,8 @@
     return streak;
   }
 
-  async function openDailyStreak() {
+  async function openDailyStreak(preloadedStreak) {
+    var requestId = ++dailyStreakOpenRequestId;
     var overlay = document.getElementById("rblxDailyStreakOverlay");
     if (!overlay && document.body) {
       document.body.insertAdjacentHTML("beforeend", buildDailyStreakModalMarkup());
@@ -2773,13 +2800,25 @@
     // it, even if the background account refresh is still in flight.
     if (!overlay) return;
     delete overlay.dataset.preview;
+    // If the member deliberately opens the calendar before the initial check
+    // returns, count that as today's appearance and do not surprise them with
+    // a second automatic popup a moment later.
+    if (!preloadedStreak) markDailyStreakAutoOpened();
+    if (preloadedStreak) {
+      overlay.hidden = false;
+      document.body.classList.add("rblx-shell-modal-open");
+      renderDailyStreak(preloadedStreak);
+      return;
+    }
     var cached = readDailyStreakCache();
     if (cached) { overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open"); renderDailyStreak(cached); }
     try {
       var streak = await loadDailyStreak();
+      if (requestId !== dailyStreakOpenRequestId) return;
       if (overlay.hidden) { overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open"); }
       renderDailyStreak(streak);
     } catch (error) {
+      if (requestId !== dailyStreakOpenRequestId) return;
       if (overlay.hidden) { overlay.hidden = false; document.body.classList.add("rblx-shell-modal-open"); }
       var status = document.getElementById("rblxDailyStreakStatus");
       if (status) status.textContent = (error.message === "Missing bearer token." || error.message === "User not found.")
@@ -2884,15 +2923,19 @@
       if (event.target.closest("#rblxDailyStreakClaim")) { var claim=event.target.closest("#rblxDailyStreakClaim"); if (claim && claim.dataset.restoreStreak === "true") beginStreakRestoreCheckout(); else claimDailyStreak(); }
       if (event.target.closest("#rblxDailyStreakRestore")) beginStreakRestoreCheckout();
       if (event.target.closest("#rblxDailyStreakRestart")) restartDailyStreak();
-      if (event.target.closest("[data-shell-daily-streak-close]") || event.target.id === "rblxDailyStreakOverlay") { var overlay = document.getElementById("rblxDailyStreakOverlay"); if (overlay) overlay.hidden = true; document.body.classList.remove("rblx-shell-modal-open"); }
+      if (event.target.closest("[data-shell-daily-streak-close]") || event.target.id === "rblxDailyStreakOverlay") closeDailyStreak();
       if (event.target.closest("[data-shell-daily-claim-close]") || event.target.id === "rblxDailyClaimOverlay") { var rewardOverlay = document.getElementById("rblxDailyClaimOverlay"); if (rewardOverlay) rewardOverlay.hidden = true; document.body.classList.remove("rblx-shell-modal-open"); }
     });
     window.setTimeout(function () {
       if (!shellState.currentUser || !shellState.currentUser.loggedIn) return;
-      // Cache the streak in the background, but never re-open a modal the
-      // member just dismissed. The calendar control remains the explicit way
-      // to view or restore a streak.
-      loadDailyStreak().catch(function () {});
+      // Show an eligible check-in only once for this member and UTC calendar
+      // day. Closing it does not create another automatic popup; the calendar
+      // icon remains available for a deliberate manual open.
+      loadDailyStreak().then(function (streak) {
+        if (!shouldAutoOpenDailyStreak(streak)) return;
+        markDailyStreakAutoOpened();
+        openDailyStreak(streak);
+      }).catch(function () {});
       confirmStreakRestoreFromUrl();
     }, 0);
   }
@@ -2901,7 +2944,6 @@
     Array.prototype.slice.call(document.querySelectorAll("[data-shell-daily-streak]")).forEach(function (button) {
       if (button.dataset.dailyStreakBound) return;
       button.dataset.dailyStreakBound = "true";
-      button.addEventListener("pointerdown", function (event) { event.preventDefault(); openDailyStreak(); });
       button.addEventListener("click", function (event) { event.preventDefault(); event.stopPropagation(); openDailyStreak(); });
     });
   }
