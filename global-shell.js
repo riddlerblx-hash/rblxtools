@@ -4866,6 +4866,9 @@
     var previousUser = shellState.currentUser || {};
     shellState.currentUser = { loggedIn: Boolean(state.loggedIn), plan: state.plan || "guest", message: state.message || "", userId: state.userId || "", username: state.username || "", displayName: state.displayName || "", email: state.email || "", aiTokens: state.aiTokens != null && Number.isFinite(Number(state.aiTokens)) ? Math.max(0, Number(state.aiTokens)) : (previousUser.aiTokens != null ? previousUser.aiTokens : null), rewardPoints: state.rewardPoints != null && Number.isFinite(Number(state.rewardPoints)) ? Math.max(0, Number(state.rewardPoints)) : (previousUser.rewardPoints != null ? Number(previousUser.rewardPoints) : null), rewardsRank: state.rewardsRank || previousUser.rewardsRank || null, lifetimeXp: state.lifetimeXp != null && Number.isFinite(Number(state.lifetimeXp)) ? Math.max(0, Number(state.lifetimeXp)) : (previousUser.lifetimeXp != null ? Number(previousUser.lifetimeXp) : 0) };
     shellState.isAdmin = stableAdmin;
+    // Pages with server-protected admin controls can re-check their own API
+    // as soon as this verified account response resolves.
+    document.dispatchEvent(new CustomEvent("rblxtools-session-ready", { detail: { loggedIn: Boolean(state.loggedIn), isAdmin: stableAdmin, userId: shellState.currentUser.userId } }));
     // The preview is a client-side visual mode. Its plan, rather than the
     // administrator's real subscription, controls whether the ad units show.
     syncMemberAdVisibility(shellState.isAdmin ? { plan: getEffectiveMemberPlan() } : state);
