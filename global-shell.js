@@ -386,7 +386,10 @@
     var header = document.querySelector(".rblx-shell-header");
     if (!header) return;
     var height = Math.ceil(header.getBoundingClientRect().height || 0);
-    if (height > 0) document.documentElement.style.setProperty("--shell-measured-header-height", height + "px");
+    if (height > 0) {
+      document.documentElement.style.setProperty("--shell-measured-header-height", height + "px");
+      document.documentElement.style.setProperty("--shell-header-height", height + "px");
+    }
   }
 
   // Safari can restore a page from its back-forward cache with a stale overlay state.
