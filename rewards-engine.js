@@ -450,7 +450,8 @@ function createRewardsEngine({ readJsonFile, writeJsonFile, statePath, randomUUI
     }).filter((member) => member.lifetimeXp > 0 || member.currentStreak > 0 || member.longestStreak > 0 || member.toolUses > 0 || member.moneySpentCents > 0).sort((a, b) => b.lifetimeXp - a.lifetimeXp).slice(0, Math.max(1, Number(limit) || 50));
   };
 
-  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getMemberSummary, getTopMemberSummaries, getDailyStreak, claimDailyStreak, restoreDailyStreak, restartDailyStreak, recordActivity, trackActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
+  const resetMember = (userId) => { const state = getState(); const id = String(userId || ""); delete state.members[id]; state.xpLedger = state.xpLedger.filter((entry) => String(entry.userId || "") !== id); state.cashbackLedger = state.cashbackLedger.filter((entry) => String(entry.userId || "") !== id); saveState(state); return getMemberSummary(id); };
+  return { defaultConfig: clone(DEFAULT_CONFIG), getOverview: (userId) => { const state = getState(); const result = buildOverviewFromState(state, userId); saveState(state); return result; }, getMemberSummary, getTopMemberSummaries, getDailyStreak, claimDailyStreak, restoreDailyStreak, restartDailyStreak, recordActivity, trackActivity, recordPurchase, markPurchaseReversed, releaseMatureCashback, resetMember, getConfig: () => getState().config, setConfig: (config) => { const state = getState(); state.config = config; saveState(state); return state.config; } };
 }
 
 module.exports = { createRewardsEngine };

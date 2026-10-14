@@ -1096,6 +1096,7 @@
         </div>
       </div>
     </section>
+    <section class="admin-card" data-admin-workspace="access"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Account Data Reset</h2><p class="admin-card-copy">Reset specific RBLXTools data or the full RBLXTools-side account state. Paid Stripe subscriptions, login identity, and audit records are preserved.</p></div></div><div class="admin-compact-grid"><div class="admin-field"><label class="admin-label" for="resetMemberTarget">User ID Or Email</label><input class="admin-input" id="resetMemberTarget" placeholder="Target member" /></div><div class="admin-field"><label class="admin-label" for="resetMemberScope">Reset</label><select class="admin-input" id="resetMemberScope"><option value="ai_tokens">AI token balance</option><option value="points">RBLX Points</option><option value="rewards">XP, levels, streaks & rewards progress</option><option value="wheel">Wheel tickets & spin history</option><option value="complimentary_membership">Complimentary membership time</option><option value="full">Full RBLXTools account data reset</option></select></div><div class="admin-field"><label class="admin-label" for="resetMemberConfirmation">Type Member Email To Confirm</label><input class="admin-input" id="resetMemberConfirmation" placeholder="Exact target email" /></div><div class="admin-field"><label class="admin-label" for="resetMemberNote">Staff Note</label><input class="admin-input" id="resetMemberNote" placeholder="Required reason" /></div></div><div class="admin-buttons"><button class="admin-btn red" id="resetMemberDataButton" type="button">Reset Selected Data</button></div><div class="admin-result" id="resetMemberDataStatus"></div></div></section>
     <section class="admin-card" data-admin-workspace="access"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Staff Notes</h2><p class="admin-card-copy">Recent moderator notes and the admin who recorded them.</p></div><button class="admin-btn ghost" id="refreshNotesButton" type="button">Refresh</button></div><div class="admin-note-log" id="staffNotesLog">Loading notes...</div></div></section>
 
     <div class="admin-section-label" data-admin-workspace="live"><span>Live events</span><h2>Community Events</h2><p>Configure drops and chat rain from one workspace.</p></div>
@@ -2275,6 +2276,19 @@
         var openView = document.getElementById("openAdminViewAs");
         if (openView) openView.addEventListener("click", function () { try { sessionStorage.setItem("rblxtools_admin_view_as", viewAs.value); } catch (_error) {} window.open("./", "_blank", "noopener"); });
       }
+    }());
+  </script>
+  <script>
+    (function () {
+      var button=document.getElementById("resetMemberDataButton"),status=document.getElementById("resetMemberDataStatus");
+      if(!button||!status)return;
+      button.addEventListener("click",async function(){
+        var target=document.getElementById("resetMemberTarget").value.trim(),scope=document.getElementById("resetMemberScope").value,confirmation=document.getElementById("resetMemberConfirmation").value.trim(),note=document.getElementById("resetMemberNote").value.trim();
+        if(!target||!confirmation||!note){status.textContent="Target, exact confirmation, and staff note are required.";status.className="admin-result error";return;}
+        if(!window.confirm("Reset "+scope.replace(/_/g," ")+" for this member? This cannot be undone."))return;
+        button.disabled=true;status.textContent="Resetting member data...";status.className="admin-result";
+        try{var response=await fetch("/admin/reset-member-data",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({target:target,scope:scope,confirmation:confirmation,note:note})}),payload=await response.json().catch(function(){return {};});if(!response.ok)throw new Error(payload.error||"Could not reset member data.");status.textContent=payload.message||"Member data reset.";status.className="admin-result success";}catch(error){status.textContent=error.message||"Could not reset member data.";status.className="admin-result error";}finally{button.disabled=false;}
+      });
     }());
   </script>
 </body>

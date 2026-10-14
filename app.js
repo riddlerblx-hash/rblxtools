@@ -7943,22 +7943,9 @@ app.get("/api/wheel-of-fortune", async (req, res) => {
     const state = readReferralProgram();
     const tickets = getAvailableWheelTickets(state, user.id);
     const recentSpins = (state.wheelSpins || []).filter((spin) => String(spin.userId || "") === String(user.id)).slice(-8).reverse();
-    return res.json({ ok: true, tickets: tickets.length, canTest: isAdminUser(user), rarities: WHEEL_RARITIES, prizes: WHEEL_OF_FORTUNE_PRIZES, recentSpins });
+    return res.json({ ok: true, tickets: tickets.length, adminUnlimitedSpins: isAdminUser(user), rarities: WHEEL_RARITIES, prizes: WHEEL_OF_FORTUNE_PRIZES, recentSpins });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not load Wheel of Fortune." });
-  }
-});
-
-// Test spins are deliberately separate from real spins: they never consume a
-// ticket, write a spin record, or award anything to the administrator.
-app.post("/api/wheel-of-fortune/test-spin", async (req, res) => {
-  try {
-    const user = await requireAuthenticatedUser(req);
-    if (!isAdminUser(user)) return res.status(403).json({ error: "Admin access is required to test the wheel." });
-    const prize = chooseWheelPrize();
-    return res.json({ ok: true, test: true, prize, spin: { id: randomUUID(), status: "preview", test: true, createdAt: new Date().toISOString() } });
-  } catch (error) {
-    return res.status(error.statusCode || 500).json({ error: error.message || "Could not run a test spin." });
   }
 });
 
@@ -7981,26 +7968,23 @@ app.post("/api/wheel-of-fortune/spin", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
     const state = readReferralProgram();
+    const isAdmin = isAdminUser(user);
     const ticket = getAvailableWheelTickets(state, user.id)[0];
-    if (!ticket) return res.status(409).json({ error: "You need a spin ticket before you can spin." });
+    if (!ticket && !isAdmin) return res.status(409).json({ error: "You need a spin ticket before you can spin." });
     const prize = chooseWheelPrize();
-    const spin = { id: randomUUID(), userId: String(user.id), ticketId: ticket.id, prizeId: prize.id, createdAt: new Date().toISOString(), status: "spinning" };
-    ticket.status = "spinning";
-    ticket.spentAt = spin.createdAt;
-    ticket.prizeId = prize.id;
+    const spin = { id: randomUUID(), userId: String(user.id), ticketId: ticket ? ticket.id : null, prizeId: prize.id, createdAt: new Date().toISOString(), status: "spinning", adminUnlimitedSpin: isAdmin };
+    if (ticket) { ticket.status = "spinning"; ticket.spentAt = spin.createdAt; ticket.prizeId = prize.id; }
     state.wheelSpins.push(spin);
     writeReferralProgram(state);
     try {
       const award = await awardWheelPrize(user, prize, spin.id);
-      ticket.status = "claimed";
+      if (ticket) ticket.status = "claimed";
       spin.status = "claimed";
       spin.claimedAt = new Date().toISOString();
       spin.award = award;
       writeReferralProgram(state);
     } catch (awardError) {
-      ticket.status = "available";
-      ticket.spentAt = null;
-      delete ticket.prizeId;
+      if (ticket) { ticket.status = "available"; ticket.spentAt = null; delete ticket.prizeId; }
       spin.status = "failed";
       writeReferralProgram(state);
       throw awardError;
@@ -8009,6 +7993,33 @@ app.post("/api/wheel-of-fortune/spin", async (req, res) => {
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not complete this spin." });
   }
+});
+
+app.post("/admin/reset-member-data", async (req, res) => {
+  try {
+    const adminUser = await requireAdminUser(req);
+    const targetUser = await getAuthUserByIdentifier(req.body?.userId || req.body?.target);
+    const scope = String(req.body?.scope || "").trim().toLowerCase();
+    const confirmation = String(req.body?.confirmation || "").trim();
+    const note = cleanText(req.body?.note, 500);
+    const allowedScopes = new Set(["ai_tokens", "points", "rewards", "wheel", "complimentary_membership", "full"]);
+    if (!targetUser) return res.status(404).json({ error: "No member account was found." });
+    if (!allowedScopes.has(scope)) return res.status(400).json({ error: "Choose a valid reset scope." });
+    if (confirmation !== String(targetUser.email || targetUser.id)) return res.status(400).json({ error: "Type the member email (or ID when no email exists) to confirm this reset." });
+    if (!note) return res.status(400).json({ error: "A staff note is required for a reset." });
+    if (String(targetUser.id) === String(adminUser.id)) return res.status(400).json({ error: "You cannot reset the account currently administering the site." });
+    const full = scope === "full";
+    const fields = {};
+    if (full || scope === "ai_tokens") fields.ai_token_balance = 0;
+    if (full || scope === "points") fields.reward_points = 0;
+    if (full || scope === "complimentary_membership") Object.assign(fields, { plus_days_total: 0, plus_expires_at: null, plus_current_period_start_at: null, plus_current_period_end_at: null });
+    let updatedUser = targetUser;
+    if (Object.keys(fields).length) updatedUser = await updateAuthUserFields(targetUser.id, fields) || targetUser;
+    if (full || scope === "rewards") rewardsEngine.resetMember(targetUser.id);
+    if (full || scope === "wheel") { const state = readReferralProgram(); state.wheelTickets = state.wheelTickets.filter((entry) => String(entry.userId || "") !== String(targetUser.id)); state.wheelSpins = state.wheelSpins.filter((entry) => String(entry.userId || "") !== String(targetUser.id)); writeReferralProgram(state); }
+    await createModerationAction({ userId: targetUser.id, userEmail: targetUser.email, actionType: "member_data_reset", reason: scope, note, adminUserId: adminUser.id, adminEmail: adminUser.email });
+    return res.json({ ok: true, message: "Reset completed for " + scope.replace(/_/g, " ") + ".", member: await buildResolvedPublicUser(updatedUser) });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not reset member data." }); }
 });
 
 app.post("/referrals/request-payout", async (req, res) => {
