@@ -2690,6 +2690,13 @@ function getWheelPrizeById(prizeId) {
   return WHEEL_OF_FORTUNE_PRIZES.find((prize) => prize.id === String(prizeId || "")) || null;
 }
 
+function isWheelPrizeAvailable(prize) {
+  // A coupon cannot be granted unless Stripe is available.  Keeping an
+  // unavailable prize out of the draw means a wheel spin never fails after a
+  // ticket has already been consumed.
+  return prize.kind !== "coupon" || Boolean(stripeClient);
+}
+
 function chooseWheelPrize() {
   const roll = randomBytes(4).readUInt32BE(0) / 0x100000000 * 100;
   let cursor = 0;
@@ -2698,9 +2705,11 @@ function chooseWheelPrize() {
     cursor += rarity.probability;
     if (roll < cursor) { selected = rarity; break; }
   }
-  const rewards = WHEEL_OF_FORTUNE_PRIZES.filter((prize) => prize.rarity === selected.key);
+  const rewards = WHEEL_OF_FORTUNE_PRIZES.filter((prize) => prize.rarity === selected.key && isWheelPrizeAvailable(prize));
+  if (!rewards.length) throw new Error("No Wheel of Fortune rewards are currently available.");
   if (selected.key !== "jackpot") return rewards[randomBytes(4).readUInt32BE(0) % rewards.length];
-  const jackpotRoll = randomBytes(4).readUInt32BE(0) / 0x100000000;
+  const jackpotWeight = rewards.reduce((total, prize) => total + Number(prize.jackpotProbability || 0), 0);
+  const jackpotRoll = (randomBytes(4).readUInt32BE(0) / 0x100000000) * jackpotWeight;
   cursor = 0;
   for (const prize of rewards) {
     cursor += Number(prize.jackpotProbability || 0);
@@ -8005,6 +8014,7 @@ app.post("/api/wheel-of-fortune/spin", async (req, res) => {
     }
     return res.json({ ok: true, tickets: getAvailableWheelTickets(state, user.id).length, prize, spin });
   } catch (error) {
+    console.error("Wheel of Fortune spin failed:", error);
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not complete this spin." });
   }
 });
