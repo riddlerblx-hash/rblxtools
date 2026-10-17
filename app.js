@@ -1471,13 +1471,21 @@ function writeMemberProfileReactions(reactions) {
   fs.renameSync(tempPath, MEMBER_PROFILE_REACTIONS_PATH);
 }
 
-function saveCommunityAvatar(userId, rawAvatarUrl) {
+function saveCommunityAvatar(userId, rawAvatarUrl, { clearAvatar = false } = {}) {
   const avatarUrl = String(rawAvatarUrl || "").trim();
   const profiles = readCommunityProfiles();
   const id = String(userId || "");
-  if (!avatarUrl) { delete profiles[id]; writeCommunityProfiles(profiles); return ""; }
+  const current = profiles[id] && typeof profiles[id] === "object" ? profiles[id] : {};
+  // An empty background sync must never erase a picture that was already
+  // saved for the account. Explicit removal is the only destructive path.
+  if (!avatarUrl) {
+    if (clearAvatar) delete current.avatarUrl;
+    profiles[id] = { ...current, updatedAt: new Date().toISOString() };
+    writeCommunityProfiles(profiles);
+    return cleanText(profiles[id].avatarUrl || "", 2000);
+  }
   if (/^https?:\/\//i.test(avatarUrl)) {
-    profiles[id] = { avatarUrl: cleanText(avatarUrl, 2000), updatedAt: new Date().toISOString() };
+    profiles[id] = { ...current, avatarUrl: cleanText(avatarUrl, 2000), updatedAt: new Date().toISOString() };
     writeCommunityProfiles(profiles);
     return profiles[id].avatarUrl;
   }
@@ -1490,7 +1498,7 @@ function saveCommunityAvatar(userId, rawAvatarUrl) {
   fs.mkdirSync(COMMUNITY_AVATAR_DIR, { recursive: true });
   fs.writeFileSync(path.join(COMMUNITY_AVATAR_DIR, fileName), image);
   const publicUrl = `/community-avatars/${encodeURIComponent(fileName)}?v=${Date.now()}`;
-  profiles[id] = { avatarUrl: publicUrl, updatedAt: new Date().toISOString() };
+  profiles[id] = { ...current, avatarUrl: publicUrl, updatedAt: new Date().toISOString() };
   writeCommunityProfiles(profiles);
   return publicUrl;
 }
@@ -1532,6 +1540,15 @@ function buildPublicCommunityPost(post, viewer) {
 function getCommunityAvatarUrl(user) {
   const savedAvatar = readCommunityProfiles()[String(user?.id || "")]?.avatarUrl;
   return cleanText(savedAvatar || user?.avatar_url || user?.avatarUrl || user?.user_metadata?.avatar_url || user?.user_metadata?.avatarUrl || user?.raw_user_meta_data?.avatar_url || user?.raw_user_meta_data?.avatarUrl || "", 2000);
+}
+
+function getCommunityProfileRecord(user) {
+  const record = readCommunityProfiles()[String(user?.id || "")] || {};
+  return {
+    avatarUrl: getCommunityAvatarUrl(user),
+    bio: cleanText(record.bio || "", 150),
+    displayName: cleanText(record.displayName || user?.display_name || user?.username || user?.email?.split("@")[0] || "Member", 80),
+  };
 }
 
 async function enrichCommunityPostIdentity(post, viewer) {
@@ -5649,6 +5666,7 @@ async function buildChatMemberProfile(payload, authenticatedUserOverride = null)
   }
 
   const membership = getEffectiveMembership(authenticatedUser);
+  const sharedProfile = getCommunityProfileRecord(authenticatedUser);
   const fallbackName = String(authenticatedUser.email || "")
     .split("@")[0]
     .trim();
@@ -5664,7 +5682,8 @@ async function buildChatMemberProfile(payload, authenticatedUserOverride = null)
     username: sanitizedUsername && !/^guest$/i.test(sanitizedUsername)
       ? sanitizedUsername
       : (fallbackName || "Member"),
-    bio: cleanText(sanitizedProfile.bio, chatBioLength),
+    avatarUrl: sharedProfile.avatarUrl || sanitizedProfile.avatarUrl,
+    bio: cleanText(sharedProfile.bio || sanitizedProfile.bio, chatBioLength),
     isPlus: membership.premiumActive,
     isGuest: false,
     plan: membership.plan,
@@ -8006,6 +8025,32 @@ app.get("/api/global-bounty", (_req, res) => {
   return res.json({ ok: true, ...serializeGlobalBounty(state) });
 });
 
+app.post("/admin/global-bounty", async (req, res) => {
+  try {
+    const adminUser = await requireAdminUser(req);
+    const kind = String(req.body?.kind || "").toLowerCase();
+    const amount = Number.parseInt(String(req.body?.amount || ""), 10);
+    const reward = GLOBAL_BOUNTY_REWARDS.find((entry) => entry.kind === kind && entry.amount === amount);
+    if (!reward) return res.status(400).json({ error: "Choose one of the allowed global bounty rewards." });
+    const seconds = Math.max(5, Math.min(Number.parseInt(String(req.body?.expiresSeconds || 25), 10) || 25, 60));
+    const state = ensureGlobalBounty();
+    if (state.active && Date.parse(state.active.expiresAt) > Date.now()) return res.status(409).json({ error: "A global bounty is already active. Wait for it to be claimed or expire." });
+    const now = Date.now();
+    state.active = {
+      id: randomUUID(), reward, createdAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + seconds * 1000).toISOString(),
+      createdBy: { userId: String(adminUser.id), name: communityActorName(adminUser) },
+    };
+    state.latest = null;
+    state.nextAt = now + GLOBAL_BOUNTY_INTERVAL_MS;
+    writeGlobalBounty(state);
+    await createModerationAction({ actionType: "global_bounty_started", note: `${reward.label} · ${seconds}s`, adminUserId: adminUser.id, adminEmail: adminUser.email });
+    const payload = serializeGlobalBounty(state);
+    io.emit("global-bounty-updated", payload);
+    return res.json({ ok: true, message: `Global bounty spawned: ${reward.label}.`, ...payload });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not spawn the global bounty." }); }
+});
+
 app.post("/api/global-bounty/:bountyId/claim", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
@@ -8978,17 +9023,36 @@ app.get("/api/community-session", async (req, res) => {
     viewer: {
       id: String(user.id),
       name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
-      avatarUrl: getCommunityAvatarUrl(user), plan: String(membership?.plan || "free").toLowerCase(),
+      avatarUrl: getCommunityAvatarUrl(user), bio: getCommunityProfileRecord(user).bio, plan: String(membership?.plan || "free").toLowerCase(),
       canManageAll: isAdminUser(user),
     },
   });
 });
 
+app.get("/api/community-profile", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    return res.json({ ok: true, profile: { ...getCommunityProfileRecord(user), createdAt: user.created_at || null } });
+  } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not load this profile." }); }
+});
+
 app.post("/api/community-profile", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
-    const avatarUrl = saveCommunityAvatar(user.id, req.body?.avatarUrl);
-    return res.json({ ok: true, avatarUrl });
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const profiles = readCommunityProfiles();
+    const current = profiles[String(user.id)] && typeof profiles[String(user.id)] === "object" ? profiles[String(user.id)] : {};
+    const hasAvatar = Object.prototype.hasOwnProperty.call(body, "avatarUrl");
+    const avatarUrl = hasAvatar ? saveCommunityAvatar(user.id, body.avatarUrl, { clearAvatar: body.clearAvatar === true }) : cleanText(current.avatarUrl || "", 2000);
+    const next = readCommunityProfiles();
+    const record = next[String(user.id)] && typeof next[String(user.id)] === "object" ? next[String(user.id)] : {};
+    if (body.clearProfile === true) { record.bio = ""; record.displayName = ""; }
+    else {
+      if (Object.prototype.hasOwnProperty.call(body, "bio") && String(body.bio || "").trim()) record.bio = cleanText(body.bio, 150);
+      if (Object.prototype.hasOwnProperty.call(body, "displayName") && String(body.displayName || "").trim()) record.displayName = cleanText(body.displayName, 80);
+    }
+    record.updatedAt = new Date().toISOString(); next[String(user.id)] = record; writeCommunityProfiles(next);
+    return res.json({ ok: true, profile: { ...getCommunityProfileRecord(user), createdAt: user.created_at || null }, avatarUrl: avatarUrl || getCommunityAvatarUrl(user) });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save this profile picture." }); }
 });
 
@@ -9152,7 +9216,7 @@ app.get("/api/community-members/:userId", async (req, res) => {
   try {
     const user = await getAuthUserById(String(req.params.userId || "")); if (!user) return res.status(404).json({ error: "This member is unavailable." });
     const membership = getEffectiveMembership(user);
-    return res.json({ ok: true, member: { id: user.id, name: getActionTargetLabel(user), username: cleanText(user.username || user.displayName || user.display_name || user.email?.split("@")[0] || "member", 80).replace(/^@+/, ""), avatarUrl: getCommunityAvatarUrl(user), plan: String(membership?.plan || "free").toLowerCase(), joinedAt: user.created_at || null } });
+    return res.json({ ok: true, member: { id: user.id, name: getActionTargetLabel(user), username: cleanText(user.username || user.displayName || user.display_name || user.email?.split("@")[0] || "member", 80).replace(/^@+/, ""), avatarUrl: getCommunityAvatarUrl(user), bio: getCommunityProfileRecord(user).bio, plan: String(membership?.plan || "free").toLowerCase(), joinedAt: user.created_at || null } });
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load this member." }); }
 });
 
@@ -9349,6 +9413,7 @@ app.get("/api/members/:userId", async (req, res) => {
       name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80),
       username: cleanText(user.username || user.display_name || "member", 80).replace(/^@+/, ""),
       avatarUrl: getCommunityAvatarUrl(user),
+      bio: getCommunityProfileRecord(user).bio,
       plan: String(membership?.plan || "free").toLowerCase(),
       level: Number(rewards?.rank?.level || 1),
       levelTitle: cleanText(rewards?.rank?.name || "Builder", 40),

@@ -2652,13 +2652,15 @@
           var unitLabel = function (unit) { return unit === "tokens" ? "tokens" : unit === "usd_cents" ? "USD" : "points"; };
           var amountFor = function (item) {
             var delta = Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0), unit = item.unit || "points", sign = delta < 0 ? "-" : "+", value = Math.abs(delta);
+            var wheelPrice = /\[wheel-list-price:(\d+)\]/.exec(String(item.note || ""));
+            if (wheelPrice && unit === "usd_cents") return '<del style="opacity:.62">$' + (Number(wheelPrice[1]) / 100).toFixed(2) + '</del> <strong style="color:#72efd0">$0.00</strong>';
             if (unit === "usd_cents") return sign + "$" + (value / 100).toFixed(2);
             return sign + value.toLocaleString() + " " + unitLabel(unit);
           };
           function rows(items) {
             return items.length ? items.map(function (item) {
               var rawStatus = String(item.status || "pending").toLowerCase(), status = rawStatus === "approved" ? "accepted" : rawStatus;
-              var date = new Date(item.created_at), details = item.note ? " · " + esc(item.note) : "";
+              var date = new Date(item.created_at), cleanNote = String(item.note || "").replace(/\s*\[wheel-list-price:\d+\]/g, ""), details = cleanNote ? " · " + esc(cleanNote) : "";
               var amountClass = status === "pending" ? " is-pending" : (status === "rejected" || status === "cancelled") ? " is-rejected" : Number(item.amount_delta !== undefined ? item.amount_delta : item.points_delta || 0) < 0 ? " is-outgoing" : "";
               return '<div class="acct-transaction-row"><div><strong>' + esc(item.title || "Account activity") + '</strong><small>' + (Number.isNaN(date.getTime()) ? "Transaction" : date.toLocaleDateString()) + details + '</small></div><div class="acct-transaction-amount' + amountClass + '">' + amountFor(item) + ' <span class="acct-transaction-status ' + esc(status) + '">(' + esc(status) + ')</span></div></div>';
             }).join("") : '<div class="acct-transaction-empty">No transactions in this category yet.</div>';
@@ -3306,7 +3308,7 @@
         await apiRequest("/api/community-profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ avatarUrl: String(state.profile.avatarUrl || "") })
+          body: JSON.stringify({ avatarUrl: String(state.profile.avatarUrl || ""), bio: String(state.profile.bio || ""), displayName: String(state.profile.displayName || ""), clearAvatar: !state.profile.avatarUrl, clearProfile: !state.profile.avatarUrl && !state.profile.bio && !state.profile.displayName })
         });
       }
 

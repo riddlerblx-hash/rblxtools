@@ -1184,6 +1184,13 @@
           <div class="admin-result" id="rainStatus"></div>
         </div>
       </div>
+      <div class="admin-card">
+        <div class="admin-card-inner">
+          <div class="admin-card-head"><div><h2 class="admin-card-title">Global Bounty</h2><p class="admin-card-copy">Spawn the one-person bounty beside live chat. The first authenticated member to claim it gets the reward.</p></div></div>
+          <div class="admin-compact-grid"><div class="admin-field"><label class="admin-label" for="bountyReward">Reward</label><select class="admin-input" id="bountyReward"><option value="points:100">100 RBLX Points</option><option value="tokens:2">2 AI Tokens</option><option value="tokens:5">5 AI Tokens</option><option value="tokens:10">10 AI Tokens</option><option value="tokens:25">25 AI Tokens</option><option value="xp:10">10 XP</option><option value="xp:20">20 XP</option><option value="xp:30">30 XP</option><option value="xp:40">40 XP</option><option value="xp:50">50 XP</option><option value="xp:100">100 XP</option></select></div><div class="admin-field"><label class="admin-label" for="bountySeconds">Visible For Seconds</label><input class="admin-input" id="bountySeconds" type="number" min="5" max="60" value="25" /></div></div>
+          <div class="admin-buttons"><button class="admin-btn blue" id="spawnBountyButton" type="button">Spawn Global Bounty</button></div><div class="admin-result" id="bountyStatus"></div>
+        </div>
+      </div>
     </section>
     <div class="admin-section-label" data-admin-workspace="review"><span>Code review</span><h2>Contributor Queue</h2><p>Approve community actions and issue their earned rewards.</p></div>
     <section class="admin-card" id="codeActionReviewCenter" data-admin-workspace="review">
@@ -1875,6 +1882,17 @@
         });
       }
 
+      async function spawnGlobalBounty() {
+        return withBusy(["spawnBountyButton"], async function () {
+          var parts = String(getFieldValue("bountyReward") || "").split(":");
+          var payload = await fetchJson(API_BASE + "/admin/global-bounty", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ kind: parts[0], amount: Number(parts[1]), expiresSeconds: Math.max(5, Math.min(getFieldNumber("bountySeconds", 25), 60)) })
+          });
+          setResult("bountyStatus", payload.message || "Global bounty spawned.", "success");
+        }).catch(function (error) { setResult("bountyStatus", error.message || "Could not spawn the global bounty.", "error"); });
+      }
+
       function getRainDurationSeconds() {
         var seconds = Math.max(0, getFieldNumber("rainSeconds", 0));
         var minutes = Math.max(0, getFieldNumber("rainMinutes", 0));
@@ -1988,6 +2006,7 @@
       document.getElementById("clearChatBanButton").addEventListener("click", clearChatBan);
       document.getElementById("createDropButton").addEventListener("click", createClaimDrop);
       document.getElementById("startRainButton").addEventListener("click", startChatRain);
+      document.getElementById("spawnBountyButton").addEventListener("click", spawnGlobalBounty);
 
       bootstrap();
     })();

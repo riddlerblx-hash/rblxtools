@@ -1715,6 +1715,27 @@
     return shellState.currentProfile;
   }
 
+  function hydratePersistentCommunityProfile() {
+    var userId = shellState.currentUser && shellState.currentUser.userId ? String(shellState.currentUser.userId) : "";
+    if (!userId) return Promise.resolve();
+    return fetch(API_BASE + "/api/community-profile", { credentials: "include", headers: getToken() ? { Authorization: "Bearer " + getToken() } : {} })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (payload) {
+        var saved = payload && payload.profile;
+        if (!saved) return;
+        var local = readSavedProfile(userId);
+        var profile = Object.assign({}, local, {
+          displayName: String(saved.displayName || local.displayName || ""),
+          bio: String(saved.bio || local.bio || ""),
+          avatarUrl: String(saved.avatarUrl || local.avatarUrl || "")
+        });
+        try { localStorage.setItem(PROFILE_KEY + ":" + userId, JSON.stringify(profile)); } catch (_error) {}
+        shellState.currentProfile = profile;
+        syncChatIdentity();
+        if (shellState.socket && shellState.socketReady) shellState.socket.emit("join-room", getSocketJoinPayload());
+      }).catch(function () {});
+  }
+
   function getMessageProfile(message) {
     var currentUser = shellState.currentUser || {};
     var currentProfile = shellState.currentProfile || readSavedProfile(currentUser.userId);
@@ -3089,7 +3110,7 @@
       profilePreviewMemberCache[profileId + ':loading'] = true;
       fetch('/api/community-members/' + encodeURIComponent(profileId), { credentials: 'include', headers: headers })
         .then(function (response) { return response.ok ? response.json() : null; })
-        .then(function (payload) { var member = payload && payload.member; if (member) profilePreviewMemberCache[profileId] = { displayName: String(member.name || profile.displayName || 'Member'), avatarUrl: String(member.avatarUrl || ''), plan: String(member.plan || profile.plan || 'free') }; })
+        .then(function (payload) { var member = payload && payload.member; if (member) profilePreviewMemberCache[profileId] = { displayName: String(member.name || profile.displayName || 'Member'), avatarUrl: String(member.avatarUrl || ''), bio: String(member.bio || profile.bio || ''), joinedAt: String(member.joinedAt || ''), plan: String(member.plan || profile.plan || 'free') }; })
         .catch(function () {}).finally(function () { delete profilePreviewMemberCache[profileId + ':loading']; });
     }
   }
@@ -3109,7 +3130,9 @@
     var statsText = cachedStats ? Number(cachedStats.followerCount || 0) + ' followers · ' + Number(cachedStats.followingCount || 0) + ' following' : (profile.skipLookup ? 'Member profile' : 'Loading profile…');
     preview.className = "rblx-shell-profile-preview is-" + (plan === "pro" || plan === "plus" ? plan : "free");
     preview.dataset.memberId = profileId;
-    preview.innerHTML = '<span class="rblx-shell-profile-preview-avatar">' + avatar + '</span><span class="rblx-shell-profile-preview-copy"><strong>' + escapeHtml(profile.displayName || "Member") + '</strong><small class="rblx-shell-profile-preview-stats">' + escapeHtml(statsText) + '</small><small>View profile</small>' + profilePreviewIdMarkup(profileId, true) + '</span>';
+    var joinedText = profile.joinedAt && !Number.isNaN(new Date(profile.joinedAt).getTime()) ? 'Account created ' + new Date(profile.joinedAt).toLocaleDateString() : '';
+    var bioText = String(profile.bio || '').trim();
+    preview.innerHTML = '<span class="rblx-shell-profile-preview-avatar">' + avatar + '</span><span class="rblx-shell-profile-preview-copy"><strong>' + escapeHtml(profile.displayName || "Member") + '</strong>' + (bioText ? '<small class="rblx-shell-profile-preview-bio">' + escapeHtml(bioText) + '</small>' : '') + '<small class="rblx-shell-profile-preview-stats">' + escapeHtml(statsText) + '</small>' + (joinedText ? '<small class="rblx-shell-profile-preview-joined">' + escapeHtml(joinedText) + '</small>' : '') + '<small>View profile</small>' + profilePreviewIdMarkup(profileId, true) + '</span>';
     preview.hidden = false;
     var x = eventOrAnchor && Number.isFinite(eventOrAnchor.clientX) ? eventOrAnchor.clientX : 0;
     var y = eventOrAnchor && Number.isFinite(eventOrAnchor.clientY) ? eventOrAnchor.clientY : 0;
@@ -3135,7 +3158,7 @@
         .then(function (payload) {
           var member = payload && payload.member;
           if (!member) return;
-          var resolved = { displayName: String(member.name || profile.displayName || 'Member'), avatarUrl: String(member.avatarUrl || ''), plan: String(member.plan || profile.plan || 'free') };
+          var resolved = { displayName: String(member.name || profile.displayName || 'Member'), avatarUrl: String(member.avatarUrl || ''), bio: String(member.bio || profile.bio || ''), joinedAt: String(member.joinedAt || profile.joinedAt || ''), plan: String(member.plan || profile.plan || 'free') };
           profilePreviewMemberCache[profileId] = resolved;
           // A fetch that finishes after the cursor has left must never resurrect
           // a preview at the pointer location.
@@ -3145,6 +3168,12 @@
           if (avatarNode) avatarNode.innerHTML = resolved.avatarUrl ? '<img src="' + escapeHtml(resolved.avatarUrl) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\';"><span class="rblx-shell-profile-preview-avatar-fallback" style="display:none">' + fallback + '</span>' : '<span class="rblx-shell-profile-preview-avatar-fallback">' + fallback + '</span>';
           var nameNode = profilePreview.querySelector('.rblx-shell-profile-preview-copy strong');
           if (nameNode) nameNode.textContent = resolved.displayName;
+          var bioNode = profilePreview.querySelector('.rblx-shell-profile-preview-bio');
+          if (bioNode) bioNode.textContent = resolved.bio;
+          else if (resolved.bio) { bioNode = document.createElement('small'); bioNode.className = 'rblx-shell-profile-preview-bio'; bioNode.textContent = resolved.bio; var statsNode = profilePreview.querySelector('.rblx-shell-profile-preview-stats'); if (statsNode) statsNode.parentNode.insertBefore(bioNode, statsNode); }
+          var joinedNode = profilePreview.querySelector('.rblx-shell-profile-preview-joined');
+          if (joinedNode && resolved.joinedAt && !Number.isNaN(new Date(resolved.joinedAt).getTime())) joinedNode.textContent = 'Account created ' + new Date(resolved.joinedAt).toLocaleDateString();
+          else if (resolved.joinedAt && !Number.isNaN(new Date(resolved.joinedAt).getTime())) { joinedNode = document.createElement('small'); joinedNode.className = 'rblx-shell-profile-preview-joined'; joinedNode.textContent = 'Account created ' + new Date(resolved.joinedAt).toLocaleDateString(); var viewNode = profilePreview.querySelector('.rblx-shell-profile-preview-copy > small:not(.rblx-shell-profile-preview-stats):not(.rblx-shell-profile-preview-bio):not(.rblx-shell-profile-preview-joined)'); if (viewNode) viewNode.parentNode.insertBefore(joinedNode, viewNode); }
           profilePreview.className = 'rblx-shell-profile-preview is-' + (resolved.plan === 'pro' || resolved.plan === 'plus' ? resolved.plan : 'free');
         }).catch(function () {}).finally(function () { delete profilePreviewMemberCache[profileId + ':loading']; });
     }
@@ -6825,7 +6854,7 @@
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() },
-        body: JSON.stringify({ avatarUrl: avatarUrl })
+        body: JSON.stringify({ avatarUrl: avatarUrl, bio: String(identity.bio || ""), displayName: String(identity.displayName || "") })
       }).catch(function () { shellState.lastCommunityAvatarUrl = null; });
     }
 
@@ -6865,6 +6894,7 @@
       shellState.authResolved = true;
       updateAuthUi(state);
       syncCommunityProfileAvatar();
+      hydratePersistentCommunityProfile();
       refreshSiteMaintenanceState();
       refreshMembershipStateFromServer();
     }).catch(function () {
