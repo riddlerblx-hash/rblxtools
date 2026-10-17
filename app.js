@@ -130,6 +130,7 @@ const RBLXTOOLS_STATE_DIR = resolveWritableStateDirectory();
 const MEMBER_REWARDS_PATH = path.join(RBLXTOOLS_STATE_DIR, "member-rewards.json");
 const REWARDS_LEVELING_PATH = path.join(RBLXTOOLS_STATE_DIR, "rewards-leveling.json");
 const REFERRAL_PROGRAM_PATH = path.join(RBLXTOOLS_STATE_DIR, "referral-program.json");
+const GLOBAL_BOUNTY_PATH = path.join(RBLXTOOLS_STATE_DIR, "global-bounty.json");
 const REFERRAL_COMMISSION_RATE = 0.05;
 const REFERRAL_PENDING_MS = 14 * 24 * 60 * 60 * 1000;
 const REFERRAL_MINIMUM_PAYOUT_CENTS = 1000;
@@ -1385,6 +1386,40 @@ function addSiteNotification({ recipientId, category = "reward", title, href = "
   io?.emit("community-notifications-updated", { userId });
 }
 
+const GLOBAL_BOUNTY_INTERVAL_MS = 30 * 60 * 1000;
+const GLOBAL_BOUNTY_WINDOW_MS = 25 * 1000;
+const GLOBAL_BOUNTY_REWARDS = Object.freeze([
+  { kind: "points", amount: 100, label: "100 RBLX Points" },
+  { kind: "tokens", amount: 2, label: "2 AI Tokens" },
+  { kind: "tokens", amount: 5, label: "5 AI Tokens" },
+  { kind: "tokens", amount: 10, label: "10 AI Tokens" },
+  { kind: "tokens", amount: 25, label: "25 AI Tokens" },
+  { kind: "xp", amount: 10, label: "10 XP" },
+  { kind: "xp", amount: 20, label: "20 XP" },
+  { kind: "xp", amount: 30, label: "30 XP" },
+  { kind: "xp", amount: 40, label: "40 XP" },
+  { kind: "xp", amount: 50, label: "50 XP" },
+  { kind: "xp", amount: 100, label: "100 XP" },
+]);
+
+function readGlobalBounty() { return readJsonFile(GLOBAL_BOUNTY_PATH, { nextAt: Date.now() + GLOBAL_BOUNTY_INTERVAL_MS, active: null, latest: null }); }
+function writeGlobalBounty(state) { writeJsonFile(GLOBAL_BOUNTY_PATH, state); }
+function serializeGlobalBounty(state) {
+  const active = state.active && Date.parse(state.active.expiresAt) > Date.now() ? state.active : null;
+  return { active, latest: state.latest || null, nextAt: state.nextAt || null, serverNow: new Date().toISOString() };
+}
+function ensureGlobalBounty() {
+  const state = readGlobalBounty(); const now = Date.now();
+  if (state.active && Date.parse(state.active.expiresAt) <= now) state.active = null;
+  if (!state.active && now >= Number(state.nextAt || 0)) {
+    const reward = GLOBAL_BOUNTY_REWARDS[Math.floor(Math.random() * GLOBAL_BOUNTY_REWARDS.length)];
+    state.active = { id: randomUUID(), reward, createdAt: new Date(now).toISOString(), expiresAt: new Date(now + GLOBAL_BOUNTY_WINDOW_MS).toISOString() };
+    state.nextAt = now + GLOBAL_BOUNTY_INTERVAL_MS;
+    writeGlobalBounty(state); io.emit("global-bounty-updated", serializeGlobalBounty(state));
+  } else writeGlobalBounty(state);
+  return state;
+}
+
 function readCommunityProfiles() {
   try {
     fs.mkdirSync(path.dirname(COMMUNITY_PROFILES_PATH), { recursive: true });
@@ -2604,6 +2639,11 @@ async function creditMatureRewardsCashback(entry) {
 setTimeout(() => { rewardsEngine.releaseMatureCashback(creditMatureRewardsCashback).catch((error) => console.warn("Could not start cashback release:", error.message)); }, 20000).unref();
 setInterval(() => { rewardsEngine.releaseMatureCashback(creditMatureRewardsCashback).catch((error) => console.warn("Could not run cashback release:", error.message)); }, 60 * 60 * 1000).unref();
 
+// The timer creates one short, server-owned claim window every thirty minutes.
+// Reads and claims also call ensureGlobalBounty so the schedule recovers cleanly
+// after a server restart without requiring a browser to remain open.
+setInterval(() => { try { ensureGlobalBounty(); } catch (error) { console.warn("Could not refresh global bounty:", error.message); } }, 15000).unref();
+
 function writeReferralProgram(state) {
   writeJsonFile(REFERRAL_PROGRAM_PATH, {
     referrals: (state.referrals || []).slice(-10000),
@@ -2790,7 +2830,8 @@ async function awardWheelPrize(user, prize, spinId) {
     const grant = prize.plan === "pro"
       ? await grantComplimentaryProToUser(user.id, Number(prize.days || 0), "complimentary")
       : await grantComplimentaryPlusToUser(user.id, Number(prize.days || 0), "complimentary");
-    await recordAccountTransaction({ userId: user.id, category: "membership", sourceType: "wheel_of_fortune", sourceId: spinId, title: "Wheel of Fortune reward", amountDelta: Number(prize.days || 0), unit: "days", status: "accepted", note: `${prize.label}; expires ${grant.expiresAt.slice(0, 10)}` });
+    const listPriceCents = (prize.plan === "pro" ? 500 : 100) * Math.max(1, Math.ceil(Number(prize.days || 0) / 31));
+    await recordAccountTransaction({ userId: user.id, category: "purchases", sourceType: "wheel_of_fortune", sourceId: spinId, title: `Wheel reward — ${prize.label}`, amountDelta: 0, unit: "usd_cents", status: "accepted", note: `${prize.label}; expires ${grant.expiresAt.slice(0, 10)} [wheel-list-price:${listPriceCents}]` });
     return { label: prize.label, expiresAt: grant.expiresAt };
   }
   if (prize.kind === "discord_license") {
@@ -7960,6 +8001,46 @@ app.post("/referrals/custom-code", async (req, res) => {
   }
 });
 
+app.get("/api/global-bounty", (_req, res) => {
+  const state = ensureGlobalBounty();
+  return res.json({ ok: true, ...serializeGlobalBounty(state) });
+});
+
+app.post("/api/global-bounty/:bountyId/claim", async (req, res) => {
+  try {
+    const user = await requireAuthenticatedUser(req);
+    const state = ensureGlobalBounty();
+    const active = state.active;
+    if (!active || String(active.id) !== String(req.params.bountyId) || Date.parse(active.expiresAt) <= Date.now()) {
+      return res.status(409).json({ error: "This bounty has already expired or been claimed." });
+    }
+    // Reserve synchronously before awaiting the account credit. This prevents
+    // two near-simultaneous clicks from both receiving the global reward.
+    active.claimedAt = new Date().toISOString();
+    active.claimedBy = { userId: String(user.id), name: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "A member", 80) };
+    active.status = "claiming";
+    state.active = null;
+    state.latest = { ...active };
+    writeGlobalBounty(state);
+    let award;
+    try { award = await awardWheelPrize(user, active.reward, `global-bounty:${active.id}`); }
+    catch (awardError) {
+      state.active = { ...active, status: "available", claimedAt: null, claimedBy: null };
+      state.latest = null;
+      writeGlobalBounty(state);
+      throw awardError;
+    }
+    state.latest.status = "claimed";
+    writeGlobalBounty(state);
+    addSiteNotification({ recipientId: user.id, category: "bounty", title: `Global bounty claimed: ${active.reward.label}.`, href: "./account-overview?tab=rewards" });
+    const payload = serializeGlobalBounty(state);
+    io.emit("global-bounty-updated", payload);
+    return res.json({ ok: true, reward: award, bounty: state.latest, ...payload });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not claim this bounty." });
+  }
+});
+
 app.get("/api/wheel-of-fortune", async (req, res) => {
   try {
     const user = await requireAuthenticatedUser(req);
@@ -7981,6 +8062,7 @@ app.post("/api/wheel-of-fortune/redeem", async (req, res) => {
     const ticket = issueWheelReferralTicket(state, user.id, details.code, details.referral);
     if (!ticket) return res.status(409).json({ error: "This account has already received its referral spin ticket." });
     writeReferralProgram(state);
+    addSiteNotification({ recipientId: user.id, category: "wheel", title: "You received a Wheel of Fortune spin ticket.", href: "./wheel-of-fortune" });
     return res.json({ ok: true, tickets: getAvailableWheelTickets(state, user.id).length, ticket });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not redeem that referral code." });
@@ -8006,6 +8088,7 @@ app.post("/api/wheel-of-fortune/spin", async (req, res) => {
       spin.claimedAt = new Date().toISOString();
       spin.award = award;
       writeReferralProgram(state);
+      addSiteNotification({ recipientId: user.id, category: "wheel", title: `Wheel of Fortune reward unlocked: ${prize.label}.`, href: "./account-overview?tab=rewards" });
     } catch (awardError) {
       if (ticket) { ticket.status = "available"; ticket.spentAt = null; delete ticket.prizeId; }
       spin.status = "failed";
@@ -9295,7 +9378,7 @@ app.get("/api/members/:userId", async (req, res) => {
       codeVotes = Array.isArray(votes) ? votes.length : 0;
       codeReports = Array.isArray(reports) ? reports.length : 0;
     }
-    const profileComments = (readMemberProfileComments()[memberId] || []).slice(-100).map((comment) => ({ id: String(comment.id || ""), userId: String(comment.userId || ""), authorName: cleanText(comment.authorName || "Member", 80), avatarUrl: cleanText(comment.avatarUrl || "", 2000), body: cleanText(comment.body || "", 600), createdAt: comment.createdAt || null })).filter((comment) => comment.id && comment.body);
+    const profileComments = (readMemberProfileComments()[memberId] || []).slice(-100).map((comment) => ({ id: String(comment.id || ""), userId: String(comment.userId || ""), authorName: cleanText(comment.authorName || "Member", 80), plan: String(comment.plan || "free").toLowerCase(), avatarUrl: cleanText(comment.avatarUrl || "", 2000), body: cleanText(comment.body || "", 600), createdAt: comment.createdAt || null })).filter((comment) => comment.id && comment.body);
     const viewerMembership = viewer ? getEffectiveMembership(viewer) : null;
     const viewerId = String(viewer?.id || "");
     const profileReactions = readMemberProfileReactions()[memberId] || {};
@@ -9337,7 +9420,8 @@ app.post("/api/members/:userId/comments", async (req, res) => {
     const body = cleanText(req.body?.body || "", 600);
     if (!body) return res.status(400).json({ error: "Write a comment before posting." });
     const comments = readMemberProfileComments();
-    const entry = { id: randomUUID(), userId: String(user.id), authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), avatarUrl: getCommunityAvatarUrl(user), body, createdAt: new Date().toISOString() };
+    const membership = await resolveMembershipSnapshot(user);
+    const entry = { id: randomUUID(), userId: String(user.id), authorName: cleanText(user.display_name || user.username || user.email?.split("@")[0] || "Member", 80), plan: String(membership?.plan || "free").toLowerCase(), avatarUrl: getCommunityAvatarUrl(user), body, createdAt: new Date().toISOString() };
     comments[memberId] = [...(Array.isArray(comments[memberId]) ? comments[memberId] : []), entry].slice(-100);
     writeMemberProfileComments(comments);
     return res.status(201).json({ ok: true, comment: entry });
@@ -13840,6 +13924,18 @@ app.get("/api/codes/:slug", async (req, res) => {
         guide.game.authorName = cleanText(author.display_name || author.username || guide.game.authorName || "RBLXTools Staff", 80);
         guide.game.authorAvatarUrl = getCommunityAvatarUrl(author);
       }
+    }
+    if (guide?.comments && Array.isArray(guide.comments)) {
+      const commentUsers = await Promise.all(guide.comments.map(async (comment) => {
+        const author = comment?.userId ? await getAuthUserById(String(comment.userId)).catch(() => null) : null;
+        return [comment, author];
+      }));
+      commentUsers.forEach(([comment, author]) => {
+        if (!comment || !author) return;
+        comment.authorName = cleanText(author.display_name || author.username || comment.authorName || "Member", 80);
+        comment.avatarUrl = getCommunityAvatarUrl(author) || comment.avatarUrl || "";
+        comment.plan = String(getEffectiveMembership(author)?.plan || "free").toLowerCase();
+      });
     }
     return guide ? res.json(guide) : res.status(404).json({ error: "Code guide not found." });
   } catch (_error) { return res.status(500).json({ error: "Could not load this Roblox code guide." }); }
