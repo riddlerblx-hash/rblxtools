@@ -4703,7 +4703,7 @@
   }
 
   function formatCommunityNotificationCategory(category) {
-    var labels = { announcement: "Announcement", changelog: "Changelog", "known-issue": "Known issue", like: "Like", tip: "Token tip", comment: "Comment", reply: "Reply", rating: "Rating", follow: "New follower", "daily-streak": "Daily streak" };
+    var labels = { announcement: "Announcement", changelog: "Changelog", "known-issue": "Known issue", like: "Like", tip: "Token tip", comment: "Comment", reply: "Reply", rating: "Rating", follow: "New follower", bounty: "Bounty", "daily-streak": "Daily streak" };
     return labels[String(category || "").toLowerCase()] || "Community update";
   }
 
@@ -7139,39 +7139,51 @@
 
   function initGlobalBounty() {
     if (document.getElementById("rblxGlobalBounty")) return;
-    var card = document.createElement("section"), activeBounty = null, hideTimer = null;
+    var card = document.createElement("section"), activeBounty = null, hideTimer = null, tickTimer = null, renderedActiveId = "", renderedResultId = "";
     card.id = "rblxGlobalBounty";
     card.className = "rblx-global-bounty";
     card.hidden = true;
-    card.innerHTML = '<small>Global bounty</small><strong class="rblx-global-bounty-reward"></strong><p class="rblx-global-bounty-copy"></p><div class="rblx-global-bounty-track"><i></i></div><button type="button">Claim bounty</button>';
+    card.innerHTML = '<div class="rblx-global-bounty-head"><small>Global bounty</small><span class="rblx-global-bounty-count">0/1</span></div><strong class="rblx-global-bounty-reward"></strong><div class="rblx-global-bounty-track"><i></i></div><button type="button">Claim bounty</button>';
     document.body.appendChild(card);
-    var reward = card.querySelector("strong"), copy = card.querySelector("p"), bar = card.querySelector("i"), button = card.querySelector("button");
+    var reward = card.querySelector("strong"), counter = card.querySelector(".rblx-global-bounty-count"), bar = card.querySelector("i"), button = card.querySelector("button");
+    function stopTick() { if (tickTimer) { window.clearInterval(tickTimer); tickTimer = null; } }
+    function startTick(active) {
+      stopTick();
+      var duration = Math.max(1, new Date(active.expiresAt).getTime() - new Date(active.createdAt || Date.now() - 25000).getTime());
+      function tick() {
+        if (!activeBounty || activeBounty.id !== active.id) return stopTick();
+        var remaining = Math.max(0, new Date(active.expiresAt).getTime() - Date.now());
+        bar.style.width = Math.max(0, Math.min(100, (remaining / duration) * 100)) + "%";
+        if (!remaining) { card.hidden = true; activeBounty = null; stopTick(); }
+      }
+      tick(); tickTimer = window.setInterval(tick, 100);
+    }
     function show(data) {
       var active = data && data.active;
       if (active && active.id && new Date(active.expiresAt).getTime() > Date.now()) {
+        var isNewBounty = active.id !== renderedActiveId;
         activeBounty = active;
         reward.textContent = active.reward && active.reward.label || "Mystery reward";
-        copy.textContent = "First creator to claim it wins.";
+        counter.textContent = "0/1";
         button.hidden = false; button.disabled = false; button.textContent = "Claim bounty";
-        card.style.setProperty("--bounty-y", String(10 + Math.floor(Math.random() * 58)) + "%");
+        // The server chooses one position per bounty. Polling or socket updates
+        // must not make a live bounty jump around the screen.
+        if (isNewBounty) card.style.setProperty("--bounty-y", String(Number(active.positionPercent) || 40) + "%");
+        renderedActiveId = active.id;
         card.hidden = false;
-        (function tick() {
-          if (!activeBounty || activeBounty.id !== active.id) return;
-          var remaining = Math.max(0, new Date(active.expiresAt).getTime() - Date.now());
-          bar.style.width = Math.round((remaining / 25000) * 100) + "%";
-          if (!remaining) { card.hidden = true; activeBounty = null; return; }
-          window.setTimeout(tick, 180);
-        }());
+        if (isNewBounty) startTick(active);
         return;
       }
       activeBounty = null;
       if (data && data.latest && data.latest.claimedBy) {
+        if (renderedResultId === data.latest.id) { card.hidden = true; return; }
+        renderedResultId = data.latest.id; renderedActiveId = ""; stopTick();
         reward.textContent = data.latest.reward && data.latest.reward.label || "Bounty claimed";
-        copy.textContent = data.latest.claimedBy.name + " claimed this bounty.";
+        counter.textContent = "1/1";
         button.hidden = true; card.hidden = false;
         window.clearTimeout(hideTimer);
         hideTimer = window.setTimeout(function () { card.hidden = true; button.hidden = false; }, 7000);
-      } else card.hidden = true;
+      } else { renderedActiveId = ""; stopTick(); card.hidden = true; }
     }
     function refresh() { fetch(API_BASE + "/api/global-bounty", { credentials: "include" }).then(function (r) { return r.json(); }).then(show).catch(function () {}); }
     button.addEventListener("click", function () {
@@ -7181,7 +7193,7 @@
       fetch(API_BASE + "/api/global-bounty/" + encodeURIComponent(activeBounty.id) + "/claim", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() } })
         .then(function (r) { return r.json().then(function (body) { if (!r.ok) throw new Error(body.error || "This bounty was already claimed."); return body; }); })
         .then(function (data) { show(data); refreshMembershipStateFromServer(); })
-        .catch(function (error) { copy.textContent = error.message || "This bounty was already claimed."; button.disabled = true; });
+        .catch(function (error) { reward.textContent = error.message || "This bounty was already claimed."; button.disabled = true; });
     });
     window.addEventListener("rblxtools-global-bounty", function (event) { show(event && event.detail ? event.detail : {}); });
     refresh(); window.setInterval(refresh, 15000);

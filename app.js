@@ -1408,12 +1408,24 @@ function serializeGlobalBounty(state) {
   const active = state.active && Date.parse(state.active.expiresAt) > Date.now() ? state.active : null;
   return { active, latest: state.latest || null, nextAt: state.nextAt || null, serverNow: new Date().toISOString() };
 }
+function randomGlobalBountyReward(state) {
+  const previous = `${state.lastAutomaticReward?.kind || ""}:${state.lastAutomaticReward?.amount || ""}`;
+  const choices = GLOBAL_BOUNTY_REWARDS.filter((entry) => `${entry.kind}:${entry.amount}` !== previous);
+  return choices[Math.floor(Math.random() * choices.length)] || GLOBAL_BOUNTY_REWARDS[0];
+}
+function buildGlobalBounty(reward, now, durationMs, source = "automatic") {
+  return { id: randomUUID(), reward, source, positionPercent: 12 + Math.floor(Math.random() * 58), createdAt: new Date(now).toISOString(), expiresAt: new Date(now + durationMs).toISOString() };
+}
 function ensureGlobalBounty() {
   const state = readGlobalBounty(); const now = Date.now();
+  // Old/corrupt state must wait for a full interval instead of immediately
+  // creating a new 25-second bounty on every request.
+  if (!Number.isFinite(Number(state.nextAt)) || Number(state.nextAt) <= 0) state.nextAt = now + GLOBAL_BOUNTY_INTERVAL_MS;
   if (state.active && Date.parse(state.active.expiresAt) <= now) state.active = null;
-  if (!state.active && now >= Number(state.nextAt || 0)) {
-    const reward = GLOBAL_BOUNTY_REWARDS[Math.floor(Math.random() * GLOBAL_BOUNTY_REWARDS.length)];
-    state.active = { id: randomUUID(), reward, createdAt: new Date(now).toISOString(), expiresAt: new Date(now + GLOBAL_BOUNTY_WINDOW_MS).toISOString() };
+  if (!state.active && now >= Number(state.nextAt)) {
+    const reward = randomGlobalBountyReward(state);
+    state.active = buildGlobalBounty(reward, now, GLOBAL_BOUNTY_WINDOW_MS, "automatic");
+    state.lastAutomaticReward = { kind: reward.kind, amount: reward.amount };
     state.nextAt = now + GLOBAL_BOUNTY_INTERVAL_MS;
     writeGlobalBounty(state); io.emit("global-bounty-updated", serializeGlobalBounty(state));
   } else writeGlobalBounty(state);
@@ -8036,11 +8048,7 @@ app.post("/admin/global-bounty", async (req, res) => {
     const state = ensureGlobalBounty();
     if (state.active && Date.parse(state.active.expiresAt) > Date.now()) return res.status(409).json({ error: "A global bounty is already active. Wait for it to be claimed or expire." });
     const now = Date.now();
-    state.active = {
-      id: randomUUID(), reward, createdAt: new Date(now).toISOString(),
-      expiresAt: new Date(now + seconds * 1000).toISOString(),
-      createdBy: { userId: String(adminUser.id), name: communityActorName(adminUser) },
-    };
+    state.active = { ...buildGlobalBounty(reward, now, seconds * 1000, "admin"), createdBy: { userId: String(adminUser.id), name: communityActorName(adminUser) } };
     state.latest = null;
     state.nextAt = now + GLOBAL_BOUNTY_INTERVAL_MS;
     writeGlobalBounty(state);
