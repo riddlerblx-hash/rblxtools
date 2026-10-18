@@ -165,8 +165,8 @@ async function getOfficialMemberPlan(discordUserId) {
 function officialUsageLimit(plan) { return plan === "pro" ? Infinity : plan === "plus" ? 15 : 5; }
 function officialUsageExhaustedMessage(plan) {
   return plan === "plus"
-    ? "You have used all **15/15 Plus daily uses**. Upgrade to **Pro** for unlimited Discord Bot uses: <https://www.rblxtools.net/subscriptions>"
-    : "You have used all **5/5 free daily uses**. Upgrade to **Plus** for 15 daily uses: <https://www.rblxtools.net/subscriptions>";
+    ? "You have used all **15/15 Plus daily uses**. Upgrade to **Pro** for unlimited Discord Bot uses: <https://www.rblxtools.net/subscriptions>\nOr wait until tomorrow's daily reset at **12:00 AM UTC**."
+    : "You have used all **5/5 free daily uses**. Upgrade to **Plus** for 15 daily uses: <https://www.rblxtools.net/subscriptions>\nOr wait until tomorrow's daily reset at **12:00 AM UTC**.";
 }
 
 async function checkOfficialToolUsage(discordUserId) {
@@ -192,8 +192,9 @@ async function recordOfficialToolUsage(discordUserId, plan) {
   });
 }
 
-function withWebsitePromotion(response) {
-  return { ...response, content: String(response?.content || "") + "\n\n**RBLXTools:** Get unlimited tool usage free at <https://www.rblxtools.net>." };
+function withWebsitePromotion(response, usage) {
+  const usageLabel = usage ? (usage.limit == null ? "INF" : Math.max(0, usage.limit - usage.used) + "/" + usage.limit) : "INF";
+  return { ...response, content: String(response?.content || "") + "\n\n**Uses left today:** " + usageLabel + "\n**RBLXTools:** Get unlimited tool usage free at <https://www.rblxtools.net>." };
 }
 
 function buildToolUrl(pathname, parameters) {
@@ -450,8 +451,8 @@ async function handleChatInput(interaction) {
 
       const mediaType = interaction.commandName === "media" ? interaction.options.getString("media-type") : "";
       const result = await buildToolDownload(interaction.commandName, assetId, mediaType, interaction.user.id, interaction.guildId);
-      if (officialUsage) await recordOfficialToolUsage(interaction.user.id, officialUsage.plan);
-      await interaction.editReply(withWebsitePromotion(result));
+      const remainingUsage = officialUsage ? await recordOfficialToolUsage(interaction.user.id, officialUsage.plan) : null;
+      await interaction.editReply(withWebsitePromotion(result, remainingUsage));
     } catch (error) {
       console.error("[tools-bot] tool download failed:", error);
       await interaction.editReply(error.message || "I could not prepare that RBLXTools download.");
