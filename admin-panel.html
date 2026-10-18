@@ -802,6 +802,19 @@
     .admin-action-review-meta span { padding:4px 7px; border-radius:6px; color:#b9c9df; background:#202a36; font-size:10px; font-weight:800; }
     .admin-action-review-meta .reward { color:#9fe9bd; background:rgba(83,223,136,.12); }
     .admin-action-review-actions { display:flex; gap:7px; }
+    /* The license viewer is deliberately a non-modal utility window: staff can
+       inspect or expire a license without losing the rest of the admin panel. */
+    .admin-license-window { position:fixed; z-index:120; top:84px; left:50%; width:min(640px,calc(100vw - 32px)); min-width:320px; min-height:260px; max-height:calc(100vh - 108px); resize:both; overflow:hidden; border:1px solid rgba(105,197,255,.46); border-radius:18px; background:linear-gradient(155deg,#18263b,#0d1522); box-shadow:0 28px 76px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.09); transform:translateX(-50%); }
+    .admin-license-window[hidden] { display:none; }
+    .admin-license-window.is-maximized { top:16px!important; left:16px!important; width:calc(100vw - 32px)!important; height:calc(100vh - 32px)!important; max-height:none; resize:none; transform:none!important; }
+    .admin-license-window-head { display:flex; align-items:center; gap:10px; min-height:56px; padding:12px 14px 12px 18px; border-bottom:1px solid rgba(175,196,232,.13); cursor:move; user-select:none; }
+    .admin-license-window-copy { min-width:0; margin-right:auto; }
+    .admin-license-window-copy strong { display:block; color:#f6fbff; font-size:15px; }
+    .admin-license-window-copy span { display:block; margin-top:2px; color:#9fb0c8; font-size:11px; font-weight:700; }
+    .admin-license-window-action { width:32px; height:32px; padding:0; border:1px solid rgba(175,196,232,.22); border-radius:9px; color:#dce8fa; background:rgba(255,255,255,.055); font:900 17px/1 Arial,sans-serif; cursor:pointer; }
+    .admin-license-window-action:hover { color:#fff; border-color:rgba(105,197,255,.65); background:rgba(105,197,255,.16); }
+    .admin-license-window-body { height:calc(100% - 56px); min-height:204px; overflow:auto; padding:14px; }
+    .admin-license-window-body .admin-note-log { max-height:none; overflow:visible; }
     @media (max-width:680px) { .admin-action-review-entry{grid-template-columns:1fr}.admin-action-review-actions{justify-content:flex-start} }
     @media (max-width:900px) { .admin-actions-grid,.admin-primary-ops{grid-template-columns:1fr}.admin-workspace-nav{top:4px} }
     @media (max-width:760px) { body{padding:10px}.admin-topbar{min-height:0;padding:22px}.admin-badges{justify-content:flex-start}.admin-section-label,.admin-grid-divider{align-items:flex-start;flex-direction:column;gap:3px}.admin-section-label p,.admin-grid-divider p{margin:0}.admin-primary-ops{grid-template-columns:1fr} }
@@ -958,7 +971,7 @@
     <div class="admin-section-label" id="admin-access" data-admin-workspace="access"><span>Member access</span><h2>Member Operations</h2><p>Membership rewards and Discord Bot access.</p></div>
     <section class="admin-actions-grid admin-primary-ops" data-admin-workspace="access">
         <div class="admin-card admin-unified"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Member Rewards &amp; Membership</h2><p class="admin-card-copy">Grant Plus or Pro time as a Robux purchase or a complimentary grant. AI token grants are rewards only and never change a membership plan.</p></div></div><div class="admin-compact-grid"><div class="admin-field"><label class="admin-label" for="unifiedReward">Action</label><select class="admin-input" id="unifiedReward"><option value="plus">Grant Plus</option><option value="pro">Grant Pro</option><option value="tokens">Grant AI Tokens</option><option value="remove_plus_days">Remove Plus Days</option><option value="remove_pro_days">Remove Pro Days</option></select></div><div class="admin-field" id="unifiedSourceField"><label class="admin-label" for="unifiedGrantSource">Membership Source</label><select class="admin-input" id="unifiedGrantSource"><option value="robux">Robux Purchase</option><option value="complimentary">Complimentary</option></select></div><div class="admin-field"><label class="admin-label" for="unifiedTarget">User ID Or Email</label><input class="admin-input" id="unifiedTarget" placeholder="Target member" /></div><div class="admin-field"><label class="admin-label" id="unifiedAmountLabel" for="unifiedAmount">Days</label><input class="admin-input" id="unifiedAmount" type="number" min="1" value="14" /></div><div class="admin-field" id="unifiedTitleField"><label class="admin-label" for="unifiedTitle">Reward Title</label><input class="admin-input" id="unifiedTitle" placeholder="Optional for new grants" /></div><div class="admin-field"><label class="admin-label" for="unifiedNote">Staff Note</label><input class="admin-input" id="unifiedNote" placeholder="Required reason" /></div></div><div class="admin-buttons"><button class="admin-btn green" id="unifiedGrantButton" type="button">Apply Membership Change</button></div><div class="admin-result" id="unifiedGrantStatus"></div></div></div>
-        <div class="admin-card admin-unified"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Discord Bot License Manager</h2><p class="admin-card-copy">Generate bot-ready temporary licenses, inspect every issued code, and expire access immediately when needed.</p></div></div><div class="admin-compact-grid"><div class="admin-field"><label class="admin-label" for="botLicenseTarget">User ID Or Email</label><input class="admin-input" id="botLicenseTarget" placeholder="Target member" /></div><div class="admin-field"><label class="admin-label" for="botLicensePlan">License Length</label><select class="admin-input" id="botLicensePlan"><option value="weekly">7 days</option><option value="monthly">30 days</option><option value="annual">Yearly · 365 days</option></select></div><div class="admin-field"><label class="admin-label" for="botLicenseNote">Staff Note</label><input class="admin-input" id="botLicenseNote" placeholder="Required reason" /></div></div><div class="admin-buttons"><button class="admin-btn green" id="generateBotLicenseButton" type="button">Generate License</button><button class="admin-btn blue" id="refreshBotLicensesButton" type="button">Refresh Licenses</button></div><div class="admin-result" id="botLicenseStatus"></div><div class="admin-note-log" id="botLicenseList">Loading licenses…</div></div></div>
+        <div class="admin-card admin-unified"><div class="admin-card-inner"><div class="admin-card-head"><div><h2 class="admin-card-title">Discord Bot License Manager</h2><p class="admin-card-copy">Generate bot-ready temporary licenses and expire access immediately when needed.</p></div></div><div class="admin-compact-grid"><div class="admin-field"><label class="admin-label" for="botLicenseTarget">User ID Or Email</label><input class="admin-input" id="botLicenseTarget" placeholder="Target member" /></div><div class="admin-field"><label class="admin-label" for="botLicensePlan">License Length</label><select class="admin-input" id="botLicensePlan"><option value="weekly">7 days</option><option value="monthly">30 days</option><option value="annual">Yearly · 365 days</option></select></div><div class="admin-field"><label class="admin-label" for="botLicenseNote">Staff Note</label><input class="admin-input" id="botLicenseNote" placeholder="Required reason" /></div></div><div class="admin-buttons"><button class="admin-btn green" id="generateBotLicenseButton" type="button">Generate License</button><button class="admin-btn blue" id="viewBotLicensesButton" type="button">View Licenses</button></div><div class="admin-result" id="botLicenseStatus"></div></div></div>
         <div class="admin-card">
           <div class="admin-card-inner">
             <div class="admin-card-head"><div><h2 class="admin-card-title">Pro Access & AI Tokens</h2><p class="admin-card-copy">Quick actions default to a Robux purchase. Use the membership panel above for complimentary grants.</p></div></div>
@@ -1260,6 +1273,16 @@
       </div>
     </section>
   </div>
+
+  <section class="admin-license-window" id="botLicenseWindow" role="dialog" aria-labelledby="botLicenseWindowTitle" hidden>
+    <header class="admin-license-window-head" id="botLicenseWindowHandle">
+      <div class="admin-license-window-copy"><strong id="botLicenseWindowTitle">Discord Bot licenses</strong><span>Drag this window, resize it from the corner, or expand it.</span></div>
+      <button class="admin-license-window-action" id="refreshBotLicensesButton" type="button" aria-label="Refresh licenses" title="Refresh licenses">↻</button>
+      <button class="admin-license-window-action" id="maximizeBotLicensesButton" type="button" aria-label="Expand license viewer" title="Expand license viewer">□</button>
+      <button class="admin-license-window-action" id="closeBotLicensesButton" type="button" aria-label="Close license viewer" title="Close license viewer">×</button>
+    </header>
+    <div class="admin-license-window-body"><div class="admin-note-log" id="botLicenseList">Loading licenses…</div></div>
+  </section>
   <script>
     (function () {
       var API_BASE = window.location.origin;
@@ -1710,6 +1733,44 @@
       }
 
       function esc(value) { var node=document.createElement("span"); node.textContent=String(value || ""); return node.innerHTML; }
+      function setBotLicenseWindowOpen(open) {
+        var panel = document.getElementById("botLicenseWindow");
+        if (!panel) return;
+        panel.hidden = !open;
+        if (open) loadBotLicenses();
+      }
+      function initBotLicenseWindow() {
+        var panel = document.getElementById("botLicenseWindow");
+        var handle = document.getElementById("botLicenseWindowHandle");
+        var closeButton = document.getElementById("closeBotLicensesButton");
+        var maximizeButton = document.getElementById("maximizeBotLicensesButton");
+        if (!panel || !handle) return;
+        if (closeButton) closeButton.addEventListener("click", function () { setBotLicenseWindowOpen(false); });
+        if (maximizeButton) maximizeButton.addEventListener("click", function () {
+          var maximized = panel.classList.toggle("is-maximized");
+          if (!maximized) {
+            panel.style.left = "50%"; panel.style.top = "84px"; panel.style.height = ""; panel.style.transform = "translateX(-50%)";
+          }
+          maximizeButton.textContent = maximized ? "▣" : "□";
+          maximizeButton.setAttribute("aria-label", maximized ? "Restore license viewer" : "Expand license viewer");
+          maximizeButton.title = maximized ? "Restore license viewer" : "Expand license viewer";
+        });
+        handle.addEventListener("pointerdown", function (event) {
+          if (event.button !== 0 || event.target.closest("button") || panel.classList.contains("is-maximized")) return;
+          var rect = panel.getBoundingClientRect();
+          var offsetX = event.clientX - rect.left;
+          var offsetY = event.clientY - rect.top;
+          panel.style.left = rect.left + "px"; panel.style.top = rect.top + "px"; panel.style.transform = "none";
+          function move(moveEvent) {
+            var nextLeft = Math.max(0, Math.min(window.innerWidth - Math.min(rect.width, window.innerWidth), moveEvent.clientX - offsetX));
+            var nextTop = Math.max(0, Math.min(window.innerHeight - 56, moveEvent.clientY - offsetY));
+            panel.style.left = nextLeft + "px"; panel.style.top = nextTop + "px";
+          }
+          function stop() { document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", stop); }
+          document.addEventListener("pointermove", move); document.addEventListener("pointerup", stop);
+          event.preventDefault();
+        });
+      }
       async function loadBotLicenses() {
         var list=document.getElementById("botLicenseList");
         try { var payload=await fetchJson(API_BASE+"/admin/discord-bot-licenses",{headers:{}}); var licenses=Array.isArray(payload.licenses)?payload.licenses:[];
@@ -1995,8 +2056,10 @@
       document.getElementById("grantProButton").addEventListener("click", function () { grantProOrTokens("pro"); });
       document.getElementById("grantTokensButton").addEventListener("click", function () { grantProOrTokens("tokens"); });
       document.getElementById("generateBotLicenseButton").addEventListener("click", generateBotLicense);
+      document.getElementById("viewBotLicensesButton").addEventListener("click", function () { setBotLicenseWindowOpen(true); });
       document.getElementById("refreshBotLicensesButton").addEventListener("click", loadBotLicenses);
       document.getElementById("botLicenseList").addEventListener("click", function(event){ var button=event.target.closest("[data-expire-bot-license]"); if(button) expireBotLicense(button.getAttribute("data-expire-bot-license")); });
+      initBotLicenseWindow();
       loadBotLicenses();
       document.getElementById("unifiedGrantButton").addEventListener("click", sendUnifiedGrant);
       document.getElementById("unifiedReward").addEventListener("change", syncUnifiedMembershipForm);

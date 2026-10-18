@@ -199,6 +199,9 @@ body.rblx-shell-ready {
   .rblx-header-center { min-width: 0; overflow: visible; }
   .rblx-header-nav { min-width: 0; overflow: visible; }
   .rblx-header-search { flex: 1 1 190px; min-width: 130px; }
+  /* Guests only have one header action, so a flexing search used to consume
+     nearly the whole row. Keep it intentionally normal-sized until sign-in. */
+  .rblx-shell-header:has(#rblxShellAuth.is-guest) .rblx-header-search { flex: 0 0 clamp(220px, 18vw, 320px); min-width:220px; max-width:320px; }
 }
 
 /* Clothing and UGC live in the persistent left navigation, so keep the
