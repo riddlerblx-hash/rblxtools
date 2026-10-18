@@ -5721,7 +5721,7 @@ body.rblx-mobile-shell .rblx-shell-header { grid-template-columns: minmax(0, 1fr
 
 /* User-selected appearance is intentionally applied at the shell layer so
    each preset follows members between every tool and community page. */
-html[data-rblx-theme] { --rblx-theme-accent:#62adff; --rblx-theme-accent-2:#72fff5; --rblx-theme-glow:rgba(75,153,255,.20); }
+html[data-rblx-theme] { --rblx-theme-accent:#62adff; --rblx-theme-accent-2:#72fff5; --rblx-theme-glow:rgba(75,153,255,.20); --rblx-theme-tint:14%; }
 /* Themes deliberately alter the actual page foundation, not just a couple of
    shell widgets. This comes after legacy page CSS, which lets each tool keep
    its layout while receiving the selected atmosphere. */
@@ -5729,7 +5729,7 @@ html[data-rblx-theme]:not([data-rblx-theme="original"]) body,
 html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-shell-ready,
 html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-tool-atmosphere {
   background-color:#0d111c !important;
-  background-image:radial-gradient(880px 650px at 3% -12%,color-mix(in srgb,var(--rblx-theme-accent) 6%,transparent),transparent 69%),radial-gradient(820px 600px at 105% 6%,color-mix(in srgb,var(--rblx-theme-accent-2) 9%,transparent),transparent 67%),radial-gradient(760px 700px at 48% 112%,color-mix(in srgb,var(--rblx-theme-accent) 4%,transparent),transparent 72%) !important;
+  background-image:radial-gradient(880px 650px at 3% -12%,color-mix(in srgb,var(--rblx-theme-accent) var(--rblx-theme-tint),transparent),transparent 69%),radial-gradient(820px 600px at 105% 6%,color-mix(in srgb,var(--rblx-theme-accent-2) var(--rblx-theme-tint),transparent),transparent 67%),radial-gradient(760px 700px at 48% 112%,color-mix(in srgb,var(--rblx-theme-accent) 8%,transparent),transparent 72%) !important;
   background-attachment:fixed !important;
 }
 html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-left,
@@ -5789,8 +5789,8 @@ body.rblx-community-page :is(.rblx-shell-center,.rblx-shell-page,.community-page
 
 /* Carry the selected atmosphere through the shared chrome without repainting
    it. These are intentionally faint translucent washes over the stock shell. */
-html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-header { background:radial-gradient(circle at 50% 0,color-mix(in srgb,var(--rblx-theme-accent) 9%,transparent),transparent 42%),linear-gradient(180deg,rgba(15,27,47,.96),rgba(8,17,31,.98)) !important; }
-html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-left,.rblx-shell-right) { background:radial-gradient(circle at 100% 0,color-mix(in srgb,var(--rblx-theme-accent-2) 7%,transparent),transparent 30%),linear-gradient(180deg,rgba(19,31,44,.96),rgba(15,24,34,.96)) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-header { background:radial-gradient(circle at 50% 0,color-mix(in srgb,var(--rblx-theme-accent) 10%,transparent),transparent 42%),linear-gradient(180deg,rgba(14,24,40,.96),rgba(9,17,30,.98)) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-left,.rblx-shell-right) { background:radial-gradient(circle at 100% 0,color-mix(in srgb,var(--rblx-theme-accent-2) 8%,transparent),transparent 30%),linear-gradient(180deg,rgba(14,24,40,.96),rgba(9,17,30,.98)) !important; }
 html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-nav-group { border-color:color-mix(in srgb,var(--rblx-theme-accent) 18%,rgba(255,255,255,.08)) !important; background:color-mix(in srgb,var(--rblx-theme-accent) 3%,transparent) !important; }
 html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-panel-tabs button,.rblx-header-nav>a,.rblx-header-menu summary):is(:hover,.is-active,[aria-selected="true"]) { border-color:color-mix(in srgb,var(--rblx-theme-accent-2) 60%,transparent) !important; background:linear-gradient(135deg,color-mix(in srgb,var(--rblx-theme-accent) 17%,transparent),color-mix(in srgb,var(--rblx-theme-accent-2) 11%,transparent)) !important; }
 
@@ -5804,3 +5804,9 @@ html[data-rblx-theme]:not([data-rblx-theme="original"]) .hero-title .accent { ba
 .rblx-shell-page .share-kicker,
 .rblx-shell-page .showcase-card #slidePills,
 .rblx-shell-page .showcase-card .tool-pill { display:none !important; }
+
+/* The settings tiles are a catalogue of every preset, so a selected theme
+   never repaints the other choices. */
+html[data-rblx-theme] .site-settings .theme-option { border-color:rgba(149,190,245,.22) !important; color:#f2f7ff !important; background:linear-gradient(145deg,var(--theme-bg-1),var(--theme-bg-2)) !important; box-shadow:none !important; }
+html[data-rblx-theme] .site-settings .theme-option:hover { border-color:var(--theme-a) !important; box-shadow:0 12px 24px rgba(0,0,0,.2) !important; }
+html[data-rblx-theme] .site-settings .theme-option.is-selected { border-color:var(--theme-a) !important; box-shadow:0 0 0 2px color-mix(in srgb,var(--theme-a) 28%,transparent),0 16px 30px rgba(0,0,0,.24) !important; }

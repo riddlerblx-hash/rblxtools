@@ -9,12 +9,12 @@
   var USER_KEY = "rblxtools_auth_user";
   var SITE_THEME_KEY = "rblxtools_site_theme_v1";
   var SITE_THEME_PRESETS = {
-    original: { label: "RBLXTools", accent: "#62adff", accent2: "#72fff5", glow: "rgba(75, 153, 255, .20)", page: "#0d111c" },
-    cherry: { label: "Cherry Blossom", accent: "#ff78b5", accent2: "#ffd0e4", glow: "rgba(255, 92, 164, .18)", page: "#0d111c" },
-    cotton: { label: "Cotton Candy", accent: "#ff8bca", accent2: "#79d9ff", glow: "rgba(123, 208, 255, .16)", page: "#0d111c" },
-    aurora: { label: "Aurora", accent: "#76f0be", accent2: "#9b8cff", glow: "rgba(81, 233, 174, .16)", page: "#0d111c" },
-    ember: { label: "Ember", accent: "#ff9b5e", accent2: "#ffdb75", glow: "rgba(255, 111, 56, .16)", page: "#0d111c" },
-    midnight: { label: "Midnight Violet", accent: "#a78bfa", accent2: "#6ecbff", glow: "rgba(130, 98, 255, .16)", page: "#0d111c" }
+    original: { label: "RBLXTools", accent: "#62adff", accent2: "#72fff5", glow: "rgba(75, 153, 255, .20)", page: "#0d111c", tint: .14 },
+    cherry: { label: "Cherry Blossom", accent: "#ff78b5", accent2: "#ffd0e4", glow: "rgba(255, 92, 164, .18)", page: "#0d111c", tint: .16 },
+    cotton: { label: "Cotton Candy", accent: "#ff8bca", accent2: "#79d9ff", glow: "rgba(123, 208, 255, .16)", page: "#0d111c", tint: .16 },
+    aurora: { label: "Aurora", accent: "#76f0be", accent2: "#9b8cff", glow: "rgba(81, 233, 174, .16)", page: "#0d111c", tint: .15 },
+    ember: { label: "Ember", accent: "#ff9b5e", accent2: "#ffdb75", glow: "rgba(255, 111, 56, .16)", page: "#0d111c", tint: .15 },
+    midnight: { label: "Midnight Violet", accent: "#a78bfa", accent2: "#6ecbff", glow: "rgba(130, 98, 255, .16)", page: "#0d111c", tint: .15 }
   };
   function readSiteTheme() {
     try { var saved = JSON.parse(localStorage.getItem(SITE_THEME_KEY) || "{}"); return saved && typeof saved === "object" ? saved : {}; } catch (_error) { return {}; }
@@ -28,6 +28,10 @@
     root.style.setProperty("--rblx-theme-accent-2", String(theme.accent2 || preset.accent2));
     root.style.setProperty("--rblx-theme-glow", String(theme.glow || preset.glow));
     root.style.setProperty("--rblx-theme-page", String(theme.page || preset.page || "#0d111c"));
+    var tint = Number(theme.tint);
+    if (!isFinite(tint)) tint = Number(preset.tint || .15);
+    tint = Math.max(.05, Math.min(.35, tint));
+    root.style.setProperty("--rblx-theme-tint", Math.round(tint * 100) + "%");
     if (persist !== false) { try { localStorage.setItem(SITE_THEME_KEY, JSON.stringify(theme)); } catch (_error) {} }
     window.dispatchEvent(new CustomEvent("rblxtools-theme-updated", { detail: theme }));
     return theme;
