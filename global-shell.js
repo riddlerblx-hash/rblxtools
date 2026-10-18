@@ -7,6 +7,33 @@
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
   var USER_KEY = "rblxtools_auth_user";
+  var SITE_THEME_KEY = "rblxtools_site_theme_v1";
+  var SITE_THEME_PRESETS = {
+    original: { label: "RBLXTools", accent: "#62adff", accent2: "#72fff5", glow: "rgba(75, 153, 255, .20)" },
+    cherry: { label: "Cherry Blossom", accent: "#ff78b5", accent2: "#ffd0e4", glow: "rgba(255, 92, 164, .24)" },
+    cotton: { label: "Cotton Candy", accent: "#ff8bca", accent2: "#79d9ff", glow: "rgba(123, 208, 255, .22)" },
+    aurora: { label: "Aurora", accent: "#76f0be", accent2: "#9b8cff", glow: "rgba(81, 233, 174, .20)" },
+    ember: { label: "Ember", accent: "#ff9b5e", accent2: "#ffdb75", glow: "rgba(255, 111, 56, .22)" },
+    midnight: { label: "Midnight Violet", accent: "#a78bfa", accent2: "#6ecbff", glow: "rgba(130, 98, 255, .24)" }
+  };
+  function readSiteTheme() {
+    try { var saved = JSON.parse(localStorage.getItem(SITE_THEME_KEY) || "{}"); return saved && typeof saved === "object" ? saved : {}; } catch (_error) { return {}; }
+  }
+  function applySiteTheme(nextTheme, persist) {
+    var theme = nextTheme && typeof nextTheme === "object" ? nextTheme : {};
+    var preset = SITE_THEME_PRESETS[theme.preset] || SITE_THEME_PRESETS.original;
+    var root = document.documentElement;
+    root.dataset.rblxTheme = theme.preset === "custom" ? "custom" : (theme.preset && SITE_THEME_PRESETS[theme.preset] ? theme.preset : "original");
+    root.style.setProperty("--rblx-theme-accent", String(theme.accent || preset.accent));
+    root.style.setProperty("--rblx-theme-accent-2", String(theme.accent2 || preset.accent2));
+    root.style.setProperty("--rblx-theme-glow", String(theme.glow || preset.glow));
+    root.style.setProperty("--rblx-theme-page", String(theme.page || ""));
+    if (persist !== false) { try { localStorage.setItem(SITE_THEME_KEY, JSON.stringify(theme)); } catch (_error) {} }
+    window.dispatchEvent(new CustomEvent("rblxtools-theme-updated", { detail: theme }));
+    return theme;
+  }
+  window.RBLXToolsTheme = { presets: SITE_THEME_PRESETS, read: readSiteTheme, apply: applySiteTheme, key: SITE_THEME_KEY };
+  applySiteTheme(readSiteTheme(), false);
   var REFERRAL_CODE_KEY = "rblxtools_referral_code";
   function getAssetBatchPlan() {
     if (document.body && document.body.classList.contains("rblx-shell-pro-user")) return "pro";
@@ -2004,6 +2031,7 @@
             '<div class="rblx-shell-profile-menu-panel">' +
               '<button class="rblx-shell-mobile-panel-back" type="button" data-shell-mobile-panel-back="true">‹ Navigation</button>' +
               '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./account-settings">Account Settings</a>' +
+              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./site-settings">Site Settings</a>' +
               '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./payments-billing">Payments &amp; Billing</a>' +
               '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./promotions">Promotions</a>' +
               '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./affiliate-marketing">Affiliate Marketing</a>' +
@@ -7152,8 +7180,12 @@
       }
       card.querySelector(".rblx-global-bounty-reward").textContent = bounty.reward && bounty.reward.label || "Mystery reward";
       card.querySelector(".rblx-global-bounty-count").textContent = "0/1";
-      var bar = card.querySelector("i"), duration = Math.max(1, new Date(bounty.expiresAt).getTime() - new Date(bounty.createdAt || Date.now() - 25000).getTime());
-      function tick() { var remaining = Math.max(0, new Date(bounty.expiresAt).getTime() - Date.now()); bar.style.width = Math.max(0, Math.min(100, (remaining / duration) * 100)) + "%"; if (!remaining) removeCard(id); }
+      var bar = card.querySelector("i"), expiresAt = Date.parse(bounty.expiresAt), createdAt = Date.parse(bounty.createdAt), fallbackDuration = 25000;
+      // A bad or missing timestamp used to produce "NaN%", which left the
+      // CSS default (a full bar) visible forever. Always use a real countdown.
+      if (!Number.isFinite(expiresAt)) expiresAt = Date.now() + fallbackDuration;
+      var duration = Math.max(1, Number.isFinite(createdAt) ? expiresAt - createdAt : fallbackDuration);
+      function tick() { var remaining = Math.max(0, expiresAt - Date.now()), percent = Math.max(0, Math.min(100, (remaining / duration) * 100)); bar.style.width = percent.toFixed(2) + "%"; if (!remaining) removeCard(id); }
       if (!timers[id]) { tick(); timers[id] = window.setInterval(tick, 100); }
     }
     function show(data) {
