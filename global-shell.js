@@ -7139,7 +7139,7 @@
 
   function initGlobalBounty() {
     if (document.getElementById("rblxGlobalBounty")) return;
-    var tray = document.createElement("aside"), cards = Object.create(null), timers = Object.create(null), shownLatestId = "";
+    var tray = document.createElement("aside"), cards = Object.create(null), timers = Object.create(null);
     tray.id = "rblxGlobalBounty"; tray.className = "rblx-global-bounty-tray"; tray.hidden = true; document.body.appendChild(tray);
     function removeCard(id) { if (timers[id]) { window.clearInterval(timers[id]); delete timers[id]; } if (cards[id]) { cards[id].remove(); delete cards[id]; } if (!tray.children.length) tray.hidden = true; }
     function updateCard(bounty) {
@@ -7160,13 +7160,6 @@
       var active = Array.isArray(data && data.bounties) ? data.bounties : (data && data.active ? [data.active] : []);
       var ids = Object.create(null); active.filter(function (bounty) { return bounty && bounty.id && new Date(bounty.expiresAt).getTime() > Date.now(); }).forEach(function (bounty) { ids[String(bounty.id)] = true; updateCard(bounty); });
       Object.keys(cards).forEach(function (id) { if (!ids[id]) removeCard(id); }); tray.hidden = !tray.children.length;
-      var latest = data && data.latest;
-      if (latest && latest.id && latest.claimedBy && shownLatestId !== String(latest.id)) {
-        shownLatestId = String(latest.id);
-        var result = document.createElement("section"); result.className = "rblx-global-bounty"; result.style.setProperty("--bounty-y", String(Number(latest.positionPercent) || 40) + "%");
-        result.innerHTML = '<div class="rblx-global-bounty-head"><small>Global bounty</small><span class="rblx-global-bounty-count">1/1</span></div><strong>' + String(latest.reward && latest.reward.label || "Bounty claimed") + '</strong><div class="rblx-global-bounty-track"><i style="width:0%"></i></div>';
-        tray.appendChild(result); tray.hidden = false; window.setTimeout(function () { result.remove(); if (!tray.children.length) tray.hidden = true; }, 4000);
-      }
     }
     function refresh() { fetch(API_BASE + "/api/global-bounty", { credentials: "include" }).then(function (r) { return r.json(); }).then(show).catch(function () {}); }
     function claim(id, card) {
@@ -7174,7 +7167,7 @@
       var button = card.querySelector("button"); button.disabled = true; button.textContent = "Claiming…";
       fetch(API_BASE + "/api/global-bounty/" + encodeURIComponent(id) + "/claim", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() } })
         .then(function (r) { return r.json().then(function (body) { if (!r.ok) throw new Error(body.error || "This bounty was already claimed."); return body; }); })
-        .then(function (data) { card.querySelector(".rblx-global-bounty-count").textContent = "1/1"; card.querySelector(".rblx-global-bounty-reward").textContent = "Reward delivered!"; button.hidden = true; window.setTimeout(function () { show(data); }, 650); refreshMembershipStateFromServer(); refreshMemberRewards(); })
+        .then(function () { card.querySelector(".rblx-global-bounty-count").textContent = "1/1"; card.querySelector(".rblx-global-bounty-reward").textContent = "Reward delivered!"; button.hidden = true; window.setTimeout(function () { removeCard(String(id)); refresh(); }, 1200); refreshMembershipStateFromServer(); refreshMemberRewards(); })
         .catch(function (error) { card.querySelector(".rblx-global-bounty-reward").textContent = error.message || "This bounty was already claimed."; button.disabled = true; });
     }
     window.addEventListener("rblxtools-global-bounty", function (event) { show(event && event.detail ? event.detail : {}); });

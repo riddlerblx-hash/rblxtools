@@ -1415,9 +1415,13 @@ function readGlobalBounty() {
 }
 function writeGlobalBounty(state) { writeJsonFile(GLOBAL_BOUNTY_PATH, state); }
 function serializeGlobalBounty(state) {
-  const active = state.active && Date.parse(state.active.expiresAt) > Date.now() ? state.active : null;
-  const adminBounties = (state.adminBounties || []).filter((bounty) => Date.parse(bounty?.expiresAt) > Date.now());
-  return { active, adminBounties, bounties: [...(active ? [active] : []), ...adminBounties], latest: state.latest || null, nextAt: state.nextAt || null, serverNow: new Date().toISOString() };
+  // A claimed bounty is history, never an active card. In particular, do not
+  // serialize `latest`: it is retained only for server-side audit/notification
+  // context and must not reappear for members after a refresh.
+  const available = (bounty) => bounty && !bounty.claimedAt && bounty.status !== "claimed" && Date.parse(bounty.expiresAt) > Date.now();
+  const active = available(state.active) ? state.active : null;
+  const adminBounties = (state.adminBounties || []).filter(available);
+  return { active, adminBounties, bounties: [...(active ? [active] : []), ...adminBounties], nextAt: state.nextAt || null, serverNow: new Date().toISOString() };
 }
 function randomGlobalBountyReward(state) {
   const previous = `${state.lastAutomaticReward?.kind || ""}:${state.lastAutomaticReward?.amount || ""}`;
@@ -1433,8 +1437,8 @@ function ensureGlobalBounty() {
   // Old/corrupt state must wait for a full interval instead of immediately
   // creating a new 25-second bounty on every request.
   if (!Number.isFinite(Number(state.nextAt)) || Number(state.nextAt) <= 0) state.nextAt = now + nextGlobalBountyDelay();
-  if (state.active && Date.parse(state.active.expiresAt) <= now) state.active = null;
-  state.adminBounties = state.adminBounties.filter((bounty) => Date.parse(bounty?.expiresAt) > now);
+  if (state.active && (state.active.claimedAt || state.active.status === "claimed" || Date.parse(state.active.expiresAt) <= now)) state.active = null;
+  state.adminBounties = state.adminBounties.filter((bounty) => !bounty?.claimedAt && bounty?.status !== "claimed" && Date.parse(bounty?.expiresAt) > now);
   if (!state.active && now >= Number(state.nextAt)) {
     const reward = randomGlobalBountyReward(state);
     state.active = buildGlobalBounty(reward, now, GLOBAL_BOUNTY_WINDOW_MS, "automatic");
