@@ -5722,9 +5722,36 @@ body.rblx-mobile-shell .rblx-shell-header { grid-template-columns: minmax(0, 1fr
 /* User-selected appearance is intentionally applied at the shell layer so
    each preset follows members between every tool and community page. */
 html[data-rblx-theme] { --rblx-theme-accent:#62adff; --rblx-theme-accent-2:#72fff5; --rblx-theme-glow:rgba(75,153,255,.20); }
-html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-shell-page { background-image:radial-gradient(circle at 12% 8%,var(--rblx-theme-glow),transparent 30%),radial-gradient(circle at 88% 86%,color-mix(in srgb,var(--rblx-theme-accent-2) 22%,transparent),transparent 34%) !important; }
-html[data-rblx-theme="custom"] body.rblx-shell-page { background-color:var(--rblx-theme-page,#0b1930) !important; }
-html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-header,html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-left,html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-right { border-color:color-mix(in srgb,var(--rblx-theme-accent) 38%,rgba(121,171,245,.20)) !important; }
-html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-profile-card,html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-header-token-balance,html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-referral-balance { box-shadow:0 0 22px var(--rblx-theme-glow); }
-html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-left a.is-active,html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-right .is-active { background:linear-gradient(135deg,color-mix(in srgb,var(--rblx-theme-accent) 45%,transparent),color-mix(in srgb,var(--rblx-theme-accent-2) 24%,transparent)) !important; }
-html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page a:not(.rblx-shell-profile-menu-item) { accent-color:var(--rblx-theme-accent); }
+/* Themes deliberately alter the actual page foundation, not just a couple of
+   shell widgets. This comes after legacy page CSS, which lets each tool keep
+   its layout while receiving the selected atmosphere. */
+html[data-rblx-theme]:not([data-rblx-theme="original"]) body,
+html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-shell-ready,
+html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-tool-atmosphere {
+  --shell-red:var(--rblx-theme-accent); --shell-blue:var(--rblx-theme-accent-2);
+  background-color:var(--rblx-theme-page,#0b1325) !important;
+  background-image:radial-gradient(880px 650px at 3% -12%,var(--rblx-theme-glow),transparent 69%),radial-gradient(820px 600px at 105% 6%,color-mix(in srgb,var(--rblx-theme-accent-2) 22%,transparent),transparent 67%),radial-gradient(760px 700px at 48% 112%,color-mix(in srgb,var(--rblx-theme-accent) 15%,transparent),transparent 72%) !important;
+  background-attachment:fixed !important;
+}
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-left,
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-right,
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-header { border-color:transparent !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-profile-card,
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-header-token-balance,
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-referral-balance { box-shadow:0 0 22px var(--rblx-theme-glow); }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-left a.is-active,
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-right .is-active { background:linear-gradient(135deg,color-mix(in srgb,var(--rblx-theme-accent) 45%,transparent),color-mix(in srgb,var(--rblx-theme-accent-2) 24%,transparent)) !important; }
+/* Tool pages were built at different times, so their primary actions use a
+   mixture of button IDs, generic buttons, and old action classes. Theme their
+   controls together while explicitly leaving every plan/promo card branded. */
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(button,.btn,.button,.primary,.primary-btn,.tool-action-btn,.action-button,.cta-button,.download-button,.plans-btn,.share-copy-btn):not(.plus-card *,.promo-card *,.plan-card *,.subscription-card *,.rblx-membership-promo *,.rblx-pro-promo *,.rblx-token-promo *,.rblx-shell-membership-gate-card *,.is-danger) {
+  border-color:color-mix(in srgb,var(--rblx-theme-accent) 58%,transparent) !important;
+  color:#071321 !important;
+  background:linear-gradient(135deg,var(--rblx-theme-accent),var(--rblx-theme-accent-2)) !important;
+  box-shadow:0 10px 22px var(--rblx-theme-glow) !important;
+}
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(h1,h2,h3) > :last-child:not(.plus-card *,.promo-card *,.plan-card *,.subscription-card *,.rblx-membership-promo *,.rblx-pro-promo *,.rblx-token-promo *,.plus-word,.pro-word),
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(.tool-kicker,.share-kicker,.eyebrow,.accent,.highlight,.title-accent) { color:var(--rblx-theme-accent) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(input[type="range"],input[type="checkbox"],progress) { accent-color:var(--rblx-theme-accent); }
+/* Subscription and promotional cards remain intentionally plan-branded. */
+html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.plus-card,.promo-card,.plan-card,.subscription-card,.rblx-membership-promo,.rblx-pro-promo,.rblx-token-promo) { --rblx-theme-accent:initial; --rblx-theme-accent-2:initial; }

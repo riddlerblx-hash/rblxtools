@@ -9,12 +9,12 @@
   var USER_KEY = "rblxtools_auth_user";
   var SITE_THEME_KEY = "rblxtools_site_theme_v1";
   var SITE_THEME_PRESETS = {
-    original: { label: "RBLXTools", accent: "#62adff", accent2: "#72fff5", glow: "rgba(75, 153, 255, .20)" },
-    cherry: { label: "Cherry Blossom", accent: "#ff78b5", accent2: "#ffd0e4", glow: "rgba(255, 92, 164, .24)" },
-    cotton: { label: "Cotton Candy", accent: "#ff8bca", accent2: "#79d9ff", glow: "rgba(123, 208, 255, .22)" },
-    aurora: { label: "Aurora", accent: "#76f0be", accent2: "#9b8cff", glow: "rgba(81, 233, 174, .20)" },
-    ember: { label: "Ember", accent: "#ff9b5e", accent2: "#ffdb75", glow: "rgba(255, 111, 56, .22)" },
-    midnight: { label: "Midnight Violet", accent: "#a78bfa", accent2: "#6ecbff", glow: "rgba(130, 98, 255, .24)" }
+    original: { label: "RBLXTools", accent: "#62adff", accent2: "#72fff5", glow: "rgba(75, 153, 255, .20)", page: "#0d111c" },
+    cherry: { label: "Cherry Blossom", accent: "#ff78b5", accent2: "#ffd0e4", glow: "rgba(255, 92, 164, .24)", page: "#211127" },
+    cotton: { label: "Cotton Candy", accent: "#ff8bca", accent2: "#79d9ff", glow: "rgba(123, 208, 255, .22)", page: "#142544" },
+    aurora: { label: "Aurora", accent: "#76f0be", accent2: "#9b8cff", glow: "rgba(81, 233, 174, .20)", page: "#0d2630" },
+    ember: { label: "Ember", accent: "#ff9b5e", accent2: "#ffdb75", glow: "rgba(255, 111, 56, .22)", page: "#291711" },
+    midnight: { label: "Midnight Violet", accent: "#a78bfa", accent2: "#6ecbff", glow: "rgba(130, 98, 255, .24)", page: "#171235" }
   };
   function readSiteTheme() {
     try { var saved = JSON.parse(localStorage.getItem(SITE_THEME_KEY) || "{}"); return saved && typeof saved === "object" ? saved : {}; } catch (_error) { return {}; }
@@ -27,7 +27,7 @@
     root.style.setProperty("--rblx-theme-accent", String(theme.accent || preset.accent));
     root.style.setProperty("--rblx-theme-accent-2", String(theme.accent2 || preset.accent2));
     root.style.setProperty("--rblx-theme-glow", String(theme.glow || preset.glow));
-    root.style.setProperty("--rblx-theme-page", String(theme.page || ""));
+    root.style.setProperty("--rblx-theme-page", String(theme.page || preset.page || "#0d111c"));
     if (persist !== false) { try { localStorage.setItem(SITE_THEME_KEY, JSON.stringify(theme)); } catch (_error) {} }
     window.dispatchEvent(new CustomEvent("rblxtools-theme-updated", { detail: theme }));
     return theme;
