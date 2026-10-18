@@ -4540,7 +4540,7 @@ body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-header {
 body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-body {
   display: block;
   min-height: 100vh;
-  padding-top: var(--shell-header-height);
+  padding-top: var(--shell-measured-header-height, var(--shell-header-height));
   padding-left: var(--shell-left-width);
   padding-right: var(--shell-right-width);
 }
@@ -4548,12 +4548,39 @@ body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-body {
 body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-left,
 body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-right {
   position: fixed;
-  top: var(--shell-header-height);
+  top: var(--shell-measured-header-height, var(--shell-header-height));
   bottom: 0;
   z-index: 50;
   height: auto;
   max-height: none;
   min-height: 0;
+}
+
+/* Zoom changes the effective CSS viewport just like a narrow screen. Keep the
+   header in one intentional compact row before the phone shell takes over. */
+@media (min-width: 821px) and (max-width: 1380px) {
+  .rblx-shell-header { grid-template-columns:auto minmax(150px,1fr) auto !important; grid-template-rows:minmax(0,1fr); justify-items:stretch; gap:9px; padding:10px 12px; }
+  .rblx-header-nav { display:none; }
+  .rblx-header-center { min-width:0; width:100%; }
+  .rblx-header-search { display:flex !important; flex:1 1 auto; min-width:0; height:40px; }
+  .rblx-shell-header-actions,.rblx-shell-auth { min-width:0; gap:7px; flex-wrap:nowrap; }
+  .rblx-shell-header-token-balance { min-width:76px !important; min-height:44px !important; padding:0 9px; }
+  .rblx-shell-header-token-balance small { font-size:7px; }
+  .rblx-shell-header-token-balance strong { font-size:13px; }
+  .rblx-shell-referral-balance { min-width:94px; min-height:44px; padding:0 10px; }
+  .rblx-shell-profile-card { max-width:172px; min-height:44px; padding:6px 8px; }
+  .rblx-shell-profile-card-avatar { width:30px; height:30px; }
+  .rblx-shell-profile-card-title { font-size:11px; }
+  .rblx-shell-profile-card-subtitle { font-size:8px; }
+}
+
+/* The renewal notice must reflow before zoom leaves it only a few characters
+   wide beside action buttons. */
+@media (max-width: 1180px) {
+  .rblx-shell-renewal-notice { left:12px; right:12px; align-items:flex-start; flex-wrap:wrap; }
+  .rblx-shell-renewal-notice > span { flex:1 1 250px; min-width:0; }
+  .rblx-shell-renewal-notice > div { flex:1 1 auto; flex-wrap:wrap; justify-content:flex-end; }
+  body:has(.rblx-shell-renewal-notice:not([hidden])) .rblx-shell-center { padding-top:128px; }
 }
 
 body.rblx-ugc-studio-page.rblx-shell-ready .rblx-shell-left {
