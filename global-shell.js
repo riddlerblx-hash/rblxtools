@@ -7139,62 +7139,44 @@
 
   function initGlobalBounty() {
     if (document.getElementById("rblxGlobalBounty")) return;
-    var card = document.createElement("section"), activeBounty = null, hideTimer = null, tickTimer = null, renderedActiveId = "", renderedResultId = "";
-    card.id = "rblxGlobalBounty";
-    card.className = "rblx-global-bounty";
-    card.hidden = true;
-    card.innerHTML = '<div class="rblx-global-bounty-head"><small>Global bounty</small><span class="rblx-global-bounty-count">0/1</span></div><strong class="rblx-global-bounty-reward"></strong><div class="rblx-global-bounty-track"><i></i></div><button type="button">Claim bounty</button>';
-    document.body.appendChild(card);
-    var reward = card.querySelector("strong"), counter = card.querySelector(".rblx-global-bounty-count"), bar = card.querySelector("i"), button = card.querySelector("button");
-    function stopTick() { if (tickTimer) { window.clearInterval(tickTimer); tickTimer = null; } }
-    function startTick(active) {
-      stopTick();
-      var duration = Math.max(1, new Date(active.expiresAt).getTime() - new Date(active.createdAt || Date.now() - 25000).getTime());
-      function tick() {
-        if (!activeBounty || activeBounty.id !== active.id) return stopTick();
-        var remaining = Math.max(0, new Date(active.expiresAt).getTime() - Date.now());
-        bar.style.width = Math.max(0, Math.min(100, (remaining / duration) * 100)) + "%";
-        if (!remaining) { card.hidden = true; activeBounty = null; stopTick(); }
+    var tray = document.createElement("aside"), cards = Object.create(null), timers = Object.create(null), shownLatestId = "";
+    tray.id = "rblxGlobalBounty"; tray.className = "rblx-global-bounty-tray"; tray.hidden = true; document.body.appendChild(tray);
+    function removeCard(id) { if (timers[id]) { window.clearInterval(timers[id]); delete timers[id]; } if (cards[id]) { cards[id].remove(); delete cards[id]; } if (!tray.children.length) tray.hidden = true; }
+    function updateCard(bounty) {
+      var id = String(bounty.id), card = cards[id];
+      if (!card) {
+        card = document.createElement("section"); card.className = "rblx-global-bounty"; card.dataset.bountyId = id;
+        card.style.setProperty("--bounty-y", String(Number(bounty.positionPercent) || 40) + "%");
+        card.innerHTML = '<div class="rblx-global-bounty-head"><small>Global bounty</small><span class="rblx-global-bounty-count">0/1</span></div><strong class="rblx-global-bounty-reward"></strong><div class="rblx-global-bounty-track"><i></i></div><button type="button">Claim bounty</button>';
+        card.querySelector("button").addEventListener("click", function () { claim(bounty.id, card); }); cards[id] = card; tray.appendChild(card);
       }
-      tick(); tickTimer = window.setInterval(tick, 100);
+      card.querySelector(".rblx-global-bounty-reward").textContent = bounty.reward && bounty.reward.label || "Mystery reward";
+      card.querySelector(".rblx-global-bounty-count").textContent = "0/1";
+      var bar = card.querySelector("i"), duration = Math.max(1, new Date(bounty.expiresAt).getTime() - new Date(bounty.createdAt || Date.now() - 25000).getTime());
+      function tick() { var remaining = Math.max(0, new Date(bounty.expiresAt).getTime() - Date.now()); bar.style.width = Math.max(0, Math.min(100, (remaining / duration) * 100)) + "%"; if (!remaining) removeCard(id); }
+      if (!timers[id]) { tick(); timers[id] = window.setInterval(tick, 100); }
     }
     function show(data) {
-      var active = data && data.active;
-      if (active && active.id && new Date(active.expiresAt).getTime() > Date.now()) {
-        var isNewBounty = active.id !== renderedActiveId;
-        activeBounty = active;
-        reward.textContent = active.reward && active.reward.label || "Mystery reward";
-        counter.textContent = "0/1";
-        button.hidden = false; button.disabled = false; button.textContent = "Claim bounty";
-        // The server chooses one position per bounty. Polling or socket updates
-        // must not make a live bounty jump around the screen.
-        if (isNewBounty) card.style.setProperty("--bounty-y", String(Number(active.positionPercent) || 40) + "%");
-        renderedActiveId = active.id;
-        card.hidden = false;
-        if (isNewBounty) startTick(active);
-        return;
+      var active = Array.isArray(data && data.bounties) ? data.bounties : (data && data.active ? [data.active] : []);
+      var ids = Object.create(null); active.filter(function (bounty) { return bounty && bounty.id && new Date(bounty.expiresAt).getTime() > Date.now(); }).forEach(function (bounty) { ids[String(bounty.id)] = true; updateCard(bounty); });
+      Object.keys(cards).forEach(function (id) { if (!ids[id]) removeCard(id); }); tray.hidden = !tray.children.length;
+      var latest = data && data.latest;
+      if (latest && latest.id && latest.claimedBy && shownLatestId !== String(latest.id)) {
+        shownLatestId = String(latest.id);
+        var result = document.createElement("section"); result.className = "rblx-global-bounty"; result.style.setProperty("--bounty-y", String(Number(latest.positionPercent) || 40) + "%");
+        result.innerHTML = '<div class="rblx-global-bounty-head"><small>Global bounty</small><span class="rblx-global-bounty-count">1/1</span></div><strong>' + String(latest.reward && latest.reward.label || "Bounty claimed") + '</strong><div class="rblx-global-bounty-track"><i style="width:0%"></i></div>';
+        tray.appendChild(result); tray.hidden = false; window.setTimeout(function () { result.remove(); if (!tray.children.length) tray.hidden = true; }, 4000);
       }
-      activeBounty = null;
-      if (data && data.latest && data.latest.claimedBy) {
-        if (renderedResultId === data.latest.id) { card.hidden = true; return; }
-        renderedResultId = data.latest.id; renderedActiveId = ""; stopTick();
-        reward.textContent = data.latest.reward && data.latest.reward.label || "Bounty claimed";
-        counter.textContent = "1/1";
-        button.hidden = true; card.hidden = false;
-        window.clearTimeout(hideTimer);
-        hideTimer = window.setTimeout(function () { card.hidden = true; button.hidden = false; }, 7000);
-      } else { renderedActiveId = ""; stopTick(); card.hidden = true; }
     }
     function refresh() { fetch(API_BASE + "/api/global-bounty", { credentials: "include" }).then(function (r) { return r.json(); }).then(show).catch(function () {}); }
-    button.addEventListener("click", function () {
-      if (!activeBounty) return;
+    function claim(id, card) {
       if (!(shellState.currentUser && shellState.currentUser.loggedIn)) { window.location.href = "./login?next=" + encodeURIComponent(window.location.pathname); return; }
-      button.disabled = true; button.textContent = "Claiming…";
-      fetch(API_BASE + "/api/global-bounty/" + encodeURIComponent(activeBounty.id) + "/claim", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() } })
+      var button = card.querySelector("button"); button.disabled = true; button.textContent = "Claiming…";
+      fetch(API_BASE + "/api/global-bounty/" + encodeURIComponent(id) + "/claim", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() } })
         .then(function (r) { return r.json().then(function (body) { if (!r.ok) throw new Error(body.error || "This bounty was already claimed."); return body; }); })
-        .then(function (data) { show(data); refreshMembershipStateFromServer(); })
-        .catch(function (error) { reward.textContent = error.message || "This bounty was already claimed."; button.disabled = true; });
-    });
+        .then(function (data) { card.querySelector(".rblx-global-bounty-count").textContent = "1/1"; card.querySelector(".rblx-global-bounty-reward").textContent = "Reward delivered!"; button.hidden = true; window.setTimeout(function () { show(data); }, 650); refreshMembershipStateFromServer(); refreshMemberRewards(); })
+        .catch(function (error) { card.querySelector(".rblx-global-bounty-reward").textContent = error.message || "This bounty was already claimed."; button.disabled = true; });
+    }
     window.addEventListener("rblxtools-global-bounty", function (event) { show(event && event.detail ? event.detail : {}); });
     refresh(); window.setInterval(refresh, 15000);
   }
