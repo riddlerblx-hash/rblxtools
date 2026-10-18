@@ -217,6 +217,9 @@ const SUPPORT_BOT_ENDPOINT = String(process.env.SUPPORT_BOT_ENDPOINT || "").trim
 const SUPPORT_BOT_SECRET = String(process.env.SUPPORT_BOT_SECRET || "").trim();
 const DISCORD_TOOLS_SERVICE_SECRET = String(process.env.DISCORD_TOOLS_SERVICE_SECRET || "").trim();
 const DISCORD_TOOLS_BOT_CLIENT_ID = String(process.env.RBLXTOOLS_TOOLS_DISCORD_CLIENT_ID || "").trim();
+// Customer-server licenses must never be required in the public RBLXTools
+// Discord server. Keep this separate from all deploy environment variables.
+const OFFICIAL_DISCORD_GUILD_ID = "1273360593318838382";
 const SUPPORT_STAFF_MENTION = String(process.env.SUPPORT_STAFF_MENTION || "").trim();
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || "").trim();
 // Keep the Meshy credential exclusively on the server. Never send it to a browser.
@@ -5486,6 +5489,12 @@ async function getDiscordToolsProMember(req) {
   }
 
   if (guildId) {
+    // The official RBLXTools server has account-level allowances handled by
+    // the tools bot, rather than a customer-server license requirement.
+    if (OFFICIAL_DISCORD_GUILD_ID && guildId === OFFICIAL_DISCORD_GUILD_ID) {
+      const link = await getDiscordLinkByUserId(discordUserId);
+      return link?.appUserId ? await getAuthUserById(link.appUserId) : null;
+    }
     const serverAccess = await getDiscordServerAccess(guildId);
     if (!serverAccess.allowed) {
       const error = new Error(serverAccess.reason || "This Discord server cannot use RBLXTools Bot yet.");

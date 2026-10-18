@@ -18,7 +18,10 @@ const {
   EmbedBuilder,
   PermissionFlagsBits,
 } = require("discord.js");
-const { claimDiscordLink } = require("./discord-tools-links");
+const fs = require("fs/promises");
+const path = require("path");
+const { tmpdir } = require("os");
+const { claimDiscordLink, getDiscordLinkByUserId } = require("./discord-tools-links");
 const {
   activateDiscordBotLicense,
   getDiscordServerCommandPolicy,
@@ -36,7 +39,12 @@ const supabaseKey = String(process.env.SUPABASE_KEY || "").trim();
 const authUsersTable = String(process.env.AUTH_USERS_TABLE || "member_accounts").trim();
 const apiBaseUrl = String(process.env.RBLXTOOLS_TOOLS_API_BASE_URL || process.env.APP_BASE_URL || "https://www.rblxtools.net").trim().replace(/\/$/, "");
 const discordToolsServiceSecret = String(process.env.DISCORD_TOOLS_SERVICE_SECRET || "").trim();
+// The public RBLXTools Discord server is intentionally fixed here. Customer
+// servers use the separate verified-license path below.
+const officialGuildId = "1273360593318838382";
+const officialUsageStorePath = path.join(String(process.env.RBLXTOOLS_STATE_DIR || path.join(tmpdir(), "rblxtools-state")).trim(), "official-discord-tool-usage.json");
 const MAX_DISCORD_DOWNLOAD_BYTES = 8 * 1024 * 1024;
+let officialUsageWriteQueue = Promise.resolve();
 
 const toolDefinitions = {
   clothing: { label: "Clothing", description: "Download a classic Roblox shirt or pants template." },
@@ -111,6 +119,81 @@ function assertConfiguration() {
   if (!supabaseKey) missing.push("SUPABASE_KEY");
   if (!discordToolsServiceSecret) missing.push("DISCORD_TOOLS_SERVICE_SECRET");
   if (missing.length) throw new Error("Missing environment variables: " + missing.join(", "));
+}
+
+function isOfficialGuild(guildId) { return Boolean(officialGuildId) && String(guildId || "").trim() === officialGuildId; }
+function officialUsageDateKey() { return new Date().toISOString().slice(0, 10); }
+
+async function readOfficialUsageStore() {
+  try {
+    const parsed = JSON.parse(await fs.readFile(officialUsageStorePath, "utf8"));
+    return parsed && typeof parsed === "object" && parsed.days && typeof parsed.days === "object" ? parsed : { days: {} };
+  } catch (error) {
+    if (error && error.code === "ENOENT") return { days: {} };
+    throw error;
+  }
+}
+
+async function updateOfficialUsageStore(update) {
+  const task = officialUsageWriteQueue.then(async () => {
+    const store = await readOfficialUsageStore();
+    const dayKey = officialUsageDateKey();
+    Object.keys(store.days).forEach((key) => { if (key !== dayKey) delete store.days[key]; });
+    const result = await update(store, dayKey);
+    await fs.mkdir(path.dirname(officialUsageStorePath), { recursive: true });
+    const temporaryPath = officialUsageStorePath + "." + process.pid + "." + Date.now() + ".tmp";
+    await fs.writeFile(temporaryPath, JSON.stringify(store, null, 2), "utf8");
+    await fs.rename(temporaryPath, officialUsageStorePath);
+    return result;
+  });
+  officialUsageWriteQueue = task.catch(() => undefined);
+  return task;
+}
+
+async function getOfficialMemberPlan(discordUserId) {
+  const link = await getDiscordLinkByUserId(discordUserId);
+  if (!link?.appUserId) return "free";
+  const response = await fetch(supabaseUrl + "/rest/v1/" + encodeURIComponent(authUsersTable) + "?id=eq." + encodeURIComponent(link.appUserId) + "&select=plan,premium_active", { headers: { apikey: supabaseKey, Authorization: "Bearer " + supabaseKey } });
+  if (!response.ok) throw new Error("Could not check your RBLXTools membership. Please try again.");
+  const rows = await response.json();
+  const member = Array.isArray(rows) ? rows[0] : null;
+  if (!member || member.premium_active !== true) return "free";
+  const plan = String(member.plan || "").toLowerCase();
+  return plan === "pro" ? "pro" : plan === "plus" ? "plus" : "free";
+}
+
+function officialUsageLimit(plan) { return plan === "pro" ? Infinity : plan === "plus" ? 15 : 5; }
+function officialUsageExhaustedMessage(plan) {
+  return plan === "plus"
+    ? "You have used all **15/15 Plus daily uses**. Upgrade to **Pro** for unlimited Discord Bot uses: <https://www.rblxtools.net/subscriptions>"
+    : "You have used all **5/5 free daily uses**. Upgrade to **Plus** for 15 daily uses: <https://www.rblxtools.net/subscriptions>";
+}
+
+async function checkOfficialToolUsage(discordUserId) {
+  const plan = await getOfficialMemberPlan(discordUserId);
+  const limit = officialUsageLimit(plan);
+  if (!Number.isFinite(limit)) return { allowed: true, plan, used: 0, limit: null };
+  const store = await readOfficialUsageStore();
+  const used = Math.max(0, Number(store.days?.[officialUsageDateKey()]?.[String(discordUserId)] || 0));
+  return { allowed: used < limit, plan, used, limit, message: used < limit ? "" : officialUsageExhaustedMessage(plan) };
+}
+
+async function recordOfficialToolUsage(discordUserId, plan) {
+  const limit = officialUsageLimit(plan);
+  if (!Number.isFinite(limit)) return { used: 0, limit: null };
+  return updateOfficialUsageStore((store, dayKey) => {
+    const today = store.days[dayKey] && typeof store.days[dayKey] === "object" ? store.days[dayKey] : {};
+    const userId = String(discordUserId);
+    const used = Math.max(0, Number(today[userId] || 0));
+    if (used >= limit) throw new Error(officialUsageExhaustedMessage(plan));
+    today[userId] = used + 1;
+    store.days[dayKey] = today;
+    return { used: used + 1, limit };
+  });
+}
+
+function withWebsitePromotion(response) {
+  return { ...response, content: String(response?.content || "") + "\n\n**RBLXTools:** Get unlimited tool usage free at <https://www.rblxtools.net>." };
 }
 
 function buildToolUrl(pathname, parameters) {
@@ -348,10 +431,16 @@ async function handleChatInput(interaction) {
         await interaction.editReply("Run RBLXTools download commands in a server with a verified RBLXTools Bot license.");
         return;
       }
-      const access = await getDiscordServerAccess(interaction.guildId);
-      if (!access.allowed) throw new Error(access.reason || "Verify an active RBLXTools Bot license for this server first.");
+      const inOfficialGuild = isOfficialGuild(interaction.guildId);
+      if (!inOfficialGuild) {
+        const access = await getDiscordServerAccess(interaction.guildId);
+        if (!access.allowed) throw new Error(access.reason || "Verify an active RBLXTools Bot license for this server first.");
+      }
       const policy = await getDiscordServerCommandPolicy({ guildId: interaction.guildId, commandName: interaction.commandName });
       if (policy.blocked) throw new Error("This RBLXTools command has been disabled for this server.");
+
+      const officialUsage = inOfficialGuild ? await checkOfficialToolUsage(interaction.user.id) : null;
+      if (officialUsage && !officialUsage.allowed) throw new Error(officialUsage.message);
 
       const assetId = String(interaction.options.getString("asset-id", true) || "").trim();
       if (!/^\d+$/.test(assetId)) {
@@ -360,7 +449,9 @@ async function handleChatInput(interaction) {
       }
 
       const mediaType = interaction.commandName === "media" ? interaction.options.getString("media-type") : "";
-      await interaction.editReply(await buildToolDownload(interaction.commandName, assetId, mediaType, interaction.user.id, interaction.guildId));
+      const result = await buildToolDownload(interaction.commandName, assetId, mediaType, interaction.user.id, interaction.guildId);
+      if (officialUsage) await recordOfficialToolUsage(interaction.user.id, officialUsage.plan);
+      await interaction.editReply(withWebsitePromotion(result));
     } catch (error) {
       console.error("[tools-bot] tool download failed:", error);
       await interaction.editReply(error.message || "I could not prepare that RBLXTools download.");
