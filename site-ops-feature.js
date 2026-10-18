@@ -153,7 +153,7 @@ function normalizeMaintenancePaths(value) {
     pathname = pathname.replace(/\/{2,}/g, "/").replace(/\/$/, "");
     if (pathname.endsWith(".html")) pathname = pathname.slice(0, -5);
     return pathname.toLowerCase();
-  }).filter((pathname) => pathname && pathname !== "/" && !/^\/(?:api|auth|admin|socket\.io)(?:\/|$)/.test(pathname)))].slice(0, 40);
+  }).filter((pathname) => pathname && !/^\/(?:api|auth|admin|socket\.io)(?:\/|$)/.test(pathname)))].slice(0, 40);
 }
 
 function isTargetedMaintenancePath(pathname, maintenancePaths) {

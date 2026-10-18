@@ -7126,20 +7126,44 @@ function buildRelativeAnimationDownloadUrl(req, assetId) {
 async function fetchBuffer(url) {
   const headers = {
     "User-Agent": "roblox-template-api/1.0",
+    "Accept": "*/*",
   };
 
   if (ROBLOSECURITY) {
     headers.Cookie = `.ROBLOSECURITY=${ROBLOSECURITY}`;
   }
 
-  const response = await fetch(url, {
-    redirect: "follow",
-    headers,
-  });
+  // Roblox's asset delivery service can briefly return a 429/5xx response or
+  // reset a connection. Every non-AI downloader goes through this helper, so
+  // retry those temporary failures here instead of surfacing a vague server
+  // error in each individual tool.
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        redirect: "follow",
+        headers,
+      });
+      const buffer = Buffer.from(await response.arrayBuffer());
 
-  const buffer = Buffer.from(await response.arrayBuffer());
+      if ((response.status === 429 || response.status >= 500) && attempt < 2) {
+        lastError = new Error(`Roblox asset delivery temporarily returned ${response.status}.`);
+        await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+        continue;
+      }
 
-  return { response, buffer };
+      return { response, buffer };
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+      }
+    }
+  }
+
+  const failure = new Error("Roblox asset delivery is temporarily unavailable. Please try again in a moment.");
+  failure.cause = lastError;
+  throw failure;
 }
 
 async function resolveImageAssetFromRobloxAsset(startId, options = {}) {
