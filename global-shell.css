@@ -5728,9 +5728,8 @@ html[data-rblx-theme] { --rblx-theme-accent:#62adff; --rblx-theme-accent-2:#72ff
 html[data-rblx-theme]:not([data-rblx-theme="original"]) body,
 html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-shell-ready,
 html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-tool-atmosphere {
-  --shell-red:var(--rblx-theme-accent); --shell-blue:var(--rblx-theme-accent-2);
   background-color:var(--rblx-theme-page,#0b1325) !important;
-  background-image:radial-gradient(880px 650px at 3% -12%,var(--rblx-theme-glow),transparent 69%),radial-gradient(820px 600px at 105% 6%,color-mix(in srgb,var(--rblx-theme-accent-2) 22%,transparent),transparent 67%),radial-gradient(760px 700px at 48% 112%,color-mix(in srgb,var(--rblx-theme-accent) 15%,transparent),transparent 72%) !important;
+  background-image:radial-gradient(880px 650px at 3% -12%,color-mix(in srgb,var(--rblx-theme-accent) 11%,transparent),transparent 69%),radial-gradient(820px 600px at 105% 6%,color-mix(in srgb,var(--rblx-theme-accent-2) 10%,transparent),transparent 67%),radial-gradient(760px 700px at 48% 112%,color-mix(in srgb,var(--rblx-theme-accent) 7%,transparent),transparent 72%) !important;
   background-attachment:fixed !important;
 }
 html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-left,
@@ -5738,20 +5737,52 @@ html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-right,
 html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-header { border-color:transparent !important; }
 html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-profile-card,
 html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-header-token-balance,
-html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-referral-balance { box-shadow:0 0 22px var(--rblx-theme-glow); }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-referral-balance { box-shadow:none; }
 html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-left a.is-active,
-html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-right .is-active { background:linear-gradient(135deg,color-mix(in srgb,var(--rblx-theme-accent) 45%,transparent),color-mix(in srgb,var(--rblx-theme-accent-2) 24%,transparent)) !important; }
-/* Tool pages were built at different times, so their primary actions use a
-   mixture of button IDs, generic buttons, and old action classes. Theme their
-   controls together while explicitly leaving every plan/promo card branded. */
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-right .is-active,
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-left a:hover,
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-right :is(button,[role="tab"]):hover { background:linear-gradient(135deg,color-mix(in srgb,var(--rblx-theme-accent) 20%,transparent),color-mix(in srgb,var(--rblx-theme-accent-2) 13%,transparent)) !important; }
+/* Theme controls are deliberately glassy: the original page still shows
+   through the center, while a firm coloured edge identifies interaction. */
 html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(button,.btn,.button,.primary,.primary-btn,.tool-action-btn,.action-button,.cta-button,.download-button,.plans-btn,.share-copy-btn):not(.plus-card *,.promo-card *,.plan-card *,.subscription-card *,.rblx-membership-promo *,.rblx-pro-promo *,.rblx-token-promo *,.rblx-shell-membership-gate-card *,.is-danger) {
-  border-color:color-mix(in srgb,var(--rblx-theme-accent) 58%,transparent) !important;
-  color:#071321 !important;
-  background:linear-gradient(135deg,var(--rblx-theme-accent),var(--rblx-theme-accent-2)) !important;
-  box-shadow:0 10px 22px var(--rblx-theme-glow) !important;
+  border:1px solid color-mix(in srgb,var(--rblx-theme-accent) 74%,transparent) !important;
+  color:#edf6ff !important;
+  background:color-mix(in srgb,var(--rblx-theme-accent) 7%,transparent) !important;
+  box-shadow:none !important;
 }
-html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(h1,h2,h3) > :last-child:not(.plus-card *,.promo-card *,.plan-card *,.subscription-card *,.rblx-membership-promo *,.rblx-pro-promo *,.rblx-token-promo *,.plus-word,.pro-word),
-html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(.tool-kicker,.share-kicker,.eyebrow,.accent,.highlight,.title-accent) { color:var(--rblx-theme-accent) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(button,.btn,.button,.primary,.primary-btn,.tool-action-btn,.action-button,.cta-button,.download-button,.plans-btn,.share-copy-btn):is(:hover,:focus-visible,.is-active,[aria-selected="true"]):not(.plus-card *,.promo-card *,.plan-card *,.subscription-card *,.rblx-membership-promo *,.rblx-pro-promo *,.rblx-token-promo *,.rblx-shell-membership-gate-card *,.is-danger) {
+  border-color:var(--rblx-theme-accent-2) !important;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--rblx-theme-accent) 20%,transparent),color-mix(in srgb,var(--rblx-theme-accent-2) 15%,transparent)) !important;
+  box-shadow:0 0 14px color-mix(in srgb,var(--rblx-theme-accent) 10%,transparent) !important;
+}
+/* Secondary actions, including report buttons, stay airy: a transparent center
+   with a crisp theme outline rather than a heavy solid strip. */
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is([id*="report" i],[class*="report" i]):is(a,button),
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(.secondary,.secondary-btn,.ugc-secondary):not(.plus-card *,.promo-card *,.plan-card *,.subscription-card *) {
+  color:var(--rblx-theme-accent-2) !important;
+  background:color-mix(in srgb,var(--rblx-theme-accent) 6%,transparent) !important;
+  border:1px solid color-mix(in srgb,var(--rblx-theme-accent-2) 72%,transparent) !important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rblx-theme-accent) 14%,transparent) !important;
+}
 html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(input[type="range"],input[type="checkbox"],progress) { accent-color:var(--rblx-theme-accent); }
-/* Subscription and promotional cards remain intentionally plan-branded. */
-html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.plus-card,.promo-card,.plan-card,.subscription-card,.rblx-membership-promo,.rblx-pro-promo,.rblx-token-promo) { --rblx-theme-accent:initial; --rblx-theme-accent-2:initial; }
+/* Subscription and membership cards remain intentionally plan-branded. */
+html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-mini-banner,.rblx-membership-promo,.rblx-pro-promo,.plan-card,.subscription-card) { --shell-red:#ff4b57; --shell-blue:#62adff; }
+
+/* Homepage: no duplicate caption over Try Now; the thin top rule gets a soft,
+   low-opacity theme tint rather than a saturated neon line. */
+/* The card title already identifies the tool; the caption immediately above
+   Try Now was redundant in every appearance, including the original theme. */
+body.rblx-home-page .tool-footer-label { display:none !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-home-page .tool-card::after { opacity:.42; background:linear-gradient(90deg,color-mix(in srgb,var(--rblx-theme-accent) 52%,transparent),color-mix(in srgb,var(--rblx-theme-accent-2) 45%,transparent)) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-home-page :is(.home-card,.tool-card,.faq-card,.social-card)::before { background:linear-gradient(130deg,color-mix(in srgb,var(--rblx-theme-accent) 7%,transparent),transparent 30%) !important; }
+
+/* The navigation membership slot is product branding, never a user theme. */
+html[data-rblx-theme] .rblx-shell-mini-banner-plus { border-color:rgba(226,235,247,.58) !important; background:linear-gradient(135deg,#273545,#101925 52%,#334557) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.46),0 8px 20px rgba(154,176,201,.16) !important; color:#f5f9ff !important; }
+html[data-rblx-theme] .rblx-shell-mini-banner-pro { border-color:rgba(255,215,119,.7) !important; background:linear-gradient(135deg,#624810,#241a06 52%,#765713) !important; box-shadow:inset 0 1px 0 rgba(255,245,191,.48),0 8px 20px rgba(216,159,33,.2) !important; color:#fff6d5 !important; }
+html[data-rblx-theme] .rblx-shell-mini-banner-pro span { color:#ffe7a0 !important; }
+html[data-rblx-theme] .rblx-shell-mini-banner-plus::after { background:linear-gradient(105deg,transparent,rgba(255,255,255,.72),transparent) !important; }
+html[data-rblx-theme] .rblx-shell-mini-banner-pro::after { background:linear-gradient(105deg,transparent,rgba(255,233,158,.78),transparent) !important; }
+
+/* Community should sit directly on the site atmosphere. Its individual posts
+   retain their own cards, but the page itself never becomes a second canvas. */
+body.rblx-community-page :is(.rblx-shell-center,.rblx-shell-page,.community-page) { background:transparent !important; background-image:none !important; }
