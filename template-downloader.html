@@ -1240,7 +1240,6 @@
 
       <div class="side-stack">
         <article class="card promo-card">
-          <div class="badge">How To Use</div>
           <h2><span>Video</span><span>Tutorial</span></h2>
           <div class="video-box">
             <video id="templateTutorialVideo" class="video-player" controls preload="metadata" playsinline>
@@ -1310,7 +1309,6 @@
     </section>
 
     <section class="share-card">
-      <span class="share-kicker">Share This Tool</span>
       <h3>Send this page to another creator</h3>
       <p>Share the clothing on Facebook, X, LinkedIn, WhatsApp, Telegram, or copy the direct page link for later.</p>
       <div class="share-row">
@@ -1974,10 +1972,7 @@
 
     function renderToolSlide() {
       const tool = toolsData[activeToolIndex];
-      document.getElementById("slidePills").innerHTML = `
-        <span class="tool-pill">Other Tool</span>
-        ${tool.plus ? '<span class="tool-pill plus"><span class="plus-word">Plus</span> Required</span>' : '<span class="tool-pill">Free Access</span>'}
-      `;
+      document.getElementById("slidePills").innerHTML = '';
       document.getElementById("slideName").textContent = tool.name;
       document.getElementById("slideDesc").textContent = tool.desc;
       document.getElementById("slideGlyph").innerHTML = getToolShowcaseIcon(tool.icon);

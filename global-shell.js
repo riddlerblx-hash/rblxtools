@@ -5854,7 +5854,7 @@
 
     function renderToolSlide() {
       var tool = toolsData[activeToolIndex];
-      slidePills.innerHTML = '<span class="tool-pill">Other Tool</span>' + (tool.plus ? '<span class="tool-pill plus"><span class="plus-word">Plus</span> Required</span>' : '<span class="tool-pill">Free Access</span>');
+      slidePills.innerHTML = '';
       slideName.textContent = tool.name;
       slideDesc.textContent = tool.desc;
       slideGlyph.innerHTML = getSharedToolShowcaseIcon(tool.icon);

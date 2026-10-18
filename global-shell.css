@@ -5786,3 +5786,21 @@ html[data-rblx-theme] .rblx-shell-mini-banner-pro::after { background:linear-gra
 /* Community should sit directly on the site atmosphere. Its individual posts
    retain their own cards, but the page itself never becomes a second canvas. */
 body.rblx-community-page :is(.rblx-shell-center,.rblx-shell-page,.community-page) { background:transparent !important; background-image:none !important; }
+
+/* Carry the selected atmosphere through the shared chrome without repainting
+   it. These are intentionally faint translucent washes over the stock shell. */
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-header { background:radial-gradient(circle at 50% 0,color-mix(in srgb,var(--rblx-theme-accent) 9%,transparent),transparent 42%),linear-gradient(180deg,rgba(15,27,47,.96),rgba(8,17,31,.98)) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-left,.rblx-shell-right) { background:radial-gradient(circle at 100% 0,color-mix(in srgb,var(--rblx-theme-accent-2) 7%,transparent),transparent 30%),linear-gradient(180deg,rgba(19,31,44,.96),rgba(15,24,34,.96)) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-nav-group { border-color:color-mix(in srgb,var(--rblx-theme-accent) 18%,rgba(255,255,255,.08)) !important; background:color-mix(in srgb,var(--rblx-theme-accent) 3%,transparent) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-panel-tabs button,.rblx-header-nav>a,.rblx-header-menu summary):is(:hover,.is-active,[aria-selected="true"]) { border-color:color-mix(in srgb,var(--rblx-theme-accent-2) 60%,transparent) !important; background:linear-gradient(135deg,color-mix(in srgb,var(--rblx-theme-accent) 17%,transparent),color-mix(in srgb,var(--rblx-theme-accent-2) 11%,transparent)) !important; }
+
+/* Different actions in the same row use the two theme colours so a group
+   reads as a set instead of one indistinguishable wall of pink or blue. */
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(.share-row,.share-actions,.tool-actions,.community-post-actions,.community-comment-actions) > :nth-child(odd) { border-color:var(--rblx-theme-accent) !important; background:color-mix(in srgb,var(--rblx-theme-accent) 9%,transparent) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(.share-row,.share-actions,.tool-actions,.community-post-actions,.community-comment-actions) > :nth-child(even) { border-color:var(--rblx-theme-accent-2) !important; background:color-mix(in srgb,var(--rblx-theme-accent-2) 9%,transparent) !important; }
+
+/* Static tool pages that predate the shared renderer use these same labels. */
+.rblx-shell-page .promo-card > .badge,
+.rblx-shell-page .share-kicker,
+.rblx-shell-page .showcase-card #slidePills,
+.rblx-shell-page .showcase-card .tool-pill { display:none !important; }
