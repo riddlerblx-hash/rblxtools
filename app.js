@@ -14744,6 +14744,14 @@ app.use((req, res, next) => {
   return next();
 });
 
+// The interactive UGC viewer is self-hosted so a blocked or slow third-party
+// CDN cannot leave completed 3D generations with an empty viewport.
+app.use("/vendor/three", express.static(path.join(__dirname, "node_modules", "three"), {
+  fallthrough: false,
+  maxAge: "30d",
+  immutable: true,
+}));
+
 app.use(express.static(STATIC_ROOT, {
   extensions: ["html"],
   setHeaders(res, filePath) {
