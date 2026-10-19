@@ -9,15 +9,24 @@
   var USER_KEY = "rblxtools_auth_user";
   var SITE_THEME_KEY = "rblxtools_site_theme_v1";
   var SITE_THEME_PRESETS = {
-    original: { label: "RBLXTools", accent: "#62adff", accent2: "#72fff5", glow: "rgba(75, 153, 255, .20)", page: "#0d111c", tint: .14 },
-    cherry: { label: "Cherry Blossom", accent: "#ff78b5", accent2: "#ffd0e4", glow: "rgba(255, 92, 164, .18)", page: "#0d111c", tint: .16 },
-    cotton: { label: "Cotton Candy", accent: "#ff8bca", accent2: "#79d9ff", glow: "rgba(123, 208, 255, .16)", page: "#0d111c", tint: .16 },
-    aurora: { label: "Aurora", accent: "#76f0be", accent2: "#9b8cff", glow: "rgba(81, 233, 174, .16)", page: "#0d111c", tint: .15 },
-    ember: { label: "Ember", accent: "#ff9b5e", accent2: "#ffdb75", glow: "rgba(255, 111, 56, .16)", page: "#0d111c", tint: .15 },
-    midnight: { label: "Midnight Violet", accent: "#a78bfa", accent2: "#6ecbff", glow: "rgba(130, 98, 255, .16)", page: "#0d111c", tint: .15 }
+    original: { label: "RBLXTools", accent: "#62adff", accent2: "#72fff5", glow: "rgba(75, 153, 255, .20)", page: "#0d111c", surface: "#101d35", surface2: "#091321", tint: .14 },
+    cherry: { label: "Cherry Blossom", accent: "#ff78b5", accent2: "#ffd0e4", glow: "rgba(255, 92, 164, .18)", page: "#1a1019", surface: "#2a1627", surface2: "#150d18", tint: .19 },
+    cotton: { label: "Cotton Candy", accent: "#ff8bca", accent2: "#79d9ff", glow: "rgba(123, 208, 255, .16)", page: "#151524", surface: "#25223e", surface2: "#101624", tint: .19 },
+    aurora: { label: "Aurora", accent: "#76f0be", accent2: "#9b8cff", glow: "rgba(81, 233, 174, .16)", page: "#0d1a1c", surface: "#153332", surface2: "#10152b", tint: .18 },
+    ember: { label: "Ember", accent: "#ff9b5e", accent2: "#ffdb75", glow: "rgba(255, 111, 56, .16)", page: "#1c130e", surface: "#392418", surface2: "#18100d", tint: .19 },
+    midnight: { label: "Midnight Violet", accent: "#a78bfa", accent2: "#6ecbff", glow: "rgba(130, 98, 255, .16)", page: "#151126", surface: "#2a1e46", surface2: "#10152d", tint: .18 }
   };
   function readSiteTheme() {
     try { var saved = JSON.parse(localStorage.getItem(SITE_THEME_KEY) || "{}"); return saved && typeof saved === "object" ? saved : {}; } catch (_error) { return {}; }
+  }
+  function installSiteThemeCascade() {
+    if (document.getElementById("rblxSiteThemeCascade")) return;
+    var style = document.createElement("style");
+    style.id = "rblxSiteThemeCascade";
+    // This is appended at runtime, after individual legacy page styles, so a
+    // preset reliably reaches old tools, home cards, and shell overlays too.
+    style.textContent = 'html[data-rblx-theme]:not([data-rblx-theme="original"]) body{background-color:var(--rblx-theme-page)!important;background-image:radial-gradient(940px 690px at -8% -12%,color-mix(in srgb,var(--rblx-theme-accent) var(--rblx-theme-tint),transparent),transparent 68%),radial-gradient(850px 660px at 108% 0,color-mix(in srgb,var(--rblx-theme-accent-2) var(--rblx-theme-tint),transparent),transparent 68%),linear-gradient(145deg,var(--rblx-theme-page),var(--rblx-theme-surface-2) 58%,var(--rblx-theme-page))!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-home-page :is(.home-card,.tool-card,.faq-card,.faq-item,.social-card):not(.plus-card,.rblx-membership-promo,.rblx-pro-promo){border-color:color-mix(in srgb,var(--rblx-theme-accent) 37%,rgba(255,255,255,.12))!important;background:linear-gradient(145deg,color-mix(in srgb,var(--rblx-theme-surface) 92%,rgba(5,8,15,.95)),color-mix(in srgb,var(--rblx-theme-surface-2) 94%,rgba(5,8,15,.98)))!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page :is(.tool-card,.showcase-card,.share-card,.rblx-tool-stats-panel,.ugc-panel,.ugc-history-item):not(.plus-card,.rblx-membership-promo,.rblx-pro-promo,.plan-card,.subscription-card){border-color:color-mix(in srgb,var(--rblx-theme-accent) 37%,rgba(255,255,255,.12))!important;background:linear-gradient(145deg,color-mix(in srgb,var(--rblx-theme-surface) 92%,rgba(5,8,15,.95)),color-mix(in srgb,var(--rblx-theme-surface-2) 94%,rgba(5,8,15,.98)))!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-header,.rblx-shell-left,.rblx-shell-right){border-color:color-mix(in srgb,var(--rblx-theme-accent) 28%,rgba(255,255,255,.08))!important;background:radial-gradient(circle at 95% 0,color-mix(in srgb,var(--rblx-theme-accent-2) 12%,transparent),transparent 34%),linear-gradient(180deg,color-mix(in srgb,var(--rblx-theme-surface) 92%,#05080e),color-mix(in srgb,var(--rblx-theme-surface-2) 94%,#05080e))!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-daily-streak-modal,.rblx-daily-claim-modal,.rblx-shell-profile-modal,.rblx-shell-auth-modal,.rblx-shell-support-modal,.rblx-shell-checkout-modal,.rblx-shell-retention-modal,.rblx-shell-reward-modal){border-color:color-mix(in srgb,var(--rblx-theme-accent) 72%,rgba(255,255,255,.20))!important;background:radial-gradient(circle at 88% 8%,color-mix(in srgb,var(--rblx-theme-accent-2) 18%,transparent),transparent 31%),radial-gradient(circle at 10% 92%,color-mix(in srgb,var(--rblx-theme-accent) 15%,transparent),transparent 36%),linear-gradient(145deg,var(--rblx-theme-surface),var(--rblx-theme-surface-2) 76%)!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-daily-streak-card{border-color:color-mix(in srgb,var(--rblx-theme-accent) 23%,rgba(255,255,255,.10))!important;background:linear-gradient(155deg,color-mix(in srgb,var(--rblx-theme-surface) 80%,#080b11),color-mix(in srgb,var(--rblx-theme-surface-2) 90%,#05070c))!important}';
+    document.head.appendChild(style);
   }
   function applySiteTheme(nextTheme, persist) {
     var theme = nextTheme && typeof nextTheme === "object" ? nextTheme : {};
@@ -28,6 +37,8 @@
     root.style.setProperty("--rblx-theme-accent-2", String(theme.accent2 || preset.accent2));
     root.style.setProperty("--rblx-theme-glow", String(theme.glow || preset.glow));
     root.style.setProperty("--rblx-theme-page", String(theme.page || preset.page || "#0d111c"));
+    root.style.setProperty("--rblx-theme-surface", String(theme.surface || preset.surface || "#101d35"));
+    root.style.setProperty("--rblx-theme-surface-2", String(theme.surface2 || preset.surface2 || "#091321"));
     var tint = Number(theme.tint);
     if (!isFinite(tint)) tint = Number(preset.tint || .15);
     tint = Math.max(.05, Math.min(.35, tint));
@@ -37,6 +48,7 @@
     return theme;
   }
   window.RBLXToolsTheme = { presets: SITE_THEME_PRESETS, read: readSiteTheme, apply: applySiteTheme, key: SITE_THEME_KEY };
+  installSiteThemeCascade();
   applySiteTheme(readSiteTheme(), false);
   var REFERRAL_CODE_KEY = "rblxtools_referral_code";
   function getAssetBatchPlan() {
