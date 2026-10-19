@@ -1021,7 +1021,10 @@ function getStoredAIUGCModelPath(userId, taskId) {
 function getStoredAIUGCPreviewPath(userId, taskId) {
   const safeUserId = String(userId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
   const safeTaskId = String(taskId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
-  return path.join(AI_UGC_MODEL_DIR, safeUserId, `${safeTaskId}.preview-v2.glb`);
+  // v3 invalidates cached previews created before the current decode-and-write
+  // path. Some of those files had a valid GLB header but unsupported compressed
+  // geometry, so Three.js showed an empty viewport even though generation worked.
+  return path.join(AI_UGC_MODEL_DIR, safeUserId, `${safeTaskId}.preview-v3.glb`);
 }
 
 function getStoredAIUGCCoverPath(userId, taskId) {
@@ -4404,8 +4407,14 @@ async function getAuthUserByEmail(email) {
 }
 
 async function getAuthUserById(userId) {
+  const normalizedId = String(userId || "").trim();
+  // Community posts created before sign-in may carry a guest-* author id.
+  // The auth table is UUID-backed, so never send those values to PostgREST.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalizedId)) {
+    return null;
+  }
   const rows = await supabaseRequest(
-    buildAuthTablePath(`?id=eq.${encodeURIComponent(userId)}&select=*`)
+    buildAuthTablePath(`?id=eq.${encodeURIComponent(normalizedId)}&select=*`)
   );
 
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
