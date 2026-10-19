@@ -5831,7 +5831,8 @@ html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-header,.
 }
 html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-page,
 html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-center{background-color:transparent!important;}
-html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-nav-group,.rblx-shell-profile-card,.rblx-shell-header-token-balance,.rblx-shell-referral-balance,.rblx-shell-quest-card,.rblx-shell-chat-card){
+html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-nav-group,.rblx-shell-header-token-balance,.rblx-shell-referral-balance,.rblx-shell-quest-card,.rblx-shell-chat-card),
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-profile-card:not(.is-plus,.is-pro){
   border-color:color-mix(in srgb,var(--rblx-theme-accent) 31%,rgba(255,255,255,.10))!important;
   background:linear-gradient(145deg,color-mix(in srgb,var(--rblx-theme-surface) 90%,transparent),color-mix(in srgb,var(--rblx-theme-surface-2) 93%,transparent))!important;
 }
