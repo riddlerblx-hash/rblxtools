@@ -5779,7 +5779,12 @@ body.rblx-home-page .tool-footer-label { display:none !important; }
 html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-home-page .tool-card::after { opacity:.42; background:linear-gradient(90deg,color-mix(in srgb,var(--rblx-theme-accent) 52%,transparent),color-mix(in srgb,var(--rblx-theme-accent-2) 45%,transparent)) !important; }
 html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-home-page :is(.home-card,.tool-card,.faq-card,.social-card)::before { background:linear-gradient(130deg,color-mix(in srgb,var(--rblx-theme-accent) 7%,transparent),transparent 30%) !important; }
 
-/* The navigation membership slot is product branding, never a user theme. */
+/* The navigation membership slot is product branding, never a user theme.
+   The rotator marks its visible slide as .is-active, which would otherwise
+   match the generic themed sidebar-link selector. Keep every slide state
+   below locked to its plan finish. */
+html[data-rblx-theme] .rblx-shell-left a.rblx-shell-mini-banner-plus:is(.is-active,:hover,:focus-visible) { border-color:rgba(226,235,247,.58) !important; background:linear-gradient(135deg,#273545,#101925 52%,#334557) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.46),0 8px 20px rgba(154,176,201,.16) !important; color:#f5f9ff !important; }
+html[data-rblx-theme] .rblx-shell-left a.rblx-shell-mini-banner-pro:is(.is-active,:hover,:focus-visible) { border-color:rgba(255,215,119,.7) !important; background:linear-gradient(135deg,#624810,#241a06 52%,#765713) !important; box-shadow:inset 0 1px 0 rgba(255,245,191,.48),0 8px 20px rgba(216,159,33,.2) !important; color:#fff6d5 !important; }
 html[data-rblx-theme] .rblx-shell-mini-banner-plus { border-color:rgba(226,235,247,.58) !important; background:linear-gradient(135deg,#273545,#101925 52%,#334557) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.46),0 8px 20px rgba(154,176,201,.16) !important; color:#f5f9ff !important; }
 html[data-rblx-theme] .rblx-shell-mini-banner-pro { border-color:rgba(255,215,119,.7) !important; background:linear-gradient(135deg,#624810,#241a06 52%,#765713) !important; box-shadow:inset 0 1px 0 rgba(255,245,191,.48),0 8px 20px rgba(216,159,33,.2) !important; color:#fff6d5 !important; }
 html[data-rblx-theme] .rblx-shell-mini-banner-pro span { color:#ffe7a0 !important; }
