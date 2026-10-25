@@ -13,24 +13,18 @@
 </head>
 <body class="rblx-shell-page rblx-site-settings-page">
   <main class="site-settings">
-    <section class="site-settings-hero"><div class="site-settings-kicker">Your RBLXTools experience</div><h1>Site settings</h1><p>Make RBLXTools feel more like yours. Pick a preset appearance or create a color combination you like.</p></section>
+    <section class="site-settings-hero"><div class="site-settings-kicker">Your RBLXTools experience</div><h1>Site settings</h1><p>Make RBLXTools feel more like yours. Pick a preset appearance you like.</p></section>
     <section class="site-settings-panel"><h2>Preset themes</h2><p>One choice changes the shared shell, navigation, account controls, and supported tool pages.</p><div class="theme-grid" id="themeGrid"></div></section>
-    <section class="site-settings-panel"><h2>Custom colors</h2><p>Choose a shared outline color, a secondary glow, and how visible the page tint should be.</p><div class="custom-grid"><label class="custom-field">Primary highlight<input id="themeAccent" type="color" value="#62adff" /></label><label class="custom-field">Secondary glow<input id="themeAccent2" type="color" value="#72fff5" /></label><label class="custom-field theme-tint-field">Page tint strength <output id="themeTintValue">15%</output><input id="themeTint" type="range" min="5" max="35" step="1" value="15" /></label></div><div class="site-settings-actions"><button class="primary" id="saveCustomTheme" type="button">Save custom theme</button><button id="resetTheme" type="button">Restore RBLXTools theme</button><span id="themeStatus" aria-live="polite"></span></div><p class="site-settings-note">Your choice is saved in this browser and applied immediately as you move around the site.</p></section>
   </main>
   <script src="./global-shell.js?v=20261018-theme-settings"></script>
   <script>
     (function(){
       var api=window.RBLXToolsTheme;if(!api)return;
       var definitions=[['original','RBLXTools','The original midnight blue appearance','#62adff','#72fff5','#10203a','#07101d'],['cherry','Cherry Blossom','Soft pink with a warm petal glow','#ff78b5','#ffd0e4','#53213f','#211227'],['cotton','Cotton Candy','Playful pink and sky-blue highlights','#ff8bca','#79d9ff','#42264e','#182c4a'],['aurora','Aurora','Fresh emerald and violet light','#76f0be','#9b8cff','#183d40','#181d46'],['ember','Ember','Golden firelight against deep navy','#ff9b5e','#ffdb75','#543124','#251913'],['midnight','Midnight Violet','A richer violet creator workspace','#a78bfa','#6ecbff','#332457','#101b39']];
-      var grid=document.getElementById('themeGrid'),accent=document.getElementById('themeAccent'),accent2=document.getElementById('themeAccent2'),tint=document.getElementById('themeTint'),tintValue=document.getElementById('themeTintValue'),status=document.getElementById('themeStatus');
+      var grid=document.getElementById('themeGrid');
       function current(){return api.read()||{}}
-      function tintFor(theme){var preset=api.presets[theme.preset]||api.presets.original;return Math.round(Number(theme.tint||preset.tint||.15)*100)}
-      function syncTint(value){var amount=Math.max(5,Math.min(35,Number(value)||15));tint.value=amount;tintValue.textContent=amount+'%'}
-      function render(){var selected=current().preset||'original';grid.replaceChildren();definitions.forEach(function(item){var card=document.createElement('button');card.type='button';card.className='theme-option'+(selected===item[0]?' is-selected':'');card.style.setProperty('--theme-a',item[3]);card.style.setProperty('--theme-b',item[4]);card.style.setProperty('--theme-bg-1',item[5]);card.style.setProperty('--theme-bg-2',item[6]);card.innerHTML='<span class="theme-swatch"><i></i><i></i></span><strong>'+item[1]+'</strong><small>'+item[2]+'</small><span class="theme-check">✓</span>';card.addEventListener('click',function(){api.apply({preset:item[0]});accent.value=item[3];accent2.value=item[4];syncTint(tintFor({preset:item[0]}));status.textContent=item[1]+' applied.';render();});grid.appendChild(card);});}
-      var saved=current(),preset=api.presets[saved.preset]||api.presets.original;accent.value=saved.accent||preset.accent;accent2.value=saved.accent2||preset.accent2;syncTint(tintFor(saved));
-      tint.addEventListener('input',function(){syncTint(tint.value)});
-      document.getElementById('saveCustomTheme').addEventListener('click',function(){api.apply({preset:'custom',accent:accent.value,accent2:accent2.value,tint:Number(tint.value)/100,glow:accent.value+'38'});status.textContent='Custom theme saved.';render();});
-      document.getElementById('resetTheme').addEventListener('click',function(){api.apply({preset:'original'});accent.value='#62adff';accent2.value='#72fff5';syncTint(14);status.textContent='RBLXTools theme restored.';render();});render();
+      function render(){var selected=current().preset||'original';grid.replaceChildren();definitions.forEach(function(item){var card=document.createElement('button');card.type='button';card.className='theme-option'+(selected===item[0]?' is-selected':'');card.style.setProperty('--theme-a',item[3]);card.style.setProperty('--theme-b',item[4]);card.style.setProperty('--theme-bg-1',item[5]);card.style.setProperty('--theme-bg-2',item[6]);card.innerHTML='<span class="theme-swatch"><i></i><i></i></span><strong>'+item[1]+'</strong><small>'+item[2]+'</small><span class="theme-check">✓</span>';card.addEventListener('click',function(){api.apply({preset:item[0]});render();});grid.appendChild(card);});}
+      render();
     })();
   </script>
 </body>
