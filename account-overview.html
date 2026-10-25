@@ -2549,6 +2549,18 @@
         if (els.acctProfileRankXp) els.acctProfileRankXp.textContent = next ? current.toLocaleString() + " / " + end.toLocaleString() + " XP" : current.toLocaleString() + " XP · Max level";
         if (els.acctProfileRankFill) els.acctProfileRankFill.style.width = progress.toFixed(2) + "%";
       }
+      var profileRankRequestId = 0;
+      async function loadProfileRankProgress() {
+        if (!state.user || !state.user.id) return;
+        var requestedUserId = String(state.user.id), requestId = ++profileRankRequestId;
+        try {
+          var payload = await apiRequest('/rewards/overview', { method: 'GET' });
+          if (requestId !== profileRankRequestId || !state.user || String(state.user.id) !== requestedUserId) return;
+          renderProfileRankProgress(payload && payload.rewards);
+        } catch (_error) {
+          if (requestId === profileRankRequestId && els.acctProfileRankProgress) els.acctProfileRankProgress.hidden = true;
+        }
+      }
       function renderRewardsLevels(rewards) {
         if (!els.acctLevelsContent || !rewards) return;
         renderProfileRankProgress(rewards);
@@ -3180,6 +3192,7 @@
         if (els.acctCustomerId) els.acctCustomerId.textContent = state.user.stripeCustomerId || "Not connected";
         renderProfilePresentation();
         loadPublicProfileStats();
+        loadProfileRankProgress();
         broadcastMembershipSnapshot(state.user);
       }
 
