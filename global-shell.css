@@ -5815,9 +5815,10 @@ html[data-rblx-theme]:not([data-rblx-theme="original"]) .hero-title .accent { ba
 
 /* The settings tiles are a catalogue of every preset, so a selected theme
    never repaints the other choices. */
-html[data-rblx-theme] .site-settings .theme-option { border-color:rgba(149,190,245,.22) !important; color:#f2f7ff !important; background:linear-gradient(145deg,var(--theme-bg-1),var(--theme-bg-2)) !important; box-shadow:none !important; }
-html[data-rblx-theme] .site-settings .theme-option:hover { border-color:var(--theme-a) !important; box-shadow:0 12px 24px rgba(0,0,0,.2) !important; }
-html[data-rblx-theme] .site-settings .theme-option.is-selected { border-color:var(--theme-a) !important; box-shadow:0 0 0 2px color-mix(in srgb,var(--theme-a) 28%,transparent),0 16px 30px rgba(0,0,0,.24) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-site-settings-page .site-settings button.theme-option { border-color:color-mix(in srgb,var(--theme-a) 55%,rgba(255,255,255,.16)) !important; color:#f2f7ff !important; background:linear-gradient(145deg,var(--theme-bg-1),var(--theme-bg-2)) !important; box-shadow:none !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-site-settings-page .site-settings button.theme-option:is(:hover,.is-selected) { border-color:var(--theme-a) !important; background:linear-gradient(145deg,var(--theme-bg-1),var(--theme-bg-2)) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-site-settings-page .site-settings button.theme-option:hover { box-shadow:0 12px 24px rgba(0,0,0,.2) !important; }
+html[data-rblx-theme]:not([data-rblx-theme="original"]) body.rblx-site-settings-page .site-settings button.theme-option.is-selected { box-shadow:0 0 0 2px color-mix(in srgb,var(--theme-a) 28%,transparent),0 16px 30px rgba(0,0,0,.24) !important; }
 
 /* Full-site theme foundations. Presets get their own restrained dark base and
    surface colors; the brighter second colour is reserved for emphasis, not
