@@ -273,6 +273,7 @@
   }
 
   function buildCommunityCommentAuthor(profile) {
+    if (window.RBLXToolsProfile && typeof window.RBLXToolsProfile.preload === "function") window.RBLXToolsProfile.preload(profile);
     var plan = String(profile.plan || "").toLowerCase();
     var isPro = plan === "pro";
     var isPlus = plan === "plus";
@@ -306,8 +307,8 @@
   }
 
   function previewCommunityProfileFromButton(button, event) {
-    if (!button || !window.RBLXToolsProfile || typeof window.RBLXToolsProfile.open !== "function") return;
-    window.RBLXToolsProfile.open({
+    if (!button || !window.RBLXToolsProfile || typeof window.RBLXToolsProfile.preview !== "function") return;
+    window.RBLXToolsProfile.preview({
       displayName: button.getAttribute("data-community-profile-name") || "Member",
       userId: button.getAttribute("data-community-profile-user-id") || "",
       avatarUrl: button.getAttribute("data-community-profile-avatar") || "",
