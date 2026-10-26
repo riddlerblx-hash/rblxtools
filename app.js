@@ -1574,12 +1574,33 @@ function getCommunityAvatarUrl(user) {
   return cleanText(savedAvatar || user?.avatar_url || user?.avatarUrl || user?.user_metadata?.avatar_url || user?.user_metadata?.avatarUrl || user?.raw_user_meta_data?.avatar_url || user?.raw_user_meta_data?.avatarUrl || "", 2000);
 }
 
+function getVerifiedMemberDisplayName(user, savedName = "") {
+  const metadata = user?.user_metadata || user?.raw_user_meta_data || user?.metadata || {};
+  const candidates = [
+    savedName,
+    user?.display_name,
+    user?.displayName,
+    user?.username,
+    user?.name,
+    metadata?.display_name,
+    metadata?.displayName,
+    metadata?.username,
+    metadata?.name,
+    String(user?.email || "").split("@")[0],
+  ];
+  for (const candidate of candidates) {
+    const name = cleanText(candidate || "", 80);
+    if (name && !/^guest$/i.test(name)) return name;
+  }
+  return "Member";
+}
+
 function getCommunityProfileRecord(user) {
   const record = readCommunityProfiles()[String(user?.id || "")] || {};
   return {
     avatarUrl: getCommunityAvatarUrl(user),
     bio: cleanText(record.bio || "", 150),
-    displayName: cleanText(record.displayName || user?.display_name || user?.username || user?.email?.split("@")[0] || "Member", 80),
+    displayName: getVerifiedMemberDisplayName(user, record.displayName),
   };
 }
 
@@ -4337,6 +4358,8 @@ async function buildResolvedPublicUser(row) {
   return {
     id: row.id,
     email: row.email,
+    displayName: getVerifiedMemberDisplayName(row),
+    username: getVerifiedMemberDisplayName(row),
     isAdmin: admin,
     plan: membership.plan,
     premiumActive: membership.premiumActive,

@@ -1249,15 +1249,22 @@
     var source = user || {};
     var extra = payload || {};
     var savedProfile = source && source.id ? readSavedProfile(String(source.id)) : null;
-    return String(
-      (savedProfile && savedProfile.displayName) ||
-      extra.displayName ||
-      source.displayName ||
-      source.username ||
-      source.name ||
-      getEmailNamePart(source.email) ||
+    var candidates = [
+      savedProfile && savedProfile.displayName,
+      extra.displayName,
+      source.displayName,
+      source.username,
+      source.name,
+      getEmailNamePart(source.email),
       "Member"
-    ).trim();
+    ];
+    for (var index = 0; index < candidates.length; index += 1) {
+      var candidate = String(candidates[index] || "").trim();
+      // "Guest" is a visitor-only label. It can linger in an older local
+      // profile record, but must never replace a verified account identity.
+      if (candidate && !/^guest$/i.test(candidate)) return candidate;
+    }
+    return "Member";
   }
 
   function getCachedAuthUser() {
@@ -1729,7 +1736,7 @@
       var parsed = raw ? JSON.parse(raw) : null;
       if (!parsed || typeof parsed !== "object") return null;
       return {
-        displayName: parsed.displayName ? String(parsed.displayName).trim() : "",
+        displayName: parsed.displayName && !/^guest$/i.test(String(parsed.displayName).trim()) ? String(parsed.displayName).trim() : "",
         bio: parsed.bio ? String(parsed.bio).trim().slice(0, 150) : "",
         avatarUrl: parsed.avatarUrl ? String(parsed.avatarUrl).trim() : "",
         avatarScale: parsed.avatarScale != null ? Number(parsed.avatarScale) : 1,
@@ -1794,7 +1801,7 @@
         if (!saved) return;
         var local = readSavedProfile(userId);
         var profile = Object.assign({}, local, {
-          displayName: String(saved.displayName || local.displayName || ""),
+          displayName: !/^guest$/i.test(String(saved.displayName || "").trim()) ? String(saved.displayName || "").trim() : String(local.displayName || ""),
           bio: String(saved.bio || local.bio || ""),
           avatarUrl: String(saved.avatarUrl || local.avatarUrl || "")
         });
