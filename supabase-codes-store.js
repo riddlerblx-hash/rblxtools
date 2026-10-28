@@ -100,6 +100,19 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     }
   }
 
+  async function readAllRows(path) {
+    const rows = [];
+    const pageSize = 1000;
+    for (let offset = 0; offset < 100000; offset += pageSize) {
+      const separator = path.includes("?") ? "&" : "?";
+      const page = await request(`${path}${separator}offset=${offset}&limit=${pageSize}`);
+      const items = Array.isArray(page) ? page : [];
+      rows.push(...items);
+      if (items.length < pageSize) break;
+    }
+    return rows;
+  }
+
   async function listFromDatabase({ search = "", limit = 20, page = 1 } = {}) {
     const query = clean(search, 100).toLowerCase();
     const size = Math.max(1, Math.min(Number(limit) || 20, 100));
@@ -111,12 +124,15 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const rows = await request(`/rest/v1/games?${filters.join("&")}&select=*&order=created_at.desc`);
     const games = (Array.isArray(rows) ? rows : []).map(toGame);
     const pageGames = games.slice((current - 1) * size, current * size);
-    const ids = pageGames.map((game) => game.id);
+    // Fetch the metrics for the full published set before slicing.  This keeps
+    // directory cards, search results, and ranked cards on the exact same
+    // counts as their guide pages instead of relying on stale per-card data.
+    const ids = games.map((game) => game.id);
     const codeRows = ids.length
-      ? await request(`/rest/v1/game_codes?${buildInFilter("game_id", ids)}&status=eq.working&select=game_id,status`)
+      ? await readAllRows(`/rest/v1/game_codes?${buildInFilter("game_id", ids)}&status=eq.working&select=game_id,status`)
       : [];
     const codes = (Array.isArray(codeRows) ? codeRows : []).map((row) => ({ gameId: row.game_id, status: row.status }));
-    const viewRows = ids.length ? await request(`/rest/v1/game_code_page_views?${buildInFilter("game_id", ids)}&select=game_id`) : [];
+    const viewRows = ids.length ? await readAllRows(`/rest/v1/game_code_page_views?${buildInFilter("game_id", ids)}&select=game_id`) : [];
     const views = (Array.isArray(viewRows) ? viewRows : []).map((row) => ({ gameId: row.game_id }));
     return { games: pageGames.map((game) => publicGame(game, codes, views)), page: current, limit: size, total: games.length, provider: providerInfo() };
   }
@@ -132,8 +148,8 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const size = Math.max(1, Math.min(Number(limit) || 8, 24));
     const games = (await request("/rest/v1/games?codes_enabled=is.true&select=*&order=created_at.desc")).map(toGame);
     const viewFilter = period === "weekly" ? `&week_start=eq.${currentWeekStart()}` : "";
-    const viewRows = await request(`/rest/v1/game_code_page_views?select=game_id${viewFilter}&limit=10000`);
-    const codeRows = await request("/rest/v1/game_codes?status=eq.working&select=game_id,status&limit=10000");
+    const viewRows = await readAllRows(`/rest/v1/game_code_page_views?select=game_id${viewFilter}`);
+    const codeRows = await readAllRows("/rest/v1/game_codes?status=eq.working&select=game_id,status");
     const views = (Array.isArray(viewRows) ? viewRows : []).map((row) => ({ gameId: row.game_id }));
     const counts = new Map();
     views.forEach((view) => counts.set(String(view.gameId), (counts.get(String(view.gameId)) || 0) + 1));
@@ -184,7 +200,7 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const ratingRows = await request(`/rest/v1/game_ratings?game_id=eq.${encodeURIComponent(game.id)}&select=score,voter_user_id`);
     const ratingCount = Array.isArray(ratingRows) ? ratingRows.length : 0;
     const ratingTotal = (Array.isArray(ratingRows) ? ratingRows : []).reduce((total, rating) => total + Number(rating.score || 0), 0);
-    const viewRows = await request(`/rest/v1/game_code_page_views?game_id=eq.${encodeURIComponent(game.id)}&select=id`);
+    const viewRows = await readAllRows(`/rest/v1/game_code_page_views?game_id=eq.${encodeURIComponent(game.id)}&select=id`);
     const guideGame = publicGame(game, codes);
     guideGame.viewCount = Array.isArray(viewRows) ? viewRows.length : 0;
     const commentRows = await request(`/rest/v1/game_code_comments?game_id=eq.${encodeURIComponent(game.id)}&select=id,author_user_id,author_name,author_avatar_url,body,parent_comment_id,created_at,updated_at&order=created_at.asc&limit=400`);
