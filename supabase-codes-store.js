@@ -113,6 +113,24 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     return rows;
   }
 
+  async function loadDirectoryMetrics(games, viewFilter = "") {
+    const chunks = [];
+    for (let index = 0; index < games.length; index += 20) chunks.push(games.slice(index, index + 20).map((game) => game.id));
+    const batches = await Promise.all(chunks.map(async (ids) => {
+      const filter = buildInFilter("game_id", ids);
+      const [codeRows, viewRows] = await Promise.all([
+        readAllRows(`/rest/v1/game_codes?${filter}&status=eq.working&select=game_id,status&order=game_id.asc`),
+        readAllRows(`/rest/v1/game_code_page_views?${filter}&select=game_id${viewFilter}&order=game_id.asc,created_at.asc`),
+      ]);
+      return { codeRows, viewRows };
+    }));
+    return batches.reduce((metrics, batch) => {
+      metrics.codes.push(...(Array.isArray(batch.codeRows) ? batch.codeRows : []).map((row) => ({ gameId: row.game_id, status: row.status })));
+      metrics.views.push(...(Array.isArray(batch.viewRows) ? batch.viewRows : []).map((row) => ({ gameId: row.game_id })));
+      return metrics;
+    }, { codes: [], views: [] });
+  }
+
   async function listFromDatabase({ search = "", limit = 20, page = 1 } = {}) {
     const query = clean(search, 100).toLowerCase();
     const size = Math.max(1, Math.min(Number(limit) || 20, 100));
@@ -127,14 +145,8 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     // Fetch the metrics for the full published set before slicing.  This keeps
     // directory cards, search results, and ranked cards on the exact same
     // counts as their guide pages instead of relying on stale per-card data.
-    const ids = games.map((game) => game.id);
-    const codeRows = ids.length
-      ? await readAllRows(`/rest/v1/game_codes?${buildInFilter("game_id", ids)}&status=eq.working&select=game_id,status`)
-      : [];
-    const codes = (Array.isArray(codeRows) ? codeRows : []).map((row) => ({ gameId: row.game_id, status: row.status }));
-    const viewRows = ids.length ? await readAllRows(`/rest/v1/game_code_page_views?${buildInFilter("game_id", ids)}&select=game_id`) : [];
-    const views = (Array.isArray(viewRows) ? viewRows : []).map((row) => ({ gameId: row.game_id }));
-    return { games: pageGames.map((game) => publicGame(game, codes, views)), page: current, limit: size, total: games.length, provider: providerInfo() };
+    const metrics = await loadDirectoryMetrics(games);
+    return { games: pageGames.map((game) => publicGame(game, metrics.codes, metrics.views)), page: current, limit: size, total: games.length, provider: providerInfo() };
   }
 
   function currentWeekStart() {
@@ -147,13 +159,11 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
   async function listRankedFromDatabase({ period = "popular", limit = 8 } = {}) {
     const size = Math.max(1, Math.min(Number(limit) || 8, 24));
     const games = (await request("/rest/v1/games?codes_enabled=is.true&select=*&order=created_at.desc")).map(toGame);
-    const viewFilter = period === "weekly" ? `&week_start=eq.${currentWeekStart()}` : "";
-    const viewRows = await readAllRows(`/rest/v1/game_code_page_views?select=game_id${viewFilter}`);
-    const codeRows = await readAllRows("/rest/v1/game_codes?status=eq.working&select=game_id,status");
-    const views = (Array.isArray(viewRows) ? viewRows : []).map((row) => ({ gameId: row.game_id }));
+    const metrics = await loadDirectoryMetrics(games, period === "weekly" ? `&week_start=eq.${currentWeekStart()}` : "");
+    const views = metrics.views;
     const counts = new Map();
     views.forEach((view) => counts.set(String(view.gameId), (counts.get(String(view.gameId)) || 0) + 1));
-    const codes = (Array.isArray(codeRows) ? codeRows : []).map((row) => ({ gameId: row.game_id, status: row.status }));
+    const codes = metrics.codes;
     return {
       games: games.filter((game) => (counts.get(String(game.id)) || 0) > 0)
         .sort((left, right) => (counts.get(String(right.id)) || 0) - (counts.get(String(left.id)) || 0) || String(right.createdAt).localeCompare(String(left.createdAt)))
