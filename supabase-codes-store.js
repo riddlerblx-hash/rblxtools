@@ -59,6 +59,9 @@ function toCode(row) {
 }
 
 function publicGame(game, codeRows, viewRows = []) {
+  const gameCodes = codeRows.filter((code) => code.gameId === game.id && code.status === "working");
+  const totalVotes = gameCodes.reduce((total, code) => total + Number(code.totalVotes || 0), 0);
+  const successfulVotes = gameCodes.reduce((total, code) => total + Number(code.successVotes || 0), 0);
   return {
     id: game.id,
     name: game.name,
@@ -73,7 +76,9 @@ function publicGame(game, codeRows, viewRows = []) {
     authorUserId: game.authorUserId,
     authorName: game.authorName,
     viewCount: viewRows.filter((view) => view.gameId === game.id).length,
-    workingCodeCount: codeRows.filter((code) => code.gameId === game.id && code.status === "working").length,
+    workingCodeCount: gameCodes.length,
+    codeSuccessRate: totalVotes ? Math.round((successfulVotes / totalVotes) * 100) : null,
+    codeVoteCount: totalVotes,
     lastUpdated: game.updatedAt,
   };
 }
@@ -119,16 +124,28 @@ function createSupabaseCodesStore({ request, isConfigured, fallback }) {
     const batches = await Promise.all(chunks.map(async (ids) => {
       const filter = buildInFilter("game_id", ids);
       const [codeRows, viewRows] = await Promise.all([
-        readAllRows(`/rest/v1/game_codes?${filter}&status=eq.working&select=game_id,status&order=game_id.asc`),
+        readAllRows(`/rest/v1/game_codes?${filter}&status=eq.working&select=id,game_id,status&order=game_id.asc`),
         readAllRows(`/rest/v1/game_code_page_views?${filter}&select=game_id${viewFilter}&order=game_id.asc,created_at.asc`),
       ]);
       return { codeRows, viewRows };
     }));
-    return batches.reduce((metrics, batch) => {
-      metrics.codes.push(...(Array.isArray(batch.codeRows) ? batch.codeRows : []).map((row) => ({ gameId: row.game_id, status: row.status })));
+    const metrics = batches.reduce((metrics, batch) => {
+      metrics.codes.push(...(Array.isArray(batch.codeRows) ? batch.codeRows : []).map((row) => ({ id: row.id, gameId: row.game_id, status: row.status })));
       metrics.views.push(...(Array.isArray(batch.viewRows) ? batch.viewRows : []).map((row) => ({ gameId: row.game_id })));
       return metrics;
     }, { codes: [], views: [] });
+    const voteChunks = [];
+    for (let index = 0; index < metrics.codes.length; index += 100) voteChunks.push(metrics.codes.slice(index, index + 100).map((code) => code.id));
+    const voteBatches = await Promise.all(voteChunks.map((ids) => readAllRows(`/rest/v1/game_code_votes?${buildInFilter("game_code_id", ids)}&select=game_code_id,worked&order=game_code_id.asc`)));
+    const voteTotals = new Map();
+    voteBatches.flat().forEach((vote) => {
+      const summary = voteTotals.get(String(vote.game_code_id)) || { successVotes: 0, totalVotes: 0 };
+      summary.totalVotes += 1;
+      if (vote.worked) summary.successVotes += 1;
+      voteTotals.set(String(vote.game_code_id), summary);
+    });
+    metrics.codes.forEach((code) => Object.assign(code, voteTotals.get(String(code.id)) || { successVotes: 0, totalVotes: 0 }));
+    return metrics;
   }
 
   async function listFromDatabase({ search = "", limit = 20, page = 1 } = {}) {
