@@ -2308,7 +2308,7 @@
                 "</div>" +
               "</div>" +
               "</div>" +
-              '<button class="rblx-shell-chat-admin-button rblx-shell-chat-admin-rail" type="button" id="rblxShellAdminButton" aria-label="Open admin panel" hidden>' + getNavIcon("shield") + '</button>' +
+              '<button class="rblx-shell-chat-admin-button rblx-shell-chat-admin-rail" style="border:1px solid rgba(110,179,255,.38)!important;background:linear-gradient(180deg,rgba(110,179,255,.30),rgba(45,84,163,.96))!important;color:#eef4ff!important;box-shadow:0 10px 18px rgba(49,90,231,.28)!important" type="button" id="rblxShellAdminButton" aria-label="Open admin panel" hidden>' + getNavIcon("shield") + '</button>' +
             "</div>" +
           "</aside>" +
         "</div>" +
@@ -2555,8 +2555,9 @@
       var isPlus = String(profile.plan || "").toLowerCase() === "plus" || (!isPro && String(profile.badge || "").toLowerCase() === "plus");
       var isSystem = Boolean(profile.system);
       var isTimedOut = Boolean(profile.moderationTimeoutUntil && new Date(profile.moderationTimeoutUntil).getTime() > Date.now());
+      var chatIdentityStyle = ' style="border:0!important;outline:0!important;box-shadow:none!important;text-decoration:none!important;text-shadow:none!important;-webkit-text-stroke:0!important"';
       var avatarMarkup = profile.avatarUrl
-        ? '<img class="rblx-shell-chat-avatar-image" src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\';" />' +
+        ? '<img class="rblx-shell-chat-avatar-image"' + chatIdentityStyle + ' src="' + escapeHtml(profile.avatarUrl) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\';" />' +
           '<span class="rblx-shell-chat-avatar-fallback" style="display:none;">' + escapeHtml(profile.avatarText) + "</span>"
         : '<span class="rblx-shell-chat-avatar-fallback">' + escapeHtml(profile.avatarText) + "</span>";
       var badgeMarkup = "";
@@ -2580,16 +2581,16 @@
           (isTimedOut
             ? '<span class="rblx-shell-chat-timeout-flag" aria-hidden="true"><span class="rblx-shell-chat-timeout-icon">!</span><span class="rblx-shell-chat-timeout-tip">Timed out: ' + escapeHtml(profile.moderationTimeoutReason || "No reason given") + ' | ' + escapeHtml(formatRemainingDuration(new Date(profile.moderationTimeoutUntil).getTime() - Date.now())) + " left</span></span>"
             : "") +
-          '<button class="rblx-shell-chat-avatar-button" type="button" data-chat-action="profile" data-chat-index="' + index + '" aria-label="Open profile for ' + escapeHtml(profile.displayName) + '">' +
-            '<span class="rblx-shell-chat-avatar' + (profile.avatarUrl ? ' has-image' : '') + '">' + avatarMarkup + "</span>" +
+          '<button class="rblx-shell-chat-avatar-button"' + chatIdentityStyle + ' type="button" data-chat-action="profile" data-chat-index="' + index + '" aria-label="Open profile for ' + escapeHtml(profile.displayName) + '">' +
+            '<span class="rblx-shell-chat-avatar' + (profile.avatarUrl ? ' has-image' : '') + '"' + chatIdentityStyle + '>' + avatarMarkup + "</span>" +
           "</button>" +
           '<div>' +
             '<div class="rblx-shell-chat-name">' +
-              '<button class="rblx-shell-chat-name-button" type="button" data-chat-action="profile" data-chat-index="' + index + '">' +
+              '<button class="rblx-shell-chat-name-button"' + chatIdentityStyle + ' type="button" data-chat-action="profile" data-chat-index="' + index + '">' +
                 badgeMarkup +
                 leaderboardMarkup +
                 (isPro ? '<span class="rblx-shell-chat-plus-mark is-pro">&#128736;</span>' : (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "")) +
-                '<span' + nameClass + '>' + escapeHtml(profile.displayName) + "</span>" +
+                '<span' + nameClass + chatIdentityStyle + '>' + escapeHtml(profile.displayName) + "</span>" +
               "</button>" +
             "</div>" +
             messageBody + chatActions +
@@ -4066,6 +4067,10 @@
     shellState.chatBottom = chatBottom;
     shellState.chatRainOverlay = chatRainOverlay;
     if (shellState.chatAdminButton) {
+      shellState.chatAdminButton.style.setProperty("border", "1px solid rgba(110,179,255,.38)", "important");
+      shellState.chatAdminButton.style.setProperty("background", "linear-gradient(180deg,rgba(110,179,255,.30),rgba(45,84,163,.96))", "important");
+      shellState.chatAdminButton.style.setProperty("color", "#eef4ff", "important");
+      shellState.chatAdminButton.querySelectorAll("svg").forEach(function (icon) { icon.style.setProperty("fill", "currentColor", "important"); icon.style.setProperty("stroke", "none", "important"); });
       shellState.chatAdminButton.hidden = true;
       shellState.chatAdminButton.style.display = "none";
     }
