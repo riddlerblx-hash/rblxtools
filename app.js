@@ -8447,7 +8447,7 @@ app.get("/auth/me", async (req, res) => {
 
 app.get("/auth/ai-token-bonus", async (req, res) => {
   try {
-    res.setHeader("Cache-Control", "no-store, private, max-age=0");
+    res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=300");
     const user = await requireAuthenticatedUser(req);
     const membership = await resolveMembershipSnapshot(user);
     const bonus = getActiveAITokenPurchaseBonus(user.id);
@@ -9478,7 +9478,7 @@ app.get("/api/leaderboards", async (_req, res) => {
       moneySpent: top(members, (member) => member.moneySpentCents),
     } };
     leaderboardCache = payload;
-    leaderboardCacheExpiresAt = Date.now() + 15000;
+    leaderboardCacheExpiresAt = Date.now() + 2 * 60 * 1000;
     return res.json(payload);
   } catch (error) { return res.status(500).json({ error: error.message || "Could not load leaderboards." }); }
 });

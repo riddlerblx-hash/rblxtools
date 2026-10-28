@@ -57,6 +57,7 @@
       'html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-chat-message,.rblx-shell-chat-avatar,.rblx-shell-chat-avatar-button,.rblx-shell-chat-name-button,.rblx-shell-chat-name-text){border:0!important;outline:0!important;box-shadow:none!important;text-decoration:none!important;-webkit-text-stroke:0!important;text-shadow:none!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-chat-compose{gap:8px!important;padding-bottom:10px!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--rblx-theme-accent) 34%,transparent)!important;background:transparent!important;box-shadow:none!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-chat-bottom{border-color:color-mix(in srgb,var(--rblx-theme-accent) 18%,rgba(255,255,255,.08))!important;background:linear-gradient(145deg,var(--rblx-theme-surface),var(--rblx-theme-surface-2))!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-chat-compose :is(input,button:not(.rblx-shell-chat-admin-button)){border-color:transparent!important;background:transparent!important;box-shadow:none!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) :is(.rblx-shell-chat-name-button:hover>span:last-child,[data-community-profile]:hover .rblx-shell-chat-name-text,.leaderboard-name:hover){color:var(--rblx-theme-accent-2)!important;text-decoration:none!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-chat-action:hover,html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-chat-action.is-active{border-color:transparent!important;color:var(--rblx-theme-accent-2)!important;background:color-mix(in srgb,var(--rblx-theme-accent) 16%,transparent)!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-profile-preview{border-color:color-mix(in srgb,var(--rblx-theme-accent) 46%,rgba(255,255,255,.16))!important;color:#f5f7fb!important;background:radial-gradient(circle at 88% 0,color-mix(in srgb,var(--rblx-theme-accent-2) 16%,transparent),transparent 42%),linear-gradient(145deg,var(--rblx-theme-surface),var(--rblx-theme-surface-2))!important;box-shadow:0 16px 36px rgba(0,0,0,.38)!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-profile-preview :is(.rblx-shell-profile-preview-avatar,.rblx-shell-profile-preview-avatar-fallback){border:0!important;background:color-mix(in srgb,var(--rblx-theme-accent) 46%,var(--rblx-theme-surface-2))!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-profile-preview :is(.rblx-shell-profile-preview-stats,.rblx-shell-profile-preview-copy small,.rblx-shell-profile-preview-joined){color:var(--rblx-theme-accent-2)!important}',
       'html[data-rblx-theme]:not([data-rblx-theme="original"]) .code-tabs{border-color:color-mix(in srgb,var(--rblx-theme-accent) 42%,rgba(255,255,255,.15))!important;background:var(--rblx-theme-surface-2)!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .code-tab{color:color-mix(in srgb,#f5f7fb 68%,var(--rblx-theme-accent))!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .code-tab+.code-tab{border-left-color:color-mix(in srgb,var(--rblx-theme-accent) 35%,rgba(255,255,255,.12))!important}html[data-rblx-theme]:not([data-rblx-theme="original"]) .code-tab.is-active{color:#f5f7fb!important;background:linear-gradient(135deg,color-mix(in srgb,var(--rblx-theme-accent) 28%,transparent),color-mix(in srgb,var(--rblx-theme-accent-2) 12%,transparent))!important;box-shadow:inset 0 -2px 0 var(--rblx-theme-accent-2)!important}'
     ].join("");
+    style.textContent += '.rblx-shell-chat-card :is(.rblx-shell-chat-avatar,.rblx-shell-chat-avatar-image,.rblx-shell-chat-avatar-fallback,.rblx-shell-chat-avatar-button,.rblx-shell-chat-name-button,.rblx-shell-chat-name-text){border:0!important;outline:0!important;box-shadow:none!important;text-decoration:none!important;-webkit-text-stroke:0!important;text-shadow:none!important}.rblx-shell-chat-admin-button{border:1px solid rgba(110,179,255,.38)!important;background:linear-gradient(180deg,rgba(110,179,255,.30),rgba(45,84,163,.96))!important;color:#eef4ff!important;box-shadow:0 10px 18px rgba(49,90,231,.28)!important}.rblx-shell-chat-admin-button svg{fill:currentColor!important;stroke:none!important}.rblx-shell-chat-leaderboard-rank{display:inline-block;margin-right:4px;font-size:11px;font-weight:1000;letter-spacing:-.03em;line-height:1;vertical-align:middle}.rblx-shell-chat-leaderboard-rank.is-gold{color:#ffe08a;animation:rblxChatRankGold 1.8s ease-in-out infinite}.rblx-shell-chat-leaderboard-rank.is-silver{color:#e7eef6;animation:rblxChatRankSilver 2s ease-in-out infinite}.rblx-shell-chat-leaderboard-rank.is-bronze{color:#ffc5a1;animation:rblxChatRankBronze 2.2s ease-in-out infinite}@keyframes rblxChatRankGold{50%{filter:brightness(1.35);text-shadow:0 0 14px rgba(255,211,87,.7)}}@keyframes rblxChatRankSilver{50%{filter:brightness(1.25);text-shadow:0 0 12px rgba(224,237,255,.65)}}@keyframes rblxChatRankBronze{50%{filter:brightness(1.28);text-shadow:0 0 12px rgba(255,172,121,.65)}}';
     document.head.appendChild(style);
   }
   function applySiteTheme(nextTheme, persist) {
@@ -214,6 +215,8 @@
   var AUTH_PENDING_MODE_KEY = "rblxtools_auth_modal_pending_mode";
   var shellState = {
     chatMessages: [],
+    chatLeaderboardRanks: {},
+    chatLeaderboardRanksRequested: false,
     chatList: null,
     chatInput: null,
     chatSendButton: null,
@@ -2557,6 +2560,10 @@
           '<span class="rblx-shell-chat-avatar-fallback" style="display:none;">' + escapeHtml(profile.avatarText) + "</span>"
         : '<span class="rblx-shell-chat-avatar-fallback">' + escapeHtml(profile.avatarText) + "</span>";
       var badgeMarkup = "";
+      var leaderboardRank = shellState.chatLeaderboardRanks[String(profile.userId || "")] || null;
+      var leaderboardMarkup = leaderboardRank
+        ? '<span class="rblx-shell-chat-leaderboard-rank is-' + leaderboardRank.tone + '" title="Leaderboard rank">#' + leaderboardRank.rank + '</span>'
+        : "";
       var nameClass = isPro ? ' class="rblx-shell-chat-name-text is-pro"' : (isPlus ? ' class="rblx-shell-chat-name-text is-plus"' : ' class="rblx-shell-chat-name-text"');
       var messageBody = message && message.specialType === "claimDrop" && message.claimDrop
         ? buildClaimDropMessage(message, message.claimDrop)
@@ -2580,6 +2587,7 @@
             '<div class="rblx-shell-chat-name">' +
               '<button class="rblx-shell-chat-name-button" type="button" data-chat-action="profile" data-chat-index="' + index + '">' +
                 badgeMarkup +
+                leaderboardMarkup +
                 (isPro ? '<span class="rblx-shell-chat-plus-mark is-pro">&#128736;</span>' : (isPlus ? '<span class="rblx-shell-chat-plus-mark">+</span>' : "")) +
                 '<span' + nameClass + '>' + escapeHtml(profile.displayName) + "</span>" +
               "</button>" +
@@ -2608,6 +2616,38 @@
       target.scrollTop = previousScrollTop + Math.max(0, heightDelta);
     }
     updateChatMessageRefresh();
+  }
+
+  function refreshChatLeaderboardRanks() {
+    if (shellState.chatLeaderboardRanksRequested) return;
+    shellState.chatLeaderboardRanksRequested = true;
+    var storageKey = "rblxtools_chat_leaderboard_ranks_v1";
+    function apply(data) {
+      var next = {};
+      Object.keys((data && data.leaderboards) || {}).forEach(function (boardKey) {
+        var rows = Array.isArray(data.leaderboards[boardKey]) ? data.leaderboards[boardKey] : [];
+        rows.slice(0, 3).forEach(function (row, index) {
+          var userId = String((row && row.id) || "");
+          var rank = index + 1;
+          if (!userId || (next[userId] && next[userId].rank <= rank)) return;
+          next[userId] = { rank: rank, tone: rank === 1 ? "gold" : (rank === 2 ? "silver" : "bronze") };
+        });
+      });
+      shellState.chatLeaderboardRanks = next;
+      if (shellState.chatList && shellState.chatMessages.length) renderChatMessages(shellState.chatList, shellState.chatMessages);
+    }
+    try {
+      var saved = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+      if (saved && saved.data && Date.now() - Number(saved.savedAt || 0) < 5 * 60 * 1000) apply(saved.data);
+    } catch (_error) {}
+    fetch("/api/leaderboards", { credentials: "include", cache: "force-cache" })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+        try { sessionStorage.setItem(storageKey, JSON.stringify({ savedAt: Date.now(), data: data })); } catch (_error) {}
+        apply(data);
+      })
+      .catch(function () {});
   }
 
   function renderChatMessagesFallback(target, messages) {
@@ -4044,6 +4084,7 @@
     }
     var cachedMessages = getCachedChatMessages();
     renderChatMessages(list, cachedMessages.length ? cachedMessages : starterMessages, { forceBottom: true });
+    refreshChatLeaderboardRanks();
     initChatSyncPolling();
 
     if (shellState.chatSpecials) {
