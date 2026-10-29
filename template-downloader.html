@@ -1758,6 +1758,19 @@
       return url.toString();
     }
 
+    function getTemplateFetchUrls(assetId) {
+      const primary = buildTemplateFetchUrl(assetId);
+      const currentHost = String(window.location.hostname || "").toLowerCase();
+      const alternateOrigin = currentHost === "www.rblxtools.net"
+        ? "https://rblxtools.net"
+        : "https://www.rblxtools.net";
+      const alternate = new URL("/template", alternateOrigin);
+      alternate.searchParams.set("id", String(assetId || "").trim());
+      alternate.searchParams.set("log", "client");
+      alternate.searchParams.set("displayName", getActivityNameFromCache());
+      return [primary, alternate.toString()];
+    }
+
     function buildDefaultPreview() {
       return `
         <div id="previewShell">
@@ -1904,21 +1917,27 @@
     }
 
     async function fetchTemplateBlob(id) {
-      const url = buildTemplateFetchUrl(id);
-      const res = await fetch(url);
-
-      if (!res.ok) {
-        let message = "Failed to fetch template";
+      let lastMessage = "Failed to fetch template";
+      for (const url of getTemplateFetchUrls(id)) {
         try {
-          const data = await res.json();
-          if (data && data.error) message = data.error;
-        } catch (_err) {}
-        throw new Error(message);
-      }
+          const res = await fetch(url, { cache: "no-store", credentials: "same-origin" });
+          if (!res.ok) {
+            try {
+              const data = await res.json();
+              if (data && data.error) lastMessage = data.error;
+            } catch (_err) {}
+            continue;
+          }
 
-      const blob = await res.blob();
-      await postTemplateLog(id);
-      return { id: id, url: URL.createObjectURL(blob) };
+          const blob = await res.blob();
+          await postTemplateLog(id);
+          return { id: id, url: URL.createObjectURL(blob) };
+        } catch (_error) {
+          // Try the alternate official hostname below. This also bypasses an
+          // outdated service worker or a transient origin-specific failure.
+        }
+      }
+      throw new Error(lastMessage);
     }
 
     async function generate() {
