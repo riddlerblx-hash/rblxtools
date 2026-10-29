@@ -1409,7 +1409,7 @@
       }
     }
 
-    function showMappedRigPreview(templateUrl) {
+    function showMappedRigPreview(templateUrl, clothingType) {
       const viewer = document.getElementById("templateRigViewer");
       const fallbackImage = document.getElementById("activeTemplateImage");
       const previewButton = document.getElementById("previewTemplateBtn");
@@ -1501,7 +1501,12 @@
           // disappear, then place the mapped clothing material on the rig parts.
           allMeshes.forEach(function (mesh) { mesh.material = baseMaterial(0x303946); });
           if (parts.head) parts.head.material = baseMaterial(0xdedee2);
-          [parts.torso, parts.leftArm, parts.rightArm, parts.leftLeg, parts.rightLeg].forEach(function (part) {
+          // Classic shirts use the torso and arms; classic pants use only the
+          // lower body. Never paint one garment across the whole rig.
+          const clothingParts = clothingType === "pants"
+            ? [parts.leftLeg, parts.rightLeg]
+            : [parts.torso, parts.leftArm, parts.rightArm];
+          clothingParts.forEach(function (part) {
             if (part) part.material = clothingMaterial();
           });
           updatePreviewMode();
@@ -1863,7 +1868,7 @@
 
       activeImage.src = activeSlide.url;
       activeImage.alt = "Roblox clothing template " + activeSlide.id;
-      showMappedRigPreview(activeSlide.url);
+      showMappedRigPreview(activeSlide.url, activeSlide.clothingType);
       slideCounter.innerText = (currentSlideIndex + 1) + " of " + currentSlides.length;
       activeId.innerText = "ID " + activeSlide.id;
       downloadBtn.href = activeSlide.url;
@@ -1931,7 +1936,8 @@
 
           const blob = await res.blob();
           await postTemplateLog(id);
-          return { id: id, url: URL.createObjectURL(blob) };
+          const clothingType = String(res.headers.get("X-Roblox-Clothing-Type") || "unknown").toLowerCase();
+          return { id: id, url: URL.createObjectURL(blob), clothingType: clothingType === "pants" ? "pants" : "shirt" };
         } catch (_error) {
           // Try the alternate official hostname below. This also bypasses an
           // outdated service worker or a transient origin-specific failure.

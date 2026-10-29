@@ -6426,6 +6426,12 @@ function extractPlayableAnimationId(text) {
   return null;
 }
 
+function getClassicClothingType(text) {
+  if (/<Item\s+class="Shirt"/i.test(String(text || ""))) return "shirt";
+  if (/<Item\s+class="Pants"/i.test(String(text || ""))) return "pants";
+  return "unknown";
+}
+
 function looksLikeClassicClothingAsset(text) {
   return /<Item class="Shirt"/i.test(text) || /<Item class="Pants"/i.test(text);
 }
@@ -12515,11 +12521,14 @@ app.get("/template", async (req, res) => {
 
       res.setHeader("Content-Type", firstImageMime);
       res.setHeader("Cache-Control", "no-store");
+      res.setHeader("X-Roblox-Clothing-Type", "unknown");
+      res.setHeader("Access-Control-Expose-Headers", "X-Roblox-Clothing-Type, X-Roblox-Template-Id");
 
       return res.send(firstFetch.buffer);
     }
 
     const bodyText = firstFetch.buffer.toString("utf8");
+    const clothingType = getClassicClothingType(bodyText);
 
     if (isAuthRequiredResponse(bodyText)) {
       return res.status(403).json({
@@ -12556,6 +12565,8 @@ app.get("/template", async (req, res) => {
     res.setHeader("Content-Type", secondImageMime);
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("X-Roblox-Template-Id", templateId);
+    res.setHeader("X-Roblox-Clothing-Type", clothingType);
+    res.setHeader("Access-Control-Expose-Headers", "X-Roblox-Clothing-Type, X-Roblox-Template-Id");
 
     return res.send(secondFetch.buffer);
   } catch (error) {
