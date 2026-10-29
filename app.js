@@ -13304,7 +13304,7 @@ async function emitToolActivityForRequest(req, toolKey, fallbackDisplayName) {
         userId: user.id,
         sourceKey: `tool-use:${normalizeToolActivityKey(toolKey)}:${user.id}:${activityId}`,
         action: "eligible_tool_use",
-        title: `${TOOL_ACTIVITY_LABELS[normalizeToolActivityKey(toolKey)] || "Creator tool"} completed`,
+        title: `${allowedToolActivityLabels[normalizeToolActivityKey(toolKey)] || "Creator tool"} completed`,
         amount: rewardsEngine.getConfig().xp.eligibleToolUse,
         note: "Completed creator-tool action",
         metadata: { tool: normalizeToolActivityKey(toolKey) },
