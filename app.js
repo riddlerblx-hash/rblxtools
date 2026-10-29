@@ -6427,8 +6427,13 @@ function extractPlayableAnimationId(text) {
 }
 
 function getClassicClothingType(text) {
-  if (/<Item\s+class="Shirt"/i.test(String(text || ""))) return "shirt";
-  if (/<Item\s+class="Pants"/i.test(String(text || ""))) return "pants";
+  const source = String(text || "");
+  // The property containing the texture is more reliable than the wrapper
+  // class returned by Roblox's asset serializer.
+  if (/<Content\s+name="PantsTemplate">/i.test(source)) return "pants";
+  if (/<Content\s+name="ShirtTemplate">/i.test(source)) return "shirt";
+  if (/<Item\s+class="Pants"/i.test(source)) return "pants";
+  if (/<Item\s+class="Shirt"/i.test(source)) return "shirt";
   return "unknown";
 }
 
