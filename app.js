@@ -13262,38 +13262,46 @@ function getToolActivityActorName(user, fallbackDisplayName) {
 }
 
 async function emitToolActivityForRequest(req, toolKey, fallbackDisplayName) {
-  const user = await tryGetAuthenticatedUser(req);
-  const displayNameHeader = getRequestActivityHeader(req, "x-rblx-display-name", displayNameLength);
-  const usernameHeader = getRequestActivityHeader(req, "x-rblx-username", usernameLength);
-  const emailNameHeader = getRequestActivityEmailName(req);
-  const actorDisplayName = getToolActivityActorName(
-    user,
-    fallbackDisplayName || displayNameHeader || usernameHeader || emailNameHeader
-  );
+  // Analytics, rewards, and identity lookups are post-download side effects.
+  // They must never turn a successfully retrieved Roblox asset into a failed
+  // tool request when an auth or data provider is briefly unavailable.
+  try {
+    const user = await tryGetAuthenticatedUser(req);
+    const displayNameHeader = getRequestActivityHeader(req, "x-rblx-display-name", displayNameLength);
+    const usernameHeader = getRequestActivityHeader(req, "x-rblx-username", usernameLength);
+    const emailNameHeader = getRequestActivityEmailName(req);
+    const actorDisplayName = getToolActivityActorName(
+      user,
+      fallbackDisplayName || displayNameHeader || usernameHeader || emailNameHeader
+    );
 
-  // This used to feed only the retired Community Chat activity line. Record
-  // the completed action in the rewards ledger instead so tool usage remains
-  // attributable to its member and can power the public leaderboard.
-  if (user?.id) {
-    const activityId = cleanText(
-      req.get("X-RBLXTools-Action-Id") || req.body?.requestId || req.query?.requestId || req.body?.taskId || req.query?.taskId || "",
-      120
-    ) || randomUUID();
-    const membership = await resolveMembershipSnapshot(user).catch(() => null);
-    rewardsEngine.recordActivity({
-      userId: user.id,
-      sourceKey: `tool-use:${normalizeToolActivityKey(toolKey)}:${user.id}:${activityId}`,
-      action: "eligible_tool_use",
-      title: `${TOOL_ACTIVITY_LABELS[normalizeToolActivityKey(toolKey)] || "Creator tool"} completed`,
-      amount: rewardsEngine.getConfig().xp.eligibleToolUse,
-      note: "Completed creator-tool action",
-      metadata: { tool: normalizeToolActivityKey(toolKey) },
-      limitKey: "eligibleToolUsesPerDay",
-      xpMultiplier: getPaidXpMultiplier(membership),
-    });
+    // This used to feed only the retired Community Chat activity line. Record
+    // the completed action in the rewards ledger instead so tool usage remains
+    // attributable to its member and can power the public leaderboard.
+    if (user?.id) {
+      const activityId = cleanText(
+        req.get("X-RBLXTools-Action-Id") || req.body?.requestId || req.query?.requestId || req.body?.taskId || req.query?.taskId || "",
+        120
+      ) || randomUUID();
+      const membership = await resolveMembershipSnapshot(user).catch(() => null);
+      rewardsEngine.recordActivity({
+        userId: user.id,
+        sourceKey: `tool-use:${normalizeToolActivityKey(toolKey)}:${user.id}:${activityId}`,
+        action: "eligible_tool_use",
+        title: `${TOOL_ACTIVITY_LABELS[normalizeToolActivityKey(toolKey)] || "Creator tool"} completed`,
+        amount: rewardsEngine.getConfig().xp.eligibleToolUse,
+        note: "Completed creator-tool action",
+        metadata: { tool: normalizeToolActivityKey(toolKey) },
+        limitKey: "eligibleToolUsesPerDay",
+        xpMultiplier: getPaidXpMultiplier(membership),
+      });
+    }
+
+    return emitToolActivity(defaultChatRoom, toolKey, actorDisplayName);
+  } catch (error) {
+    console.error("Tool activity logging failed:", error?.message || error);
+    return null;
   }
-
-  return emitToolActivity(defaultChatRoom, toolKey, actorDisplayName);
 }
 
 function emitToolActivity() {
