@@ -6,6 +6,7 @@
   var BRAND_LOGO_URL = "/assets/rblxtools-logo.png";
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
+  var ACTIVE_SESSION_TOKEN_KEY = "rblxtools_active_session_token";
   var USER_KEY = "rblxtools_auth_user";
   var SITE_THEME_KEY = "rblxtools_site_theme_v1";
   var SITE_THEME_PRESETS = {
@@ -1448,6 +1449,11 @@
     var nextToken = String(token || "").trim();
     if (shellState.chatAuthToken === nextToken) return;
     shellState.chatAuthToken = nextToken;
+    try {
+      if (nextToken) sessionStorage.setItem(ACTIVE_SESSION_TOKEN_KEY, nextToken);
+      else sessionStorage.removeItem(ACTIVE_SESSION_TOKEN_KEY);
+    } catch (_error) {
+    }
     if (shellState.socket && shellState.socketReady) {
       shellState.socket.emit("join-room", getSocketJoinPayload());
     }
@@ -1458,7 +1464,11 @@
   // been cleared, while keeping the token private to this browser origin.
   window.RBLXToolsAuth = window.RBLXToolsAuth || {};
   window.RBLXToolsAuth.getSessionToken = function () {
-    return shellState.chatAuthToken || getToken();
+    try {
+      return shellState.chatAuthToken || sessionStorage.getItem(ACTIVE_SESSION_TOKEN_KEY) || getToken();
+    } catch (_error) {
+      return shellState.chatAuthToken || getToken();
+    }
   };
 
   function setChatComposeState(disabled, placeholder, statusMessage) {
