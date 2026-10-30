@@ -1306,7 +1306,7 @@
 </head>
   <body data-tool-report="Animations">
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20261029-tool-request-retry"></script>
+<script src="./global-shell.js?v=20261029-animation-session"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1870,7 +1870,10 @@
 
         try {
           const premiumResponse = await fetch(API_BASE_ROOT + "/auth/premium-status", {
-            method: "GET", credentials: "include"
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+            headers: getAuthHeaders()
           });
 
           if (premiumResponse.ok) {
@@ -1886,7 +1889,10 @@
           }
 
           const response = await fetch(API_BASE_ROOT + "/auth/me", {
-            method: "GET", credentials: "include"
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+            headers: getAuthHeaders()
           });
 
           if (!response.ok) {
@@ -2186,6 +2192,8 @@
       async function fetchAnimationAsset(assetId) {
         const response = await window.RBLXToolsFetchWithFallback(buildAssetDeliveryUrl(assetId), {
           method: "GET",
+          credentials: "include",
+          cache: "no-store",
           headers: getAuthHeaders()
         });
 
