@@ -3485,6 +3485,11 @@ function setRenewalNoticeCookie(req, res, user) {
 
 function getBearerToken(req) {
   const parsedCookies = parseCookieHeader(req.headers?.cookie);
+  // LiteSpeed can omit the standard Authorization header for certain proxied
+  // tool routes. The browser sends this same signed token in a dedicated
+  // header for those requests, so prefer it over an older cookie snapshot.
+  const toolSessionToken = String(req.get?.("X-RBLXTools-Session") || req.headers?.["x-rblxtools-session"] || "").trim();
+  if (toolSessionToken) return toolSessionToken;
   const cookieToken = String(req.cookies?.[AUTH_COOKIE_NAME] || parsedCookies?.[AUTH_COOKIE_NAME] || "").trim();
   if (cookieToken) return cookieToken;
   const header = String(req.headers.authorization || "");
