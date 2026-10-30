@@ -12759,21 +12759,19 @@ async function handleAnimationRequest(req, res) {
       return res.send(assetFetch.buffer);
     }
 
-    // The Discord path returns here after resolving the Roblox asset. Keep the
-    // website path equally resilient: a thumbnail or activity side effect must
-    // never make an otherwise valid animation look like a failed download.
-    const thumbnailUrl = null;
-    void emitToolActivityForRequest(req, "animation-spoofer", getRequestActivityParam(req, "displayName", displayNameLength));
-
+    // Match the proven Discord response path: once Roblox has supplied the
+    // file, respond immediately. Preview decoration and activity tracking are
+    // deliberately not allowed to participate in this request.
     return res.json({
-      type: describeAnimationAsset(assetFetch.buffer),
+      ok: true,
+      type: "Animation Ready",
       title: "Animation Preview Loaded",
       subtitle: "Animation asset resolved successfully. Use the download button to grab the file from this server.",
       assetId: id,
-      playableAnimationId,
+      playableAnimationId: playableAnimationId || "",
       fileName,
-      thumbnailUrl,
-      downloadUrl: buildRelativeAnimationDownloadUrl(req, id),
+      thumbnailUrl: null,
+      downloadUrl: "/api/animation?id=" + encodeURIComponent(id) + "&download=1",
       catalogUrl: `https://www.roblox.com/catalog/${id}`,
       studioUri: `rbxassetid://${id}`,
     });
