@@ -1453,6 +1453,14 @@
     }
   }
 
+  // Tool pages are separate scripts on the same authenticated site. They need
+  // the freshly issued session token after the legacy local-storage token has
+  // been cleared, while keeping the token private to this browser origin.
+  window.RBLXToolsAuth = window.RBLXToolsAuth || {};
+  window.RBLXToolsAuth.getSessionToken = function () {
+    return shellState.chatAuthToken || getToken();
+  };
+
   function setChatComposeState(disabled, placeholder, statusMessage) {
     if (shellState.chatInput) {
       shellState.chatInput.disabled = Boolean(disabled);
