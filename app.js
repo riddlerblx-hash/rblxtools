@@ -12759,8 +12759,11 @@ async function handleAnimationRequest(req, res) {
       return res.send(assetFetch.buffer);
     }
 
-    const thumbnailUrl = await getRobloxAssetThumbnailUrl(id);
-    await emitToolActivityForRequest(req, "animation-spoofer", getRequestActivityParam(req, "displayName", displayNameLength));
+    // The Discord path returns here after resolving the Roblox asset. Keep the
+    // website path equally resilient: a thumbnail or activity side effect must
+    // never make an otherwise valid animation look like a failed download.
+    const thumbnailUrl = null;
+    void emitToolActivityForRequest(req, "animation-spoofer", getRequestActivityParam(req, "displayName", displayNameLength));
 
     return res.json({
       type: describeAnimationAsset(assetFetch.buffer),
@@ -12776,7 +12779,7 @@ async function handleAnimationRequest(req, res) {
     });
   } catch (error) {
     console.error("Animation fetch failed:", error);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(502).json({ error: "Roblox could not prepare this animation right now. Please try again in a moment." });
   }
 }
 
