@@ -100,6 +100,38 @@
     return plan === "pro" ? 10 : plan === "plus" ? 5 : 1;
   }
   window.RBLXToolsAssetBatch = { getPlan: getAssetBatchPlan, getLimit: getAssetBatchLimit };
+  // Some browsers retain an old worker or origin-specific network state after
+  // a site update. Regular creator tools can retry a 5xx/network failure on
+  // the other official hostname without changing valid 4xx responses.
+  window.RBLXToolsFetchWithFallback = async function (input, options) {
+    var primaryUrl = new URL(String(input || ""), window.location.origin);
+    var requestOptions = Object.assign({ cache: "no-store" }, options || {});
+    var primaryResponse = null;
+    var primaryError = null;
+    try {
+      primaryResponse = await fetch(primaryUrl.toString(), requestOptions);
+      if (primaryResponse.ok || primaryResponse.status < 500) return primaryResponse;
+    } catch (error) {
+      primaryError = error;
+    }
+
+    var host = String(primaryUrl.hostname || "").toLowerCase();
+    if (host !== "rblxtools.net" && host !== "www.rblxtools.net") {
+      if (primaryResponse) return primaryResponse;
+      throw primaryError || new Error("The request could not be completed.");
+    }
+
+    var alternateUrl = new URL(primaryUrl.toString());
+    alternateUrl.hostname = host === "www.rblxtools.net" ? "rblxtools.net" : "www.rblxtools.net";
+    var alternateOptions = Object.assign({}, requestOptions);
+    if (alternateOptions.credentials === "include") alternateOptions.credentials = "omit";
+    try {
+      return await fetch(alternateUrl.toString(), alternateOptions);
+    } catch (error) {
+      if (primaryResponse) return primaryResponse;
+      throw error;
+    }
+  };
   function initAssetBatchInputs() {
     var configs = [
       { sourceId: "robloxId", buttonId: "templateButton", label: "Roblox Clothing Asset ID" },

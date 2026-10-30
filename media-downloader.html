@@ -678,7 +678,7 @@
 </head>
   <body data-tool-report="Media Downloader">
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20260925-daily-global-modal"></script>
+<script src="./global-shell.js?v=20261029-tool-request-retry"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1270,7 +1270,7 @@
       try {
         const groups = await Promise.all(ids.map(async function (id) {
           const params = new URLSearchParams({ input: id, kind: kind, displayName: getActivityNameFromCache() });
-          const response = await fetch(API_BASE + "/media?" + params.toString());
+          const response = await window.RBLXToolsFetchWithFallback(API_BASE + "/media?" + params.toString());
           const payload = await response.json().catch(function () { return null; });
           if (!response.ok) throw new Error((payload && payload.error) || "Could not fetch media for ID " + id + ".");
           const group = payload && Array.isArray(payload.results) ? payload.results[0] : null;

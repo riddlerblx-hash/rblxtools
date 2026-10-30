@@ -890,7 +890,7 @@
 </head>
   <body data-tool-report="UGC Downloader">
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20260925-daily-global-modal"></script>
+<script src="./global-shell.js?v=20261029-tool-request-retry"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1485,7 +1485,7 @@
 
   async function fetchObjAsset(id) {
     const url = API_BASE + "/ugc-obj?id=" + encodeURIComponent(id) + "&mode=" + encodeURIComponent(selectedItemMode) + "&displayName=" + encodeURIComponent(getActivityNameFromCache());
-    const res = await fetch(url, { headers: getAuthHeaders() });
+    const res = await window.RBLXToolsFetchWithFallback(url, { headers: getAuthHeaders() });
 
     if (!res.ok) {
       let message = "Failed to fetch UGC OBJ";
@@ -1500,7 +1500,7 @@
 
     const blob = await res.blob();
     const objText = await blob.text();
-    const textureResponse = await fetch(API_BASE + "/ugc-texture?id=" + encodeURIComponent(id) + "&displayName=" + encodeURIComponent(getActivityNameFromCache()), {
+    const textureResponse = await window.RBLXToolsFetchWithFallback(API_BASE + "/ugc-texture?id=" + encodeURIComponent(id) + "&displayName=" + encodeURIComponent(getActivityNameFromCache()), {
       headers: getAuthHeaders(),
       credentials: "include"
     });
@@ -1542,7 +1542,7 @@
     status.className = "";
     status.textContent = "Creating your textured GLB...";
     try {
-      const response = await fetch(API_BASE + "/ugc-bake-glb", {
+      const response = await window.RBLXToolsFetchWithFallback(API_BASE + "/ugc-bake-glb", {
         method: "POST",
         credentials: "include",
         headers: getAuthHeaders({ "Content-Type": "application/json" }),
