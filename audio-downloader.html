@@ -591,7 +591,7 @@
 </head>
   <body data-tool-report="Audio Downloader">
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20261101-tool-activity-feed"></script>
+<script src="./global-shell.js?v=20261101-tool-activity-feed-2"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1168,7 +1168,7 @@
 
         renderAudios(payloads);
         rememberToolActivity("Audio");
-        window.dispatchEvent(new CustomEvent("rblxtools-tool-use", { detail: { tool: "audio-downloader", assetId: payloads[0] && payloads[0].assetId, preview: { kind: "audio", label: payloads[0] && payloads[0].title } }));
+        window.dispatchEvent(new CustomEvent("rblxtools-tool-use", { detail: { tool: "audio-downloader", assetId: payloads[0] && payloads[0].assetId, preview: { kind: "audio", label: payloads[0] && payloads[0].title } } }));
         setStatus(ids.length > 1 ? "Audios loaded. Downloads are ready." : "Audio loaded. Download is ready.", "success");
       } catch (error) {
         audioResult.innerHTML = buildDefaultPreview();

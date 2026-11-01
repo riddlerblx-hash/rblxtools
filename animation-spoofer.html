@@ -1306,7 +1306,7 @@
 </head>
   <body data-tool-report="Animations">
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20261101-tool-activity-feed"></script>
+<script src="./global-shell.js?v=20261101-tool-activity-feed-2"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -2297,7 +2297,7 @@
           renderActionButtons();
           renderSlide();
           rememberToolActivity("Animations");
-          window.dispatchEvent(new CustomEvent("rblxtools-tool-use", { detail: { tool: "animation-spoofer", assetId: currentSlides[0] && currentSlides[0].id, preview: { kind: "animation", label: currentSlides[0] && currentSlides[0].title } }));
+          window.dispatchEvent(new CustomEvent("rblxtools-tool-use", { detail: { tool: "animation-spoofer", assetId: currentSlides[0] && currentSlides[0].id, preview: { kind: "animation", label: currentSlides[0] && currentSlides[0].title } } }));
           setStatus(ids.length > 1 ? "Animations found ✓ Ready to download" : "Animation found ✓ Ready to download", "success");
         } catch (error) {
           currentSlides = [];
