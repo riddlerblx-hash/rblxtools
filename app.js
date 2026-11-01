@@ -12448,6 +12448,7 @@ app.get("/api/tool-activity-feed", (_req, res) => {
   const activities = readPublicToolActivityFeed()
     .slice(-6)
     .reverse();
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   return res.json({ ok: true, activities });
 });
 
@@ -12473,6 +12474,7 @@ app.post("/tool-activity", async (req, res) => {
       assetId: req.body?.assetId,
       preview: req.body?.preview,
     });
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
     return res.json({
       ok: true,
       tool: toolKey,
