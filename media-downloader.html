@@ -678,7 +678,7 @@
 </head>
   <body data-tool-report="Media Downloader">
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20261029-tool-request-retry"></script>
+<script src="./global-shell.js?v=20261101-tool-activity-feed"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1285,7 +1285,7 @@
         };
         renderPreview(combined);
         rememberToolActivity("Media");
-        window.dispatchEvent(new CustomEvent("rblxtools-tool-use"));
+        window.dispatchEvent(new CustomEvent("rblxtools-tool-use", { detail: { tool: "media-downloader", assetId: ids[0], preview: { kind: "media", imageUrl: combined.items && combined.items[0] && combined.items[0].imageUrl, label: combined.title } }));
         setStatus(ids.length > 1 ? "Media loaded. Downloads are ready." : "Media loaded. Download is ready.", "success");
       } catch (error) {
         resultBox.innerHTML = buildDefaultPreview();

@@ -131,6 +131,7 @@ const MEMBER_REWARDS_PATH = path.join(RBLXTOOLS_STATE_DIR, "member-rewards.json"
 const REWARDS_LEVELING_PATH = path.join(RBLXTOOLS_STATE_DIR, "rewards-leveling.json");
 const REFERRAL_PROGRAM_PATH = path.join(RBLXTOOLS_STATE_DIR, "referral-program.json");
 const GLOBAL_BOUNTY_PATH = path.join(RBLXTOOLS_STATE_DIR, "global-bounty.json");
+const TOOL_ACTIVITY_FEED_PATH = path.join(RBLXTOOLS_STATE_DIR, "tool-activity-feed.json");
 const REFERRAL_COMMISSION_RATE = 0.05;
 const REFERRAL_PENDING_MS = 14 * 24 * 60 * 60 * 1000;
 const REFERRAL_MINIMUM_PAYOUT_CENTS = 1000;
@@ -2659,6 +2660,48 @@ function writeJsonFile(filePath, value) {
   const tempPath = filePath + ".tmp";
   fs.writeFileSync(tempPath, JSON.stringify(value, null, 2) + "\n", "utf8");
   fs.renameSync(tempPath, filePath);
+}
+
+function readPublicToolActivityFeed() {
+  const state = readJsonFile(TOOL_ACTIVITY_FEED_PATH, { activities: [] });
+  const oldestAllowed = Date.now() - (14 * 24 * 60 * 60 * 1000);
+  return (Array.isArray(state.activities) ? state.activities : [])
+    .filter((entry) => entry && typeof entry === "object" && Number(entry.createdAt) >= oldestAllowed)
+    .slice(-80);
+}
+
+async function recordPublicToolActivity({ toolKey, user, fallbackName, assetId, preview }) {
+  const label = allowedToolActivityLabels[toolKey];
+  if (!label) return null;
+
+  const requestedId = String(assetId || "").replace(/\D/g, "").slice(0, 30);
+  const allowedKinds = new Set(["clothing", "background", "ugc", "media", "audio", "animation"]);
+  const requestedKind = String(preview?.kind || "").toLowerCase();
+  const kind = allowedKinds.has(requestedKind) ? requestedKind : toolKey === "template-downloader" ? "clothing" : toolKey === "background-changer" ? "background" : toolKey === "animation-spoofer" ? "animation" : toolKey === "audio-downloader" ? "audio" : toolKey === "ugc-downloader" ? "ugc" : "media";
+  const requestedImageUrl = String(preview?.imageUrl || "").trim();
+  let imageUrl = isAllowedRobloxMediaUrl(requestedImageUrl) ? requestedImageUrl : "";
+  if (!imageUrl && requestedId && kind !== "clothing" && kind !== "background" && kind !== "audio") {
+    imageUrl = await getRobloxAssetThumbnailUrl(requestedId) || "";
+  }
+
+  const actorName = user ? getActionTargetLabel(user) : cleanText(fallbackName, displayNameLength) || "Guest";
+  const entry = {
+    id: randomUUID(),
+    tool: toolKey,
+    label,
+    actorName,
+    assetId: requestedId,
+    preview: {
+      kind,
+      imageUrl,
+      label: cleanText(preview?.label, 100),
+    },
+    createdAt: Date.now(),
+  };
+  const activities = readPublicToolActivityFeed();
+  activities.push(entry);
+  writeJsonFile(TOOL_ACTIVITY_FEED_PATH, { activities: activities.slice(-80) });
+  return entry;
 }
 
 function readReferralProgram() {
@@ -12401,15 +12444,21 @@ app.post("/auth/billing/payment-method", async (req, res) => {
   }
 });
 
+app.get("/api/tool-activity-feed", (_req, res) => {
+  const activities = readPublicToolActivityFeed()
+    .slice(-6)
+    .reverse();
+  return res.json({ ok: true, activities });
+});
+
 app.post("/tool-activity", async (req, res) => {
   try {
     const toolKey = normalizeToolActivityKey(req.body?.tool || req.body?.toolKey || "");
     const toolLabel = allowedToolActivityLabels[toolKey];
     const user = await tryGetAuthenticatedUser(req);
-    const actorDisplayName = getToolActivityActorName(
-      user,
-      req.body?.displayName || req.body?.username || getRequestActivityEmailName(req)
-    );
+    const actorDisplayName = user
+      ? getActionTargetLabel(user)
+      : getToolActivityActorName(null, req.body?.displayName || req.body?.username || getRequestActivityEmailName(req));
 
     if (!toolLabel) {
       return res.status(400).json({
@@ -12417,12 +12466,19 @@ app.post("/tool-activity", async (req, res) => {
       });
     }
 
-    emitToolActivity(defaultChatRoom, toolKey, actorDisplayName);
+    const activity = await recordPublicToolActivity({
+      toolKey,
+      user,
+      fallbackName: actorDisplayName,
+      assetId: req.body?.assetId,
+      preview: req.body?.preview,
+    });
     return res.json({
       ok: true,
       tool: toolKey,
       label: toolLabel,
       displayName: actorDisplayName,
+      activity,
     });
   } catch (error) {
     console.error("POST /tool-activity failed:", error.message);

@@ -1213,7 +1213,7 @@
 </head>
   <body data-tool-report="Clothing">
 <link rel="stylesheet" href="./membership-promos.css?v=20260829-3" />
-<script src="./global-shell.js?v=20260925-daily-global-modal"></script>
+<script src="./global-shell.js?v=20261101-tool-activity-feed"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1970,7 +1970,7 @@
         status.innerText = ids.length > 1 ? "Templates found ✓ Ready to download" : "Template found ✓ Ready to download";
         renderSlides(slides);
         rememberToolActivity("Clothing");
-        window.dispatchEvent(new CustomEvent("rblxtools-tool-use"));
+        window.dispatchEvent(new CustomEvent("rblxtools-tool-use", { detail: { tool: "template-downloader", assetId: slides[0] && slides[0].id, preview: { kind: "clothing" } }));
       } catch (err) {
         status.className = "error";
         status.innerText = err.message || "Failed to fetch template";
