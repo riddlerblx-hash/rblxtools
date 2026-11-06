@@ -6187,11 +6187,18 @@
       }
       var holder = document.createElement("div");
       holder.className = "rblx-tool-activity-preview";
-      if (kind === "clothing" || kind === "background") {
-        var rig = document.createElement("div"); rig.className = "rblx-tool-activity-rig";
-        if (entry.assetId) rig.style.setProperty("--rblx-rig-texture", "url('/template?id=" + encodeURIComponent(entry.assetId) + "')");
-        ["torso", "arm left", "arm right", "leg left", "leg right"].forEach(function (className) { var part = document.createElement("i"); part.className = className; rig.appendChild(part); });
-        holder.appendChild(rig);
+      if (kind === "clothing" && entry.assetId) {
+        // Use the actual classic-shirt/pants texture, not a generated graphic
+        // or a distorted miniature rig. This is also a view-only request, so
+        // loading it cannot create another public activity entry.
+        var template = document.createElement("img");
+        template.src = "/template?id=" + encodeURIComponent(entry.assetId) + "&activityPreview=1";
+        template.alt = "Roblox clothing template preview";
+        template.loading = "lazy";
+        template.style.objectFit = "contain";
+        holder.appendChild(template);
+      } else if (kind === "background" && preview.imageUrl) {
+        var backgroundImage = document.createElement("img"); backgroundImage.src = preview.imageUrl; backgroundImage.alt = "Background changer result"; backgroundImage.loading = "lazy"; backgroundImage.style.objectFit = "contain"; holder.appendChild(backgroundImage);
       } else if (kind === "audio") {
         var wrap = document.createElement("div"); wrap.className = "rblx-tool-activity-audio";
         var button = document.createElement("button"); button.type = "button"; button.className = "rblx-tool-activity-play"; button.textContent = "▶"; button.setAttribute("aria-label", "Play audio preview");
@@ -6222,6 +6229,10 @@
         label: detail.tool === "template-downloader" ? "Clothing" : detail.tool === "background-changer" ? "Background Changer" : detail.tool === "ugc-downloader" ? "UGC" : detail.tool === "media-downloader" ? "Media" : detail.tool === "audio-downloader" ? "Audio" : "Animations",
         actorName: getCurrentActivityActorName(), assetId: detail.assetId || "", preview: detail.preview || {}, createdAt: Date.now()
       }].concat(latest).slice(0, 6));
+      // Server tool endpoints write the global entry with their verified
+      // Roblox asset ID and thumbnail. Background Changer is client-only, so
+      // it is the one tool that still posts its completed result from here.
+      if (detail.tool !== "background-changer") { window.setTimeout(refresh, 350); return; }
       var headers = { "Content-Type": "application/json" }; var token = window.RBLXToolsAuth && window.RBLXToolsAuth.getSessionToken ? window.RBLXToolsAuth.getSessionToken() : ""; if (token) { headers.Authorization = "Bearer " + token; headers["X-RBLXTools-Session"] = token; }
       fetch("/tool-activity", { method: "POST", credentials: "same-origin", headers: headers, body: JSON.stringify(detail) }).then(function(){ refresh(); }).catch(function(){});
     });

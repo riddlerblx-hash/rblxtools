@@ -1407,10 +1407,16 @@
         outputCanvas.height = TEMPLATE_HEIGHT;
         outputCanvas.getContext("2d").putImageData(outputData, 0, 0);
 
+        var activityCanvas = document.createElement("canvas");
+        activityCanvas.width = 280;
+        activityCanvas.height = Math.round(TEMPLATE_HEIGHT * (activityCanvas.width / TEMPLATE_WIDTH));
+        activityCanvas.getContext("2d").drawImage(outputCanvas, 0, 0, activityCanvas.width, activityCanvas.height);
+
         return {
           file: entry.file,
           image: entry.image,
-          outputDataUrl: outputCanvas.toDataURL("image/png")
+          outputDataUrl: outputCanvas.toDataURL("image/png"),
+          activityPreviewDataUrl: activityCanvas.toDataURL("image/jpeg", 0.72)
         };
       }
 
@@ -1485,7 +1491,7 @@
           downloadBtn.disabled = false;
           downloadBtn.textContent = restoredEntries.length > 1 ? "Download All" : "Download PNG";
           rememberToolActivity("Background Changer");
-          window.dispatchEvent(new CustomEvent("rblxtools-tool-use", { detail: { tool: "background-changer", preview: { kind: "background" } } }));
+          window.dispatchEvent(new CustomEvent("rblxtools-tool-use", { detail: { tool: "background-changer", preview: { kind: "background", imageDataUrl: restoredEntries[0] && restoredEntries[0].activityPreviewDataUrl } } }));
           setStatus(
             restoredEntries.length > 1
               ? "Done. All template backgrounds were restored using the " + getTemplateDisplayName() + "."

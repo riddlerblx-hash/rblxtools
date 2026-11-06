@@ -132,6 +132,7 @@ const REWARDS_LEVELING_PATH = path.join(RBLXTOOLS_STATE_DIR, "rewards-leveling.j
 const REFERRAL_PROGRAM_PATH = path.join(RBLXTOOLS_STATE_DIR, "referral-program.json");
 const GLOBAL_BOUNTY_PATH = path.join(RBLXTOOLS_STATE_DIR, "global-bounty.json");
 const TOOL_ACTIVITY_FEED_PATH = path.join(RBLXTOOLS_STATE_DIR, "tool-activity-feed.json");
+const TOOL_ACTIVITY_PREVIEW_DIR = path.join(RBLXTOOLS_STATE_DIR, "tool-activity-previews");
 const REFERRAL_COMMISSION_RATE = 0.05;
 const REFERRAL_PENDING_MS = 14 * 24 * 60 * 60 * 1000;
 const REFERRAL_MINIMUM_PAYOUT_CENTS = 1000;
@@ -2662,6 +2663,20 @@ function writeJsonFile(filePath, value) {
   fs.renameSync(tempPath, filePath);
 }
 
+function savePublicToolActivityPreview(dataUrl, activityId) {
+  const match = String(dataUrl || "").match(/^data:image\/(png|jpe?g|webp);base64,([a-z0-9+/=]+)$/i);
+  if (!match) return "";
+  const buffer = Buffer.from(match[2], "base64");
+  // Public activity cards use a deliberately small, display-only preview.
+  if (!buffer.length || buffer.length > 500 * 1024) return "";
+  const mime = detectImageMime("", buffer);
+  const extension = mime === "image/png" ? "png" : mime === "image/jpeg" ? "jpg" : mime === "image/webp" ? "webp" : "";
+  if (!extension) return "";
+  fs.mkdirSync(TOOL_ACTIVITY_PREVIEW_DIR, { recursive: true });
+  fs.writeFileSync(path.join(TOOL_ACTIVITY_PREVIEW_DIR, `${activityId}.${extension}`), buffer);
+  return `/tool-activity-previews/${activityId}.${extension}`;
+}
+
 function readPublicToolActivityFeed() {
   const state = readJsonFile(TOOL_ACTIVITY_FEED_PATH, { activities: [] });
   const oldestAllowed = Date.now() - (14 * 24 * 60 * 60 * 1000);
@@ -2680,13 +2695,15 @@ async function recordPublicToolActivity({ toolKey, user, fallbackName, assetId, 
   const kind = allowedKinds.has(requestedKind) ? requestedKind : toolKey === "template-downloader" ? "clothing" : toolKey === "background-changer" ? "background" : toolKey === "animation-spoofer" ? "animation" : toolKey === "audio-downloader" ? "audio" : toolKey === "ugc-downloader" ? "ugc" : "media";
   const requestedImageUrl = String(preview?.imageUrl || "").trim();
   let imageUrl = isAllowedRobloxMediaUrl(requestedImageUrl) ? requestedImageUrl : "";
-  if (!imageUrl && requestedId && kind !== "clothing" && kind !== "background" && kind !== "audio") {
+  if (!imageUrl && requestedId && kind !== "clothing" && kind !== "background") {
     imageUrl = await getRobloxAssetThumbnailUrl(requestedId) || "";
   }
 
   const actorName = user ? getActionTargetLabel(user) : cleanText(fallbackName, displayNameLength) || "Guest";
+  const entryId = randomUUID();
+  if (!imageUrl && kind === "background") imageUrl = savePublicToolActivityPreview(preview?.imageDataUrl, entryId);
   const entry = {
-    id: randomUUID(),
+    id: entryId,
     tool: toolKey,
     label,
     actorName,
@@ -12817,9 +12834,9 @@ async function handleAnimationRequest(req, res) {
       return res.send(assetFetch.buffer);
     }
 
-    // Match the proven Discord response path: once Roblox has supplied the
-    // file, respond immediately. Preview decoration and activity tracking are
-    // deliberately not allowed to participate in this request.
+    // Once Roblox has supplied the file, return the established response
+    // shape while recording the verified result for the public activity feed.
+    await emitToolActivityForRequest(req, "animation-spoofer", getRequestActivityParam(req, "displayName", displayNameLength));
     return res.json({
       ok: true,
       type: "Animation Ready",
@@ -13341,6 +13358,18 @@ function getToolActivityActorName(user, fallbackDisplayName) {
   return "Guest";
 }
 
+function getToolActivityAssetIdFromRequest(req) {
+  const sources = [
+    req?.query?.assetId, req?.query?.id, req?.query?.input, req?.query?.url,
+    req?.body?.assetId, req?.body?.id, req?.body?.input, req?.body?.url,
+  ];
+  for (const source of sources) {
+    const resolved = extractRobloxAssetIdFromInput(String(source || ""));
+    if (resolved) return resolved;
+  }
+  return "";
+}
+
 async function emitToolActivityForRequest(req, toolKey, fallbackDisplayName) {
   // Analytics, rewards, and identity lookups are post-download side effects.
   // They must never turn a successfully retrieved Roblox asset into a failed
@@ -13354,6 +13383,21 @@ async function emitToolActivityForRequest(req, toolKey, fallbackDisplayName) {
       user,
       fallbackDisplayName || displayNameHeader || usernameHeader || emailNameHeader
     );
+    const normalizedToolKey = normalizeToolActivityKey(toolKey);
+
+    // Every completed server request is the authoritative public activity
+    // event. Client events only keep the current page feeling immediate.
+    // Preview image requests themselves are deliberately excluded so viewing
+    // a card can never manufacture a new activity entry.
+    if (String(req?.query?.activityPreview || "") !== "1") {
+      await recordPublicToolActivity({
+        toolKey: normalizedToolKey,
+        user,
+        fallbackName: actorDisplayName,
+        assetId: getToolActivityAssetIdFromRequest(req),
+        preview: {},
+      });
+    }
 
     // This used to feed only the retired Community Chat activity line. Record
     // the completed action in the rewards ledger instead so tool usage remains
@@ -13366,12 +13410,12 @@ async function emitToolActivityForRequest(req, toolKey, fallbackDisplayName) {
       const membership = await resolveMembershipSnapshot(user).catch(() => null);
       rewardsEngine.recordActivity({
         userId: user.id,
-        sourceKey: `tool-use:${normalizeToolActivityKey(toolKey)}:${user.id}:${activityId}`,
+        sourceKey: `tool-use:${normalizedToolKey}:${user.id}:${activityId}`,
         action: "eligible_tool_use",
-        title: `${allowedToolActivityLabels[normalizeToolActivityKey(toolKey)] || "Creator tool"} completed`,
+        title: `${allowedToolActivityLabels[normalizedToolKey] || "Creator tool"} completed`,
         amount: rewardsEngine.getConfig().xp.eligibleToolUse,
         note: "Completed creator-tool action",
-        metadata: { tool: normalizeToolActivityKey(toolKey) },
+        metadata: { tool: normalizedToolKey },
         limitKey: "eligibleToolUsesPerDay",
         xpMultiplier: getPaidXpMultiplier(membership),
       });
@@ -14739,6 +14783,7 @@ app.get("/codes/:slug", async (req, res) => {
 
 app.use("/community-avatars", express.static(COMMUNITY_AVATAR_DIR, { fallthrough: true, maxAge: "30d" }));
 app.use("/code-guide-covers", express.static(CODE_GUIDE_COVER_DIR, { fallthrough: true, maxAge: "30d" }));
+app.use("/tool-activity-previews", express.static(TOOL_ACTIVITY_PREVIEW_DIR, { fallthrough: true, maxAge: "14d" }));
 
 app.use((req, res, next) => {
   const requestedPath = String(req.path || "");
