@@ -48,7 +48,7 @@
   }
   function updateThemeLogo(theme) {
     var logoUrl = getThemeLogoUrl(theme);
-    document.querySelectorAll(".rblx-shell-brand-mark img").forEach(function (image) {
+    document.querySelectorAll(".rblx-shell-brand-mark img, .rblx-shell-footer-logo img").forEach(function (image) {
       if (image.getAttribute("src") !== logoUrl) image.setAttribute("src", logoUrl);
     });
     var favicon = document.querySelector('link[rel="icon"]');
@@ -2077,6 +2077,7 @@
       '<footer class="rblx-shell-footer">' +
         '<div class="rblx-shell-footer-top">' +
           '<section class="rblx-shell-footer-brand">' +
+            '<a class="rblx-shell-footer-logo" href="./index" aria-label="RBLXTools home"><img src="' + getThemeLogoUrl(readSiteTheme()) + '" alt=""><span>RBLX<span>Tools</span></span></a>' +
             '<h2>Creator tools, cleaner workflows, and more ways to earn.</h2>' +
             '<p>Browse creator tools, discover affiliate earnings, and move between every part of RBLXTools from one place.</p>' +
           "</section>" +

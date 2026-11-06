@@ -3921,6 +3921,10 @@ body.rblx-shell-left-collapsed #rblxShellLeftToggle { right: -20px; }
 .rblx-shell-footer.rblx-shell-footer-ready{visibility:visible}
 .rblx-shell-footer-top{display:grid;grid-template-columns:minmax(260px,1.1fr) minmax(0,1.4fr);gap:24px;padding:28px}
 .rblx-shell-footer-brand{display:grid;align-content:start;gap:14px}
+.rblx-shell-footer-logo{width:fit-content;display:inline-flex;align-items:center;gap:10px;color:#fff7fb;text-decoration:none;font-size:22px;font-weight:1000;letter-spacing:-.05em}
+.rblx-shell-footer-logo img{width:46px;height:46px;display:block;object-fit:contain;filter:drop-shadow(0 8px 16px rgba(0,0,0,.3))}
+.rblx-shell-footer-logo>span>span{color:#ff6363}
+html[data-rblx-theme]:not([data-rblx-theme="original"]) .rblx-shell-footer-logo>span>span{color:var(--rblx-theme-accent-2)}
 .rblx-shell-footer-kicker{display:inline-flex;align-items:center;width:fit-content;min-height:28px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#ffd2df;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
 .rblx-shell-footer-brand h2{margin:0;color:#fff7fb;font-size:clamp(28px,3vw,40px);line-height:.98;letter-spacing:-.04em}
 .rblx-shell-footer-brand p{margin:0;max-width:520px;color:rgba(232,236,249,.76);font-size:14px;line-height:1.7;font-weight:600}
