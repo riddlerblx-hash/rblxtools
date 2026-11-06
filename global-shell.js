@@ -11,6 +11,21 @@
     ember: "/assets/site%20themes/ember.png",
     midnight: "/assets/site%20themes/midnight%20violet.png"
   };
+  // Theme switches should feel instant on the first use too. Warm the browser
+  // cache for every small header mark as soon as the shared shell loads.
+  function preloadThemeLogos() {
+    var urls = [BRAND_LOGO_URL].concat(Object.keys(THEME_LOGO_URLS).map(function (key) { return THEME_LOGO_URLS[key]; }));
+    urls.forEach(function (url) {
+      if (document.querySelector('link[data-rblx-theme-logo-preload][href="' + url + '"]')) return;
+      var preload = document.createElement("link");
+      preload.rel = "preload";
+      preload.as = "image";
+      preload.href = url;
+      preload.setAttribute("data-rblx-theme-logo-preload", "");
+      document.head.appendChild(preload);
+    });
+  }
+  preloadThemeLogos();
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
   var ACTIVE_SESSION_TOKEN_KEY = "rblxtools_active_session_token";
