@@ -4,6 +4,13 @@
 
   var API_BASE = window.location.origin;
   var BRAND_LOGO_URL = "/assets/rblxtools-logo.png";
+  var THEME_LOGO_URLS = {
+    aurora: "/assets/site%20themes/aurora.png",
+    cherry: "/assets/site%20themes/cherry%20blossom.png",
+    cotton: "/assets/site%20themes/cotton%20candy.png",
+    ember: "/assets/site%20themes/ember.png",
+    midnight: "/assets/site%20themes/midnight%20violet.png"
+  };
   var GOOGLE_ANALYTICS_ID = "G-Z6QK1TBNFQ";
   var TOKEN_KEY = "rblxtools_auth_token";
   var ACTIVE_SESSION_TOKEN_KEY = "rblxtools_active_session_token";
@@ -19,6 +26,18 @@
   };
   function readSiteTheme() {
     try { var saved = JSON.parse(localStorage.getItem(SITE_THEME_KEY) || "{}"); return saved && typeof saved === "object" ? saved : {}; } catch (_error) { return {}; }
+  }
+  function getThemeLogoUrl(theme) {
+    var preset = String(theme && theme.preset || "original").toLowerCase();
+    return THEME_LOGO_URLS[preset] || BRAND_LOGO_URL;
+  }
+  function updateThemeLogo(theme) {
+    var logoUrl = getThemeLogoUrl(theme);
+    document.querySelectorAll(".rblx-shell-brand-mark img").forEach(function (image) {
+      if (image.getAttribute("src") !== logoUrl) image.setAttribute("src", logoUrl);
+    });
+    var favicon = document.querySelector('link[rel="icon"]');
+    if (favicon) favicon.href = logoUrl;
   }
   function installSiteThemeCascade() {
     if (document.getElementById("rblxSiteThemeCascade")) return;
@@ -86,6 +105,7 @@
     tint = Math.max(.05, Math.min(.35, tint));
     root.style.setProperty("--rblx-theme-tint", Math.round(tint * 100) + "%");
     if (persist !== false) { try { localStorage.setItem(SITE_THEME_KEY, JSON.stringify(theme)); } catch (_error) {} }
+    updateThemeLogo(theme);
     window.dispatchEvent(new CustomEvent("rblxtools-theme-updated", { detail: theme }));
     return theme;
   }
@@ -2307,7 +2327,7 @@
       '<div class="rblx-shell" id="rblxShellRoot">' +
         '<header class="rblx-shell-header">' +
           '<a class="rblx-shell-brand" href="./index">' +
-            '<span class="rblx-shell-brand-mark"><img src="' + BRAND_LOGO_URL + '" alt="RBLXTools"></span>' +
+            '<span class="rblx-shell-brand-mark"><img src="' + getThemeLogoUrl(readSiteTheme()) + '" alt="RBLXTools"></span>' +
             '<span class="rblx-shell-brand-text">' +
               '<span class="rblx-shell-brand-title">RBLXTools</span>' +
               '<span class="rblx-shell-brand-subtitle">Roblox creator toolkit</span>' +
@@ -6856,7 +6876,7 @@
     var favicon = document.querySelector('link[rel="icon"]') || document.createElement("link");
     favicon.rel = "icon";
     favicon.type = "image/png";
-    favicon.href = BRAND_LOGO_URL;
+    favicon.href = getThemeLogoUrl(readSiteTheme());
     if (!favicon.parentNode) document.head.appendChild(favicon);
     var initialState = getImmediateUserState();
     shellState.currentUser = {
