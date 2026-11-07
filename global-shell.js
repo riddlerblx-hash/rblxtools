@@ -112,6 +112,9 @@
     // states visually obvious, and give the Robux Calculator the same complete
     // surface treatment as every other standalone tool.
     style.textContent += 'html[data-rblx-theme] #rblxShellPage :is(#templateButton,#ugcButton,#fetchButton,#audioButton,#animationButton,#rblx-cleaner-process){border-color:rgba(152,255,185,.82)!important;background:linear-gradient(135deg,#2ad675,#118946)!important;color:#f5fff8!important;box-shadow:0 10px 22px rgba(20,206,101,.28)!important}html[data-rblx-theme] #rblxShellPage :is(#templateButton,#ugcButton,#fetchButton,#audioButton,#animationButton,#rblx-cleaner-process):hover{filter:brightness(1.1)!important;transform:translateY(-1px)!important}html[data-rblx-theme] body:has(.calc-page){background:linear-gradient(145deg,var(--rblx-theme-page),var(--rblx-theme-surface-2) 58%,var(--rblx-theme-page))!important}html[data-rblx-theme] body:has(.calc-page) :is(.calc-hero,.calc-shell,.main-card,.calc-side-card,.calc-footer-card,.hero-info-card,.hero-point,.calc-panel,.result-card,.chart-card){border-color:color-mix(in srgb,var(--rblx-theme-accent) 48%,rgba(255,255,255,.15))!important;background:radial-gradient(circle at 90% 0,color-mix(in srgb,var(--rblx-theme-accent-2) 13%,transparent),transparent 34%),linear-gradient(145deg,var(--rblx-theme-surface),var(--rblx-theme-surface-2))!important;box-shadow:0 16px 34px rgba(0,0,0,.24)!important}html[data-rblx-theme] body:has(.calc-page) :is(.field input,.field select,.field textarea){border-color:color-mix(in srgb,var(--rblx-theme-accent) 52%,rgba(255,255,255,.16))!important;background:color-mix(in srgb,var(--rblx-theme-accent) 10%,var(--rblx-theme-surface-2))!important;color:#f5f7fb!important;box-shadow:none!important}html[data-rblx-theme] body:has(.calc-page) :is(.tab-btn,.choice-btn,.preset-btn,.calc-btn,.share-btn){border-color:color-mix(in srgb,var(--rblx-theme-accent) 56%,rgba(255,255,255,.15))!important;background:color-mix(in srgb,var(--rblx-theme-accent) 15%,var(--rblx-theme-surface-2))!important;color:#f5f7fb!important;box-shadow:none!important}html[data-rblx-theme] body:has(.calc-page) :is(.tab-btn.active,.choice-btn.active,.calc-btn.primary){border-color:var(--rblx-theme-accent-2)!important;background:linear-gradient(135deg,var(--rblx-theme-accent),var(--rblx-theme-accent-2))!important;color:#fff!important;box-shadow:0 10px 22px color-mix(in srgb,var(--rblx-theme-accent) 28%,transparent)!important}html[data-rblx-theme] body:has(.calc-page) .calc-hero .accent{color:var(--rblx-theme-accent-2)!important}';
+    // Some legacy tool embeds are mounted outside #rblxShellPage. Action
+    // colors must therefore target the document body, not only the shell.
+    style.textContent += 'html[data-rblx-theme] body :is(#templateButton,#ugcButton,#fetchButton,#audioButton,#animationButton,#rblx-cleaner-process),html[data-rblx-theme] body :is(button,a)[id*="download" i]:not(.rblx-membership-promo-action){border-color:rgba(152,255,185,.82)!important;background:linear-gradient(135deg,#2ad675,#118946)!important;color:#f5fff8!important;box-shadow:0 10px 22px rgba(20,206,101,.28)!important}html[data-rblx-theme] body :is(#templateButton,#ugcButton,#fetchButton,#audioButton,#animationButton,#rblx-cleaner-process):hover,html[data-rblx-theme] body :is(button,a)[id*="download" i]:not(.rblx-membership-promo-action):hover{filter:brightness(1.1)!important;transform:translateY(-1px)!important}';
     document.head.appendChild(style);
   }
   function applySiteTheme(nextTheme, persist) {
@@ -2158,7 +2161,7 @@
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
           '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong><span class="rblx-shell-token-bonus-popover" id="rblxShellTokenBonusPopover" hidden></span></a>' +
-          '<a class="rblx-shell-header-token-balance" href="./rewards"><small>RBLX Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
+          '<a class="rblx-shell-header-token-balance" href="./rewards"><small>Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./affiliate-marketing"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
           (shellState.currentUser && shellState.currentUser.loggedIn ? '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span aria-hidden="true">📅</span></button>' : '') +
           '<details class="rblx-shell-notification-menu" id="rblxShellNotificationMenu">' +
@@ -6218,7 +6221,7 @@
       } else if (preview.imageUrl) {
         var image = document.createElement("img"); image.src = preview.imageUrl; image.alt = (entry.label || "Tool") + " result preview"; image.loading = "lazy"; holder.appendChild(image);
       } else if ((kind === "ugc" || kind === "media" || kind === "animation") && entry.assetId) {
-        var catalogImage = document.createElement("img"); catalogImage.src = "https://www.roblox.com/asset-thumbnail/image?assetId=" + encodeURIComponent(entry.assetId) + "&width=420&height=420&format=png"; catalogImage.alt = (entry.label || "Roblox") + " catalog preview"; catalogImage.loading = "lazy"; holder.appendChild(catalogImage);
+        var catalogImage = document.createElement("img"); catalogImage.src = "/tool-activity-thumbnail/" + encodeURIComponent(entry.assetId); catalogImage.alt = (entry.label || "Roblox") + " catalog preview"; catalogImage.loading = "lazy"; catalogImage.addEventListener("error", function(){ catalogImage.src = "https://www.roblox.com/asset-thumbnail/image?assetId=" + encodeURIComponent(entry.assetId) + "&width=420&height=420&format=png"; }, { once: true }); holder.appendChild(catalogImage);
       } else {
         var icon = document.createElement("span"); icon.className = "rblx-tool-activity-icon"; icon.textContent = kind === "ugc" ? "◈" : kind === "animation" ? "♙" : "◉"; holder.appendChild(icon);
       }
@@ -6244,7 +6247,7 @@
       // Server tool endpoints write the global entry with their verified
       // Roblox asset ID and thumbnail. Background Changer is client-only, so
       // it is the one tool that still posts its completed result from here.
-      if (detail.tool !== "background-changer") { window.setTimeout(refresh, 350); return; }
+      if (detail.tool !== "background-changer" && detail.tool !== "ugc-downloader") { window.setTimeout(refresh, 350); return; }
       var headers = { "Content-Type": "application/json" }; var token = window.RBLXToolsAuth && window.RBLXToolsAuth.getSessionToken ? window.RBLXToolsAuth.getSessionToken() : ""; if (token) { headers.Authorization = "Bearer " + token; headers["X-RBLXTools-Session"] = token; }
       fetch("/tool-activity", { method: "POST", credentials: "same-origin", headers: headers, body: JSON.stringify(detail) }).then(function(){ refresh(); }).catch(function(){});
     });

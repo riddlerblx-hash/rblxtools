@@ -2716,6 +2716,13 @@ async function recordPublicToolActivity({ toolKey, user, fallbackName, assetId, 
     createdAt: Date.now(),
   };
   const activities = readPublicToolActivityFeed();
+  const duplicate = activities.slice().reverse().find((existing) => (
+    existing?.tool === toolKey &&
+    String(existing?.assetId || "") === requestedId &&
+    String(existing?.actorName || "") === actorName &&
+    Date.now() - Number(existing?.createdAt || 0) < 20_000
+  ));
+  if (duplicate) return duplicate;
   activities.push(entry);
   writeJsonFile(TOOL_ACTIVITY_FEED_PATH, { activities: activities.slice(-80) });
   return entry;
@@ -12467,6 +12474,24 @@ app.get("/api/tool-activity-feed", (_req, res) => {
     .reverse();
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   return res.json({ ok: true, activities });
+});
+
+app.get("/tool-activity-thumbnail/:assetId", async (req, res) => {
+  try {
+    const assetId = String(req.params.assetId || "").replace(/\D/g, "").slice(0, 30);
+    if (!assetId) return res.status(400).json({ error: "A Roblox asset ID is required." });
+    const imageUrl = await getRobloxAssetThumbnailUrl(assetId);
+    if (!imageUrl || !isAllowedRobloxMediaUrl(imageUrl)) return res.status(404).json({ error: "No catalog thumbnail is available for that asset." });
+    const imageFetch = await fetchBuffer(imageUrl);
+    const mime = detectImageMime(imageFetch.response.headers.get("content-type") || "", imageFetch.buffer);
+    if (!mime) return res.status(404).json({ error: "The catalog thumbnail was not an image." });
+    res.setHeader("Content-Type", mime);
+    res.setHeader("Cache-Control", "public, max-age=900");
+    return res.send(imageFetch.buffer);
+  } catch (error) {
+    console.error("Tool activity thumbnail failed:", error.message);
+    return res.status(404).json({ error: "The catalog thumbnail is unavailable." });
+  }
 });
 
 app.post("/tool-activity", async (req, res) => {
