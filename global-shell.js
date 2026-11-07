@@ -2164,7 +2164,7 @@
     if (currentUser.loggedIn) {
       return (
         '<div class="rblx-shell-auth" id="rblxShellAuth">' +
-          '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong><span class="rblx-shell-token-bonus-popover" id="rblxShellTokenBonusPopover" hidden></span></a>' +
+          '<a class="rblx-shell-header-token-balance" id="rblxShellTokenBanner" href="./ai-tokens"><small>AI Tokens</small><strong id="rblxShellTokenBalance">' + (currentUser.aiTokens != null ? String(currentUser.aiTokens) : "0") + '</strong><span class="rblx-shell-token-buy-more">Buy more</span><span class="rblx-shell-token-bonus-popover" id="rblxShellTokenBonusPopover" hidden></span></a>' +
           '<a class="rblx-shell-header-token-balance" href="./rewards"><small>Points</small><strong id="rblxShellPointsBalance">' + (currentUser.rewardPoints != null ? String(currentUser.rewardPoints) : "0") + '</strong></a>' +
           '<a class="rblx-shell-referral-balance" href="./affiliate-marketing"><span id="rblxShellReferralBalance">$0.00</span><small>Your balance</small></a>' +
           (shellState.currentUser && shellState.currentUser.loggedIn ? '<button class="rblx-shell-streak-trigger" type="button" data-shell-daily-streak="true" aria-label="Open daily streak" title="Daily streak"><span aria-hidden="true">📅</span></button>' : '') +
@@ -7086,6 +7086,22 @@
     initSharedToolShowcase();
     initSharedToolActivityFeed();
     initSharedToolStats();
+    var forcedToolActionStyle = document.createElement("style");
+    forcedToolActionStyle.textContent = '@keyframes rblxFetchActionPulse{0%,100%{transform:translateY(0) scale(1);box-shadow:0 10px 24px rgba(20,206,101,.34),0 0 0 0 rgba(61,234,125,.26)}50%{transform:translateY(-2px) scale(1.018);box-shadow:0 16px 34px rgba(20,206,101,.52),0 0 0 6px rgba(61,234,125,0)}}.rblx-forced-fetch-action{border-color:rgba(152,255,185,.95)!important;background:linear-gradient(135deg,#3ae486,#11904a)!important;color:#f5fff8!important;animation:rblxFetchActionPulse 2.15s ease-in-out infinite!important}.rblx-shell-token-buy-more{display:block;max-height:0;overflow:hidden;margin-top:0;border-radius:7px;color:#eafff1;background:linear-gradient(135deg,#32d878,#159b4e);font-size:8px;font-weight:950;letter-spacing:.05em;line-height:18px;text-align:center;text-transform:uppercase;opacity:0;transform:translateY(-4px);transition:max-height .18s ease,margin .18s ease,opacity .18s ease,transform .18s ease}.rblx-shell-header-token-balance:hover .rblx-shell-token-buy-more,.rblx-shell-header-token-balance:focus-visible .rblx-shell-token-buy-more{max-height:18px;margin-top:4px;opacity:1;transform:translateY(0)}html[data-rblx-theme] #rblxShellPage :is(.balance,.goal,.reward,.feature,.art,.art span,.tabs,.modal-card,.modal-art,.modal-copy,.points-chart,.points-chart-item,.cash-conversion,.modal-options,.goal-controls select){border-color:color-mix(in srgb,var(--rblx-theme-accent) 46%,rgba(255,255,255,.16))!important;background:radial-gradient(circle at 88% 0,color-mix(in srgb,var(--rblx-theme-accent-2) 14%,transparent),transparent 38%),linear-gradient(145deg,var(--rblx-theme-surface),var(--rblx-theme-surface-2))!important;color:#f5f7fb!important;box-shadow:none!important}html[data-rblx-theme] #rblxShellPage :is(.pill,.modal-options button,.goal-box,.modal button.action,.close){border-color:color-mix(in srgb,var(--rblx-theme-accent) 58%,rgba(255,255,255,.16))!important;background:color-mix(in srgb,var(--rblx-theme-accent) 18%,var(--rblx-theme-surface-2))!important;color:#f5f7fb!important}body.rblx-dedicated-account-page #rbtools-account-overview :is(.acct-tab-panel,.acct-block,.acct-referral-content,.acct-transactions,.acct-bot-dashboard){overflow:visible!important;clip-path:none!important;mask-image:none!important;contain:none!important}';
+    document.head.appendChild(forcedToolActionStyle);
+    Array.prototype.forEach.call(document.querySelectorAll("#templateButton,#ugcButton,#fetchButton,#audioButton,#animationButton,#rblx-cleaner-process"), function (button) {
+      button.classList.add("rblx-forced-fetch-action");
+      button.style.setProperty("border-color", "rgba(152,255,185,.95)", "important");
+      button.style.setProperty("background", "linear-gradient(135deg,#3ae486,#11904a)", "important");
+      button.style.setProperty("color", "#f5fff8", "important");
+      button.style.setProperty("box-shadow", "0 10px 24px rgba(20,206,101,.34)", "important");
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".tutorial-video-box .tutorial-video"), function (video) {
+      video.preload = "auto";
+      var revealPausedFrame = function () { try { if (video.paused && video.duration > .15) video.currentTime = .1; } catch (_error) {} };
+      video.addEventListener("loadedmetadata", revealPausedFrame, { once: true });
+      if (video.readyState >= 1) revealPausedFrame();
+    });
     document.body.classList.add("rblx-shell-ready");
     // Do not run a whole-page text-rewriting observer. It touched every newly
     // added node (including ads and tool results), which adds avoidable work
