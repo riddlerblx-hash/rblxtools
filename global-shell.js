@@ -6223,7 +6223,30 @@
         if (entry.assetId) { var audio = new Audio("/audio?input=" + encodeURIComponent(entry.assetId) + "&stream=1"); audio.preload = "none"; button.addEventListener("click", function () { if (audio.paused) { audio.play().then(function(){button.textContent="❚❚";}).catch(function(){}); } else { audio.pause(); } }); audio.addEventListener("pause", function(){button.textContent="▶";}); }
         wrap.appendChild(button); wrap.appendChild(wave); holder.appendChild(wrap);
       } else if ((kind === "ugc" || kind === "media" || kind === "animation") && entry.assetId) {
-        var catalogImage = document.createElement("img"); catalogImage.src = "/tool-activity-thumbnail/" + encodeURIComponent(entry.assetId); catalogImage.alt = (entry.label || "Roblox") + " catalog preview"; catalogImage.loading = "lazy"; catalogImage.addEventListener("error", function(){ catalogImage.src = "https://www.roblox.com/asset-thumbnail/image?assetId=" + encodeURIComponent(entry.assetId) + "&width=420&height=420&format=png"; }, { once: true }); holder.appendChild(catalogImage);
+        // The activity record keeps Roblox's real CDN thumbnail. Prefer it over
+        // our proxy: it works on every tool page and does not depend on the
+        // browser reaching a separately restarted Node route.
+        var savedCatalogImage = String(preview.imageUrl || "").trim();
+        var catalogImage = document.createElement("img");
+        catalogImage.src = savedCatalogImage || "/tool-activity-thumbnail/" + encodeURIComponent(entry.assetId);
+        catalogImage.alt = (entry.label || "Roblox") + " catalog preview";
+        catalogImage.loading = "lazy";
+        catalogImage.addEventListener("error", function () {
+          if (catalogImage.dataset.triedActivityProxy !== "1" && savedCatalogImage) {
+            catalogImage.dataset.triedActivityProxy = "1";
+            catalogImage.src = "/tool-activity-thumbnail/" + encodeURIComponent(entry.assetId);
+            return;
+          }
+          // Never leave a broken-image icon or alt text behind when Roblox has
+          // temporarily not finished its thumbnail. A clear UGC placeholder is
+          // preferable, and the card refresh will retry the real thumbnail.
+          catalogImage.remove();
+          var icon = document.createElement("span");
+          icon.className = "rblx-tool-activity-icon";
+          icon.textContent = kind === "ugc" ? "◈" : kind === "animation" ? "♙" : "◉";
+          holder.appendChild(icon);
+        });
+        holder.appendChild(catalogImage);
       } else if (preview.imageUrl) {
         var image = document.createElement("img"); image.src = preview.imageUrl; image.alt = (entry.label || "Tool") + " result preview"; image.loading = "lazy"; holder.appendChild(image);
       } else {
