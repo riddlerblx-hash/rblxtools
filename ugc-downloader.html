@@ -925,7 +925,7 @@
       <label class="field-label" for="ugcId">Roblox Catalog Asset ID</label>
       <textarea id="ugcId" placeholder="Enter a Roblox catalog asset ID"></textarea>
 
-      <button id="ugcButton" onclick="generateUgc()">Create Textured Preview</button>
+      <button id="ugcButton" onclick="generateUgc()">Fetch UGC</button>
 
       <div id="status"></div>
 
@@ -1366,13 +1366,13 @@
     if (statsPanel) statsPanel.innerHTML = getAssetStatsMarkup(activeSlide);
     const downloadBtn = document.getElementById("downloadBtn");
     if (downloadBtn) {
-      downloadBtn.textContent = currentSlides.length > 1 ? `Download ${currentSlides.length} Textured GLBs` : "Download Textured GLB";
+      downloadBtn.textContent = currentSlides.length > 1 ? `Download ${currentSlides.length} UGC GLBs` : "Download UGC GLB";
       downloadBtn.onclick = function () { downloadTexturedGlbs(currentSlides); };
     }
     const glbButton = document.getElementById("downloadGlbBtn");
     if (glbButton) {
       const glbLabel = document.getElementById("downloadGlbLabel");
-      if (glbLabel) glbLabel.textContent = currentSlides.length > 1 ? `Download ${currentSlides.length} Textured GLBs` : "Download Textured GLB";
+      if (glbLabel) glbLabel.textContent = currentSlides.length > 1 ? `Download ${currentSlides.length} UGC GLBs` : "Download UGC GLB";
       glbButton.onclick = function () { downloadTexturedGlbs(currentSlides); };
     }
 
@@ -1455,7 +1455,7 @@
         <button id="statsForNerdsBtn" type="button" aria-expanded="false" aria-controls="assetStatsPanel">Stats for Nerds</button>
       </div>
       <div id="actionRow">
-        <button id="downloadBtn" type="button">Download Textured GLB</button>
+        <button id="downloadBtn" type="button">Download UGC GLB</button>
       </div>
       <div id="assetStatsPanel" aria-live="polite"></div>
     `;
@@ -1657,7 +1657,7 @@
       scheduleEmbedHeightReport();
     } finally {
       button.disabled = false;
-      button.innerText = "Create Textured Preview";
+      button.innerText = "Fetch UGC";
       scheduleEmbedHeightReport();
     }
   }

@@ -1375,7 +1375,7 @@
             <label class="field-label" for="animationAssetId">Roblox Animation Asset ID</label>
             <textarea id="animationAssetId" placeholder="Enter a Roblox animation asset ID"></textarea>
 
-            <button id="animationButton" onclick="generateAnimation()">Download Animation</button>
+            <button id="animationButton" onclick="generateAnimation()">Fetch Animation</button>
 
             <div id="status"></div>
 
@@ -1421,7 +1421,7 @@
               </div>
 
               <div id="actionRow">
-                <a id="downloadAnimationBtn" href="#" class="disabled">Save Output</a>
+                <a id="downloadAnimationBtn" href="#" class="disabled">Download Animation</a>
               </div>
             </div>
           </div>
@@ -2161,10 +2161,10 @@
 
       function renderActionButtons() {
         if (currentSlides.length > 1) {
-          actionRow.innerHTML = '<a id="downloadAnimationBtn" href="#">Save Current</a><button id="downloadAllBtn" type="button">Download All</button>';
+          actionRow.innerHTML = '<a id="downloadAnimationBtn" href="#">Download Animation</a><button id="downloadAllBtn" type="button">Download All Animations</button>';
           document.getElementById("downloadAllBtn").addEventListener("click", downloadAllSlides);
         } else {
-          actionRow.innerHTML = '<a id="downloadAnimationBtn" href="#" class="disabled">Save Output</a>';
+          actionRow.innerHTML = '<a id="downloadAnimationBtn" href="#" class="disabled">Download Animation</a>';
         }
       }
 
@@ -2314,7 +2314,7 @@
           setStatus(error.message || "Failed to fetch animation", "error");
         } finally {
           button.disabled = false;
-          button.innerText = "Download Animation";
+          button.innerText = "Fetch Animation";
           scheduleEmbedHeightReport();
         }
       }

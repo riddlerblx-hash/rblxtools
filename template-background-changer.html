@@ -871,11 +871,11 @@
 
         <div class="rblx-cleaner-actions">
           <button class="rblx-cleaner-btn" id="rblx-cleaner-process" type="button" disabled>
-            Restore Background
+            Fetch Background Preview
           </button>
 
           <button class="rblx-cleaner-btn secondary" id="rblx-cleaner-download" type="button" disabled>
-            Download PNG
+            Download Background PNG
           </button>
         </div>
 
@@ -1458,8 +1458,8 @@
           renderEntryPreview();
           setStatus(
             files.length > 1
-              ? "Templates loaded. Click Restore Background to process all of them."
-              : "Template loaded. Click Restore Background to apply the " + getTemplateDisplayName() + ".",
+              ? "Templates loaded. Click Fetch Background Preview to process all of them."
+              : "Template loaded. Click Fetch Background Preview to apply the " + getTemplateDisplayName() + ".",
             "success"
           );
         } catch (error) {
@@ -1568,10 +1568,10 @@
         updateTypePill();
         restoredEntries = [];
         downloadBtn.disabled = true;
-        downloadBtn.textContent = "Download PNG";
+        downloadBtn.textContent = "Download Background PNG";
 
         if (uploadedEntries.length) {
-          setStatus("Template type changed. Click Restore Background again.");
+          setStatus("Template type changed. Click Fetch Background Preview again.");
           updateEmptyPreviewState();
           renderEntryPreview();
         } else {

@@ -1233,7 +1233,7 @@
         <h2 class="tool-card-title"><span>Clothing</span></h2>
         <label class="field-label" for="robloxId">Roblox Clothing Asset ID</label>
         <textarea id="robloxId" placeholder="Enter a Roblox clothing asset ID"></textarea>
-        <button id="templateButton" class="btn" onclick="generate()">Download Template</button>
+        <button id="templateButton" class="btn" onclick="generate()">Fetch Clothing Template</button>
         <div id="status"></div>
         <div id="result"></div>
       </article>
@@ -1914,8 +1914,8 @@
           <div class="metaPill" id="slideCounter">${isMulti ? ("1 of " + slides.length) : "Single Template"}</div>
         </div>
         <div id="actionRow">
-          <a id="downloadBtn" href="#">Save Template</a>
-          ${isMulti ? '<button id="downloadAllBtn" type="button" onclick="downloadAllSlides()">Download All</button>' : ""}
+          <a id="downloadBtn" href="#">Download Template</a>
+          ${isMulti ? '<button id="downloadAllBtn" type="button" onclick="downloadAllSlides()">Download All Templates</button>' : ""}
         </div>
       `;
       updateCarouselView();
@@ -1977,7 +1977,7 @@
         result.innerHTML = buildDefaultPreview();
       } finally {
         button.disabled = false;
-        button.innerText = "Download Template";
+        button.innerText = "Fetch Clothing Template";
       }
     }
 
