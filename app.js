@@ -12495,6 +12495,44 @@ app.get("/tool-activity-thumbnail/:assetId", async (req, res) => {
   }
 });
 
+// A small, public-safe catalog summary used by the tool result's optional
+// "Stats for Nerds" panel. The browser never has to call Roblox directly,
+// and the route only accepts a numeric Roblox asset id.
+app.get("/api/asset-stats", async (req, res) => {
+  const assetId = String(req.query.id || "").replace(/\D/g, "").slice(0, 30);
+  if (!assetId) return res.status(400).json({ error: "A Roblox asset ID is required." });
+
+  try {
+    const details = await fetchJson(`https://economy.roblox.com/v2/assets/${encodeURIComponent(assetId)}/details`);
+    const thumbnailUrl = await getRobloxAssetThumbnailUrl(assetId);
+    const creator = details?.creator && typeof details.creator === "object" ? details.creator : {};
+
+    res.setHeader("Cache-Control", "public, max-age=300");
+    return res.json({
+      ok: true,
+      assetId,
+      name: cleanText(details?.name || "", 160),
+      description: cleanText(details?.description || "", 500),
+      assetType: cleanText(details?.assetType || details?.assetTypeName || "", 80),
+      assetTypeId: Number.isFinite(Number(details?.assetTypeId)) ? Number(details.assetTypeId) : null,
+      creatorName: cleanText(creator?.name || creator?.Name || "", 120),
+      creatorType: cleanText(creator?.type || creator?.Type || "", 40),
+      creatorId: String(creator?.id || creator?.Id || "").replace(/\D/g, "").slice(0, 30),
+      created: details?.created || details?.createdAt || null,
+      updated: details?.updated || details?.updatedAt || null,
+      sales: Number.isFinite(Number(details?.sales)) ? Number(details.sales) : null,
+      price: Number.isFinite(Number(details?.priceInRobux)) ? Number(details.priceInRobux) : null,
+      isForSale: typeof details?.isForSale === "boolean" ? details.isForSale : null,
+      productId: String(details?.productId || "").replace(/\D/g, "").slice(0, 30),
+      thumbnailUrl: thumbnailUrl || "",
+      catalogUrl: `https://www.roblox.com/catalog/${assetId}`,
+    });
+  } catch (error) {
+    console.error("Asset stats lookup failed:", error.message);
+    return res.status(502).json({ error: "Roblox catalog details are temporarily unavailable." });
+  }
+});
+
 app.post("/tool-activity", async (req, res) => {
   try {
     const toolKey = normalizeToolActivityKey(req.body?.tool || req.body?.toolKey || "");

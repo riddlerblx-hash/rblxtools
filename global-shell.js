@@ -6405,16 +6405,65 @@
     grid.appendChild(stat);
   }
 
+  function getActiveToolAssetId(row) {
+    var candidates = [];
+    ["#robloxId", "#ugcId", "#mediaInput", "#audioInput", "#animationAssetId", "#activeAssetId", "#activeTemplateId"].forEach(function (selector) {
+      var element = document.querySelector(selector);
+      if (element) candidates.push(element.value || element.textContent || "");
+    });
+    if (row) candidates.push(row.textContent || "");
+    for (var index = 0; index < candidates.length; index += 1) {
+      var match = String(candidates[index] || "").match(/\b(\d{4,30})\b/);
+      if (match) return match[1];
+    }
+    return "";
+  }
+
+  function formatCatalogDate(value) {
+    var timestamp = Date.parse(String(value || ""));
+    return Number.isFinite(timestamp) ? new Date(timestamp).toLocaleString() : "";
+  }
+
+  function loadRobloxCatalogStats(grid, assetId) {
+    if (!assetId || !grid) return;
+    var loading = document.createElement("div");
+    loading.className = "rblx-tool-stat";
+    loading.textContent = "Loading Roblox catalog details…";
+    grid.appendChild(loading);
+
+    fetch("/api/asset-stats?id=" + encodeURIComponent(assetId), { credentials: "same-origin" })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (details) {
+        loading.remove();
+        if (!details || !details.ok) return;
+        appendToolStat(grid, "Catalog name", details.name);
+        appendToolStat(grid, "Asset type", details.assetType);
+        appendToolStat(grid, "Creator", details.creatorName);
+        appendToolStat(grid, "Creator type", details.creatorType);
+        appendToolStat(grid, "Creator ID", details.creatorId);
+        appendToolStat(grid, "Created", formatCatalogDate(details.created));
+        appendToolStat(grid, "Last updated", formatCatalogDate(details.updated));
+        if (Number.isFinite(details.sales)) appendToolStat(grid, "Sales", Number(details.sales).toLocaleString());
+        if (Number.isFinite(details.price)) appendToolStat(grid, "Price", Number(details.price).toLocaleString() + " Robux");
+        if (typeof details.isForSale === "boolean") appendToolStat(grid, "For sale", details.isForSale ? "Yes" : "No");
+        appendToolStat(grid, "Product ID", details.productId);
+        appendToolStat(grid, "Roblox catalog", details.catalogUrl);
+      })
+      .catch(function () { loading.remove(); });
+  }
+
   function renderToolStats(panel, row) {
     panel.replaceChildren();
     var heading = document.createElement("h4");
     heading.textContent = "Asset stats for nerds";
     var grid = document.createElement("div");
     grid.className = "rblx-tool-stats-grid";
+    var assetId = getActiveToolAssetId(row);
+    appendToolStat(grid, "Roblox asset ID", assetId);
     Array.prototype.slice.call(row.querySelectorAll(".metaPill, .rblx-meta-pill")).forEach(function (pill, index) {
       appendToolStat(grid, getToolStatsLabel(pill, index), String(pill.textContent || "").trim());
     });
-    var image = document.querySelector("#activeTemplateImage, #activePreviewImage, #thumbnailImage");
+    var image = document.querySelector("#activeTemplateImage, #activePreviewImage, #thumbnailImage, #templatePreview, #previewImage");
     if (image && image.src) {
       appendToolStat(grid, "Preview image", image.currentSrc || image.src);
       if (image.naturalWidth && image.naturalHeight) appendToolStat(grid, "Image resolution", image.naturalWidth + " × " + image.naturalHeight);
@@ -6427,6 +6476,7 @@
     appendToolStat(grid, "Tool page", document.title || window.location.pathname);
     panel.appendChild(heading);
     panel.appendChild(grid);
+    loadRobloxCatalogStats(grid, assetId);
   }
 
   function initSharedToolStats() {
