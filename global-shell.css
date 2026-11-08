@@ -5481,6 +5481,25 @@ body.rblx-shell-ready .rblx-shell-page .share-btn {
 body.rblx-shell-ready .rblx-shell-page .share-btn:hover { transform: translateY(-3px) rotate(-2deg); filter: brightness(1.15); }
 body.rblx-shell-ready .rblx-shell-page .share-copy-btn { margin-top: 15px !important; min-width: 164px; }
 
+/* All regular tool pages share the clothing page's compact navy share card. */
+body.rblx-shell-ready[data-tool-report] .rblx-shell-page .share-card {
+  border-color: rgba(94, 139, 224, .30) !important;
+  background: radial-gradient(circle at top right, rgba(60, 103, 174, .13), transparent 32%), linear-gradient(180deg, rgba(21, 34, 57, .97), rgba(10, 17, 30, .98)) !important;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, .18), inset 0 1px rgba(255,255,255,.04) !important;
+}
+body.rblx-shell-ready[data-tool-report] .rblx-shell-page .share-kicker { display: none !important; }
+body.rblx-shell-ready[data-tool-report] .rblx-shell-page .share-card h3 { margin-top: 0 !important; }
+body.rblx-shell-ready[data-tool-report] .rblx-shell-page .share-btn {
+  border-color: rgba(94, 167, 255, .68) !important;
+  background: rgba(24, 62, 105, .72) !important;
+  box-shadow: none !important;
+}
+body.rblx-shell-ready[data-tool-report] .rblx-shell-page .share-copy-btn {
+  border: 0 !important;
+  background: #19395d !important;
+  box-shadow: none !important;
+}
+
 @media (max-width: 620px) {
   body.rblx-shell-ready .rblx-shell-page .showcase-card,
   body.rblx-shell-ready .rblx-shell-page .share-card { padding: 16px !important; border-radius: 18px !important; }
