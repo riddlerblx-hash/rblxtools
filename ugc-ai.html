@@ -460,5 +460,24 @@
     })();
   </script>
 <script src="./global-shell.js?v=20261108-catalog-links-1"></script>
+<script>
+  (function () {
+    var button=document.getElementById('ugcHistoryToggle'), drawer=document.querySelector('.ugc-library');
+    if(!button||!drawer)return;
+    /* Keep this control in the document overlay, just as AI Media does. The
+       shared shell makes page children relative-positioned after it loads. */
+    if(button.parentNode!==document.body)document.body.appendChild(button);
+    function placeDrawerControl(){
+      var open=drawer.classList.contains('visible'), drawerRect=drawer.getBoundingClientRect(), shell=document.querySelector('.rblx-shell-left');
+      if(open)button.style.setProperty('left',Math.round(drawerRect.right-20)+'px','important');
+      else if(shell)button.style.setProperty('left',Math.round(shell.getBoundingClientRect().right-20)+'px','important');
+    }
+    button.addEventListener('click',function(){window.requestAnimationFrame(placeDrawerControl);});
+    new MutationObserver(placeDrawerControl).observe(drawer,{attributes:true,attributeFilter:['class']});
+    window.addEventListener('resize',placeDrawerControl);
+    window.setTimeout(placeDrawerControl,0);
+    window.setTimeout(placeDrawerControl,350);
+  })();
+</script>
 </body>
 </html>
