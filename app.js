@@ -2707,6 +2707,7 @@ async function recordPublicToolActivity({ toolKey, user, fallbackName, assetId, 
     tool: toolKey,
     label,
     actorName,
+    actorUserId: user ? String(user.id || "") : "",
     assetId: requestedId,
     preview: {
       kind,
