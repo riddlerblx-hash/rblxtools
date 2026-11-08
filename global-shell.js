@@ -6437,9 +6437,17 @@
         if (!row.querySelector(".metaPill, .rblx-meta-pill")) return;
         row.classList.add("rblx-tool-meta-hidden");
         var actionRow = row.parentNode && row.parentNode.querySelector ? row.parentNode.querySelector("#actionRow, .rblx-result-actions") : null;
-        var existingToggle = row.querySelector("#statsForNerdsBtn, .rblx-tool-stats-toggle");
+        /* The control belongs in the action row, not the hidden metadata row.
+           Looking in the wrong container made each observer update create a
+           fresh button, which eventually overwhelmed the result panel. */
+        var existingToggle = (actionRow && actionRow.querySelector("#statsForNerdsBtn, .rblx-tool-stats-toggle")) || row.querySelector("#statsForNerdsBtn, .rblx-tool-stats-toggle");
         if (existingToggle) {
           if (actionRow && existingToggle.parentNode !== actionRow) actionRow.appendChild(existingToggle);
+          if (actionRow) {
+            Array.prototype.slice.call(actionRow.querySelectorAll(".rblx-tool-stats-toggle")).forEach(function (toggle) {
+              if (toggle !== existingToggle) toggle.remove();
+            });
+          }
           return;
         }
         var toggle = document.createElement("button");
