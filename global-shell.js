@@ -6170,7 +6170,7 @@
     if (!style) {
       style = document.createElement("style");
       style.id = "rblxToolActivityFeedStyle";
-      style.textContent = ".rblx-tool-activity-feed{margin:24px auto;max-width:1120px;padding:18px;border:1px solid color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 58%,transparent);border-radius:18px;background:linear-gradient(135deg,color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 11%,#111827),#10101b);box-shadow:0 16px 32px rgba(0,0,0,.18)}.rblx-tool-activity-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:14px}.rblx-tool-activity-head h2{margin:0;font-size:1.18rem}.rblx-tool-activity-head p{margin:0;color:#aeb8c9;font-size:.78rem}.rblx-tool-activity-grid{display:flex;gap:12px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}.rblx-tool-activity-card{flex:0 0 calc((100% - 60px)/6);min-width:138px;min-height:142px;overflow:hidden;border:1px solid color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 42%,#3c4051);border-radius:13px;background:#121827}.rblx-tool-activity-card:last-child{opacity:.48;transition:opacity .35s ease}.rblx-tool-activity-preview{height:78px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,#263858,#151b2a)}.rblx-tool-activity-preview>img{width:100%;height:100%;object-fit:cover}.rblx-tool-activity-copy{padding:9px 10px 11px}.rblx-tool-activity-copy strong{display:block;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rblx-tool-activity-copy time{display:block;margin-top:3px;color:#9fabc0;font-size:.74rem}.rblx-tool-activity-rig{width:44px;height:67px;position:relative}.rblx-tool-activity-rig:before{content:'';position:absolute;left:15px;top:0;width:15px;height:15px;border-radius:50%;background:#e9edf7}.rblx-tool-activity-rig i{position:absolute;background:var(--rblx-rig-texture,linear-gradient(135deg,#71caf4,#405bb3));border-radius:3px}.rblx-tool-activity-rig .torso{left:10px;top:17px;width:25px;height:27px}.rblx-tool-activity-rig .arm{top:19px;width:9px;height:26px}.rblx-tool-activity-rig .arm.left{left:0}.rblx-tool-activity-rig .arm.right{right:0}.rblx-tool-activity-rig .leg{top:45px;width:11px;height:22px;background:#d7dde9}.rblx-tool-activity-rig .leg.left{left:10px}.rblx-tool-activity-rig .leg.right{right:10px}.rblx-tool-activity-icon{font-size:2rem;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}.rblx-tool-activity-audio{display:flex;align-items:center;gap:10px}.rblx-tool-activity-play{border:1px solid var(--rblx-theme-accent,#77d9ff);border-radius:50%;width:34px;height:34px;color:#fff;background:color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 24%,#121827);cursor:pointer}.rblx-tool-activity-wave{letter-spacing:2px;color:var(--rblx-theme-accent,#77d9ff);font-size:1.4rem}.rblx-shell-ready #rblxShellPage input:not([type=checkbox]):not([type=radio]):not([type=range]),.rblx-shell-ready #rblxShellPage textarea,.rblx-shell-ready #rblxShellPage select{background:color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 10%,#111827)!important;border-color:color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 55%,#304767)!important;color:#f4f7ff}.rblx-shell-ready #rblxShellPage input::placeholder,.rblx-shell-ready #rblxShellPage textarea::placeholder{color:#aeb8c9!important}@media(max-width:760px){.rblx-tool-activity-head{align-items:flex-start;flex-direction:column}.rblx-tool-activity-card{flex-basis:150px}}";
+      style.textContent = ".rblx-tool-activity-feed{margin:24px auto;max-width:1120px;padding:18px;border:1px solid color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 40%,rgba(255,255,255,.13));border-radius:18px;background:linear-gradient(145deg,var(--rblx-theme-surface,#111827),var(--rblx-theme-surface-2,#10101b));box-shadow:0 12px 28px rgba(0,0,0,.13)}.rblx-tool-activity-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:14px}.rblx-tool-activity-head h2{margin:0;font-size:1.18rem}.rblx-tool-activity-head p{margin:0;color:#aeb8c9;font-size:.78rem}.rblx-tool-activity-grid{display:flex;gap:12px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}.rblx-tool-activity-card{flex:0 0 calc((100% - 60px)/6);min-width:138px;min-height:142px;overflow:hidden;border:1px solid color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 34%,rgba(255,255,255,.13));border-radius:13px;background:linear-gradient(145deg,var(--rblx-theme-surface,#121827),var(--rblx-theme-surface-2,#101624))}.rblx-tool-activity-card:last-child{opacity:.72;transition:opacity .35s ease}.rblx-tool-activity-preview{height:78px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(145deg,color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 10%,var(--rblx-theme-surface,#263858)),var(--rblx-theme-surface-2,#151b2a))}.rblx-tool-activity-preview>img{width:100%;height:100%;object-fit:cover}.rblx-tool-activity-copy{padding:9px 10px 11px}.rblx-tool-activity-copy strong{display:block;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rblx-tool-activity-copy time{display:block;margin-top:3px;color:#9fabc0;font-size:.74rem}.rblx-tool-activity-rig{width:44px;height:67px;position:relative}.rblx-tool-activity-rig:before{content:'';position:absolute;left:15px;top:0;width:15px;height:15px;border-radius:50%;background:#e9edf7}.rblx-tool-activity-rig i{position:absolute;background:var(--rblx-rig-texture,linear-gradient(135deg,#71caf4,#405bb3));border-radius:3px}.rblx-tool-activity-rig .torso{left:10px;top:17px;width:25px;height:27px}.rblx-tool-activity-rig .arm{top:19px;width:9px;height:26px}.rblx-tool-activity-rig .arm.left{left:0}.rblx-tool-activity-rig .arm.right{right:0}.rblx-tool-activity-rig .leg{top:45px;width:11px;height:22px;background:#d7dde9}.rblx-tool-activity-rig .leg.left{left:10px}.rblx-tool-activity-rig .leg.right{right:10px}.rblx-tool-activity-icon{font-size:2rem;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}.rblx-tool-activity-audio{display:flex;align-items:center;gap:8px}.rblx-tool-activity-audio-icon{display:grid;place-items:center;width:25px;height:34px;color:var(--rblx-theme-accent-2,#77d9ff);font-size:21px;text-shadow:0 0 16px color-mix(in srgb,var(--rblx-theme-accent-2,#77d9ff) 52%,transparent)}.rblx-tool-activity-play{border:1px solid var(--rblx-theme-accent,#77d9ff);border-radius:50%;width:34px;height:34px;color:#fff;background:color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 24%,var(--rblx-theme-surface-2,#121827));cursor:pointer}.rblx-tool-activity-wave{letter-spacing:1px;color:var(--rblx-theme-accent,#77d9ff);font-size:1.1rem}.rblx-shell-ready #rblxShellPage input:not([type=checkbox]):not([type=radio]):not([type=range]),.rblx-shell-ready #rblxShellPage textarea,.rblx-shell-ready #rblxShellPage select{background:color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 10%,#111827)!important;border-color:color-mix(in srgb,var(--rblx-theme-accent,#77d9ff) 55%,#304767)!important;color:#f4f7ff}.rblx-shell-ready #rblxShellPage input::placeholder,.rblx-shell-ready #rblxShellPage textarea::placeholder{color:#aeb8c9!important}@media(max-width:760px){.rblx-tool-activity-head{align-items:flex-start;flex-direction:column}.rblx-tool-activity-card{flex-basis:150px}}";
       style.textContent += ".rblx-tool-activity-feed{margin-left:0;margin-right:0;max-width:none}";
       style.textContent += ".rblx-tool-activity-card{opacity:1!important;background:linear-gradient(145deg,var(--rblx-theme-surface,#182238),var(--rblx-theme-surface-2,#0d1423))!important}.rblx-tool-activity-card:nth-child(6){opacity:.72!important}.rblx-tool-activity-copy strong{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}.rblx-tool-activity-preview{background:radial-gradient(circle at 50% 18%,color-mix(in srgb,var(--rblx-theme-accent-2,#77d9ff) 26%,transparent),transparent 58%),linear-gradient(145deg,var(--rblx-theme-surface,#182238),var(--rblx-theme-surface-2,#0d1423))!important}.rblx-tool-activity-rig{width:54px;height:72px;transform-style:preserve-3d;animation:rblxActivityRigTurn 5s ease-in-out infinite}.rblx-tool-activity-rig i{background-color:var(--rblx-theme-accent,#77d9ff)!important;background-image:var(--rblx-rig-texture,linear-gradient(135deg,var(--rblx-theme-accent,#77d9ff),var(--rblx-theme-accent-2,#9b8cff)))!important;background-position:center!important;background-size:180px 230px!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 4px 8px rgba(0,0,0,.24)}.rblx-tool-activity-rig .leg{background-image:linear-gradient(145deg,#e6ecf5,#8898ac)!important}@keyframes rblxActivityRigTurn{0%,100%{transform:perspective(160px) rotateY(-18deg) rotateX(3deg)}50%{transform:perspective(160px) rotateY(18deg) rotateX(-3deg)}}";
       document.head.appendChild(style);
@@ -6211,17 +6211,20 @@
         var template = document.createElement("img");
         template.src = "/template?id=" + encodeURIComponent(entry.assetId) + "&activityPreview=1";
         template.alt = "Roblox clothing template preview";
-        template.loading = "lazy";
+        template.loading = "eager";
+        template.decoding = "async";
+        template.fetchPriority = "high";
         template.style.objectFit = "contain";
         holder.appendChild(template);
       } else if (kind === "background" && preview.imageUrl) {
-        var backgroundImage = document.createElement("img"); backgroundImage.src = preview.imageUrl; backgroundImage.alt = "Background changer result"; backgroundImage.loading = "lazy"; backgroundImage.style.objectFit = "contain"; holder.appendChild(backgroundImage);
+        var backgroundImage = document.createElement("img"); backgroundImage.src = preview.imageUrl; backgroundImage.alt = "Background changer result"; backgroundImage.loading = "eager"; backgroundImage.decoding = "async"; backgroundImage.fetchPriority = "high"; backgroundImage.style.objectFit = "contain"; holder.appendChild(backgroundImage);
       } else if (kind === "audio") {
         var wrap = document.createElement("div"); wrap.className = "rblx-tool-activity-audio";
+        var audioIcon = document.createElement("span"); audioIcon.className = "rblx-tool-activity-audio-icon"; audioIcon.setAttribute("aria-hidden", "true"); audioIcon.textContent = "♪";
         var button = document.createElement("button"); button.type = "button"; button.className = "rblx-tool-activity-play"; button.textContent = "▶"; button.setAttribute("aria-label", "Play audio preview");
         var wave = document.createElement("span"); wave.className = "rblx-tool-activity-wave"; wave.textContent = "▂▅▇▅▂";
         if (entry.assetId) { var audio = new Audio("/audio?input=" + encodeURIComponent(entry.assetId) + "&stream=1"); audio.preload = "none"; button.addEventListener("click", function () { if (audio.paused) { audio.play().then(function(){button.textContent="❚❚";}).catch(function(){}); } else { audio.pause(); } }); audio.addEventListener("pause", function(){button.textContent="▶";}); }
-        wrap.appendChild(button); wrap.appendChild(wave); holder.appendChild(wrap);
+        wrap.appendChild(audioIcon); wrap.appendChild(button); wrap.appendChild(wave); holder.appendChild(wrap);
       } else if ((kind === "ugc" || kind === "media" || kind === "animation") && entry.assetId) {
         // The activity record keeps Roblox's real CDN thumbnail. Prefer it over
         // our proxy: it works on every tool page and does not depend on the
@@ -6230,7 +6233,9 @@
         var catalogImage = document.createElement("img");
         catalogImage.src = savedCatalogImage || "/tool-activity-thumbnail/" + encodeURIComponent(entry.assetId);
         catalogImage.alt = (entry.label || "Roblox") + " catalog preview";
-        catalogImage.loading = "lazy";
+        catalogImage.loading = "eager";
+        catalogImage.decoding = "async";
+        catalogImage.fetchPriority = "high";
         catalogImage.addEventListener("error", function () {
           if (catalogImage.dataset.triedActivityProxy !== "1" && savedCatalogImage) {
             catalogImage.dataset.triedActivityProxy = "1";
@@ -6248,18 +6253,35 @@
         });
         holder.appendChild(catalogImage);
       } else if (preview.imageUrl) {
-        var image = document.createElement("img"); image.src = preview.imageUrl; image.alt = (entry.label || "Tool") + " result preview"; image.loading = "lazy"; holder.appendChild(image);
+        var image = document.createElement("img"); image.src = preview.imageUrl; image.alt = (entry.label || "Tool") + " result preview"; image.loading = "eager"; image.decoding = "async"; image.fetchPriority = "high"; holder.appendChild(image);
       } else {
         var icon = document.createElement("span"); icon.className = "rblx-tool-activity-icon"; icon.textContent = kind === "ugc" ? "◈" : kind === "animation" ? "♙" : "◉"; holder.appendChild(icon);
       }
       return holder;
     }
+    function buildActivityCard(entry) {
+      var card = document.createElement("article");
+      card.className = "rblx-tool-activity-card";
+      card.dataset.activityId = String(entry.id || "");
+      card.appendChild(buildPreview(entry));
+      var copy = document.createElement("div"); copy.className = "rblx-tool-activity-copy";
+      var title = document.createElement("strong"); title.textContent = (entry.actorName || "Guest") + " used " + (entry.label || "a tool");
+      var time = document.createElement("time"); time.dataset.createdAt = String(entry.createdAt || Date.now()); time.textContent = relativeTime(entry.createdAt);
+      copy.appendChild(title); copy.appendChild(time); card.appendChild(copy);
+      return card;
+    }
     function render(entries) {
       latest = Array.isArray(entries) ? entries.slice(0, 6) : [];
       cacheActivities(latest);
-      grid.innerHTML = "";
-      if (!latest.length) return;
-      latest.forEach(function(entry) { var card = document.createElement("article"); card.className = "rblx-tool-activity-card"; card.appendChild(buildPreview(entry)); var copy = document.createElement("div"); copy.className = "rblx-tool-activity-copy"; var title = document.createElement("strong"); title.textContent = (entry.actorName || "Guest") + " used " + (entry.label || "a tool"); var time = document.createElement("time"); time.dataset.createdAt = String(entry.createdAt || Date.now()); time.textContent = relativeTime(entry.createdAt); copy.appendChild(title); copy.appendChild(time); card.appendChild(copy); grid.appendChild(card); });
+      var existingCards = Object.create(null);
+      Array.prototype.forEach.call(grid.children, function (card) { if (card.dataset.activityId) existingCards[card.dataset.activityId] = card; });
+      var fragment = document.createDocumentFragment();
+      latest.forEach(function (entry) {
+        var id = String(entry.id || "");
+        var card = id && existingCards[id] ? existingCards[id] : buildActivityCard(entry);
+        fragment.appendChild(card);
+      });
+      grid.replaceChildren(fragment);
     }
     function refresh() { fetch("/api/tool-activity-feed", { credentials: "same-origin", cache: "no-store" }).then(function(response){ return response.ok ? response.json() : null; }).then(function(payload){ if (payload && Array.isArray(payload.activities)) render(payload.activities); }).catch(function(){}); }
     window.setInterval(function(){ panel.querySelectorAll("time[data-created-at]").forEach(function(time){ time.textContent = relativeTime(time.dataset.createdAt); }); }, 1000);
@@ -6271,10 +6293,10 @@
         label: detail.tool === "template-downloader" ? "Clothing" : detail.tool === "background-changer" ? "Background Changer" : detail.tool === "ugc-downloader" ? "UGC" : detail.tool === "media-downloader" ? "Media" : detail.tool === "audio-downloader" ? "Audio" : "Animations",
         actorName: getCurrentActivityActorName(), assetId: detail.assetId || "", preview: detail.preview || {}, createdAt: Date.now()
       }].concat(latest).slice(0, 6));
-      // Server tool endpoints write the global entry with their verified
-      // Roblox asset ID and thumbnail. Background Changer is client-only, so
-      // it is the one tool that still posts its completed result from here.
-      if (detail.tool !== "background-changer" && detail.tool !== "ugc-downloader") { window.setTimeout(refresh, 350); return; }
+      // Every successful tool event is recorded here as well as by any server
+      // endpoint. The server safely de-duplicates these entries, while this
+      // guarantees Media, Audio, Animation, UGC, and client-only tools retain
+      // the exact asset ID and preview required by the public activity card.
       var headers = { "Content-Type": "application/json" }; var token = window.RBLXToolsAuth && window.RBLXToolsAuth.getSessionToken ? window.RBLXToolsAuth.getSessionToken() : ""; if (token) { headers.Authorization = "Bearer " + token; headers["X-RBLXTools-Session"] = token; }
       fetch("/tool-activity", { method: "POST", credentials: "same-origin", headers: headers, body: JSON.stringify(detail) }).then(function(){ refresh(); }).catch(function(){});
     });
