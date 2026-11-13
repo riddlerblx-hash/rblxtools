@@ -825,7 +825,7 @@
 
   <div class="admin-panel">
     <nav class="admin-workspace-nav" aria-label="Admin workspaces">
-      <button class="admin-workspace-tab" type="button" data-admin-tab="access" aria-selected="true">Member access</button><button class="admin-workspace-tab" type="button" data-admin-tab="live" aria-selected="false">Live events</button><button class="admin-workspace-tab" type="button" data-admin-tab="review" aria-selected="false">Code review</button><button class="admin-workspace-tab" type="button" data-admin-tab="storage" aria-selected="false">UGC storage</button><button class="admin-workspace-tab" type="button" data-admin-tab="maintenance" aria-selected="false">Maintenance</button>
+      <button class="admin-workspace-tab" type="button" data-admin-tab="access" aria-selected="true">Member access</button><button class="admin-workspace-tab" type="button" data-admin-tab="live" aria-selected="false">Live events</button><button class="admin-workspace-tab" type="button" data-admin-tab="review" aria-selected="false">Code review</button><button class="admin-workspace-tab" type="button" data-admin-tab="storage" aria-selected="false">UGC storage</button><button class="admin-workspace-tab" type="button" data-admin-tab="maintenance" aria-selected="false">Maintenance</button><button class="admin-workspace-tab" type="button" data-admin-tab="developer" aria-selected="false">Developer console</button>
     </nav>
 
     <section class="admin-card admin-session-card" data-admin-workspace="access">
@@ -1270,6 +1270,14 @@
           <button class="admin-btn ghost" id="refreshMaintenanceButton" type="button">Refresh Status</button>
         </div>
         <div class="admin-result" id="maintenanceStatus"></div>
+      </div>
+    </section>
+
+    <div class="admin-section-label" data-admin-workspace="developer"><span>Developer console</span><h2>Tool runtime errors</h2><p>Private diagnostics for failed Roblox asset requests. Visitors only receive a neutral retry message.</p></div>
+    <section class="admin-card" data-admin-workspace="developer">
+      <div class="admin-card-inner">
+        <div class="admin-card-head"><div><h2 class="admin-card-title">Recent tool failures</h2><p class="admin-card-copy" id="toolRuntimeMeta">Loading server diagnostics…</p></div><div class="admin-buttons"><button class="admin-btn ghost" id="refreshToolRuntimeErrors" type="button">Refresh</button><button class="admin-btn red" id="clearToolRuntimeErrors" type="button">Clear log</button></div></div>
+        <div class="admin-note-log" id="toolRuntimeErrorsLog">Loading tool diagnostics…</div>
       </div>
     </section>
   </div>
@@ -2082,10 +2090,54 @@
   </script>
   <script>
     (function () {
+      var log = document.getElementById("toolRuntimeErrorsLog");
+      var meta = document.getElementById("toolRuntimeMeta");
+      var refresh = document.getElementById("refreshToolRuntimeErrors");
+      var clear = document.getElementById("clearToolRuntimeErrors");
+      if (!log || !meta || !refresh || !clear) return;
+      function entryNode(entry) {
+        var row = document.createElement("article"), title = document.createElement("strong"), body = document.createElement("div"), stamp = document.createElement("small");
+        row.className = "admin-note-entry";
+        title.textContent = String(entry.tool || "Tool") + " · " + (entry.assetId ? "asset " + entry.assetId : "no asset ID") + " · HTTP " + String(entry.status || 500);
+        body.textContent = String(entry.message || "Unknown tool error");
+        stamp.textContent = new Date(entry.createdAt || Date.now()).toLocaleString() + " · " + String(entry.method || "GET") + " " + String(entry.route || "");
+        row.append(title, body, stamp); return row;
+      }
+      async function load() {
+        refresh.disabled = true;
+        try {
+          var response = await fetch("/admin/tool-runtime-errors", { credentials: "include", cache: "no-store" });
+          var payload = await response.json().catch(function () { return {}; });
+          if (!response.ok) throw new Error(payload.error || "Could not load tool diagnostics.");
+          var entries = Array.isArray(payload.entries) ? payload.entries : [];
+          meta.textContent = (payload.robloxCredentialConfigured ? "Server credential detected" : "Server credential not configured") + " · " + entries.length + " recent error" + (entries.length === 1 ? "" : "s") + ".";
+          log.replaceChildren();
+          if (!entries.length) log.textContent = "No recorded tool failures. New failures appear here automatically.";
+          else entries.forEach(function (entry) { log.appendChild(entryNode(entry)); });
+        } catch (error) { log.textContent = error.message || "Could not load tool diagnostics."; }
+        finally { refresh.disabled = false; }
+      }
+      refresh.addEventListener("click", load);
+      clear.addEventListener("click", async function () {
+        if (!window.confirm("Clear the recorded tool runtime errors?")) return;
+        clear.disabled = true;
+        try {
+          var response = await fetch("/admin/tool-runtime-errors/clear", { method: "POST", credentials: "include" });
+          var payload = await response.json().catch(function () { return {}; });
+          if (!response.ok) throw new Error(payload.error || "Could not clear tool diagnostics.");
+          await load();
+        } catch (error) { log.textContent = error.message || "Could not clear tool diagnostics."; }
+        finally { clear.disabled = false; }
+      });
+      load(); window.setInterval(load, 30000);
+    }());
+  </script>
+  <script>
+    (function () {
       var tabs = Array.prototype.slice.call(document.querySelectorAll("[data-admin-tab]"));
       var panels = Array.prototype.slice.call(document.querySelectorAll("[data-admin-workspace]"));
       function selectWorkspace(name) {
-        var active = ["access", "live", "review", "storage", "maintenance"].includes(name) ? name : "access";
+        var active = ["access", "live", "review", "storage", "maintenance", "developer"].includes(name) ? name : "access";
         panels.forEach(function (panel) { panel.hidden = panel.dataset.adminWorkspace !== active; });
         tabs.forEach(function (tab) { tab.setAttribute("aria-selected", String(tab.dataset.adminTab === active)); });
         try { history.replaceState(null, "", location.pathname + "#" + active); } catch (_error) {}

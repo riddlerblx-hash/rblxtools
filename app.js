@@ -133,6 +133,7 @@ const REFERRAL_PROGRAM_PATH = path.join(RBLXTOOLS_STATE_DIR, "referral-program.j
 const GLOBAL_BOUNTY_PATH = path.join(RBLXTOOLS_STATE_DIR, "global-bounty.json");
 const TOOL_ACTIVITY_FEED_PATH = path.join(RBLXTOOLS_STATE_DIR, "tool-activity-feed.json");
 const TOOL_ACTIVITY_PREVIEW_DIR = path.join(RBLXTOOLS_STATE_DIR, "tool-activity-previews");
+const TOOL_RUNTIME_ERROR_PATH = path.join(RBLXTOOLS_STATE_DIR, "tool-runtime-errors.json");
 const REFERRAL_COMMISSION_RATE = 0.05;
 const REFERRAL_PENDING_MS = 14 * 24 * 60 * 60 * 1000;
 const REFERRAL_MINIMUM_PAYOUT_CENTS = 1000;
@@ -2661,6 +2662,41 @@ function writeJsonFile(filePath, value) {
   const tempPath = filePath + ".tmp";
   fs.writeFileSync(tempPath, JSON.stringify(value, null, 2) + "\n", "utf8");
   fs.renameSync(tempPath, filePath);
+}
+
+const PUBLIC_TOOL_RETRY_MESSAGE = "We couldn't fetch that Roblox asset right now. Please try again shortly.";
+
+function redactToolRuntimeMessage(value) {
+  return String(value || "Unknown tool error")
+    .replace(/\.ROBLOSECURITY\s*=\s*[^\s;,]+/gi, ".ROBLOSECURITY=[redacted]")
+    .replace(/ROBLOSECURITY\s+cookie/gi, "server authentication")
+    .slice(0, 500);
+}
+
+function recordToolRuntimeError(req, { tool, assetId, error, status }) {
+  try {
+    const state = readJsonFile(TOOL_RUNTIME_ERROR_PATH, { entries: [] });
+    const entries = Array.isArray(state.entries) ? state.entries : [];
+    entries.push({
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      tool: cleanText(tool, 80) || "unknown-tool",
+      assetId: String(assetId || "").replace(/\D/g, "").slice(0, 30),
+      route: cleanText(req?.originalUrl || req?.path || "", 240),
+      method: cleanText(req?.method || "GET", 12),
+      status: Number(status) || 500,
+      message: redactToolRuntimeMessage(error?.message || error),
+      robloxCredentialConfigured: Boolean(ROBLOSECURITY),
+    });
+    writeJsonFile(TOOL_RUNTIME_ERROR_PATH, { entries: entries.slice(-150) });
+  } catch (loggingError) {
+    console.error("Could not record tool runtime error:", loggingError.message);
+  }
+}
+
+function sendToolRuntimeError(req, res, { tool, assetId, error, status = 502 }) {
+  recordToolRuntimeError(req, { tool, assetId, error, status });
+  return res.status(status).json({ error: PUBLIC_TOOL_RETRY_MESSAGE });
 }
 
 function savePublicToolActivityPreview(dataUrl, activityId) {
@@ -7240,39 +7276,48 @@ function buildRelativeAnimationDownloadUrl(req, assetId) {
 }
 
 async function fetchBuffer(url) {
-  const headers = {
+  const publicHeaders = {
     "User-Agent": "roblox-template-api/1.0",
     "Accept": "*/*",
   };
-
-  if (ROBLOSECURITY) {
-    headers.Cookie = `.ROBLOSECURITY=${ROBLOSECURITY}`;
-  }
+  // Most catalog assets are public. Fetch them without any server credential
+  // first so an expired/invalid staff cookie can never block normal visitors.
+  // Private assets get one server-side authenticated fallback below.
+  const headerSets = [publicHeaders];
+  if (ROBLOSECURITY) headerSets.push({ ...publicHeaders, Cookie: `.ROBLOSECURITY=${ROBLOSECURITY}` });
 
   // Roblox's asset delivery service can briefly return a 429/5xx response or
   // reset a connection. Every non-AI downloader goes through this helper, so
   // retry those temporary failures here instead of surfacing a vague server
   // error in each individual tool.
   let lastError = null;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      const response = await fetch(url, {
-        redirect: "follow",
-        headers,
-      });
-      const buffer = Buffer.from(await response.arrayBuffer());
+  for (let headerIndex = 0; headerIndex < headerSets.length; headerIndex += 1) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const response = await fetch(url, {
+          redirect: "follow",
+          headers: headerSets[headerIndex],
+        });
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const authRequired = response.status === 401 || response.status === 403 || isAuthRequiredResponse(buffer.toString("utf8"));
 
-      if ((response.status === 429 || response.status >= 500) && attempt < 2) {
-        lastError = new Error(`Roblox asset delivery temporarily returned ${response.status}.`);
-        await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
-        continue;
-      }
+        if (authRequired && headerIndex < headerSets.length - 1) {
+          lastError = new Error(`Roblox asset delivery requested server authentication (${response.status}).`);
+          break;
+        }
 
-      return { response, buffer };
-    } catch (error) {
-      lastError = error;
-      if (attempt < 2) {
-        await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+        if ((response.status === 429 || response.status >= 500) && attempt < 2) {
+          lastError = new Error(`Roblox asset delivery temporarily returned ${response.status}.`);
+          await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+          continue;
+        }
+
+        return { response, buffer };
+      } catch (error) {
+        lastError = error;
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+        }
       }
     }
   }
@@ -7312,7 +7357,7 @@ async function resolveImageAssetFromRobloxAsset(startId, options = {}) {
     const assetText = assetFetch.buffer.toString("utf8");
 
     if (isAuthRequiredResponse(assetText)) {
-      const authError = new Error("Roblox blocked access. Add ROBLOSECURITY cookie.");
+      const authError = new Error("Roblox asset delivery requires server authentication.");
       authError.code = 403;
       throw authError;
     }
@@ -7353,7 +7398,7 @@ async function resolveAllMeshAssetsFromRobloxAsset(startId, options = {}) {
 
     const assetText = assetFetch.buffer.toString("utf8");
     if (isAuthRequiredResponse(assetText)) {
-      const authError = new Error("Roblox blocked access. Add ROBLOSECURITY cookie.");
+      const authError = new Error("Roblox asset delivery requires server authentication.");
       authError.code = 403;
       throw authError;
     }
@@ -7398,7 +7443,7 @@ async function resolveMeshAssetFromRobloxAsset(startId, options = {}) {
     const assetText = assetFetch.buffer.toString("utf8");
 
     if (isAuthRequiredResponse(assetText)) {
-      const authError = new Error("Roblox blocked access. Add ROBLOSECURITY cookie.");
+      const authError = new Error("Roblox asset delivery requires server authentication.");
       authError.code = 403;
       throw authError;
     }
@@ -11452,6 +11497,27 @@ app.get("/admin/staff-notes", async (req, res) => {
   }
 });
 
+app.get("/admin/tool-runtime-errors", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    const state = readJsonFile(TOOL_RUNTIME_ERROR_PATH, { entries: [] });
+    const entries = Array.isArray(state.entries) ? state.entries.slice(-150).reverse() : [];
+    return res.json({ ok: true, entries, robloxCredentialConfigured: Boolean(ROBLOSECURITY) });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not load tool runtime errors." });
+  }
+});
+
+app.post("/admin/tool-runtime-errors/clear", async (req, res) => {
+  try {
+    await requireAdminUser(req);
+    writeJsonFile(TOOL_RUNTIME_ERROR_PATH, { entries: [] });
+    return res.json({ ok: true, message: "Tool runtime errors cleared." });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ error: error.message || "Could not clear tool runtime errors." });
+  }
+});
+
 app.post("/store/create-ai-token-checkout", async (req, res) => {
   try {
     assertStripePortalConfigured();
@@ -12654,9 +12720,7 @@ app.get("/media", async (req, res) => {
     });
   } catch (error) {
     console.error("Media fetch failed:", error);
-    return res.status(500).json({
-      error: error?.message || "Could not fetch Roblox media right now.",
-    });
+    return sendToolRuntimeError(req, res, { tool: "media", assetId: normalized?.id, error, status: 502 });
   }
 });
 
@@ -12690,9 +12754,7 @@ app.get("/template", async (req, res) => {
     const clothingType = getClassicClothingType(bodyText);
 
     if (isAuthRequiredResponse(bodyText)) {
-      return res.status(403).json({
-        error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
-      });
+      return sendToolRuntimeError(req, res, { tool: "clothing", assetId: id, error: new Error("Roblox asset delivery requested server authentication."), status: 502 });
     }
 
     const templateId = extractTemplateId(bodyText);
@@ -12712,6 +12774,10 @@ app.get("/template", async (req, res) => {
     const secondType = secondFetch.response.headers.get("content-type") || "";
     const secondImageMime = detectImageMime(secondType, secondFetch.buffer);
 
+    if (isAuthRequiredResponse(secondFetch.buffer.toString("utf8"))) {
+      return sendToolRuntimeError(req, res, { tool: "clothing", assetId: templateId, error: new Error("Roblox template delivery requested server authentication."), status: 502 });
+    }
+
     if (!secondFetch.response.ok || !secondImageMime) {
       return res.status(404).json({
         error: "Template image was not found",
@@ -12730,7 +12796,7 @@ app.get("/template", async (req, res) => {
     return res.send(secondFetch.buffer);
   } catch (error) {
     console.error("Template fetch failed:", error);
-    return res.status(500).json({ error: "Server error" });
+    return sendToolRuntimeError(req, res, { tool: "clothing", assetId: id, error, status: 502 });
   }
 });
 
@@ -12770,7 +12836,7 @@ app.get("/ugc-texture", async (req, res) => {
       return res.status(error.statusCode).json({ error: error.message });
     }
     if (error?.code === 403) {
-      return res.status(403).json({ error: error.message });
+      return sendToolRuntimeError(req, res, { tool: "ugc", assetId: id, error, status: 502 });
     }
     return res.status(500).json({
       error: error?.message || "Could not fetch a texture for that UGC asset.",
@@ -12840,7 +12906,7 @@ app.post("/ugc-bake-glb", async (req, res) => {
   } catch (error) {
     console.error("UGC GLB bake failed:", error);
     if (error?.code === 403) {
-      return res.status(403).json({ error: error.message });
+      return sendToolRuntimeError(req, res, { tool: "ugc", assetId, error, status: 502 });
     }
     return res.status(500).json({
       error: error?.message || "Could not bake this UGC model to GLB.",
@@ -12882,9 +12948,7 @@ async function handleAnimationRequest(req, res) {
     const playableAnimationId = extractPlayableAnimationId(bodyText);
 
     if (isAuthRequiredResponse(bodyText)) {
-      return res.status(403).json({
-        error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
-      });
+      return sendToolRuntimeError(req, res, { tool: "animations", assetId: id, error: new Error("Roblox asset delivery requested server authentication."), status: 502 });
     }
 
     if (!assetFetch.response.ok) {
@@ -12926,7 +12990,7 @@ async function handleAnimationRequest(req, res) {
     });
   } catch (error) {
     console.error("Animation fetch failed:", error);
-    return res.status(502).json({ error: "Roblox could not prepare this animation right now. Please try again in a moment." });
+    return sendToolRuntimeError(req, res, { tool: "animations", assetId: id, error, status: 502 });
   }
 }
 
@@ -12949,9 +13013,7 @@ async function handleAudioRequest(req, res) {
     const bodyText = assetFetch.buffer.toString("utf8");
 
     if (isAuthRequiredResponse(bodyText)) {
-      return res.status(403).json({
-        error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
-      });
+      return sendToolRuntimeError(req, res, { tool: "audio", assetId: id, error: new Error("Roblox asset delivery requested server authentication."), status: 502 });
     }
 
     if (!assetFetch.response.ok || !audioMime) {
@@ -12997,7 +13059,7 @@ async function handleAudioRequest(req, res) {
     });
   } catch (error) {
     console.error("Audio fetch failed:", error);
-    return res.status(500).json({ error: "Server error" });
+    return sendToolRuntimeError(req, res, { tool: "audio", assetId: id, error, status: 502 });
   }
 }
 
@@ -13019,9 +13081,7 @@ app.get("/ugc-obj", async (req, res) => {
     const debug = req.query.debug === "1";
 
     if (isAuthRequiredResponse(assetText)) {
-      return res.status(403).json({
-        error: "Roblox blocked access. Add ROBLOSECURITY cookie.",
-      });
+      return sendToolRuntimeError(req, res, { tool: "ugc", assetId: id, error: new Error("Roblox asset delivery requested server authentication."), status: 502 });
     }
 
     const directVersion = assetFetch.buffer.subarray(0, 16).toString("ascii");
@@ -13095,9 +13155,7 @@ app.get("/ugc-obj", async (req, res) => {
     return res.send(meshObj);
   } catch (error) {
     console.error("UGC OBJ fetch failed:", error);
-    return res.status(500).json({
-      error: "Could not convert this UGC item to OBJ. Some Roblox mesh formats may not be supported yet.",
-    });
+    return sendToolRuntimeError(req, res, { tool: "ugc", assetId: id, error, status: 502 });
   }
 });
 
