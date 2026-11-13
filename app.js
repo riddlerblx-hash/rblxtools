@@ -11570,9 +11570,19 @@ app.get("/discord-bot/profile", (_req, res) => {
   });
 });
 
+async function requireDiscordBotDashboardAdmin(req) {
+  const user = await requireAuthenticatedUser(req);
+  if (!isAdminUser(user)) {
+    const error = new Error("The Discord Bot dashboard is available to administrators only.");
+    error.statusCode = 403;
+    throw error;
+  }
+  return user;
+}
+
 app.get("/discord-bot/dashboard", async (req, res) => {
   try {
-    const user = await requireAuthenticatedUser(req);
+    const user = await requireDiscordBotDashboardAdmin(req);
     const dashboard = applyDashboardAdminAccess(await getBotDashboard(user.id), user);
     dashboard.discordLinked = Boolean(await getDiscordLinkByAppUserId(user.id));
     const inviteUrl = /^\d+$/.test(DISCORD_TOOLS_BOT_CLIENT_ID)
@@ -11604,7 +11614,7 @@ app.post("/account-overview/preference", async (req, res) => {
 
 app.post("/discord-bot/dashboard/claim-code", async (req, res) => {
   try {
-    const user = await requireAuthenticatedUser(req);
+    const user = await requireDiscordBotDashboardAdmin(req);
     return res.json({ ok: true, ...(await createServerClaimCode(user.id)) });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ error: error.message || "Could not create a server claim code." });
@@ -11613,7 +11623,7 @@ app.post("/discord-bot/dashboard/claim-code", async (req, res) => {
 
 app.post("/discord-bot/dashboard/server-settings", async (req, res) => {
   try {
-    const user = await requireAuthenticatedUser(req);
+    const user = await requireDiscordBotDashboardAdmin(req);
     const dashboard = applyDashboardAdminAccess(await updateServerSettings({ appUserId: user.id, guildId: req.body?.guildId, perUserLimit: req.body?.perUserLimit, userLimitEnabled: req.body?.userLimitEnabled, userLimitPeriod: req.body?.userLimitPeriod, userLimitStackingEnabled: req.body?.userLimitStackingEnabled, roleDailyLimits: req.body?.roleDailyLimits, roleDailyLimitsEnabled: req.body?.roleDailyLimitsEnabled, roleLimitPeriod: req.body?.roleLimitPeriod }), user);
     return res.json({ ok: true, dashboard });
   } catch (error) {
@@ -11622,17 +11632,17 @@ app.post("/discord-bot/dashboard/server-settings", async (req, res) => {
 });
 
 app.post("/discord-bot/dashboard/server-controls", async (req, res) => {
-  try { const user = await requireAuthenticatedUser(req); return res.json({ ok: true, dashboard: applyDashboardAdminAccess(await updateServerControls({ appUserId: user.id, guildId: req.body?.guildId, paused: req.body?.paused, blockedCommands: req.body?.blockedCommands, alertsEnabled: req.body?.alertsEnabled, alertThresholds: req.body?.alertThresholds, alertChannelId: req.body?.alertChannelId }), user) }); }
+  try { const user = await requireDiscordBotDashboardAdmin(req); return res.json({ ok: true, dashboard: applyDashboardAdminAccess(await updateServerControls({ appUserId: user.id, guildId: req.body?.guildId, paused: req.body?.paused, blockedCommands: req.body?.blockedCommands, alertsEnabled: req.body?.alertsEnabled, alertThresholds: req.body?.alertThresholds, alertChannelId: req.body?.alertChannelId }), user) }); }
   catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not save bot controls." }); }
 });
 
 app.post("/discord-bot/dashboard/reset-member", async (req, res) => {
-  try { const user = await requireAuthenticatedUser(req); return res.json({ ok: true, dashboard: await resetMemberDailyUse({ appUserId: user.id, guildId: req.body?.guildId, discordUserId: req.body?.discordUserId }) }); }
+  try { const user = await requireDiscordBotDashboardAdmin(req); return res.json({ ok: true, dashboard: await resetMemberDailyUse({ appUserId: user.id, guildId: req.body?.guildId, discordUserId: req.body?.discordUserId }) }); }
   catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not reset member usage." }); }
 });
 
 app.post("/discord-bot/dashboard/unclaim-server", async (req, res) => {
-  try { const user = await requireAuthenticatedUser(req); return res.json({ ok: true, dashboard: await unclaimServer({ appUserId: user.id, guildId: req.body?.guildId }) }); }
+  try { const user = await requireDiscordBotDashboardAdmin(req); return res.json({ ok: true, dashboard: await unclaimServer({ appUserId: user.id, guildId: req.body?.guildId }) }); }
   catch (error) { return res.status(error.statusCode || 500).json({ error: error.message || "Could not unclaim this server." }); }
 });
 

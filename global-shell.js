@@ -2208,7 +2208,7 @@
               '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./quests-levels">Quests &amp; Levels</a>' +
               '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./rake-back">Rake Back</a>' +
               '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./my-transactions">My Transactions</a>' +
-              '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./bot-dashboard">Bot Dashboard</a>' +
+              (shellState.isAdmin ? '<a class="rblx-shell-profile-menu-item" data-shell-account-page="true" target="_self" href="./bot-dashboard">Bot Dashboard</a>' : '') +
               '<button class="rblx-shell-profile-menu-item is-danger" type="button" data-shell-logout="true">Log Out</button>' +
             "</div>" +
           "</details>" +

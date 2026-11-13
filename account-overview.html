@@ -1545,7 +1545,7 @@
 </head>
 <body>
 <script src="https://js.stripe.com/v3/"></script>
-<script src="./global-shell.js?v=20261108-catalog-links-1"></script>
+<script src="./global-shell.js?v=20261113-discord-license-1"></script>
   <div class="bg-wrap">
     <div class="orb orb-one"></div>
     <div class="orb orb-two"></div>
@@ -1659,7 +1659,7 @@
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="levels">Quests &amp; Levels</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="rakeback">Rake Back</button>
                 <button class="acct-tab" type="button" role="tab" aria-selected="false" data-account-tab="rewards">My Transactions</button>
-                <div id="acctBotTabWrap" class="acct-bot-tab-wrap" role="presentation">
+                <div id="acctBotTabWrap" class="acct-bot-tab-wrap" role="presentation" hidden>
                   <button id="acctBotTab" class="acct-tab" type="button" role="tab" aria-selected="false" aria-disabled="false" data-account-tab="bot">Bot Dashboard</button>
                   <span class="acct-bot-tab-lock" aria-hidden="true">&#128274;</span>
                   <button id="acctBotInfoButton" class="acct-bot-info" type="button" aria-label="About RBLXTools Bot access" aria-expanded="false" aria-controls="acctBotInfoPopover">!</button>
@@ -2830,9 +2830,10 @@
         // A dedicated account URL is intentional; never replace it with the
         // tab a member happened to open on a previous visit.
         if (accountRouteTab) {
-          state.savedAccountTab = accountRouteTab;
+          var routeTab = accountRouteTab === "bot" && !state.user.isAdmin ? "settings" : accountRouteTab;
+          state.savedAccountTab = routeTab;
           state.accountTabPreferenceLoaded = true;
-          state.selectAccountTab(accountRouteTab, false);
+          state.selectAccountTab(routeTab, false);
           return;
         }
         try {
@@ -3159,11 +3160,17 @@
         if (!state.user) {
           els.acctCard.classList.remove("is-plus", "is-pro");
           setBotTabLocked(true);
+          if (els.acctBotTabWrap) els.acctBotTabWrap.hidden = true;
+          if (els.acctBotDashboard) els.acctBotDashboard.hidden = true;
           return;
         }
 
-        // Entitlements resolve in the background; never flash a lock before that response arrives.
-        setBotTabLocked(false);
+        // The bot dashboard is retained for staff operations only. License
+        // holders receive their key at checkout and verify it in Discord.
+        var canManageBotDashboard = Boolean(state.user.isAdmin);
+        if (els.acctBotTabWrap) els.acctBotTabWrap.hidden = !canManageBotDashboard;
+        if (els.acctBotDashboard) els.acctBotDashboard.hidden = !canManageBotDashboard;
+        setBotTabLocked(!canManageBotDashboard);
         loadProfile();
         var planValue = String(state.user.plan || "free").toLowerCase();
         var displayPlan = planValue === "premium" ? "plus" : planValue;
