@@ -6350,16 +6350,28 @@ async function safeIncrementDailyUsage() {
 
 /* ✅ NOTIFICATION / LOG SYSTEM */
 function extractTemplateId(text) {
-  const patterns = [
-    /<Content name="ShirtTemplate">[\s\S]*?<url>https?:\/\/www\.roblox\.com\/asset\/\?id=(\d+)<\/url>/i,
-    /<Content name="PantsTemplate">[\s\S]*?<url>https?:\/\/www\.roblox\.com\/asset\/\?id=(\d+)<\/url>/i,
-    /<url>https?:\/\/www\.roblox\.com\/asset\/\?id=(\d+)<\/url>/i,
+  const source = String(text || "");
+  // Roblox serializes classic templates in several equivalent ways. Older
+  // assets usually contain a www.roblox.com/asset URL, while newer ones often
+  // use rbxassetid:// or a string property. Keep this scoped to the template
+  // property so an unrelated asset reference cannot be mistaken for the shirt.
+  const propertyPatterns = [
+    /<Content\s+name=["'](?:ShirtTemplate|PantsTemplate)["'][\s\S]*?<url>([\s\S]*?)<\/url>/i,
+    /<string\s+name=["'](?:ShirtTemplate|PantsTemplate)["']>([\s\S]*?)<\/string>/i,
+    /["'](?:ShirtTemplate|PantsTemplate)["']\s*[:=]\s*["']([^"']+)["']/i,
   ];
 
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) return match[1];
+  for (const pattern of propertyPatterns) {
+    const match = source.match(pattern);
+    const id = extractAssetIdFromUrl(match && match[1]);
+    if (id) return id;
   }
+
+  // Preserve compatibility with the legacy XML wrapper if Roblox omits the
+  // property name but returns only one template-style asset URL.
+  const fallback = source.match(/<url>([^<]*(?:rbxassetid:\/\/|asset\/?\?id=)[^<]*)<\/url>/i);
+  const fallbackId = extractAssetIdFromUrl(fallback && fallback[1]);
+  if (fallbackId) return fallbackId;
 
   return null;
 }
@@ -6539,15 +6551,19 @@ function getClassicClothingType(text) {
   const source = String(text || "");
   // The property containing the texture is more reliable than the wrapper
   // class returned by Roblox's asset serializer.
-  if (/<Content\s+name="PantsTemplate">/i.test(source)) return "pants";
-  if (/<Content\s+name="ShirtTemplate">/i.test(source)) return "shirt";
-  if (/<Item\s+class="Pants"/i.test(source)) return "pants";
-  if (/<Item\s+class="Shirt"/i.test(source)) return "shirt";
+  if (/<Content\s+name=["']PantsTemplate["']>/i.test(source)) return "pants";
+  if (/<Content\s+name=["']ShirtTemplate["']>/i.test(source)) return "shirt";
+  if (/<string\s+name=["']PantsTemplate["']>/i.test(source)) return "pants";
+  if (/<string\s+name=["']ShirtTemplate["']>/i.test(source)) return "shirt";
+  if (/<Item\s+class=["']Pants["']/i.test(source)) return "pants";
+  if (/<Item\s+class=["']Shirt["']/i.test(source)) return "shirt";
   return "unknown";
 }
 
 function looksLikeClassicClothingAsset(text) {
-  return /<Item class="Shirt"/i.test(text) || /<Item class="Pants"/i.test(text);
+  const source = String(text || "");
+  return /<Item\s+class=["'](?:Shirt|Pants)["']/i.test(source)
+    || /(?:ShirtTemplate|PantsTemplate)/i.test(source);
 }
 
 function isAuthRequiredResponse(text) {
