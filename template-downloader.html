@@ -395,7 +395,7 @@
 
     #actionRow { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
 
-    #downloadBtn,#downloadAllBtn {
+    #downloadBtn,#downloadAllBtn,#catalogBtn {
       border: none;
       color: #fff;
       cursor: pointer;
@@ -1865,14 +1865,33 @@
       const slideCounter = document.getElementById("slideCounter");
       const activeId = document.getElementById("activeTemplateId");
       const downloadBtn = document.getElementById("downloadBtn");
+      const catalogBtn = document.getElementById("catalogBtn");
+      const previewButton = document.getElementById("previewTemplateBtn");
+      const rotateHint = document.querySelector(".template-rig-rotate-hint");
 
       activeImage.src = activeSlide.url;
-      activeImage.alt = "Roblox clothing template " + activeSlide.id;
-      showMappedRigPreview(activeSlide.url, activeSlide.clothingType);
       slideCounter.innerText = (currentSlideIndex + 1) + " of " + currentSlides.length;
       activeId.innerText = "ID " + activeSlide.id;
-      downloadBtn.href = activeSlide.url;
-      downloadBtn.download = "roblox-template-" + activeSlide.id + ".png";
+      const isCatalogPreview = activeSlide.previewKind === "catalog-preview";
+      activeImage.alt = (isCatalogPreview ? "Roblox catalog preview " : "Roblox clothing template ") + activeSlide.id;
+      if (isCatalogPreview) {
+        disposeMappedRigPreview();
+        activeImage.style.display = "block";
+        if (previewButton) previewButton.style.display = "none";
+        if (rotateHint) rotateHint.style.display = "none";
+      } else {
+        if (previewButton) previewButton.style.display = "";
+        if (rotateHint) rotateHint.style.display = "";
+        showMappedRigPreview(activeSlide.url, activeSlide.clothingType);
+      }
+      downloadBtn.hidden = isCatalogPreview;
+      catalogBtn.hidden = !isCatalogPreview;
+      if (isCatalogPreview) {
+        catalogBtn.href = "https://www.roblox.com/catalog/" + encodeURIComponent(activeSlide.id);
+      } else {
+        downloadBtn.href = activeSlide.url;
+        downloadBtn.download = "roblox-template-" + activeSlide.id + ".png";
+      }
     }
 
     function showSlide(direction) {
@@ -1915,6 +1934,7 @@
         </div>
         <div id="actionRow">
           <a id="downloadBtn" href="#">Download Template</a>
+          <a id="catalogBtn" href="#" target="_blank" rel="noopener" hidden>View Item on Roblox</a>
           ${isMulti ? '<button id="downloadAllBtn" type="button" onclick="downloadAllSlides()">Download All Templates</button>' : ""}
         </div>
       `;
@@ -1937,7 +1957,13 @@
           const blob = await res.blob();
           await postTemplateLog(id);
           const clothingType = String(res.headers.get("X-Roblox-Clothing-Type") || "unknown").toLowerCase();
-          return { id: id, url: URL.createObjectURL(blob), clothingType: clothingType === "pants" ? "pants" : "shirt" };
+          const previewKind = String(res.headers.get("X-Roblox-Template-Fallback") || "").toLowerCase();
+          return {
+            id: id,
+            url: URL.createObjectURL(blob),
+            clothingType: clothingType === "pants" ? "pants" : "shirt",
+            previewKind: previewKind === "catalog-preview" ? "catalog-preview" : "template"
+          };
         } catch (_error) {
           // Try the alternate official hostname below. This also bypasses an
           // outdated service worker or a transient origin-specific failure.
@@ -1966,8 +1992,13 @@
 
       try {
         const slides = await Promise.all(ids.map((id) => fetchTemplateBlob(id)));
+        const previewOnlyCount = slides.filter((slide) => slide.previewKind === "catalog-preview").length;
         status.className = "success";
-        status.innerText = ids.length > 1 ? "Templates found ✓ Ready to download" : "Template found ✓ Ready to download";
+        status.innerText = previewOnlyCount
+          ? (previewOnlyCount === slides.length
+            ? "Catalog preview found ✓ Roblox restricted the raw template file."
+            : "Results found ✓ Some items are catalog-preview only.")
+          : (ids.length > 1 ? "Templates found ✓ Ready to download" : "Template found ✓ Ready to download");
         renderSlides(slides);
         rememberToolActivity("Clothing");
         window.dispatchEvent(new CustomEvent("rblxtools-tool-use", { detail: { tool: "template-downloader", assetId: slides[0] && slides[0].id, preview: { kind: "clothing" } } }));

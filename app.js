@@ -7268,6 +7268,39 @@ async function getRobloxAssetThumbnailUrl(assetId) {
   }
 }
 
+async function getRobloxClassicClothingType(assetId) {
+  try {
+    const response = await fetch(
+      `https://economy.roblox.com/v2/assets/${encodeURIComponent(String(assetId || ""))}/details`,
+      { headers: { "User-Agent": "roblox-template-api/1.0", Accept: "application/json" } }
+    );
+    if (!response.ok) return "unknown";
+
+    const asset = await response.json();
+    if (Number(asset?.AssetTypeId) === 11) return "shirt";
+    if (Number(asset?.AssetTypeId) === 12) return "pants";
+  } catch (_error) {}
+
+  return "unknown";
+}
+
+async function fetchRobloxCatalogThumbnail(assetId) {
+  const imageUrl = await getRobloxAssetThumbnailUrl(assetId);
+  if (!imageUrl) return null;
+
+  try {
+    const response = await fetch(imageUrl, {
+      redirect: "follow",
+      headers: { "User-Agent": "roblox-template-api/1.0", Accept: "image/avif,image/webp,image/png,image/*,*/*" },
+    });
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const mime = detectImageMime(response.headers.get("content-type") || "", buffer);
+    return response.ok && mime ? { buffer, mime } : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
 function buildRelativeAnimationDownloadUrl(req, assetId) {
   const routePath = req.path === "/animation" ? "/animation" : "/api/animation";
   const params = new URLSearchParams();
@@ -12776,6 +12809,27 @@ app.get("/template", async (req, res) => {
     const templateId = extractTemplateId(bodyText);
 
     if (!templateId) {
+      // Some valid catalog shirts/pants have their raw wrapper withheld by
+      // asset delivery. Show the real catalog art instead of mislabeling the
+      // item invalid, but mark it preview-only so it is never downloaded as a
+      // template image.
+      const catalogClothingType = await getRobloxClassicClothingType(id);
+      if (catalogClothingType !== "unknown") {
+        const catalogThumbnail = await fetchRobloxCatalogThumbnail(id);
+        if (catalogThumbnail) {
+          await safeIncrementDailyUsage();
+          await emitToolActivityForRequest(req, "template-downloader", getRequestActivityParam(req, "displayName", displayNameLength));
+
+          res.setHeader("Content-Type", catalogThumbnail.mime);
+          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("X-Roblox-Clothing-Type", catalogClothingType);
+          res.setHeader("X-Roblox-Template-Fallback", "catalog-preview");
+          res.setHeader("X-Roblox-Template-Id", id);
+          res.setHeader("Access-Control-Expose-Headers", "X-Roblox-Clothing-Type, X-Roblox-Template-Id, X-Roblox-Template-Fallback");
+          return res.send(catalogThumbnail.buffer);
+        }
+      }
+
       const classicHint = looksLikeClassicClothingAsset(bodyText)
         ? "Roblox returned a clothing asset, but no template image could be resolved."
         : "That ID does not appear to be a classic shirt or classic pants asset.";
