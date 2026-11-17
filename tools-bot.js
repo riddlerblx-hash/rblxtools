@@ -15,6 +15,9 @@ const {
   Routes,
   SlashCommandBuilder,
   AttachmentBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   EmbedBuilder,
   PermissionFlagsBits,
 } = require("discord.js");
@@ -195,6 +198,22 @@ async function recordOfficialToolUsage(discordUserId, plan) {
 function withWebsitePromotion(response, usage) {
   const usageLabel = usage ? (usage.limit == null ? "INF" : Math.max(0, usage.limit - usage.used) + "/" + usage.limit) : "INF";
   return { ...response, content: String(response?.content || "") + "\n\n**Uses left today:** " + usageLabel + "\n**RBLXTools:** Get unlimited tool usage free at <https://www.rblxtools.net>." };
+}
+
+function buildAttachmentDownloadComponents(message) {
+  const attachment = message?.attachments?.first?.();
+  const url = String(attachment?.url || "").trim();
+  if (!/^https:\/\//i.test(url)) return [];
+
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setStyle(ButtonStyle.Link)
+        .setURL(url)
+        .setEmoji("⬇️")
+        .setLabel("Download file")
+    ),
+  ];
 }
 
 function buildToolUrl(pathname, parameters) {
@@ -452,7 +471,11 @@ async function handleChatInput(interaction) {
       const mediaType = interaction.commandName === "media" ? interaction.options.getString("media-type") : "";
       const result = await buildToolDownload(interaction.commandName, assetId, mediaType, interaction.user.id, interaction.guildId);
       const remainingUsage = officialUsage ? await recordOfficialToolUsage(interaction.user.id, officialUsage.plan) : null;
-      await interaction.editReply(withWebsitePromotion(result, remainingUsage));
+      const reply = await interaction.editReply(withWebsitePromotion(result, remainingUsage));
+      const downloadComponents = buildAttachmentDownloadComponents(reply);
+      if (downloadComponents.length) {
+        await interaction.editReply({ components: downloadComponents });
+      }
     } catch (error) {
       console.error("[tools-bot] tool download failed:", error);
       await interaction.editReply(error.message || "I could not prepare that RBLXTools download.");
