@@ -1884,13 +1884,17 @@
         if (rotateHint) rotateHint.style.display = "";
         showMappedRigPreview(activeSlide.url, activeSlide.clothingType);
       }
-      downloadBtn.hidden = isCatalogPreview;
+      downloadBtn.hidden = false;
       catalogBtn.hidden = !isCatalogPreview;
       if (isCatalogPreview) {
+        downloadBtn.href = activeSlide.url;
+        downloadBtn.download = "roblox-catalog-preview-" + activeSlide.id + ".png";
+        downloadBtn.textContent = "Download Catalog Preview";
         catalogBtn.href = "https://www.roblox.com/catalog/" + encodeURIComponent(activeSlide.id);
       } else {
         downloadBtn.href = activeSlide.url;
         downloadBtn.download = "roblox-template-" + activeSlide.id + ".png";
+        downloadBtn.textContent = "Download Template";
       }
     }
 
@@ -1996,7 +2000,7 @@
         status.className = "success";
         status.innerText = previewOnlyCount
           ? (previewOnlyCount === slides.length
-            ? "Catalog preview found ✓ Roblox restricted the raw template file."
+            ? "Catalog preview found ✓ Ready to download."
             : "Results found ✓ Some items are catalog-preview only.")
           : (ids.length > 1 ? "Templates found ✓ Ready to download" : "Template found ✓ Ready to download");
         renderSlides(slides);
